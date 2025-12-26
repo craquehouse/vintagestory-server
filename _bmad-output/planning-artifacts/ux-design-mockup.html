@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VintageStory Server Manager - Design Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Catppuccin Mocha (Dark) */
+      --ctp-base: #1e1e2e;
+      --ctp-mantle: #181825;
+      --ctp-crust: #11111b;
+      --ctp-surface0: #313244;
+      --ctp-surface1: #45475a;
+      --ctp-surface2: #585b70;
+      --ctp-overlay0: #6c7086;
+      --ctp-overlay1: #7f849c;
+      --ctp-overlay2: #9399b2;
+      --ctp-subtext0: #a6adc8;
+      --ctp-subtext1: #bac2de;
+      --ctp-text: #cdd6f4;
+      --ctp-lavender: #b4befe;
+      --ctp-blue: #89b4fa;
+      --ctp-sapphire: #74c7ec;
+      --ctp-sky: #89dceb;
+      --ctp-teal: #94e2d5;
+      --ctp-green: #a6e3a1;
+      --ctp-yellow: #f9e2af;
+      --ctp-peach: #fab387;
+      --ctp-maroon: #eba0ac;
+      --ctp-red: #f38ba8;
+      --ctp-mauve: #cba6f7;
+      --ctp-pink: #f5c2e7;
+      --ctp-flamingo: #f2cdcd;
+      --ctp-rosewater: #f5e0dc;
+    }
+
+    [data-theme="light"] {
+      /* Catppuccin Latte (Light) */
+      --ctp-base: #eff1f5;
+      --ctp-mantle: #e6e9ef;
+      --ctp-crust: #dce0e8;
+      --ctp-surface0: #ccd0da;
+      --ctp-surface1: #bcc0cc;
+      --ctp-surface2: #acb0be;
+      --ctp-overlay0: #9ca0b0;
+      --ctp-overlay1: #8c8fa1;
+      --ctp-overlay2: #7c7f93;
+      --ctp-subtext0: #6c6f85;
+      --ctp-subtext1: #5c5f77;
+      --ctp-text: #4c4f69;
+      --ctp-lavender: #7287fd;
+      --ctp-blue: #1e66f5;
+      --ctp-sapphire: #209fb5;
+      --ctp-sky: #04a5e5;
+      --ctp-teal: #179299;
+      --ctp-green: #40a02b;
+      --ctp-yellow: #df8e1d;
+      --ctp-peach: #fe640b;
+      --ctp-maroon: #e64553;
+      --ctp-red: #d20f39;
+      --ctp-mauve: #8839ef;
+      --ctp-pink: #ea76cb;
+      --ctp-flamingo: #dd7878;
+      --ctp-rosewater: #dc8a78;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--ctp-base);
+      color: var(--ctp-text);
+      min-height: 100vh;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--ctp-mantle);
+      border-right: 1px solid var(--ctp-surface0);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.2s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 64px;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--ctp-surface0);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--ctp-mauve);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--ctp-base);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .sidebar.collapsed .sidebar-title {
+      display: none;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      color: var(--ctp-subtext0);
+      text-decoration: none;
+      transition: all 0.15s ease;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    .nav-item:hover {
+      background: var(--ctp-surface0);
+      color: var(--ctp-text);
+    }
+
+    .nav-item.active {
+      background: var(--ctp-surface0);
+      color: var(--ctp-mauve);
+    }
+
+    .nav-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-label {
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .sidebar.collapsed .nav-label {
+      display: none;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--ctp-surface0);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sidebar-footer-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .github-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      color: var(--ctp-subtext0);
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .github-link:hover {
+      background: var(--ctp-surface0);
+      color: var(--ctp-text);
+    }
+
+    .version-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+      color: var(--ctp-overlay0);
+    }
+
+    .version-info span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .version-label {
+      color: var(--ctp-overlay1);
+    }
+
+    .sidebar.collapsed .version-info {
+      display: none;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--ctp-surface0);
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      color: var(--ctp-subtext0);
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle:hover {
+      background: var(--ctp-surface1);
+      color: var(--ctp-text);
+    }
+
+    .theme-toggle span {
+      display: none;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      height: 48px;
+      background: var(--ctp-mantle);
+      border-bottom: 1px solid var(--ctp-surface0);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .server-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-badge.running {
+      background: rgba(166, 227, 161, 0.15);
+      color: var(--ctp-green);
+    }
+
+    .status-badge.stopped {
+      background: rgba(243, 139, 168, 0.15);
+      color: var(--ctp-red);
+    }
+
+    .status-badge.starting {
+      background: rgba(249, 226, 175, 0.15);
+      color: var(--ctp-yellow);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.starting .status-dot {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .pending-restart {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: rgba(249, 226, 175, 0.15);
+      border: 1px solid var(--ctp-yellow);
+      border-radius: 8px;
+      color: var(--ctp-yellow);
+      font-size: 13px;
+    }
+
+    .pending-restart button {
+      background: var(--ctp-yellow);
+      color: var(--ctp-base);
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background: var(--ctp-base);
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 14px;
+      color: var(--ctp-subtext0);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--ctp-surface0);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Dashboard Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--ctp-surface0);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--ctp-subtext0);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .stat-value.running {
+      color: var(--ctp-green);
+    }
+
+    /* Mod Input */
+    .mod-input-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .mod-input {
+      flex: 1;
+      background: var(--ctp-surface0);
+      border: 1px solid var(--ctp-surface1);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--ctp-text);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .mod-input::placeholder {
+      color: var(--ctp-overlay0);
+    }
+
+    .mod-input:focus {
+      border-color: var(--ctp-mauve);
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--ctp-mauve);
+      color: var(--ctp-base);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: var(--ctp-surface1);
+      color: var(--ctp-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--ctp-surface2);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--ctp-red);
+      border: 1px solid var(--ctp-red);
+    }
+
+    .btn-danger:hover {
+      background: rgba(243, 139, 168, 0.1);
+    }
+
+    /* Mod Table */
+    .mod-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .mod-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ctp-subtext0);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--ctp-surface1);
+    }
+
+    .mod-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--ctp-surface1);
+      font-size: 14px;
+    }
+
+    .mod-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .mod-table tr:hover {
+      background: var(--ctp-surface1);
+    }
+
+    .mod-name {
+      font-weight: 500;
+    }
+
+    .mod-slug {
+      font-size: 12px;
+    }
+
+    .version-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .version-label {
+      font-size: 10px;
+      color: var(--ctp-overlay0);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .version-value {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+    }
+
+    .version-value.current {
+      color: var(--ctp-text);
+    }
+
+    .version-value.available {
+      color: var(--ctp-blue);
+    }
+
+    .version-value.outdated {
+      color: var(--ctp-yellow);
+    }
+
+    .update-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: rgba(137, 180, 250, 0.15);
+      color: var(--ctp-blue);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+
+    .update-badge:hover {
+      background: rgba(137, 180, 250, 0.25);
+      color: var(--ctp-subtext0);
+    }
+
+    .compatibility-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .compatibility-badge.compatible {
+      background: rgba(166, 227, 161, 0.15);
+      color: var(--ctp-green);
+    }
+
+    .compatibility-badge.warning {
+      background: rgba(249, 226, 175, 0.15);
+      color: var(--ctp-yellow);
+    }
+
+    .compatibility-badge.incompatible {
+      background: rgba(243, 139, 168, 0.15);
+      color: var(--ctp-red);
+    }
+
+    .mod-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--ctp-subtext0);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--ctp-surface2);
+      color: var(--ctp-text);
+    }
+
+    .icon-btn.danger:hover {
+      background: rgba(243, 139, 168, 0.15);
+      color: var(--ctp-red);
+    }
+
+    /* Terminal */
+    .terminal-container {
+      background: var(--ctp-crust);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .terminal-tabs {
+      display: flex;
+      background: var(--ctp-mantle);
+      border-bottom: 1px solid var(--ctp-surface0);
+    }
+
+    .terminal-tab {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ctp-subtext0);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .terminal-tab:hover {
+      color: var(--ctp-text);
+    }
+
+    .terminal-tab.active {
+      color: var(--ctp-mauve);
+      border-bottom-color: var(--ctp-mauve);
+    }
+
+    .terminal-output {
+      padding: 16px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .terminal-line {
+      margin-bottom: 2px;
+    }
+
+    .terminal-line .time {
+      color: var(--ctp-overlay0);
+    }
+
+    .terminal-line .info {
+      color: var(--ctp-blue);
+    }
+
+    .terminal-line .success {
+      color: var(--ctp-green);
+    }
+
+    .terminal-line .warning {
+      color: var(--ctp-yellow);
+    }
+
+    .terminal-line .error {
+      color: var(--ctp-red);
+    }
+
+    .terminal-input-container {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--ctp-mantle);
+      border-top: 1px solid var(--ctp-surface0);
+      gap: 8px;
+    }
+
+    .terminal-prompt {
+      color: var(--ctp-mauve);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+    }
+
+    .terminal-input {
+      flex: 1;
+      background: none;
+      border: none;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: var(--ctp-text);
+      outline: none;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: var(--ctp-surface0);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      animation: slideIn 0.3s ease;
+      min-width: 280px;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.success {
+      border-left: 3px solid var(--ctp-green);
+    }
+
+    .toast.error {
+      border-left: 3px solid var(--ctp-red);
+      background: var(--ctp-surface1);
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--ctp-green);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--ctp-red);
+    }
+
+    .toast-content {
+      flex: 1;
+    }
+
+    .toast-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toast-message {
+      font-size: 13px;
+      color: var(--ctp-subtext0);
+    }
+
+    .toast-close {
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: none;
+      color: var(--ctp-overlay0);
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .toast-close:hover {
+      background: var(--ctp-surface1);
+      color: var(--ctp-text);
+    }
+
+    /* View Tabs */
+    .view-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--ctp-surface0);
+    }
+
+    .view-tab {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ctp-subtext0);
+      background: none;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .view-tab:hover {
+      background: var(--ctp-surface0);
+      color: var(--ctp-text);
+    }
+
+    .view-tab.active {
+      background: var(--ctp-surface0);
+      color: var(--ctp-mauve);
+    }
+
+    /* Mockup Navigation */
+    .mockup-nav {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: var(--ctp-surface0);
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+    }
+
+    .mockup-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      color: var(--ctp-subtext0);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .mockup-btn:hover {
+      background: var(--ctp-surface1);
+      color: var(--ctp-text);
+    }
+
+    .mockup-btn.active {
+      background: var(--ctp-mauve);
+      color: var(--ctp-base);
+    }
+
+    /* Views */
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* Restart Required Badge */
+    .restart-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      background: rgba(249, 226, 175, 0.15);
+      color: var(--ctp-yellow);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">VS</div>
+        <div class="sidebar-title">Server Manager</div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a class="nav-item" data-view="mods">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+          </span>
+          <span class="nav-label">Mods</span>
+        </a>
+        <a class="nav-item" data-view="config">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="nav-label">Config</span>
+        </a>
+        <a class="nav-item" data-view="terminal">
+          <span class="nav-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+          </span>
+          <span class="nav-label">Terminal</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-row">
+          <a href="https://github.com/craquehouse/vintagestory-server" class="github-link" target="_blank" title="View on GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+          <div class="version-info">
+            <span><span class="version-label">Web:</span> v0.1.0</span>
+            <span><span class="version-label">API:</span> v0.1.0</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <span class="server-name">VintageStory Dev Server</span>
+          <span class="status-badge running">
+            <span class="status-dot"></span>
+            Running
+          </span>
+        </div>
+        <div class="header-right">
+          <div class="pending-restart" id="pendingRestart" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"/>
+              <path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span>2 pending changes</span>
+            <button>Restart Now</button>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-icon-light">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-icon-dark" style="display: none;">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <div class="content-area">
+        <!-- Dashboard View -->
+        <div class="view active" id="view-dashboard">
+          <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Server overview and quick actions</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Status</div>
+              <div class="stat-value running">Running</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Version</div>
+              <div class="stat-value">1.21.3</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Uptime</div>
+              <div class="stat-value">3d 14h</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Mods</div>
+              <div class="stat-value">12</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Quick Actions</h2>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6"/>
+                  <path d="M1 20v-6h6"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Restart Server
+              </button>
+              <button class="btn btn-danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                Stop Server
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Recent Console Output</h2>
+              <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;">View Full Console</button>
+            </div>
+            <div class="terminal-output" style="height: 150px; background: var(--ctp-crust); border-radius: 8px; padding: 12px;">
+              <div class="terminal-line"><span class="time">[14:32:05]</span> <span class="info">[Server]</span> World "Survival" loaded successfully</div>
+              <div class="terminal-line"><span class="time">[14:32:06]</span> <span class="success">[Mod]</span> SmithingPlus v1.2.0 initialized</div>
+              <div class="terminal-line"><span class="time">[14:32:06]</span> <span class="success">[Mod]</span> CarryCapacity v2.1.4 initialized</div>
+              <div class="terminal-line"><span class="time">[14:32:07]</span> <span class="info">[Server]</span> Server started on port 42420</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mods View -->
+        <div class="view" id="view-mods">
+          <div class="page-header">
+            <h1 class="page-title">Mod Management</h1>
+            <p class="page-subtitle">Install and manage server mods</p>
+          </div>
+
+          <div class="mod-input-container">
+            <input type="text" class="mod-input" placeholder="Enter mod slug or paste URL">
+            <button class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Lookup
+            </button>
+          </div>
+
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <table class="mod-table">
+              <thead>
+                <tr>
+                  <th>Mod</th>
+                  <th>Installed</th>
+                  <th>Available</th>
+                  <th>Compatibility</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="mod-name">Smithing Plus</div>
+                    <div class="mod-slug mono">smithingplus</div>
+                  </td>
+                  <td>
+                    <span class="version-value current">1.2.0</span>
+                  </td>
+                  <td>
+                    <span class="version-value current">1.2.0</span>
+                    <span style="font-size: 11px; color: var(--ctp-green);">✓ Latest</span>
+                  </td>
+                  <td>
+                    <span class="compatibility-badge compatible">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Compatible
+                    </span>
+                  </td>
+                  <td>Enabled</td>
+                  <td class="mod-actions">
+                    <button class="icon-btn" title="Disable">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                        <line x1="12" y1="2" x2="12" y2="12"/>
+                      </svg>
+                    </button>
+                    <button class="icon-btn danger" title="Remove">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="mod-name">Carry Capacity</div>
+                    <div class="mod-slug mono">carrycapacity</div>
+                  </td>
+                  <td>
+                    <span class="version-value outdated">2.1.4</span>
+                  </td>
+                  <td>
+                    <span class="version-value available">2.2.0</span>
+                    <span class="update-badge" title="Click to update">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Update
+                    </span>
+                  </td>
+                  <td>
+                    <span class="compatibility-badge compatible">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Compatible
+                    </span>
+                  </td>
+                  <td>Enabled</td>
+                  <td class="mod-actions">
+                    <button class="icon-btn" title="Disable">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                        <line x1="12" y1="2" x2="12" y2="12"/>
+                      </svg>
+                    </button>
+                    <button class="icon-btn danger" title="Remove">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="mod-name">Wildcraft</div>
+                    <div class="mod-slug mono">wildcraft</div>
+                  </td>
+                  <td>
+                    <span class="version-value current">1.8.2</span>
+                  </td>
+                  <td>
+                    <span class="version-value current">1.8.2</span>
+                    <span style="font-size: 11px; color: var(--ctp-green);">✓ Latest</span>
+                  </td>
+                  <td>
+                    <span class="compatibility-badge warning">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
+                      Not verified
+                    </span>
+                  </td>
+                  <td>
+                    Enabled
+                    <span class="restart-badge" style="margin-left: 8px;">Restart required</span>
+                  </td>
+                  <td class="mod-actions">
+                    <button class="icon-btn" title="Disable">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                        <line x1="12" y1="2" x2="12" y2="12"/>
+                      </svg>
+                    </button>
+                    <button class="icon-btn danger" title="Remove">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Terminal View -->
+        <div class="view" id="view-terminal">
+          <div class="page-header">
+            <h1 class="page-title">Terminal</h1>
+            <p class="page-subtitle">Console output and shell access</p>
+          </div>
+
+          <div class="terminal-container">
+            <div class="terminal-tabs">
+              <button class="terminal-tab active">Console</button>
+              <button class="terminal-tab">Shell</button>
+            </div>
+            <div class="terminal-output">
+              <div class="terminal-line"><span class="time">[14:30:01]</span> <span class="info">[Server]</span> Starting VintageStory Server v1.21.3...</div>
+              <div class="terminal-line"><span class="time">[14:30:02]</span> <span class="info">[Server]</span> Loading configuration...</div>
+              <div class="terminal-line"><span class="time">[14:30:03]</span> <span class="info">[Server]</span> Loading mods...</div>
+              <div class="terminal-line"><span class="time">[14:30:04]</span> <span class="success">[Mod]</span> SmithingPlus v1.2.0 loaded</div>
+              <div class="terminal-line"><span class="time">[14:30:04]</span> <span class="success">[Mod]</span> CarryCapacity v2.1.4 loaded</div>
+              <div class="terminal-line"><span class="time">[14:30:04]</span> <span class="warning">[Mod]</span> Wildcraft v1.8.2 loaded (not verified for 1.21.3)</div>
+              <div class="terminal-line"><span class="time">[14:30:05]</span> <span class="info">[Server]</span> Initializing world...</div>
+              <div class="terminal-line"><span class="time">[14:32:05]</span> <span class="info">[Server]</span> World "Survival" loaded successfully</div>
+              <div class="terminal-line"><span class="time">[14:32:06]</span> <span class="success">[Mod]</span> SmithingPlus v1.2.0 initialized</div>
+              <div class="terminal-line"><span class="time">[14:32:06]</span> <span class="success">[Mod]</span> CarryCapacity v2.1.4 initialized</div>
+              <div class="terminal-line"><span class="time">[14:32:07]</span> <span class="info">[Server]</span> Server started on port 42420</div>
+              <div class="terminal-line"><span class="time">[14:45:12]</span> <span class="info">[Server]</span> Player "Alex" connected</div>
+              <div class="terminal-line"><span class="time">[14:46:33]</span> <span class="info">[Server]</span> Player "Alex" spawned at (124, 72, -89)</div>
+            </div>
+            <div class="terminal-input-container">
+              <span class="terminal-prompt">$</span>
+              <input type="text" class="terminal-input" placeholder="Enter command...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Config View -->
+        <div class="view" id="view-config">
+          <div class="page-header">
+            <h1 class="page-title">Configuration</h1>
+            <p class="page-subtitle">Server settings and config files</p>
+          </div>
+
+          <div class="view-tabs">
+            <button class="view-tab active">Server Settings</button>
+            <button class="view-tab">World Config</button>
+            <button class="view-tab">serverconfig.json</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Server Settings</h2>
+              <button class="btn btn-primary" style="padding: 8px 16px;">Save Changes</button>
+            </div>
+            <div style="display: grid; gap: 16px;">
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--ctp-subtext0); margin-bottom: 6px;">Server Name</label>
+                <input type="text" class="mod-input" value="VintageStory Dev Server" style="width: 100%;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--ctp-subtext0); margin-bottom: 6px;">Max Players</label>
+                <input type="number" class="mod-input" value="10" style="width: 120px;">
+              </div>
+              <div>
+                <label style="display: block; font-size: 13px; color: var(--ctp-subtext0); margin-bottom: 6px;">Server Port</label>
+                <input type="number" class="mod-input" value="42420" style="width: 120px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer">
+    <div class="toast success">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <div class="toast-content">
+        <div class="toast-title">Mod installed</div>
+        <div class="toast-message">SmithingPlus v1.2.0 installed successfully</div>
+      </div>
+      <button class="toast-close">&times;</button>
+    </div>
+  </div>
+
+  <!-- Mockup Navigation -->
+  <nav class="mockup-nav">
+    <button class="mockup-btn active" data-view="dashboard">Dashboard</button>
+    <button class="mockup-btn" data-view="mods">Mods</button>
+    <button class="mockup-btn" data-view="config">Config</button>
+    <button class="mockup-btn" data-view="terminal">Terminal</button>
+    <button class="mockup-btn" onclick="togglePending()">Toggle Pending</button>
+  </nav>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+
+      // Toggle icon visibility
+      const lightIcon = document.querySelector('.theme-icon-light');
+      const darkIcon = document.querySelector('.theme-icon-dark');
+      if (newTheme === 'light') {
+        lightIcon.style.display = 'none';
+        darkIcon.style.display = 'block';
+      } else {
+        lightIcon.style.display = 'block';
+        darkIcon.style.display = 'none';
+      }
+    }
+
+    // View navigation
+    document.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const viewId = btn.getAttribute('data-view');
+
+        // Update nav items
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.mockup-btn').forEach(item => item.classList.remove('active'));
+        document.querySelector(`.nav-item[data-view="${viewId}"]`)?.classList.add('active');
+        document.querySelector(`.mockup-btn[data-view="${viewId}"]`)?.classList.add('active');
+
+        // Update views
+        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+        document.getElementById(`view-${viewId}`)?.classList.add('active');
+      });
+    });
+
+    // Toggle pending restart indicator
+    function togglePending() {
+      const pending = document.getElementById('pendingRestart');
+      pending.style.display = pending.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    // Hide toast after delay
+    setTimeout(() => {
+      const toast = document.querySelector('.toast');
+      if (toast) {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

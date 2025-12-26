@@ -1,0 +1,130 @@
+# Workflow Status Template
+
+# This tracks progress through BMM methodology Analysis, Planning, and Solutioning phases.
+# Implementation phase is tracked separately in sprint-status.yaml
+
+# STATUS DEFINITIONS:
+# ==================
+# Initial Status (before completion):
+#   - required: Must be completed to progress
+#   - optional: Can be completed but not required
+#   - recommended: Strongly suggested but not required
+#   - conditional: Required only if certain conditions met (e.g., if_has_ui)
+#
+# Completion Status:
+#   - {file-path}: File created/found (e.g., "docs/product-brief.md")
+#   - skipped: Optional/conditional workflow that was skipped
+
+generated: "2025-12-26"
+project: "vintagestory-server"
+project_type: "Multi-component infrastructure (Docker + Python FastAPI + Node.js Web UI)"
+selected_track: "enterprise"
+field_type: "greenfield"
+workflow_path: "enterprise-greenfield"
+workflow_status:
+  # Phase 0: Discovery
+  - id: "brainstorm-project"
+    phase: 0
+    phase_name: "Discovery"
+    status: "_bmad-output/analysis/brainstorming-session-2025-12-26.md"
+    agent: "analyst"
+    command: "manual: load _bmad/core/workflows/brainstorming/workflow.md"
+    included: true
+    note: "Completed - API server technology stack defined"
+
+  - id: "research"
+    phase: 0
+    phase_name: "Discovery"
+    status: "skipped"
+    agent: "analyst"
+    command: "/bmad:bmm:workflows:research"
+    included: false
+    note: "Highly recommended for enterprise - domain and compliance research"
+
+  - id: "product-brief"
+    phase: 0
+    phase_name: "Discovery"
+    status: "skipped"
+    agent: "analyst"
+    command: "/bmad:bmm:workflows:create-product-brief"
+    included: false
+    note: "Recommended for strategic alignment"
+
+  # Phase 1: Planning
+  - id: "prd"
+    phase: 1
+    phase_name: "Planning"
+    status: "_bmad-output/planning-artifacts/prd.md"
+    agent: "pm"
+    command: "/bmad:bmm:workflows:create-prd"
+    note: "Enterprise-level requirements with compliance considerations"
+
+  - id: "create-ux-design"
+    phase: 1
+    phase_name: "Planning"
+    status: "recommended"
+    agent: "ux-designer"
+    command: "/bmad:bmm:workflows:create-ux-design"
+    note: "Highly recommended for enterprise - design system and patterns"
+
+  # Phase 2: Solutioning
+  - id: "create-architecture"
+    phase: 2
+    phase_name: "Solutioning"
+    status: "required"
+    agent: "architect"
+    command: "/bmad:bmm:workflows:create-architecture"
+    note: "Includes scalability, multi-tenancy, integration architecture"
+
+  - id: "test-design"
+    phase: 2
+    phase_name: "Solutioning"
+    status: "required"
+    agent: "tea"
+    command: "/bmad:bmm:workflows:testarch-test-design"
+    note: "Enterprise requires testability validation - auto-detects system-level mode"
+
+  - id: "validate-architecture"
+    phase: 2
+    phase_name: "Solutioning"
+    status: "recommended"
+    agent: "architect"
+    command: "/bmad:bmm:workflows:validate-architecture"
+
+  - id: "create-epics-and-stories"
+    phase: 2
+    phase_name: "Solutioning"
+    status: "required"
+    agent: "pm"
+    command: "/bmad:bmm:workflows:create-epics-and-stories"
+    note: "Break down PRD into implementable epics and stories with full context"
+
+  - id: "implementation-readiness"
+    phase: 2
+    phase_name: "Solutioning"
+    status: "required"
+    agent: "architect"
+    command: "/bmad:bmm:workflows:check-implementation-readiness"
+    note: "Validates PRD + Architecture + Epics + UX"
+
+  # Phase 3: Implementation
+  - id: "sprint-planning"
+    phase: 3
+    phase_name: "Implementation"
+    status: "required"
+    agent: "sm"
+    command: "/bmad:bmm:workflows:sprint-planning"
+    note: "Creates sprint plan - enterprise projects may require phased rollout"
+
+# Discovery Workflows
+brainstorm_requested: true
+research_requested: false
+product_brief_requested: false
+
+# User Description
+user_description: |
+  Custom docker image for VintageStory game server with:
+  - Python server manager (FastAPI): download, upgrade, backup, start/stop, mod management, configuration
+  - Node.js web UI for API interaction
+  - Modern best-practice libraries, tools, frameworks, pipelines
+  - Clear separation between docker, apiserver, and webserver components
