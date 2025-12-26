@@ -79,10 +79,10 @@ workflow_status:
   - id: "test-design"
     phase: 2
     phase_name: "Solutioning"
-    status: "required"
+    status: "_bmad-output/planning-artifacts/test-design-system.md"
     agent: "tea"
     command: "/bmad:bmm:workflows:testarch-test-design"
-    note: "Enterprise requires testability validation - auto-detects system-level mode"
+    note: "Completed - System-level testability review PASS, 50/35/15 test split recommended"
 
   - id: "validate-architecture"
     phase: 2
