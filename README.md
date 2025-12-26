@@ -2,6 +2,10 @@
 
 Dockerized VintageStory dedicated game server with a web-based admin interface.
 
+## Artificial Intelligence Disclaimer
+
+This project is developed with the assistance of AI coding tools (such as Claude Code, opencode, cursor, or similar). All AI-generated code is reviewed and tested before inclusion. While we strive for quality and correctness, users should evaluate the code independently for their specific use cases.
+
 ## Components
 
 - **Docker Image** - VintageStory dedicated server container

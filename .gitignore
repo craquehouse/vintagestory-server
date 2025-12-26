@@ -80,3 +80,7 @@ credentials/
 # OS files
 .DS_Store
 Thumbs.db
+
+# BMad
+_bmad
+.claude/commands/bmad
