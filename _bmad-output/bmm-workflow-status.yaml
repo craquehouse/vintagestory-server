@@ -62,19 +62,19 @@ workflow_status:
   - id: "create-ux-design"
     phase: 1
     phase_name: "Planning"
-    status: "recommended"
+    status: "_bmad-output/planning-artifacts/ux-design-specification.md"
     agent: "ux-designer"
     command: "/bmad:bmm:workflows:create-ux-design"
-    note: "Highly recommended for enterprise - design system and patterns"
+    note: "Completed - component strategy, user flows, accessibility requirements"
 
   # Phase 2: Solutioning
   - id: "create-architecture"
     phase: 2
     phase_name: "Solutioning"
-    status: "required"
+    status: "_bmad-output/planning-artifacts/architecture.md"
     agent: "architect"
     command: "/bmad:bmm:workflows:create-architecture"
-    note: "Includes scalability, multi-tenancy, integration architecture"
+    note: "Completed - starter template, API patterns, state management"
 
   - id: "test-design"
     phase: 2
@@ -94,10 +94,10 @@ workflow_status:
   - id: "create-epics-and-stories"
     phase: 2
     phase_name: "Solutioning"
-    status: "required"
+    status: "_bmad-output/planning-artifacts/epics.md"
     agent: "pm"
     command: "/bmad:bmm:workflows:create-epics-and-stories"
-    note: "Break down PRD into implementable epics and stories with full context"
+    note: "Completed - 7 epics, 27 stories, 38 FRs covered"
 
   - id: "implementation-readiness"
     phase: 2
