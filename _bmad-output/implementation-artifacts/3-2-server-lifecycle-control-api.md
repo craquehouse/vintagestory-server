@@ -1,6 +1,6 @@
 # Story 3.2: Server Lifecycle Control API
 
-Status: ready-for-dev
+Status: ready-for-review
 
 ---
 
@@ -28,32 +28,32 @@ so that **I can control the server without container access**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend ServerService with process management + tests (AC: 1, 2, 5)
-  - [ ] 1.1: Add `asyncio.subprocess` management to `ServerService` class
-  - [ ] 1.2: Implement `start_server()` - spawns dotnet process as background subprocess
-  - [ ] 1.3: Implement `stop_server()` - sends SIGTERM for graceful shutdown, SIGKILL after timeout
-  - [ ] 1.4: Implement process monitoring task that detects crashes and updates state
-  - [ ] 1.5: Add server state enum values: `starting`, `running`, `stopping`
-  - [ ] 1.6: Write tests for start, stop, and crash detection with mocked subprocess
+- [x] Task 1: Extend ServerService with process management + tests (AC: 1, 2, 5)
+  - [x] 1.1: Add `asyncio.subprocess` management to `ServerService` class
+  - [x] 1.2: Implement `start_server()` - spawns dotnet process as background subprocess
+  - [x] 1.3: Implement `stop_server()` - sends SIGTERM for graceful shutdown, SIGKILL after timeout
+  - [x] 1.4: Implement process monitoring task that detects crashes and updates state
+  - [x] 1.5: Add server state enum values: `starting`, `running`, `stopping`
+  - [x] 1.6: Write tests for start, stop, and crash detection with mocked subprocess
 
-- [ ] Task 2: Implement server restart functionality + tests (AC: 3)
-  - [ ] 2.1: Implement `restart_server()` that calls stop then start in sequence
-  - [ ] 2.2: Add timeout handling for graceful shutdown (10s default, then SIGKILL)
-  - [ ] 2.3: Write tests for restart including partial failure scenarios
+- [x] Task 2: Implement server restart functionality + tests (AC: 3)
+  - [x] 2.1: Implement `restart_server()` that calls stop then start in sequence
+  - [x] 2.2: Add timeout handling for graceful shutdown (10s default, then SIGKILL)
+  - [x] 2.3: Write tests for restart including partial failure scenarios
 
-- [ ] Task 3: Create lifecycle control API endpoints + tests (AC: 1-4)
-  - [ ] 3.1: Add `POST /api/v1alpha1/server/start` endpoint
-  - [ ] 3.2: Add `POST /api/v1alpha1/server/stop` endpoint
-  - [ ] 3.3: Add `POST /api/v1alpha1/server/restart` endpoint
-  - [ ] 3.4: Add proper error responses (400 for not installed, 409 for already in target state)
-  - [ ] 3.5: Add Admin role requirement for all control endpoints
-  - [ ] 3.6: Write integration tests for all endpoints
+- [x] Task 3: Create lifecycle control API endpoints + tests (AC: 1-4)
+  - [x] 3.1: Add `POST /api/v1alpha1/server/start` endpoint
+  - [x] 3.2: Add `POST /api/v1alpha1/server/stop` endpoint
+  - [x] 3.3: Add `POST /api/v1alpha1/server/restart` endpoint
+  - [x] 3.4: Add proper error responses (400 for not installed, 409 for already in target state)
+  - [x] 3.5: Add Admin role requirement for all control endpoints
+  - [x] 3.6: Write integration tests for all endpoints
 
-- [ ] Task 4: Implement exit code tracking and crash recovery + tests (AC: 5)
-  - [ ] 4.1: Store last exit code when process terminates
-  - [ ] 4.2: Add exit code to status response when server is stopped
-  - [ ] 4.3: Ensure API remains responsive when game server crashes
-  - [ ] 4.4: Write tests for crash scenarios and API resilience
+- [x] Task 4: Implement exit code tracking and crash recovery + tests (AC: 5)
+  - [x] 4.1: Store last exit code when process terminates
+  - [x] 4.2: Add exit code to status response when server is stopped
+  - [x] 4.3: Ensure API remains responsive when game server crashes
+  - [x] 4.4: Write tests for crash scenarios and API resilience
 
 ---
 
@@ -376,10 +376,36 @@ async def test_crash_detected_and_state_updated(server_service, mock_subprocess)
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- Extended `ServerState` enum with `STARTING`, `RUNNING`, `STOPPING` values
+- Added `LifecycleAction`, `LifecycleResponse`, and `ServerStatus` Pydantic models
+- Added new error codes: `SERVER_START_FAILED`, `SERVER_STOP_FAILED`, `SERVER_ALREADY_STOPPED`
+- Implemented `ServerService` lifecycle methods:
+  - `start_server()` - spawns dotnet subprocess, starts background monitor
+  - `stop_server()` - SIGTERM with 10s timeout, then SIGKILL
+  - `restart_server()` - stop then start in sequence
+  - `get_server_status()` - returns current state, version, uptime, exit code
+  - `_monitor_process()` - background task for crash detection
+- Added `asyncio.Lock` (`_lifecycle_lock`) for thread-safe lifecycle operations
+- Created three new API endpoints:
+  - `POST /api/v1alpha1/server/start` - Admin role required
+  - `POST /api/v1alpha1/server/stop` - Admin role required
+  - `POST /api/v1alpha1/server/restart` - Admin role required
+- All endpoints return proper error responses (400, 409) for edge cases
+- 120 tests pass (added 42 new lifecycle tests)
+- All type checks and linting pass
+
 ### File List
+
+- `api/src/vintagestory_api/models/server.py` - Added ServerState enum values, LifecycleAction, LifecycleResponse, ServerStatus models
+- `api/src/vintagestory_api/models/errors.py` - Added SERVER_START_FAILED, SERVER_STOP_FAILED, SERVER_ALREADY_STOPPED error codes
+- `api/src/vintagestory_api/services/server.py` - Extended ServerService with process lifecycle management
+- `api/src/vintagestory_api/routers/server.py` - Added start, stop, restart API endpoints
+- `api/tests/test_server.py` - Added lifecycle tests (42 new tests)

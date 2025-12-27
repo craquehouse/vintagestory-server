@@ -4,7 +4,9 @@ import asyncio
 import hashlib
 import re
 import shutil
+import signal
 import tarfile
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -17,7 +19,10 @@ from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.server import (
     InstallationStage,
     InstallProgress,
+    LifecycleAction,
+    LifecycleResponse,
     ServerState,
+    ServerStatus,
     VersionInfo,
 )
 
@@ -58,6 +63,16 @@ class ServerService:
 
         # Lock to prevent concurrent installations (race condition protection)
         self._install_lock = asyncio.Lock()
+
+        # Process lifecycle management
+        self._process: asyncio.subprocess.Process | None = None
+        self._monitor_task: asyncio.Task[None] | None = None
+        self._server_state: ServerState = ServerState.INSTALLED  # Runtime state
+        self._last_exit_code: int | None = None
+        self._server_start_time: float | None = None
+
+        # Lock to prevent concurrent lifecycle operations
+        self._lifecycle_lock = asyncio.Lock()
 
     @property
     def settings(self) -> Settings:
@@ -596,3 +611,269 @@ class ServerService:
         # Reset state
         self._reset_install_state()
         logger.info("cleanup_complete")
+
+    # ============================================
+    # Server Lifecycle Management
+    # ============================================
+
+    def get_server_status(self) -> ServerStatus:
+        """Get current server runtime status.
+
+        Returns:
+            ServerStatus with current state, version, uptime, and exit code.
+        """
+        # If not installed, return not_installed state
+        if not self.is_installed():
+            return ServerStatus(state=ServerState.NOT_INSTALLED)
+
+        # Determine current runtime state
+        current_state = self._get_runtime_state()
+
+        uptime_seconds = None
+        if current_state == ServerState.RUNNING and self._server_start_time is not None:
+            uptime_seconds = int(time.time() - self._server_start_time)
+
+        return ServerStatus(
+            state=current_state,
+            version=self.get_installed_version(),
+            uptime_seconds=uptime_seconds,
+            last_exit_code=self._last_exit_code,
+        )
+
+    def _get_runtime_state(self) -> ServerState:
+        """Get the current runtime state of the server process.
+
+        Returns:
+            Current ServerState based on process status.
+        """
+        # If process exists and is running
+        if self._process is not None and self._process.returncode is None:
+            return self._server_state
+
+        # If we're in a transitional state, return it
+        if self._server_state in (ServerState.STARTING, ServerState.STOPPING):
+            return self._server_state
+
+        # Process is not running - server is installed but stopped
+        return ServerState.INSTALLED
+
+    async def start_server(self) -> LifecycleResponse:
+        """Start the game server subprocess.
+
+        Returns:
+            LifecycleResponse with action result.
+
+        Raises:
+            RuntimeError: If server cannot be started.
+        """
+        async with self._lifecycle_lock:
+            return await self._start_server_locked()
+
+    async def _start_server_locked(self) -> LifecycleResponse:
+        """Internal start logic (must be called with lock held)."""
+        previous_state = self._get_runtime_state()
+
+        # Validate preconditions
+        if not self.is_installed():
+            logger.warning("start_server_failed", reason="not_installed")
+            raise RuntimeError(ErrorCode.SERVER_NOT_INSTALLED)
+
+        if previous_state == ServerState.RUNNING:
+            logger.warning("start_server_failed", reason="already_running")
+            raise RuntimeError(ErrorCode.SERVER_ALREADY_RUNNING)
+
+        if previous_state == ServerState.STARTING:
+            logger.warning("start_server_failed", reason="already_starting")
+            raise RuntimeError(ErrorCode.SERVER_ALREADY_RUNNING)
+
+        # Build command to run server
+        command = [
+            "dotnet",
+            str(self._settings.server_dir / "VintagestoryServer.dll"),
+            "--dataPath",
+            str(self._settings.data_dir),
+        ]
+
+        logger.info("starting_server", command=command)
+
+        self._server_state = ServerState.STARTING
+        self._last_exit_code = None
+
+        try:
+            self._process = await asyncio.create_subprocess_exec(
+                *command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            # Record start time and update state
+            self._server_start_time = time.time()
+            self._server_state = ServerState.RUNNING
+
+            # Start background monitoring task
+            self._monitor_task = asyncio.create_task(self._monitor_process())
+
+            logger.info(
+                "server_started",
+                pid=self._process.pid,
+                state=self._server_state.value,
+            )
+
+            return LifecycleResponse(
+                action=LifecycleAction.START,
+                previous_state=previous_state,
+                new_state=self._server_state,
+                message="Server start initiated",
+            )
+
+        except Exception as e:
+            self._server_state = ServerState.INSTALLED
+            logger.error("server_start_failed", error=str(e))
+            raise RuntimeError(ErrorCode.SERVER_START_FAILED) from e
+
+    async def stop_server(self, timeout: float = 10.0) -> LifecycleResponse:
+        """Stop the game server gracefully, force kill after timeout.
+
+        Args:
+            timeout: Seconds to wait for graceful shutdown before SIGKILL.
+
+        Returns:
+            LifecycleResponse with action result.
+
+        Raises:
+            RuntimeError: If server cannot be stopped.
+        """
+        async with self._lifecycle_lock:
+            return await self._stop_server_locked(timeout)
+
+    async def _stop_server_locked(self, timeout: float) -> LifecycleResponse:
+        """Internal stop logic (must be called with lock held)."""
+        previous_state = self._get_runtime_state()
+
+        # Validate preconditions
+        if not self.is_installed():
+            logger.warning("stop_server_failed", reason="not_installed")
+            raise RuntimeError(ErrorCode.SERVER_NOT_INSTALLED)
+
+        if self._process is None or self._process.returncode is not None:
+            logger.warning("stop_server_failed", reason="not_running")
+            raise RuntimeError(ErrorCode.SERVER_NOT_RUNNING)
+
+        logger.info("stopping_server", pid=self._process.pid, timeout=timeout)
+
+        self._server_state = ServerState.STOPPING
+
+        try:
+            # Send SIGTERM for graceful shutdown
+            self._process.send_signal(signal.SIGTERM)
+
+            try:
+                await asyncio.wait_for(self._process.wait(), timeout=timeout)
+                logger.info(
+                    "server_stopped_gracefully",
+                    returncode=self._process.returncode,
+                )
+            except TimeoutError:
+                # Force kill after timeout
+                logger.warning("server_stop_timeout", timeout=timeout)
+                self._process.kill()
+                await self._process.wait()
+                logger.info(
+                    "server_killed",
+                    returncode=self._process.returncode,
+                )
+
+            self._last_exit_code = self._process.returncode
+            self._server_state = ServerState.INSTALLED
+            self._server_start_time = None
+
+            # Cancel monitor task if still running
+            if self._monitor_task and not self._monitor_task.done():
+                self._monitor_task.cancel()
+                try:
+                    await self._monitor_task
+                except asyncio.CancelledError:
+                    pass
+
+            return LifecycleResponse(
+                action=LifecycleAction.STOP,
+                previous_state=previous_state,
+                new_state=self._server_state,
+                message="Server stopped",
+            )
+
+        except Exception as e:
+            logger.error("server_stop_failed", error=str(e))
+            raise RuntimeError(ErrorCode.SERVER_STOP_FAILED) from e
+
+    async def restart_server(self, timeout: float = 10.0) -> LifecycleResponse:
+        """Restart the game server (stop then start).
+
+        Args:
+            timeout: Seconds to wait for graceful shutdown before SIGKILL.
+
+        Returns:
+            LifecycleResponse with action result.
+
+        Raises:
+            RuntimeError: If server cannot be restarted.
+        """
+        async with self._lifecycle_lock:
+            return await self._restart_server_locked(timeout)
+
+    async def _restart_server_locked(self, timeout: float) -> LifecycleResponse:
+        """Internal restart logic (must be called with lock held)."""
+        previous_state = self._get_runtime_state()
+
+        # Validate preconditions
+        if not self.is_installed():
+            logger.warning("restart_server_failed", reason="not_installed")
+            raise RuntimeError(ErrorCode.SERVER_NOT_INSTALLED)
+
+        # If running, stop first
+        if self._process is not None and self._process.returncode is None:
+            logger.info("restart_stopping_server")
+            # Call the internal method directly (we already hold the lock)
+            await self._stop_server_locked(timeout)
+
+        # Now start the server
+        logger.info("restart_starting_server")
+        await self._start_server_locked()
+
+        return LifecycleResponse(
+            action=LifecycleAction.RESTART,
+            previous_state=previous_state,
+            new_state=self._server_state,
+            message="Server restarted",
+        )
+
+    async def _monitor_process(self) -> None:
+        """Background task to monitor process and detect crashes."""
+        if self._process is None:
+            return
+
+        try:
+            # Wait for process to exit
+            returncode = await self._process.wait()
+
+            # Update state based on exit
+            self._last_exit_code = returncode
+            self._server_start_time = None
+
+            # Only update state if we weren't already stopping
+            if self._server_state != ServerState.STOPPING:
+                self._server_state = ServerState.INSTALLED
+                if returncode == 0:
+                    logger.info("server_exited_normally", returncode=returncode)
+                else:
+                    logger.warning(
+                        "server_crashed",
+                        returncode=returncode,
+                        exit_code=returncode,
+                    )
+
+        except asyncio.CancelledError:
+            # Monitor was cancelled during shutdown - this is expected
+            pass
+        except Exception as e:
+            logger.error("monitor_error", error=str(e))

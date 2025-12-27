@@ -1,13 +1,16 @@
 """Tests for VintageStory server installation service."""
 
+import asyncio
 import hashlib
 import io
 import re
 import shutil
+import signal
 import tarfile
 import tempfile
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -17,7 +20,12 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from vintagestory_api.config import Settings
-from vintagestory_api.models.server import InstallationStage, ServerState
+from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.server import (
+    InstallationStage,
+    LifecycleAction,
+    ServerState,
+)
 from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.server import (
     VS_CDN_BASE,
@@ -478,7 +486,7 @@ class TestServerInstallation:
     async def test_concurrent_install_requests_serialized(
         self, test_settings: Settings
     ) -> None:
-        """Concurrent install requests are serialized by asyncio.Lock (race condition protection)."""
+        """Concurrent install requests are serialized by asyncio.Lock."""
         import asyncio
 
         # Mock version checks - all versions "exist"
@@ -1328,3 +1336,955 @@ class TestServerInstallStatusEndpoint:
         assert data["data"]["state"] == "error"
         assert data["data"]["error"] == "Downloaded server file checksum verification failed"
         assert data["data"]["error_code"] == ErrorCode.CHECKSUM_MISMATCH
+
+
+# ============================================
+# Server Lifecycle Tests (Story 3.2)
+# ============================================
+
+
+@pytest.fixture
+def installed_service(test_settings: Settings) -> ServerService:
+    """Create a server service with server files in place (simulating installed state)."""
+    # Create required server files
+    test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+    (test_settings.server_dir / "VintagestoryServer.dll").touch()
+    (test_settings.server_dir / "VintagestoryLib.dll").touch()
+    (test_settings.server_dir / "current_version").write_text("1.21.3")
+    return ServerService(test_settings)
+
+
+@pytest.fixture
+def mock_subprocess():
+    """Mock asyncio.create_subprocess_exec for testing.
+
+    Uses an Event to simulate blocking wait that can be unblocked for stop tests.
+    """
+    with patch("asyncio.create_subprocess_exec") as mock:
+        process = AsyncMock()
+        process.pid = 12345
+        process.returncode = None  # None = still running
+
+        # Use an Event that can be set to unblock wait()
+        process._wait_event = asyncio.Event()
+
+        async def controlled_wait():
+            """Wait until unblocked or return immediately if stopped."""
+            try:
+                # Wait for event to be set, but with a short timeout for cleanup
+                await asyncio.wait_for(process._wait_event.wait(), timeout=0.01)
+            except TimeoutError:
+                pass
+            return process.returncode if process.returncode is not None else 0
+
+        process.wait = AsyncMock(side_effect=controlled_wait)
+        process.send_signal = MagicMock()
+        process.kill = MagicMock()
+        mock.return_value = process
+        yield mock, process
+
+
+class TestServerLifecycleStateEnum:
+    """Tests for new ServerState enum values (Subtask 1.5)."""
+
+    def test_server_state_has_starting(self) -> None:
+        """ServerState enum includes 'starting' value."""
+        assert ServerState.STARTING.value == "starting"
+
+    def test_server_state_has_running(self) -> None:
+        """ServerState enum includes 'running' value."""
+        assert ServerState.RUNNING.value == "running"
+
+    def test_server_state_has_stopping(self) -> None:
+        """ServerState enum includes 'stopping' value."""
+        assert ServerState.STOPPING.value == "stopping"
+
+
+class TestStartServer:
+    """Tests for start_server() method (Subtask 1.2, AC: 1)."""
+
+    @pytest.mark.asyncio
+    async def test_start_server_spawns_process(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() spawns subprocess with correct command."""
+        mock_exec, _ = mock_subprocess
+
+        await installed_service.start_server()
+
+        mock_exec.assert_called_once()
+        # Check command contains dotnet and VintagestoryServer.dll
+        call_args = mock_exec.call_args[0]
+        assert "dotnet" in call_args
+        assert any("VintagestoryServer.dll" in str(arg) for arg in call_args)
+
+    @pytest.mark.asyncio
+    async def test_start_server_returns_lifecycle_response(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() returns LifecycleResponse with correct data."""
+        mock_exec, mock_process = mock_subprocess
+
+        response = await installed_service.start_server()
+
+        assert response.action == LifecycleAction.START
+        assert response.previous_state == ServerState.INSTALLED
+        assert response.new_state == ServerState.RUNNING
+        assert response.message == "Server start initiated"
+
+    @pytest.mark.asyncio
+    async def test_start_server_updates_state_to_running(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() updates server state to RUNNING."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+
+        status = installed_service.get_server_status()
+        assert status.state == ServerState.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_start_server_fails_when_not_installed(
+        self, test_settings: Settings
+    ) -> None:
+        """start_server() raises error when server not installed."""
+        service = ServerService(test_settings)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            await service.start_server()
+
+        assert ErrorCode.SERVER_NOT_INSTALLED in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_start_server_fails_when_already_running(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() raises error when server already running."""
+        mock_exec, mock_process = mock_subprocess
+
+        # Start server once
+        await installed_service.start_server()
+
+        # Try to start again
+        with pytest.raises(RuntimeError) as exc_info:
+            await installed_service.start_server()
+
+        assert ErrorCode.SERVER_ALREADY_RUNNING in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_start_server_starts_monitor_task(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() starts background monitor task."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+
+        assert installed_service._monitor_task is not None
+        assert not installed_service._monitor_task.done()
+
+    @pytest.mark.asyncio
+    async def test_start_server_includes_data_path_arg(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """start_server() includes --dataPath argument."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+
+        call_args = mock_exec.call_args[0]
+        assert "--dataPath" in call_args
+
+
+class TestStopServer:
+    """Tests for stop_server() method (Subtask 1.3, AC: 2)."""
+
+    @pytest.mark.asyncio
+    async def test_stop_server_sends_sigterm(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """stop_server() sends SIGTERM for graceful shutdown."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+        await installed_service.stop_server()
+
+        mock_process.send_signal.assert_called_with(signal.SIGTERM)
+
+    @pytest.mark.asyncio
+    async def test_stop_server_returns_lifecycle_response(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """stop_server() returns LifecycleResponse with correct data."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+        response = await installed_service.stop_server()
+
+        assert response.action == LifecycleAction.STOP
+        assert response.previous_state == ServerState.RUNNING
+        assert response.new_state == ServerState.INSTALLED
+        assert response.message == "Server stopped"
+
+    @pytest.mark.asyncio
+    async def test_stop_server_updates_state_to_installed(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """stop_server() updates server state back to INSTALLED."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+        await installed_service.stop_server()
+
+        status = installed_service.get_server_status()
+        assert status.state == ServerState.INSTALLED
+
+    @pytest.mark.asyncio
+    async def test_stop_server_fails_when_not_running(
+        self, installed_service: ServerService
+    ) -> None:
+        """stop_server() raises error when server not running."""
+        with pytest.raises(RuntimeError) as exc_info:
+            await installed_service.stop_server()
+
+        assert ErrorCode.SERVER_NOT_RUNNING in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_stop_server_fails_when_not_installed(
+        self, test_settings: Settings
+    ) -> None:
+        """stop_server() raises error when server not installed."""
+        service = ServerService(test_settings)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            await service.stop_server()
+
+        assert ErrorCode.SERVER_NOT_INSTALLED in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_stop_server_kills_after_timeout(
+        self, installed_service: ServerService
+    ) -> None:
+        """stop_server() sends SIGKILL after timeout expires."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            call_count = 0
+
+            async def slow_then_complete():
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    # First call (from monitor task or stop) - blocks forever
+                    await asyncio.sleep(100)
+                # After kill(), return immediately
+                process.returncode = -9
+                return -9
+
+            process.wait = AsyncMock(side_effect=slow_then_complete)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            # Override wait() to timeout on first call, return immediately after kill
+            wait_call = 0
+
+            async def timeout_then_complete():
+                nonlocal wait_call
+                wait_call += 1
+                if wait_call == 1:
+                    # First wait() should timeout
+                    raise TimeoutError()
+                # After kill(), complete
+                process.returncode = -9
+                return -9
+
+            process.wait = AsyncMock(side_effect=timeout_then_complete)
+
+            # Use short timeout
+            await installed_service.stop_server(timeout=0.1)
+
+            # Should have called kill after timeout
+            process.kill.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_stop_server_records_exit_code(
+        self, installed_service: ServerService
+    ) -> None:
+        """stop_server() records process exit code."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block the monitor forever
+            async def blocking_monitor_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_monitor_wait)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            # For stop, wait should complete quickly and set returncode
+            async def stop_wait():
+                process.returncode = 0
+                return 0
+
+            process.wait = AsyncMock(side_effect=stop_wait)
+
+            await installed_service.stop_server()
+
+            status = installed_service.get_server_status()
+            assert status.last_exit_code == 0
+
+
+class TestRestartServer:
+    """Tests for restart_server() method (Subtask 2.1, AC: 3)."""
+
+    @pytest.mark.asyncio
+    async def test_restart_server_when_running(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """restart_server() stops and starts when server is running."""
+        mock_exec, mock_process = mock_subprocess
+
+        await installed_service.start_server()
+        response = await installed_service.restart_server()
+
+        assert response.action == LifecycleAction.RESTART
+        assert response.previous_state == ServerState.RUNNING
+        assert response.new_state == ServerState.RUNNING
+        assert response.message == "Server restarted"
+
+    @pytest.mark.asyncio
+    async def test_restart_server_when_stopped(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """restart_server() starts server when not running."""
+        mock_exec, mock_process = mock_subprocess
+
+        response = await installed_service.restart_server()
+
+        assert response.action == LifecycleAction.RESTART
+        assert response.previous_state == ServerState.INSTALLED
+        assert response.new_state == ServerState.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_restart_server_fails_when_not_installed(
+        self, test_settings: Settings
+    ) -> None:
+        """restart_server() raises error when server not installed."""
+        service = ServerService(test_settings)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            await service.restart_server()
+
+        assert ErrorCode.SERVER_NOT_INSTALLED in str(exc_info.value)
+
+
+class TestProcessMonitoring:
+    """Tests for process monitoring and crash detection (Subtask 1.4, AC: 5)."""
+
+    @pytest.mark.asyncio
+    async def test_crash_detected_updates_state(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """Monitor task updates state when process crashes."""
+        mock_exec, mock_process = mock_subprocess
+        # Simulate crash with non-zero exit code
+        mock_process.wait = AsyncMock(return_value=1)
+        mock_process.returncode = 1
+
+        await installed_service.start_server()
+
+        # Let monitor task run
+        await asyncio.sleep(0.1)
+
+        status = installed_service.get_server_status()
+        assert status.state == ServerState.INSTALLED
+        assert status.last_exit_code == 1
+
+    @pytest.mark.asyncio
+    async def test_crash_records_exit_code(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """Monitor task records exit code on crash."""
+        mock_exec, mock_process = mock_subprocess
+        mock_process.wait = AsyncMock(return_value=137)  # Killed by SIGKILL
+        mock_process.returncode = 137
+
+        await installed_service.start_server()
+
+        # Let monitor task run
+        await asyncio.sleep(0.1)
+
+        status = installed_service.get_server_status()
+        assert status.last_exit_code == 137
+
+
+class TestServerStatus:
+    """Tests for get_server_status() method."""
+
+    def test_status_not_installed(self, test_settings: Settings) -> None:
+        """get_server_status() returns NOT_INSTALLED when no server files."""
+        service = ServerService(test_settings)
+
+        status = service.get_server_status()
+
+        assert status.state == ServerState.NOT_INSTALLED
+        assert status.version is None
+
+    def test_status_installed_stopped(self, installed_service: ServerService) -> None:
+        """get_server_status() returns INSTALLED when stopped."""
+        status = installed_service.get_server_status()
+
+        assert status.state == ServerState.INSTALLED
+        assert status.version == "1.21.3"
+        assert status.uptime_seconds is None
+
+    @pytest.mark.asyncio
+    async def test_status_running_has_uptime(
+        self, installed_service: ServerService
+    ) -> None:
+        """get_server_status() includes uptime when running."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None  # None = still running
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever to simulate running process
+            async def blocking_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            # Wait a moment for uptime
+            await asyncio.sleep(0.1)
+
+            status = installed_service.get_server_status()
+            assert status.state == ServerState.RUNNING
+            assert status.uptime_seconds is not None
+            assert status.uptime_seconds >= 0
+
+    @pytest.mark.asyncio
+    async def test_status_after_stop_has_exit_code(
+        self, installed_service: ServerService
+    ) -> None:
+        """get_server_status() includes exit code after stopping."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            # For stop, wait should complete immediately
+            async def stop_wait():
+                process.returncode = 0
+                return 0
+
+            process.wait = AsyncMock(side_effect=stop_wait)
+
+            await installed_service.stop_server()
+
+            status = installed_service.get_server_status()
+            assert status.state == ServerState.INSTALLED
+            assert status.last_exit_code == 0
+
+
+class TestConcurrentLifecycleOperations:
+    """Tests for lifecycle lock preventing race conditions."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_starts_serialized(
+        self, installed_service: ServerService, mock_subprocess: tuple
+    ) -> None:
+        """Concurrent start calls are serialized by lock."""
+        mock_exec, mock_process = mock_subprocess
+
+        # Add delay to start to simulate slow startup
+        original_wait = mock_process.wait
+
+        async def slow_start():
+            await asyncio.sleep(0.1)
+            return await original_wait()
+
+        mock_process.wait = slow_start
+
+        # Start concurrent operations
+        results = await asyncio.gather(
+            installed_service.start_server(),
+            installed_service.start_server(),
+            return_exceptions=True,
+        )
+
+        # One should succeed, one should fail with already running
+        success_count = sum(1 for r in results if not isinstance(r, Exception))
+        error_count = sum(1 for r in results if isinstance(r, RuntimeError))
+
+        assert success_count == 1
+        assert error_count == 1
+
+
+# ============================================
+# Lifecycle API Endpoint Tests (Story 3.2 - Task 3)
+# ============================================
+
+
+class TestServerStartEndpoint:
+    """Tests for POST /api/v1alpha1/server/start endpoint (AC: 1)."""
+
+    @pytest.fixture
+    def integration_app(
+        self, temp_data_dir: Path
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def test_start_requires_authentication(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/start requires API key."""
+        response = integration_client.post("/api/v1alpha1/server/start")
+        assert response.status_code == 401
+
+    def test_start_requires_admin_role(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/start requires Admin role."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/start",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == "FORBIDDEN"
+
+    def test_start_not_installed_returns_400(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/start returns 400 when no server installed (AC: 4)."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/start",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_NOT_INSTALLED"
+
+    def test_start_success(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/start successfully starts server (AC: 1)."""
+        # Create server files to simulate installed state
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            response = integration_client.post(
+                "/api/v1alpha1/server/start",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["action"] == "start"
+        assert data["data"]["previous_state"] == "installed"
+        assert data["data"]["new_state"] == "running"
+
+    def test_start_already_running_returns_409(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/start returns 409 when already running."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        # Get the service and manually set state to running
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        test_service._server_state = ServerState.RUNNING
+
+        # Mock process to simulate running
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # None = still running
+        test_service._process = mock_process
+
+        # Second start should fail
+        response = integration_client.post(
+            "/api/v1alpha1/server/start",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 409
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_ALREADY_RUNNING"
+
+
+class TestServerStopEndpoint:
+    """Tests for POST /api/v1alpha1/server/stop endpoint (AC: 2)."""
+
+    @pytest.fixture
+    def integration_app(
+        self, temp_data_dir: Path
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def test_stop_requires_authentication(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/stop requires API key."""
+        response = integration_client.post("/api/v1alpha1/server/stop")
+        assert response.status_code == 401
+
+    def test_stop_requires_admin_role(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/stop requires Admin role."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/stop",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+        assert response.status_code == 403
+
+    def test_stop_not_installed_returns_400(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/stop returns 400 when no server installed (AC: 4)."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/stop",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_NOT_INSTALLED"
+
+    def test_stop_not_running_returns_409(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/stop returns 409 when server not running."""
+        # Create server files (installed but not running)
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/stop",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 409
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_NOT_RUNNING"
+
+    def test_stop_success(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/stop successfully stops running server (AC: 2)."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Use event to control wait behavior
+            started = False
+
+            async def controlled_wait():
+                nonlocal started
+                if not started:
+                    started = True
+                    await asyncio.sleep(100)  # Block for monitor
+                # After stop, return immediately
+                process.returncode = 0
+                return 0
+
+            process.wait = AsyncMock(side_effect=controlled_wait)
+            mock_exec.return_value = process
+
+            # Start server first
+            response1 = integration_client.post(
+                "/api/v1alpha1/server/start",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+            assert response1.status_code == 200
+
+            # Make wait() complete on stop
+            async def stop_wait():
+                process.returncode = 0
+                return 0
+
+            process.wait = AsyncMock(side_effect=stop_wait)
+
+            # Stop server
+            response2 = integration_client.post(
+                "/api/v1alpha1/server/stop",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+        assert response2.status_code == 200
+        data = response2.json()
+        assert data["status"] == "ok"
+        assert data["data"]["action"] == "stop"
+        assert data["data"]["new_state"] == "installed"
+
+
+class TestServerRestartEndpoint:
+    """Tests for POST /api/v1alpha1/server/restart endpoint (AC: 3)."""
+
+    @pytest.fixture
+    def integration_app(
+        self, temp_data_dir: Path
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def test_restart_requires_authentication(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/restart requires API key."""
+        response = integration_client.post("/api/v1alpha1/server/restart")
+        assert response.status_code == 401
+
+    def test_restart_requires_admin_role(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/restart requires Admin role."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/restart",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+        assert response.status_code == 403
+
+    def test_restart_not_installed_returns_400(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/restart returns 400 when no server installed (AC: 4)."""
+        response = integration_client.post(
+            "/api/v1alpha1/server/restart",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_NOT_INSTALLED"
+
+    def test_restart_success_from_stopped(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/restart starts server when stopped (AC: 3)."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            response = integration_client.post(
+                "/api/v1alpha1/server/restart",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["action"] == "restart"
+        assert data["data"]["previous_state"] == "installed"
+        assert data["data"]["new_state"] == "running"
+
+    def test_restart_success_from_running(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/restart stops and starts when running (AC: 3)."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        # Get the service and manually set state to running
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        test_service._server_state = ServerState.RUNNING
+
+        # Create mock process that's "running"
+        mock_process = AsyncMock()
+        mock_process.pid = 12345
+        mock_process.returncode = None  # None = still running
+        mock_process.send_signal = MagicMock()
+        mock_process.kill = MagicMock()
+
+        # wait() completes immediately for stop
+        async def stop_wait():
+            mock_process.returncode = 0
+            return 0
+
+        mock_process.wait = AsyncMock(side_effect=stop_wait)
+        test_service._process = mock_process
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            # New process for restart
+            new_process = AsyncMock()
+            new_process.pid = 12346
+            new_process.returncode = None
+            new_process.send_signal = MagicMock()
+            new_process.kill = MagicMock()
+
+            # Block forever for new monitor
+            async def blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            new_process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = new_process
+
+            # Restart server
+            response = integration_client.post(
+                "/api/v1alpha1/server/restart",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["action"] == "restart"
+        assert data["data"]["previous_state"] == "running"
+        assert data["data"]["new_state"] == "running"

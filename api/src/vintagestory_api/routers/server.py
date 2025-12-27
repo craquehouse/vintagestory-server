@@ -5,7 +5,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
-from vintagestory_api.models.server import InstallRequest, ServerState
+from vintagestory_api.models.server import (
+    InstallRequest,
+    ServerState,
+)
 from vintagestory_api.services.server import ServerService
 
 router = APIRouter(prefix="/server", tags=["Server"])
@@ -132,3 +135,168 @@ async def get_install_status(
             "message": progress.message,
         },
     )
+
+
+# ============================================
+# Server Lifecycle Control Endpoints
+# ============================================
+
+
+@router.post("/start", response_model=ApiResponse)
+async def start_server(
+    _: RequireAdmin,
+    service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Start the game server.
+
+    Starts the VintageStory dedicated server as a background subprocess.
+    Requires Admin role.
+
+    Returns:
+        ApiResponse with lifecycle action result
+
+    Raises:
+        HTTPException: 400 if server not installed
+        HTTPException: 409 if server already running
+    """
+    try:
+        response = await service.start_server()
+        return ApiResponse(
+            status="ok",
+            data={
+                "action": response.action.value,
+                "previous_state": response.previous_state.value,
+                "new_state": response.new_state.value,
+                "message": response.message,
+            },
+        )
+    except RuntimeError as e:
+        error_code = str(e)
+        if error_code == ErrorCode.SERVER_NOT_INSTALLED:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": ErrorCode.SERVER_NOT_INSTALLED,
+                    "message": "No server is installed. Install a server version first.",
+                },
+            )
+        elif error_code == ErrorCode.SERVER_ALREADY_RUNNING:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": ErrorCode.SERVER_ALREADY_RUNNING,
+                    "message": "Server is already running.",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.SERVER_START_FAILED,
+                    "message": f"Failed to start server: {error_code}",
+                },
+            )
+
+
+@router.post("/stop", response_model=ApiResponse)
+async def stop_server(
+    _: RequireAdmin,
+    service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Stop the game server gracefully.
+
+    Sends SIGTERM for graceful shutdown. If server doesn't stop within
+    10 seconds, sends SIGKILL.
+    Requires Admin role.
+
+    Returns:
+        ApiResponse with lifecycle action result
+
+    Raises:
+        HTTPException: 400 if server not installed
+        HTTPException: 409 if server not running
+    """
+    try:
+        response = await service.stop_server()
+        return ApiResponse(
+            status="ok",
+            data={
+                "action": response.action.value,
+                "previous_state": response.previous_state.value,
+                "new_state": response.new_state.value,
+                "message": response.message,
+            },
+        )
+    except RuntimeError as e:
+        error_code = str(e)
+        if error_code == ErrorCode.SERVER_NOT_INSTALLED:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": ErrorCode.SERVER_NOT_INSTALLED,
+                    "message": "No server is installed. Install a server version first.",
+                },
+            )
+        elif error_code == ErrorCode.SERVER_NOT_RUNNING:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": ErrorCode.SERVER_NOT_RUNNING,
+                    "message": "Server is not running.",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.SERVER_STOP_FAILED,
+                    "message": f"Failed to stop server: {error_code}",
+                },
+            )
+
+
+@router.post("/restart", response_model=ApiResponse)
+async def restart_server(
+    _: RequireAdmin,
+    service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Restart the game server.
+
+    Stops the server gracefully (if running) then starts it again.
+    Requires Admin role.
+
+    Returns:
+        ApiResponse with lifecycle action result
+
+    Raises:
+        HTTPException: 400 if server not installed
+    """
+    try:
+        response = await service.restart_server()
+        return ApiResponse(
+            status="ok",
+            data={
+                "action": response.action.value,
+                "previous_state": response.previous_state.value,
+                "new_state": response.new_state.value,
+                "message": response.message,
+            },
+        )
+    except RuntimeError as e:
+        error_code = str(e)
+        if error_code == ErrorCode.SERVER_NOT_INSTALLED:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": ErrorCode.SERVER_NOT_INSTALLED,
+                    "message": "No server is installed. Install a server version first.",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.INTERNAL_ERROR,
+                    "message": f"Failed to restart server: {error_code}",
+                },
+            )

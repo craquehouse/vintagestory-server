@@ -14,11 +14,14 @@ class InstallationStage(str, Enum):
 
 
 class ServerState(str, Enum):
-    """Overall server installation state."""
+    """Overall server installation and runtime state."""
 
     NOT_INSTALLED = "not_installed"
     INSTALLING = "installing"
-    INSTALLED = "installed"
+    INSTALLED = "installed"  # Server installed but stopped
+    STARTING = "starting"
+    RUNNING = "running"
+    STOPPING = "stopping"
     ERROR = "error"
 
 
@@ -61,3 +64,29 @@ class VersionInfo(BaseModel):
     local_url: str
     is_latest: bool = False
     channel: str = "stable"
+
+
+class LifecycleAction(str, Enum):
+    """Server lifecycle actions."""
+
+    START = "start"
+    STOP = "stop"
+    RESTART = "restart"
+
+
+class LifecycleResponse(BaseModel):
+    """Response for server lifecycle control endpoints."""
+
+    action: LifecycleAction
+    previous_state: ServerState
+    new_state: ServerState
+    message: str | None = None
+
+
+class ServerStatus(BaseModel):
+    """Current server status information."""
+
+    state: ServerState
+    version: str | None = None
+    uptime_seconds: int | None = None  # If running
+    last_exit_code: int | None = None  # If stopped after running
