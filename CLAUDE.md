@@ -57,25 +57,36 @@ The VintageStory mod database API is documented in `agentdocs/modstoryapi.md`. K
 
 ## Commands
 
-### API Server (Python/FastAPI)
+### Using mise to Run Commands
+
+This project uses [mise](https://mise.jdx.dev/) for tool version management. Tool versions are pinned in `.mise.toml`. Always use `mise exec` to run commands to ensure correct tool versions:
+
 ```bash
-cd api
-uv sync --dev                          # Install dependencies
-uvicorn main:app --reload              # Development server
-pytest                                  # Run all tests
-pytest tests/test_mods.py::test_name   # Single test
-ruff check .                           # Lint
-ruff format .                          # Format
-uv run pyright src/                    # Type check (strict mode)
+# Pattern: mise exec -C <directory> -- <command>
+/opt/homebrew/bin/mise exec -C /path/to/web -- bun run build
+/opt/homebrew/bin/mise exec -C /path/to/api -- uv run pytest
 ```
 
-### Web UI (Node.js)
+**Important:** Use the `-C` flag to set the working directory. Do not use `cd` as it may not work correctly in all environments.
+
+### API Server (Python/FastAPI)
 ```bash
-cd web
-npm install
-npm run dev                            # Development server
-npm test                               # Run tests
-npm run lint                           # Lint
+# Using mise (recommended)
+mise exec -C api -- uv sync --dev                    # Install dependencies
+mise exec -C api -- uv run uvicorn main:app --reload # Development server
+mise exec -C api -- uv run pytest                    # Run all tests
+mise exec -C api -- uv run ruff check .              # Lint
+mise exec -C api -- uv run ruff format .             # Format
+mise exec -C api -- uv run pyright src/              # Type check (strict mode)
+```
+
+### Web UI (Bun/Vite)
+```bash
+# Using mise (recommended)
+mise exec -C web -- bun install          # Install dependencies
+mise exec -C web -- bun run dev          # Development server
+mise exec -C web -- bun run build        # Production build
+mise exec -C web -- bun test             # Run tests
 ```
 
 ### Docker
