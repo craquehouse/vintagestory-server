@@ -135,6 +135,18 @@ class TestMissingApiKey:
         assert error_detail["code"] == "UNAUTHORIZED"
         assert error_detail["message"] == "API key required"
 
+    def test_empty_api_key_returns_401(self, client: TestClient) -> None:
+        """Request with empty string API key returns 401 with 'API key required'."""
+        response = client.get(
+            "/protected",
+            headers={"X-API-Key": ""},
+        )
+
+        assert response.status_code == 401
+        error_detail = response.json()["detail"]
+        assert error_detail["code"] == "UNAUTHORIZED"
+        assert error_detail["message"] == "API key required"
+
 
 class TestInvalidApiKey:
     """Tests for invalid API key handling (AC: 4)."""
@@ -248,9 +260,7 @@ class TestAuthMeEndpointIntegration:
         assert data["status"] == "ok"
         assert data["data"]["role"] == "monitor"
 
-    def test_auth_me_without_key_returns_401(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_auth_me_without_key_returns_401(self, integration_client: TestClient) -> None:
         """GET /api/v1alpha1/auth/me returns 401 without API key."""
         response = integration_client.get("/api/v1alpha1/auth/me")
 
@@ -259,9 +269,7 @@ class TestAuthMeEndpointIntegration:
         assert error["code"] == "UNAUTHORIZED"
         assert error["message"] == "API key required"
 
-    def test_auth_me_with_invalid_key_returns_401(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_auth_me_with_invalid_key_returns_401(self, integration_client: TestClient) -> None:
         """GET /api/v1alpha1/auth/me returns 401 with invalid API key."""
         response = integration_client.get(
             "/api/v1alpha1/auth/me",
@@ -273,9 +281,7 @@ class TestAuthMeEndpointIntegration:
         assert error["code"] == "UNAUTHORIZED"
         assert error["message"] == "Invalid API key"
 
-    def test_auth_me_response_follows_envelope_format(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_auth_me_response_follows_envelope_format(self, integration_client: TestClient) -> None:
         """GET /api/v1alpha1/auth/me follows standard API response envelope."""
         response = integration_client.get(
             "/api/v1alpha1/auth/me",

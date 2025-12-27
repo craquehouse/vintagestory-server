@@ -1,6 +1,6 @@
 # Story 2.1: API Key Authentication Middleware
 
-Status: review
+Status: done
 
 ---
 
@@ -251,6 +251,20 @@ No blocking issues encountered during implementation.
 8. **16 new auth tests** covering unit tests and integration tests for all acceptance criteria
 9. **All 54 tests pass** with no regressions
 
+### Code Review Fixes Applied (2025-12-27)
+
+**Fixed 4 Medium issues found during adversarial code review:**
+
+1. **Router auth protection** - Added `dependencies=[Depends(get_current_user)]` to API v1alpha1 router to protect all routes by default
+2. **Thread-safe settings cache** - Replaced manual global variable with `@lru_cache` decorator for thread-safe dependency caching
+3. **Empty API key handling** - Changed check from `if x_api_key is None:` to `if not x_api_key:` to correctly handle empty string and return "API key required" message
+4. **Proxy-aware IP logging** - Added `get_client_ip()` function that properly extracts real client IP from `X-Forwarded-For` and `X-Real-IP` headers for reverse proxy environments
+
+**Additional test added:**
+- `test_empty_api_key_returns_401` - Verifies empty string API key returns correct error message
+
+**Test count:** 17 auth tests (up from 16), 55 total tests (up from 54) - all passing
+
 ### File List
 
 **New Files:**
@@ -268,3 +282,4 @@ No blocking issues encountered during implementation.
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-12-27 | Implemented API key authentication middleware with Admin/Monitor roles, 401 error handling, and protected `/api/v1alpha1/auth/me` endpoint. Added 16 tests covering all acceptance criteria. | Claude Opus 4.5 |
+| 2025-12-27 | Code review fixes: Added router auth dependency, thread-safe settings cache, empty key handling, proxy-aware IP logging. Added test for empty API key scenario. | Claude Code Review |

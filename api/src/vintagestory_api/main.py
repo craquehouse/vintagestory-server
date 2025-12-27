@@ -5,11 +5,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from vintagestory_api.config import Settings, configure_logging
+from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.routers import auth, health
 
 logger = structlog.get_logger()
@@ -47,7 +48,7 @@ app.include_router(health.router)
 
 
 # API v1alpha1 endpoints (versioned, auth-protected)
-api_v1 = APIRouter(prefix="/api/v1alpha1")
+api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
 api_v1.include_router(auth.router)
 app.include_router(api_v1)
 
