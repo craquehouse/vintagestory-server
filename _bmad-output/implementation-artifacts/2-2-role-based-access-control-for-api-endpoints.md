@@ -1,6 +1,6 @@
 # Story 2.2: Role-Based Access Control for API Endpoints
 
-Status: ready-for-dev
+Status: review
 
 ---
 
@@ -32,30 +32,30 @@ so that **I can grant read-only access to monitoring systems while reserving wri
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create role permission utilities + tests (AC: 1, 2, 3, 5)
-  - [ ] 1.1: Create `middleware/permissions.py` with `require_admin` and `require_role` dependencies
-  - [ ] 1.2: Implement role-checking helper that compares current role to required role
-  - [ ] 1.3: Add `FORBIDDEN` error response helper in `models/responses.py`
-  - [ ] 1.4: Write unit tests for Admin role allowing all operations
-  - [ ] 1.5: Write unit tests for Monitor role allowing reads, blocking writes
+- [x] Task 1: Create role permission utilities + tests (AC: 1, 2, 3, 5)
+  - [x] 1.1: Create `middleware/permissions.py` with `require_admin` and `require_role` dependencies
+  - [x] 1.2: Implement role-checking helper that compares current role to required role
+  - [x] 1.3: Add `FORBIDDEN` error response helper in `models/responses.py`
+  - [x] 1.4: Write unit tests for Admin role allowing all operations
+  - [x] 1.5: Write unit tests for Monitor role allowing reads, blocking writes
 
-- [ ] Task 2: Create console access guard + tests (AC: 4)
-  - [ ] 2.1: Create `require_console_access` dependency that only allows Admin
-  - [ ] 2.2: Return 403 with clear message: "Console access requires Admin role"
-  - [ ] 2.3: Write tests verifying console access blocked for Monitor role
-  - [ ] 2.4: Write tests verifying console access allowed for Admin role
+- [x] Task 2: Create console access guard + tests (AC: 4)
+  - [x] 2.1: Create `require_console_access` dependency that only allows Admin
+  - [x] 2.2: Return 403 with clear message: "Console access requires Admin role"
+  - [x] 2.3: Write tests verifying console access blocked for Monitor role
+  - [x] 2.4: Write tests verifying console access allowed for Admin role
 
-- [ ] Task 3: Create protected test endpoints for validation + tests (AC: 1-5)
-  - [ ] 3.1: Create `GET /api/v1alpha1/test/read` endpoint (allows Admin and Monitor)
-  - [ ] 3.2: Create `POST /api/v1alpha1/test/write` endpoint (allows Admin only)
-  - [ ] 3.3: Create `GET /api/v1alpha1/test/console` endpoint simulating console access (Admin only)
-  - [ ] 3.4: Write integration tests for all role/endpoint combinations
-  - [ ] 3.5: Verify 403 response includes required role in error message
+- [x] Task 3: Create protected test endpoints for validation + tests (AC: 1-5)
+  - [x] 3.1: Create `GET /api/v1alpha1/test/read` endpoint (allows Admin and Monitor)
+  - [x] 3.2: Create `POST /api/v1alpha1/test/write` endpoint (allows Admin only)
+  - [x] 3.3: Create `GET /api/v1alpha1/test/console` endpoint simulating console access (Admin only)
+  - [x] 3.4: Write integration tests for all role/endpoint combinations
+  - [x] 3.5: Verify 403 response includes required role in error message
 
-- [ ] Task 4: Verify existing endpoints work with RBAC + tests (AC: 1, 2)
-  - [ ] 4.1: Ensure `/api/v1alpha1/auth/me` works for both Admin and Monitor
-  - [ ] 4.2: Write integration tests confirming health endpoints remain public
-  - [ ] 4.3: Verify error responses use standard envelope format
+- [x] Task 4: Verify existing endpoints work with RBAC + tests (AC: 1, 2)
+  - [x] 4.1: Ensure `/api/v1alpha1/auth/me` works for both Admin and Monitor
+  - [x] 4.2: Write integration tests confirming health endpoints remain public
+  - [x] 4.3: Verify error responses use standard envelope format
 
 ---
 
@@ -296,11 +296,39 @@ The router already has authentication at the router level. RBAC adds a second la
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None - implementation proceeded without issues
+
 ### Completion Notes List
 
+- Implemented `require_admin`, `require_console_access`, and `require_role` permission dependencies in `middleware/permissions.py`
+- Created type aliases `RequireAdmin` and `RequireConsoleAccess` for cleaner dependency injection
+- Extended `middleware/__init__.py` to export all new permission utilities
+- Created test RBAC router with `/test/read`, `/test/write`, and `/test/console` endpoints
+- Wired test_rbac router into the v1alpha1 API
+- Wrote 17 unit tests for permission dependencies covering all role/endpoint combinations
+- Wrote 21 integration tests for full RBAC flow including health endpoints and error format
+- All 93 tests pass (no regressions from Story 2.1's 17 auth tests)
+- All acceptance criteria satisfied through test coverage
+
+### Change Log
+
+- 2025-12-27: Implemented RBAC permission system with Admin/Monitor role enforcement
+
 ### File List
+
+**New files:**
+- `api/src/vintagestory_api/middleware/permissions.py` - Role-based permission dependencies
+- `api/src/vintagestory_api/routers/test_rbac.py` - Test endpoints for RBAC validation
+- `api/tests/test_permissions.py` - Permission dependency unit tests (17 tests)
+- `api/tests/test_rbac_integration.py` - RBAC integration tests (21 tests)
+
+**Modified files:**
+- `api/src/vintagestory_api/middleware/__init__.py` - Export permission dependencies
+- `api/src/vintagestory_api/routers/__init__.py` - Export test_rbac router
+- `api/src/vintagestory_api/main.py` - Wire up test_rbac router
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status
 
