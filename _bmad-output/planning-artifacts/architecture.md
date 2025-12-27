@@ -101,7 +101,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 ### Primary Technology Domains
 
-**Backend API:** Python 3.13 + FastAPI + uv (API server with WebSocket support)
+**Backend API:** Python 3.12 + FastAPI + uv (API server with WebSocket support)
 **Frontend SPA:** React 19.2 + Vite + TypeScript + Bun + shadcn/ui (Admin web interface)
 
 ### Development Environment: mise
@@ -111,7 +111,7 @@ All runtime versions managed via mise for consistent development environments.
 **.mise.toml (project root):**
 ```toml
 [tools]
-python = "3.13"
+python = "3.12"
 uv = "latest"
 bun = "latest"
 
@@ -161,7 +161,7 @@ mise install
 ```bash
 # From project root (with mise activated)
 mkdir api && cd api
-uv init --name vintagestory-api --python 3.13
+uv init --name vintagestory-api --python 3.12
 uv add "fastapi[standard]" httpx pydantic-settings
 uv add --dev pytest pytest-asyncio ruff
 
@@ -202,13 +202,13 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 ### Architectural Decisions Provided by Starters
 
 **Development Environment (mise):**
-- Python 3.13 (stable, performance improvements)
+- Python 3.12 (stable, required for .NET 8 Noble base image compatibility)
 - uv for Python package/venv management
 - Bun for frontend runtime and package management
 - All versions pinned in `.mise.toml`
 
 **Backend (uv + FastAPI):**
-- Python 3.13 with uv package management
+- Python 3.12 with uv package management
 - FastAPI with Uvicorn ASGI server
 - Pydantic v2 for data validation
 - Built-in OpenAPI documentation
@@ -357,9 +357,9 @@ const reconnect = (attempt: number) => {
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | **Logging** | structlog | Structured JSON, beautiful dev output |
-| **Container Strategy** | Single container | API serves static files, simpler deployment |
-| **Base Image** | `python:3.13-slim` | Small, official, secure |
-| **Process Manager** | Uvicorn (single process) | Sufficient for single-server use case |
+| **Container Strategy** | Single container (API + game server) | API serves static files, manages game server binary, simplified deployment |
+| **Base Image** | `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64` | Ubuntu 24.04 Noble with .NET 8 (for game server) + Python 3.12 native to apt |
+| **Process Manager** | Uvicorn (single process) + Subprocess management | Uvicorn serves API, game server runs as subprocess |
 
 **Logging Configuration:**
 ```python
@@ -371,33 +371,49 @@ structlog.configure(
         structlog.dev.ConsoleRenderer() if DEV else structlog.processors.JSONRenderer()
     ]
 )
+
+# Game server subprocess stdout/stderr captured and logged with context
+# Subprocess logs tagged with component="game_server"
 ```
 
 **Docker Architecture:**
 ```
-┌─────────────────────────────────────────┐
-│  vintagestory-manager container         │
-│  ┌─────────────────────────────────┐    │
-│  │  FastAPI + Uvicorn              │    │
-│  │  - Serves /api/* endpoints      │    │
-│  │  - Serves /* static files       │    │
-│  │  - WebSocket /ws/console        │    │
-│  └─────────────────────────────────┘    │
-│                 │                        │
-│                 ▼                        │
-│  ┌─────────────────────────────────┐    │
-│  │  Mounted Volumes                │    │
-│  │  - /data (state, config)        │    │
-│  │  - /mods (mod files)            │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
-          │
-          ▼
-┌─────────────────────────────────────────┐
-│  vintagestory-server container          │
-│  (game server - managed by API)         │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  vintagestory-manager container (Single)         │
+│  ┌────────────────────────────────────────┐   │
+│  │  FastAPI + Uvicorn (Main Process)   │   │
+│  │  - Serves /api/* endpoints           │   │
+│  │  - Serves /* static files            │   │
+│  │  - WebSocket /ws/console            │   │
+│  │  - Manages game server subprocess     │   │
+│  └────────────────────────────────────────┘   │
+│                  │                          │
+│                  ▼                          │
+│  ┌────────────────────────────────────────┐   │
+│  │  VintageStory Server (Subprocess)    │   │
+│  │  - Game binary runs in container    │   │
+│  │  - Managed by API lifecycle         │   │
+│  └────────────────────────────────────────┘   │
+│                  │                          │
+│                  ▼                          │
+│  ┌────────────────────────────────────────┐   │
+│  │  Mounted Volumes                    │   │
+│  │  - /data (state, config, mods)      │   │
+│  └────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────┘
 ```
+
+**Single Container Strategy Rationale:**
+- Simplifies deployment (one compose service instead of two)
+- Shared data volume is easier to manage
+- Lower infrastructure overhead (no inter-container networking)
+- Game server is managed as subprocess, not standalone service
+
+**Tradeoffs:**
+- Larger container image (~300MB vs ~150MB with python:3.13-slim)
+- Game server crash can affect API (though API should survive crashes per NFR8)
+- Cannot scale API and game server independently (not required for MVP)
+- Requires careful subprocess management and signal handling
 
 ### Testability Considerations
 
@@ -415,14 +431,14 @@ structlog.configure(
 2. API skeleton with health endpoints
 3. State management service (with atomic writes)
 4. Authentication middleware
-5. Server lifecycle endpoints
-6. WebSocket console streaming (with reconnection)
-7. Mod management endpoints
-8. Frontend shell with routing
-9. Dashboard + server controls
-10. Mod management UI
-11. Console terminal view
-12. Docker packaging
+5. Docker deployment configuration (single container with .NET base)
+6. Server lifecycle endpoints (subprocess management)
+7. WebSocket console streaming (with reconnection)
+8. Mod management endpoints
+9. Frontend shell with routing
+10. Dashboard + server controls
+11. Mod management UI
+12. Console terminal view
 
 **Cross-Component Dependencies:**
 - StateManager → used by all services (atomic writes critical)
@@ -441,7 +457,7 @@ These patterns ensure all AI agents write compatible, consistent code.
 
 ### Project Structure
 
-**Root Layout (Option B - Single Container):**
+**Root Layout (Single Container Strategy):**
 ```
 vintagestory-server/
 ├── api/                    # FastAPI backend
@@ -892,6 +908,63 @@ vintagestory-server/
     └── vintagestory-modapi.md
 ```
 
+### Container Strategy Decision
+
+**Chosen Pattern:** Single Container (API + Game Server in Same Container)
+
+**Architecture Decision Date:** 2025-12-26 (during Story 1.4 implementation)
+
+**Alternatives Considered:**
+
+| Pattern | Description | Pros | Cons |
+|---------|-------------|------|------|
+| **Single Container** (CHOSEN) | API and game server run in same container | ✓ Simpler deployment (one service) <br> ✓ Shared data volume <br> ✓ No inter-container networking <br> ✓ Lower infrastructure overhead | ✗ Larger image (~300MB) <br> ✗ Cannot scale independently <br> ✗ Game server crash impacts API (mitigated by subprocess management) |
+| **Two Containers** | Separate API and game server containers | ✓ Smaller API image (~150MB) <br> ✓ Independent scaling <br> ✓ Isolated failures | ✗ More complex deployment <br> ✗ Inter-container networking <br> ✗ Shared volume management <br> ✗ Higher infrastructure overhead |
+
+**Rationale for Single Container:**
+
+1. **Simplicity First:** MVP scope is single-server management, not multi-server fleet
+2. **Lower Complexity:** One docker-compose service instead of two means:
+   - Simpler deployment for users
+   - Less networking configuration
+   - Easier troubleshooting
+   - Fewer points of failure
+3. **Shared Resources:** Game server and API both need `/data` volume - single container is cleaner
+4. **Future Flexibility:** Can migrate to two-container pattern if/when scaling becomes a requirement
+5. **Subprocess Management:** Python's subprocess module is well-suited for managing game server lifecycle
+6. **NFR8 Compliance:** API designed to survive game server crashes (decoupled process management)
+
+**Tradeoffs Acknowledged:**
+
+- **Image Size:** ~300MB vs ~150MB (acceptable for MVP, can optimize later)
+- **Independent Scaling:** Not needed for single-server use case
+- **Failure Isolation:** Mitigated by subprocess management and health checks
+- **Runtime Dependencies:** .NET runtime included (required for game server anyway)
+
+**Migration Path (if needed):**
+
+If multi-server fleet becomes requirement (Phase 3/Vision):
+1. Extract game server to separate container
+2. Add inter-container networking (docker network)
+3. Update API to manage remote game server (SSH/process API)
+4. Keep single-container option for simple deployments
+
+**Base Image Decision:**
+
+`mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64`
+
+**Why This Base Image:**
+- Ubuntu 24.04 Noble LTS (stable, well-supported)
+- Python 3.12 available via apt (matches Python 3.12 requirement)
+- .NET 8.0 runtime included (required for VintageStory server)
+- Single base image simplifies maintenance
+- Well-maintained by Microsoft
+
+**Alternatives Rejected:**
+- `python:3.13-slim`: Would need separate .NET installation anyway
+- `ubuntu:noble`: Would need to install both Python and .NET
+- Custom base: More maintenance burden
+
 ### Container Volume Strategy
 
 **Single Volume Mount:** `/data`
@@ -937,14 +1010,26 @@ services:
     container_name: vintagestory-manager
     ports:
       - "8080:8080"      # Web UI + API
-      - "42420:42420"    # Game server
+      - "42420:42420"    # Game server (for future connectivity if needed)
     volumes:
       - ./data:/data
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
       - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
+      - VS_DEBUG=${VS_DEBUG:-false}
+      - VS_DATA_DIR=${VS_DATA_DIR:-/data}
+      - UV_LINK_MODE=copy
+    env_file:
+      - path: .env
+        required: false
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 ```
 
 **Development (`docker-compose.dev.yaml`):**
@@ -958,8 +1043,8 @@ services:
       dockerfile: Dockerfile
     container_name: vintagestory-manager-dev
     ports:
-      - "8080:8080"
-      - "42420:42420"
+      - "8080:8080"      # Web UI + API
+      - "42420:42420"    # Game server (for future connectivity if needed)
     volumes:
       - ./data:/data
     environment:
@@ -967,6 +1052,12 @@ services:
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
       - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=true
+      - VS_DATA_DIR=${VS_DATA_DIR:-/data}
+      - UV_LINK_MODE=copy
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
 ```
 
 ### Architectural Boundaries
@@ -1130,10 +1221,13 @@ docker compose -f docker-compose.dev.yaml up --build
 ```dockerfile
 # Multi-stage Dockerfile
 FROM node:22-slim AS web-build
-# Build frontend → /app/dist
+# Install bun@1.3.5, build frontend → /app/dist
 
-FROM python:3.13-slim AS final
-# Copy web build, install API deps, run uvicorn
+FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
+# Ubuntu 24.04 Noble with:
+# - Python 3.12 (native to apt)
+# - .NET 8.0 runtime (for VintageStory game server)
+# Install uv, copy web build, install API deps, run uvicorn
 ```
 
 **CI/CD Pipeline:**
@@ -1314,7 +1408,7 @@ mise trust && mise install
 
 # 2. Scaffold backend (api/)
 mkdir api && cd api
-uv init --name vintagestory-api --python 3.13
+uv init --name vintagestory-api --python 3.12
 uv add "fastapi[standard]" httpx pydantic-settings structlog
 uv add --dev pytest pytest-asyncio ruff respx
 
@@ -1391,6 +1485,9 @@ This architecture document is your complete guide for implementing vintagestory-
 
 **Clear Decision Framework:**
 Every technology choice was made collaboratively with clear rationale, ensuring all stakeholders understand the architectural direction.
+
+**Container Strategy Decision (2025-12-26):**
+During Story 1.4 implementation, the single container pattern (API + game server in same container) was chosen over the two-container alternative documented in initial architecture. This decision balances deployment simplicity with MVP requirements. Full rationale and tradeoff analysis documented in "Container Strategy Decision" section.
 
 **Consistency Guarantee:**
 Implementation patterns and rules ensure that multiple AI agents will produce compatible, consistent code that works together seamlessly.

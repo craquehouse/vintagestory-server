@@ -1,11 +1,30 @@
 # VintageStory Server Manager - Production Configuration
-# See docker-compose.dev.yaml for development overrides
+# Usage: docker compose up -d
+# See docker-compose.dev.yaml for development builds
 
 services:
-  # TODO: Define services in future stories
-  # - vintagestory: Game server container
-  # - api: FastAPI backend
-  # - web: Frontend (or served by api)
-  placeholder:
-    image: alpine
-    command: ["echo", "Docker Compose placeholder - services defined in future stories"]
+  manager:
+    image: ghcr.io/craquehouse/vintagestory-server:latest
+    container_name: vintagestory-manager
+    ports:
+      - "8080:8080"      # Web UI + API
+      - "42420:42420"    # Game server (future)
+    volumes:
+      - ./data:/data
+    environment:
+      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN}
+      - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
+      - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
+      - VS_DEBUG=${VS_DEBUG:-false}
+      - VS_DATA_DIR=${VS_DATA_DIR:-/data}
+      - UV_LINK_MODE=copy
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

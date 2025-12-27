@@ -108,7 +108,8 @@ This document provides the complete epic and story breakdown for vintagestory-se
 - Project initialization should be the first implementation story
 
 **From Architecture - Infrastructure:**
-- Single container deployment serving both API and static files
+- Single container deployment (API + game server in same container) for simplified deployment
+- Base image: `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64` (Ubuntu Noble + .NET 8 + Python 3.12)
 - Single volume mount at `/data` for all persistence
 - Atomic file writes for state persistence (temp file + rename pattern)
 - Docker registry: `ghcr.io/craquehouse/vintagestory-server`

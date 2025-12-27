@@ -1,6 +1,7 @@
 """Application configuration using pydantic-settings."""
 
 import logging
+from pathlib import Path
 
 import structlog
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,56 @@ class Settings(BaseSettings):
     api_key_admin: str = ""
     api_key_monitor: str | None = None
     game_version: str = "stable"
+    data_dir: Path = Path("/data")
+
+    @property
+    def state_dir(self) -> Path:
+        """Directory for API state persistence."""
+        return self.data_dir / "state"
+
+    @property
+    def server_dir(self) -> Path:
+        """Directory for VintageStory server installation."""
+        return self.data_dir / "server"
+
+    @property
+    def mods_dir(self) -> Path:
+        """Directory for mod files."""
+        return self.data_dir / "mods"
+
+    @property
+    def config_dir(self) -> Path:
+        """Directory for game server configuration."""
+        return self.data_dir / "config"
+
+    @property
+    def logs_dir(self) -> Path:
+        """Directory for application logs."""
+        return self.data_dir / "logs"
+
+    @property
+    def backups_dir(self) -> Path:
+        """Directory for server backups."""
+        return self.data_dir / "backups"
+
+    def ensure_data_directories(self) -> None:
+        """Create data directory structure if it doesn't exist."""
+        # Security: Validate that admin API key is set
+        if not self.api_key_admin or self.api_key_admin.strip() == "":
+            raise ValueError(
+                "VS_API_KEY_ADMIN must be set to a non-empty value for security. "
+                "See .env.example for configuration details."
+            )
+
+        for directory in [
+            self.state_dir,
+            self.server_dir,
+            self.mods_dir,
+            self.config_dir,
+            self.logs_dir,
+            self.backups_dir,
+        ]:
+            directory.mkdir(parents=True, exist_ok=True)
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -48,5 +99,3 @@ def configure_logging(debug: bool = False) -> None:
             logger_factory=structlog.PrintLoggerFactory(),
             cache_logger_on_first_use=True,
         )
-
-

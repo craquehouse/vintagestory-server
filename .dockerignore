@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Environment files (except example)
+.env
+.env.*
+!.env.example
+
+# Data directory (mounted at runtime)
+data/
+
+# Documentation
+*.md
+_bmad/
+_bmad-output/
+agentdocs/
+docs/
+
+# Development config
+.mise.toml
+.claude/
+.cursor/
+.vscode/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+.ruff_cache/
+
+# Node artifacts
+node_modules/
+.turbo/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+coverage/
+htmlcov/
+.coverage

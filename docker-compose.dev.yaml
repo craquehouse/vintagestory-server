@@ -1,10 +1,25 @@
 # VintageStory Server Manager - Development Configuration
-# Usage: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+# Usage: docker compose -f docker-compose.dev.yaml up --build
 
 services:
-  # TODO: Define development service overrides in future stories
-  # - Hot reload for api
-  # - Development volumes
-  placeholder:
-    image: alpine
-    command: ["echo", "Docker Compose dev placeholder"]
+  manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vintagestory-manager-dev
+    ports:
+      - "8080:8080"      # Web UI + API
+      - "42420:42420"    # Game server (future)
+    volumes:
+      - ./data:/data
+    environment:
+      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-dev-admin-key}
+      - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
+      - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
+      - VS_DEBUG=true
+      - VS_DATA_DIR=${VS_DATA_DIR:-/data}
+      - UV_LINK_MODE=copy
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped

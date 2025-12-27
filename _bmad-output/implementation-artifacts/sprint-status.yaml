@@ -44,8 +44,8 @@ development_status:
   epic-1: in-progress
   1-1-initialize-development-environment-and-project-structure: done
   1-2-backend-api-skeleton-with-health-endpoints: done
-  1-3-frontend-application-shell: review
-  1-4-docker-deployment-configuration: backlog
+  1-3-frontend-application-shell: done
+  1-4-docker-deployment-configuration: done
   epic-1-retrospective: optional
 
   # Epic 2: Authentication & API Security
