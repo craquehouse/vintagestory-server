@@ -54,16 +54,19 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 ### Technical Constraints & Dependencies
 
 **External Dependencies:**
+
 - VintageStory Mod Database API (`mods.vintagestory.at`) - mod lookup and downloads
 - Existing Docker image (`quartzar/vintage-story-server`) or custom from `mcr.microsoft.com/dotnet/runtime:8.0`
 - Game server binary downloaded at runtime
 
 **Infrastructure Constraints:**
+
 - No database required - JSON file persistence only
 - TLS termination via external reverse proxy (Traefik, Caddy, nginx)
 - Single server management (not multi-server fleet)
 
 **Technology Decisions (from PRD/UX):**
+
 - Backend: Python + FastAPI + uv + Ruff + pytest
 - Frontend: React + Vite + TypeScript + Bun
 - Components: shadcn/ui + Radix UI
@@ -109,6 +112,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 All runtime versions managed via mise for consistent development environments.
 
 **.mise.toml (project root):**
+
 ```toml
 [tools]
 python = "3.12"      # Minimum version, compatible with .NET 8 Noble base image
@@ -120,11 +124,13 @@ VIRTUAL_ENV = "{{config_root}}/api/.venv"
 ```
 
 **Version Specification Guidelines:**
+
 - **Development tools (uv, bun):** Pin specific versions for reproducible builds
 - **Runtime (Python):** Use minimum version compatible with deployment target
 - **Dependencies:** Use version ranges in pyproject.toml/package.json unless specific pin needed
 
 **Setup commands:**
+
 ```bash
 # Install mise (if not already installed)
 curl https://mise.run | sh
@@ -155,6 +161,7 @@ mise install
 ### Selected Approach: Official Patterns
 
 **Rationale:**
+
 - Official documentation ensures long-term maintenance and compatibility
 - Minimal starting point avoids removing unwanted dependencies
 - Full control over project structure from day one
@@ -207,12 +214,14 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 ### Architectural Decisions Provided by Starters
 
 **Development Environment (mise):**
+
 - Python 3.12 (stable, required for .NET 8 Noble base image compatibility)
 - uv for Python package/venv management
 - Bun for frontend runtime and package management
 - All versions pinned in `.mise.toml`
 
 **Backend (uv + FastAPI):**
+
 - Python 3.12 with uv package management
 - FastAPI with Uvicorn ASGI server
 - Pydantic v2 for data validation
@@ -220,6 +229,7 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 - Async-first architecture
 
 **Frontend (Vite + shadcn/ui):**
+
 - React 19.2 with TypeScript (security-patched version)
 - Vite 7 with SWC for fast builds
 - Tailwind CSS v4 with CSS variables
@@ -227,6 +237,7 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 - Path aliases (@/ → src/)
 
 **Development Experience:**
+
 - Backend: `fastapi dev` with hot reload
 - Frontend: `bun run dev` with HMR
 - Both support VS Code debugging
@@ -239,18 +250,21 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 ### Decision Priority Analysis
 
 **Critical Decisions (Block Implementation):**
+
 - State persistence pattern (in-memory + JSON sync with atomic writes)
 - API versioning strategy (v1alpha1)
 - WebSocket implementation (built-in Starlette with reconnection pattern)
 - Docker deployment strategy (single container)
 
 **Important Decisions (Shape Architecture):**
+
 - HTTP client for external APIs (httpx)
 - Frontend state management (TanStack Query + Context with clear boundaries)
 - Routing library (React Router v7)
 - Logging framework (structlog with env-based configuration)
 
 **Deferred Decisions (Post-MVP):**
+
 - Prometheus metrics implementation
 - Backup storage strategy
 - Multi-server fleet patterns
@@ -265,6 +279,7 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 | **Write Safety** | Atomic file writes | Prevents corruption on crash (temp file + rename) |
 
 **State Management Pattern:**
+
 ```
 ┌─────────────────┐     ┌──────────────┐
 │  In-Memory      │────▶│  JSON File   │
@@ -278,6 +293,7 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 ```
 
 **Atomic Write Pattern (prevents corruption):**
+
 ```python
 async def save_state(self):
     temp = self.state_path.with_suffix('.tmp')
@@ -305,6 +321,7 @@ async def save_state(self):
 | **Response Envelope** | `{"status": "ok\|error", "data": {...}}` | Consistent, predictable |
 
 **External API Integration:**
+
 ```
 ┌─────────────┐     ┌─────────────┐     ┌──────────────────┐
 │  API Route  │────▶│  ModService │────▶│  mods.vintagestory.at  │
@@ -316,6 +333,7 @@ async def save_state(self):
 ```
 
 **WebSocket Reconnection Pattern (frontend):**
+
 ```typescript
 // Exponential backoff with jitter
 const reconnect = (attempt: number) => {
@@ -337,6 +355,7 @@ const reconnect = (attempt: number) => {
 | **API Mocking (tests)** | MSW (Mock Service Worker) | Realistic API mocking for tests |
 
 **State Management Boundaries:**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    TanStack Query                        │
@@ -367,6 +386,7 @@ const reconnect = (attempt: number) => {
 | **Process Manager** | Uvicorn (single process) + Subprocess management | Uvicorn serves API, game server runs as subprocess |
 
 **Logging Configuration:**
+
 ```python
 # Dev mode: colorful, human-readable
 # Prod mode: JSON, machine-parseable
@@ -382,6 +402,7 @@ structlog.configure(
 ```
 
 **Docker Architecture:**
+
 ```
 ┌────────────────────────────────────────────────────┐
 │  vintagestory-manager container (Single)         │
@@ -409,12 +430,14 @@ structlog.configure(
 ```
 
 **Single Container Strategy Rationale:**
+
 - Simplifies deployment (one compose service instead of two)
 - Shared data volume is easier to manage
 - Lower infrastructure overhead (no inter-container networking)
 - Game server is managed as subprocess, not standalone service
 
 **Tradeoffs:**
+
 - Larger container image (~300MB vs ~150MB with python:3.13-slim)
 - Game server crash can affect API (though API should survive crashes per NFR8)
 - Cannot scale API and game server independently (not required for MVP)
@@ -432,6 +455,7 @@ structlog.configure(
 ### Decision Impact Analysis
 
 **Implementation Sequence:**
+
 1. Project scaffolding (mise, uv, bun, directory structure)
 2. API skeleton with health endpoints
 3. State management service (with atomic writes)
@@ -446,6 +470,7 @@ structlog.configure(
 12. Console terminal view
 
 **Cross-Component Dependencies:**
+
 - StateManager → used by all services (atomic writes critical)
 - Auth middleware → protects all routes
 - WebSocket → depends on StateManager for status updates
@@ -463,6 +488,7 @@ These patterns ensure all AI agents write compatible, consistent code.
 ### Project Structure
 
 **Root Layout (Single Container Strategy):**
+
 ```
 vintagestory-server/
 ├── api/                    # FastAPI backend
@@ -533,6 +559,7 @@ interface Mod {
 ```
 
 **API Client Pattern:**
+
 ```typescript
 // web/src/api/client.ts
 const transformKeys = (obj: unknown): unknown => {
@@ -543,6 +570,7 @@ const transformKeys = (obj: unknown): unknown => {
 ### Structure Patterns
 
 **Backend Structure (`api/`):**
+
 ```
 api/
 ├── pyproject.toml
@@ -580,6 +608,7 @@ api/
 ```
 
 **Frontend Structure (`web/`):**
+
 ```
 web/
 ├── package.json
@@ -645,6 +674,7 @@ web/
 | Frontend | Co-located with components | `*.test.tsx` next to component |
 
 **Test Naming:**
+
 - Python: `test_<module>.py` with `test_<function>` methods
 - TypeScript: `<Component>.test.tsx` with `describe/it` blocks
 
@@ -676,6 +706,7 @@ structured error data as a custom envelope would, just nested under FastAPI's
 standard response key.
 
 **Error Codes (constants):**
+
 ```python
 # api/src/vintagestory_api/models/errors.py
 class ErrorCode:
@@ -705,6 +736,7 @@ class ErrorCode:
 ### Communication Patterns
 
 **TanStack Query Keys:**
+
 ```typescript
 // Hierarchical array format
 const queryKeys = {
@@ -724,6 +756,7 @@ const queryKeys = {
 ```
 
 **Mutation Naming:**
+
 ```typescript
 // Verb-first, matches API action
 useInstallMod()
@@ -734,6 +767,7 @@ useSaveConfig()
 ```
 
 **Boolean State Naming:**
+
 ```typescript
 // Always use 'is' prefix
 isLoading
@@ -746,6 +780,7 @@ isPending
 ### Process Patterns
 
 **Loading States:**
+
 ```typescript
 // TanStack Query provides these automatically
 const { data, isLoading, isError, error } = useQuery(...);
@@ -755,6 +790,7 @@ const { mutate, isPending } = useMutation(...);
 ```
 
 **Error Handling (Frontend):**
+
 ```typescript
 // Global error boundary for unexpected errors
 // Toast notifications for operation errors
@@ -762,6 +798,7 @@ const { mutate, isPending } = useMutation(...);
 ```
 
 **Error Handling (Backend):**
+
 ```python
 # Use FastAPI HTTPException with standard envelope
 raise HTTPException(
@@ -954,6 +991,7 @@ vintagestory-server/
 **Migration Path (if needed):**
 
 If multi-server fleet becomes requirement (Phase 3/Vision):
+
 1. Extract game server to separate container
 2. Add inter-container networking (docker network)
 3. Update API to manage remote game server (SSH/process API)
@@ -964,6 +1002,7 @@ If multi-server fleet becomes requirement (Phase 3/Vision):
 `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64`
 
 **Why This Base Image:**
+
 - Ubuntu 24.04 Noble LTS (stable, well-supported)
 - Python 3.12 available via apt (matches Python 3.12 requirement)
 - .NET 8.0 runtime included (required for VintageStory server)
@@ -971,6 +1010,7 @@ If multi-server fleet becomes requirement (Phase 3/Vision):
 - Well-maintained by Microsoft
 
 **Alternatives Rejected:**
+
 - `python:3.13-slim`: Would need separate .NET installation anyway
 - `ubuntu:noble`: Would need to install both Python and .NET
 - Custom base: More maintenance burden
@@ -1004,6 +1044,7 @@ All persistent data lives under one mount point for simplified management.
 
 **Post-Install Symlink Strategy:**
 After server installation, create symlink to preserve mods across server updates:
+
 ```bash
 ln -s /data/mods /data/server/Mods
 ```
@@ -1216,6 +1257,7 @@ User Action → API Request → Service Layer → State Update → File Sync
 ### Development Workflow Integration
 
 **Local Development:**
+
 ```bash
 # Terminal 1: Backend (hot reload)
 cd api && uv run fastapi dev
@@ -1228,6 +1270,7 @@ docker compose -f docker-compose.dev.yaml up --build
 ```
 
 **Build Process:**
+
 ```dockerfile
 # Multi-stage Dockerfile
 FROM node:22-slim AS web-build
@@ -1241,6 +1284,7 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 ```
 
 **CI/CD Pipeline:**
+
 ```yaml
 # .github/workflows/ci.yaml
 # 1. Lint (ruff, eslint)
@@ -1277,18 +1321,21 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 
 **Decision Compatibility:**
 All technology choices work together without conflicts:
+
 - Backend: Python 3.12+ + FastAPI + uv + httpx + structlog - fully compatible async stack
 - Frontend: React 19.2 + Vite 7 + Bun + TypeScript + TanStack Query v5 - security-patched, modern stack
 - Infrastructure: Single container with single volume mount - simplified deployment model
 - Development: mise for consistent tool versions across environments
 
 **Pattern Consistency:**
+
 - JSON field naming boundary (snake_case API ↔ camelCase frontend) is well-defined
 - Response envelope pattern is consistent across all endpoints
 - Error codes are centralized and documented
 - State management boundaries prevent React Context/TanStack Query confusion
 
 **Structure Alignment:**
+
 - Project structure directly supports all architectural patterns
 - Integration points are properly mapped in directory structure
 - Component boundaries align with feature areas
@@ -1328,16 +1375,19 @@ All technology choices work together without conflicts:
 ### Implementation Readiness Validation ✅
 
 **Decision Completeness:**
+
 - ✅ All critical technologies have specific versions
 - ✅ Implementation patterns include code examples
 - ✅ Consistency rules are enforceable via Ruff and ESLint
 
 **Structure Completeness:**
+
 - ✅ Complete directory tree with all files defined
 - ✅ Feature-to-directory mapping documented
 - ✅ Integration points clearly specified
 
 **Pattern Completeness:**
+
 - ✅ All naming conventions comprehensive
 - ✅ Error handling patterns with codes defined
 - ✅ WebSocket reconnection pattern specified
@@ -1350,6 +1400,7 @@ All technology choices work together without conflicts:
 **Important Gaps:** None identified
 
 **Minor Refinements (Optional):**
+
 1. Console ring buffer size can be made configurable (default: 10,000 lines)
 2. Health endpoint can include game server version in response body
 3. API rate limiting deferred to post-MVP per PRD
@@ -1357,24 +1408,28 @@ All technology choices work together without conflicts:
 ### Architecture Completeness Checklist
 
 **✅ Requirements Analysis**
+
 - [x] Project context thoroughly analyzed (37 FRs, 16 NFRs)
 - [x] Scale and complexity assessed (Low-Medium)
 - [x] Technical constraints identified (no database, TLS via proxy)
 - [x] Cross-cutting concerns mapped (auth, error handling, state, real-time)
 
 **✅ Architectural Decisions**
+
 - [x] Critical decisions documented with versions
 - [x] Technology stack fully specified
 - [x] Integration patterns defined (API boundary, WebSocket)
 - [x] Performance considerations addressed (in-memory, atomic writes)
 
 **✅ Implementation Patterns**
+
 - [x] Naming conventions established (8 categories)
 - [x] Structure patterns defined (backend/frontend layouts)
 - [x] Communication patterns specified (REST, WebSocket, TanStack Query)
 - [x] Process patterns documented (error handling, loading states)
 
 **✅ Project Structure**
+
 - [x] Complete directory structure defined
 - [x] Component boundaries established
 - [x] Integration points mapped
@@ -1389,6 +1444,7 @@ All technology choices work together without conflicts:
 **Confidence Level:** High
 
 **Key Strengths:**
+
 - Clean separation between API and frontend with well-defined boundary
 - Single container deployment simplifies operations
 - Atomic file writes prevent state corruption
@@ -1397,6 +1453,7 @@ All technology choices work together without conflicts:
 - All 39 functional and 16 non-functional requirements have architectural support
 
 **Areas for Future Enhancement:**
+
 - Prometheus metrics endpoint (post-MVP per PRD)
 - Backup management endpoints (Phase 2)
 - Multi-server fleet patterns (Phase 3/Vision)
@@ -1404,6 +1461,7 @@ All technology choices work together without conflicts:
 ### Implementation Handoff
 
 **AI Agent Guidelines:**
+
 - Follow all architectural decisions exactly as documented
 - Use implementation patterns consistently across all components
 - Respect project structure and boundaries
@@ -1419,18 +1477,21 @@ _Added after Epic 1 retrospective (2025-12-27)_
 When creating or updating architecture documents, calibrate specificity appropriately:
 
 **Be Explicit About:**
+
 - External runtime dependencies (e.g., "VintageStory requires .NET 8 runtime")
 - Infrastructure constraints that affect technology choices
 - Container base images and why they were chosen
 - Integration points with third-party systems
 
 **Use Ranges/Minimums For:**
+
 - Language versions: `Python >= 3.12` not `Python 3.13`
 - Framework versions unless specific features require exact version
 - Dependencies that follow semver
 
 **Always Document:**
-- The *rationale* behind decisions, not just the decision itself
+
+- The _rationale_ behind decisions, not just the decision itself
 - Tradeoffs considered and why alternatives were rejected
 - Migration paths if the decision needs revisiting
 
@@ -1438,6 +1499,7 @@ When creating or updating architecture documents, calibrate specificity appropri
 During Epic 1, implementation discovered that the .NET base image ships Python 3.12, not 3.13. Because the architecture had over-specified Python version, it caused unnecessary friction. Conversely, under-specified container strategy led to implementation-time decisions that should have been made earlier.
 
 **First Implementation Priority:**
+
 ```bash
 # 1. Initialize development environment
 mise trust && mise install
@@ -1467,6 +1529,7 @@ bunx shadcn@latest init
 ### Final Architecture Deliverables
 
 **Complete Architecture Document**
+
 - All architectural decisions documented with specific versions
 - Implementation patterns ensuring AI agent consistency
 - Complete project structure with all files and directories
@@ -1474,12 +1537,14 @@ bunx shadcn@latest init
 - Validation confirming coherence and completeness
 
 **Implementation Ready Foundation**
+
 - 15+ architectural decisions made
 - 8 implementation pattern categories defined
 - 6 architectural component areas specified
 - 39 functional + 16 non-functional requirements fully supported
 
 **AI Agent Implementation Guide**
+
 - Technology stack with verified versions
 - Consistency rules that prevent implementation conflicts
 - Project structure with clear boundaries
@@ -1491,6 +1556,7 @@ bunx shadcn@latest init
 This architecture document is your complete guide for implementing vintagestory-server. Follow all decisions, patterns, and structures exactly as documented.
 
 **Development Sequence:**
+
 1. Initialize project using documented starter template (mise, uv, bun)
 2. Set up development environment per architecture
 3. Implement core architectural foundations (state management, auth middleware)
@@ -1500,18 +1566,21 @@ This architecture document is your complete guide for implementing vintagestory-
 ### Quality Assurance Checklist
 
 **✅ Architecture Coherence**
+
 - [x] All decisions work together without conflicts
 - [x] Technology choices are compatible
 - [x] Patterns support the architectural decisions
 - [x] Structure aligns with all choices
 
 **✅ Requirements Coverage**
+
 - [x] All functional requirements are supported
 - [x] All non-functional requirements are addressed
 - [x] Cross-cutting concerns are handled
 - [x] Integration points are defined
 
 **✅ Implementation Readiness**
+
 - [x] Decisions are specific and actionable
 - [x] Patterns prevent agent conflicts
 - [x] Structure is complete and unambiguous
@@ -1541,4 +1610,3 @@ The chosen starter template and architectural patterns provide a production-read
 **Next Phase:** Begin implementation using the architectural decisions and patterns documented herein.
 
 **Document Maintenance:** Update this architecture when major technical decisions are made during implementation.
-

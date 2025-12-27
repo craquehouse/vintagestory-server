@@ -13,6 +13,7 @@ So that **I can access server management features through a consistent UI**.
 ## Acceptance Criteria
 
 ### AC1: Initial Page Load with Navigation
+
 **Given** I navigate to the web application
 **When** the page loads
 **Then** I see a sidebar with navigation items (Dashboard, Mods, Config, Terminal)
@@ -20,17 +21,20 @@ So that **I can access server management features through a consistent UI**.
 **And** the application uses Catppuccin Mocha theme by default (dark mode)
 
 ### AC2: Theme Toggle
+
 **Given** I am viewing the application
 **When** I click the theme toggle in the header
 **Then** the theme switches between Mocha (dark) and Latte (light)
 **And** my preference is persisted in localStorage
 
 ### AC3: System Theme Detection
+
 **Given** I am viewing the application
 **When** my system has `prefers-color-scheme: dark` or `light`
 **Then** the initial theme respects my system preference (if no stored preference)
 
 ### AC4: Navigation Routing
+
 **Given** I am on any page
 **When** I click a navigation item in the sidebar
 **Then** the URL updates to reflect the selected section
@@ -38,12 +42,14 @@ So that **I can access server management features through a consistent UI**.
 **And** the active navigation item is visually highlighted
 
 ### AC5: Sidebar Collapse
+
 **Given** I am viewing the sidebar
 **When** I click the collapse button
 **Then** the sidebar collapses to icon-only mode (64px)
 **And** my collapse preference is persisted in localStorage
 
 ### AC6: Mobile Responsive Behavior
+
 **Given** I resize my browser to mobile width (<768px)
 **When** the viewport is narrow
 **Then** the sidebar is hidden by default
@@ -118,6 +124,7 @@ So that **I can access server management features through a consistent UI**.
 ### CRITICAL: Architecture Compliance
 
 **Frontend Structure (MUST follow exactly):**
+
 ```
 web/src/
 ├── App.tsx                    # Router setup + providers
@@ -153,6 +160,7 @@ web/src/
 ```
 
 **Naming Conventions:**
+
 - Files: kebab-case (`use-theme.ts`, `mod-card.tsx`)
 - Components: PascalCase (`Header`, `Sidebar`, `Layout`)
 - Hooks: camelCase with `use` prefix (`useTheme`, `useSidebar`)
@@ -174,6 +182,7 @@ web/src/
 ### Catppuccin Color Palette
 
 **Mocha (Dark Mode):**
+
 ```css
 --background: #1e1e2e;      /* Base */
 --surface: #313244;         /* Surface0 */
@@ -188,6 +197,7 @@ web/src/
 ```
 
 **Latte (Light Mode):**
+
 ```css
 --background: #eff1f5;      /* Base */
 --surface: #e6e9ef;         /* Surface0 */
@@ -204,11 +214,13 @@ web/src/
 ### Layout Specifications
 
 **Header (48px height, fixed):**
+
 - Left: Server name ("VintageStory Server") + placeholder status
 - Center: Pending restart indicator placeholder (invisible for now)
 - Right: Theme toggle button
 
 **Sidebar (240px expanded, 64px collapsed):**
+
 - Top: Logo/App title
 - Navigation items with Lucide icons:
   - Dashboard: `LayoutDashboard`
@@ -219,6 +231,7 @@ web/src/
 - Collapse toggle button
 
 **Main Content:**
+
 - Left margin matching sidebar width
 - Top padding for header
 - Responsive padding
@@ -323,6 +336,7 @@ import { Menu } from 'lucide-react';
 ### Previous Story Intelligence (from Stories 1.1 and 1.2)
 
 **Learnings to Apply:**
+
 1. **Use Pydantic v2 patterns** - model_config instead of class Config
 2. **Use sonner instead of toast** - shadcn/ui canary uses sonner for notifications
 3. **Pin tool versions** - uv 0.9.18, bun 1.3.5 in .mise.toml
@@ -330,6 +344,7 @@ import { Menu } from 'lucide-react';
 5. **shadcn canary required** - For Tailwind v4 + React 19 support
 
 **Files Created in 1.1 (available for this story):**
+
 - `web/src/main.tsx` - Entry point ready
 - `web/src/App.tsx` - Needs router/provider wrapping
 - `web/src/lib/utils.ts` - cn() utility ready
@@ -343,6 +358,7 @@ import { Menu } from 'lucide-react';
 ### Project Structure Notes
 
 **Alignment with unified project structure:**
+
 - All new files go in established directories from Story 1.1
 - Layout components in `components/layout/` (new directory)
 - Feature pages in `features/<feature>/` (new files)
@@ -388,6 +404,7 @@ None
 ### Test Coverage Added (Code Review - Post-Implementation)
 
 **Testing Framework Setup:**
+
 - Installed: @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, vitest, jsdom
 - Created: vitest.config.ts with jsdom environment and path aliases
 - Created: tests/setup.ts with localStorage mock and cleanup hooks
@@ -396,22 +413,26 @@ None
 **Test Files Created (67 tests, 100% passing):**
 
 **1. ThemeContext.test.tsx (6 tests)**
+
 - Verifies Provider wraps next-themes with correct props
 - Tests attribute="class", defaultTheme="system", enableSystem, disableTransitionOnChange
 
 **2. SidebarContext.test.tsx (13 tests)**
+
 - localStorage persistence for isCollapsed state
 - Initializes from localStorage on mount
 - toggleCollapse() and setMobileOpen() functions
 - Error handling when useSidebar used outside provider
 
 **3. Header.test.tsx (18 tests)**
+
 - Server name "VintageStory Server" rendering
 - Theme toggle button with setTheme mock verification
 - Mobile hamburger button visibility (md:hidden on desktop)
 - Fixed positioning, z-index, height, borders
 
 **4. Sidebar.test.tsx (15 tests)**
+
 - All 4 navigation items render correctly (Dashboard, Mods, Config, Terminal)
 - Active route highlighting via NavLink
 - Collapse toggle functionality
@@ -420,6 +441,7 @@ None
 - Tooltip triggers when collapsed
 
 **5. Layout.test.tsx (15 tests)**
+
 - Header component rendering
 - Dynamic --sidebar-width (240px ↔ 64px)
 - Mobile Sheet open/close behavior
@@ -428,6 +450,7 @@ None
 - Background color and z-index
 
 **Test Results:**
+
 - Total: 67 tests
 - Passed: 67 (100%)
 - Failed: 0
@@ -440,6 +463,7 @@ None
 ### File List
 
 **New Files:**
+
 - web/src/styles/themes/mocha.json
 - web/src/styles/themes/latte.json
 - web/src/contexts/ThemeContext.tsx
@@ -460,6 +484,7 @@ None
 - web/src/components/ui/avatar.tsx
 
 **New Files (Testing):**
+
 - web/vitest.config.ts (Vitest configuration)
 - web/tests/setup.ts (Test setup with localStorage mock)
 - web/src/contexts/ThemeContext.test.tsx (6 tests)
@@ -469,7 +494,7 @@ None
 - web/src/components/layout/Layout.test.tsx (15 tests)
 
 **Modified Files:**
+
 - web/package.json (added dependencies + test scripts)
 - web/src/styles/index.css (Catppuccin theme variables)
 - web/src/App.tsx (router setup + providers)
-

@@ -13,6 +13,7 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 ## Acceptance Criteria
 
 ### AC1: Health Endpoint (/healthz)
+
 **Given** the API server is running
 **When** I send a GET request to `/healthz`
 **Then** I receive a 200 status code
@@ -21,6 +22,7 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 *(Covers FR27)*
 
 ### AC2: Readiness Endpoint (/readyz)
+
 **Given** the API server is running
 **When** I send a GET request to `/readyz`
 **Then** I receive a 200 status code when the API is ready to serve requests
@@ -29,6 +31,7 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 *(Covers FR28)*
 
 ### AC3: Game Server Status in Health Response
+
 **Given** the API server is running
 **When** I query the health endpoints
 **Then** the response includes game server process status (running/stopped/not_installed)
@@ -36,12 +39,14 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 *(Covers FR29, NFR15)*
 
 ### AC4: API Availability When Game Server Down
+
 **Given** the API server is running
 **When** the game server process is not running
 **Then** the API still responds to health checks (API healthy, game stopped)
 *(Covers NFR8)*
 
 ### AC5: Structured Logging
+
 **Given** any API request is made
 **When** the server processes the request
 **Then** structured JSON logs are emitted (in production mode)
@@ -93,6 +98,7 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 ### CRITICAL: Architecture Compliance
 
 **Response Envelope Pattern (MUST follow exactly):**
+
 ```python
 # Success Response
 {
@@ -112,10 +118,12 @@ So that **I can configure Kubernetes probes and monitoring systems**.
 ```
 
 **Health Endpoint Paths (NOT versioned):**
+
 - `GET /healthz` - Liveness probe (is the API process alive?)
 - `GET /readyz` - Readiness probe (is the API ready to serve traffic?)
 
 **API Versioning (for future endpoints):**
+
 - Base path: `/api/v1alpha1`
 - Health endpoints are NOT under this path (standard K8s convention)
 
@@ -351,12 +359,14 @@ def test_health_endpoints_require_no_auth():
 ### Previous Story Intelligence (from Story 1.1)
 
 **Learnings to Apply:**
+
 1. **TSConfig requires explicit jsx setting** - Already configured in 1.1, not relevant for backend
 2. **Use Pydantic v2 patterns** - Use `model_config = ConfigDict(...)` not class Config
 3. **Use sonner instead of toast** - Frontend only, not relevant here
 4. **Pin tool versions** - uv 0.9.18, bun 1.3.5 already pinned in .mise.toml
 
 **Files Created in 1.1 (available for this story):**
+
 - `api/src/vintagestory_api/main.py` - Needs updating with health router
 - `api/src/vintagestory_api/config.py` - Needs structlog configuration
 - `api/src/vintagestory_api/models/__init__.py` - Needs response models
@@ -368,6 +378,7 @@ def test_health_endpoints_require_no_auth():
 ### Project Structure Notes
 
 **Alignment with unified project structure:**
+
 - All new files go in established directories from Story 1.1
 - Response models in `models/responses.py` (new file)
 - Error codes in `models/errors.py` (new file)
@@ -408,21 +419,23 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### File List
 
 **New Files:**
+
 - api/src/vintagestory_api/models/responses.py
 - api/src/vintagestory_api/models/errors.py
 - api/src/vintagestory_api/routers/health.py
 - api/tests/test_health.py
 
 **Modified Files:**
+
 - api/src/vintagestory_api/main.py (added lifespan, health router, CORS)
 - api/src/vintagestory_api/config.py (added configure_logging function)
-- api/src/vintagestory_api/models/__init__.py (added exports)
-- api/src/vintagestory_api/routers/__init__.py (added health export)
+- api/src/vintagestory_api/models/**init**.py (added exports)
+- api/src/vintagestory_api/routers/**init**.py (added health export)
 
 ### Change Log
 
 - 2025-12-26: Implemented Story 1.2 - Backend API skeleton with health endpoints (/healthz, /readyz), structured logging, and comprehensive test suite
-- 2025-12-26: Code Review - Fixed 5 issues (M1-M4 medium, L1-L2 low): removed overly permissive CORS, added envelope tests, removed duplicate Settings, added response_model decorators, fixed ReadinessData default, added __all__ exports
+- 2025-12-26: Code Review - Fixed 5 issues (M1-M4 medium, L1-L2 low): removed overly permissive CORS, added envelope tests, removed duplicate Settings, added response_model decorators, fixed ReadinessData default, added **all** exports
 
 ## Senior Developer Review (AI)
 
@@ -451,4 +464,3 @@ All acceptance criteria verified as implemented. Code quality is solid with good
 - ✅ Ruff linter clean
 - ✅ All ACs implemented
 - ✅ Architecture compliance verified
-

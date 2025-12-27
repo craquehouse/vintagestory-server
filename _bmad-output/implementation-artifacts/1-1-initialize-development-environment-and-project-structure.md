@@ -11,12 +11,14 @@ So that **I can begin implementing features with consistent tooling across the t
 ## Acceptance Criteria
 
 ### AC1: mise Environment Setup
+
 **Given** a fresh clone of the repository
 **When** I run `mise trust && mise install`
 **Then** Python 3.13, uv, and Bun are installed at the pinned versions
 **And** a `.mise.toml` file exists at the project root with tool versions specified
 
 ### AC2: Backend Scaffolding
+
 **Given** the development environment is set up
 **When** I navigate to the `api/` directory
 **Then** a `pyproject.toml` exists with project name `vintagestory-api`
@@ -24,6 +26,7 @@ So that **I can begin implementing features with consistent tooling across the t
 **And** dev dependencies include `pytest`, `pytest-asyncio`, `ruff`, `respx`
 
 ### AC3: Frontend Scaffolding
+
 **Given** the development environment is set up
 **When** I navigate to the `web/` directory
 **Then** a `package.json` exists with React 19.2 and TypeScript configured
@@ -31,10 +34,11 @@ So that **I can begin implementing features with consistent tooling across the t
 **And** shadcn/ui is initialized with the project's component configuration
 
 ### AC4: Project Structure
+
 **Given** the project structure is initialized
 **When** I examine the repository root
 **Then** the directory structure matches the Architecture specification
-**And** `.gitignore` excludes appropriate files (node_modules, .venv, __pycache__, data/)
+**And** `.gitignore` excludes appropriate files (node_modules, .venv, **pycache**, data/)
 
 ## Tasks / Subtasks
 
@@ -97,6 +101,7 @@ So that **I can begin implementing features with consistent tooling across the t
 ### Architecture Compliance Requirements
 
 **Backend Structure (MUST follow exactly):**
+
 ```
 api/
 ├── pyproject.toml
@@ -119,6 +124,7 @@ api/
 ```
 
 **Frontend Structure (MUST follow exactly):**
+
 ```
 web/
 ├── package.json
@@ -143,6 +149,7 @@ web/
 ```
 
 **Root Structure:**
+
 ```
 vintagestory-server/
 ├── .mise.toml
@@ -193,6 +200,7 @@ export default defineConfig({
 ### tsconfig.json additions
 
 The `tsconfig.json` needs path aliases (Vite 7 uses a single tsconfig):
+
 ```json
 {
   "compilerOptions": {
@@ -276,6 +284,7 @@ VS_API_KEY_ADMIN=change-me-to-a-secure-random-string
 ### shadcn/ui Initialization Answers
 
 When running `bunx shadcn@canary init`, select:
+
 - Style: **new-york** (default being deprecated)
 - Base color: Use defaults or customize for Catppuccin later
 - CSS variables: **Yes**
@@ -320,6 +329,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### File List
 
 **New Files:**
+
 - .mise.toml
 - .env.example
 - Dockerfile
@@ -329,13 +339,13 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - api/pyproject.toml
 - api/uv.lock
 - api/.python-version
-- api/src/vintagestory_api/__init__.py
+- api/src/vintagestory_api/**init**.py
 - api/src/vintagestory_api/main.py
 - api/src/vintagestory_api/config.py
-- api/src/vintagestory_api/routers/__init__.py
-- api/src/vintagestory_api/services/__init__.py
-- api/src/vintagestory_api/models/__init__.py
-- api/src/vintagestory_api/middleware/__init__.py
+- api/src/vintagestory_api/routers/**init**.py
+- api/src/vintagestory_api/services/**init**.py
+- api/src/vintagestory_api/models/**init**.py
+- api/src/vintagestory_api/middleware/**init**.py
 - api/tests/conftest.py
 - web/package.json
 - web/bun.lock
@@ -356,6 +366,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - web/src/features/.gitkeep
 
 **Modified Files:**
+
 - README.md (added Development Setup section)
 - .gitignore (added node_modules, data/ exclusions)
 - api/src/vintagestory_api/config.py (code review: updated to Pydantic v2 model_config pattern)
@@ -364,4 +375,3 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - 2025-12-26: Implemented Story 1.1 - Full development environment setup with mise, Python/FastAPI backend, React/Vite frontend
 - 2025-12-26: Code review fixes - Updated pydantic-settings to use model_config, added .gitkeep to placeholder directories
-

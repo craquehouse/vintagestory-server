@@ -11,6 +11,7 @@ So that **I can run VintageStory Server Manager with minimal configuration**.
 ## Acceptance Criteria
 
 ### AC1: Docker Compose Production Deployment
+
 **Given** I have Docker and docker-compose installed
 **When** I run `docker compose up -d` with `docker-compose.yaml`
 **Then** the container starts successfully
@@ -19,12 +20,14 @@ So that **I can run VintageStory Server Manager with minimal configuration**.
 *(Covers FR38)*
 
 ### AC2: Container Logging
+
 **Given** the container is running
 **When** I check the container logs
 **Then** I see structured startup messages
 **And** no errors are present for a clean start
 
 ### AC3: Environment Variable Configuration
+
 **Given** I set environment variables (`VS_API_KEY_ADMIN`, etc.)
 **When** the container starts
 **Then** the application reads configuration from environment variables
@@ -32,18 +35,21 @@ So that **I can run VintageStory Server Manager with minimal configuration**.
 *(Covers FR39)*
 
 ### AC4: Development Build Configuration
+
 **Given** a `docker-compose.dev.yaml` file exists
 **When** I run `docker compose -f docker-compose.dev.yaml up --build`
 **Then** the image builds from local source
 **And** development defaults are applied (e.g., `VS_DEBUG=true`)
 
 ### AC5: Volume Mount Configuration
+
 **Given** the container is running
 **When** I examine the volume mounts
 **Then** `/data` is mounted for persistent storage
 **And** the directory structure matches Architecture specification (`/data/server/`, `/data/mods/`, `/data/state/`, etc.)
 
 ### AC6: Environment Documentation
+
 **Given** I have a `.env.example` file
 **When** I review it
 **Then** all configurable environment variables are documented with descriptions
@@ -96,7 +102,7 @@ So that **I can run VintageStory Server Manager with minimal configuration**.
   - [x] 7.0: Add test coverage for static file serving and SPA routing
   - [x] 7.1: Build image: `docker build -t vintagestory-server:local .` ✅ Build successful (21s)
   - [x] 7.2: Run container: `docker compose -f docker-compose.dev.yaml up --build` ✅ Container started healthy
-  - [x] 7.3: Verify web UI loads at http://localhost:8080 ✅ index.html served correctly
+  - [x] 7.3: Verify web UI loads at <http://localhost:8080> ✅ index.html served correctly
   - [x] 7.4: Verify `/healthz` returns 200 ✅ Returns `{"status": "ok", "data": {"api": "healthy", "game_server": "not_installed"}}`
   - [x] 7.5: Verify `/readyz` returns 200 ✅ Returns `{"status": "ok", "data": {"ready": true, "checks": {"api": true}}}`
   - [x] 7.6: Verify structured logs in container output (`docker logs <container>`) ✅ Structured key-value logging with `data_dir=/data debug_mode=True`
@@ -129,6 +135,7 @@ The application uses a single container that serves both the API and static fron
 ```
 
 **Volume Mount Structure (MUST follow exactly):**
+
 ```
 /data (single mounted volume)
 ├── server/                   # VintageStory server installation (future)
@@ -143,6 +150,7 @@ The application uses a single container that serves both the API and static fron
 ### Docker Registry
 
 **Container Registry:** `ghcr.io/craquehouse/vintagestory-server`
+
 - Tags: `latest`, `vX.Y.Z` (semantic versions)
 - Images are built and pushed via CI/CD (future story)
 
@@ -290,21 +298,25 @@ services:
 ### Web Research: Docker Best Practices 2025
 
 **Multi-Stage Build Benefits:**
+
 - Single-Stage builds: ~273 MB
 - Multi-Stage builds: ~225 MB
 - Runtime Artifact builds: ~208 MB
 
 **Security Requirements:**
+
 - Create non-root user (`vsmanager`)
 - Set file ownership with `chown`
 - Use `USER vsmanager` in final stage
 
 **Health Check Requirements:**
+
 - Use built-in Python urllib (no curl needed in slim image)
 - `--start-period` allows for application startup time
 - `--retries=3` before marking unhealthy
 
 **Docker Compose v2 (2025):**
+
 - No `version:` field needed (deprecated)
 - Use `docker compose` (not `docker-compose`)
 - Rename files to `compose.yaml` (modern convention) - *but keeping docker-compose.yaml for user familiarity*
@@ -313,40 +325,47 @@ services:
 ### Previous Story Intelligence
 
 **From Story 1.1:**
+
 - `.mise.toml` pins uv 0.9.18, bun 1.3.5
 - Placeholder Dockerfile exists (needs real implementation)
 - Placeholder docker-compose files exist (need real implementation)
 - `.env.example` exists (needs expansion)
 
 **From Story 1.2:**
+
 - Health endpoints `/healthz` and `/readyz` are implemented
 - Structured logging via structlog is configured
 - Settings class uses `pydantic-settings` with env var support
 - API response envelope pattern established
 
 **From Story 1.3:**
+
 - Frontend builds with `bun run build` output to `dist/`
 - React Router handles client-side routing (needs SPA fallback)
 - Build verified working: 67 tests passing
 
 **Git Patterns:**
+
 - Commits use conventional commit format: `feat(scope): message`
 - Code review runs after implementation
 
 ### Files to Modify
 
 **Existing files (from Story 1.1 placeholders):**
+
 - `Dockerfile` - Replace placeholder with multi-stage build
 - `docker-compose.yaml` - Replace placeholder with production config
 - `docker-compose.dev.yaml` - Replace placeholder with dev config
 - `.env.example` - Expand with all environment variables
 
 **New/Modified for static serving:**
+
 - `api/src/vintagestory_api/main.py` - Add static file serving
 
 ### Dockerfile .dockerignore
 
 Create `.dockerignore` to exclude unnecessary files:
+
 ```
 .git
 .gitignore
@@ -367,12 +386,13 @@ node_modules
 ### Testing Checklist
 
 After implementation, verify:
+
 1. `docker build -t test .` completes successfully
 2. Image size is under 300 MB
 3. Container starts with `docker compose up`
-4. http://localhost:8080 shows React app
-5. http://localhost:8080/healthz returns `{"status": "ok"}`
-6. http://localhost:8080/readyz returns `{"status": "ok"}`
+4. <http://localhost:8080> shows React app
+5. <http://localhost:8080/healthz> returns `{"status": "ok"}`
+6. <http://localhost:8080/readyz> returns `{"status": "ok"}`
 7. Client-side routes (e.g., `/mods`) work with browser refresh
 8. Logs show structured JSON output
 9. `/data` directory is writable
@@ -380,6 +400,7 @@ After implementation, verify:
 ### Project Structure Notes
 
 **Alignment with unified project structure:**
+
 - Dockerfile at project root (builds both api/ and web/)
 - Static files served from `/app/static` inside container
 - Data volume at `/data` with subdirectories
@@ -459,6 +480,7 @@ The Dockerfile uses `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64` as bas
 This decision balances simplicity with MVP requirements and can be revisited in Phase 3 if multi-server fleet patterns become a requirement.
 
 **Architecture Updates Summary:**
+
 - Updated "Infrastructure & Deployment" section with single container + .NET base image
 - Replaced two-container architecture diagram with single-container diagram
 - Added comprehensive "Container Strategy Decision" section with full analysis
@@ -469,6 +491,7 @@ This decision balances simplicity with MVP requirements and can be revisited in 
 **All Testing Complete (Manual Docker Testing Performed on 2025-12-26):**
 
 Task 7 (Verify and Test) - All subtasks verified ✅:
+
 - [x] 7.1: Build image successful (21s, multi-stage build completed)
 - [x] 7.2: Run container successful (healthy status, all ports mapped)
 - [x] 7.3: Web UI loads correctly (index.html served with React app)
@@ -479,16 +502,17 @@ Task 7 (Verify and Test) - All subtasks verified ✅:
 - [x] 7.8: Environment variables working (VS_DEBUG=true, SPA routes fall back to index.html)
 
 **Additional Verification:**
+
 - ✅ Client routes (e.g., /mods, /dashboard) fall back to index.html for SPA routing
-- ✅ Assets served correctly (/assets/*.js, *.css)
+- ✅ Assets served correctly (/assets/*.js,*.css)
 - ✅ Favicon accessible
 - ✅ Healthcheck passes (container shows "healthy" status)
 - ✅ Non-root user (vsmanager) used correctly
 
-
 ### File List
 
 **Modified Files:**
+
 - `Dockerfile` - Multi-stage build configuration
 - `docker-compose.yaml` - Production docker-compose configuration
 - `docker-compose.dev.yaml` - Development docker-compose configuration
@@ -500,12 +524,13 @@ Task 7 (Verify and Test) - All subtasks verified ✅:
 - `_bmad-output/planning-artifacts/epics.md` - Updated infrastructure references to single container pattern
 
 **New Files:**
+
 - `.dockerignore` - Docker build exclusion patterns
 - `api/tests/test_config.py` - Tests for configuration module (13 test cases)
 - `api/tests/test_static_serving.py` - Tests for static file serving and SPA routing (11 test cases)
 - `_bmad-output/implementation-artifacts/1-4-docker-deployment-configuration.md` - This story file
 
 **Lock Files Updated:**
+
 - `api/uv.lock` - Python dependency lock file (structlog added)
 - `.python-version` - Python 3.12 specified
-

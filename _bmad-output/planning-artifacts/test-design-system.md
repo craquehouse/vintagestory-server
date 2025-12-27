@@ -31,6 +31,7 @@ The architecture provides excellent controllability for testing:
 | **Error Injection** | ✅ Good | Atomic write pattern with temp files allows failure simulation |
 
 **Specific Enablers:**
+
 - Dependency injection pattern in FastAPI allows service mocking
 - StateManager's atomic write pattern (temp + rename) is testable
 - Environment-based configuration via `pydantic-settings`
@@ -47,6 +48,7 @@ The architecture provides excellent controllability for testing:
 | **WebSocket State** | ✅ Good | Connection state observable via console buffer |
 
 **Specific Enablers:**
+
 - Health endpoints differentiate API health vs game server health (NFR15)
 - Error responses include sufficient context without exposing internals (NFR16)
 - Console buffer state trackable in-memory
@@ -62,6 +64,7 @@ The architecture provides excellent controllability for testing:
 | **Component Coupling** | ✅ Excellent | Clean separation: Routers → Services → Models → External |
 
 **Notes:**
+
 - File system tests should use `pytest` `tmp_path` fixture
 - WebSocket tests need connection lifecycle management
 - Game server process tests should use mock subprocess
@@ -117,6 +120,7 @@ Based on the architecture (API + SPA + Docker container):
 #### Unit Tests (50%)
 
 **Scope:**
+
 - StateManager atomic write logic
 - ModService compatibility calculation
 - ServerLifecycle state machine
@@ -127,6 +131,7 @@ Based on the architecture (API + SPA + Docker container):
 **Tools:** pytest, pytest-asyncio
 
 **Patterns:**
+
 ```python
 # Pure function tests - no I/O, no external deps
 def test_mod_compatibility_calculation():
@@ -137,6 +142,7 @@ def test_mod_compatibility_calculation():
 #### Integration Tests (35%)
 
 **Scope:**
+
 - API endpoint request/response via FastAPI TestClient
 - Authentication middleware behavior
 - Service-to-service interactions
@@ -146,6 +152,7 @@ def test_mod_compatibility_calculation():
 **Tools:** pytest, httpx, respx, TestClient
 
 **Patterns:**
+
 ```python
 # API integration test
 async def test_health_endpoint(client: TestClient):
@@ -157,6 +164,7 @@ async def test_health_endpoint(client: TestClient):
 #### E2E Tests (15%)
 
 **Scope:**
+
 - Full authentication flow (Admin and Monitor roles)
 - WebSocket console streaming
 - Mod install → verify → enable flow
@@ -192,6 +200,7 @@ async def test_health_endpoint(client: TestClient):
 | NFR7: Failed auth logged | Assert log entries on 401 responses | pytest-caplog |
 
 **Security Test Categories:**
+
 - Authentication bypass attempts (missing key, invalid key, wrong role)
 - Authorization boundary testing (Monitor accessing Admin endpoints)
 - Input validation (path traversal in config endpoints)
@@ -205,6 +214,7 @@ async def test_health_endpoint(client: TestClient):
 | NFR3: <500ms API response | Response time assertions in integration tests | pytest-benchmark (optional) |
 
 **Performance Testing Strategy:**
+
 - Add timing assertions to critical path integration tests
 - Defer load testing to post-MVP (single-user scenario)
 - Console latency tested in E2E WebSocket tests
@@ -287,6 +297,7 @@ The architecture has been designed with testability in mind:
 ### Test Infrastructure Setup
 
 1. **pytest Configuration** (`api/pytest.ini` or `pyproject.toml`)
+
    ```toml
    [tool.pytest.ini_options]
    asyncio_mode = "auto"
@@ -364,6 +375,7 @@ The vintagestory-server architecture is well-designed for testability:
 - **Reliability:** Good - atomic writes, stateless design, clear boundaries
 
 **High-Priority ASRs for Testing:**
+
 1. Console security (Admin-only access)
 2. API performance (<500ms response)
 3. Console latency (<1s)
@@ -373,6 +385,7 @@ The vintagestory-server architecture is well-designed for testability:
 **Test Level Strategy:** 50% Unit / 35% Integration / 15% E2E
 
 **Sprint 0 Actions:**
+
 1. Set up pytest configuration with async support
 2. Create conftest.py with core fixtures
 3. Configure CI workflow with coverage checks

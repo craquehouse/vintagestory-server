@@ -46,11 +46,13 @@ Two core capabilities define this product:
 | **Project Context** | Greenfield |
 
 **Architecture:** Three-component system:
+
 - **Docker Image** - Currently using `quartzar/vintage-story-server`; may create custom image from `mcr.microsoft.com/dotnet/runtime:8.0` as needs evolve
 - **API Server** - Python/FastAPI backend for server lifecycle, mod management, and console streaming
 - **Web UI** - Node.js frontend for administration
 
 **Key Technical Decisions** (from brainstorming):
+
 - FastAPI + uv + Ruff + pytest
 - No database required - lightweight JSON persistence keeps deployment simple
 - WebSocket console streaming
@@ -206,6 +208,7 @@ Three-tier API key authentication via `X-API-Key` header with role-based permiss
 ### Rate Limiting (Nice-to-have)
 
 If trivial to implement:
+
 - Global limit: ~10 requests/second or 300 requests/minute
 - Purpose: Prevent abuse/misconfiguration, not throttle legitimate UI use
 - Not MVP-blocking
@@ -226,6 +229,7 @@ If trivial to implement:
 ### MVP Feature Set (Phase 1)
 
 **Core User Journeys Supported:**
+
 - Journey 1: First-Time Setup (full support)
 - Journey 3: Troubleshooting (full support)
 - Journey 4: K8s Administrator (health endpoints only)
@@ -247,6 +251,7 @@ If trivial to implement:
 ### Post-MVP Features
 
 **Phase 2 - Growth:**
+
 - Mod update detection and one-click updates
 - Mod version switching (rollback capability)
 - Backup management (create, restore, download)
@@ -255,6 +260,7 @@ If trivial to implement:
 - SBOM generation and security scanning
 
 **Phase 3 - Vision:**
+
 - Embedded mod browser with URL interception
 - Multi-server fleet management
 - Custom Docker image from dotnet base
@@ -365,4 +371,3 @@ If trivial to implement:
 - NFR14: API server logs are structured (JSON) for easy parsing; game server logs remain in their native format
 - NFR15: Health endpoints differentiate between "API healthy" and "game server healthy"
 - NFR16: Errors include sufficient context for debugging without exposing sensitive data
-

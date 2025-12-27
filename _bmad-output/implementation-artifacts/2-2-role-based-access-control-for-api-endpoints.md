@@ -72,12 +72,14 @@ so that **I can grant read-only access to monitoring systems while reserving wri
 ### Architecture & Patterns
 
 **Role Hierarchy:**
+
 ```
 Admin → Full access (read + write + console)
 Monitor → Read-only access (no writes, no console)
 ```
 
 **Permission Check Flow:**
+
 ```
 Request → Auth Middleware → Role Extracted → Permission Check → Route Handler
                             (from Story 2.1)        ↓
@@ -90,6 +92,7 @@ Request → Auth Middleware → Role Extracted → Permission Check → Route Ha
 Story 2.1 created `middleware/auth.py` with `get_current_user` dependency that returns the user role. Build on top of this - DO NOT recreate authentication logic.
 
 **Dependency Pattern (FastAPI best practice):**
+
 ```python
 from fastapi import Depends, HTTPException
 from vintagestory_api.middleware.auth import get_current_user, UserRole
@@ -173,15 +176,18 @@ All 403 responses MUST use the standard envelope:
 ### Project Structure Notes
 
 **Files to create:**
+
 - `api/src/vintagestory_api/middleware/permissions.py` - Role-based permission dependencies
 - `api/src/vintagestory_api/routers/test_rbac.py` - Temporary test endpoints for RBAC validation
 
 **Files to modify:**
+
 - `api/src/vintagestory_api/middleware/__init__.py` - Export permission dependencies
 - `api/src/vintagestory_api/routers/__init__.py` - Export test_rbac router (temporary)
 - `api/src/vintagestory_api/main.py` - Wire up test_rbac router
 
 **Tests to create:**
+
 - `api/tests/test_permissions.py` - Permission dependency unit tests
 - `api/tests/test_rbac_integration.py` - Full RBAC integration tests
 
@@ -197,6 +203,7 @@ All 403 responses MUST use the standard envelope:
 | `get_settings` | `config.py` | Settings dependency |
 
 **Import pattern:**
+
 ```python
 from vintagestory_api.middleware.auth import get_current_user, UserRole
 from vintagestory_api.models.errors import ErrorCode
@@ -225,18 +232,21 @@ from vintagestory_api.models.errors import ErrorCode
 
 **Key insight from Story 2.1:**
 The router already has authentication at the router level. RBAC adds a second layer - permission checking after authentication succeeds. The flow is:
+
 1. Router auth dependency verifies API key is valid
 2. Endpoint-level permission dependency (require_admin, etc.) checks role permissions
 
 ### Git History Intelligence
 
 **Recent commit patterns:**
+
 - `fix(auth):` prefix for auth fixes
 - `feat(auth):` prefix for auth features
 - Commit messages include story reference
 - All tests must pass before marking complete
 
 **Files recently touched in auth work:**
+
 - `api/src/vintagestory_api/middleware/auth.py`
 - `api/src/vintagestory_api/routers/auth.py`
 - `api/tests/test_auth.py`
@@ -244,16 +254,19 @@ The router already has authentication at the router level. RBAC adds a second la
 ### Latest Best Practices (2025)
 
 **FastAPI Dependency Injection:**
+
 - Use `Depends()` for composable permission checks
 - Layer permissions: auth → role check → route
 - Keep permission dependencies small and focused
 
 **Role-Based Access Control:**
+
 - Two-tier is sufficient for MVP (Admin/Monitor)
 - Check at endpoint level, not middleware (allows flexibility)
 - Clear error messages help debugging
 
 **Test Organization:**
+
 - Unit tests for permission logic
 - Integration tests for full request flow
 - Test both allowed and denied scenarios
@@ -330,6 +343,7 @@ None - implementation proceeded without issues
 ### File List
 
 **New files:**
+
 - `api/src/vintagestory_api/middleware/permissions.py` - Role-based permission dependencies
 - `api/src/vintagestory_api/routers/test_rbac.py` - Test endpoints for RBAC validation
 - `api/tests/test_permissions.py` - Permission dependency unit tests (22 tests) **[CODE REVIEW FIX]**
@@ -337,10 +351,10 @@ None - implementation proceeded without issues
 - `api/tests/test_debug_gating.py` - DEBUG mode gating tests (4 tests) **[CODE REVIEW FIX]**
 
 **Modified files:**
+
 - `api/src/vintagestory_api/middleware/__init__.py` - Export permission dependencies
 - `api/src/vintagestory_api/routers/__init__.py` - Export test_rbac router
 - `api/src/vintagestory_api/main.py` - Wire up test_rbac router with DEBUG gating **[CODE REVIEW FIX]**
 - `api/src/vintagestory_api/routers/test_rbac.py` - Simplified test endpoint responses to use minimal data **[CODE REVIEW FIX]**
 - `api/tests/conftest.py` - Set VS_DEBUG=true in test environment **[CODE REVIEW FIX]**
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status
-

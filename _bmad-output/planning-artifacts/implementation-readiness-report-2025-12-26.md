@@ -19,6 +19,7 @@
 | UX Design | ux-design-specification.md | 44,876 bytes | 2025-12-26 17:10 |
 
 **Discovery Notes:**
+
 - All 4 required document types found
 - No duplicates detected
 - All documents in whole file format (no sharding)
@@ -262,12 +263,15 @@ FR30 (Metrics endpoint) is explicitly marked POST-MVP in the PRD and appropriate
 ### Quality Findings
 
 #### 🔴 Critical Violations
+
 **None found.**
 
 #### 🟠 Major Issues
+
 **None found.**
 
 #### 🟡 Minor Concerns
+
 1. Epic 1 title "Project Foundation" is borderline technical, but acceptable since it delivers user value via health endpoints and docker deployment.
 
 ---

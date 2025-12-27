@@ -74,6 +74,7 @@ so that **I can access protected endpoints securely**.
 ### Architecture & Patterns
 
 **Authentication Flow:**
+
 ```
 Request → X-API-Key Header → Middleware → Compare Keys → Role Assignment → Route Handler
               ↓                                               ↓
@@ -83,6 +84,7 @@ Request → X-API-Key Header → Middleware → Compare Keys → Role Assignment
 ```
 
 **Key Comparison - MUST use timing-safe comparison:**
+
 ```python
 import secrets
 
@@ -92,6 +94,7 @@ def verify_api_key(provided_key: str, expected_key: str) -> bool:
 ```
 
 **Dependency Pattern (FastAPI best practice):**
+
 ```python
 from fastapi import Depends, Header, HTTPException
 from vintagestory_api.models.errors import ErrorCode
@@ -127,6 +130,7 @@ async def get_current_user(
 ```
 
 **Global Dependency for Protected Routes:**
+
 ```python
 # In main.py
 api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
@@ -168,20 +172,24 @@ All error responses MUST use the standard envelope from `models/responses.py`:
 ### Project Structure Notes
 
 **Files to create:**
+
 - `api/src/vintagestory_api/middleware/auth.py` - Authentication logic
 - `api/src/vintagestory_api/routers/auth.py` - Temporary test endpoint (can be removed after Epic 2)
 
 **Files to modify:**
+
 - `api/src/vintagestory_api/main.py` - Wire up API v1alpha1 router with auth dependency
 - `api/src/vintagestory_api/config.py` - Add `get_settings` dependency function
 
 **Tests to create:**
+
 - `api/tests/test_auth.py` - Authentication middleware tests
 - `api/tests/test_health_no_auth.py` - Verify health endpoints stay public
 
 ### Existing Code Patterns
 
 **Error codes are already defined in `models/errors.py`:**
+
 ```python
 class ErrorCode:
     UNAUTHORIZED = "UNAUTHORIZED"
@@ -190,6 +198,7 @@ class ErrorCode:
 ```
 
 **Settings already has API key fields in `config.py`:**
+
 ```python
 class Settings(BaseSettings):
     api_key_admin: str = ""
@@ -216,8 +225,8 @@ From current FastAPI security research:
 - Response envelope pattern: [Source: api/src/vintagestory_api/models/responses.py]
 - FR31-37 requirements: [Source: _bmad-output/planning-artifacts/epics.md#Epic 2]
 - NFR4, NFR7: [Source: _bmad-output/planning-artifacts/epics.md#NonFunctional Requirements]
-- FastAPI Security Docs: https://fastapi.tiangolo.com/tutorial/security/
-- TestDriven.io API Key Auth: https://testdriven.io/tips/6840e037-4b8f-4354-a9af-6863fb1c69eb/
+- FastAPI Security Docs: <https://fastapi.tiangolo.com/tutorial/security/>
+- TestDriven.io API Key Auth: <https://testdriven.io/tips/6840e037-4b8f-4354-a9af-6863fb1c69eb/>
 
 ### Previous Story Intelligence
 
@@ -261,6 +270,7 @@ No blocking issues encountered during implementation.
 4. **Proxy-aware IP logging** - Added `get_client_ip()` function that properly extracts real client IP from `X-Forwarded-For` and `X-Real-IP` headers for reverse proxy environments
 
 **Additional test added:**
+
 - `test_empty_api_key_returns_401` - Verifies empty string API key returns correct error message
 
 **Test count:** 17 auth tests (up from 16), 55 total tests (up from 54) - all passing
@@ -268,11 +278,13 @@ No blocking issues encountered during implementation.
 ### File List
 
 **New Files:**
+
 - `api/src/vintagestory_api/middleware/auth.py` - Authentication dependency and role detection
 - `api/src/vintagestory_api/routers/auth.py` - Auth router with `/auth/me` endpoint
 - `api/tests/test_auth.py` - 16 authentication tests
 
 **Modified Files:**
+
 - `api/src/vintagestory_api/middleware/__init__.py` - Export auth components
 - `api/src/vintagestory_api/routers/__init__.py` - Export auth router
 - `api/src/vintagestory_api/main.py` - Wire up API v1alpha1 router with auth endpoint

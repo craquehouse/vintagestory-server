@@ -24,12 +24,14 @@ The core value proposition: manage your entire VintageStory server - mods, confi
 ### Target Users
 
 **Primary: Homelab Operators**
+
 - Run VintageStory in Docker/Kubernetes environments
 - Technically capable but convenience-seeking
 - Manage servers for family/friends (personal stake in uptime)
 - Access from desktop primarily, mobile for troubleshooting
 
 **Secondary: Community Server Admins**
+
 - May be Windows/Unraid users avoiding command lines
 - Want simple self-hosting without Linux expertise
 - Value approachable UI over feature density
@@ -126,6 +128,7 @@ The API tracks `pendingRestart` state server-side, ensuring consistency across b
 VintageStory Server Manager is fundamentally a relief-oriented product. Users should feel the weight of terminal-based administration lifted. The emotional arc is: frustration eliminated, not entertainment added.
 
 **Supporting Emotions:**
+
 - **Confidence** - Users know exactly what the system is doing at all times
 - **Control** - Users decide when actions happen; the system respects their intent
 - **Trust** - Compatibility checks and warnings are reliable and explained
@@ -143,12 +146,14 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 ### Micro-Emotions
 
 **Pursue:**
+
 - Confidence over confusion
 - Trust over skepticism
 - Accomplishment over frustration
 - Control over helplessness
 
 **Avoid:**
+
 - Anxiety about server state
 - Distrust of feedback accuracy
 - Overwhelm from option density
@@ -197,21 +202,25 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 ### Transferable UX Patterns
 
 **Navigation:**
+
 - Sidebar navigation for main sections (Dashboard, Mods, Config, Terminal)
 - Header status bar with server state and pending restart indicator
 
 **Data Display:**
+
 - Data tables for mod list with sorting (column customization deferred to post-MVP)
 - Inline row actions (enable/disable/remove) - no modal hunting
 - Status badges with soft Catppuccin colors
 - Card view on mobile for table data
 
 **Interactions:**
+
 - Inline search/filter within views
 - Toast notifications (subtle success, prominent errors)
 - Modal confirmations only for destructive actions
 
 **Visual:**
+
 - Card-based content grouping
 - Soft status colors from Catppuccin (green #a6e3a1, red #f38ba8, yellow #f9e2af)
 - Clean typography with good contrast
@@ -228,6 +237,7 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 | **Shell** | Full interactive shell for advanced troubleshooting | WebSocket to PTY in game container |
 
 **Why xterm.js:**
+
 - WebSocket-native with `xterm-addon-attach`
 - Search addon for finding errors in history
 - Fit addon for responsive container sizing
@@ -235,6 +245,7 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 - Battle-tested performance with large buffers
 
 **Shell access:**
+
 - Auth: Existing Admin API key (no separate permission)
 - Context: Non-root shell in game server container
 - Security: Sandboxed container, no special audit logging for MVP
@@ -253,17 +264,20 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 ### Design Inspiration Strategy
 
 **Adopt:**
+
 - shadcn/ui component library (React, Radix primitives, Tailwind-native)
 - Catppuccin Mocha/Latte theme pairing
 - xterm.js for console and shell
 - Vite + React build tooling
 
 **Adapt:**
+
 - Portainer resource list → Mod list with compatibility badges
 - GitHub clean typography → Console and config editing
 - TrueNAS table controls → Sorting for MVP, column visibility post-MVP
 
 **Avoid:**
+
 - Heavy modals for routine actions
 - Saturated traffic-light status colors
 - Feature-dense dashboards requiring scroll to find status
@@ -300,22 +314,26 @@ VintageStory Server Manager is fundamentally a relief-oriented product. Users sh
 ### Customization Strategy
 
 **Color System:**
+
 - Replace shadcn default palette with Catppuccin tokens
 - Dark mode: Mocha palette (base #1e1e2e, text #cdd6f4)
 - Light mode: Latte palette (complementary values)
 - Semantic colors: green (#a6e3a1), red (#f38ba8), yellow (#f9e2af), blue (#89b4fa)
 
 **Typography:**
+
 - UI text: System font stack for performance
 - Terminal/code: JetBrains Mono or similar monospace
 - Consistent sizing scale from Tailwind defaults
 
 **Component Extensions:**
+
 - Status badges with Catppuccin accent colors
 - Toast notifications matching "fail loudly, succeed quietly" principle
 - Data table with TanStack Table integration for sorting
 
 **Theme Switching:**
+
 - CSS variable swap for instant theme changes
 - `prefers-color-scheme` media query for system preference detection
 - Manual toggle stored in localStorage
@@ -345,17 +363,21 @@ This meets users where they are - browsing the mod site can copy URL directly, p
 ### User Mental Model
 
 **Current workflow (8 steps):**
+
 1. Search mod website → 2. Check version compatibility manually → 3. Download zip → 4. SSH into container → 5. Navigate to folder → 6. Upload file → 7. Restart server → 8. Check logs
 
 **Expected workflow (3 steps):**
+
 1. Type mod name or paste URL → 2. See compatibility → 3. Click install
 
 **User expectations:**
+
 - "It should be like an app store"
 - Compatibility should be automatic
 - One action, not eight steps
 
 **Frustration points to eliminate:**
+
 - Manual version number comparison
 - Buried download links
 - No feedback on success/failure
@@ -372,11 +394,13 @@ This meets users where they are - browsing the mod site can copy URL directly, p
 ### Pattern Analysis
 
 **Established patterns adopted:**
+
 - Package manager UX (npm, pip): Install by name, version resolution automatic
 - App store UX: Search → Details → Install → Done
 - Container registry UX: Compatibility tags visible upfront
 
 **Unique innovation:**
+
 - Proactive compatibility warnings before install, not after failure
 - Restart awareness with immediate/batched options
 - Flexible input accepting both slugs and full URLs
@@ -384,22 +408,26 @@ This meets users where they are - browsing the mod site can copy URL directly, p
 ### Experience Mechanics
 
 **Stage 1: Initiation**
+
 - "Add Mod" button or keyboard shortcut
 - Input field with focus, placeholder "Enter mod slug or paste URL"
 - Smart parsing extracts slug from any input format
 
 **Stage 2: Interaction**
+
 - Type slug or paste URL → debounced API lookup
 - Mod details appear: name, description, compatibility badge
 - Compatibility states: ✓ Compatible (green) | ⚠️ Not verified (yellow) | ✗ Incompatible (red)
 
 **Stage 3: Feedback**
+
 - Install button with loading state
 - Progress indicator during download
 - Success toast on completion
 - Mod appears in list with restart badge
 
 **Stage 4: Completion**
+
 - Prompt: "Restart now to activate?" with Yes/Later options
 - Later → adds to pending queue
 - Yes → server restarts, console shows mod loading
@@ -454,10 +482,12 @@ themes/
 ### Typography System
 
 **Font Stack:**
+
 - UI: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
 - Terminal/Code: `"JetBrains Mono", "Fira Code", Consolas, monospace`
 
 **Type Scale (Tailwind):**
+
 - `text-2xl` (24px): Dashboard server status
 - `text-xl` (20px): Page headers
 - `text-lg` (18px): Section headers
@@ -470,6 +500,7 @@ themes/
 **Base Unit:** 4px (Tailwind default scale)
 
 **Layout Structure:**
+
 - Collapsible sidebar navigation (240px expanded, 64px collapsed)
 - Sidebar state persisted in localStorage
 - Fixed header with server name + status (e.g., "VintageStory Dev Server • Running")
@@ -477,12 +508,14 @@ themes/
 - Main content area with responsive padding
 
 **Spacing Scale:**
+
 - Component padding: 16px (`p-4`)
 - Section padding: 24px (`p-6`)
 - Inter-element gap: 8px (`gap-2`) to 16px (`gap-4`)
 - Touch targets: Minimum 44px for mobile
 
 **Layout Principles:**
+
 1. Status bar always visible (fixed header with server name)
 2. Generous whitespace for calm aesthetic
 3. Consistent card treatment across views
@@ -502,6 +535,7 @@ themes/
 ### Design Directions Explored
 
 Through collaborative discovery, we explored visual approaches balancing:
+
 - Information density vs. visual breathing room
 - Dashboard-first vs. task-first navigation
 - Prominent console vs. status-focused layouts
@@ -544,16 +578,19 @@ Through collaborative discovery, we explored visual approaches balancing:
 ### Layout Elements
 
 **Header (fixed, 48px):**
+
 - Left: Server name + status badge
 - Center: Pending restart indicator (when applicable)
 - Right: Theme toggle button (sun/moon icons)
 
 **Sidebar (240px expanded, 64px collapsed):**
+
 - Logo + title
 - Navigation: Dashboard, Mods, Config, Terminal
 - Footer: GitHub link + version info (Web/API versions)
 
 **Mod Table Columns:**
+
 - Mod (name + slug)
 - Installed (current version)
 - Available (latest version with update indicator)
@@ -566,6 +603,7 @@ Through collaborative discovery, we explored visual approaches balancing:
 ### Mod Installation Flow
 
 **Entry Point:**
+
 - Sidebar → Mods page → Input field with placeholder "Enter mod slug or paste URL"
 
 **Flow Diagram:**
@@ -604,6 +642,7 @@ flowchart TD
 ```
 
 **Success Criteria:**
+
 - Slug to install in under 10 seconds
 - Compatibility visible before install decision
 - Clear feedback at every step
@@ -611,6 +650,7 @@ flowchart TD
 ### Mod Update Flow
 
 **Entry Point:**
+
 - Mods table → "Update" badge on Available column
 
 **Flow Diagram:**
@@ -634,6 +674,7 @@ flowchart TD
 ```
 
 **Success Criteria:**
+
 - Update discoverable at a glance (version columns)
 - One-click for compatible updates
 - Warning before not-verified updates
@@ -641,6 +682,7 @@ flowchart TD
 ### Crash Recovery Flow
 
 **Entry Point:**
+
 - Dashboard status shows "Stopped" with red indicator
 
 **Flow Diagram:**
@@ -667,6 +709,7 @@ flowchart TD
 ```
 
 **Success Criteria:**
+
 - Status immediately visible on crash
 - Console history retained for investigation
 - Quick disable without removal
@@ -675,22 +718,26 @@ flowchart TD
 ### Journey Patterns
 
 **Navigation Patterns:**
+
 - Sidebar provides single-click access to all major views
 - Dashboard is home base with status overview and quick actions
 - No duplicate entry points - each action has one clear path
 
 **Feedback Patterns:**
+
 - Toast notifications for all operations (success = subtle, error = prominent)
 - Status badges update in real-time
 - Console streams live output
 - Pending restart indicator persists until resolved
 
 **Decision Patterns:**
+
 - Destructive actions require confirmation modal
 - Compatibility warnings allow user override
 - Batch operations supported (multiple changes, single restart)
 
 **Recovery Patterns:**
+
 - Console history retained across crashes
 - Mod disable is separate from remove (safer recovery)
 - Server state visible before any action
@@ -710,6 +757,7 @@ flowchart TD
 The API server manages the VintageStory server binary at runtime - no server code is baked into the container image. This enables flexible version management and clean separation of concerns.
 
 **Key Principles:**
+
 - Server tarball downloaded and installed at runtime
 - API can run without a configured server (empty state valid)
 - Version can be specified via environment variable
@@ -756,17 +804,20 @@ flowchart TD
 ### UI Requirements
 
 **Dashboard - No Server State:**
+
 - Large centered message: "No VintageStory server installed"
 - Version input or dropdown for available versions
 - "Install Server" primary button
 - Progress indicator during installation
 
 **Dashboard - Version Mismatch:**
+
 - Current version displayed
 - Alert: "Configured version X.Y.Z differs from installed Y.Z.A"
 - "Upgrade Now" / "Keep Current" options
 
 **Config Page - Server Section:**
+
 - Current installed version (read-only when running)
 - Target version input/selector
 - "Check for Updates" to query available versions
@@ -774,18 +825,21 @@ flowchart TD
 - "Delete Server" with confirmation (destructive)
 
 **Header Updates:**
+
 - Server name shows version: "VintageStory Dev Server v1.21.3"
 - Status badge reflects installation state, not just running state
 
 ### Installation Progress UX
 
 **Progress Indicators:**
+
 1. Downloading tarball: "Downloading VintageStory 1.21.3... 45%"
 2. Extracting: "Extracting server files..."
 3. Verifying: "Verifying installation..."
 4. Complete: Toast "Server 1.21.3 installed successfully"
 
 **Error Handling:**
+
 - Download failed: Show error + Retry button
 - Extraction failed: Show error + disk space warning if applicable
 - Version not found: "Version X.Y.Z not available" + link to version list
@@ -815,48 +869,57 @@ flowchart TD
 ### Custom Components
 
 **ServerStatusBadge**
+
 - Purpose: Display server operational state
 - States: Not Installed (gray), Installing (yellow animated), Running (green), Stopped (red), Starting/Stopping (yellow), Unknown (gray)
 - Implementation: Extends Badge with state-based styling and icons
 
 **CompatibilityBadge**
+
 - Purpose: Show mod compatibility with server version
 - States: Compatible (green + checkmark), Not verified (yellow + warning), Incompatible (red + X)
 - Implementation: Extends Badge with semantic colors and Lucide icons
 
 **VersionCell**
+
 - Purpose: Table cell showing installed vs available mod versions
 - Anatomy: Installed version + Available version + Update badge when outdated
 - Implementation: Custom table cell with conditional Update button
 
 **PendingRestartBanner**
+
 - Purpose: Persistent header alert when changes require restart
 - Anatomy: Refresh icon + "N pending changes" + "Restart Now" button
 - Implementation: Custom header component
 
 **ModLookupInput**
+
 - Purpose: Smart input accepting slugs or URLs with live preview
 - States: Empty, Loading, Found, Not Found, Error
 - Implementation: Input + debounce hook + preview Card
 
 **TerminalView**
+
 - Purpose: xterm.js wrapper for Console and Shell access
 - Tabs: Console (stdout/stdin), Shell (PTY)
 - Implementation: xterm.js with addons, Catppuccin theme
 
 **ServerInstallCard**
+
 - Purpose: Empty state when no server installed
 - Anatomy: Icon + message + version input + Install button
 - States: Empty, Installing (progress), Error (retry)
 - Implementation: Card with conditional content based on install state
 
 **InstallProgress**
+
 - Purpose: Show server download/install progress
 - Anatomy: Progress bar + stage label + percentage
 - Stages: Downloading, Extracting, Verifying, Complete
 - Implementation: Progress component with stage text
 
 **VersionMismatchAlert**
+
 - Purpose: Warn when installed version differs from configured
 - Anatomy: Warning icon + message + Upgrade/Keep buttons
 - Implementation: Alert variant with action buttons
@@ -864,17 +927,20 @@ flowchart TD
 ### Component Implementation Strategy
 
 **Token Consistency:**
+
 - All custom components use Catppuccin CSS variables
 - Semantic colors map to component states
 - Typography follows Tailwind scale
 
 **Composition Pattern:**
+
 - Custom components built from shadcn/ui primitives
 - Badge base extended for status variants
 - Card used for install and preview panels
 - Progress used for download/install tracking
 
 **Accessibility Standards:**
+
 - ARIA live regions for dynamic content
 - Keyboard navigation from Radix primitives
 - Focus management for modals
@@ -882,6 +948,7 @@ flowchart TD
 ### Implementation Roadmap
 
 **Phase 1 - Core MVP:**
+
 - ServerStatusBadge (Dashboard, Header)
 - ServerInstallCard (Dashboard empty state)
 - InstallProgress (Server installation)
@@ -891,12 +958,14 @@ flowchart TD
 - PendingRestartBanner (Header)
 
 **Phase 2 - Full Features:**
+
 - TerminalView - Shell tab
 - VersionCell with inline update
 - VersionMismatchAlert
 - Console search (xterm-addon-search)
 
 **Phase 3 - Enhancement:**
+
 - Sortable table headers
 - Version selector dropdown
 
@@ -905,18 +974,21 @@ flowchart TD
 ### Button Hierarchy
 
 **Primary Actions (Accent color - Mauve `#cba6f7`):**
+
 - Install (mod or server)
 - Start Server
 - Save Changes
 - Restart Now (from pending banner)
 
 **Secondary Actions (Surface color `#313244`):**
+
 - Restart Server
 - Lookup (mod search)
 - Cancel
 - View Details
 
 **Destructive Actions (Red outline `#f38ba8`):**
+
 - Stop Server
 - Remove Mod
 - Delete Server
@@ -933,6 +1005,7 @@ flowchart TD
 | Disabled | 50% opacity, cursor not-allowed |
 
 **Icon Usage:**
+
 - Left-aligned icons for actions (Install, Start, Stop)
 - No icons for simple actions (Cancel, Save)
 - Loading spinner replaces existing icon during async
@@ -951,12 +1024,14 @@ flowchart TD
 **Principle:** "Fail loudly, succeed quietly" - Success toasts are subtle and auto-dismiss. Error toasts demand attention and require action.
 
 **Real-time Status Updates:**
+
 - Server status badge updates immediately on state change
 - Mod table reflects changes without page refresh
 - Console streams live output via WebSocket
 - Pending restart count updates as changes accumulate
 
 **Progress Indicators:**
+
 - Determinate: Server download (percentage known)
 - Indeterminate: Mod lookup, server starting
 - Stage labels: "Downloading... Extracting... Verifying..."
@@ -964,23 +1039,27 @@ flowchart TD
 ### Form Patterns
 
 **Input Fields:**
+
 - Focus: Mauve border (`#cba6f7`)
 - Error: Red border + error message below
 - Disabled: Reduced opacity, not-allowed cursor
 
 **Mod Input Behavior:**
+
 1. User types → debounce 300ms → API lookup
 2. Loading spinner appears in input
 3. Success: Preview card appears below
 4. Error: Inline error message
 
 **Config Forms:**
+
 - Immediate validation on blur
 - Save button disabled until changes made
 - "Unsaved changes" warning on navigation away
 - Pending restart indicator if change requires restart
 
 **Version Input:**
+
 - Text input for specific version (e.g., "1.21.3")
 - Optional: Dropdown with available versions (Phase 2)
 - Validation: Format check before API call
@@ -988,6 +1067,7 @@ flowchart TD
 ### Navigation Patterns
 
 **Sidebar Navigation:**
+
 - Always visible on desktop
 - Collapsible to icons only (64px)
 - Collapse state persisted in localStorage
@@ -995,17 +1075,20 @@ flowchart TD
 - Hover: Surface background
 
 **Header:**
+
 - Fixed position, always visible
 - Server name + status left-aligned
 - Pending restart banner center (when applicable)
 - Theme toggle right-aligned
 
 **View Switching:**
+
 - Instant transition (no page reload)
 - URL updates for bookmarkability
 - Scroll position reset on view change
 
 **Mobile Navigation:**
+
 - Sidebar collapses to hamburger menu
 - Full-screen overlay when open
 - Tap outside to close
@@ -1021,12 +1104,14 @@ flowchart TD
 | No console output | "Console output will appear here" | None (waiting) |
 
 **Loading States:**
+
 - Skeleton loaders for initial data fetch
 - Spinner overlays for actions (install, update)
 - Progress bars for downloads
 - "Connecting..." for WebSocket initialization
 
 **Error States:**
+
 - Clear error message
 - Retry button when applicable
 - Link to troubleshooting if complex
@@ -1051,6 +1136,7 @@ flowchart TD
 | Update to unverified | Warning modal with "Install Anyway" option |
 
 **Warning Modal Content:**
+
 - Clear description of risk
 - "Cancel" as secondary action
 - "Install Anyway" / "Continue" as primary (user's intent)
@@ -1058,14 +1144,17 @@ flowchart TD
 ### Mobile-Specific Patterns
 
 **Touch Targets:**
+
 - Minimum 44px for all interactive elements
 - Increased padding on buttons and table rows
 
 **Gestures:**
+
 - Pull to refresh on Dashboard
 - Swipe to dismiss toasts
 
 **Simplified Views:**
+
 - Card layout for mod list (not table)
 - Stacked stats instead of grid
 - Full-width buttons
@@ -1078,6 +1167,7 @@ flowchart TD
 VintageStory Server Manager is primarily a desktop tool. Mobile is "crisis mode" - quick checks and emergency controls, not full administration.
 
 **Desktop (1024px+):**
+
 - Full sidebar navigation (240px)
 - Multi-column dashboard layout
 - Complete data tables with all columns
@@ -1085,12 +1175,14 @@ VintageStory Server Manager is primarily a desktop tool. Mobile is "crisis mode"
 - Side-by-side panels where applicable
 
 **Tablet (768px - 1023px):**
+
 - Collapsible sidebar (default collapsed to icons)
 - Reduced column count in tables (hide Available column, show Update badge inline)
 - Stacked dashboard cards
 - Full-width console
 
 **Mobile (< 768px):**
+
 - Hamburger menu replacing sidebar
 - Card-based layouts instead of tables
 - Single-column stack
@@ -1111,6 +1203,7 @@ VintageStory Server Manager is primarily a desktop tool. Mobile is "crisis mode"
 
 **Mobile-First CSS Strategy:**
 Despite desktop-first design thinking, CSS uses mobile-first breakpoints:
+
 ```css
 /* Base: mobile styles */
 .sidebar { display: none; }
@@ -1127,6 +1220,7 @@ Despite desktop-first design thinking, CSS uses mobile-first breakpoints:
 ```
 
 **Content Width Constraints:**
+
 - Max content width: 1280px
 - Centered with auto margins on ultra-wide
 - Maintains readability on large monitors
@@ -1137,12 +1231,14 @@ Despite desktop-first design thinking, CSS uses mobile-first breakpoints:
 Industry standard for good UX and legal compliance. VintageStory Server Manager serves a technical audience but must remain accessible to users with disabilities.
 
 **Color Contrast:**
+
 - Text on backgrounds: Minimum 4.5:1 ratio
 - Large text (18px+): Minimum 3:1 ratio
 - Catppuccin palettes designed with contrast in mind
 - Status colors include icons (not color-only)
 
 **Keyboard Navigation:**
+
 - Full keyboard navigation via Radix UI primitives
 - Visible focus indicators (Mauve outline)
 - Skip link to main content
@@ -1150,6 +1246,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 - Escape closes modals and dropdowns
 
 **Screen Reader Support:**
+
 - Semantic HTML structure (nav, main, header, section)
 - ARIA labels for icon-only buttons
 - ARIA live regions for dynamic content (toasts, status changes)
@@ -1157,11 +1254,13 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 - Table headers properly associated with data
 
 **Touch Accessibility:**
+
 - Minimum 44x44px touch targets
 - Adequate spacing between interactive elements
 - No hover-only interactions
 
 **Motion and Animation:**
+
 - Respect `prefers-reduced-motion` media query
 - Reduce or eliminate animations when preference set
 - No auto-playing animations that can't be paused
@@ -1169,6 +1268,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 ### Testing Strategy
 
 **Responsive Testing:**
+
 - Browser DevTools device emulation
 - Real device testing (iPhone, Android, iPad)
 - Cross-browser: Chrome, Firefox, Safari, Edge
@@ -1184,6 +1284,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 | Keyboard only | Tab navigation verification |
 
 **Manual Testing Checklist:**
+
 - [ ] All interactive elements reachable by keyboard
 - [ ] Focus visible on all focusable elements
 - [ ] Screen reader announces dynamic content changes
@@ -1194,6 +1295,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 ### Implementation Guidelines
 
 **Responsive Development:**
+
 - Use Tailwind responsive prefixes (`md:`, `lg:`)
 - Prefer relative units (`rem`, `%`) over fixed pixels
 - Test breakpoint transitions during development
@@ -1201,6 +1303,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 - Avoid horizontal scrolling on mobile
 
 **Accessibility Development:**
+
 - Use semantic HTML elements
 - Add ARIA attributes where native semantics insufficient
 - Implement focus management for modals and dynamic content
@@ -1228,6 +1331,7 @@ Industry standard for good UX and legal compliance. VintageStory Server Manager 
 ```
 
 **Focus Management:**
+
 - Return focus to trigger element when modal closes
 - Focus first interactive element when modal opens
 - Trap focus within modal while open
