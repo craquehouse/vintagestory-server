@@ -102,19 +102,19 @@ workflow_status:
   - id: "implementation-readiness"
     phase: 2
     phase_name: "Solutioning"
-    status: "required"
+    status: "_bmad-output/planning-artifacts/implementation-readiness-report-2025-12-26.md"
     agent: "architect"
     command: "/bmad:bmm:workflows:check-implementation-readiness"
-    note: "Validates PRD + Architecture + Epics + UX"
+    note: "Completed - PRD + Architecture + Epics + UX validated"
 
   # Phase 3: Implementation
   - id: "sprint-planning"
     phase: 3
     phase_name: "Implementation"
-    status: "required"
+    status: "_bmad-output/implementation-artifacts/sprint-status.yaml"
     agent: "sm"
     command: "/bmad:bmm:workflows:sprint-planning"
-    note: "Creates sprint plan - enterprise projects may require phased rollout"
+    note: "Completed - Sprint status tracking initialized"
 
 # Discovery Workflows
 brainstorm_requested: true
