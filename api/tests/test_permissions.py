@@ -173,7 +173,7 @@ class TestRequireRoleFactory:
         in role strings by catching them at type-check time rather
         than runtime.
         """
-        from vintagestory_api.middleware.permissions import require_role, RoleType
+        from vintagestory_api.middleware.permissions import RoleType
 
         # Only these values are allowed by the type system:
         # This demonstrates type checking prevents typos:
@@ -257,7 +257,6 @@ class TestRequireRoleFactory:
         """require_role performs case-insensitive comparison after auth normalizes case."""
         # The auth middleware already normalizes case, so "ADMIN" becomes "admin"
         # This test verifies that the factory still works with normalized roles
-        from vintagestory_api.middleware.permissions import require_role
 
         response = custom_client.get(
             "/admin-only",

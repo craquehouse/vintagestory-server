@@ -14,7 +14,8 @@ class TestStaticFileServing:
         """Verify assets directory is mounted at /assets route."""
         client = TestClient(app)
 
-        # Check that /assets route exists (returns 404 for non-existent files if static dir doesn't exist)
+        # Check that /assets route exists
+        # (returns 404 for non-existent files if static dir doesn't exist)
         response = client.get("/assets/test.js")
         # Should get 404 if static dir missing or file doesn't exist, but route should be mounted
         assert response.status_code in [200, 404]
