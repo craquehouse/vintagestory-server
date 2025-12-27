@@ -58,7 +58,7 @@ development_status:
   # Epic 3: Server Lifecycle Management
   epic-3: in-progress
   3-1-server-installation-service: done
-  3-2-server-lifecycle-control-api: backlog
+  3-2-server-lifecycle-control-api: ready-for-dev
   3-3-server-status-api: backlog
   3-4-dashboard-with-server-controls-ui: backlog
   epic-3-retrospective: optional
