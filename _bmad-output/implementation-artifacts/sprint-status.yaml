@@ -1,0 +1,96 @@
+# generated: 2025-12-26
+# project: vintagestory-server
+# project_key: vintagestory-server
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2025-12-26
+project: vintagestory-server
+project_key: vintagestory-server
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Project Foundation & Health Monitoring
+  epic-1: backlog
+  1-1-initialize-development-environment-and-project-structure: backlog
+  1-2-backend-api-skeleton-with-health-endpoints: backlog
+  1-3-frontend-application-shell: backlog
+  1-4-docker-deployment-configuration: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Authentication & API Security
+  epic-2: backlog
+  2-1-api-key-authentication-middleware: backlog
+  2-2-role-based-access-control-for-api-endpoints: backlog
+  2-3-frontend-api-client-with-authentication: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Server Lifecycle Management
+  epic-3: backlog
+  3-1-server-installation-service: backlog
+  3-2-server-lifecycle-control-api: backlog
+  3-3-server-status-api: backlog
+  3-4-dashboard-with-server-controls-ui: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Real-Time Console Access
+  epic-4: backlog
+  4-1-console-buffer-service: backlog
+  4-2-websocket-console-streaming: backlog
+  4-3-console-command-input: backlog
+  4-4-terminal-view-component: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Mod Management
+  epic-5: backlog
+  5-1-mod-service-and-state-management: backlog
+  5-2-mod-installation-api: backlog
+  5-3-mod-compatibility-validation: backlog
+  5-4-mod-enable-disable-and-remove-api: backlog
+  5-5-mod-list-api: backlog
+  5-6-mod-management-ui: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Game Configuration Management
+  epic-6: backlog
+  6-1-configuration-files-api: backlog
+  6-2-configuration-file-editing-api: backlog
+  6-3-configuration-editor-ui: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Server Settings & Whitelist Management
+  epic-7: backlog
+  7-1-server-settings-api: backlog
+  7-2-whitelist-management-api: backlog
+  7-3-settings-and-whitelist-ui: backlog
+  epic-7-retrospective: optional
