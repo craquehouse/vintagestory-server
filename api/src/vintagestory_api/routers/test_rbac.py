@@ -3,8 +3,8 @@
 These endpoints exist solely to validate role-based access control
 during development and testing. They do not provide any real functionality.
 
-TODO: Consider removing these endpoints before production release,
-or gate them behind a DEBUG/TEST mode flag.
+SECURITY: These endpoints are automatically gated behind DEBUG mode in main.py
+and will NOT be exposed in production (DEBUG=false).
 """
 
 from fastapi import APIRouter, Depends
@@ -25,7 +25,7 @@ async def test_read(current_user: CurrentUser) -> ApiResponse:
     """
     return ApiResponse(
         status="ok",
-        data={"role": current_user, "operation": "read", "access": "granted"},
+        data={"test": "read"},
     )
 
 
@@ -40,7 +40,7 @@ async def test_write(role: str = Depends(require_admin)) -> ApiResponse:
     """
     return ApiResponse(
         status="ok",
-        data={"role": role, "operation": "write", "access": "granted"},
+        data={"test": "write"},
     )
 
 
@@ -56,5 +56,5 @@ async def test_console(role: str = Depends(require_console_access)) -> ApiRespon
     """
     return ApiResponse(
         status="ok",
-        data={"role": role, "operation": "console", "access": "granted"},
+        data={"test": "console"},
     )

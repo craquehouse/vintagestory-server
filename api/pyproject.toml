@@ -31,13 +31,15 @@ line-length = 100
 select = ["E", "F", "I", "UP"]
 
 [tool.pyright]
-include = ["src"]
-exclude = ["**/node_modules", "**/__pycache__", "**/.pytest_cache"]
+include = ["src", "tests"]
+exclude = ["**/node_modules", "**/__pycache__", "**/.pytest_cache", ".venv"]
 typeCheckingMode = "strict"
 reportMissingImports = "warning"
 reportUndefinedVariable = "error"
 reportUnknownArgumentType = "warning"
 reportUnknownMemberType = "warning"
+reportUnusedFunction = "warning"
+venvPath = ".venv"
 
 [build-system]
 requires = ["hatchling"]

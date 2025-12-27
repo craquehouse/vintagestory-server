@@ -4,6 +4,8 @@ These tests verify the full RBAC flow against the actual application,
 testing all role/endpoint combinations.
 """
 
+from collections.abc import Generator
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -18,11 +20,17 @@ TEST_MONITOR_KEY = "test-monitor-key-67890"
 
 
 @pytest.fixture
-def integration_app() -> FastAPI:
-    """Create app with overridden settings for integration testing."""
+def integration_app() -> Generator[FastAPI, None, None]:
+    """Create app with overridden settings for integration testing.
+
+    NOTE: DEBUG mode is enabled for these tests so that test_rbac
+    endpoints are available. In production (DEBUG=false), these
+    endpoints are hidden per DEBUG gating.
+    """
     test_settings = Settings(
         api_key_admin=TEST_ADMIN_KEY,
         api_key_monitor=TEST_MONITOR_KEY,
+        debug=True,  # Enable DEBUG mode to expose test endpoints
     )
 
     app.dependency_overrides[get_settings] = lambda: test_settings
@@ -49,9 +57,7 @@ class TestRBACReadEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["data"]["role"] == UserRole.ADMIN
-        assert data["data"]["operation"] == "read"
-        assert data["data"]["access"] == "granted"
+        assert data["data"]["test"] == "read"
 
     def test_monitor_can_access_read_endpoint(self, client: TestClient) -> None:
         """Monitor role allows access to read endpoint."""
@@ -63,8 +69,7 @@ class TestRBACReadEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["data"]["role"] == UserRole.MONITOR
-        assert data["data"]["operation"] == "read"
+        assert data["data"]["test"] == "read"
 
     def test_unauthenticated_blocked_from_read(self, client: TestClient) -> None:
         """Unauthenticated request to read endpoint returns 401."""
@@ -86,8 +91,7 @@ class TestRBACWriteEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["data"]["role"] == UserRole.ADMIN
-        assert data["data"]["operation"] == "write"
+        assert data["data"]["test"] == "write"
 
     def test_monitor_blocked_from_write_endpoint(self, client: TestClient) -> None:
         """Monitor role is blocked from write endpoint with 403."""
@@ -98,9 +102,7 @@ class TestRBACWriteEndpoint:
 
         assert response.status_code == 403
 
-    def test_monitor_write_returns_forbidden_error_envelope(
-        self, client: TestClient
-    ) -> None:
+    def test_monitor_write_returns_forbidden_error_envelope(self, client: TestClient) -> None:
         """Monitor write attempt returns proper error envelope format."""
         response = client.post(
             "/api/v1alpha1/test/write",
@@ -132,8 +134,7 @@ class TestRBACConsoleEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["data"]["role"] == UserRole.ADMIN
-        assert data["data"]["operation"] == "console"
+        assert data["data"]["test"] == "console"
 
     def test_monitor_blocked_from_console_endpoint(self, client: TestClient) -> None:
         """Monitor role is blocked from console endpoint with 403."""
@@ -144,9 +145,7 @@ class TestRBACConsoleEndpoint:
 
         assert response.status_code == 403
 
-    def test_monitor_console_returns_specific_error_message(
-        self, client: TestClient
-    ) -> None:
+    def test_monitor_console_returns_specific_error_message(self, client: TestClient) -> None:
         """Monitor console attempt returns console-specific error message."""
         response = client.get(
             "/api/v1alpha1/test/console",
@@ -275,17 +274,11 @@ class TestRoleEndpointMatrix:
         # Admin request
         if method == "GET":
             admin_response = client.get(endpoint, headers={"X-API-Key": TEST_ADMIN_KEY})
-            monitor_response = client.get(
-                endpoint, headers={"X-API-Key": TEST_MONITOR_KEY}
-            )
+            monitor_response = client.get(endpoint, headers={"X-API-Key": TEST_MONITOR_KEY})
             unauth_response = client.get(endpoint)
         else:
-            admin_response = client.post(
-                endpoint, headers={"X-API-Key": TEST_ADMIN_KEY}
-            )
-            monitor_response = client.post(
-                endpoint, headers={"X-API-Key": TEST_MONITOR_KEY}
-            )
+            admin_response = client.post(endpoint, headers={"X-API-Key": TEST_ADMIN_KEY})
+            monitor_response = client.post(endpoint, headers={"X-API-Key": TEST_MONITOR_KEY})
             unauth_response = client.post(endpoint)
 
         assert admin_response.status_code == admin_expected, (

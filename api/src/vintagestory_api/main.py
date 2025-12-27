@@ -46,11 +46,15 @@ app = FastAPI(
 # Health endpoints at root (NOT versioned - K8s convention)
 app.include_router(health.router)
 
-
 # API v1alpha1 endpoints (versioned, auth-protected)
 api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
 api_v1.include_router(auth.router)
-api_v1.include_router(test_rbac.router)
+
+# Test RBAC endpoints - only exposed in DEBUG mode for development/testing
+if Settings().debug:
+    api_v1.include_router(test_rbac.router)
+    logger.warning("test_rbac_router_enabled", message="RBAC test endpoints exposed (DEBUG mode)")
+
 app.include_router(api_v1)
 
 

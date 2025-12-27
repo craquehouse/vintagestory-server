@@ -1,11 +1,14 @@
 """Role-based permission dependencies for API endpoints."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, HTTPException
 
 from vintagestory_api.middleware.auth import UserRole, get_current_user
 from vintagestory_api.models.errors import ErrorCode
+
+# Type alias for allowed role values
+RoleType = Literal["admin", "monitor"]
 
 
 async def require_admin(
@@ -64,21 +67,21 @@ async def require_console_access(
     return current_role
 
 
-def require_role(required_role: str):
+def require_role(required_role: RoleType):
     """Factory function to create a role-checking dependency.
 
     Use this for custom role requirements beyond the predefined
     require_admin and require_console_access dependencies.
 
     Args:
-        required_role: The role required to access the endpoint
+        required_role: The role required to access the endpoint ("admin" or "monitor" only)
 
     Returns:
         A FastAPI dependency function that checks for the required role
 
     Example:
         @router.get("/special")
-        async def special_endpoint(role: str = Depends(require_role(UserRole.ADMIN))):
+        async def special_endpoint(role: str = Depends(require_role("admin"))):
             pass
     """
 

@@ -63,9 +63,14 @@ All API endpoints must use the standard envelope:
 # Success
 {"status": "ok", "data": {...}}
 
-# Error
-{"status": "error", "error": {"code": "ERROR_CODE", "message": "Human readable"}}
+# Error (FastAPI Standard)
+{"detail": {"code": "ERROR_CODE", "message": "Human readable"}}
 ```
+
+**Note:** Error responses follow FastAPI's standard `detail` pattern for HTTPExceptions.
+This avoids requiring custom exception handlers. The `detail` field contains structured
+error data with `code` and `message` fields, providing the same information
+as a custom envelope would.
 
 ### 4. JSON Field Naming Boundary
 

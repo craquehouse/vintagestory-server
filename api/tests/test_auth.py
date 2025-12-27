@@ -1,5 +1,7 @@
 """Tests for API key authentication middleware."""
 
+from collections.abc import Generator
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -33,7 +35,7 @@ def test_app(test_settings: Settings) -> FastAPI:
     app.dependency_overrides[get_settings] = override_get_settings
 
     @app.get("/protected")
-    async def protected_endpoint(current_user: CurrentUser) -> dict:
+    async def protected_endpoint(current_user: CurrentUser) -> dict[str, str]:
         """Test endpoint that requires authentication."""
         return {"role": current_user}
 
@@ -97,7 +99,7 @@ class TestMonitorKeyAuthentication:
         app.dependency_overrides[get_settings] = override_settings
 
         @app.get("/protected")
-        async def protected(current_user: CurrentUser) -> dict:
+        async def protected(current_user: CurrentUser) -> dict[str, str]:
             return {"role": current_user}
 
         client = TestClient(app)
@@ -176,7 +178,7 @@ class TestAuthLogging:
     """Tests for authentication logging (AC: 4, 5 - NFR4, NFR7)."""
 
     def test_failed_auth_logs_without_key_value(
-        self, client: TestClient, capfd: pytest.CaptureFixture
+        self, client: TestClient, capfd: pytest.CaptureFixture[str]
     ) -> None:
         """Failed auth logs request context but NEVER the API key value."""
         invalid_key = "super-secret-invalid-key"
@@ -217,7 +219,7 @@ class TestAuthMeEndpointIntegration:
     """
 
     @pytest.fixture
-    def integration_app(self) -> FastAPI:
+    def integration_app(self) -> Generator[FastAPI, None, None]:
         """Create app with overridden settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings

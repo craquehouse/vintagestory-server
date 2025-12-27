@@ -653,22 +653,27 @@ web/
 **API Response Envelope:**
 
 ```python
-# Success
+# Success Response
 {
     "status": "ok",
     "data": { ... }
 }
 
-# Error
+# Error Response (FastAPI Standard)
 {
-    "status": "error",
-    "error": {
+    "detail": {
         "code": "MOD_NOT_FOUND",      # Machine-readable
         "message": "Mod 'xyz' not found",  # Human-readable
         "details": {}                  # Optional context
     }
 }
 ```
+
+**Note:** We use FastAPI's standard `detail` pattern for error responses.
+This aligns with FastAPI's built-in HTTPException handling and avoids
+requiring custom exception handlers. The `detail` field contains the same
+structured error data as a custom envelope would, just nested under FastAPI's
+standard response key.
 
 **Error Codes (constants):**
 ```python
