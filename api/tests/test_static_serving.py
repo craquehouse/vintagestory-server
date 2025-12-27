@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from vintagestory_api.main import app, STATIC_DIR
+from vintagestory_api.main import STATIC_DIR, app
 
 
 class TestStaticFileServing:

@@ -1,5 +1,5 @@
 """API routers."""
 
-from vintagestory_api.routers import health
+from vintagestory_api.routers import auth, health
 
-__all__ = ["health"]
+__all__ = ["auth", "health"]
