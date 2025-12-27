@@ -1,6 +1,16 @@
 # Local development files
 .local/
 
+# Node.js
+node_modules/
+
+# Data (runtime volumes)
+data/
+!data/.gitkeep
+
+# Logs
+logs/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -13,8 +23,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Python build artifacts (not web/src/lib/)
+/lib/
+/lib64/
 parts/
 sdist/
 var/

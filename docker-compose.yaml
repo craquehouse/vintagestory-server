@@ -1,0 +1,11 @@
+# VintageStory Server Manager - Production Configuration
+# See docker-compose.dev.yaml for development overrides
+
+services:
+  # TODO: Define services in future stories
+  # - vintagestory: Game server container
+  # - api: FastAPI backend
+  # - web: Frontend (or served by api)
+  placeholder:
+    image: alpine
+    command: ["echo", "Docker Compose placeholder - services defined in future stories"]

@@ -1,0 +1,7 @@
+[tools]
+python = "3.13"
+uv = "0.9.18"
+bun = "1.3.5"
+
+[env]
+VIRTUAL_ENV = "{{config_root}}/api/.venv"

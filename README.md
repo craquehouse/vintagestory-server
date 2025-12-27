@@ -19,6 +19,20 @@ This project is developed with the assistance of AI coding tools (such as Claude
 - Manage mods (install, update, remove)
 - Access game console via web interface
 
+## Development Setup
+
+### Prerequisites
+
+- [mise](https://mise.jdx.dev/) - Runtime version manager
+
+### Install Development Tools
+
+```bash
+mise trust && mise install
+```
+
+This installs Python 3.13, uv, and Bun at the pinned versions specified in `.mise.toml`.
+
 ## Quick Start
 
 ```bash

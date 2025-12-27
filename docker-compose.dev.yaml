@@ -1,0 +1,10 @@
+# VintageStory Server Manager - Development Configuration
+# Usage: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+
+services:
+  # TODO: Define development service overrides in future stories
+  # - Hot reload for api
+  # - Development volumes
+  placeholder:
+    image: alpine
+    command: ["echo", "Docker Compose dev placeholder"]

@@ -192,11 +192,11 @@ bun add -D @types/react@19 @types/react-dom@19
 # Install Tailwind CSS v4
 bun add -D tailwindcss @tailwindcss/vite
 
-# Initialize shadcn/ui
-bunx shadcn@latest init
+# Initialize shadcn/ui (canary required for React 19 + Tailwind v4)
+bunx shadcn@canary init
 
 # Add required components
-bunx shadcn@latest add button card table dialog toast tabs input badge switch skeleton progress alert
+bunx shadcn@canary add button card table dialog toast tabs input badge switch skeleton progress alert
 ```
 
 ### Architectural Decisions Provided by Starters
@@ -216,7 +216,7 @@ bunx shadcn@latest add button card table dialog toast tabs input badge switch sk
 
 **Frontend (Vite + shadcn/ui):**
 - React 19.2 with TypeScript (security-patched version)
-- Vite 6 with SWC for fast builds
+- Vite 7 with SWC for fast builds
 - Tailwind CSS v4 with CSS variables
 - Radix UI primitives via shadcn/ui
 - Path aliases (@/ → src/)
@@ -562,7 +562,7 @@ api/
 ```
 web/
 ├── package.json
-├── bun.lockb
+├── bun.lock
 ├── vite.config.ts
 ├── tsconfig.json
 ├── index.html
@@ -833,7 +833,7 @@ vintagestory-server/
 │
 ├── web/                                # React frontend
 │   ├── package.json
-│   ├── bun.lockb
+│   ├── bun.lock
 │   ├── vite.config.ts
 │   ├── tsconfig.json
 │   ├── index.html
@@ -1174,7 +1174,7 @@ FROM python:3.13-slim AS final
 **Decision Compatibility:**
 All technology choices work together without conflicts:
 - Backend: Python 3.13 + FastAPI + uv + httpx + structlog - fully compatible async stack
-- Frontend: React 19.2 + Vite 6 + Bun + TypeScript + TanStack Query v5 - security-patched, modern stack
+- Frontend: React 19.2 + Vite 7 + Bun + TypeScript + TanStack Query v5 - security-patched, modern stack
 - Infrastructure: Single container with single volume mount - simplified deployment model
 - Development: mise for consistent tool versions across environments
 

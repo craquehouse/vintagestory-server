@@ -1,6 +1,6 @@
 # Story 1.1: Initialize Development Environment and Project Structure
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -38,44 +38,44 @@ So that **I can begin implementing features with consistent tooling across the t
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create mise configuration (AC: #1)
-  - [ ] 1.1: Create `.mise.toml` with Python 3.13, uv (pin to latest), and Bun (pin to latest)
-  - [ ] 1.2: Set VIRTUAL_ENV path to `api/.venv`
-  - [ ] 1.3: Document mise install command in README
+- [x] Task 1: Create mise configuration (AC: #1)
+  - [x] 1.1: Create `.mise.toml` with Python 3.13, uv (pin to latest), and Bun (pin to latest)
+  - [x] 1.2: Set VIRTUAL_ENV path to `api/.venv`
+  - [x] 1.3: Document mise install command in README
 
-- [ ] Task 2: Initialize Backend API (AC: #2)
-  - [ ] 2.1: Create `api/` directory
-  - [ ] 2.2: Run `uv init --name vintagestory-api --python 3.13` inside api/
-  - [ ] 2.3: Add production dependencies: `fastapi[standard]`, `httpx`, `pydantic-settings`, `structlog`
-  - [ ] 2.4: Add dev dependencies: `pytest`, `pytest-asyncio`, `ruff`, `respx`
-  - [ ] 2.5: Create initial source structure: `api/src/vintagestory_api/__init__.py`, `main.py`
-  - [ ] 2.6: Create placeholder directories: `routers/`, `services/`, `models/`, `middleware/`
-  - [ ] 2.7: Create `api/tests/` directory with `conftest.py`
+- [x] Task 2: Initialize Backend API (AC: #2)
+  - [x] 2.1: Create `api/` directory
+  - [x] 2.2: Run `uv init --name vintagestory-api --python 3.13` inside api/
+  - [x] 2.3: Add production dependencies: `fastapi[standard]`, `httpx`, `pydantic-settings`, `structlog`
+  - [x] 2.4: Add dev dependencies: `pytest`, `pytest-asyncio`, `ruff`, `respx`
+  - [x] 2.5: Create initial source structure: `api/src/vintagestory_api/__init__.py`, `main.py`
+  - [x] 2.6: Create placeholder directories: `routers/`, `services/`, `models/`, `middleware/`
+  - [x] 2.7: Create `api/tests/` directory with `conftest.py`
 
-- [ ] Task 3: Initialize Frontend Web App (AC: #3)
-  - [ ] 3.1: Run `bun create vite web -- --template react-ts` from project root
-  - [ ] 3.2: Update React to 19.2: `bun add react@19.2 react-dom@19.2`
-  - [ ] 3.3: Update React types: `bun add -D @types/react@19 @types/react-dom@19`
-  - [ ] 3.4: Install Tailwind CSS v4: `bun add -D tailwindcss @tailwindcss/vite`
-  - [ ] 3.5: Configure vite.config.ts with Tailwind plugin and @ alias
-  - [ ] 3.6: Update tsconfig.json and tsconfig.app.json with path aliases
-  - [ ] 3.7: Replace CSS directives with `@import "tailwindcss";` in index.css
-  - [ ] 3.8: Initialize shadcn/ui: `bunx shadcn@canary init` (select new-york style)
-  - [ ] 3.9: Add initial components: button, card, toast
+- [x] Task 3: Initialize Frontend Web App (AC: #3)
+  - [x] 3.1: Run `bun create vite web -- --template react-ts` from project root
+  - [x] 3.2: Update React to 19.2: `bun add react@19.2 react-dom@19.2`
+  - [x] 3.3: Update React types: `bun add -D @types/react@19 @types/react-dom@19`
+  - [x] 3.4: Install Tailwind CSS v4: `bun add -D tailwindcss @tailwindcss/vite`
+  - [x] 3.5: Configure vite.config.ts with Tailwind plugin and @ alias
+  - [x] 3.6: Update tsconfig.json and tsconfig.app.json with path aliases
+  - [x] 3.7: Replace CSS directives with `@import "tailwindcss";` in index.css
+  - [x] 3.8: Initialize shadcn/ui: `bunx shadcn@canary init` (select new-york style)
+  - [x] 3.9: Add initial components: button, card, toast
 
-- [ ] Task 4: Create Project Structure (AC: #4)
-  - [ ] 4.1: Create root directory structure per Architecture spec
-  - [ ] 4.2: Update `.gitignore` with comprehensive exclusions
-  - [ ] 4.3: Create `data/.gitkeep` for volume mount placeholder
-  - [ ] 4.4: Create placeholder `docker-compose.yaml` and `docker-compose.dev.yaml`
-  - [ ] 4.5: Create placeholder `Dockerfile`
-  - [ ] 4.6: Create `.env.example` with documented environment variables
+- [x] Task 4: Create Project Structure (AC: #4)
+  - [x] 4.1: Create root directory structure per Architecture spec
+  - [x] 4.2: Update `.gitignore` with comprehensive exclusions
+  - [x] 4.3: Create `data/.gitkeep` for volume mount placeholder
+  - [x] 4.4: Create placeholder `docker-compose.yaml` and `docker-compose.dev.yaml`
+  - [x] 4.5: Create placeholder `Dockerfile`
+  - [x] 4.6: Create `.env.example` with documented environment variables
 
-- [ ] Task 5: Verify Setup (AC: #1, #2, #3, #4)
-  - [ ] 5.1: Run `mise install` and verify tool versions
-  - [ ] 5.2: Run `cd api && uv run python -c "import fastapi; print(fastapi.__version__)"` to verify backend deps
-  - [ ] 5.3: Run `cd web && bun run build` to verify frontend builds
-  - [ ] 5.4: Verify directory structure matches Architecture specification
+- [x] Task 5: Verify Setup (AC: #1, #2, #3, #4)
+  - [x] 5.1: Run `mise install` and verify tool versions
+  - [x] 5.2: Run `cd api && uv run python -c "import fastapi; print(fastapi.__version__)"` to verify backend deps
+  - [x] 5.3: Run `cd web && bun run build` to verify frontend builds
+  - [x] 5.4: Verify directory structure matches Architecture specification
 
 ## Dev Notes
 
@@ -90,7 +90,7 @@ So that **I can begin implementing features with consistent tooling across the t
 | **FastAPI** | 0.127.0 | Latest stable (supports Python 3.13+) |
 | **Uvicorn** | 0.40.0 | Included via fastapi[standard] |
 | **React** | 19.2 | **SECURITY FIX** - must be exactly 19.2 |
-| **Vite** | 6.x | Current stable |
+| **Vite** | 7.x | Current stable |
 | **Tailwind CSS** | v4 | Uses @tailwindcss/vite plugin |
 | **shadcn/ui** | canary | Required for Tailwind v4 + React 19 support |
 
@@ -192,7 +192,7 @@ export default defineConfig({
 
 ### tsconfig.json additions
 
-Both `tsconfig.json` and `tsconfig.app.json` need:
+The `tsconfig.json` needs path aliases (Vite 7 uses a single tsconfig):
 ```json
 {
   "compilerOptions": {
@@ -301,11 +301,67 @@ When running `bunx shadcn@canary init`, select:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- Fixed TSConfig missing `jsx: "react-jsx"` setting causing build failure
+- Used `sonner` instead of deprecated `toast` component for shadcn/ui
+- Pinned uv (0.9.18) and bun (1.3.5) versions instead of `latest` per user request
+
 ### Completion Notes List
 
+- **Task 1**: Created `.mise.toml` with Python 3.13, uv 0.9.18, bun 1.3.5; documented in README
+- **Task 2**: Initialized FastAPI backend with src layout, all dependencies installed (FastAPI 0.127.1)
+- **Task 3**: Created React 19.2 frontend with Vite 7.x, Tailwind CSS v4, shadcn/ui (button, card, sonner)
+- **Task 4**: Created project structure with docker placeholders, .env.example, data/.gitkeep
+- **Task 5**: Verified all tools install, backend imports work, frontend builds successfully
+
 ### File List
+
+**New Files:**
+- .mise.toml
+- .env.example
+- Dockerfile
+- docker-compose.yaml
+- docker-compose.dev.yaml
+- data/.gitkeep
+- api/pyproject.toml
+- api/uv.lock
+- api/.python-version
+- api/src/vintagestory_api/__init__.py
+- api/src/vintagestory_api/main.py
+- api/src/vintagestory_api/config.py
+- api/src/vintagestory_api/routers/__init__.py
+- api/src/vintagestory_api/services/__init__.py
+- api/src/vintagestory_api/models/__init__.py
+- api/src/vintagestory_api/middleware/__init__.py
+- api/tests/conftest.py
+- web/package.json
+- web/bun.lock
+- web/vite.config.ts
+- web/tsconfig.json
+- web/index.html
+- web/components.json
+- web/src/main.tsx
+- web/src/App.tsx
+- web/src/lib/utils.ts
+- web/src/styles/index.css
+- web/src/components/ui/button.tsx
+- web/src/components/ui/card.tsx
+- web/src/components/ui/sonner.tsx
+- web/src/api/.gitkeep
+- web/src/hooks/.gitkeep
+- web/src/contexts/.gitkeep
+- web/src/features/.gitkeep
+
+**Modified Files:**
+- README.md (added Development Setup section)
+- .gitignore (added node_modules, data/ exclusions)
+- api/src/vintagestory_api/config.py (code review: updated to Pydantic v2 model_config pattern)
+
+### Change Log
+
+- 2025-12-26: Implemented Story 1.1 - Full development environment setup with mise, Python/FastAPI backend, React/Vite frontend
+- 2025-12-26: Code review fixes - Updated pydantic-settings to use model_config, added .gitkeep to placeholder directories
 
