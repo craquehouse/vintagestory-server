@@ -60,12 +60,13 @@ The VintageStory mod database API is documented in `agentdocs/modstoryapi.md`. K
 ### API Server (Python/FastAPI)
 ```bash
 cd api
-pip install -r requirements.txt
+uv sync --dev                          # Install dependencies
 uvicorn main:app --reload              # Development server
 pytest                                  # Run all tests
 pytest tests/test_mods.py::test_name   # Single test
 ruff check .                           # Lint
 ruff format .                          # Format
+uv run pyright src/                    # Type check (strict mode)
 ```
 
 ### Web UI (Node.js)
