@@ -1,0 +1,77 @@
+import { describe, it, expect } from 'vitest';
+import { queryClient } from './query-client';
+import { UnauthorizedError, ForbiddenError, ApiError } from './errors';
+
+describe('queryClient', () => {
+  describe('default query options', () => {
+    it('has staleTime of 30 seconds', () => {
+      const defaults = queryClient.getDefaultOptions();
+      expect(defaults.queries?.staleTime).toBe(30 * 1000);
+    });
+
+    it('refetches on window focus', () => {
+      const defaults = queryClient.getDefaultOptions();
+      expect(defaults.queries?.refetchOnWindowFocus).toBe(true);
+    });
+  });
+
+  describe('retry logic', () => {
+    it('does not retry UnauthorizedError', () => {
+      const defaults = queryClient.getDefaultOptions();
+      const retry = defaults.queries?.retry;
+
+      if (typeof retry !== 'function') {
+        throw new Error('Expected retry to be a function');
+      }
+
+      const error = new UnauthorizedError('Invalid API key');
+      expect(retry(0, error)).toBe(false);
+      expect(retry(1, error)).toBe(false);
+      expect(retry(2, error)).toBe(false);
+    });
+
+    it('does not retry ForbiddenError', () => {
+      const defaults = queryClient.getDefaultOptions();
+      const retry = defaults.queries?.retry;
+
+      if (typeof retry !== 'function') {
+        throw new Error('Expected retry to be a function');
+      }
+
+      const error = new ForbiddenError('Admin role required');
+      expect(retry(0, error)).toBe(false);
+      expect(retry(1, error)).toBe(false);
+      expect(retry(2, error)).toBe(false);
+    });
+
+    it('retries other errors up to 3 times', () => {
+      const defaults = queryClient.getDefaultOptions();
+      const retry = defaults.queries?.retry;
+
+      if (typeof retry !== 'function') {
+        throw new Error('Expected retry to be a function');
+      }
+
+      const error = new ApiError('SERVER_ERROR', 'Internal error', 500);
+      expect(retry(0, error)).toBe(true); // 1st retry
+      expect(retry(1, error)).toBe(true); // 2nd retry
+      expect(retry(2, error)).toBe(true); // 3rd retry
+      expect(retry(3, error)).toBe(false); // No more retries
+    });
+
+    it('retries network errors up to 3 times', () => {
+      const defaults = queryClient.getDefaultOptions();
+      const retry = defaults.queries?.retry;
+
+      if (typeof retry !== 'function') {
+        throw new Error('Expected retry to be a function');
+      }
+
+      const error = new Error('Network request failed');
+      expect(retry(0, error)).toBe(true);
+      expect(retry(1, error)).toBe(true);
+      expect(retry(2, error)).toBe(true);
+      expect(retry(3, error)).toBe(false);
+    });
+  });
+});

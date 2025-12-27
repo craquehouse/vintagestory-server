@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
+import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModList } from "@/features/mods/ModList";
 import { ConfigEditor } from "@/features/config/ConfigEditor";
@@ -21,6 +22,7 @@ function App() {
             </Routes>
           </Layout>
         </BrowserRouter>
+        <Toaster />
       </SidebarProvider>
     </ThemeProvider>
   );
