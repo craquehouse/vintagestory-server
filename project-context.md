@@ -108,6 +108,99 @@ When documenting or requiring versions:
 
 ---
 
+## Security Patterns
+
+These patterns were established in Epic 2 and must be followed for all security-related code.
+
+### 1. DEBUG Mode Gating for Test Endpoints
+
+Test or development-only endpoints MUST be gated behind `VS_DEBUG=true`:
+
+```python
+from vintagestory_api.config import get_settings
+
+settings = get_settings()
+if settings.debug:
+    app.include_router(test_router, prefix="/api/v1alpha1")
+```
+
+**Why:** Prevents test endpoints from being exposed in production.
+
+### 2. Timing-Safe API Key Comparison
+
+Always use `secrets.compare_digest` for API key validation:
+
+```python
+import secrets
+
+def verify_key(provided: str, expected: str) -> bool:
+    return secrets.compare_digest(provided.encode(), expected.encode())
+```
+
+**Why:** Prevents timing attacks that could leak information about valid keys.
+
+### 3. Never Log Sensitive Data
+
+API keys, passwords, and tokens must NEVER appear in logs:
+
+```python
+# WRONG - logs the actual key
+logger.warning(f"Invalid API key: {api_key}")
+
+# CORRECT - logs metadata only
+logger.warning("Invalid API key attempt",
+    extra={"ip": client_ip, "key_prefix": api_key[:8] + "..."})
+```
+
+### 4. Proxy-Aware Client IP Logging
+
+When logging client IPs (e.g., for failed auth), check proxy headers:
+
+```python
+def get_client_ip(request: Request) -> str:
+    """Get real client IP, accounting for reverse proxies."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
+```
+
+### 5. Role-Based Access Control Pattern
+
+Use FastAPI dependency injection for role checks:
+
+```python
+from vintagestory_api.middleware.auth import get_current_user
+from vintagestory_api.middleware.permissions import require_admin
+
+# Read endpoint - any authenticated user
+@router.get("/data")
+async def get_data(role: str = Depends(get_current_user)):
+    pass
+
+# Write endpoint - Admin only
+@router.post("/data")
+async def create_data(role: str = Depends(require_admin)):
+    pass
+```
+
+---
+
+## Code Review Checklist
+
+Before marking a task complete, verify:
+
+- [ ] Tests written alongside implementation (not batched at end)
+- [ ] All tests passing
+- [ ] Security patterns applied (DEBUG gating, timing-safe comparison, no sensitive logging)
+- [ ] Error responses use standard envelope format
+- [ ] No hardcoded secrets or credentials
+
+---
+
 ## Code Patterns
 
 ### Backend (Python)
@@ -186,6 +279,24 @@ vintagestory-server/
 
 ---
 
+## Development Commands
+
+Use `just` for all development tasks. Run `just` or `just --list` to see available commands.
+
+**Common commands:**
+```bash
+just test        # Run all tests
+just check       # Full validation (lint + typecheck + test)
+just lint        # Run all linters
+just format      # Format all code
+just dev-api     # Start API dev server
+just dev-web     # Start web dev server
+```
+
+**Why:** Prevents tooling confusion (e.g., `bun test` vs `bun run test`). All commands use correct tool versions via mise.
+
+---
+
 ## References
 
 - Full architecture: `_bmad-output/planning-artifacts/architecture.md`
@@ -194,4 +305,4 @@ vintagestory-server/
 
 ---
 
-_Last updated: 2025-12-27 (Epic 1 Retrospective)_
+_Last updated: 2025-12-27 (Epic 2 Retrospective)_
