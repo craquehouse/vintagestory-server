@@ -111,13 +111,18 @@ All runtime versions managed via mise for consistent development environments.
 **.mise.toml (project root):**
 ```toml
 [tools]
-python = "3.12"
-uv = "latest"
-bun = "latest"
+python = "3.12"      # Minimum version, compatible with .NET 8 Noble base image
+uv = "0.9.18"        # Pinned for reproducibility
+bun = "1.3.5"        # Pinned for reproducibility
 
 [env]
 VIRTUAL_ENV = "{{config_root}}/api/.venv"
 ```
+
+**Version Specification Guidelines:**
+- **Development tools (uv, bun):** Pin specific versions for reproducible builds
+- **Runtime (Python):** Use minimum version compatible with deployment target
+- **Dependencies:** Use version ranges in pyproject.toml/package.json unless specific pin needed
 
 **Setup commands:**
 ```bash
@@ -1267,7 +1272,7 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 
 **Decision Compatibility:**
 All technology choices work together without conflicts:
-- Backend: Python 3.13 + FastAPI + uv + httpx + structlog - fully compatible async stack
+- Backend: Python 3.12+ + FastAPI + uv + httpx + structlog - fully compatible async stack
 - Frontend: React 19.2 + Vite 7 + Bun + TypeScript + TanStack Query v5 - security-patched, modern stack
 - Infrastructure: Single container with single volume mount - simplified deployment model
 - Development: mise for consistent tool versions across environments
@@ -1400,6 +1405,32 @@ All technology choices work together without conflicts:
 - Refer to this document for all architectural questions
 - Use atomic writes for all state persistence
 - Transform JSON keys at the API client boundary only
+- Write tests alongside implementation, not as a separate phase
+
+### Architecture Specification Guidelines
+
+_Added after Epic 1 retrospective (2025-12-27)_
+
+When creating or updating architecture documents, calibrate specificity appropriately:
+
+**Be Explicit About:**
+- External runtime dependencies (e.g., "VintageStory requires .NET 8 runtime")
+- Infrastructure constraints that affect technology choices
+- Container base images and why they were chosen
+- Integration points with third-party systems
+
+**Use Ranges/Minimums For:**
+- Language versions: `Python >= 3.12` not `Python 3.13`
+- Framework versions unless specific features require exact version
+- Dependencies that follow semver
+
+**Always Document:**
+- The *rationale* behind decisions, not just the decision itself
+- Tradeoffs considered and why alternatives were rejected
+- Migration paths if the decision needs revisiting
+
+**Why This Matters:**
+During Epic 1, implementation discovered that the .NET base image ships Python 3.12, not 3.13. Because the architecture had over-specified Python version, it caused unnecessary friction. Conversely, under-specified container strategy led to implementation-time decisions that should have been made earlier.
 
 **First Implementation Priority:**
 ```bash
