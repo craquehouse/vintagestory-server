@@ -49,7 +49,7 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Authentication & API Security
-  epic-2: done
+  epic-2: in-progress
     2-1-api-key-authentication-middleware: done
     2-2-role-based-access-control-for-api-endpoints: done
     2-3-frontend-api-client-with-authentication: backlog
