@@ -316,5 +316,6 @@ VintageStory natively supports a `--dataPath` argument that tells it where to st
 - [api/tests/test_server.py](api/tests/test_server.py) - Updated for new directory structure
 - [Dockerfile](Dockerfile) - Updated directory creation, added VS_API_KEY build arg
 - [docker-compose.dev.yaml](docker-compose.dev.yaml) - Added build args for VS_API_KEY
+- [docker-compose.yaml](docker-compose.yaml) - Added healthcheck section (manual change)
 - [Justfile](Justfile) - Updated clean-data recipe
 

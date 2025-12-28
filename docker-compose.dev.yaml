@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VS_API_KEY: ${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}
+        VS_API_KEY: ${VS_API_KEY:-changeme}
     container_name: vintagestory-manager-dev
     ports:
       - "8080:8080"      # Web UI + API
