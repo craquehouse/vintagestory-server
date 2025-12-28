@@ -10,7 +10,10 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__playwright__*",
+      "mcp__context7__*",
+      "mcp__grep__*"
     ]
   }
 }
