@@ -28,3 +28,50 @@ export interface ApiErrorDetail {
 export interface ApiErrorResponse {
   detail?: ApiErrorDetail | string;
 }
+
+/**
+ * Server state values from the backend API.
+ */
+export type ServerState =
+  | 'not_installed'
+  | 'installing'
+  | 'installed' // This means stopped
+  | 'starting'
+  | 'running'
+  | 'stopping'
+  | 'error';
+
+/**
+ * Server status response from GET /api/v1alpha1/server/status.
+ * Note: API returns snake_case, but apiClient transforms to camelCase.
+ */
+export interface ServerStatus {
+  state: ServerState;
+  version: string | null;
+  uptimeSeconds: number | null;
+  lastExitCode: number | null;
+}
+
+/**
+ * Installation status response from GET /api/v1alpha1/server/install/status.
+ */
+export type InstallState =
+  | 'idle'
+  | 'downloading'
+  | 'extracting'
+  | 'configuring'
+  | 'complete'
+  | 'error';
+
+export interface InstallStatus {
+  state: InstallState;
+  progress: number;
+  message: string;
+}
+
+/**
+ * Generic message response from server action endpoints.
+ */
+export interface ActionMessage {
+  message: string;
+}
