@@ -138,6 +138,30 @@ install-web *ARGS:
     mise exec -C web -- bun install {{ARGS}}
 
 # =============================================================================
+# DOCKER
+# =============================================================================
+
+# Build Docker image for development
+docker-build:
+    docker compose -f docker-compose.dev.yaml build
+
+# Start Docker container (builds if needed)
+docker-start:
+    docker compose -f docker-compose.dev.yaml up -d --build
+
+# Stop Docker container
+docker-stop:
+    docker compose -f docker-compose.dev.yaml down
+
+# Show Docker container status
+docker-status:
+    docker compose -f docker-compose.dev.yaml ps
+
+# View Docker container logs
+docker-logs:
+    docker compose -f docker-compose.dev.yaml logs -f
+
+# =============================================================================
 # DATA MANAGEMENT
 # =============================================================================
 
