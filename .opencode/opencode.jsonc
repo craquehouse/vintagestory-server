@@ -5,6 +5,16 @@
       "type": "local",
       "command": ["npx", "@playwright/mcp@latest"],
       "enabled": true
+    },
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp@latest"],
+      "enabled": true
+    },
+    "grep": {
+      "type": "remote",
+      "url": "https://mcp.grep.app",
+      "enabled": true
     }
   }
 }
