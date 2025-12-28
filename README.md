@@ -51,6 +51,12 @@ just dev-web        # Start web dev server
 
 E2E tests use Playwright to test the full application running in Docker.
 
+**First-time setup** (install browser):
+```bash
+mise exec -C api -- uv run playwright install chromium
+```
+
+**Running tests:**
 1. Start the application: `just docker-start`
 2. Run E2E tests: `just test-e2e`
 3. Run with visible browser: `just test-e2e --headed`

@@ -75,6 +75,26 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] 4.5: Add log level configuration via environment variable if not present
   - [x] 4.6: Document logging conventions in `project-context.md`
 
+### Review Follow-ups (AI)
+
+**From code review on 2025-12-28 - 10 issues found (all resolved)**
+
+#### 🔴 CRITICAL (2 issues)
+- [x] [AI-Review][CRITICAL] Fix test imports - `expect` from `playwright.sync_api` is NOT deprecated (v0.7.2 uses this pattern correctly)
+- [x] [AI-Review][CRITICAL] Add `page` fixture documentation to conftest.py - Added docstring explaining pytest-playwright auto-fixtures
+
+#### 🟡 MEDIUM (5 issues)
+- [x] [AI-Review][MEDIUM] Add `.claude/CLAUDE.md` to File List - N/A: No such file exists, only `.claude/settings.json`
+- [x] [AI-Review][MEDIUM] Verify `pytest-playwright` is in `api/pyproject.toml` - Confirmed: `pytest-playwright>=0.7.2`
+- [x] [AI-Review][MEDIUM] Verify `just test-e2e` recipe exists and works - Confirmed: 4 tests collected
+- [x] [AI-Review][MEDIUM] Verify `playwright install chromium` documented in README.md - Added first-time setup section
+- [x] [AI-Review][MEDIUM] Fix XSS vulnerability in conftest.py - Fixed: Now uses `page.evaluate()` with args instead of f-string
+
+#### 🟢 LOW (3 issues)
+- [x] [AI-Review][LOW] Pin xterm.js version in documentation - Added version constraints (^5.x, ^0.10.x, ^0.11.x)
+- [x] [AI-Review][LOW] Update story Date field - Confirmed: 2025-12-28 is correct
+- [x] [AI-Review][LOW] Verify pytest-playwright version - Confirmed: 0.7.2 matches
+
 ---
 
 ## Dev Notes
@@ -324,6 +344,8 @@ N/A - Research and scaffolding story, no complex debugging required.
 ## Change Log
 
 - 2025-12-28: Initial implementation of story 4.0 - Epic 4 technical preparation complete
+- 2025-12-28: Code review completed - 10 issues found (2 CRITICAL, 5 MEDIUM, 3 LOW) - Status changed to in-progress for follow-up fixes
+- 2025-12-28: All 10 code review issues resolved - XSS fix, documentation updates, version pinning
 
 ---
 

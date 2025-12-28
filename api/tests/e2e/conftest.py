@@ -3,6 +3,14 @@
 This module provides base fixtures for end-to-end testing with Playwright.
 Tests in this directory verify the application works correctly when deployed
 in Docker with all components running together.
+
+pytest-playwright provides the following fixtures automatically:
+- `page`: A new browser page for each test (function-scoped)
+- `browser`: The browser instance (session-scoped)
+- `context`: The browser context (function-scoped)
+- `browser_name`: Name of the browser being used
+
+See: https://playwright.dev/python/docs/test-runners#fixtures
 """
 
 import os
@@ -38,5 +46,6 @@ def authenticated_page(page: Page, base_url: str) -> Page:
     api_key = os.environ.get("VS_API_KEY", "test-api-key")
     page.goto(base_url)
     # Set API key in localStorage (web UI pattern)
-    page.evaluate(f"localStorage.setItem('apiKey', '{api_key}')")
+    # Use JSON serialization to prevent XSS if api_key contains special characters
+    page.evaluate("([key, value]) => localStorage.setItem(key, value)", ["apiKey", api_key])
     return page

@@ -5,17 +5,19 @@ This document contains research findings and patterns for implementing a termina
 ## Required npm Packages
 
 ```bash
-bun add @xterm/xterm @xterm/addon-fit @xterm/addon-attach
+bun add @xterm/xterm@^5 @xterm/addon-fit@^0.10 @xterm/addon-attach@^0.11
 ```
 
-| Package | Purpose |
-|---------|---------|
-| `@xterm/xterm` | Core terminal emulator |
-| `@xterm/addon-fit` | Auto-resize terminal to container |
-| `@xterm/addon-attach` | Bidirectional WebSocket I/O |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `@xterm/xterm` | ^5.x | Core terminal emulator |
+| `@xterm/addon-fit` | ^0.10.x | Auto-resize terminal to container |
+| `@xterm/addon-attach` | ^0.11.x | Bidirectional WebSocket I/O |
 
 **Optional but recommended:**
 - `@xterm/addon-web-links` - Clickable URLs in terminal output
+
+**Note:** Pin to major versions to avoid breaking changes. The xterm.js 5.x series has a stable API.
 
 ## React Integration Pattern
 
