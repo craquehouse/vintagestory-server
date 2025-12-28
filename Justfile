@@ -118,6 +118,7 @@ format-web:
 
 # Start API dev server - accepts optional uvicorn args
 # Examples: just dev-api --port 8001 | just dev-api --host 0.0.0.0
+# Sets up local development environment with relative data directory and dev API key
 dev-api *ARGS:
     mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload {{ARGS}}
 
