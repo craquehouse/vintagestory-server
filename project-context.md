@@ -24,6 +24,96 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ---
 
+## Available MCPs for Agents
+
+All agents have access to three Model Context Protocol (MCP) tools for enhanced capabilities:
+
+### 1. Playwright (Browser Automation)
+**Purpose:** Real-world testing, UI validation, and browser automation
+
+**When to use:**
+- Testing the web UI end-to-end
+- Validating user flows across multiple pages
+- Capturing screenshots for documentation
+- Debugging frontend issues in a real browser environment
+- Verifying responsive behavior
+
+**Key capabilities:**
+- Navigate to URLs and interact with pages
+- Fill forms, click buttons, and test UI components
+- Take screenshots and accessibility snapshots
+- Monitor console messages and network requests
+- Test across different viewport sizes
+
+**Best practices:**
+- Use accessibility snapshots over screenshots when testing UI structure
+- Clean up browser sessions after testing
+- Use meaningful element descriptions when interacting with the page
+
+### 2. GitHub Code Search (`grep_searchGitHub`)
+**Purpose:** Find real-world code examples from public GitHub repositories
+
+**When to use:**
+- Learning how to use unfamiliar APIs or libraries
+- Finding production-ready examples and best practices
+- Understanding how others integrate similar technologies
+- Looking for patterns in real codebases (not tutorials)
+
+**Key capabilities:**
+- Search for literal code patterns (not keywords)
+- Filter by language, repository, or file path
+- Support for regex patterns for flexible matching
+- Access to over 1 million public repositories
+
+**Best practices:**
+- Search for actual code patterns, not natural language queries
+- Use language filters to narrow results
+- Look for well-maintained repositories with good documentation
+- Examples: `'useState('`, `'from("fastapi")'`, `'export function'`
+
+### 3. Context7 (Smart Documentation Search)
+**Purpose:** Access up-to-date documentation for popular libraries and frameworks
+
+**When to use:**
+- Looking up API references and code examples
+- Understanding library configuration options
+- Finding best practices for specific technologies
+- Getting conceptual guides and architectural information
+
+**Available datasources include:**
+- **Frontend:** React, Next.js, Tailwind CSS, shadcn/ui, TanStack Query
+- **Backend:** FastAPI, Python web frameworks
+- **Build tools:** Vite, esbuild, webpack
+- **Testing:** Vitest, Playwright, Testing Library
+- **And many more** - resolve library IDs dynamically
+
+**Best practices:**
+- Use `mode='code'` for API references and examples (default)
+- Use `mode='info'` for conceptual guides and architecture
+- Use `topic` parameter to focus documentation on specific areas
+- Adjust `tokensNum` based on how much context you need (1000-50000)
+
+**Example workflow:**
+```python
+# Step 1: Resolve the library ID
+context7_resolve-library-id(libraryName="fastapi")
+
+# Step 2: Get documentation (if not using a known library ID)
+context7_get-library-docs(
+    context7CompatibleLibraryID="/tiangolo/fastapi",
+    topic="middleware",  # optional: focus on a specific topic
+    mode="code"  # optional: "code" (default) or "info"
+)
+```
+
+**Key advantages:**
+- Always up-to-date documentation (unlike cached search results)
+- Optimized for LLM consumption with clean context
+- Code-focused by default, perfect for implementation questions
+- Supports pagination for comprehensive research
+
+---
+
 ## Critical Implementation Rules
 
 ### 1. Tests Must Accompany Implementation
@@ -321,4 +411,4 @@ Run `just` with no arguments to see all available commands.
 
 ---
 
-_Last updated: 2025-12-27 (Epic 3 - Added just variadic args)_
+_Last updated: 2025-12-28 (Added MCP tools and agent guidance)_
