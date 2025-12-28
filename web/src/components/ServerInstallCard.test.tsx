@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { ServerInstallCard } from './ServerInstallCard';
 import type { InstallStatus } from '@/api/types';
 
