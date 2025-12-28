@@ -58,13 +58,14 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan handler for startup and shutdown."""
     settings = Settings()
-    configure_logging(debug=settings.debug)
+    configure_logging(debug=settings.debug, log_level=settings.log_level)
 
     # Ensure data directories exist
     settings.ensure_data_directories()
     logger.info(
         "api_starting",
         debug_mode=settings.debug,
+        log_level=settings.log_level or ("DEBUG" if settings.debug else "INFO"),
         data_dir=str(settings.data_dir),
     )
     yield

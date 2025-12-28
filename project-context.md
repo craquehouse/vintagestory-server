@@ -279,6 +279,51 @@ async def create_data(role: str = Depends(require_admin)):
 
 ---
 
+## Logging Conventions
+
+### Configuration
+
+Logging is configured via environment variables:
+- `VS_DEBUG=true` - Enable debug mode (colorful console output)
+- `VS_LOG_LEVEL` - Override log level (DEBUG, INFO, WARNING, ERROR)
+
+Default behavior:
+- **Dev mode** (`VS_DEBUG=true`): DEBUG level, colorful ConsoleRenderer
+- **Prod mode** (`VS_DEBUG=false`): INFO level, JSON output for machine parsing
+
+### Standards
+
+1. **Always use ISO 8601 timestamps** - Configured automatically by structlog
+2. **Use structured logging** - Key=value pairs, not string interpolation:
+
+```python
+# CORRECT - structured key=value
+logger.info("server_starting", version="1.19.8", port=8080)
+
+# WRONG - string interpolation
+logger.info(f"Server version {version} starting on port {port}")
+```
+
+3. **Use event names as first argument** - Lowercase with underscores:
+   - `api_starting`, `server_stopped`, `download_complete`
+
+4. **Never log sensitive data**:
+```python
+# WRONG
+logger.warning(f"Auth failed for key: {api_key}")
+
+# CORRECT
+logger.warning("auth_failed", key_prefix=api_key[:8] + "...")
+```
+
+5. **Log levels**:
+   - `DEBUG` - Detailed diagnostic info (dev only)
+   - `INFO` - Normal operations (startup, shutdown, requests)
+   - `WARNING` - Recoverable issues (timeouts, retries)
+   - `ERROR` - Failures requiring attention
+
+---
+
 ## Code Review Checklist
 
 Before marking a task complete, verify:
@@ -411,4 +456,4 @@ Run `just` with no arguments to see all available commands.
 
 ---
 
-_Last updated: 2025-12-28 (Added MCP tools and agent guidance)_
+_Last updated: 2025-12-28 (Added logging conventions and E2E testing)_

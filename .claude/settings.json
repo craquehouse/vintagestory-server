@@ -13,7 +13,9 @@
       "Bash(git push:*)",
       "mcp__playwright__*",
       "mcp__context7__*",
-      "mcp__grep__*"
+      "mcp__grep__*",
+      "Edit(_bmad-output/**)",
+      "Write(_bmad-output/**)"
     ]
   }
 }

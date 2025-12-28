@@ -1,6 +1,6 @@
 # Story 4.0: Epic 4 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -44,36 +44,36 @@ CRITICAL TASK STRUCTURE RULES:
 4. Tests verify the specific AC listed for that task
 -->
 
-- [ ] Task 1: Scaffold Playwright test framework + basic test (AC: 1)
-  - [ ] 1.1: Add `pytest-playwright` to API dev dependencies via `uv add --dev pytest-playwright`
-  - [ ] 1.2: Install Playwright browsers via `playwright install chromium`
-  - [ ] 1.3: Create `api/tests/e2e/conftest.py` with base fixtures for browser automation
-  - [ ] 1.4: Create `api/tests/e2e/test_health.py` - basic test that verifies `/healthz` endpoint via browser
-  - [ ] 1.5: Add `just test-e2e` recipe to Justfile for running E2E tests
-  - [ ] 1.6: Document E2E test setup in README or developer docs
+- [x] Task 1: Scaffold Playwright test framework + basic test (AC: 1)
+  - [x] 1.1: Add `pytest-playwright` to API dev dependencies via `uv add --dev pytest-playwright`
+  - [x] 1.2: Install Playwright browsers via `playwright install chromium`
+  - [x] 1.3: Create `api/tests/e2e/conftest.py` with base fixtures for browser automation
+  - [x] 1.4: Create `api/tests/e2e/test_health.py` - basic test that verifies `/healthz` endpoint via browser
+  - [x] 1.5: Add `just test-e2e` recipe to Justfile for running E2E tests
+  - [x] 1.6: Document E2E test setup in README or developer docs
 
-- [ ] Task 2: Research FastAPI WebSocket patterns (AC: 2)
-  - [ ] 2.1: Research FastAPI WebSocket endpoint patterns (authentication via query params, connection lifecycle)
-  - [ ] 2.2: Research broadcasting patterns (multiple connected clients)
-  - [ ] 2.3: Research integration with async ring buffer / queue patterns
-  - [ ] 2.4: Create `agentdocs/fastapi-websocket-patterns.md` documenting findings with code examples
-  - [ ] 2.5: Include error handling and graceful disconnection patterns
+- [x] Task 2: Research FastAPI WebSocket patterns (AC: 2)
+  - [x] 2.1: Research FastAPI WebSocket endpoint patterns (authentication via query params, connection lifecycle)
+  - [x] 2.2: Research broadcasting patterns (multiple connected clients)
+  - [x] 2.3: Research integration with async ring buffer / queue patterns
+  - [x] 2.4: Create `agentdocs/fastapi-websocket-patterns.md` documenting findings with code examples
+  - [x] 2.5: Include error handling and graceful disconnection patterns
 
-- [ ] Task 3: Research xterm.js + React integration (AC: 3)
-  - [ ] 3.1: Research xterm.js npm packages (`@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-attach`)
-  - [ ] 3.2: Research React wrapper patterns (functional component with refs)
-  - [ ] 3.3: Research WebSocket attachment for bidirectional communication
-  - [ ] 3.4: Research theming with CSS variables (Catppuccin Mocha/Latte integration)
-  - [ ] 3.5: Create `agentdocs/xterm-react-patterns.md` documenting findings with code examples
-  - [ ] 3.6: Include resize handling and accessibility considerations
+- [x] Task 3: Research xterm.js + React integration (AC: 3)
+  - [x] 3.1: Research xterm.js npm packages (`@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-attach`)
+  - [x] 3.2: Research React wrapper patterns (functional component with refs)
+  - [x] 3.3: Research WebSocket attachment for bidirectional communication
+  - [x] 3.4: Research theming with CSS variables (Catppuccin Mocha/Latte integration)
+  - [x] 3.5: Create `agentdocs/xterm-react-patterns.md` documenting findings with code examples
+  - [x] 3.6: Include resize handling and accessibility considerations
 
-- [ ] Task 4: Audit and standardize logging (AC: 4)
-  - [ ] 4.1: Review current structlog configuration in `api/src/vintagestory_api/main.py`
-  - [ ] 4.2: Ensure consistent timestamp format (ISO 8601) across all log entries
-  - [ ] 4.3: Verify dev mode uses colorful ConsoleRenderer, prod mode uses JSONRenderer
-  - [ ] 4.4: Review frontend console output for unnecessary noise or missing context
-  - [ ] 4.5: Add log level configuration via environment variable if not present
-  - [ ] 4.6: Document logging conventions in `project-context.md`
+- [x] Task 4: Audit and standardize logging (AC: 4)
+  - [x] 4.1: Review current structlog configuration in `api/src/vintagestory_api/main.py`
+  - [x] 4.2: Ensure consistent timestamp format (ISO 8601) across all log entries
+  - [x] 4.3: Verify dev mode uses colorful ConsoleRenderer, prod mode uses JSONRenderer
+  - [x] 4.4: Review frontend console output for unnecessary noise or missing context
+  - [x] 4.5: Add log level configuration via environment variable if not present
+  - [x] 4.6: Document logging conventions in `project-context.md`
 
 ---
 
@@ -263,11 +263,70 @@ test-e2e *ARGS:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - Research and scaffolding story, no complex debugging required.
+
 ### Completion Notes List
+
+**Task 1: Playwright E2E Test Framework**
+- Added `pytest-playwright` to dev dependencies
+- Installed Chromium browser for headless testing
+- Created `api/tests/e2e/conftest.py` with fixtures for `base_url`, `api_base_url`, and `authenticated_page`
+- Created `api/tests/e2e/test_e2e_health.py` with 4 tests (health endpoints, web UI, API root)
+- Added `just test-e2e` recipe to Justfile
+- Documented E2E testing setup in README.md
+
+**Task 2: FastAPI WebSocket Patterns Research**
+- Documented authentication via query parameters pattern (WebSocket can't use HTTP headers in browser)
+- Documented ConnectionManager pattern for broadcasting to multiple clients
+- Documented integration patterns with async ring buffer for console streaming
+- Documented error handling, graceful disconnection, and custom close codes (4003 for forbidden)
+- Created comprehensive `agentdocs/fastapi-websocket-patterns.md`
+
+**Task 3: xterm.js + React Integration Research**
+- Documented npm packages: `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-attach`
+- Documented React functional component pattern with refs and useEffect
+- Documented WebSocket attachment for bidirectional communication
+- Documented Catppuccin Mocha/Latte theme definitions for terminal
+- Documented ResizeObserver pattern with requestAnimationFrame debouncing
+- Documented reconnection with exponential backoff and jitter
+- Documented accessibility considerations (ARIA, screen reader announcements)
+- Created comprehensive `agentdocs/xterm-react-patterns.md`
+
+**Task 4: Logging Standardization**
+- Fixed: Added ISO 8601 timestamps to dev mode (was only in prod)
+- Added: `VS_LOG_LEVEL` environment variable for log level override
+- Verified: Dev mode uses colorful ConsoleRenderer, prod mode uses JSONRenderer
+- Verified: Frontend console output is clean (no noise)
+- Documented: Logging conventions in `project-context.md`
 
 ### File List
 
+**New Files:**
+- `api/tests/e2e/conftest.py` - Playwright fixtures for E2E testing
+- `api/tests/e2e/test_e2e_health.py` - Basic E2E health endpoint tests
+- `agentdocs/fastapi-websocket-patterns.md` - WebSocket research documentation
+- `agentdocs/xterm-react-patterns.md` - xterm.js React integration documentation
+
+**Modified Files:**
+- `api/pyproject.toml` - Added pytest-playwright dev dependency
+- `Justfile` - Added test-e2e recipe
+- `README.md` - Added development commands and E2E testing documentation
+- `api/src/vintagestory_api/config.py` - Added log_level setting and improved configure_logging
+- `api/src/vintagestory_api/main.py` - Pass log_level to configure_logging
+- `project-context.md` - Added logging conventions section
+
+---
+
+## Change Log
+
+- 2025-12-28: Initial implementation of story 4.0 - Epic 4 technical preparation complete
+
+---
+
+## Status
+
+Status: review

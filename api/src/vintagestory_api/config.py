@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VS_")
 
     debug: bool = False
+    log_level: str | None = None  # Override log level (DEBUG, INFO, WARNING, ERROR)
     api_key_admin: str = ""
     api_key_monitor: str | None = None
     game_version: str = "stable"
@@ -101,20 +102,43 @@ class Settings(BaseSettings):
             directory.mkdir(parents=True, exist_ok=True)
 
 
-def configure_logging(debug: bool = False) -> None:
+def configure_logging(debug: bool = False, log_level: str | None = None) -> None:
     """Configure structlog for dev (colorful) or prod (JSON) output.
 
     Args:
         debug: If True, use colorful dev output; otherwise JSON for production.
+        log_level: Override log level (DEBUG, INFO, WARNING, ERROR). If None,
+                   defaults to DEBUG in debug mode, INFO in production.
+
+    Logging Conventions:
+        - All logs include ISO 8601 timestamps for consistency
+        - Dev mode: colorful ConsoleRenderer for readability
+        - Prod mode: JSONRenderer for machine parsing
+        - Use structured key=value pairs, not string interpolation
+        - Never log sensitive data (API keys, passwords)
     """
+    # Determine log level
+    if log_level:
+        level = getattr(logging, log_level.upper(), None)
+        if level is None:
+            level = logging.DEBUG if debug else logging.INFO
+    else:
+        level = logging.DEBUG if debug else logging.INFO
+
+    # Common processors for both modes - always include ISO 8601 timestamps
+    common_processors = [
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_log_level,
+    ]
+
     if debug:
-        # Development: human-readable, colorful output
+        # Development: human-readable, colorful output with timestamps
         structlog.configure(
             processors=[
-                structlog.stdlib.add_log_level,
+                *common_processors,
                 structlog.dev.ConsoleRenderer(),
             ],
-            wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+            wrapper_class=structlog.make_filtering_bound_logger(level),
             context_class=dict,
             logger_factory=structlog.PrintLoggerFactory(),
             cache_logger_on_first_use=True,
@@ -123,11 +147,10 @@ def configure_logging(debug: bool = False) -> None:
         # Production: JSON, machine-parseable output
         structlog.configure(
             processors=[
-                structlog.processors.TimeStamper(fmt="iso"),
-                structlog.stdlib.add_log_level,
+                *common_processors,
                 structlog.processors.JSONRenderer(),
             ],
-            wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+            wrapper_class=structlog.make_filtering_bound_logger(level),
             context_class=dict,
             logger_factory=structlog.PrintLoggerFactory(),
             cache_logger_on_first_use=True,

@@ -45,6 +45,11 @@ test-api-watch:
 test-web-watch:
     mise exec -C web -- bun run test --watch
 
+# Run E2E tests (Playwright) - requires Docker app running
+# Examples: just test-e2e | just test-e2e -k "health" | just test-e2e --headed
+test-e2e *ARGS:
+    mise exec -C api -- uv run pytest tests/e2e {{ARGS}}
+
 # =============================================================================
 # BUILDING
 # =============================================================================
