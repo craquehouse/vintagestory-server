@@ -14,9 +14,48 @@ See: https://playwright.dev/python/docs/test-runners#fixtures
 """
 
 import os
+import socket
+from urllib.parse import urlparse
 
 import pytest
 from playwright.sync_api import Page
+
+
+def _is_server_available(url: str, timeout: float = 0.5) -> bool:
+    """Check if a server is accepting connections.
+
+    Args:
+        url: URL to check (host and port extracted).
+        timeout: Connection timeout in seconds.
+
+    Returns:
+        True if server is accepting connections, False otherwise.
+    """
+    parsed = urlparse(url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (OSError, ConnectionRefusedError, TimeoutError):
+        return False
+
+
+@pytest.fixture(scope="session", autouse=True)
+def require_docker_running(base_url: str) -> None:
+    """Skip all E2E tests if Docker application is not running.
+
+    This fixture runs automatically for all E2E tests and skips
+    the entire test session if the application server is not reachable.
+
+    Use `just test-e2e` after starting Docker with `just docker-start`.
+    """
+    if not _is_server_available(base_url):
+        pytest.skip(
+            f"E2E tests require Docker application running at {base_url}. "
+            "Start with: just docker-start"
+        )
 
 
 @pytest.fixture(scope="session")

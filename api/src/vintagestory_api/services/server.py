@@ -24,6 +24,7 @@ from vintagestory_api.models.server import (
     ServerStatus,
     VersionInfo,
 )
+from vintagestory_api.services.console import ConsoleBuffer
 
 logger = structlog.get_logger()
 
@@ -123,6 +124,8 @@ class ServerService:
         # - _server_state tracks lifecycle: INSTALLED (stopped), STARTING, RUNNING, STOPPING
         self._process: asyncio.subprocess.Process | None = None
         self._monitor_task: asyncio.Task[None] | None = None
+        self._stdout_task: asyncio.Task[None] | None = None
+        self._stderr_task: asyncio.Task[None] | None = None
         self._server_state: ServerState = ServerState.INSTALLED  # Runtime state
         self._last_exit_code: int | None = None
         self._server_start_time: float | None = None
@@ -130,10 +133,18 @@ class ServerService:
         # Lock to prevent concurrent lifecycle operations
         self._lifecycle_lock = asyncio.Lock()
 
+        # Console buffer for capturing server output
+        self._console_buffer = ConsoleBuffer()
+
     @property
     def settings(self) -> Settings:
         """Get application settings."""
         return self._settings
+
+    @property
+    def console_buffer(self) -> ConsoleBuffer:
+        """Get the console buffer for server output."""
+        return self._console_buffer
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client for API requests.
@@ -749,6 +760,14 @@ class ServerService:
             # Start background monitoring task
             self._monitor_task = asyncio.create_task(self._monitor_process())
 
+            # Start stream reader tasks for console capture
+            self._stdout_task = asyncio.create_task(
+                self._read_stream(self._process.stdout, "stdout")
+            )
+            self._stderr_task = asyncio.create_task(
+                self._read_stream(self._process.stderr, "stderr")
+            )
+
             logger.info(
                 "server_started",
                 pid=self._process.pid,
@@ -823,13 +842,14 @@ class ServerService:
             self._server_state = ServerState.INSTALLED
             self._server_start_time = None
 
-            # Cancel monitor task if still running
-            if self._monitor_task and not self._monitor_task.done():
-                self._monitor_task.cancel()
-                try:
-                    await self._monitor_task
-                except asyncio.CancelledError:
-                    pass
+            # Cancel monitor and stream reader tasks if still running
+            for task in [self._monitor_task, self._stdout_task, self._stderr_task]:
+                if task and not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
 
             return LifecycleResponse(
                 action=LifecycleAction.STOP,
@@ -913,3 +933,34 @@ class ServerService:
             pass
         except Exception as e:
             logger.error("monitor_error", error=str(e))
+
+    async def _read_stream(
+        self,
+        stream: asyncio.StreamReader | None,
+        stream_name: str,
+    ) -> None:
+        """Read lines from subprocess stream and add to console buffer.
+
+        This coroutine runs continuously until the stream is exhausted (process exits).
+        Each line is decoded, stripped, and added to the console buffer with a timestamp.
+
+        Args:
+            stream: The subprocess stdout or stderr stream.
+            stream_name: Name for logging ("stdout" or "stderr").
+        """
+        if stream is None:
+            return
+
+        try:
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                # Decode and strip the line, handle encoding errors gracefully
+                text = line.decode("utf-8", errors="replace").rstrip()
+                await self._console_buffer.append(text)
+        except asyncio.CancelledError:
+            # Stream reading cancelled during shutdown - expected
+            pass
+        except Exception as e:
+            logger.error("stream_read_error", stream=stream_name, error=str(e))
