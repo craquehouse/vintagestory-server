@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
+from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
@@ -135,6 +136,28 @@ async def get_install_status(
             "message": progress.message,
         },
     )
+
+
+@router.get("/status", response_model=ApiResponse)
+async def get_server_status(
+    _: str = Depends(get_current_user),  # Both Admin and Monitor
+    service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Get current server status.
+
+    Returns server state, version, uptime (if running), and last exit code.
+    Available to both Admin and Monitor roles.
+
+    Note: This endpoint does not acquire the lifecycle lock, intentionally.
+    During state transitions, it may return the transitional state (starting/
+    stopping). This is acceptable for monitoring purposes and avoids blocking
+    status checks during slow lifecycle operations.
+
+    Returns:
+        ApiResponse with ServerStatus data
+    """
+    status = service.get_server_status()
+    return ApiResponse(status="ok", data=status.model_dump())
 
 
 # ============================================
