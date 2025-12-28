@@ -402,9 +402,10 @@ class TestInstallProgress:
         """State is installed when server files exist."""
         # Create required server files
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+        test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (test_settings.server_dir / "VintagestoryServer.dll").touch()
         (test_settings.server_dir / "VintagestoryLib.dll").touch()
-        (test_settings.server_dir / "current_version").write_text("1.21.3")
+        (test_settings.vsmanager_dir / "current_version").write_text("1.21.3")
 
         service = ServerService(test_settings)
         progress = service.get_install_progress()
@@ -422,9 +423,10 @@ class TestServerInstallation:
         """Installing when server exists returns error (AC: 5)."""
         # Create required server files to simulate installed state
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+        test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (test_settings.server_dir / "VintagestoryServer.dll").touch()
         (test_settings.server_dir / "VintagestoryLib.dll").touch()
-        (test_settings.server_dir / "current_version").write_text("1.21.3")
+        (test_settings.vsmanager_dir / "current_version").write_text("1.21.3")
 
         service = ServerService(test_settings)
         progress = await service.install_server("1.21.6")
@@ -724,6 +726,37 @@ class TestExtractServer:
 
         assert service._install_stage == InstallationStage.EXTRACTING
 
+    def test_extract_handles_malformed_ustar_prefix(
+        self, test_settings: Settings
+    ) -> None:
+        """Extraction handles VintageStory tarballs with malformed USTAR prefix.
+
+        VintageStory tarballs have garbage numeric data in the USTAR prefix
+        field. Python's tarfile module interprets this literally, creating
+        incorrect paths like '15070731126/VintagestoryServer.dll'.
+
+        This test verifies the custom filter strips the bogus prefix.
+        """
+        from vintagestory_api.services.server import _strip_numeric_prefix
+
+        # Test cases for prefix stripping
+        assert _strip_numeric_prefix("15070731126/assets") == "assets"
+        assert _strip_numeric_prefix("15070731127/VintagestoryServer.dll") == (
+            "VintagestoryServer.dll"
+        )
+        assert _strip_numeric_prefix("15070731126/Lib/ICSharpCode.dll") == (
+            "Lib/ICSharpCode.dll"
+        )
+
+        # Should NOT strip non-numeric prefixes
+        assert _strip_numeric_prefix("assets/game/textures") == "assets/game/textures"
+        assert _strip_numeric_prefix("VintagestoryServer.dll") == (
+            "VintagestoryServer.dll"
+        )
+
+        # Should NOT strip numeric-looking normal directories
+        assert _strip_numeric_prefix("2024/backup.tar") == "2024/backup.tar"
+
 
 class TestInstallProgressTracking:
     """Tests for installation progress stage tracking (Subtask 2.4, AC: 2)."""
@@ -866,7 +899,8 @@ class TestServerStateManagement:
     ) -> None:
         """get_installed_version returns version from file."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-        (test_settings.server_dir / "current_version").write_text("1.21.6")
+        test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
+        (test_settings.vsmanager_dir / "current_version").write_text("1.21.6")
 
         service = ServerService(test_settings)
         assert service.get_installed_version() == "1.21.6"
@@ -874,136 +908,58 @@ class TestServerStateManagement:
     def test_save_installed_version(self, test_settings: Settings) -> None:
         """save_installed_version persists version to file."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+        test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
         service._save_installed_version("1.21.6")
 
-        version_file = test_settings.server_dir / "current_version"
+        version_file = test_settings.vsmanager_dir / "current_version"
         assert version_file.exists()
         assert version_file.read_text() == "1.21.6"
 
     def test_save_installed_version_atomic(self, test_settings: Settings) -> None:
         """save_installed_version uses atomic write (no .tmp file left)."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+        test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
         service._save_installed_version("1.21.6")
 
-        tmp_file = test_settings.server_dir / "current_version.tmp"
+        tmp_file = test_settings.vsmanager_dir / "current_version.tmp"
         assert not tmp_file.exists()
 
 
-class TestDirectoriesAndSymlinks:
+class TestPostInstallSetup:
     """Tests for post-installation setup (Task 4)."""
 
-    def test_setup_creates_mods_dir(self, test_settings: Settings) -> None:
-        """setup_directories_and_symlinks creates mods directory."""
+    def test_setup_creates_serverdata_dir(self, test_settings: Settings) -> None:
+        """setup_post_install creates serverdata directory."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
+        service.setup_post_install()
 
-        assert test_settings.mods_dir.exists()
-        assert test_settings.mods_dir.is_dir()
+        assert test_settings.serverdata_dir.exists()
+        assert test_settings.serverdata_dir.is_dir()
 
-    def test_setup_creates_config_dir(self, test_settings: Settings) -> None:
-        """setup_directories_and_symlinks creates config directory."""
+    def test_setup_creates_vsmanager_dir(self, test_settings: Settings) -> None:
+        """setup_post_install creates vsmanager directory."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
+        service.setup_post_install()
 
-        assert test_settings.config_dir.exists()
-        assert test_settings.config_dir.is_dir()
-
-    def test_setup_creates_symlink(self, test_settings: Settings) -> None:
-        """setup_directories_and_symlinks creates Mods symlink."""
-        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-
-        service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
-
-        mods_symlink = test_settings.server_dir / "Mods"
-        assert mods_symlink.is_symlink()
-        assert mods_symlink.resolve() == test_settings.mods_dir.resolve()
-
-    def test_setup_replaces_existing_mods_dir(self, test_settings: Settings) -> None:
-        """setup_directories_and_symlinks replaces existing Mods directory."""
-        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create existing Mods directory (not symlink)
-        existing_mods = test_settings.server_dir / "Mods"
-        existing_mods.mkdir()
-        (existing_mods / "some_file.txt").touch()
-
-        service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
-
-        mods_symlink = test_settings.server_dir / "Mods"
-        assert mods_symlink.is_symlink()
+        assert test_settings.vsmanager_dir.exists()
+        assert test_settings.vsmanager_dir.is_dir()
 
     def test_setup_sets_stage_configuring(self, test_settings: Settings) -> None:
-        """setup_directories_and_symlinks sets stage to configuring."""
+        """setup_post_install sets stage to configuring."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
+        service.setup_post_install()
 
         assert service._install_stage == InstallationStage.CONFIGURING
-
-    def test_setup_copies_default_config_when_empty(
-        self, test_settings: Settings
-    ) -> None:
-        """setup_directories_and_symlinks copies default config if config dir empty (AC: 1)."""
-        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create default serverconfig.json in server dir
-        default_config = test_settings.server_dir / "serverconfig.json"
-        default_config.write_text('{"ServerName": "Test Server"}')
-
-        service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
-
-        # Config should be copied to config dir
-        copied_config = test_settings.config_dir / "serverconfig.json"
-        assert copied_config.exists()
-        assert copied_config.read_text() == '{"ServerName": "Test Server"}'
-
-    def test_setup_does_not_copy_config_when_not_empty(
-        self, test_settings: Settings
-    ) -> None:
-        """setup_directories_and_symlinks skips copy if config dir has files."""
-        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-        test_settings.config_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create existing config in config dir
-        existing_config = test_settings.config_dir / "serverconfig.json"
-        existing_config.write_text('{"ServerName": "Existing"}')
-
-        # Create default config in server dir
-        default_config = test_settings.server_dir / "serverconfig.json"
-        default_config.write_text('{"ServerName": "Default"}')
-
-        service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
-
-        # Existing config should not be overwritten
-        assert existing_config.read_text() == '{"ServerName": "Existing"}'
-
-    def test_setup_handles_missing_default_config(
-        self, test_settings: Settings
-    ) -> None:
-        """setup_directories_and_symlinks handles missing serverconfig.json gracefully."""
-        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
-
-        # No serverconfig.json in server dir
-
-        service = ServerService(test_settings)
-        service.setup_directories_and_symlinks()
-
-        # Should complete without error, config dir should exist but be empty
-        assert test_settings.config_dir.exists()
-        assert not (test_settings.config_dir / "serverconfig.json").exists()
 
 
 # API endpoint tests
@@ -1120,10 +1076,12 @@ class TestServerInstallEndpoint:
         """POST /server/install when server exists returns 409 (AC: 5)."""
         # Create server files to simulate installed state
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         response = integration_client.post(
             "/api/v1alpha1/server/install",
@@ -1217,13 +1175,13 @@ class TestServerInstallEndpoint:
 
         # Verify server files actually exist on disk
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         assert (server_dir / "VintagestoryServer.dll").exists()
         assert (server_dir / "VintagestoryLib.dll").exists()
-        assert (server_dir / "current_version").read_text() == version
+        assert (vsmanager_dir / "current_version").read_text() == version
 
-        # Verify mods symlink created
-        assert (server_dir / "Mods").is_symlink()
-        assert (server_dir / "Mods").resolve() == (temp_data_dir / "mods").resolve()
+        # Verify serverdata dir created
+        assert (temp_data_dir / "serverdata").is_dir()
 
 
 class TestServerInstallStatusEndpoint:
@@ -1284,10 +1242,12 @@ class TestServerInstallStatusEndpoint:
         """GET /server/install/status returns installed when server exists."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/install/status",
@@ -1361,9 +1321,10 @@ def installed_service(test_settings: Settings) -> ServerService:
     """Create a server service with server files in place (simulating installed state)."""
     # Create required server files
     test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+    test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
     (test_settings.server_dir / "VintagestoryServer.dll").touch()
     (test_settings.server_dir / "VintagestoryLib.dll").touch()
-    (test_settings.server_dir / "current_version").write_text("1.21.3")
+    (test_settings.vsmanager_dir / "current_version").write_text("1.21.3")
     return ServerService(test_settings)
 
 
@@ -1935,10 +1896,12 @@ class TestServerStartEndpoint:
         """POST /server/start successfully starts server (AC: 1)."""
         # Create server files to simulate installed state
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -1976,10 +1939,12 @@ class TestServerStartEndpoint:
         """POST /server/start returns 409 when already running."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         # Get the service and manually set state to running
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -2066,10 +2031,12 @@ class TestServerStopEndpoint:
         """POST /server/stop returns 409 when server not running."""
         # Create server files (installed but not running)
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         response = integration_client.post(
             "/api/v1alpha1/server/stop",
@@ -2086,10 +2053,12 @@ class TestServerStopEndpoint:
         """POST /server/stop successfully stops running server (AC: 2)."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -2205,10 +2174,12 @@ class TestServerRestartEndpoint:
         """POST /server/restart starts server when stopped (AC: 3)."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -2246,10 +2217,12 @@ class TestServerRestartEndpoint:
         """POST /server/restart stops and starts when running (AC: 3)."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         # Get the service and manually set state to running
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -2551,10 +2524,12 @@ class TestRestartEndpointErrorHandling:
         """POST /server/restart returns 500 when stop fails."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         # Get the service and set up a running state
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -2589,10 +2564,12 @@ class TestRestartEndpointErrorHandling:
         """POST /server/restart returns 500 when start fails after successful stop."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         # Server is not running, so restart will just try to start
         with patch("asyncio.create_subprocess_exec") as mock_exec:
@@ -2705,10 +2682,12 @@ class TestServerStatusEndpoint:
         """GET /server/status returns installed when server exists but stopped (AC: 1, 3)."""
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -2739,10 +2718,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -2809,10 +2790,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -2848,10 +2831,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -2892,10 +2877,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -2934,10 +2921,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -2976,10 +2965,12 @@ class TestServerStatusEndpoint:
 
         # Create server files
         server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
         server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (server_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.21.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,

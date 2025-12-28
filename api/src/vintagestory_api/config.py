@@ -66,34 +66,23 @@ class Settings(BaseSettings):
         return v
 
     @property
-    def state_dir(self) -> Path:
-        """Directory for API state persistence."""
-        return self.data_dir / "state"
-
-    @property
     def server_dir(self) -> Path:
-        """Directory for VintageStory server installation."""
+        """Directory for VintageStory server installation (extracted tarball)."""
         return self.data_dir / "server"
 
     @property
-    def mods_dir(self) -> Path:
-        """Directory for mod files."""
-        return self.data_dir / "mods"
+    def serverdata_dir(self) -> Path:
+        """Directory for persistent game data (Mods, Saves, configs).
+
+        This is passed to VintageStory via --dataPath argument.
+        Contains: Mods/, Saves/, serverconfig.json, logs, etc.
+        """
+        return self.data_dir / "serverdata"
 
     @property
-    def config_dir(self) -> Path:
-        """Directory for game server configuration."""
-        return self.data_dir / "config"
-
-    @property
-    def logs_dir(self) -> Path:
-        """Directory for application logs."""
-        return self.data_dir / "logs"
-
-    @property
-    def backups_dir(self) -> Path:
-        """Directory for server backups."""
-        return self.data_dir / "backups"
+    def vsmanager_dir(self) -> Path:
+        """Directory for API manager state (version tracking, install status)."""
+        return self.data_dir / "vsmanager"
 
     def ensure_data_directories(self) -> None:
         """Create data directory structure if it doesn't exist."""
@@ -105,12 +94,9 @@ class Settings(BaseSettings):
             )
 
         for directory in [
-            self.state_dir,
             self.server_dir,
-            self.mods_dir,
-            self.config_dir,
-            self.logs_dir,
-            self.backups_dir,
+            self.serverdata_dir,
+            self.vsmanager_dir,
         ]:
             directory.mkdir(parents=True, exist_ok=True)
 

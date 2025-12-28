@@ -8,6 +8,13 @@
 # ==============================================================================
 FROM node:22-slim AS web-build
 
+# Build args - VS_API_KEY is mapped to VITE_API_KEY for Vite build
+# This allows using a single env var name across the stack
+# Note: This key is intentionally baked into the frontend bundle - it's a
+# client-side API key that will be visible in the browser JS anyway.
+# hadolint ignore=DL3044
+ARG VS_API_KEY=""
+
 WORKDIR /app
 
 # Install bun for faster builds (version pinned per Architecture/.mise.toml)
@@ -19,9 +26,10 @@ COPY web/package.json web/bun.lock ./
 # Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy source and build
+# Copy source and build - map VS_API_KEY to VITE_API_KEY for Vite
+# VITE_API_BASE_URL is empty for same-origin requests in Docker
 COPY web/ ./
-RUN bun run build
+RUN VITE_API_KEY="${VS_API_KEY}" VITE_API_BASE_URL="" bun run build
 
 # ==============================================================================
 # Stage 2: Production image
@@ -61,7 +69,10 @@ COPY --from=web-build /app/dist /app/static
 RUN groupadd -r vsmanager && useradd -r -g vsmanager -d /data/vsmanager -s /bin/bash vsmanager
 
 # Create data directory structure and set ownership
-RUN mkdir -p /data/server /data/mods /data/config /data/state /data/logs /data/backups /data/vsmanager \
+# /data/server     - VintageStory installation (extracted tarball)
+# /data/serverdata - Persistent game data (Mods, Saves, configs) via --dataPath
+# /data/vsmanager  - API manager state (version tracking)
+RUN mkdir -p /data/server /data/serverdata /data/vsmanager \
     && chown -R vsmanager:vsmanager /app /data
 
 # Switch to non-root user

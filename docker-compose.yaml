@@ -12,8 +12,9 @@ services:
     volumes:
       - ./data:/data
     environment:
-      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN}
+      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
+      - VS_API_KEY=${VS_API_KEY_ADMIN:-changeme}
       - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=${VS_DEBUG:-false}
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}

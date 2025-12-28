@@ -3,7 +3,6 @@
 import asyncio
 import hashlib
 import re
-import shutil
 import signal
 import tarfile
 import time
@@ -39,6 +38,59 @@ VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a
 
 # Required server files to verify installation
 REQUIRED_SERVER_FILES = ["VintagestoryServer.dll", "VintagestoryLib.dll"]
+
+
+def _strip_numeric_prefix(name: str) -> str:
+    """Strip leading numeric directory from tarball member names.
+
+    The VintageStory tarball has malformed USTAR prefix fields containing
+    garbage numeric data (inode numbers like 15070731126). Python's tarfile
+    module correctly follows the USTAR spec and prepends these prefixes to
+    filenames, but they should be stripped for correct extraction.
+
+    Only strips prefixes that are 8+ digits to avoid accidentally stripping
+    legitimate year-based directories (e.g., "2024/backup.tar").
+
+    Args:
+        name: Original member name from tarball.
+
+    Returns:
+        Name with leading numeric directory stripped if present.
+    """
+    parts = name.split("/", 1)
+    # Only strip if first component is all digits AND at least 8 characters
+    # (inode numbers are typically 10+ digits, years are 4 digits)
+    if len(parts) > 1 and parts[0].isdigit() and len(parts[0]) >= 8:
+        return parts[1]
+    return name
+
+
+def _vintagestory_tar_filter(
+    member: tarfile.TarInfo, path: str
+) -> tarfile.TarInfo | None:
+    """Custom extraction filter for VintageStory server tarballs.
+
+    This filter handles two issues:
+    1. Strips bogus numeric prefixes from USTAR archives with malformed prefix fields
+    2. Applies the standard 'data' filter for security (blocks absolute paths,
+       symlinks outside destination, device files, etc.)
+
+    Args:
+        member: TarInfo object for the member being extracted.
+        path: Destination path for extraction.
+
+    Returns:
+        Modified TarInfo object or None to skip the member.
+    """
+    # Strip the bogus numeric prefix from member names
+    member.name = _strip_numeric_prefix(member.name)
+
+    # Also fix linkname if it's a symlink/hardlink
+    if member.linkname:
+        member.linkname = _strip_numeric_prefix(member.linkname)
+
+    # Apply the standard 'data' filter for security
+    return tarfile.data_filter(member, path)
 
 
 class ServerService:
@@ -262,7 +314,7 @@ class ServerService:
         Returns:
             Version string if installed, None otherwise.
         """
-        version_file = self._settings.server_dir / "current_version"
+        version_file = self._settings.vsmanager_dir / "current_version"
         if version_file.exists():
             return version_file.read_text().strip()
         return None
@@ -273,7 +325,7 @@ class ServerService:
         Args:
             version: Version string that was installed.
         """
-        version_file = self._settings.server_dir / "current_version"
+        version_file = self._settings.vsmanager_dir / "current_version"
         # Atomic write: write to temp then rename
         temp_file = version_file.with_suffix(".tmp")
         temp_file.write_text(version)
@@ -420,6 +472,10 @@ class ServerService:
     def extract_server(self, tarball_path: Path) -> None:
         """Extract server tarball to server directory.
 
+        Uses a custom filter to handle VintageStory tarballs which have malformed
+        USTAR prefix fields. The filter strips bogus numeric prefixes and applies
+        the standard 'data' filter for security.
+
         Args:
             tarball_path: Path to tarball file.
 
@@ -432,52 +488,29 @@ class ServerService:
         logger.info("extracting_server", tarball=str(tarball_path))
 
         with tarfile.open(tarball_path, "r:gz") as tar:
-            # filter="tar" preserves permissions while blocking path traversal attacks
-            tar.extractall(self._settings.server_dir, filter="tar")
+            # Use custom filter that handles VintageStory's malformed USTAR archives
+            # and applies security protections from the 'data' filter
+            tar.extractall(self._settings.server_dir, filter=_vintagestory_tar_filter)
 
         # Clean up tarball after extraction
         tarball_path.unlink()
         logger.info("extraction_complete")
 
-    def setup_directories_and_symlinks(self) -> None:
-        """Create required directories and symlinks after installation.
+    def setup_post_install(self) -> None:
+        """Post-installation setup.
 
-        Creates:
-        - /data/mods/ directory
-        - /data/config/ directory
-        - Copies default config files if /data/config/ is empty
-        - Symlink: /data/server/Mods -> /data/mods/
+        Ensures serverdata directory exists for VintageStory's --dataPath.
+        No symlinks needed - VintageStory manages its own data structure
+        within the serverdata directory.
         """
         self._install_stage = InstallationStage.CONFIGURING
 
-        # Ensure directories exist
-        self._settings.mods_dir.mkdir(parents=True, exist_ok=True)
-        self._settings.config_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure serverdata directory exists (VintageStory will populate it on first run)
+        self._settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("serverdata_dir_ready", path=str(self._settings.serverdata_dir))
 
-        # Copy default config files if config dir is empty (AC: 1)
-        if not any(self._settings.config_dir.iterdir()):
-            # VintageStory extracts default configs to serverconfig.json in server dir
-            server_config = self._settings.server_dir / "serverconfig.json"
-            if server_config.exists():
-                shutil.copy2(server_config, self._settings.config_dir)
-                logger.info("default_config_copied", file="serverconfig.json")
-
-        # Create symlink for mods (persist mods across updates)
-        server_mods = self._settings.server_dir / "Mods"
-
-        # Remove existing Mods directory/symlink if present
-        if server_mods.is_symlink():
-            server_mods.unlink()
-        elif server_mods.is_dir():
-            shutil.rmtree(server_mods)
-
-        # Create symlink
-        server_mods.symlink_to(self._settings.mods_dir)
-        logger.info(
-            "symlink_created",
-            link=str(server_mods),
-            target=str(self._settings.mods_dir),
-        )
+        # Ensure vsmanager directory exists (for version tracking, etc)
+        self._settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
     async def install_server(self, version: str) -> InstallProgress:
         """Install VintageStory server.
@@ -579,7 +612,7 @@ class ServerService:
                 return self.get_install_progress()
 
             # Post-install setup
-            self.setup_directories_and_symlinks()
+            self.setup_post_install()
 
             # Save version
             self._save_installed_version(version)
@@ -692,11 +725,12 @@ class ServerService:
             raise RuntimeError(ErrorCode.SERVER_ALREADY_RUNNING)
 
         # Build command to run server
+        # --dataPath tells VintageStory where to store persistent data (Mods, Saves, configs)
         command = [
             "dotnet",
             str(self._settings.server_dir / "VintagestoryServer.dll"),
             "--dataPath",
-            str(self._settings.data_dir),
+            str(self._settings.serverdata_dir),
         ]
 
         logger.info("starting_server", command=command)

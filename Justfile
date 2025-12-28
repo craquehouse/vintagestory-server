@@ -136,3 +136,13 @@ install-api *ARGS:
 # Install web dependencies - accepts optional bun install args
 install-web *ARGS:
     mise exec -C web -- bun install {{ARGS}}
+
+# =============================================================================
+# DATA MANAGEMENT
+# =============================================================================
+
+# Clean data directory (removes all data subdirectories - keeps .gitkeep)
+# Useful for testing fresh installations
+clean-data:
+    rm -rf data/server data/serverdata data/vsmanager
+    @echo "Data directory cleaned (server, serverdata, vsmanager removed)"

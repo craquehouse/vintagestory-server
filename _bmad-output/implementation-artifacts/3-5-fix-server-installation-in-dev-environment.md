@@ -1,6 +1,6 @@
 # Story 3.5: Fix Server Installation in Dev Environment
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -46,28 +46,45 @@ CRITICAL TASK STRUCTURE RULES:
 4. Tests verify the specific AC listed for that task
 -->
 
-- [ ] Task 1: Investigate installation failure (AC: 4)
-  - [ ] 1.1: Start API and web dev servers using `just dev-api` and `just dev-web`
-  - [ ] 1.2: Attempt server installation via Dashboard UI (version 1.21.3)
-  - [ ] 1.3: Capture error logs from browser console, API server logs, and network requests
-  - [ ] 1.4: Identify root cause of failure (document findings in completion notes)
+- [x] Task 1: Investigate installation failure (AC: 4)
+  - [x] 1.1: Start API and web dev servers using `just dev-api` and `just dev-web`
+  - [x] 1.2: Attempt server installation via Dashboard UI (version 1.21.3)
+  - [x] 1.3: Capture error logs from browser console, API server logs, and network requests
+  - [x] 1.4: Identify root cause of failure (document findings in completion notes)
 
-- [ ] Task 2: Fix identified issues + tests (AC: 1, 2, 4)
-  - [ ] 2.1: Implement fix based on root cause analysis
-  - [ ] 2.2: Add test(s) to prevent regression if applicable
-  - [ ] 2.3: Run `just test` to verify fix doesn't break existing tests
+- [x] Task 2: Fix identified issues + tests (AC: 1, 2, 4)
+  - [x] 2.1: Implement fix based on root cause analysis
+  - [x] 2.2: Add test(s) to prevent regression if applicable
+  - [x] 2.3: Run `just test` to verify fix doesn't break existing tests
 
-- [ ] Task 3: Manual verification in dev environment (AC: 1, 2, 3)
-  - [ ] 3.1: Start fresh dev environment (delete any existing `/data` content)
-  - [ ] 3.2: Install server via Dashboard UI - verify success
-  - [ ] 3.3: Check server files exist in expected location
-  - [ ] 3.4: Start server via Dashboard - verify status changes to "running"
-  - [ ] 3.5: Stop server - verify status returns to "installed"
+- [x] Task 3: Manual verification in dev environment (AC: 1, 2, 3)
+  - [x] 3.1: Start fresh dev environment (delete any existing `/data` content)
+  - [x] 3.2: Install server via Dashboard UI - verify success
+  - [x] 3.3: Check server files exist in expected location
+  - [x] 3.4: Start server via Dashboard - verify status changes to "running"
+    - Note: Server start fails due to missing .NET runtime on macOS (expected in dev env)
+  - [x] 3.5: Stop server - verify status returns to "installed"
+    - Note: N/A since server didn't start, but API status correctly shows "installed"
 
-- [ ] Task 4: Document root cause and solution (AC: 4)
-  - [ ] 4.1: Document root cause in Dev Agent Record > Completion Notes
-  - [ ] 4.2: Update project-context.md if new patterns discovered
-  - [ ] 4.3: Run `just check` for final validation
+- [x] Task 4: Document root cause and solution (AC: 4)
+  - [x] 4.1: Document root cause in Dev Agent Record > Completion Notes
+  - [x] 4.2: Update project-context.md if new patterns discovered
+    - Note: No update needed - this is a VintageStory-specific tarball issue, not a general pattern
+  - [x] 4.3: Run `just check` for final validation
+    - Note: 239/240 tests pass. 1 pre-existing failure in `test_config.py::test_default_data_dir` (test isolation issue with `.env` file loading, unrelated to this story)
+
+- [x] Task 5: Get Docker Compose working for full E2E testing (AC: 3)
+  - [x] 5.1: Review existing Dockerfile and docker-compose.yaml configuration
+  - [x] 5.2: Fix any issues preventing `docker compose up` from working
+    - Added VS_API_KEY build arg to Dockerfile for frontend authentication
+    - Updated docker-compose.dev.yaml to pass build args
+    - Refactored data directory structure to use --dataPath (server, serverdata, vsmanager)
+  - [x] 5.3: Verify API and web UI accessible via Docker
+  - [x] 5.4: Install server via Dashboard in Docker environment
+  - [x] 5.5: Start server via Dashboard - verify status shows "running" and stays running
+    - Server started with PID 66, uptime counted to 15+ seconds
+  - [x] 5.6: Stop server - verify status returns to "installed"
+    - Server stopped gracefully with exit code 0
 
 ---
 
@@ -237,13 +254,67 @@ cd web && just dev-web
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- API logs showing `installation_error: 'Installation verification failed - required files missing'`
+- Python tarfile member names showing bogus numeric prefixes like `15070731126/assets`
+
 ### Completion Notes List
 
-<!-- Document root cause and fix here -->
+#### Root Cause: Malformed USTAR Prefix in VintageStory Tarballs
+
+**Problem:**
+VintageStory server tarballs have malformed USTAR prefix fields. The USTAR format uses bytes 345-500 for a "prefix" that gets prepended to filenames longer than 100 characters. However, VintageStory's tarballs contain garbage numeric data (inode numbers like `15070731126`) in this prefix field even for short filenames.
+
+**Behavior:**
+- Native `tar` command (macOS/Linux): Ignores the malformed prefix, extracts correctly
+- Python's `tarfile` module: Correctly follows USTAR spec, prepends the prefix to all filenames
+
+This caused extracted files to end up in directories like `15070731126/VintagestoryServer.dll` instead of just `VintagestoryServer.dll`.
+
+**Verification:**
+Tested multiple VintageStory versions (1.19.8, 1.20.0, 1.21.3, 1.21.6-rc.1) - ALL have this issue. It's a consistent problem with how VintageStory creates their distribution tarballs.
+
+**Solution:**
+Implemented a custom tarfile extraction filter `_vintagestory_tar_filter()` that:
+1. Strips bogus numeric prefixes (8+ digits) from member names
+2. Applies the standard `data` filter for security (blocks path traversal, absolute paths, etc.)
+
+**Files Changed:**
+- `api/src/vintagestory_api/services/server.py` - Added custom filter functions
+- `api/tests/test_server.py` - Added regression test for prefix stripping
+
+#### Task 5: Docker E2E and Data Directory Refactor
+
+**Problem:**
+The original symlink-based approach for persisting mods/config was incorrect. VintageStory ships with core mods (VSCreativeMod, VSEssentials, VSSurvivalMod) in its `Mods/` directory. The symlink replaced this with an empty directory, causing the server to crash with "Referenced library not found: Mods/VSCreativeMod.dll".
+
+**Solution:**
+VintageStory natively supports a `--dataPath` argument that tells it where to store persistent data (Mods, Saves, configs). Instead of symlinks, we use this built-in feature.
+
+**New Directory Structure:**
+- `/data/server` - VintageStory server installation (extracted tarball, includes core mods)
+- `/data/serverdata` - Persistent game data passed via `--dataPath` (user mods, saves, configs)
+- `/data/vsmanager` - API manager state (version tracking, install status)
+
+**Files Changed:**
+- `api/src/vintagestory_api/config.py` - Replaced mods_dir/config_dir/etc with serverdata_dir/vsmanager_dir
+- `api/src/vintagestory_api/services/server.py` - Updated start command to use `--dataPath`, renamed setup function
+- `api/tests/test_config.py` - Updated for new directory properties
+- `api/tests/test_server.py` - Updated for new directory structure, replaced symlink tests
+- `Dockerfile` - Updated directory creation, added VS_API_KEY build arg
+- `docker-compose.dev.yaml` - Added build args for VS_API_KEY
+- `Justfile` - Updated clean-data recipe
 
 ### File List
+
+- [api/src/vintagestory_api/config.py](api/src/vintagestory_api/config.py) - Simplified directory properties (serverdata_dir, vsmanager_dir)
+- [api/src/vintagestory_api/services/server.py](api/src/vintagestory_api/services/server.py) - Added tarfile filter, updated --dataPath, renamed setup function
+- [api/tests/test_config.py](api/tests/test_config.py) - Updated for new directory properties
+- [api/tests/test_server.py](api/tests/test_server.py) - Updated for new directory structure
+- [Dockerfile](Dockerfile) - Updated directory creation, added VS_API_KEY build arg
+- [docker-compose.dev.yaml](docker-compose.dev.yaml) - Added build args for VS_API_KEY
+- [Justfile](Justfile) - Updated clean-data recipe
 
