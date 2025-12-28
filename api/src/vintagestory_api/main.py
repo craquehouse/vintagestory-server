@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from vintagestory_api.config import Settings, configure_logging
 from vintagestory_api.middleware.auth import get_current_user
@@ -17,6 +19,39 @@ logger = structlog.get_logger()
 
 # Static files directory (frontend build output)
 STATIC_DIR = Path("/app/static")
+
+
+class CORSLoggingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log CORS requests for debugging and security monitoring."""
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Log CORS request details before passing to next handler.
+
+        Logs origin, method, and path for cross-origin requests.
+        """
+        origin = request.headers.get("origin")
+        if origin:
+            logger.debug(
+                "cors_request",
+                origin=origin,
+                method=request.method,
+                path=request.url.path,
+                user_agent=request.headers.get("user-agent", "unknown"),
+            )
+
+        response = await call_next(request)
+
+        if origin:
+            logger.debug(
+                "cors_response",
+                origin=origin,
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+                allowed_headers=response.headers.get("access-control-allow-headers", "none"),
+            )
+
+        return response
 
 
 @asynccontextmanager
@@ -41,6 +76,25 @@ app = FastAPI(
     description="API for managing VintageStory dedicated game server",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+# Configure CORS middleware for cross-origin requests
+# Origins are loaded from VS_CORS_ORIGINS environment variable (comma-separated)
+# allow_credentials=True is required for X-API-Key header authentication.
+# This is safe because: (1) origins are controlled via VS_CORS_ORIGINS,
+# (2) we don't use cookie-based auth, and (3) API validates all requests.
+settings = Settings()
+
+# Add CORS logging middleware (runs before CORS middleware)
+app.add_middleware(CORSLoggingMiddleware)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins.split(","),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # Health endpoints at root (NOT versioned - K8s convention)

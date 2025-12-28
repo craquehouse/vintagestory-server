@@ -1,9 +1,11 @@
 """Application configuration using pydantic-settings."""
 
 import logging
+import re
 from pathlib import Path
 
 import structlog
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +19,51 @@ class Settings(BaseSettings):
     api_key_monitor: str | None = None
     game_version: str = "stable"
     data_dir: Path = Path("/data")
+    cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
+
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, v: str) -> str:
+        """Validate that CORS origins are well-formed URLs.
+
+        Args:
+            v: Comma-separated list of origin URLs
+
+        Returns:
+            Validated origins string
+
+        Raises:
+            ValueError: If origins are empty or malformed
+        """
+        if not v or not v.strip():
+            raise ValueError(
+                "VS_CORS_ORIGINS cannot be empty. "
+                "Provide at least one valid origin URL (e.g., http://localhost:5173)."
+            )
+
+        origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        if not origins:
+            raise ValueError(
+                "VS_CORS_ORIGINS must contain at least one valid origin URL. "
+                "Example: http://localhost:5173,https://myapp.com"
+            )
+
+        # Validate each origin has proper URL structure
+        url_pattern = re.compile(
+            r"^https?://"  # http:// or https://
+            r"[a-zA-Z0-9\-._~%!$&'()*+,;=]+"  # hostname/domain
+            r"(:[0-9]+)?$"  # optional port
+        )
+
+        for origin in origins:
+            if not url_pattern.match(origin):
+                raise ValueError(
+                    f"Invalid CORS origin: '{origin}'. "
+                    "Origins must be valid URLs starting with http:// or https:// "
+                    "(e.g., http://localhost:5173 or https://example.com)."
+                )
+
+        return v
 
     @property
     def state_dir(self) -> Path:
