@@ -65,6 +65,11 @@ class ServerService:
         self._install_lock = asyncio.Lock()
 
         # Process lifecycle management
+        # Invariants:
+        # - _process is None when no subprocess has been spawned
+        # - _process.returncode is None while process is running
+        # - _process.returncode is int after process terminates
+        # - _server_state tracks lifecycle: INSTALLED (stopped), STARTING, RUNNING, STOPPING
         self._process: asyncio.subprocess.Process | None = None
         self._monitor_task: asyncio.Task[None] | None = None
         self._server_state: ServerState = ServerState.INSTALLED  # Runtime state

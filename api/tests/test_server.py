@@ -2288,3 +2288,308 @@ class TestServerRestartEndpoint:
         assert data["data"]["action"] == "restart"
         assert data["data"]["previous_state"] == "running"
         assert data["data"]["new_state"] == "running"
+
+
+# ============================================
+# Restart Partial Failure Tests (Code Review Follow-up)
+# ============================================
+
+
+class TestRestartPartialFailures:
+    """Tests for restart partial failure scenarios."""
+
+    @pytest.mark.asyncio
+    async def test_restart_fails_when_stop_fails(
+        self, installed_service: ServerService
+    ) -> None:
+        """restart_server() raises SERVER_STOP_FAILED when stop encounters error."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock(side_effect=OSError("Permission denied"))
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            # Start server first
+            await installed_service.start_server()
+
+            # Restart should fail during stop phase
+            with pytest.raises(RuntimeError) as exc_info:
+                await installed_service.restart_server()
+
+            assert ErrorCode.SERVER_STOP_FAILED in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_restart_fails_when_start_fails_after_stop(
+        self, installed_service: ServerService
+    ) -> None:
+        """restart_server() raises SERVER_START_FAILED when start fails after stop."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            # Start server first
+            await installed_service.start_server()
+
+            # For stop, wait should complete
+            async def stop_wait():
+                process.returncode = 0
+                return 0
+
+            process.wait = AsyncMock(side_effect=stop_wait)
+
+            # Make subprocess creation fail for the restart's start phase
+            mock_exec.side_effect = OSError("Cannot spawn process")
+
+            # Restart should fail during start phase
+            with pytest.raises(RuntimeError) as exc_info:
+                await installed_service.restart_server()
+
+            assert ErrorCode.SERVER_START_FAILED in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_restart_from_starting_state(
+        self, installed_service: ServerService
+    ) -> None:
+        """restart_server() handles server in STARTING state correctly."""
+        # Manually set state to STARTING (simulating startup in progress)
+        installed_service._server_state = ServerState.STARTING
+
+        # Create a mock process that appears to be starting
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # Still running
+        mock_process.send_signal = MagicMock()
+        mock_process.kill = MagicMock()
+
+        async def stop_wait():
+            mock_process.returncode = 0
+            return 0
+
+        mock_process.wait = AsyncMock(side_effect=stop_wait)
+        installed_service._process = mock_process
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            new_process = AsyncMock()
+            new_process.pid = 12346
+            new_process.returncode = None
+            new_process.send_signal = MagicMock()
+            new_process.kill = MagicMock()
+
+            async def blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            new_process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = new_process
+
+            # Should be able to restart even from STARTING state
+            response = await installed_service.restart_server()
+
+            assert response.action == LifecycleAction.RESTART
+            assert response.new_state == ServerState.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_restart_with_graceful_shutdown_timeout(
+        self, installed_service: ServerService
+    ) -> None:
+        """restart_server() uses SIGKILL when graceful shutdown times out."""
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            # Block forever for monitor
+            async def blocking_wait():
+                await asyncio.sleep(100)
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            # Start server first
+            await installed_service.start_server()
+
+            # Simulate stop timeout - first call blocks, second completes after kill
+            call_count = 0
+
+            async def timeout_then_complete():
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    raise TimeoutError()  # First wait times out
+                process.returncode = -9  # Killed
+                return -9
+
+            process.wait = AsyncMock(side_effect=timeout_then_complete)
+
+            # Create new process for restart's start phase
+            new_process = AsyncMock()
+            new_process.pid = 12346
+            new_process.returncode = None
+            new_process.send_signal = MagicMock()
+            new_process.kill = MagicMock()
+
+            async def new_blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            new_process.wait = AsyncMock(side_effect=new_blocking_wait)
+            mock_exec.return_value = new_process
+
+            # Restart with short timeout
+            response = await installed_service.restart_server(timeout=0.1)
+
+            # Should have called kill on the original process
+            process.kill.assert_called_once()
+            assert response.action == LifecycleAction.RESTART
+
+    @pytest.mark.asyncio
+    async def test_restart_from_error_state(
+        self, installed_service: ServerService
+    ) -> None:
+        """restart_server() can recover from ERROR state."""
+        # Set to ERROR state (simulating a previous failed operation)
+        installed_service._server_state = ServerState.ERROR
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.kill = MagicMock()
+
+            async def blocking_wait():
+                try:
+                    await asyncio.sleep(100)
+                except asyncio.CancelledError:
+                    pass
+                return 0
+
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            mock_exec.return_value = process
+
+            # Restart should succeed - server is installed, process is not running
+            response = await installed_service.restart_server()
+
+            assert response.action == LifecycleAction.RESTART
+            assert response.new_state == ServerState.RUNNING
+
+
+class TestRestartEndpointErrorHandling:
+    """Tests for /restart endpoint error handling (API level)."""
+
+    @pytest.fixture
+    def integration_app(
+        self, temp_data_dir: Path
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def test_restart_stop_failed_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/restart returns 500 when stop fails."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        # Get the service and set up a running state
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        test_service._server_state = ServerState.RUNNING
+
+        # Create a mock process that will fail to stop
+        mock_process = AsyncMock()
+        mock_process.pid = 12345
+        mock_process.returncode = None
+        mock_process.send_signal = MagicMock(side_effect=OSError("Permission denied"))
+        mock_process.kill = MagicMock()
+
+        async def blocking_wait():
+            await asyncio.sleep(100)
+            return 0
+
+        mock_process.wait = AsyncMock(side_effect=blocking_wait)
+        test_service._process = mock_process
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/restart",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_STOP_FAILED"
+
+    def test_restart_start_failed_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/restart returns 500 when start fails after successful stop."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (server_dir / "current_version").write_text("1.21.3")
+
+        # Server is not running, so restart will just try to start
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            mock_exec.side_effect = OSError("Cannot spawn process")
+
+            response = integration_client.post(
+                "/api/v1alpha1/server/restart",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_START_FAILED"

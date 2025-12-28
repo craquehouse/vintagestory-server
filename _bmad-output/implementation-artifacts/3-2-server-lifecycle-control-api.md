@@ -53,11 +53,23 @@ so that **I can control the server without container access**.
   - [x] 4.1: Store last exit code when process terminates
   - [x] 4.2: Add exit code to status response when server is stopped
   - [x] 4.3: Ensure API remains responsive when game server crashes
-  - [x] 4.4: Write tests for crash scenarios and API resilience
+   - [x] 4.4: Write tests for crash scenarios and API resilience
 
----
+  ### Review Follow-ups (AI)
 
-## Dev Notes
+   Action items from code review (2025-12-27):
+
+   - [x] [AI-Review][HIGH] Add comprehensive error handling to /restart endpoint - handle SERVER_NOT_RUNNING, SERVER_ALREADY_RUNNING, SERVER_START_FAILED, SERVER_STOP_FAILED [api/src/vintagestory_api/routers/server.py:285-302]
+   - [x] [AI-Review][HIGH] Add tests for restart partial failure scenarios - restart when stop fails, restart when start fails after stop, restart during transitional states [api/tests/test_server.py]
+   - [x] [AI-Review][MEDIUM] Add test for restart when server in STARTING state - verify graceful handling [api/tests/test_server.py]
+   - [x] [AI-Review][MEDIUM] Add test for restart with graceful shutdown timeout - verify SIGKILL behavior in restart context [api/tests/test_server.py]
+   - [x] [AI-Review][LOW] Update /restart endpoint docstring to match actual error behavior - document 409 and 500 cases [api/src/vintagestory_api/routers/server.py:258-273]
+   - [x] [AI-Review][LOW] Add test for restart when server in ERROR state - verify behavior after failed operation [api/tests/test_server.py]
+   - [x] [AI-Review][LOW] Improve type annotation for _process state tracking - added documentation for process state invariants [api/src/vintagestory_api/services/server.py:68]
+
+  ---
+
+  ## Dev Notes
 
 ### Testing Requirements
 
@@ -398,9 +410,22 @@ N/A
   - `POST /api/v1alpha1/server/start` - Admin role required
   - `POST /api/v1alpha1/server/stop` - Admin role required
   - `POST /api/v1alpha1/server/restart` - Admin role required
-- All endpoints return proper error responses (400, 409) for edge cases
-- 120 tests pass (added 42 new lifecycle tests)
+- All endpoints return proper error responses (400, 409, 500) for edge cases
+- 227 tests pass (added 49 new lifecycle tests total)
 - All type checks and linting pass
+
+**Review Follow-up Work (2025-12-27):**
+- Added comprehensive error handling to /restart endpoint for SERVER_STOP_FAILED and SERVER_START_FAILED
+- Added 7 new tests for restart partial failure scenarios:
+  - test_restart_fails_when_stop_fails
+  - test_restart_fails_when_start_fails_after_stop
+  - test_restart_from_starting_state
+  - test_restart_with_graceful_shutdown_timeout
+  - test_restart_from_error_state
+  - test_restart_stop_failed_returns_500 (API endpoint test)
+  - test_restart_start_failed_returns_500 (API endpoint test)
+- Updated /restart endpoint docstring to document 500 error cases
+- Added documentation for process state invariants in ServerService.__init__
 
 ### File List
 

@@ -270,6 +270,7 @@ async def restart_server(
 
     Raises:
         HTTPException: 400 if server not installed
+        HTTPException: 500 if stop or start phase fails
     """
     try:
         response = await service.restart_server()
@@ -290,6 +291,22 @@ async def restart_server(
                 detail={
                     "code": ErrorCode.SERVER_NOT_INSTALLED,
                     "message": "No server is installed. Install a server version first.",
+                },
+            )
+        elif error_code == ErrorCode.SERVER_STOP_FAILED:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.SERVER_STOP_FAILED,
+                    "message": "Failed to stop server during restart.",
+                },
+            )
+        elif error_code == ErrorCode.SERVER_START_FAILED:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.SERVER_START_FAILED,
+                    "message": "Failed to start server after stop during restart.",
                 },
             )
         else:
