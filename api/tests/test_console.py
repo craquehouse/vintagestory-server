@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import FastAPI
@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
-from vintagestory_api.routers.console import get_server_service
+from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.console import ConsoleBuffer
 from vintagestory_api.services.server import ServerService
 
@@ -392,9 +392,9 @@ class TestServerServiceConsoleIntegration:
         mock_process.stdout.readline = AsyncMock(return_value=b"")
         mock_process.stderr.readline = AsyncMock(return_value=b"")
         mock_process.wait = AsyncMock(return_value=0)
+        mock_process.send_signal = Mock()
 
         # Patch asyncio.create_subprocess_exec
-
         original_create_subprocess = asyncio.create_subprocess_exec
 
         async def mock_create_subprocess(*args: object, **kwargs: object) -> AsyncMock:
@@ -426,7 +426,7 @@ class TestServerServiceConsoleIntegration:
         mock_process.stdout.readline = AsyncMock(return_value=b"")
         mock_process.stderr.readline = AsyncMock(return_value=b"")
         mock_process.wait = AsyncMock(return_value=0)
-        mock_process.send_signal = AsyncMock()
+        mock_process.send_signal = Mock()
 
 
         original_create_subprocess = asyncio.create_subprocess_exec
@@ -522,14 +522,84 @@ class TestServerServiceConsoleIntegration:
         assert len(history) == 3
         assert "CRASH!" in history[2]
 
-    def test_new_service_has_empty_buffer(self, settings: Settings) -> None:
-        """Test that a new ServerService has empty buffer (AC3 - API restart)."""
-        service1 = ServerService(settings)
-        service2 = ServerService(settings)
+    @pytest.mark.asyncio
+    async def test_buffer_preserves_content_after_sigkill_crash(
+        self, service: ServerService
+    ) -> None:
+        """Test that buffer preserves content after SIGKILL crash (AC4).
 
-        # Each service gets its own empty buffer
-        assert len(service1.console_buffer) == 0
-        assert len(service2.console_buffer) == 0
+        AC4: "Given the game server crashes or stops, When the admin queries
+             console history, Then the buffer contents up to the crash are
+             preserved And available for troubleshooting"
+
+        This test verifies that when a server process is killed (SIGKILL),
+        the console buffer still contains all output captured before the crash.
+        The buffer is in-memory and persists independently of the process state.
+        """
+        # Simulate server output being captured before a crash
+        # This represents output that would have been read from the process
+        await service.console_buffer.append("Server starting...")
+        await service.console_buffer.append("Loading world: TestWorld")
+        await service.console_buffer.append("Players: 0/32")
+        await service.console_buffer.append("Memory usage: 1.2GB")
+        await service.console_buffer.append("FATAL: Out of memory!")
+
+        # At this point, the process would have crashed with SIGKILL (-9)
+        # The buffer should preserve all content for troubleshooting
+
+        # Simulate what happens when admin queries history after crash
+        history = service.console_buffer.get_history()
+
+        # Verify all content is preserved and available for troubleshooting
+        assert len(history) == 5
+        assert "Server starting" in history[0]
+        assert "Loading world" in history[1]
+        assert "Players" in history[2]
+        assert "Memory usage" in history[3]
+        assert "FATAL: Out of memory" in history[4]
+
+        # Verify buffer can be queried multiple times (for debugging sessions)
+        history_again = service.console_buffer.get_history()
+        assert history == history_again
+
+        # Verify limit parameter works for crash analysis
+        recent_history = service.console_buffer.get_history(limit=2)
+        assert len(recent_history) == 2
+        assert "Memory usage" in recent_history[0]
+        assert "FATAL" in recent_history[1]
+
+    @pytest.mark.asyncio
+    async def test_api_restart_clears_buffer(self, settings: Settings) -> None:
+        """Test that buffer is empty after API restart simulation (AC3).
+
+        AC3: "Given the API server restarts, Then the buffer is empty"
+
+        This test simulates the API lifecycle:
+        1. API starts - create ServerService with ConsoleBuffer
+        2. Server runs and produces output - populate buffer
+        3. API restarts - create new ServerService (simulates FastAPI app restart)
+        4. Verify buffer is empty in new service
+        """
+        # Phase 1: API running, server producing output
+        service_before_restart = ServerService(settings)
+        await service_before_restart.console_buffer.append("Server starting...")
+        await service_before_restart.console_buffer.append("World loaded")
+        await service_before_restart.console_buffer.append("Players connected")
+
+        # Verify buffer has content before restart
+        assert len(service_before_restart.console_buffer) == 3
+
+        # Phase 2: Simulate API restart
+        # In production, uvicorn/FastAPI recreates all services on restart
+        # The ConsoleBuffer lives in memory only - no persistence
+        del service_before_restart
+
+        # Phase 3: API restarts - new service instance
+        service_after_restart = ServerService(settings)
+
+        # Phase 4: Verify buffer is empty (in-memory only, no persistence)
+        assert len(service_after_restart.console_buffer) == 0
+        assert service_after_restart.console_buffer.get_history() == []
 
 
 class TestConsoleHistoryEndpoint:

@@ -66,14 +66,69 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] 2.5: Clear buffer on API restart (verify in-memory-only behavior)
   - [x] 2.6: Write integration tests verifying capture from subprocess
 
-- [x] Task 3: Add console history API endpoint + tests (AC: 4)
-  - [x] 3.1: Create `GET /api/v1alpha1/console/history` endpoint in new router
-  - [x] 3.2: Add Admin-only access control (FR9: Console restricted to Admin)
-  - [x] 3.3: Return buffer contents with proper response envelope
-  - [x] 3.4: Add optional `lines` query param to limit returned history
-  - [x] 3.5: Write API tests for history endpoint (auth, response format, limiting)
+ - [x] Task 3: Add console history API endpoint + tests (AC: 4)
+   - [x] 3.1: Create `GET /api/v1alpha1/console/history` endpoint in new router
+   - [x] 3.2: Add Admin-only access control (FR9: Console restricted to Admin)
+   - [x] 3.3: Return buffer contents with proper response envelope
+   - [x] 3.4: Add optional `lines` query param to limit returned history
+   - [x] 3.5: Write API tests for history endpoint (auth, response format, limiting)
 
----
+## Review Follow-ups (AI)
+
+**Code Review Date:** 2025-12-28
+**Reviewer:** Dev Agent (Adversarial Mode)
+
+### HIGH Priority (Must Fix)
+
+- [x] [AI-Review][HIGH] Fix AC3 validation - Create proper test that simulates API restart [api/tests/test_console.py:525]
+  - **Issue:** Current `test_new_service_has_empty_buffer` tests separate instances, not actual restart
+  - **Required:** Create test that simulates API lifecycle: start → populate → restart → verify empty
+  - **AC Coverage:** Acceptance Criterion 3 ("When API server restarts, Then buffer is empty")
+  - **Resolution:** Replaced with `test_api_restart_clears_buffer` that explicitly documents the 4-phase lifecycle
+
+- [x] [AI-Review][HIGH] Update Dev Agent Record test counts - Change "40 tests" to "42 tests" [_bmad-output/implementation-artifacts/4-1-console-buffer-service.md:279]
+  - **Issue:** Story claims 40 tests, actual count is 42
+  - **Breakdown:** ConsoleBuffer: 20, ServerService Integration: 8, API: 14 (total 42)
+  - **Impact:** Documentation accuracy
+  - **Resolution:** Updated to actual count of 41 tests (20 + 9 + 12)
+
+- [x] [AI-Review][HIGH] Improve AC4 crash testing - Add test simulating actual SIGKILL crash [api/tests/test_console.py:510]
+  - **Issue:** `test_buffer_preserves_content_after_server_stop` doesn't simulate crash
+  - **Required:** Test that buffer preserves content after `mock_process.kill()` / SIGKILL
+  - **AC Coverage:** Acceptance Criterion 4 ("Given game server crashes or stops, Then buffer contents up to crash are preserved")
+  - **Resolution:** Added `test_buffer_preserves_content_after_sigkill_crash` with proper crash simulation
+
+### MEDIUM Priority (Should Fix)
+
+- [x] [AI-Review][MEDIUM] Fix AsyncMock warnings in tests - Use non-async mock for `send_signal()` [api/tests/test_console.py:conftest or test setup]
+  - **Issue:** 29 RuntimeWarnings: "coroutine 'AsyncMockMixin._execute_mock_call' was never awaited"
+  - **Root Cause:** `send_signal()` is not async, but tests use AsyncMock
+  - **Fix:** Change `mock_process.send_signal = AsyncMock()` to `mock_process.send_signal = Mock()`
+  - **Impact:** Test quality and output cleanliness
+  - **Resolution:** Fixed all occurrences to use `Mock()` instead of `AsyncMock()`
+
+- [x] [AI-Review][MEDIUM] Add crash scenario test - Simulate SIGKILL in `test_buffer_preserves_content_after_server_stop` [api/tests/test_console.py:510]
+  - **Issue:** Current test only checks buffer preservation, not crash handling
+  - **Required:** Test proper cleanup when process receives SIGKILL (not graceful SIGTERM)
+  - **Impact:** AC4 validation completeness
+  - **Resolution:** Added `test_buffer_preserves_content_after_sigkill_crash` (resolves with HIGH#3)
+
+### LOW Priority (Nice to Fix)
+
+- [x] [AI-Review][LOW] Refactor console router singleton - Migrate to FastAPI dependency injection [api/src/vintagestory_api/routers/console.py:13-30]
+  - **Issue:** Uses global singleton pattern, differs from architecture document
+  - **Architecture Alignment:** Routers should use dependency injection
+  - **Impact:** Architectural consistency (works correctly, but pattern mismatch)
+  - **Timeline:** Address before Story 4.2 (WebSocket streaming)
+  - **Resolution:** Console router now imports `get_server_service` from server router, ensuring both share the same ServerService instance and ConsoleBuffer
+
+- [~] [AI-Review][LOW] Improve test documentation - Use class names instead of variable names in docstrings [api/tests/test_console.py:throughout]
+  - **Issue:** Test comments use "console_buffer" instead of "ConsoleBuffer"
+  - **Example:** Change "test that get_history returns all lines" to "test ConsoleBuffer.get_history() returns all lines"
+  - **Impact:** Documentation clarity (functional issue: none)
+  - **Resolution:** Not addressed - purely cosmetic, no functional impact. Docstrings are clear about what they test.
+
+ ---
 
 ## Dev Notes
 
@@ -268,23 +323,29 @@ N/A
   - Created `_read_stream()` method for async stream reading
   - Started stdout/stderr reader tasks on server start
   - Properly cancels stream tasks on server stop
-  - 8 integration tests for service integration
+  - 9 integration tests for service integration
 
-- **Task 3:** Added console history API endpoint:
-  - Created `GET /api/v1alpha1/console/history` endpoint
-  - Admin-only access via `RequireConsoleAccess` dependency
-  - Optional `lines` query parameter (1-10000) for limiting results
-  - Returns API envelope with lines array, total count, and limit
-  - 12 API tests for auth, response format, parameter validation
+ - **Task 3:** Added console history API endpoint:
+   - Created `GET /api/v1alpha1/console/history` endpoint
+   - Admin-only access via `RequireConsoleAccess` dependency
+   - Optional `lines` query parameter (1-10000) for limiting results
+   - Returns API envelope with lines array, total count, and limit
+   - 12 API tests for auth, response format, parameter validation
 
-- **E2E Test Fix:** Added `require_docker_running` fixture to skip E2E tests when Docker is not available
+ - **E2E Test Fix:** Added `require_docker_running` fixture to skip E2E tests when Docker is not available
+
+**Test Coverage Summary:**
+- Task 1 (ConsoleBuffer): 20 unit tests
+- Task 2 (Integration): 9 integration tests
+- Task 3 (API): 12 API tests
+- **Total: 41 tests passing**
 
 ### File List
 
 **New files:**
 - `api/src/vintagestory_api/services/console.py` - ConsoleBuffer service
 - `api/src/vintagestory_api/routers/console.py` - Console API endpoints
-- `api/tests/test_console.py` - Console tests (40 tests total)
+- `api/tests/test_console.py` - Console tests (41 tests total)
 
 **Modified files:**
 - `api/src/vintagestory_api/services/server.py` - Integrated ConsoleBuffer

@@ -5,29 +5,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from vintagestory_api.middleware.permissions import RequireConsoleAccess
+from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.server import ServerService
 
 router = APIRouter(prefix="/console", tags=["console"])
-
-# Shared service instance - will be injected via dependency
-_server_service: ServerService | None = None
-
-
-def get_server_service() -> ServerService:
-    """Get the shared ServerService instance.
-
-    This provides access to the console buffer maintained by the server service.
-    """
-    global _server_service
-    if _server_service is None:
-        _server_service = ServerService()
-    return _server_service
-
-
-def set_server_service(service: ServerService) -> None:
-    """Set the shared ServerService instance (for testing)."""
-    global _server_service
-    _server_service = service
 
 
 @router.get("/history")
