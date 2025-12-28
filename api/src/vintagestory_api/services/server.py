@@ -58,16 +58,15 @@ def _strip_numeric_prefix(name: str) -> str:
         Name with leading numeric directory stripped if present.
     """
     parts = name.split("/", 1)
-    # Only strip if first component is all digits AND at least 8 characters
-    # (inode numbers are typically 10+ digits, years are 4 digits)
-    if len(parts) > 1 and parts[0].isdigit() and len(parts[0]) >= 8:
+    # Only strip if first component is all digits AND at least 9 characters
+    # (inode numbers are typically 10+ digits, years like 2025 are 4 digits)
+    # Use >= 9 to avoid stripping legitimate 8-digit year-month directories like 20250128
+    if len(parts) > 1 and parts[0].isdigit() and len(parts[0]) >= 9:
         return parts[1]
     return name
 
 
-def _vintagestory_tar_filter(
-    member: tarfile.TarInfo, path: str
-) -> tarfile.TarInfo | None:
+def _vintagestory_tar_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo | None:
     """Custom extraction filter for VintageStory server tarballs.
 
     This filter handles two issues:
@@ -376,9 +375,7 @@ class ServerService:
         try:
             target.relative_to(base_resolved)
         except ValueError:
-            raise ValueError(
-                f"Path traversal detected: {filename} escapes {base_dir}"
-            ) from None
+            raise ValueError(f"Path traversal detected: {filename} escapes {base_dir}") from None
 
         return target
 

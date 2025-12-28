@@ -168,5 +168,6 @@ docker-logs:
 # Clean data directory (removes all data subdirectories - keeps .gitkeep)
 # Useful for testing fresh installations
 clean-data:
-    rm -rf data/server data/serverdata data/vsmanager
-    @echo "Data directory cleaned (server, serverdata, vsmanager removed)"
+    rm -rf data/*/.gitkeep
+    find data -mindepth 1 -delete 2>/dev/null || true
+    @echo "Data directory cleaned"

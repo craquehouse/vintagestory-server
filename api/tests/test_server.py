@@ -496,9 +496,7 @@ class TestServerInstallation:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_concurrent_install_requests_serialized(
-        self, test_settings: Settings
-    ) -> None:
+    async def test_concurrent_install_requests_serialized(self, test_settings: Settings) -> None:
         """Concurrent install requests are serialized by asyncio.Lock."""
         import asyncio
 
@@ -726,16 +724,14 @@ class TestExtractServer:
 
         assert service._install_stage == InstallationStage.EXTRACTING
 
-    def test_extract_handles_malformed_ustar_prefix(
-        self, test_settings: Settings
-    ) -> None:
+    def test_extract_handles_malformed_ustar_prefix(self, test_settings: Settings) -> None:
         """Extraction handles VintageStory tarballs with malformed USTAR prefix.
 
         VintageStory tarballs have garbage numeric data in the USTAR prefix
         field. Python's tarfile module interprets this literally, creating
         incorrect paths like '15070731126/VintagestoryServer.dll'.
 
-        This test verifies the custom filter strips the bogus prefix.
+        This test verifies that custom filter strips the bogus prefix.
         """
         from vintagestory_api.services.server import _strip_numeric_prefix
 
@@ -744,18 +740,43 @@ class TestExtractServer:
         assert _strip_numeric_prefix("15070731127/VintagestoryServer.dll") == (
             "VintagestoryServer.dll"
         )
-        assert _strip_numeric_prefix("15070731126/Lib/ICSharpCode.dll") == (
-            "Lib/ICSharpCode.dll"
-        )
+        assert _strip_numeric_prefix("15070731126/Lib/ICSharpCode.dll") == ("Lib/ICSharpCode.dll")
 
         # Should NOT strip non-numeric prefixes
         assert _strip_numeric_prefix("assets/game/textures") == "assets/game/textures"
-        assert _strip_numeric_prefix("VintagestoryServer.dll") == (
-            "VintagestoryServer.dll"
+        assert _strip_numeric_prefix("VintagestoryServer.dll") == ("VintagestoryServer.dll")
+
+        # Should NOT strip numeric-looking normal directories (8-digit year-month OK)
+        assert _strip_numeric_prefix("2024/backup.tar") == "2024/backup.tar"
+        assert _strip_numeric_prefix("20250128/logs/server.log") == "20250128/logs/server.log"
+
+        # Edge case: Nested paths with mixed prefixes
+        assert _strip_numeric_prefix("15070731126/VintagestoryServer.dll/subdir/file.txt") == (
+            "VintagestoryServer.dll/subdir/file.txt"
         )
 
-        # Should NOT strip numeric-looking normal directories
-        assert _strip_numeric_prefix("2024/backup.tar") == "2024/backup.tar"
+        # Edge case: Legitimate numeric directory name (10 digits from year-month)
+        assert _strip_numeric_prefix("20250128/logs/server.log") == "20250128/logs/server.log"
+
+        # Edge case: Empty prefix (should return as-is)
+        assert _strip_numeric_prefix("VintagestoryServer.dll") == "VintagestoryServer.dll"
+
+        # Edge case: Prefix with zeros
+        assert _strip_numeric_prefix("0000000001/Mods/core.dll") == "Mods/core.dll"
+
+    def test_extract_handles_symlink_prefix(self, test_settings: Settings) -> None:
+        """Extraction handles symlinks with malformed USTAR prefix.
+
+        Verifies that the custom filter correctly strips prefixes from symlink
+        target paths (linkname field in tarball).
+        """
+        from vintagestory_api.services.server import _strip_numeric_prefix
+
+        # Symlink linkname with bogus numeric prefix
+        assert _strip_numeric_prefix("15070731126/Mods/VSCreativeMod") == ("Mods/VSCreativeMod")
+
+        # Symlink without prefix (should pass through)
+        assert _strip_numeric_prefix("Mods/VSEssentials") == "Mods/VSEssentials"
 
 
 class TestInstallProgressTracking:
@@ -887,16 +908,12 @@ class TestServerStateManagement:
         service = ServerService(test_settings)
         assert service.is_installed() is True
 
-    def test_get_installed_version_none_when_no_file(
-        self, test_settings: Settings
-    ) -> None:
+    def test_get_installed_version_none_when_no_file(self, test_settings: Settings) -> None:
         """get_installed_version returns None when version file doesn't exist."""
         service = ServerService(test_settings)
         assert service.get_installed_version() is None
 
-    def test_get_installed_version_returns_version(
-        self, test_settings: Settings
-    ) -> None:
+    def test_get_installed_version_returns_version(self, test_settings: Settings) -> None:
         """get_installed_version returns version from file."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
@@ -971,9 +988,7 @@ class TestServerInstallEndpoint:
     """Tests for POST /api/v1alpha1/server/install endpoint (AC: 1-5)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -998,9 +1013,7 @@ class TestServerInstallEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_install_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_requires_authentication(self, integration_client: TestClient) -> None:
         """POST /server/install requires API key (AC: 5.4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/install",
@@ -1009,9 +1022,7 @@ class TestServerInstallEndpoint:
 
         assert response.status_code == 401
 
-    def test_install_requires_admin_role(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_requires_admin_role(self, integration_client: TestClient) -> None:
         """POST /server/install requires Admin role (AC: 5.4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/install",
@@ -1036,9 +1047,7 @@ class TestServerInstallEndpoint:
         # Pydantic validation error returns 422
         assert response.status_code == 422
 
-    def test_install_missing_patch_returns_422(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_missing_patch_returns_422(self, integration_client: TestClient) -> None:
         """POST /server/install with incomplete version returns 422."""
         response = integration_client.post(
             "/api/v1alpha1/server/install",
@@ -1050,9 +1059,7 @@ class TestServerInstallEndpoint:
         assert response.status_code == 422
 
     @respx.mock
-    def test_install_version_not_found_returns_404(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_version_not_found_returns_404(self, integration_client: TestClient) -> None:
         """POST /server/install with non-existent version returns 404 (AC: 3)."""
         stable_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.99.0.tar.gz"
         unstable_url = f"{VS_CDN_BASE}/unstable/vs_server_linux-x64_1.99.0.tar.gz"
@@ -1132,9 +1139,7 @@ class TestServerInstallEndpoint:
         respx.head(head_url).mock(return_value=Response(200))
 
         # Mock stable.json for version info lookup (used by background task)
-        respx.get(VS_STABLE_API).mock(
-            return_value=Response(200, json=mock_api_response)
-        )
+        respx.get(VS_STABLE_API).mock(return_value=Response(200, json=mock_api_response))
 
         # Mock the actual download (used by background task)
         download_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_{version}.tar.gz"
@@ -1188,9 +1193,7 @@ class TestServerInstallStatusEndpoint:
     """Tests for GET /api/v1alpha1/server/install/status endpoint (AC: 2)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -1214,17 +1217,13 @@ class TestServerInstallStatusEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_status_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_requires_authentication(self, integration_client: TestClient) -> None:
         """GET /server/install/status requires API key."""
         response = integration_client.get("/api/v1alpha1/server/install/status")
 
         assert response.status_code == 401
 
-    def test_status_returns_not_installed(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_returns_not_installed(self, integration_client: TestClient) -> None:
         """GET /server/install/status returns not_installed when server missing."""
         response = integration_client.get(
             "/api/v1alpha1/server/install/status",
@@ -1260,9 +1259,7 @@ class TestServerInstallStatusEndpoint:
         assert data["data"]["state"] == "installed"
         assert data["data"]["version"] == "1.21.3"
 
-    def test_status_follows_envelope_format(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_follows_envelope_format(self, integration_client: TestClient) -> None:
         """GET /server/install/status follows standard API envelope."""
         response = integration_client.get(
             "/api/v1alpha1/server/install/status",
@@ -1274,9 +1271,7 @@ class TestServerInstallStatusEndpoint:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_status_accessible_by_monitor(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_accessible_by_monitor(self, integration_client: TestClient) -> None:
         """GET /server/install/status accessible by Monitor role."""
         response = integration_client.get(
             "/api/v1alpha1/server/install/status",
@@ -1419,9 +1414,7 @@ class TestStartServer:
         assert status.state == ServerState.RUNNING
 
     @pytest.mark.asyncio
-    async def test_start_server_fails_when_not_installed(
-        self, test_settings: Settings
-    ) -> None:
+    async def test_start_server_fails_when_not_installed(self, test_settings: Settings) -> None:
         """start_server() raises error when server not installed."""
         service = ServerService(test_settings)
 
@@ -1525,9 +1518,7 @@ class TestStopServer:
         assert ErrorCode.SERVER_NOT_RUNNING in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_stop_server_fails_when_not_installed(
-        self, test_settings: Settings
-    ) -> None:
+    async def test_stop_server_fails_when_not_installed(self, test_settings: Settings) -> None:
         """stop_server() raises error when server not installed."""
         service = ServerService(test_settings)
 
@@ -1537,9 +1528,7 @@ class TestStopServer:
         assert ErrorCode.SERVER_NOT_INSTALLED in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_stop_server_kills_after_timeout(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_stop_server_kills_after_timeout(self, installed_service: ServerService) -> None:
         """stop_server() sends SIGKILL after timeout expires."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -1587,9 +1576,7 @@ class TestStopServer:
             process.kill.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_stop_server_records_exit_code(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_stop_server_records_exit_code(self, installed_service: ServerService) -> None:
         """stop_server() records process exit code."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -1653,9 +1640,7 @@ class TestRestartServer:
         assert response.new_state == ServerState.RUNNING
 
     @pytest.mark.asyncio
-    async def test_restart_server_fails_when_not_installed(
-        self, test_settings: Settings
-    ) -> None:
+    async def test_restart_server_fails_when_not_installed(self, test_settings: Settings) -> None:
         """restart_server() raises error when server not installed."""
         service = ServerService(test_settings)
 
@@ -1726,9 +1711,7 @@ class TestServerStatus:
         assert status.uptime_seconds is None
 
     @pytest.mark.asyncio
-    async def test_status_running_has_uptime(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_status_running_has_uptime(self, installed_service: ServerService) -> None:
         """get_server_status() includes uptime when running."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -1756,9 +1739,7 @@ class TestServerStatus:
             assert status.uptime_seconds >= 0
 
     @pytest.mark.asyncio
-    async def test_status_after_stop_has_exit_code(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_status_after_stop_has_exit_code(self, installed_service: ServerService) -> None:
         """get_server_status() includes exit code after stopping."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -1834,9 +1815,7 @@ class TestServerStartEndpoint:
     """Tests for POST /api/v1alpha1/server/start endpoint (AC: 1)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -1860,16 +1839,12 @@ class TestServerStartEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_start_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_start_requires_authentication(self, integration_client: TestClient) -> None:
         """POST /server/start requires API key."""
         response = integration_client.post("/api/v1alpha1/server/start")
         assert response.status_code == 401
 
-    def test_start_requires_admin_role(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_start_requires_admin_role(self, integration_client: TestClient) -> None:
         """POST /server/start requires Admin role."""
         response = integration_client.post(
             "/api/v1alpha1/server/start",
@@ -1878,9 +1853,7 @@ class TestServerStartEndpoint:
         assert response.status_code == 403
         assert response.json()["detail"]["code"] == "FORBIDDEN"
 
-    def test_start_not_installed_returns_400(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_start_not_installed_returns_400(self, integration_client: TestClient) -> None:
         """POST /server/start returns 400 when no server installed (AC: 4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/start",
@@ -1890,9 +1863,7 @@ class TestServerStartEndpoint:
         error = response.json()["detail"]
         assert error["code"] == "SERVER_NOT_INSTALLED"
 
-    def test_start_success(
-        self, integration_client: TestClient, temp_data_dir: Path
-    ) -> None:
+    def test_start_success(self, integration_client: TestClient, temp_data_dir: Path) -> None:
         """POST /server/start successfully starts server (AC: 1)."""
         # Create server files to simulate installed state
         server_dir = temp_data_dir / "server"
@@ -1970,9 +1941,7 @@ class TestServerStopEndpoint:
     """Tests for POST /api/v1alpha1/server/stop endpoint (AC: 2)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -1996,16 +1965,12 @@ class TestServerStopEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_stop_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_stop_requires_authentication(self, integration_client: TestClient) -> None:
         """POST /server/stop requires API key."""
         response = integration_client.post("/api/v1alpha1/server/stop")
         assert response.status_code == 401
 
-    def test_stop_requires_admin_role(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_stop_requires_admin_role(self, integration_client: TestClient) -> None:
         """POST /server/stop requires Admin role."""
         response = integration_client.post(
             "/api/v1alpha1/server/stop",
@@ -2013,9 +1978,7 @@ class TestServerStopEndpoint:
         )
         assert response.status_code == 403
 
-    def test_stop_not_installed_returns_400(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_stop_not_installed_returns_400(self, integration_client: TestClient) -> None:
         """POST /server/stop returns 400 when no server installed (AC: 4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/stop",
@@ -2047,9 +2010,7 @@ class TestServerStopEndpoint:
         error = response.json()["detail"]
         assert error["code"] == "SERVER_NOT_RUNNING"
 
-    def test_stop_success(
-        self, integration_client: TestClient, temp_data_dir: Path
-    ) -> None:
+    def test_stop_success(self, integration_client: TestClient, temp_data_dir: Path) -> None:
         """POST /server/stop successfully stops running server (AC: 2)."""
         # Create server files
         server_dir = temp_data_dir / "server"
@@ -2113,9 +2074,7 @@ class TestServerRestartEndpoint:
     """Tests for POST /api/v1alpha1/server/restart endpoint (AC: 3)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2139,16 +2098,12 @@ class TestServerRestartEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_restart_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_restart_requires_authentication(self, integration_client: TestClient) -> None:
         """POST /server/restart requires API key."""
         response = integration_client.post("/api/v1alpha1/server/restart")
         assert response.status_code == 401
 
-    def test_restart_requires_admin_role(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_restart_requires_admin_role(self, integration_client: TestClient) -> None:
         """POST /server/restart requires Admin role."""
         response = integration_client.post(
             "/api/v1alpha1/server/restart",
@@ -2156,9 +2111,7 @@ class TestServerRestartEndpoint:
         )
         assert response.status_code == 403
 
-    def test_restart_not_installed_returns_400(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_restart_not_installed_returns_400(self, integration_client: TestClient) -> None:
         """POST /server/restart returns 400 when no server installed (AC: 4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/restart",
@@ -2285,9 +2238,7 @@ class TestRestartPartialFailures:
     """Tests for restart partial failure scenarios."""
 
     @pytest.mark.asyncio
-    async def test_restart_fails_when_stop_fails(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_restart_fails_when_stop_fails(self, installed_service: ServerService) -> None:
         """restart_server() raises SERVER_STOP_FAILED when stop encounters error."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -2353,9 +2304,7 @@ class TestRestartPartialFailures:
             assert ErrorCode.SERVER_START_FAILED in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_restart_from_starting_state(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_restart_from_starting_state(self, installed_service: ServerService) -> None:
         """restart_server() handles server in STARTING state correctly."""
         # Manually set state to STARTING (simulating startup in progress)
         installed_service._server_state = ServerState.STARTING
@@ -2457,9 +2406,7 @@ class TestRestartPartialFailures:
             assert response.action == LifecycleAction.RESTART
 
     @pytest.mark.asyncio
-    async def test_restart_from_error_state(
-        self, installed_service: ServerService
-    ) -> None:
+    async def test_restart_from_error_state(self, installed_service: ServerService) -> None:
         """restart_server() can recover from ERROR state."""
         # Set to ERROR state (simulating a previous failed operation)
         installed_service._server_state = ServerState.ERROR
@@ -2492,9 +2439,7 @@ class TestRestartEndpointErrorHandling:
     """Tests for /restart endpoint error handling (API level)."""
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2596,9 +2541,7 @@ class TestServerStatusEndpoint:
     """
 
     @pytest.fixture
-    def integration_app(
-        self, temp_data_dir: Path
-    ) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2622,9 +2565,7 @@ class TestServerStatusEndpoint:
         """Create test client for integration tests."""
         return TestClient(integration_app)
 
-    def test_status_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_requires_authentication(self, integration_client: TestClient) -> None:
         """GET /server/status returns 401 without API key (AC: 1, 2)."""
         response = integration_client.get("/api/v1alpha1/server/status")
 
@@ -2632,9 +2573,7 @@ class TestServerStatusEndpoint:
         error = response.json()["detail"]
         assert error["code"] == "UNAUTHORIZED"
 
-    def test_status_accessible_by_admin(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_accessible_by_admin(self, integration_client: TestClient) -> None:
         """GET /server/status accessible by Admin role (AC: 1)."""
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -2646,9 +2585,7 @@ class TestServerStatusEndpoint:
         assert data["status"] == "ok"
         assert "data" in data
 
-    def test_status_accessible_by_monitor(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_accessible_by_monitor(self, integration_client: TestClient) -> None:
         """GET /server/status accessible by Monitor role (AC: 2)."""
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -2660,9 +2597,7 @@ class TestServerStatusEndpoint:
         assert data["status"] == "ok"
         assert "data" in data
 
-    def test_status_returns_not_installed(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_returns_not_installed(self, integration_client: TestClient) -> None:
         """GET /server/status returns not_installed when server missing (AC: 4)."""
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -2701,9 +2636,7 @@ class TestServerStatusEndpoint:
         assert data["data"]["version"] == "1.21.3"
         assert data["data"]["uptime_seconds"] is None
 
-    def test_status_returns_running_with_uptime(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_returns_running_with_uptime(self, temp_data_dir: Path) -> None:
         """GET /server/status includes uptime when server running (AC: 1, 3).
 
         Note: This test creates its own TestClient instead of using the shared
@@ -2762,9 +2695,7 @@ class TestServerStatusEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_status_follows_api_envelope_format(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_follows_api_envelope_format(self, integration_client: TestClient) -> None:
         """GET /server/status follows standard API envelope (AC: 1, Task 1.3)."""
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -2781,9 +2712,7 @@ class TestServerStatusEndpoint:
         # Check expected fields in data - exactly 4 fields, no extras
         assert set(data["data"].keys()) == {"state", "version", "uptime_seconds", "last_exit_code"}
 
-    def test_status_returns_starting_state(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_returns_starting_state(self, temp_data_dir: Path) -> None:
         """GET /server/status returns starting state during server startup (AC: 1)."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2822,9 +2751,7 @@ class TestServerStatusEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_status_returns_stopping_state(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_returns_stopping_state(self, temp_data_dir: Path) -> None:
         """GET /server/status returns stopping state during server shutdown (AC: 1)."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2863,9 +2790,7 @@ class TestServerStatusEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_status_returns_installed_after_error(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_returns_installed_after_error(self, temp_data_dir: Path) -> None:
         """GET /server/status returns installed after process error (AC: 1).
 
         Note: ERROR is a transitional state during failed operations. Once the
@@ -2912,9 +2837,7 @@ class TestServerStatusEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_status_returns_negative_exit_code(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_returns_negative_exit_code(self, temp_data_dir: Path) -> None:
         """GET /server/status includes negative exit codes (signal kills) (AC: 1)."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -2954,9 +2877,7 @@ class TestServerStatusEndpoint:
         finally:
             app.dependency_overrides.clear()
 
-    def test_status_uptime_calculation_accuracy(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_status_uptime_calculation_accuracy(self, temp_data_dir: Path) -> None:
         """GET /server/status calculates uptime from server start time accurately (AC: 3)."""
         import time
 
