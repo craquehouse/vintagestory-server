@@ -61,10 +61,12 @@ development_status:
   3-2-server-lifecycle-control-api: done
   3-3-server-status-api: done
   3-4-dashboard-with-server-controls-ui: done
-  epic-3-retrospective: optional
+  3-5-fix-server-installation-in-dev-environment: backlog
+  epic-3-retrospective: done
 
   # Epic 4: Real-Time Console Access
   epic-4: backlog
+  4-0-epic-4-technical-preparation: backlog
   4-1-console-buffer-service: backlog
   4-2-websocket-console-streaming: backlog
   4-3-console-command-input: backlog
