@@ -55,17 +55,23 @@ so that **I can control the server without container access**.
   - [x] 4.3: Ensure API remains responsive when game server crashes
    - [x] 4.4: Write tests for crash scenarios and API resilience
 
-  ### Review Follow-ups (AI)
+   ### Review Follow-ups (AI)
 
-   Action items from code review (2025-12-27):
+    Action items from code review (2025-12-27):
 
-   - [x] [AI-Review][HIGH] Add comprehensive error handling to /restart endpoint - handle SERVER_NOT_RUNNING, SERVER_ALREADY_RUNNING, SERVER_START_FAILED, SERVER_STOP_FAILED [api/src/vintagestory_api/routers/server.py:285-302]
-   - [x] [AI-Review][HIGH] Add tests for restart partial failure scenarios - restart when stop fails, restart when start fails after stop, restart during transitional states [api/tests/test_server.py]
-   - [x] [AI-Review][MEDIUM] Add test for restart when server in STARTING state - verify graceful handling [api/tests/test_server.py]
-   - [x] [AI-Review][MEDIUM] Add test for restart with graceful shutdown timeout - verify SIGKILL behavior in restart context [api/tests/test_server.py]
-   - [x] [AI-Review][LOW] Update /restart endpoint docstring to match actual error behavior - document 409 and 500 cases [api/src/vintagestory_api/routers/server.py:258-273]
-   - [x] [AI-Review][LOW] Add test for restart when server in ERROR state - verify behavior after failed operation [api/tests/test_server.py]
-   - [x] [AI-Review][LOW] Improve type annotation for _process state tracking - added documentation for process state invariants [api/src/vintagestory_api/services/server.py:68]
+    - [x] [AI-Review][HIGH] Add comprehensive error handling to /restart endpoint - handle SERVER_NOT_RUNNING, SERVER_ALREADY_RUNNING, SERVER_START_FAILED, SERVER_STOP_FAILED [api/src/vintagestory_api/routers/server.py:285-302]
+    - [x] [AI-Review][HIGH] Add tests for restart partial failure scenarios - restart when stop fails, restart when start fails after stop, restart during transitional states [api/tests/test_server.py]
+    - [x] [AI-Review][MEDIUM] Add test for restart when server in STARTING state - verify graceful handling [api/tests/test_server.py]
+    - [x] [AI-Review][MEDIUM] Add test for restart with graceful shutdown timeout - verify SIGKILL behavior in restart context [api/tests/test_server.py]
+    - [x] [AI-Review][LOW] Update /restart endpoint docstring to match actual error behavior - document 409 and 500 cases [api/src/vintagestory_api/routers/server.py:258-273]
+    - [x] [AI-Review][LOW] Add test for restart when server in ERROR state - verify behavior after failed operation [api/tests/test_server.py]
+    - [x] [AI-Review][LOW] Improve type annotation for _process state tracking - added documentation for process state invariants [api/src/vintagestory_api/services/server.py:68]
+
+    Type annotation issues (discovered 2025-12-27):
+
+    - [ ] [AI-Review][MEDIUM] Fix mock_subprocess fixture return type annotation - add proper Generator[tuple[MagicMock, AsyncMock], None, None] to prevent 60+ cascading type errors [api/tests/test_server.py:1358-1384]
+    - [ ] [AI-Review][MEDIUM] Fix type narrowing in concurrent install test - handle potential Exception from asyncio.gather before accessing .state attribute [api/tests/test_server.py:530-531]
+    - [ ] [AI-Review][LOW] Consider adding test stubs for unused functions in test_auth.py and test_permissions.py or use pyright ignore comments [api/tests/test_auth.py, api/tests/test_permissions.py]
 
   ---
 

@@ -2,11 +2,14 @@
 # Provides unified commands for development tasks across api/ and web/ projects
 # All commands use mise to ensure correct tool versions are used
 #
-# Usage: just <recipe>
+# Usage: just <recipe> [args...]
 # Examples:
-#   just test        - Run all tests
-#   just check       - Full validation (lint + typecheck + test)
-#   just build       - Build all projects
+#   just test                              - Run all tests
+#   just test-api                          - Run all API tests
+#   just test-api -k "restart"             - Run API tests matching "restart"
+#   just test-api tests/test_server.py -xvs - Run specific file, verbose
+#   just check                             - Full validation (lint + typecheck + test)
+#   just build                             - Build all projects
 #
 # CI Usage:
 #   Ensure `mise` is in PATH and run: just check
@@ -25,13 +28,14 @@ default:
 # Run all tests (api + web)
 test: test-api test-web
 
-# Run API tests (Python/pytest)
-test-api:
-    mise exec -C api -- uv run pytest
+# Run API tests (Python/pytest) - accepts optional pytest args
+# Examples: just test-api -k "restart" | just test-api tests/test_server.py -xvs
+test-api *ARGS:
+    mise exec -C api -- uv run pytest {{ARGS}}
 
-# Run web tests (Vitest)
-test-web:
-    mise exec -C web -- bun run test
+# Run web tests (Vitest) - accepts optional vitest args
+test-web *ARGS:
+    mise exec -C web -- bun run test {{ARGS}}
 
 # Run API tests in watch mode (TDD)
 test-api-watch:
@@ -63,9 +67,9 @@ build-web:
 # Run all linters
 lint: lint-api lint-web
 
-# Lint API (Ruff)
-lint-api:
-    mise exec -C api -- uv run ruff check .
+# Lint API (Ruff) - accepts optional ruff args
+lint-api *ARGS:
+    mise exec -C api -- uv run ruff check . {{ARGS}}
 
 # Lint web (TypeScript type checking)
 lint-web:
@@ -78,9 +82,9 @@ lint-web:
 # Run all type checks
 typecheck: typecheck-api typecheck-web
 
-# Type check API (Pyright) - includes src/ and tests/
-typecheck-api:
-    mise exec -C api -- uv run pyright src/ tests/
+# Type check API (Pyright) - includes src/ and tests/, accepts optional pyright args
+typecheck-api *ARGS:
+    mise exec -C api -- uv run pyright src/ tests/ {{ARGS}}
 
 # Type check web (TypeScript)
 typecheck-web:
@@ -112,21 +116,22 @@ format-web:
 # DEVELOPMENT
 # =============================================================================
 
-# Start API dev server
-dev-api:
-    mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload
+# Start API dev server - accepts optional uvicorn args
+# Examples: just dev-api --port 8001 | just dev-api --host 0.0.0.0
+dev-api *ARGS:
+    mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload {{ARGS}}
 
-# Start web dev server
-dev-web:
-    mise exec -C web -- bun run dev
+# Start web dev server - accepts optional args
+dev-web *ARGS:
+    mise exec -C web -- bun run dev {{ARGS}}
 
 # Install all dependencies
 install: install-api install-web
 
-# Install API dependencies
-install-api:
-    mise exec -C api -- uv sync --dev
+# Install API dependencies - accepts optional uv sync args
+install-api *ARGS:
+    mise exec -C api -- uv sync --dev {{ARGS}}
 
-# Install web dependencies
-install-web:
-    mise exec -C web -- bun install
+# Install web dependencies - accepts optional bun install args
+install-web *ARGS:
+    mise exec -C web -- bun install {{ARGS}}

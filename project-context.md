@@ -281,19 +281,35 @@ vintagestory-server/
 
 ## Development Commands
 
-Use `just` for all development tasks. Run `just` or `just --list` to see available commands.
+**ALWAYS use `just` commands. NEVER use raw `mise exec` commands.**
 
-**Common commands:**
+All recipes accept optional arguments for flexibility:
+
 ```bash
-just test        # Run all tests
-just check       # Full validation (lint + typecheck + test)
-just lint        # Run all linters
-just format      # Format all code
-just dev-api     # Start API dev server
-just dev-web     # Start web dev server
+# Testing - ALWAYS use just for tests
+just test                                # Run all tests (api + web)
+just test-api                            # Run all API tests
+just test-api -k "restart"               # Run tests matching pattern
+just test-api tests/test_server.py -xvs  # Run specific file, verbose
+just test-web                            # Run all web tests
+
+# Validation
+just check                               # Full validation (lint + typecheck + test)
+just lint                                # Run all linters
+just lint-api --fix                      # Lint with auto-fix
+just typecheck                           # Run all type checks
+
+# Development
+just dev-api                             # Start API dev server
+just dev-api --port 8001                 # Dev server on custom port
+just dev-web                             # Start web dev server
+just install                             # Install all dependencies
+just format                              # Format all code
 ```
 
-**Why:** Prevents tooling confusion (e.g., `bun test` vs `bun run test`). All commands use correct tool versions via mise.
+Run `just` with no arguments to see all available commands.
+
+**Why:** Prevents tooling confusion (e.g., `bun test` vs `bun run test`). All commands use correct tool versions via mise. Variadic args enable specific test file/pattern targeting without bypassing `just`.
 
 ---
 
@@ -305,4 +321,4 @@ just dev-web     # Start web dev server
 
 ---
 
-_Last updated: 2025-12-27 (Epic 2 Retrospective)_
+_Last updated: 2025-12-27 (Epic 3 - Added just variadic args)_

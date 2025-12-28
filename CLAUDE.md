@@ -57,37 +57,43 @@ The VintageStory mod database API is documented in `agentdocs/modstoryapi.md`. K
 
 ## Commands
 
-### Using mise to Run Commands
+### IMPORTANT: Use `just` for All Development Tasks
 
-This project uses [mise](https://mise.jdx.dev/) for tool version management. Tool versions are pinned in `.mise.toml`. Always use `mise exec` to run commands to ensure correct tool versions:
+**ALWAYS use `just` commands. NEVER use raw `mise exec` commands.** The Justfile wraps all operations and ensures consistency. All recipes accept optional arguments for flexibility.
 
 ```bash
-# Pattern: mise exec -C <directory> -- <command>
-/opt/homebrew/bin/mise exec -C /path/to/web -- bun run build
-/opt/homebrew/bin/mise exec -C /path/to/api -- uv run pytest
+# Testing - ALWAYS use just for tests
+just test                                    # Run all tests (api + web)
+just test-api                                # Run all API tests
+just test-api -k "restart"                   # Run tests matching pattern
+just test-api tests/test_server.py -xvs      # Run specific file, verbose
+just test-api --tb=short                     # Run with short traceback
+just test-web                                # Run all web tests
+
+# Validation
+just check                                   # Full validation: lint + typecheck + test
+just lint                                    # Run all linters
+just lint-api --fix                          # Lint API with auto-fix
+just typecheck                               # Run all type checks
+
+# Building
+just build                                   # Build all projects
+just build-api                               # Sync API dependencies
+just build-web                               # Build web frontend
+
+# Development
+just dev-api                                 # Start API dev server
+just dev-api --port 8001                     # Dev server on custom port
+just dev-web                                 # Start web dev server
+just install                                 # Install all dependencies
+
+# Formatting
+just format                                  # Format all code
 ```
 
-**Important:** Use the `-C` flag to set the working directory. Do not use `cd` as it may not work correctly in all environments.
+Run `just` with no arguments to see all available commands.
 
-### API Server (Python/FastAPI)
-```bash
-# Using mise (recommended)
-mise exec -C api -- uv sync --dev                    # Install dependencies
-mise exec -C api -- uv run uvicorn main:app --reload # Development server
-mise exec -C api -- uv run pytest                    # Run all tests
-mise exec -C api -- uv run ruff check .              # Lint
-mise exec -C api -- uv run ruff format .             # Format
-mise exec -C api -- uv run pyright src/              # Type check (strict mode)
-```
-
-### Web UI (Bun/Vite)
-```bash
-# Using mise (recommended)
-mise exec -C web -- bun install          # Install dependencies
-mise exec -C web -- bun run dev          # Development server
-mise exec -C web -- bun run build        # Production build
-mise exec -C web -- bun test             # Run tests
-```
+**Note:** This project uses [mise](https://mise.jdx.dev/) for tool version management. The `just` recipes wrap `mise exec` internally - you should never need to call `mise exec` directly.
 
 ### Docker
 ```bash
