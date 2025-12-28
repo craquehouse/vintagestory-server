@@ -7,6 +7,7 @@ import {
   useStartServer,
   useStopServer,
   useRestartServer,
+  useInstallServer,
 } from './use-server-status';
 
 // Create a fresh QueryClient for each test
@@ -352,6 +353,119 @@ describe('useRestartServer', () => {
 
       await act(async () => {
         result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['server', 'status'],
+      });
+    });
+  });
+});
+
+describe('useInstallServer', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('mutation behavior', () => {
+    it('calls install endpoint with POST method and version in body', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Installation started' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useInstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate('1.21.3');
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8000/api/v1alpha1/server/install',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ version: '1.21.3' }),
+        })
+      );
+    });
+
+    it('provides pending state during mutation', async () => {
+      let resolvePromise: () => void;
+      const pendingPromise = new Promise<void>((resolve) => {
+        resolvePromise = resolve;
+      });
+
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        await pendingPromise;
+        return {
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: { message: 'Started' } }),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useInstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Start mutation
+      act(() => {
+        result.current.mutate('1.21.3');
+      });
+
+      // Should be pending
+      await waitFor(() => expect(result.current.isPending).toBe(true));
+
+      // Resolve the promise
+      await act(async () => {
+        resolvePromise!();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.isPending).toBe(false);
+    });
+
+    it('invalidates server status query on success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Installation started' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useInstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate('1.21.3');
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));

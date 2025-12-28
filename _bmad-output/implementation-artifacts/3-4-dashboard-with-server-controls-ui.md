@@ -1,6 +1,6 @@
 # Story 3.4: Dashboard with Server Controls UI
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -76,6 +76,12 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] 6.2: Manually verify Dashboard appearance and functionality
   - [x] 6.3: Verify toast notifications appear correctly for all actions
   - [x] 6.4: Verify loading states and transitions are smooth
+
+### Review Follow-ups (AI-Review)
+
+- [x] [AI-Review][MEDIUM] Query Key Management Violation - useInstallStatus hook uses hardcoded queryKey instead of centralized queryKeys object from query-keys.ts [web/src/hooks/use-server-status.ts:147]
+- [x] [AI-Review][MEDIUM] Missing Tests for useInstallServer Hook - useInstallServer mutation hook has no unit tests, unlike useStartServer/useStopServer/useRestartServer which all have test coverage [web/src/hooks/use-server-status.test.tsx]
+- [x] [AI-Review][MEDIUM] Git File List Incompleteness - bun.lock file was modified (added @radix-ui/react-progress) but not documented in Dev Agent Record → File List section [story file]
 
 ---
 
@@ -347,7 +353,9 @@ N/A
 **Modified Files:**
 - `web/src/features/dashboard/Dashboard.tsx` - Complete rewrite with full server status UI
 - `web/src/api/types.ts` - Added ServerState, ServerStatus, InstallStatus, ActionMessage types
+- `web/src/api/query-keys.ts` - Added installStatus key for centralized query key management
 - `web/package.json` - Added @radix-ui/react-progress dependency
+- `web/bun.lock` - Updated with @radix-ui/react-progress dependency
 
 ### Change Log
 

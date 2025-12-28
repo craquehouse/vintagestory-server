@@ -144,7 +144,7 @@ export function useInstallServer() {
  */
 export function useInstallStatus(enabled: boolean) {
   return useQuery({
-    queryKey: ['server', 'install', 'status'],
+    queryKey: queryKeys.server.installStatus,
     queryFn: fetchInstallStatus,
     enabled,
     // Poll more frequently during installation

@@ -17,6 +17,7 @@ export const queryKeys = {
   },
   server: {
     status: ['server', 'status'] as const,
+    installStatus: ['server', 'install', 'status'] as const,
   },
   config: {
     files: ['config', 'files'] as const,
