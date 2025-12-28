@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     game_version: str = "stable"
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
+    console_history_lines: int = 100  # Default history lines sent on WebSocket connect
 
     @field_validator("cors_origins")
     @classmethod

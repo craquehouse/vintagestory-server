@@ -114,6 +114,10 @@ if Settings().debug:
 
 app.include_router(api_v1)
 
+# WebSocket endpoints (separate from api_v1 to avoid auth dependency issues)
+# WebSocket handles its own authentication via query parameter
+app.include_router(console.ws_router, prefix="/api/v1alpha1")
+
 
 # Static file serving for frontend SPA
 # Mount assets directory for JS, CSS, and other static files

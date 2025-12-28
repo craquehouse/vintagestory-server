@@ -33,12 +33,6 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2025-12-27
-project: vintagestory-server
-project_key: vintagestory-server
-tracking_system: file-system
-story_location: _bmad-output/implementation-artifacts
-
 development_status:
   # Epic 1: Project Foundation & Health Monitoring
   epic-1: done
@@ -63,16 +57,15 @@ development_status:
   3-4-dashboard-with-server-controls-ui: done
   3-5-fix-server-installation-in-dev-environment: done
   epic-3-retrospective: done
- 
-   # Epic 4: Real-Time Console Access
-   epic-4: in-progress
-   4-0-epic-4-technical-preparation: done  # Code review passed - all issues resolved
-   4-1-console-buffer-service: done  # Code review complete: 6/7 issues addressed (all HIGH & MEDIUM fixed, 1 LOW cosmetic deferred)
-   4-2-websocket-console-streaming: backlog
-   4-3-console-command-input: backlog
-   4-4-terminal-view-component: backlog
-   epic-4-retrospective: optional
 
+  # Epic 4: Real-Time Console Access
+  epic-4: in-progress
+  4-0-epic-4-technical-preparation: done
+  4-1-console-buffer-service: done
+  4-2-websocket-console-streaming: done
+  4-3-console-command-input: backlog
+  4-4-terminal-view-component: backlog
+  epic-4-retrospective: optional
 
   # Epic 5: Mod Management
   epic-5: backlog
