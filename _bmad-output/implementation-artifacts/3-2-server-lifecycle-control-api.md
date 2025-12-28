@@ -1,6 +1,6 @@
 # Story 3.2: Server Lifecycle Control API
 
-Status: ready-for-review
+Status: completed
 
 ---
 
@@ -69,9 +69,9 @@ so that **I can control the server without container access**.
 
     Type annotation issues (discovered 2025-12-27):
 
-    - [ ] [AI-Review][MEDIUM] Fix mock_subprocess fixture return type annotation - add proper Generator[tuple[MagicMock, AsyncMock], None, None] to prevent 60+ cascading type errors [api/tests/test_server.py:1358-1384]
-    - [ ] [AI-Review][MEDIUM] Fix type narrowing in concurrent install test - handle potential Exception from asyncio.gather before accessing .state attribute [api/tests/test_server.py:530-531]
-    - [ ] [AI-Review][LOW] Consider adding test stubs for unused functions in test_auth.py and test_permissions.py or use pyright ignore comments [api/tests/test_auth.py, api/tests/test_permissions.py]
+    - [x] [AI-Review][MEDIUM] Fix mock_subprocess fixture return type annotation - add proper Generator[tuple[MagicMock, AsyncMock], None, None] to prevent 60+ cascading type errors [api/tests/test_server.py:1358-1384]
+    - [x] [AI-Review][MEDIUM] Fix type narrowing in concurrent install test - handle potential Exception from asyncio.gather before accessing .state attribute [api/tests/test_server.py:530-531]
+    - [x] [AI-Review][LOW] Consider adding test stubs for unused functions in test_auth.py and test_permissions.py or use pyright ignore comments [api/tests/test_auth.py, api/tests/test_permissions.py]
 
   ---
 

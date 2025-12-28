@@ -23,6 +23,7 @@ from vintagestory_api.config import Settings
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.server import (
     InstallationStage,
+    InstallProgress,
     LifecycleAction,
     ServerState,
 )
@@ -35,6 +36,16 @@ from vintagestory_api.services.server import (
 )
 
 # pyright: reportPrivateUsage=false
+# pyright: reportUnknownParameterType=false
+# pyright: reportUnknownVariableType=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnusedVariable=false
+# pyright: reportMissingTypeArgument=false
+# Note: Above suppressions are for pytest fixture injection patterns.
+# Pyright doesn't understand pytest's fixture system, so fixtures passed as
+# parameters trigger unknown type errors. The mock_subprocess fixture in
+# particular causes cascading errors across all lifecycle tests.
 
 # Mock VintageStory API response
 MOCK_STABLE_API_RESPONSE = {
@@ -527,8 +538,10 @@ class TestServerInstallation:
 
         # Due to lock, only one should actually start downloading
         # Others should fail because server becomes "installed" after first completes
-        success_count = sum(1 for r in results if r.state == ServerState.INSTALLED)
-        error_count = sum(1 for r in results if r.state == ServerState.ERROR)
+        # Filter to InstallProgress results (exclude any BaseException from gather)
+        progress_results = [r for r in results if isinstance(r, InstallProgress)]
+        success_count = sum(1 for r in progress_results if r.state == ServerState.INSTALLED)
+        error_count = sum(1 for r in progress_results if r.state == ServerState.ERROR)
 
         # Exactly one should succeed (first to acquire lock)
         assert success_count == 1, f"Expected 1 success, got {success_count}"
@@ -1355,7 +1368,7 @@ def installed_service(test_settings: Settings) -> ServerService:
 
 
 @pytest.fixture
-def mock_subprocess():
+def mock_subprocess() -> Generator[tuple[MagicMock, AsyncMock], None, None]:
     """Mock asyncio.create_subprocess_exec for testing.
 
     Uses an Event to simulate blocking wait that can be unblocked for stop tests.

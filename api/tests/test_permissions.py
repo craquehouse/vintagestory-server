@@ -1,5 +1,9 @@
 """Tests for role-based permission dependencies."""
 
+# pyright: reportUnusedFunction=false
+# Note: Functions decorated with @app.get/@app.post inside fixtures are registered
+# with FastAPI but not directly called, so pyright incorrectly flags them as unused.
+
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient

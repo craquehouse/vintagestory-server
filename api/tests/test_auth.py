@@ -1,5 +1,9 @@
 """Tests for API key authentication middleware."""
 
+# pyright: reportUnusedFunction=false
+# Note: Functions decorated with @app.get/@app.post inside fixtures are registered
+# with FastAPI but not directly called, so pyright incorrectly flags them as unused.
+
 from collections.abc import Generator
 
 import pytest
