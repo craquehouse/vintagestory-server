@@ -6,16 +6,10 @@ import tempfile
 from collections.abc import AsyncGenerator, Generator
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
-from vintagestory_api.main import app
-from vintagestory_api.middleware.auth import get_settings
-from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.server import ServerService
 
 # pyright: reportPrivateUsage=false
@@ -23,6 +17,9 @@ from vintagestory_api.services.server import ServerService
 # pyright: reportUnknownVariableType=false
 # pyright: reportUnknownMemberType=false
 # pyright: reportUnknownArgumentType=false
+# pyright: reportUnusedVariable=false
+# pyright: reportMissingTypeArgument=false
+# Note: Above suppressions are for pytest fixture injection patterns.
 
 # Test API keys
 TEST_ADMIN_KEY = "test-admin-key-12345"
@@ -86,8 +83,7 @@ def test_settings(temp_data_dir: Path) -> Settings:
     """Create test settings with temporary data directory."""
     return Settings(
         data_dir=temp_data_dir,
-        api_key_admin=TEST_ADMIN_KEY,
-        api_key_monitor=TEST_MONITOR_KEY,
+        api_key_admin="test-admin-key",
     )
 
 
@@ -102,30 +98,23 @@ async def server_service(
 
 
 @pytest.fixture
-def installed_server(temp_data_dir: Path) -> Path:
-    """Create a mock installed server directory."""
+def installed_settings(temp_data_dir: Path) -> Settings:
+    """Create test settings with installed server files."""
     server_dir = temp_data_dir / "server"
-    server_dir.mkdir(parents=True)
+    server_dir.mkdir(parents=True, exist_ok=True)
+    vsmanager_dir = temp_data_dir / "vsmanager"
+    vsmanager_dir.mkdir(parents=True, exist_ok=True)
+    serverdata_dir = temp_data_dir / "serverdata"
+    serverdata_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create required server files
+    # Create marker files
     (server_dir / "VintagestoryServer.dll").touch()
     (server_dir / "VintagestoryLib.dll").touch()
+    (vsmanager_dir / "current_version").write_text("1.21.3")
 
-    # Create version tracking
-    vsmanager_dir = temp_data_dir / "vsmanager"
-    vsmanager_dir.mkdir(parents=True)
-    (vsmanager_dir / "current_version").write_text("1.21.6")
-
-    return temp_data_dir
-
-
-@pytest.fixture
-def installed_settings(installed_server: Path) -> Settings:
-    """Create test settings with an installed server."""
     return Settings(
-        data_dir=installed_server,
-        api_key_admin=TEST_ADMIN_KEY,
-        api_key_monitor=TEST_MONITOR_KEY,
+        data_dir=temp_data_dir,
+        api_key_admin="test-admin-key",
     )
 
 
@@ -133,90 +122,29 @@ def installed_settings(installed_server: Path) -> Settings:
 async def installed_service(
     installed_settings: Settings,
 ) -> AsyncGenerator[ServerService, None]:
-    """Create a server service with installed server."""
+    """Create server service with installed server state."""
     service = ServerService(installed_settings)
     yield service
     await service.close()
 
 
-@pytest.fixture
-def mock_subprocess() -> Generator[AsyncMock, None, None]:
-    """Create a mock subprocess for lifecycle tests."""
-    mock_process = AsyncMock()
-    mock_process.returncode = None
-    mock_process.pid = 12345
-    mock_process.stdout = AsyncMock()
-    mock_process.stderr = AsyncMock()
-    mock_process.stdout.readline = AsyncMock(return_value=b"")
-    mock_process.stderr.readline = AsyncMock(return_value=b"")
-    mock_process.wait = AsyncMock(return_value=0)
-    mock_process.send_signal = Mock()
-    mock_process.terminate = Mock()
-    mock_process.kill = Mock()
-    mock_process.stdin = AsyncMock()
-    mock_process.stdin.write = Mock()
-    mock_process.stdin.drain = AsyncMock()
-    yield mock_process
-
-
-@pytest.fixture
-def integration_app(
-    test_settings: Settings, server_service: ServerService
-) -> Generator[FastAPI, None, None]:
-    """Create app with test settings for integration testing."""
-    app.dependency_overrides[get_settings] = lambda: test_settings
-    app.dependency_overrides[get_server_service] = lambda: server_service
-
-    yield app
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def client(integration_app: FastAPI) -> TestClient:
-    """Create test client for integration tests."""
-    return TestClient(integration_app)
-
-
-@pytest.fixture
-def admin_headers() -> dict[str, str]:
-    """Headers with admin API key."""
-    return {"X-API-Key": TEST_ADMIN_KEY}
-
-
-@pytest.fixture
-def monitor_headers() -> dict[str, str]:
-    """Headers with monitor API key."""
-    return {"X-API-Key": TEST_MONITOR_KEY}
-
-
-def create_mock_tarball(files: dict[str, bytes] | None = None) -> bytes:
-    """Create a mock tarball with optional files.
-
-    Args:
-        files: Dict mapping filename to content. If None, creates default server files.
+def create_mock_tarball() -> tuple[bytes, str]:
+    """Create a mock server tarball for testing.
 
     Returns:
-        bytes: The tarball content.
+        Tuple of (tarball_bytes, md5_hash)
     """
-    if files is None:
-        files = {
-            "VintagestoryServer.dll": b"mock dll content",
-            "VintagestoryLib.dll": b"mock lib content",
-            "Mods/": b"",  # Directory
-        }
+    import hashlib
 
     buffer = BytesIO()
     with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
-        for name, content in files.items():
-            if name.endswith("/"):
-                # Directory
-                info = tarfile.TarInfo(name=name)
-                info.type = tarfile.DIRTYPE
-                tar.addfile(info)
-            else:
-                # File
-                info = tarfile.TarInfo(name=name)
-                info.size = len(content)
-                tar.addfile(info, BytesIO(content))
+        # Add mock server files
+        for filename in ["VintagestoryServer.dll", "VintagestoryLib.dll"]:
+            data = f"mock {filename} content".encode()
+            info = tarfile.TarInfo(name=filename)
+            info.size = len(data)
+            tar.addfile(info, BytesIO(data))
 
-    return buffer.getvalue()
+    tarball_bytes = buffer.getvalue()
+    md5_hash = hashlib.md5(tarball_bytes).hexdigest()
+    return tarball_bytes, md5_hash
