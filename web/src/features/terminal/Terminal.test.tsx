@@ -65,14 +65,6 @@ vi.mock('@xterm/addon-fit', () => {
   };
 });
 
-vi.mock('@xterm/addon-attach', () => {
-  return {
-    AttachAddon: class MockAttachAddon {
-      constructor() {}
-    },
-  };
-});
-
 // Mock next-themes
 vi.mock('next-themes', () => ({
   useTheme: () => ({

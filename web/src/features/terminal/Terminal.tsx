@@ -1,6 +1,5 @@
 import { useCallback, useRef } from 'react';
 import type { Terminal as XTerminal, IDisposable } from '@xterm/xterm';
-import { AttachAddon } from '@xterm/addon-attach';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TerminalView } from '@/components/terminal/TerminalView';
@@ -18,20 +17,8 @@ import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
  */
 export function Terminal() {
   const terminalRef = useRef<XTerminal | null>(null);
-  const attachAddonRef = useRef<AttachAddon | null>(null);
   const inputBufferRef = useRef<string>('');
   const dataListenerRef = useRef<IDisposable | null>(null);
-
-  // Handle WebSocket connection opened
-  const handleOpen = useCallback((ws: WebSocket) => {
-    if (terminalRef.current) {
-      // Attach WebSocket for receiving console output only (bidirectional: false)
-      // Commands are sent via JSON format, not raw terminal input
-      const attachAddon = new AttachAddon(ws, { bidirectional: false });
-      attachAddonRef.current = attachAddon;
-      terminalRef.current.loadAddon(attachAddon);
-    }
-  }, []);
 
   // Handle terminal ready - set up input handler
   const handleTerminalReady = useCallback((terminal: XTerminal) => {
@@ -46,17 +33,15 @@ export function Terminal() {
       dataListenerRef.current = null;
     }
     terminalRef.current = null;
-    attachAddonRef.current = null;
     inputBufferRef.current = '';
   }, []);
 
   const { connectionState, sendCommand } = useConsoleWebSocket({
-    onOpen: handleOpen,
     onMessage: (data) => {
-      // Messages are handled by AttachAddon when connected
-      // This is a fallback for any messages before AttachAddon is loaded
-      if (!attachAddonRef.current && terminalRef.current) {
-        terminalRef.current.write(data);
+      // Write each message with a newline
+      // Backend sends lines without trailing newlines, so we add them here
+      if (terminalRef.current) {
+        terminalRef.current.writeln(data);
       }
     },
   });

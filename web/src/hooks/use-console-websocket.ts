@@ -134,6 +134,8 @@ export function useConsoleWebSocket(
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const shouldReconnectRef = useRef(true);
+  // Use ref for retry count in reconnection logic to avoid recreating connect callback
+  const retryCountRef = useRef(0);
 
   // Update connection state and notify callback
   const updateState = useCallback(
@@ -168,6 +170,7 @@ export function useConsoleWebSocket(
     ws.onopen = () => {
       debugLog('Connected');
       updateState('connected');
+      retryCountRef.current = 0;
       setRetryCount(0);
       onOpen?.(ws);
     };
@@ -203,26 +206,28 @@ export function useConsoleWebSocket(
       // Unexpected close - attempt reconnection
       updateState('disconnected');
 
-      if (shouldReconnectRef.current && retryCount < maxRetries) {
+      const currentRetry = retryCountRef.current;
+      if (shouldReconnectRef.current && currentRetry < maxRetries) {
         // Calculate delay with exponential backoff and jitter
         const delay = Math.min(
-          baseDelayMs * Math.pow(2, retryCount),
+          baseDelayMs * Math.pow(2, currentRetry),
           maxDelayMs
         );
         const jitter = Math.random() * 1000;
         const totalDelay = delay + jitter;
 
         debugLog('Scheduling reconnection', {
-          attempt: retryCount + 1,
+          attempt: currentRetry + 1,
           maxRetries,
           delayMs: Math.round(totalDelay),
         });
 
         reconnectTimeoutRef.current = window.setTimeout(() => {
-          setRetryCount((c) => c + 1);
+          retryCountRef.current += 1;
+          setRetryCount(retryCountRef.current);
           connect();
         }, totalDelay);
-      } else if (retryCount >= maxRetries) {
+      } else if (currentRetry >= maxRetries) {
         debugLog('Max retries reached, giving up');
       }
     };
@@ -236,7 +241,6 @@ export function useConsoleWebSocket(
     maxRetries,
     baseDelayMs,
     maxDelayMs,
-    retryCount,
     updateState,
     onOpen,
     onMessage,
@@ -256,6 +260,7 @@ export function useConsoleWebSocket(
   // Manual reconnect
   const reconnect = useCallback(() => {
     shouldReconnectRef.current = true;
+    retryCountRef.current = 0;
     setRetryCount(0);
     connect();
   }, [connect]);
