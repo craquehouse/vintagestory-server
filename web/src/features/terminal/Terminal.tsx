@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import type { Terminal as XTerminal } from '@xterm/xterm';
 
@@ -20,28 +20,41 @@ import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
  */
 export function Terminal() {
   const terminalRef = useRef<XTerminal | null>(null);
+  const messageQueueRef = useRef<string[]>([]);
   const [command, setCommand] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Write a message to terminal, or queue if terminal not ready
+  const writeToTerminal = useCallback((data: string) => {
+    if (terminalRef.current) {
+      terminalRef.current.writeln(data);
+    } else {
+      // Queue messages that arrive before terminal is ready
+      messageQueueRef.current.push(data);
+    }
+  }, []);
+
   const { connectionState, sendCommand } = useConsoleWebSocket({
-    onMessage: (data) => {
-      // Write each message with a newline
-      // Backend sends lines without trailing newlines, so we add them here
-      if (terminalRef.current) {
-        terminalRef.current.writeln(data);
-      }
-    },
+    onMessage: writeToTerminal,
   });
 
-  // Handle terminal ready
-  const handleTerminalReady = (terminal: XTerminal) => {
+  // Handle terminal ready - flush any queued messages
+  const handleTerminalReady = useCallback((terminal: XTerminal) => {
     terminalRef.current = terminal;
-  };
+
+    // Flush queued messages
+    if (messageQueueRef.current.length > 0) {
+      for (const msg of messageQueueRef.current) {
+        terminal.writeln(msg);
+      }
+      messageQueueRef.current = [];
+    }
+  }, []);
 
   // Handle terminal cleanup
-  const handleTerminalDispose = () => {
+  const handleTerminalDispose = useCallback(() => {
     terminalRef.current = null;
-  };
+  }, []);
 
   // Handle command submission
   const handleSubmit = (e: FormEvent) => {

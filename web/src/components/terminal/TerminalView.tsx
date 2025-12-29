@@ -40,6 +40,12 @@ export function TerminalView({
   const fitAddonRef = useRef<FitAddon | null>(null);
   const isInitializedRef = useRef(false);
 
+  // Store callbacks in refs to avoid recreating terminal when callbacks change
+  const onReadyRef = useRef(onReady);
+  const onDisposeRef = useRef(onDispose);
+  onReadyRef.current = onReady;
+  onDisposeRef.current = onDispose;
+
   const { resolvedTheme } = useTheme();
   const themeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
 
@@ -61,7 +67,7 @@ export function TerminalView({
     }
   }, []);
 
-  // Initialize terminal
+  // Initialize terminal - only runs once on mount
   useEffect(() => {
     if (!containerRef.current || isInitializedRef.current) return;
 
@@ -83,16 +89,18 @@ export function TerminalView({
     fitAddonRef.current = fitAddon;
     isInitializedRef.current = true;
 
-    onReady?.(terminal);
+    onReadyRef.current?.(terminal);
 
     return () => {
       isInitializedRef.current = false;
       terminal.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
-      onDispose?.();
+      onDisposeRef.current?.();
     };
-  }, [onReady, onDispose, themeMode]);
+    // Only depend on themeMode for initial theme - callbacks are in refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle resize with ResizeObserver
   useEffect(() => {
