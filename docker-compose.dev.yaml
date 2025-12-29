@@ -10,8 +10,9 @@ services:
         VS_API_KEY: ${VS_API_KEY:-changeme}
     container_name: vintagestory-manager-dev
     ports:
-      - "8080:8080"      # Web UI + API
-      - "42420:42420"    # Game server (future)
+      - "8080:8080"       # Web UI + API
+      - "42420:42420/tcp" # Game server
+      - "42420:42420/udp" # Game server
     volumes:
       - ./data:/data
     environment:

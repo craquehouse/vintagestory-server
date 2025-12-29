@@ -7,8 +7,9 @@ services:
     image: ghcr.io/craquehouse/vintagestory-server:latest
     container_name: vintagestory-manager
     ports:
-      - "8080:8080"      # Web UI + API
-      - "42420:42420"    # Game server (future)
+      - "8080:8080"       # Web UI + API
+      - "42420:42420/tcp" # Game server 
+      - "42420:42420/udp" # Game server 
     volumes:
       - ./data:/data
     environment:
