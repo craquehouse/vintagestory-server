@@ -59,12 +59,12 @@ development_status:
   epic-3-retrospective: done
 
   # Epic 4: Real-Time Console Access
-  epic-4: in-progress
+  epic-4: done
   4-0-epic-4-technical-preparation: done
   4-1-console-buffer-service: done
   4-2-websocket-console-streaming: done
   4-3-console-command-input: done
-  4-4-terminal-view-component: in-progress
+  4-4-terminal-view-component: done
   epic-4-retrospective: optional
 
   # Epic 5: Mod Management
