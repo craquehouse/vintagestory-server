@@ -23,15 +23,17 @@ This story implements the mod installation API endpoint that allows administrato
 
 ## Acceptance Criteria
 
-1. **Given** I call `POST /api/v1alpha1/mods` with `{"slug": "smithingplus"}` **When** the mod exists on mods.vintagestory.at **Then** the latest release is downloaded to `/data/serverdata/Mods/` **And** the mod appears in the installed mods list
+1. **Given** I call `POST /api/v1alpha1/mods` with `{"slug": "smithingplus"}` **When** the mod exists on mods.vintagestory.at **Then** the latest release is downloaded to the cache and installed to `/data/serverdata/Mods/` **And** the mod appears in the installed mods list
 
-2. **Given** I provide a full URL instead of a slug **When** I call the install endpoint with `{"slug": "https://mods.vintagestory.at/smithingplus"}` **Then** the slug is extracted from the URL and installation proceeds
+2. **Given** I call `POST /api/v1alpha1/mods` with `{"slug": "smithingplus", "version": "1.8.2"}` **When** that version exists **Then** the specified version is installed instead of latest
 
-3. **Given** the mod slug does not exist **When** I attempt installation **Then** I receive a 404 error with message "Mod not found"
+3. **Given** I provide a full URL instead of a slug **When** I call the install endpoint with `{"slug": "https://mods.vintagestory.at/smithingplus"}` **Then** the slug is extracted from the URL and installation proceeds
 
-4. **Given** the VintageStory mod API is unavailable **When** I attempt installation **Then** I receive a 502 error with clear message about external API failure (covers NFR11)
+4. **Given** the mod slug does not exist **When** I attempt installation **Then** I receive a 404 error with message "Mod not found"
 
-5. **Given** the download fails mid-transfer **When** the error occurs **Then** partial files are cleaned up **And** a clear error message is returned (covers NFR12)
+5. **Given** the VintageStory mod API is unavailable **When** I attempt installation **Then** I receive a 502 error with clear message about external API failure (covers NFR11)
+
+6. **Given** the download fails mid-transfer **When** the error occurs **Then** partial files are cleaned up **And** a clear error message is returned (covers NFR12)
 
 ---
 
@@ -54,9 +56,10 @@ WRONG PATTERN (tests batched at end):
 - [ ] Task 2: Write all tests  <- NEVER DO THIS
 -->
 
-- [ ] Task 1: Create ModApiClient service + tests (AC: 1, 3, 4)
+- [ ] Task 1: Create ModApiClient service + tests (AC: 1, 4, 5)
   - [ ] 1.1: Create `api/src/vintagestory_api/services/mod_api.py` with:
     - `ModApiClient` class using httpx.AsyncClient
+    - Inject cache_dir from Settings (for mod file downloads)
     - `get_mod(slug)` - lookup mod by slug, handle "200"/"404" string status codes
     - Use `follow_redirects=True` for download endpoint
     - Default 30s timeout for API calls, 120s for downloads
@@ -65,43 +68,50 @@ WRONG PATTERN (tests batched at end):
   - [ ] 1.4: Write tests using respx to mock httpx calls
   - [ ] 1.5: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
-- [ ] Task 2: Implement mod file download with streaming + tests (AC: 1, 5)
+- [ ] Task 2: Implement mod file download with streaming + tests (AC: 1, 6)
   - [ ] 2.1: Add to ModApiClient:
-    - `download_file(fileid, dest_path)` - stream download mod file by fileid
+    - `download_mod(fileid, filename)` - stream download to internal cache directory
+    - Cache path determined internally: `{cache_dir}/mods/{filename}`
     - Use `client.stream()` for memory-efficient large file handling
     - Write to temp file first, then rename (atomic write pattern)
+    - Returns Path to downloaded file on success
   - [ ] 2.2: Implement cleanup on download failure (delete partial temp file)
   - [ ] 2.3: Write tests for successful download, partial failure cleanup
   - [ ] 2.4: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
-- [ ] Task 3: Implement compatibility check logic + tests (AC: 1)
-  - [ ] 3.1: Add to ModApiClient or separate module:
-    - `check_compatibility(releases, game_version)` → (status, release)
+- [ ] Task 3: Implement release selection and compatibility check + tests (AC: 1, 2)
+  - [ ] 3.1: Add `select_release(releases, version=None)` function:
+    - If version specified: find exact match or return None
+    - If version is None: return `releases[0]` (latest)
+  - [ ] 3.2: Add `check_compatibility(releases, game_version)` → (status, release):
     - Status is Literal["compatible", "not_verified", "incompatible"]
     - "compatible" = exact version match in release tags
     - "not_verified" = same major.minor version match
     - "incompatible" = no matching version found
-  - [ ] 3.2: Returns best matching release for installation
-  - [ ] 3.3: Write tests for all three compatibility scenarios
+  - [ ] 3.3: Write tests for version selection and all three compatibility scenarios
   - [ ] 3.4: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
-- [ ] Task 4: Extend ModService with install_mod method + tests (AC: 1, 2, 3)
+- [ ] Task 4: Extend ModService with install_mod method + tests (AC: 1, 2, 3, 4)
   - [ ] 4.1: Add to ModService in `api/src/vintagestory_api/services/mods.py`:
     - `install_mod(slug_or_url, version=None)` async method
     - Parse slug from URL if provided
     - Lookup mod via ModApiClient
+    - Select release: specific version if provided, otherwise latest
+    - Return 404 if specified version not found
     - Check if mod already installed (return error or update)
-    - Download file to mods directory
+    - Download file via ModApiClient (to cache)
+    - Copy/link from cache to mods directory
     - Import mod (extract metadata, update state)
     - Set pending_restart if server running
   - [ ] 4.2: Return structured result with: success, version, compatibility, filename
-  - [ ] 4.3: Write integration tests for install flow
+  - [ ] 4.3: Write integration tests for install flow (latest and specific version)
   - [ ] 4.4: Run `just test-api tests/test_mod_service.py` - verify tests pass
 
-- [ ] Task 5: Create /mods router with POST endpoint + tests (AC: 1, 2, 3, 4, 5)
+- [ ] Task 5: Create /mods router with POST endpoint + tests (AC: 1, 2, 3, 4, 5, 6)
   - [ ] 5.1: Create `api/src/vintagestory_api/routers/mods.py` with:
     - `POST /api/v1alpha1/mods` - install mod by slug
-    - Request body: `{"slug": "smithingplus"}` or `{"slug": "https://mods.vintagestory.at/..."}`
+    - Request body: `{"slug": "smithingplus", "version": "1.8.2"}` (version is optional)
+    - When version omitted: install latest
     - Requires Admin role authentication
   - [ ] 5.2: Implement proper HTTP status codes:
     - 201 Created on success
@@ -113,11 +123,12 @@ WRONG PATTERN (tests batched at end):
   - [ ] 5.4: Write API endpoint tests covering all status codes
   - [ ] 5.5: Run `just test-api tests/test_mods_router.py` - verify tests pass
 
-- [ ] Task 6: Final validation + tests (AC: all)
+- [ ] Task 6: Final validation + tests (AC: 1-6)
   - [ ] 6.1: Run `just test-api` - verify full test suite passes
   - [ ] 6.2: Run `just check` - verify lint, typecheck, and all tests pass
   - [ ] 6.3: Manual test: Install a real mod (smithingplus) in dev environment
-  - [ ] 6.4: Verify mod appears in state and filesystem
+  - [ ] 6.4: Manual test: Install specific version (smithingplus 1.8.2)
+  - [ ] 6.5: Verify mod appears in state and filesystem
 
 ---
 
@@ -191,6 +202,7 @@ Use `just` for all development tasks:
 **ModApiClient implementation pattern:**
 ```python
 import httpx
+from pathlib import Path
 from typing import Optional
 
 class ModApiClient:
@@ -199,7 +211,11 @@ class ModApiClient:
     DEFAULT_TIMEOUT = 30.0
     DOWNLOAD_TIMEOUT = 120.0
 
-    def __init__(self):
+    def __init__(self, cache_dir: Path):
+        """Initialize with cache directory from Settings."""
+        self._cache_dir = cache_dir
+        self._mods_cache = cache_dir / "mods"
+        self._mods_cache.mkdir(parents=True, exist_ok=True)
         self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -223,10 +239,14 @@ class ModApiClient:
         except httpx.HTTPError:
             return None
 
-    async def download_file(self, fileid: int, dest_path: Path) -> bool:
-        """Download mod file by fileid with streaming."""
-        client = await self._get_client()
+    async def download_mod(self, fileid: int, filename: str) -> Path | None:
+        """Download mod file to internal cache directory.
+
+        Returns path to downloaded file, or None on failure.
+        """
+        dest_path = self._mods_cache / filename
         temp_path = dest_path.with_suffix('.tmp')
+        client = await self._get_client()
         try:
             async with client.stream(
                 "GET",
@@ -239,12 +259,44 @@ class ModApiClient:
                         f.write(chunk)
             # Atomic rename
             temp_path.rename(dest_path)
-            return True
+            return dest_path
         except (httpx.HTTPError, IOError):
             # Cleanup partial download
             if temp_path.exists():
                 temp_path.unlink()
-            return False
+            return None
+```
+
+**Version selection pattern:**
+```python
+from typing import Optional
+
+def select_release(
+    releases: list[dict],
+    version: str | None = None
+) -> Optional[dict]:
+    """Select a release by version, or latest if version is None.
+
+    Args:
+        releases: List of release objects (newest first)
+        version: Specific version to find, or None for latest
+
+    Returns:
+        Matching release dict, or None if version not found
+    """
+    if not releases:
+        return None
+
+    if version is None:
+        # releases[0] is always latest
+        return releases[0]
+
+    # Find specific version
+    for release in releases:
+        if release.get("modversion") == version:
+            return release
+
+    return None  # Version not found
 ```
 
 **Compatibility check pattern:**
@@ -361,6 +413,7 @@ After downloading a mod file, use `import_mod(zip_path)` from ModStateManager to
 # api/src/vintagestory_api/models/errors.py
 class ErrorCode:
     MOD_NOT_FOUND = "MOD_NOT_FOUND"
+    MOD_VERSION_NOT_FOUND = "MOD_VERSION_NOT_FOUND"
     MOD_ALREADY_INSTALLED = "MOD_ALREADY_INSTALLED"
     EXTERNAL_API_ERROR = "EXTERNAL_API_ERROR"
     DOWNLOAD_FAILED = "DOWNLOAD_FAILED"
