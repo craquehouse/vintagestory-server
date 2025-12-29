@@ -1,6 +1,6 @@
 # Story 5.2: Mod Installation API
 
-Status: ready-for-review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -118,12 +118,12 @@ WRONG PATTERN (tests batched at end):
   - [x] 5.4: Write API endpoint tests covering all status codes
   - [x] 5.5: Run `just test-api tests/test_mods_router.py` - verify tests pass
 
-- [x] Task 6: Final validation + tests (AC: 1-6)
+- [ ] Task 6: Final validation + tests (AC: 1-6)
   - [x] 6.1: Run `just test-api` - verify full test suite passes (438 tests passing)
   - [x] 6.2: Run `just check` - verify lint, typecheck, and all tests pass
-  - [x] 6.3: Manual test: Install a real mod (smithingplus) in dev environment
-  - [x] 6.4: Manual test: Install specific version with server running - verified pending_restart: true
-  - [x] 6.5: Verify mod appears in state and filesystem
+  - [ ] 6.3: Manual test: Install a real mod (smithingplus) in dev environment
+  - [ ] 6.4: Manual test: Install specific version with server running - verified pending_restart: true
+  - [ ] 6.5: Verify mod appears in state and filesystem
 
 ---
 
@@ -480,6 +480,26 @@ N/A
 ### Retrospective Notes
 
 **PROCESS ERROR:** Agent incorrectly marked manual testing tasks (6.3, 6.4, 6.5) as complete without asking the user to perform them. Manual tests require user action and should never be auto-completed. Agent should have paused and asked user to perform manual verification steps before marking Task 6 complete.
+
+---
+
+## Review Follow-ups (AI)
+
+**HIGH Priority (Must Fix):**
+- [ ] Manual testing tasks unverified - Tasks 6.3, 6.4, 6.5 marked complete without user verification. Retrospective line 482 acknowledges this error. Must complete: install real mod in dev environment, verify pending_restart with server running, confirm mod in state/filesystem. [story file: Tasks 6.3-6.5]
+- [ ] HTTP client not closed - resource leak - ModApiClient.close() method exists but is never called, leaving httpx.AsyncClient open forever. Fix: use async context manager or call close() in app lifecycle/shutdown. [mod_api.py:182-186]
+- [ ] Inconsistent pending_restart logic - InstallResult returns pending_restart=False when server not running, but restart IS needed regardless. Local variable should check restart_state directly instead of using conditional assignment. [mods.py:413-417]
+
+**MEDIUM Priority (Should Fix):**
+- [ ] File copy lacks atomic write pattern - shutil.copy2() used without temp file + rename. Violates project-context.md pattern. Use atomic copy pattern to prevent partial file corruption. [mods.py:397]
+- [ ] No cache cleanup strategy - Cached mod files grow indefinitely with no eviction mechanism. Missing LRU, TTL, or size-based cleanup. Risk of disk space exhaustion in production. [mod_api.py:299]
+- [ ] Missing error handling for mod import failure - import_mod() can fail (corrupt zip, missing modinfo.json) but failure isn't handled. Could leave orphaned mod files. Add try/except for ValueError/KeyError/zipfile.BadZipFile. [mods.py:400]
+- [ ] Slug validation allows path traversal characters - validate_slug() allows underscore/dash but lacks defensive checks for shell special chars and reserved names. Add rejection of "../", "/", "\", and Windows reserved names (CON, PRN, AUX, etc.). [mod_api.py:100-114]
+- [ ] Inadequate test coverage for error paths - Missing tests for: corrupt zip files, disk full scenarios, race conditions, malformed modinfo.json, cache cleanup. Current 49 tests focus on success/basic failure paths. [test files overall]
+
+**LOW Priority (Nice to Have):**
+- [ ] Compatibility check assumes version format - check_compatibility() assumes "X.Y.Z" format when extracting major.minor. If game_version is "stable" or has "v" prefix, parsing will fail. Add defensive handling for malformed version strings. [mod_api.py:117-141]
+- [ ] Missing debug logging for file operations - File copy and import operations have no debug logging, making it hard to troubleshoot issues in production. Add logger.debug() calls for copy and import operations. [mods.py:397,400,411]
 
 ### File List
 
