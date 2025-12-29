@@ -295,3 +295,212 @@ class TestInstallModEndpoint:
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+
+class TestLookupModEndpoint:
+    """Tests for GET /api/v1alpha1/mods/lookup/{slug} endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    @respx.mock
+    def test_lookup_mod_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} returns mod details with compatibility."""
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/smithingplus",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["slug"] == "smithingplus"
+        assert data["data"]["name"] == "Smithing Plus"
+        assert data["data"]["author"] == "jayu"
+        assert data["data"]["latest_version"] == "1.8.3"
+        assert data["data"]["downloads"] == 49726
+        assert data["data"]["side"] == "Both"
+        assert data["data"]["compatibility"]["status"] == "compatible"
+        assert data["data"]["compatibility"]["game_version"] == "1.21.3"
+        assert data["data"]["compatibility"]["mod_version"] == "1.8.3"
+        assert data["data"]["compatibility"]["message"] is None
+
+    @respx.mock
+    def test_lookup_mod_monitor_access(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} is accessible by Monitor role."""
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/smithingplus",
+            headers=monitor_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+
+    @respx.mock
+    def test_lookup_mod_not_found(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} returns 404 for non-existent mod."""
+        respx.get("https://mods.vintagestory.at/api/mod/nonexistent").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "404", "mod": None},
+            )
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/nonexistent",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "MOD_NOT_FOUND"
+
+    @respx.mock
+    def test_lookup_mod_api_unavailable(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} returns 502 when API is unavailable."""
+        import httpx
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/smithingplus",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+    def test_lookup_mod_invalid_slug(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} returns 400 for invalid slug format."""
+        # Use a slug with invalid characters (periods/slashes aren't allowed)
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/invalid.slug.with.dots",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_SLUG"
+
+    def test_lookup_mod_rejects_windows_reserved_name(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} rejects Windows reserved device names."""
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/con",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_SLUG"
+
+    def test_lookup_mod_requires_auth(self, client: TestClient) -> None:
+        """GET /mods/lookup/{slug} requires authentication."""
+        response = client.get("/api/v1alpha1/mods/lookup/smithingplus")
+
+        assert response.status_code == 401
+
+    @respx.mock
+    def test_lookup_mod_with_url(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug} accepts full URL in path."""
+        # Using URL-encoded path
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # The {slug:path} captures the full URL segment
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/https://mods.vintagestory.at/smithingplus",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["slug"] == "smithingplus"

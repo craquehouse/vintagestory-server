@@ -1,6 +1,6 @@
 # Story 5.3: Mod Compatibility Validation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -59,8 +59,8 @@ WRONG PATTERN (tests batched at end):
 - [ ] Task 2: Write all tests  <- NEVER DO THIS
 -->
 
-- [ ] Task 1: Create mod lookup Pydantic models + tests (AC: 1)
-  - [ ] 1.1: Create `ModLookupResponse` model in `api/src/vintagestory_api/models/mods.py`:
+- [x] Task 1: Create mod lookup Pydantic models + tests (AC: 1)
+  - [x] 1.1: Create `ModLookupResponse` model in `api/src/vintagestory_api/models/mods.py`:
     - `slug: str` - URL-friendly identifier
     - `name: str` - Display name
     - `author: str` - Mod author
@@ -69,29 +69,29 @@ WRONG PATTERN (tests batched at end):
     - `downloads: int` - Total download count
     - `side: str` - "Both", "Client", or "Server"
     - `compatibility: CompatibilityInfo` - Nested compatibility details
-  - [ ] 1.2: Create `CompatibilityInfo` model:
+  - [x] 1.2: Create `CompatibilityInfo` model:
     - `status: Literal["compatible", "not_verified", "incompatible"]`
     - `game_version: str` - Current server version checked against
     - `mod_version: str` - Version being evaluated
     - `message: str | None` - Warning message if not compatible
-  - [ ] 1.3: Write unit tests for model serialization
-  - [ ] 1.4: Run `just test-api tests/test_models.py` - verify tests pass
+  - [x] 1.3: Write unit tests for model serialization
+  - [x] 1.4: Run `just test-api tests/test_models.py` - verify tests pass
 
-- [ ] Task 2: Extend ModService with lookup_mod method + tests (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] 2.1: Add `lookup_mod(slug_or_url: str) -> ModLookupResponse | None` to ModService:
+- [x] Task 2: Extend ModService with lookup_mod method + tests (AC: 1, 2, 3, 4, 5, 6)
+  - [x] 2.1: Add `lookup_mod(slug_or_url: str) -> ModLookupResponse | None` to ModService:
     - Parse slug from URL if provided (reuse `extract_slug` from mod_api.py)
     - Call `ModApiClient.get_mod(slug)` to fetch mod details
     - Get current game version from server state (or None if not installed)
     - Call `check_compatibility()` with latest release tags and game version
     - Build `ModLookupResponse` with all details
-  - [ ] 2.2: Handle `None` game version (server not installed):
+  - [x] 2.2: Handle `None` game version (server not installed):
     - Return compatibility status as "not_verified"
     - Set message to "Game server version unknown - cannot verify compatibility"
-  - [ ] 2.3: Generate appropriate warning messages:
+  - [x] 2.3: Generate appropriate warning messages:
     - "compatible": No message (None)
     - "not_verified": "Mod not explicitly verified for version {game_version}. May still work."
     - "incompatible": "Mod version {mod_version} is only compatible with {compatible_versions}. Installation may cause issues."
-  - [ ] 2.4: Write tests using respx to mock API calls:
+  - [x] 2.4: Write tests using respx to mock API calls:
     - Test compatible mod (exact version match)
     - Test not_verified mod (same major.minor)
     - Test incompatible mod (no matching version)
@@ -99,31 +99,31 @@ WRONG PATTERN (tests batched at end):
     - Test API unavailable
     - Test with full URL input
     - Test with server not installed (no game version)
-  - [ ] 2.5: Run `just test-api tests/test_mod_service.py` - verify tests pass
+  - [x] 2.5: Run `just test-api tests/test_mod_service.py` - verify tests pass
 
-- [ ] Task 3: Create /mods/lookup router endpoint + tests (AC: 1, 5, 6, 7)
-  - [ ] 3.1: Add `GET /api/v1alpha1/mods/lookup/{slug}` to `routers/mods.py`:
+- [x] Task 3: Create /mods/lookup router endpoint + tests (AC: 1, 5, 6, 7)
+  - [x] 3.1: Add `GET /api/v1alpha1/mods/lookup/{slug}` to `routers/mods.py`:
     - Path parameter: `slug` (accepts slug or URL)
     - Returns `ModLookupResponse` wrapped in API envelope
     - Requires authenticated user (Admin or Monitor - both can lookup)
-  - [ ] 3.2: Implement error handling:
+  - [x] 3.2: Implement error handling:
     - 404 Not Found if mod doesn't exist (`MOD_NOT_FOUND` error code)
     - 502 Bad Gateway for external API errors (`EXTERNAL_API_ERROR` error code)
     - 400 Bad Request for invalid slug format (`INVALID_SLUG` error code)
-  - [ ] 3.3: Write API endpoint tests covering:
+  - [x] 3.3: Write API endpoint tests covering:
     - Successful lookup with all fields populated
     - 404 for non-existent mod
     - 502 for API timeout/unavailable
     - 400 for invalid slug (special characters, too long)
     - Verify Monitor role can access (read-only operation)
-  - [ ] 3.4: Run `just test-api tests/test_mods_router.py` - verify tests pass
+  - [x] 3.4: Run `just test-api tests/test_mods_router.py` - verify tests pass
 
-- [ ] Task 4: Final validation + tests (AC: 1-7)
-  - [ ] 4.1: Run `just test-api` - verify full test suite passes
-  - [ ] 4.2: Run `just check` - verify lint, typecheck, and all tests pass
-  - [ ] 4.3: Manual test: Look up a real mod (smithingplus) with server running
-  - [ ] 4.4: Manual test: Look up using full URL format
-  - [ ] 4.5: Verify response includes all expected fields with correct compatibility status
+- [x] Task 4: Final validation + tests (AC: 1-7)
+  - [x] 4.1: Run `just test-api` - verify full test suite passes (479 tests passed)
+  - [x] 4.2: Run `just check` - verify lint, typecheck, and all tests pass
+  - [x] 4.3: Manual test: Look up a real mod (smithingplus) with server running
+  - [x] 4.4: Manual test: Look up using full URL format
+  - [x] 4.5: Verify response includes all expected fields with correct compatibility status
 
 ---
 
@@ -342,13 +342,30 @@ raise HTTPException(
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - Clean implementation with no debug issues.
+
 ### Completion Notes List
 
+- Task 1: Created `CompatibilityInfo` and `ModLookupResponse` Pydantic models with 10 unit tests
+- Task 2: Implemented `lookup_mod()` method in ModService with 10 integration tests covering all AC scenarios
+- Task 3: Added `GET /api/v1alpha1/mods/lookup/{slug}` endpoint with 8 router tests
+- Task 4: All validations pass (479 API tests, 267 web tests, lint clean, typecheck clean)
+- Manual tests completed successfully by user
+
 ### File List
+
+**Modified:**
+- `api/src/vintagestory_api/models/mods.py` - Added CompatibilityInfo and ModLookupResponse models
+- `api/src/vintagestory_api/models/errors.py` - Added INVALID_SLUG error code
+- `api/src/vintagestory_api/services/mods.py` - Added lookup_mod() method and InvalidSlugError
+- `api/src/vintagestory_api/routers/mods.py` - Added GET /mods/lookup/{slug} endpoint
+- `api/tests/test_mod_models.py` - Added 10 tests for new models
+- `api/tests/test_mod_service.py` - Added 10 tests for lookup_mod
+- `api/tests/test_mods_router.py` - Added 8 tests for lookup endpoint
 
 ---
 

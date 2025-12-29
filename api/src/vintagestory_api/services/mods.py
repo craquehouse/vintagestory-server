@@ -14,12 +14,18 @@ from pathlib import Path
 import structlog
 
 from vintagestory_api.config import Settings
-from vintagestory_api.models.mods import ModInfo, ModState
+from vintagestory_api.models.mods import (
+    CompatibilityInfo,
+    ModInfo,
+    ModLookupResponse,
+    ModState,
+)
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ModApiClient,
     check_compatibility,
     extract_slug,
+    validate_slug,
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
@@ -110,6 +116,14 @@ class ModAlreadyInstalledError(Exception):
         self.slug = slug
         self.current_version = current_version
         super().__init__(f"Mod '{slug}' is already installed (version {current_version})")
+
+
+class InvalidSlugError(Exception):
+    """Raised when a mod slug is invalid."""
+
+    def __init__(self, slug: str) -> None:
+        self.slug = slug
+        super().__init__(f"Invalid mod slug: '{slug}'")
 
 
 @dataclass
@@ -264,6 +278,117 @@ class ModService:
             enabled=state.enabled,
             installed_at=state.installed_at,
             name=state.slug,
+        )
+
+    def _build_compatibility_message(
+        self,
+        status: CompatibilityStatus,
+        mod_version: str,
+        game_version: str,
+        compatible_tags: list[str] | None = None,
+    ) -> str | None:
+        """Build appropriate warning message for compatibility status.
+
+        Args:
+            status: The compatibility status.
+            mod_version: The mod version being evaluated.
+            game_version: The current game version.
+            compatible_tags: List of compatible version tags (for incompatible status).
+
+        Returns:
+            Warning message string, or None for compatible status.
+        """
+        if status == "compatible":
+            return None
+        elif status == "not_verified":
+            return f"Mod not explicitly verified for version {game_version}. May still work."
+        else:  # incompatible
+            if compatible_tags:
+                versions = ", ".join(compatible_tags[:3])  # Show up to 3 versions
+                if len(compatible_tags) > 3:
+                    versions += "..."
+                return (
+                    f"Mod version {mod_version} is only compatible with {versions}. "
+                    "Installation may cause issues."
+                )
+            return (
+                f"Mod version {mod_version} is not compatible with {game_version}. "
+                "Installation may cause issues."
+            )
+
+    async def lookup_mod(self, slug_or_url: str) -> ModLookupResponse:
+        """Look up mod details and compatibility from the VintageStory mod database.
+
+        Fetches mod information from mods.vintagestory.at and checks compatibility
+        with the current game version.
+
+        Args:
+            slug_or_url: Mod slug (e.g., "smithingplus") or full URL
+                         (e.g., "https://mods.vintagestory.at/smithingplus").
+
+        Returns:
+            ModLookupResponse with mod details and compatibility status.
+
+        Raises:
+            InvalidSlugError: If the slug format is invalid.
+            ModNotFoundError: If the mod doesn't exist in the database.
+            ExternalApiError: If the mod API is unavailable.
+        """
+        # Extract and validate slug
+        slug = extract_slug(slug_or_url)
+        if not validate_slug(slug):
+            raise InvalidSlugError(slug)
+
+        # Fetch mod from API
+        api_client = self._get_mod_api_client()
+        mod = await api_client.get_mod(slug)
+
+        if mod is None:
+            raise ModNotFoundError(slug)
+
+        # Get releases (API returns newest-first)
+        releases = mod.get("releases", [])
+        if not releases:
+            raise ModNotFoundError(slug)
+
+        latest_release = releases[0]
+        mod_version = latest_release.get("modversion", "unknown")
+
+        # Check compatibility with current game version
+        game_version = self._game_version
+        if not game_version or game_version == "stable":
+            # Server not installed or version unknown
+            status: CompatibilityStatus = "not_verified"
+            message = "Game server version unknown - cannot verify compatibility"
+        else:
+            status = check_compatibility(latest_release, game_version)
+            message = self._build_compatibility_message(
+                status,
+                mod_version,
+                game_version,
+                latest_release.get("tags", []),
+            )
+
+        # Build response
+        compatibility = CompatibilityInfo(
+            status=status,
+            game_version=game_version or "unknown",
+            mod_version=mod_version,
+            message=message,
+        )
+
+        # Calculate total downloads across all releases
+        total_downloads = sum(r.get("downloads", 0) for r in releases)
+
+        return ModLookupResponse(
+            slug=mod.get("urlalias", slug),
+            name=mod.get("name", slug),
+            author=mod.get("author", "Unknown"),
+            description=mod.get("text"),
+            latest_version=mod_version,
+            downloads=total_downloads,
+            side=mod.get("side", "Both"),
+            compatibility=compatibility,
         )
 
     def enable_mod(self, slug: str) -> None:

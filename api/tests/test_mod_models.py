@@ -2,7 +2,13 @@
 
 from datetime import UTC, datetime
 
-from vintagestory_api.models.mods import ModInfo, ModMetadata, ModState
+from vintagestory_api.models.mods import (
+    CompatibilityInfo,
+    ModInfo,
+    ModLookupResponse,
+    ModMetadata,
+    ModState,
+)
 
 
 class TestModMetadata:
@@ -202,3 +208,218 @@ class TestModInfo:
         assert data["authors"] == ["author1"]
         assert data["description"] == "A test mod"
         assert data["installed_at"] == "2025-12-29T10:30:00Z"
+
+
+class TestCompatibilityInfo:
+    """Tests for CompatibilityInfo model (compatibility status)."""
+
+    def test_create_compatible_status(self) -> None:
+        """CompatibilityInfo can be created with compatible status."""
+        info = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+            message=None,
+        )
+        assert info.status == "compatible"
+        assert info.game_version == "1.21.3"
+        assert info.mod_version == "1.8.3"
+        assert info.message is None
+
+    def test_create_not_verified_status(self) -> None:
+        """CompatibilityInfo can be created with not_verified status."""
+        info = CompatibilityInfo(
+            status="not_verified",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+            message="Mod not explicitly verified for version 1.21.3. May still work.",
+        )
+        assert info.status == "not_verified"
+        assert info.message is not None
+        assert "1.21.3" in info.message
+
+    def test_create_incompatible_status(self) -> None:
+        """CompatibilityInfo can be created with incompatible status."""
+        info = CompatibilityInfo(
+            status="incompatible",
+            game_version="1.21.3",
+            mod_version="1.7.0",
+            message="Mod version 1.7.0 is only compatible with 1.20.x. "
+            "Installation may cause issues.",
+        )
+        assert info.status == "incompatible"
+        assert info.message is not None
+        assert "1.20.x" in info.message
+
+    def test_serialization_roundtrip(self) -> None:
+        """CompatibilityInfo serializes to JSON and deserializes correctly."""
+        original = CompatibilityInfo(
+            status="not_verified",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+            message="Mod not explicitly verified for version 1.21.3.",
+        )
+        json_str = original.model_dump_json()
+        restored = CompatibilityInfo.model_validate_json(json_str)
+
+        assert restored.status == original.status
+        assert restored.game_version == original.game_version
+        assert restored.mod_version == original.mod_version
+        assert restored.message == original.message
+
+    def test_serialization_for_api_response(self) -> None:
+        """CompatibilityInfo serializes correctly for API responses."""
+        info = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+        )
+        data = info.model_dump(mode="json")
+
+        assert data == {
+            "status": "compatible",
+            "game_version": "1.21.3",
+            "mod_version": "1.8.3",
+            "message": None,
+        }
+
+
+class TestModLookupResponse:
+    """Tests for ModLookupResponse model (lookup endpoint response)."""
+
+    def test_create_with_required_fields(self) -> None:
+        """ModLookupResponse can be created with all required fields."""
+        compat = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+        )
+        response = ModLookupResponse(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            latest_version="1.8.3",
+            downloads=49726,
+            side="Both",
+            compatibility=compat,
+        )
+        assert response.slug == "smithingplus"
+        assert response.name == "Smithing Plus"
+        assert response.author == "jayu"
+        assert response.description is None
+        assert response.latest_version == "1.8.3"
+        assert response.downloads == 49726
+        assert response.side == "Both"
+        assert response.compatibility.status == "compatible"
+
+    def test_create_with_all_fields(self) -> None:
+        """ModLookupResponse can be created with all fields populated."""
+        compat = CompatibilityInfo(
+            status="not_verified",
+            game_version="1.21.3",
+            mod_version="1.8.2",
+            message="Mod not explicitly verified for version 1.21.3.",
+        )
+        response = ModLookupResponse(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            description="Expanded smithing mechanics for VintageStory",
+            latest_version="1.8.2",
+            downloads=49726,
+            side="Both",
+            compatibility=compat,
+        )
+        assert response.description == "Expanded smithing mechanics for VintageStory"
+        assert response.compatibility.status == "not_verified"
+        assert response.compatibility.message is not None
+
+    def test_serialization_roundtrip(self) -> None:
+        """ModLookupResponse serializes to JSON and deserializes correctly."""
+        compat = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+        )
+        original = ModLookupResponse(
+            slug="testmod",
+            name="Test Mod",
+            author="TestAuthor",
+            description="A test mod",
+            latest_version="2.0.0",
+            downloads=12345,
+            side="Server",
+            compatibility=compat,
+        )
+        json_str = original.model_dump_json()
+        restored = ModLookupResponse.model_validate_json(json_str)
+
+        assert restored.slug == original.slug
+        assert restored.name == original.name
+        assert restored.author == original.author
+        assert restored.description == original.description
+        assert restored.latest_version == original.latest_version
+        assert restored.downloads == original.downloads
+        assert restored.side == original.side
+        assert restored.compatibility.status == original.compatibility.status
+
+    def test_serialization_for_api_response(self) -> None:
+        """ModLookupResponse serializes correctly for API responses."""
+        compat = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+        )
+        response = ModLookupResponse(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            description="Expanded smithing",
+            latest_version="1.8.3",
+            downloads=49726,
+            side="Both",
+            compatibility=compat,
+        )
+        data = response.model_dump(mode="json")
+
+        assert data == {
+            "slug": "smithingplus",
+            "name": "Smithing Plus",
+            "author": "jayu",
+            "description": "Expanded smithing",
+            "latest_version": "1.8.3",
+            "downloads": 49726,
+            "side": "Both",
+            "compatibility": {
+                "status": "compatible",
+                "game_version": "1.21.3",
+                "mod_version": "1.8.3",
+                "message": None,
+            },
+        }
+
+    def test_nested_compatibility_info(self) -> None:
+        """ModLookupResponse properly nests CompatibilityInfo."""
+        compat = CompatibilityInfo(
+            status="incompatible",
+            game_version="1.21.3",
+            mod_version="1.5.0",
+            message="Mod version 1.5.0 is only compatible with 1.19.x",
+        )
+        response = ModLookupResponse(
+            slug="oldmod",
+            name="Old Mod",
+            author="someone",
+            latest_version="1.5.0",
+            downloads=1000,
+            side="Client",
+            compatibility=compat,
+        )
+
+        # Verify nested serialization
+        data = response.model_dump(mode="json")
+        assert data["compatibility"]["status"] == "incompatible"
+        assert (
+            data["compatibility"]["message"]
+            == "Mod version 1.5.0 is only compatible with 1.19.x"
+        )

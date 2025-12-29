@@ -7,8 +7,13 @@ from unittest.mock import patch
 
 import pytest
 
-from vintagestory_api.models.mods import ModInfo
-from vintagestory_api.services.mods import ModService, get_mod_service
+from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services.mods import (
+    InvalidSlugError,
+    ModNotFoundError,
+    ModService,
+    get_mod_service,
+)
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 
@@ -767,3 +772,312 @@ def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     with zipfile.ZipFile(buffer, "w") as zf:
         zf.writestr("modinfo.json", json.dumps(modinfo))
     return buffer.getvalue()
+
+
+# --- Tests for ModService.lookup_mod ---
+
+LOOKUP_MOD_COMPATIBLE = {
+    "modid": 2655,
+    "name": "Smithing Plus",
+    "urlalias": "smithingplus",
+    "author": "jayu",
+    "text": "Expanded smithing mechanics",
+    "side": "Both",
+    "releases": [
+        {
+            "releaseid": 27001,
+            "modversion": "1.8.3",
+            "filename": "smithingplus_1.8.3.zip",
+            "fileid": 59176,
+            "downloads": 49726,
+            "tags": ["1.21.0", "1.21.1", "1.21.2", "1.21.3"],
+        },
+    ],
+}
+
+LOOKUP_MOD_NOT_VERIFIED = {
+    "modid": 2655,
+    "name": "Smithing Plus",
+    "urlalias": "smithingplus",
+    "author": "jayu",
+    "text": "Expanded smithing mechanics",
+    "side": "Both",
+    "releases": [
+        {
+            "releaseid": 27001,
+            "modversion": "1.8.3",
+            "filename": "smithingplus_1.8.3.zip",
+            "fileid": 59176,
+            "downloads": 30000,
+            "tags": ["1.21.0"],  # Same major.minor as 1.21.3 but different patch
+        },
+    ],
+}
+
+LOOKUP_MOD_INCOMPATIBLE = {
+    "modid": 1234,
+    "name": "Old Mod",
+    "urlalias": "oldmod",
+    "author": "someone",
+    "text": None,
+    "side": "Server",
+    "releases": [
+        {
+            "releaseid": 10000,
+            "modversion": "1.5.0",
+            "filename": "oldmod_1.5.0.zip",
+            "fileid": 10000,
+            "downloads": 5000,
+            "tags": ["1.20.0", "1.20.1"],  # Different minor version
+        },
+    ],
+}
+
+
+class TestModServiceLookupMod:
+    """Tests for ModService.lookup_mod()."""
+
+    @pytest.fixture
+    def lookup_service(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> ModService:
+        """Create a ModService for lookup tests."""
+        state_dir, mods_dir = temp_dirs
+        cache_dir = state_dir.parent / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        return ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            cache_dir=cache_dir,
+            restart_state=restart_state,
+            game_version="1.21.3",
+        )
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_compatible(self, lookup_service: ModService) -> None:
+        """lookup_mod() returns compatible status for exact version match."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE},
+                )
+            )
+
+            result = await lookup_service.lookup_mod("smithingplus")
+
+        assert isinstance(result, ModLookupResponse)
+        assert result.slug == "smithingplus"
+        assert result.name == "Smithing Plus"
+        assert result.author == "jayu"
+        assert result.description == "Expanded smithing mechanics"
+        assert result.latest_version == "1.8.3"
+        assert result.downloads == 49726
+        assert result.side == "Both"
+        assert result.compatibility.status == "compatible"
+        assert result.compatibility.game_version == "1.21.3"
+        assert result.compatibility.mod_version == "1.8.3"
+        assert result.compatibility.message is None
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_not_verified(self, lookup_service: ModService) -> None:
+        """lookup_mod() returns not_verified for same major.minor version."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": LOOKUP_MOD_NOT_VERIFIED},
+                )
+            )
+
+            result = await lookup_service.lookup_mod("smithingplus")
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.message is not None
+        assert "1.21.3" in result.compatibility.message
+        assert "May still work" in result.compatibility.message
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_incompatible(self, lookup_service: ModService) -> None:
+        """lookup_mod() returns incompatible for different minor version."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/oldmod").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": LOOKUP_MOD_INCOMPATIBLE},
+                )
+            )
+
+            result = await lookup_service.lookup_mod("oldmod")
+
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.message is not None
+        assert "1.20.0" in result.compatibility.message
+        assert "Installation may cause issues" in result.compatibility.message
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_not_found(self, lookup_service: ModService) -> None:
+        """lookup_mod() raises ModNotFoundError for non-existent mod."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/nonexistent").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "404", "mod": None},
+                )
+            )
+
+            with pytest.raises(ModNotFoundError) as exc_info:
+                await lookup_service.lookup_mod("nonexistent")
+
+            assert exc_info.value.slug == "nonexistent"
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_api_unavailable(self, lookup_service: ModService) -> None:
+        """lookup_mod() raises ExternalApiError when API is unavailable."""
+        import httpx
+        import respx
+
+        from vintagestory_api.services.mod_api import ExternalApiError
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                side_effect=httpx.ConnectError("connection refused")
+            )
+
+            with pytest.raises(ExternalApiError):
+                await lookup_service.lookup_mod("smithingplus")
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_with_full_url(self, lookup_service: ModService) -> None:
+        """lookup_mod() works with full URL input."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE},
+                )
+            )
+
+            result = await lookup_service.lookup_mod(
+                "https://mods.vintagestory.at/smithingplus"
+            )
+
+        assert result.slug == "smithingplus"
+        assert result.compatibility.status == "compatible"
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_server_not_installed(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """lookup_mod() returns not_verified when server version is unknown."""
+        import respx
+        from httpx import Response
+
+        state_dir, mods_dir = temp_dirs
+        # Service with no game version (server not installed)
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+            game_version="",  # Empty = unknown
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE},
+                )
+            )
+
+            result = await service.lookup_mod("smithingplus")
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.message is not None
+        assert "version unknown" in result.compatibility.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_invalid_slug(self, lookup_service: ModService) -> None:
+        """lookup_mod() raises InvalidSlugError for invalid slug format."""
+        with pytest.raises(InvalidSlugError) as exc_info:
+            await lookup_service.lookup_mod("../invalid/path")
+
+        assert exc_info.value.slug == "../invalid/path"
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_windows_reserved_name(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() rejects Windows reserved names."""
+        with pytest.raises(InvalidSlugError):
+            await lookup_service.lookup_mod("con")
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_calculates_total_downloads(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() sums downloads across all releases."""
+        import respx
+        from httpx import Response
+
+        mod_with_multiple_releases = {
+            **LOOKUP_MOD_COMPATIBLE,
+            "releases": [
+                {
+                    "releaseid": 27001,
+                    "modversion": "1.8.3",
+                    "filename": "smithingplus_1.8.3.zip",
+                    "fileid": 59176,
+                    "downloads": 30000,
+                    "tags": ["1.21.3"],
+                },
+                {
+                    "releaseid": 26000,
+                    "modversion": "1.8.2",
+                    "filename": "smithingplus_1.8.2.zip",
+                    "fileid": 58000,
+                    "downloads": 15000,
+                    "tags": ["1.21.0"],
+                },
+                {
+                    "releaseid": 25000,
+                    "modversion": "1.8.1",
+                    "filename": "smithingplus_1.8.1.zip",
+                    "fileid": 57000,
+                    "downloads": 5000,
+                    "tags": ["1.20.5"],
+                },
+            ],
+        }
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": mod_with_multiple_releases},
+                )
+            )
+
+            result = await lookup_service.lookup_mod("smithingplus")
+
+        assert result.downloads == 50000  # 30000 + 15000 + 5000
