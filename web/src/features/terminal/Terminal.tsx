@@ -1,7 +1,10 @@
-import { useCallback, useRef } from 'react';
-import type { Terminal as XTerminal, IDisposable } from '@xterm/xterm';
+import { useRef, useState } from 'react';
+import type { FormEvent, KeyboardEvent } from 'react';
+import type { Terminal as XTerminal } from '@xterm/xterm';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { TerminalView } from '@/components/terminal/TerminalView';
 import { ConnectionStatus } from '@/components/terminal/ConnectionStatus';
 import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
@@ -10,31 +13,15 @@ import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
  * Terminal page component that displays the server console.
  *
  * Features:
- * - Real-time console output via WebSocket
- * - Command input through the terminal
+ * - Real-time console output via WebSocket (read-only terminal display)
+ * - Separate command input field for sending commands
  * - Connection status indicator
  * - Theme-aware styling
  */
 export function Terminal() {
   const terminalRef = useRef<XTerminal | null>(null);
-  const inputBufferRef = useRef<string>('');
-  const dataListenerRef = useRef<IDisposable | null>(null);
-
-  // Handle terminal ready - set up input handler
-  const handleTerminalReady = useCallback((terminal: XTerminal) => {
-    terminalRef.current = terminal;
-    inputBufferRef.current = '';
-  }, []);
-
-  // Handle terminal cleanup
-  const handleTerminalDispose = useCallback(() => {
-    if (dataListenerRef.current) {
-      dataListenerRef.current.dispose();
-      dataListenerRef.current = null;
-    }
-    terminalRef.current = null;
-    inputBufferRef.current = '';
-  }, []);
+  const [command, setCommand] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { connectionState, sendCommand } = useConsoleWebSocket({
     onMessage: (data) => {
@@ -46,61 +33,35 @@ export function Terminal() {
     },
   });
 
-  // Handle terminal input for command sending
-  const handleTerminalInput = useCallback(
-    (terminal: XTerminal) => {
-      // Clean up existing listener
-      if (dataListenerRef.current) {
-        dataListenerRef.current.dispose();
-      }
+  // Handle terminal ready
+  const handleTerminalReady = (terminal: XTerminal) => {
+    terminalRef.current = terminal;
+  };
 
-      // Listen for terminal input
-      dataListenerRef.current = terminal.onData((data) => {
-        // Handle Enter key
-        if (data === '\r' || data === '\n') {
-          const command = inputBufferRef.current.trim();
-          if (command) {
-            sendCommand(command);
-          }
-          inputBufferRef.current = '';
-          terminal.write('\r\n');
-          return;
-        }
+  // Handle terminal cleanup
+  const handleTerminalDispose = () => {
+    terminalRef.current = null;
+  };
 
-        // Handle Backspace
-        if (data === '\x7f' || data === '\b') {
-          if (inputBufferRef.current.length > 0) {
-            inputBufferRef.current = inputBufferRef.current.slice(0, -1);
-            terminal.write('\b \b');
-          }
-          return;
-        }
+  // Handle command submission
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmedCommand = command.trim();
+    if (trimmedCommand && connectionState === 'connected') {
+      sendCommand(trimmedCommand);
+      setCommand('');
+    }
+  };
 
-        // Handle Ctrl+C (cancel current input)
-        if (data === '\x03') {
-          inputBufferRef.current = '';
-          terminal.write('^C\r\n');
-          return;
-        }
+  // Handle Enter key in input
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
 
-        // Regular character input
-        if (data.length === 1 && data.charCodeAt(0) >= 32) {
-          inputBufferRef.current += data;
-          terminal.write(data);
-        }
-      });
-    },
-    [sendCommand]
-  );
-
-  // Set up input handler when terminal is ready
-  const handleReady = useCallback(
-    (terminal: XTerminal) => {
-      handleTerminalReady(terminal);
-      handleTerminalInput(terminal);
-    },
-    [handleTerminalReady, handleTerminalInput]
-  );
+  const isConnected = connectionState === 'connected';
 
   return (
     <div className="flex h-full flex-col gap-4" aria-label="Terminal page">
@@ -111,12 +72,37 @@ export function Terminal() {
             <ConnectionStatus state={connectionState} />
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <TerminalView
-            onReady={handleReady}
-            onDispose={handleTerminalDispose}
-            className="h-full w-full"
-          />
+        <CardContent className="flex flex-1 flex-col overflow-hidden p-0">
+          <div className="flex-1 overflow-hidden">
+            <TerminalView
+              onReady={handleTerminalReady}
+              onDispose={handleTerminalDispose}
+              className="h-full w-full"
+            />
+          </div>
+          <form
+            onSubmit={handleSubmit}
+            className="flex gap-2 border-t bg-muted/50 p-3"
+          >
+            <Input
+              ref={inputRef}
+              type="text"
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isConnected ? 'Enter command...' : 'Disconnected'}
+              disabled={!isConnected}
+              className="flex-1 font-mono"
+              aria-label="Command input"
+            />
+            <Button
+              type="submit"
+              disabled={!isConnected || !command.trim()}
+              variant="default"
+            >
+              Send
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

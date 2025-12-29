@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // WebSocket constants
 const WS_CONNECTING = 0;
@@ -38,6 +39,12 @@ class MockWebSocket {
     this.readyState = WS_CLOSED;
     if (this.onclose) {
       this.onclose(new CloseEvent('close', { code, wasClean: true }));
+    }
+  }
+
+  simulateMessage(data: string) {
+    if (this.onmessage) {
+      this.onmessage(new MessageEvent('message', { data }));
     }
   }
 }
@@ -130,6 +137,18 @@ describe('Terminal Page', () => {
         screen.getByRole('application', { name: 'Server console terminal' })
       ).toBeInTheDocument();
     });
+
+    it('renders the command input field', () => {
+      render(<Terminal />);
+
+      expect(screen.getByLabelText('Command input')).toBeInTheDocument();
+    });
+
+    it('renders the send button', () => {
+      render(<Terminal />);
+
+      expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
+    });
   });
 
   describe('connection status (AC: 4)', () => {
@@ -175,6 +194,133 @@ describe('Terminal Page', () => {
     });
   });
 
+  describe('command input (AC: 3)', () => {
+    it('disables input when not connected', () => {
+      render(<Terminal />);
+
+      const input = screen.getByLabelText('Command input');
+      expect(input).toBeDisabled();
+    });
+
+    it('enables input when connected', async () => {
+      render(<Terminal />);
+
+      // Simulate connection
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        const input = screen.getByLabelText('Command input');
+        expect(input).not.toBeDisabled();
+      });
+    });
+
+    it('disables send button when input is empty', async () => {
+      render(<Terminal />);
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        const button = screen.getByRole('button', { name: 'Send' });
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it('enables send button when input has content', async () => {
+      const user = userEvent.setup();
+      render(<Terminal />);
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Command input')).not.toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      await user.type(input, '/help');
+
+      const button = screen.getByRole('button', { name: 'Send' });
+      expect(button).not.toBeDisabled();
+    });
+
+    it('sends command when form is submitted', async () => {
+      const user = userEvent.setup();
+      render(<Terminal />);
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Command input')).not.toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      await user.type(input, '/help');
+
+      const button = screen.getByRole('button', { name: 'Send' });
+      await user.click(button);
+
+      expect(MockWebSocket.instances[0]?.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'command', content: '/help' })
+      );
+    });
+
+    it('clears input after sending command', async () => {
+      const user = userEvent.setup();
+      render(<Terminal />);
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Command input')).not.toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      await user.type(input, '/help');
+      await user.click(screen.getByRole('button', { name: 'Send' }));
+
+      expect(input).toHaveValue('');
+    });
+
+    it('sends command on Enter key', async () => {
+      const user = userEvent.setup();
+      render(<Terminal />);
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Command input')).not.toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      await user.type(input, '/help{enter}');
+
+      expect(MockWebSocket.instances[0]?.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'command', content: '/help' })
+      );
+    });
+
+    it('shows placeholder based on connection state', async () => {
+      render(<Terminal />);
+
+      const input = screen.getByLabelText('Command input');
+      expect(input).toHaveAttribute('placeholder', 'Disconnected');
+
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(input).toHaveAttribute('placeholder', 'Enter command...');
+      });
+    });
+  });
+
   describe('accessibility', () => {
     it('has proper aria-label on terminal container', () => {
       render(<Terminal />);
@@ -191,6 +337,12 @@ describe('Terminal Page', () => {
 
       const statusElement = screen.getByRole('status');
       expect(statusElement).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('has aria-label on command input', () => {
+      render(<Terminal />);
+
+      expect(screen.getByLabelText('Command input')).toBeInTheDocument();
     });
   });
 

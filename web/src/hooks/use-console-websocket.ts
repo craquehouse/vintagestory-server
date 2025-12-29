@@ -137,14 +137,23 @@ export function useConsoleWebSocket(
   // Use ref for retry count in reconnection logic to avoid recreating connect callback
   const retryCountRef = useRef(0);
 
+  // Store callbacks in refs to avoid recreating connect on callback changes
+  const onOpenRef = useRef(onOpen);
+  const onMessageRef = useRef(onMessage);
+  const onCloseRef = useRef(onClose);
+  const onStateChangeRef = useRef(onStateChange);
+
+  // Keep refs in sync with latest callbacks
+  onOpenRef.current = onOpen;
+  onMessageRef.current = onMessage;
+  onCloseRef.current = onClose;
+  onStateChangeRef.current = onStateChange;
+
   // Update connection state and notify callback
-  const updateState = useCallback(
-    (state: ConnectionState) => {
-      setConnectionState(state);
-      onStateChange?.(state);
-    },
-    [onStateChange]
-  );
+  const updateState = useCallback((state: ConnectionState) => {
+    setConnectionState(state);
+    onStateChangeRef.current?.(state);
+  }, []);
 
   // Connect to WebSocket
   const connect = useCallback(() => {
@@ -172,16 +181,16 @@ export function useConsoleWebSocket(
       updateState('connected');
       retryCountRef.current = 0;
       setRetryCount(0);
-      onOpen?.(ws);
+      onOpenRef.current?.(ws);
     };
 
     ws.onmessage = (event) => {
-      onMessage?.(event.data);
+      onMessageRef.current?.(event.data);
     };
 
     ws.onclose = (event) => {
       debugLog('Connection closed', { code: event.code, reason: event.reason });
-      onClose?.(event);
+      onCloseRef.current?.(event);
 
       // Handle specific close codes
       if (event.code === WS_CLOSE_CODES.FORBIDDEN) {
@@ -236,16 +245,7 @@ export function useConsoleWebSocket(
       debugLog('WebSocket error', { event: String(event) });
       // Error will trigger onclose
     };
-  }, [
-    historyLines,
-    maxRetries,
-    baseDelayMs,
-    maxDelayMs,
-    updateState,
-    onOpen,
-    onMessage,
-    onClose,
-  ]);
+  }, [historyLines, maxRetries, baseDelayMs, maxDelayMs, updateState]);
 
   // Send a command to the server
   const sendCommand = useCallback((command: string) => {
