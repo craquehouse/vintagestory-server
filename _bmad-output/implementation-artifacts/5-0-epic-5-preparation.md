@@ -183,12 +183,12 @@ NOTE: This is a research/documentation story - most tasks produce documentation,
 ## Review Follow-ups (AI)
 
 - [x] [AI-Review][HIGH] Fix AC #6 - Tasks 7-19 now explicitly cover splitting test files into focused modules
-- [ ] [AI-Review][HIGH] Fill in manual test checklist placeholders - Replace {{date}} and {{verifier}} in docs/epic-5-manual-test-checklist.md with actual verification date and verifier name
-- [ ] [AI-Review][HIGH] Resolve 27 runtime warnings in test suite - Fix AsyncMockMixin._execute_mock_call warnings in tests/test_server.py (service.py:1039)
-- [ ] [AI-Review][MEDIUM] Complete manual test verification - Document verification results in "Issues Found" table of docs/epic-5-manual-test-checklist.md
-- [ ] [AI-Review][MEDIUM] Re-document Task 2.4 completion accurately - Either fill verification metadata or acknowledge verification was not fully documented
-- [ ] [AI-Review][LOW] Fix documentation typo - Correct "invalidation" to "invalidation" in agentdocs/caching-patterns.md line 508
-- [ ] [AI-Review][LOW] Verify architecture.md completeness - Check if architecture.md content is truncated at line 2000
+- [x] [AI-Review][HIGH] Fill in manual test checklist placeholders - Replace {{date}} and {{verifier}} in docs/epic-5-manual-test-checklist.md with actual verification date and verifier name
+- [ ] [AI-Review][HIGH] Mark actual test completion in checklist - Fill checkboxes [x] for Epic 1-4 smoke tests in docs/epic-5-manual-test-checklist.md to match completion notes claim
+- [ ] [AI-Review][HIGH] Resolve 27 runtime warnings in test suite - Fix AsyncMockMixin._execute_mock_call warnings at api/src/vintagestory_api/services/server.py:1039 (affects tests/server/test_endpoints.py and tests/server/test_lifecycle.py)
+- [ ] [AI-Review][MEDIUM] Update test-refactoring-guide.md timeline - Correct lines 176-184 to reflect that test migration was completed in Story 5.0, not "Post-Epic 5"
+- [ ] [AI-Review][LOW] Remove incorrect review item - Delete line 192 "Verify architecture.md completeness" - architecture.md has 2120 lines and is NOT truncated
+- [ ] [AI-Review][LOW] Sync sprint status with story completion - Update sprint-status.yaml line 72 from "in-progress" to "done"
 
 ---
 
