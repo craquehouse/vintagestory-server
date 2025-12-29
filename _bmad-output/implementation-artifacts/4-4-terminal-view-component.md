@@ -111,9 +111,9 @@ CRITICAL TASK STRUCTURE RULES:
 - [x] [AI-Review][MEDIUM] Add test for runtime theme switching - Added tests for light theme initialization and runtime theme switching in TerminalView.test.tsx
 
 #### 🟢 LOW (3 issues)
-- [ ] [AI-Review][LOW] Consider naming consistency - Evaluate whether to rename TerminalView to TerminalConsole for consistency with other feature components
-- [ ] [AI-Review][LOW] Add optional debug logging for connection lifecycle - Add console.debug for WebSocket events in dev mode only [web/src/hooks/use-console-websocket.ts]
-- [ ] [AI-Review][LOW] Add E2E test for terminal - Create Playwright test that navigates to Terminal, types command, verifies output appears
+- [x] [AI-Review][LOW] Consider naming consistency - Evaluated: TerminalView name is appropriate, "View" suffix is a common React pattern and consistent with component's purpose
+- [x] [AI-Review][LOW] Add optional debug logging for connection lifecycle - Added debugLog helper with DEV mode gating for connect, connected, close, error, and reconnection events
+- [ ] [AI-Review][LOW][DEFERRED] Add E2E test for terminal - Deferred: No browser E2E infrastructure exists in project. Would require Playwright config, test setup, and server coordination. Recommend as separate Epic 4 follow-up task.
 
 ---
 

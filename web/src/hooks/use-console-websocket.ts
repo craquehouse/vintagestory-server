@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
+ * Debug logging helper - only logs in development mode.
+ */
+function debugLog(message: string, data?: Record<string, unknown>): void {
+  if (import.meta.env.DEV) {
+    if (data) {
+      console.debug(`[ConsoleWebSocket] ${message}`, data);
+    } else {
+      console.debug(`[ConsoleWebSocket] ${message}`);
+    }
+  }
+}
+
+/**
  * Connection states for the console WebSocket.
  */
 export type ConnectionState =
@@ -148,10 +161,12 @@ export function useConsoleWebSocket(
     updateState('connecting');
 
     const url = buildConsoleWebSocketUrl(historyLines);
+    debugLog('Connecting', { url: url.replace(/api_key=[^&]+/, 'api_key=***') });
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      debugLog('Connected');
       updateState('connected');
       setRetryCount(0);
       onOpen?.(ws);
@@ -162,21 +177,25 @@ export function useConsoleWebSocket(
     };
 
     ws.onclose = (event) => {
+      debugLog('Connection closed', { code: event.code, reason: event.reason });
       onClose?.(event);
 
       // Handle specific close codes
       if (event.code === WS_CLOSE_CODES.FORBIDDEN) {
+        debugLog('Access forbidden');
         updateState('forbidden');
         return;
       }
 
       if (event.code === WS_CLOSE_CODES.UNAUTHORIZED) {
+        debugLog('Unauthorized');
         updateState('forbidden');
         return;
       }
 
       // Normal close - don't reconnect
       if (event.code === WS_CLOSE_CODES.NORMAL) {
+        debugLog('Normal close, not reconnecting');
         updateState('disconnected');
         return;
       }
@@ -191,15 +210,25 @@ export function useConsoleWebSocket(
           maxDelayMs
         );
         const jitter = Math.random() * 1000;
+        const totalDelay = delay + jitter;
+
+        debugLog('Scheduling reconnection', {
+          attempt: retryCount + 1,
+          maxRetries,
+          delayMs: Math.round(totalDelay),
+        });
 
         reconnectTimeoutRef.current = window.setTimeout(() => {
           setRetryCount((c) => c + 1);
           connect();
-        }, delay + jitter);
+        }, totalDelay);
+      } else if (retryCount >= maxRetries) {
+        debugLog('Max retries reached, giving up');
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (event) => {
+      debugLog('WebSocket error', { event: String(event) });
       // Error will trigger onclose
     };
   }, [
