@@ -1,6 +1,6 @@
 # Story 4.4: Terminal View Component
 
-Status: done
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -98,6 +98,22 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] 6.3: Ensure terminal fills available space with proper flex layout
   - [x] 6.4: Add ARIA labels for accessibility
   - [x] 6.5: Write integration tests for full terminal page
+
+### Review Follow-ups (AI)
+
+**From code review on 2025-12-28 - 6 issues found (1 CRITICAL, 2 MEDIUM, 3 LOW)**
+
+#### 🔴 CRITICAL (1 issue)
+- [ ] [AI-Review][CRITICAL] Fill in Dev Agent Record - Complete empty File List, Completion Notes, and Agent Model Used sections [4-4-terminal-view-component.md:362-364]
+
+#### 🟡 MEDIUM (2 issues)
+- [ ] [AI-Review][MEDIUM] Verify WebSocket message format - Confirm Story 4.2-4.3 sends plain text (not JSON) and only add JSON error handling if needed [web/src/hooks/use-console-websocket.ts:160-162]
+- [ ] [AI-Review][MEDIUM] Add test for runtime theme switching - Verify TerminalView updates theme when ThemeContext changes after mount [web/src/components/terminal/TerminalView.test.tsx]
+
+#### 🟢 LOW (3 issues)
+- [ ] [AI-Review][LOW] Consider naming consistency - Evaluate whether to rename TerminalView to TerminalConsole for consistency with other feature components
+- [ ] [AI-Review][LOW] Add optional debug logging for connection lifecycle - Add console.debug for WebSocket events in dev mode only [web/src/hooks/use-console-websocket.ts]
+- [ ] [AI-Review][LOW] Add E2E test for terminal - Create Playwright test that navigates to Terminal, types command, verifies output appears
 
 ---
 
