@@ -12,8 +12,8 @@ This checklist contains smoke tests for verifying core functionality before rele
 Before running manual tests, ensure:
 
 1. [ ] Docker is running
-2. [ ] Run `docker compose -f docker-compose.dev.yaml up -d --build`
-3. [ ] Wait for container to be healthy (check with `docker compose ps`)
+2. [ ] Run `just docker status`
+3. [ ] Wait for container to be healthy (check with `just docker status`)
 4. [ ] Web UI accessible at `http://localhost:8080`
 5. [ ] `.env` file contains valid `VS_API_KEY_ADMIN`
 

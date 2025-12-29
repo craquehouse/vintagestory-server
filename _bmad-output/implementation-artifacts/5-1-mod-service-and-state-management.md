@@ -1,0 +1,457 @@
+# Story 5.1: Mod Service and State Management
+
+Status: ready-for-dev
+
+<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+
+## Story
+
+As a **backend developer**,
+I want **a service that tracks installed mods and their state**,
+So that **mod information is persisted and available to the API**.
+
+---
+
+## Background
+
+This is the first implementation story for Epic 5 (Mod Management). It establishes the foundational service layer that all subsequent mod-related stories depend on. The preparatory work for Epic 5 was completed in Story 5.0, which documented:
+- External API integration patterns with httpx
+- Caching architecture (artifact cache + TTL-based API cache)
+- Mod state model and service boundaries
+- Testing patterns with respx for mocking httpx
+
+**FRs Covered:** Foundation for FR10-17
+**NFRs Addressed:** NFR11 (graceful API failures), NFR13 (core functionality without network)
+
+---
+
+## Acceptance Criteria
+
+1. **Given** mods are installed in `/data/serverdata/mods/`, **When** the API starts or rescans, **Then** the mod service discovers all `.zip` files in the mods directory **And** extracts mod metadata (modid, version, name) from `modinfo.json`
+
+2. **Given** a mod's enabled/disabled state changes, **When** the state is updated, **Then** the change is persisted to `/data/vsmanager/state/mods.json` (atomic write) **And** a pending restart flag is set if the server is running
+
+3. **Given** state persistence fails, **When** an atomic write is attempted, **Then** the temp file is written first, then renamed (prevents corruption)
+
+---
+
+## Tasks / Subtasks
+
+<!--
+CRITICAL TASK STRUCTURE RULES:
+1. Each functional task MUST include "+ tests" in its name
+2. Do NOT create separate "Write tests" tasks at the end
+3. A task is NOT complete until its tests pass
+4. Tests verify the specific AC listed for that task
+
+CORRECT PATTERN:
+- [ ] Task 1: Implement feature A + tests (AC: 1, 2)
+  - [ ] Create implementation
+  - [ ] Write tests for success/failure cases
+
+WRONG PATTERN (tests batched at end):
+- [ ] Task 1: Implement feature A (AC: 1, 2)
+- [ ] Task 2: Write all tests  <- NEVER DO THIS
+-->
+
+- [ ] Task 1: Create Mod models (Pydantic) + tests (AC: 1)
+  - [ ] 1.1: Create `api/src/vintagestory_api/models/mods.py` with:
+    - `ModState` - state index entry (filename, slug, version, enabled, installed_at)
+    - `ModInfo` - combined local + remote mod information (for API responses)
+    - `ModMetadata` - extracted from modinfo.json (modid, name, version, authors, description)
+  - [ ] 1.2: Write unit tests for model serialization/deserialization
+  - [ ] 1.3: Run `just test-api tests/test_mod_models.py` - verify tests pass
+
+- [ ] Task 2: Implement ModStateManager service + tests (AC: 2, 3)
+  - [ ] 2.1: Create `api/src/vintagestory_api/services/mod_state.py` with:
+    - `ModStateManager` class for managing mod state persistence
+    - `load()` - load state index from `/data/vsmanager/state/mods.json`
+    - `save()` - persist state with atomic writes (temp + rename)
+    - `get_mod(slug)` - get single mod state from index
+    - `list_mods()` - get all mod states
+    - `set_mod_state(slug, state)` - update mod state in index
+    - `remove_mod(slug)` - remove mod from state index
+  - [ ] 2.2: Implement atomic write pattern (write to `.tmp`, then rename)
+  - [ ] 2.3: Write tests for state persistence, atomic writes, and failure recovery
+  - [ ] 2.4: Run `just test-api tests/test_mod_state.py` - verify tests pass
+
+- [ ] Task 3: Implement import_mod and metadata caching + tests (AC: 1)
+  - [ ] 3.1: Implement `import_mod(zip_path)` function:
+    - Extract modinfo.json from zip to temp directory
+    - Parse slug (modid) and version from modinfo.json
+    - Cache modinfo.json to `/data/vsmanager/state/mods/<slug>/<version>/modinfo.json`
+    - Return parsed ModMetadata
+  - [ ] 3.2: Implement `get_cached_metadata(slug, version)` - read from cache if exists
+  - [ ] 3.3: Handle missing/corrupt modinfo.json gracefully (log warning, use filename as fallback)
+  - [ ] 3.4: Implement zip slip protection when extracting
+  - [ ] 3.5: Write tests for import_mod, caching, and error handling
+  - [ ] 3.6: Run `just test-api tests/test_mod_state.py` - verify all tests pass
+
+- [ ] Task 4: Implement mod directory scanner + tests (AC: 1)
+  - [ ] 4.1: Add to ModStateManager:
+    - `scan_mods_directory()` - discover .zip files in mods directory
+    - `sync_state_with_disk()` - reconcile state index with actual files:
+      - For each .zip file: check if filename exists in state index
+      - If not in index: call `import_mod()` to extract metadata and cache it
+      - If in index: use cached slug/version to load metadata from cache
+      - Remove state entries for files that no longer exist on disk
+  - [ ] 4.2: Write tests for mod discovery and sync logic
+  - [ ] 4.3: Run `just test-api tests/test_mod_state.py` - verify all tests pass
+
+- [ ] Task 5: Integrate pending restart tracking + tests (AC: 2)
+  - [ ] 5.1: Extend or create state tracking for `pending_restart` flag:
+    - Add `pending_restart: bool` and `pending_changes: list[str]` to app state
+    - Create helper method `require_restart(reason: str)`
+    - Create helper method `clear_restart()` (called after successful restart)
+  - [ ] 5.2: Wire mod state changes to set pending_restart when server is running:
+    - Check server status before setting flag
+    - Add reason to pending_changes list
+  - [ ] 5.3: Write tests for pending restart state transitions
+  - [ ] 5.4: Run `just test-api tests/test_mod_state.py` - verify all tests pass
+
+- [ ] Task 6: Create ModService orchestrator + tests (AC: 1, 2)
+  - [ ] 6.1: Create `api/src/vintagestory_api/services/mods.py` with:
+    - `ModService` class that orchestrates ModStateManager and future API client
+    - `get_mod(slug)` - get mod info (from state + cached metadata)
+    - `list_mods()` - list all installed mods with metadata
+    - `enable_mod(slug)` - enable mod, update state, set pending_restart
+    - `disable_mod(slug)` - disable mod, update state, set pending_restart
+  - [ ] 6.2: Implement enable/disable via file renaming (`.disabled` suffix)
+  - [ ] 6.3: Write integration tests for ModService
+  - [ ] 6.4: Run `just test-api tests/test_mod_service.py` - verify all tests pass
+
+- [ ] Task 7: Wire ModService into FastAPI app + tests (AC: 1, 2)
+  - [ ] 7.1: Add ModService initialization in `main.py` (lazy init on first use or app startup)
+  - [ ] 7.2: Add dependency injection pattern for ModService (like existing ServerService)
+  - [ ] 7.3: Ensure mod state is scanned/loaded on app startup
+  - [ ] 7.4: Write API-level integration tests verifying service initialization
+  - [ ] 7.5: Run `just test-api` - verify full test suite passes
+  - [ ] 7.6: Run `just check` - verify lint, typecheck, and all tests pass
+
+---
+
+## Dev Notes
+
+### Testing Requirements
+
+**CRITICAL:** Tests must be written alongside implementation, not as a separate phase.
+
+- Each task that adds functionality must include its tests before marking complete
+- A task is NOT complete until tests pass
+- Do not batch tests into a separate "Write tests" task at the end
+- Run `just test-api` to verify tests pass before marking task complete
+- Run `just check` for full validation (lint + typecheck + test) before story completion
+
+**Test file locations:**
+```
+api/tests/
+├── test_mod_models.py      # Task 1: Model unit tests
+├── test_mod_state.py       # Tasks 2, 3, 4: State manager tests
+└── test_mod_service.py     # Task 5: Service integration tests
+```
+
+### Security Requirements
+
+**Follow patterns in `project-context.md` → Security Patterns section:**
+
+- No sensitive data in mod state (no API keys, passwords)
+- Path traversal protection when scanning mods directory
+- Validate zip file paths to prevent zip slip attacks
+- Use atomic writes to prevent state corruption
+
+### Development Commands
+
+Use `just` for all development tasks:
+- `just test` - Run all tests
+- `just test-api` - Run API tests
+- `just test-api tests/test_mod_state.py` - Run specific test file
+- `just check` - Full validation (lint + typecheck + test)
+- `just lint` - Run all linters
+- `just lint-api --fix` - Lint with auto-fix
+
+### Architecture & Patterns
+
+**From architecture.md → Epic 5: Mod Management Architecture:**
+
+**Two-Tier Caching Architecture:**
+
+```
+/data/vsmanager/
+├── cache/
+│   └── mods/                           # Download cache (artifact cache)
+│       └── smithingplus_1.8.3.zip      # Raw downloaded files, keyed by filename
+│
+└── state/
+    ├── mods.json                       # State index: filename → {slug, version, enabled}
+    └── mods/                           # Metadata cache
+        └── smithingplus/
+            └── 1.8.3/
+                └── modinfo.json        # Cached extracted metadata
+```
+
+**State Index (`mods.json`):**
+Maps filename to slug/version for fast lookup without re-extracting from zip.
+```json
+{
+  "smithingplus_1.8.3.zip": {
+    "slug": "smithingplus",
+    "version": "1.8.3",
+    "enabled": true,
+    "installed_at": "2025-12-29T10:30:00Z"
+  }
+}
+```
+
+**Mod State Model:**
+```python
+# api/src/vintagestory_api/models/mods.py
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+class ModState(BaseModel):
+    """State index entry for an installed mod."""
+    filename: str           # Original filename (key for download cache)
+    slug: str               # modid from modinfo.json (key for metadata cache)
+    version: str            # Version from modinfo.json
+    enabled: bool = True
+    installed_at: datetime
+
+class ModMetadata(BaseModel):
+    """Metadata extracted from modinfo.json inside mod zip."""
+    modid: str
+    name: str
+    version: str
+    authors: list[str] = []
+    description: Optional[str] = None
+```
+
+**import_mod() Pattern:**
+```python
+async def import_mod(self, zip_path: Path) -> ModMetadata:
+    """
+    Import a mod from a zip file:
+    1. Extract modinfo.json to temp
+    2. Parse slug (modid) + version
+    3. Cache modinfo.json to state/mods/<slug>/<version>/
+    4. Return parsed metadata
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Extract only modinfo.json (not full zip)
+        modinfo_data = self._extract_modinfo_from_zip(zip_path, Path(tmpdir))
+
+    metadata = ModMetadata.model_validate(modinfo_data)
+
+    # Cache to organized location
+    cache_dir = self.state_dir / "mods" / metadata.modid / metadata.version
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    (cache_dir / "modinfo.json").write_text(json.dumps(modinfo_data, indent=2))
+
+    return metadata
+```
+
+**Scan Optimization:**
+```python
+async def sync_state_with_disk(self) -> None:
+    """Reconcile state index with actual files in mods directory."""
+    disk_files = {f.name for f in self.mods_dir.glob("*.zip")}
+    state_files = set(self._state.keys())
+
+    # New files: import and add to state
+    for filename in disk_files - state_files:
+        metadata = await self.import_mod(self.mods_dir / filename)
+        self._state[filename] = ModState(
+            filename=filename,
+            slug=metadata.modid,
+            version=metadata.version,
+            installed_at=datetime.utcnow()
+        )
+
+    # Deleted files: remove from state
+    for filename in state_files - disk_files:
+        del self._state[filename]
+
+    await self.save()
+```
+
+**State File Locations:**
+- State index: `/data/vsmanager/state/mods.json`
+- Metadata cache: `/data/vsmanager/state/mods/<slug>/<version>/modinfo.json`
+- Download cache: `/data/vsmanager/cache/mods/<filename>` (for future Story 5.2)
+
+**Pending Restart Pattern (from agentdocs/pending-restart-patterns.md):**
+```python
+# Extend existing state or create new module
+class PendingRestartState:
+    pending_restart: bool = False
+    pending_changes: list[str] = []
+
+    def require_restart(self, reason: str) -> None:
+        self.pending_restart = True
+        self.pending_changes.append(reason)
+
+    def clear_restart(self) -> None:
+        self.pending_restart = False
+        self.pending_changes = []
+```
+
+**Enable/Disable Pattern:**
+Two options (choose one):
+1. **File suffix approach:** Rename `.zip` to `.zip.disabled`
+2. **Softlink approach:** Only link enabled mods to server Mods directory
+
+Recommendation: **File suffix approach** is simpler and doesn't require managing softlinks.
+
+```python
+async def disable_mod(self, slug: str) -> None:
+    mod = self._state.get(slug)
+    if not mod:
+        raise ModNotFoundError(slug)
+
+    # Rename file
+    old_path = self.mods_dir / mod.filename
+    new_path = old_path.with_suffix('.zip.disabled')
+    old_path.rename(new_path)
+
+    # Update state
+    mod.enabled = False
+    mod.filename = new_path.name
+    await self.save()
+```
+
+### Project Structure Notes
+
+**Files to create:**
+```
+api/src/vintagestory_api/
+├── models/
+│   └── mods.py              # NEW - Mod Pydantic models
+├── services/
+│   ├── mod_state.py         # NEW - ModStateManager
+│   └── mods.py              # NEW - ModService orchestrator
+```
+
+**Files to modify:**
+```
+api/src/vintagestory_api/
+├── main.py                  # Add ModService initialization
+├── models/__init__.py       # Export mod models
+└── services/__init__.py     # Export mod services
+```
+
+**Test files to create:**
+```
+api/tests/
+├── test_mod_models.py       # Model unit tests
+├── test_mod_state.py        # ModStateManager tests
+└── test_mod_service.py      # ModService integration tests
+```
+
+### Previous Story Intelligence (5.0 Prep)
+
+**Key patterns established in 5.0:**
+- Test refactoring: Large test files split into focused modules (`tests/server/`, `tests/console/`)
+- Architecture documentation updated with Epic 5 patterns
+- Caching patterns documented in `agentdocs/caching-patterns.md`
+- Pending restart patterns documented in `agentdocs/pending-restart-patterns.md`
+- Mod API patterns documented in `agentdocs/vintagestory-modapi.md`
+
+**Test organization pattern from 5.0:**
+- Use pytest fixtures in `conftest.py` for shared setup
+- Group related tests in packages (`tests/mods/` for future stories)
+- Use `@pytest.fixture` for temporary directories and mock state
+
+**Code review findings from 5.0:**
+- Manual verification catches integration issues automated tests miss
+- Every failing test must be addressed (no-silent-failures rule)
+- Clean up technical debt at milestones
+
+### Git Intelligence
+
+**Recent commits establishing patterns:**
+- `3ffd562` - fix(tests): eliminate runtime warnings from async mock streams
+- `b642da6` - refactor(tests): migrate server and console tests to modular packages
+- `8c7b597` - docs(story-5.0): complete Epic 5 technical preparation
+
+**Commit message format:** `type(scope): description`
+- `feat(mods)`: for new functionality
+- `fix(mods)`: for bug fixes
+- `test(mods)`: for test-only changes
+- `refactor(mods)`: for restructuring without behavior change
+
+### modinfo.json Format
+
+**Standard VintageStory mod structure:**
+```
+mod-file.zip
+├── modinfo.json           # Required - mod metadata
+├── assets/               # Game assets
+└── ...
+```
+
+**modinfo.json example:**
+```json
+{
+  "modid": "smithingplus",
+  "name": "Smithing Plus",
+  "version": "1.8.3",
+  "authors": ["Tyron", "radfast"],
+  "description": "Expanded smithing mechanics",
+  "type": "code",
+  "dependencies": {
+    "game": "1.21.0"
+  }
+}
+```
+
+**Key fields to extract:**
+| Field | Required | Usage |
+|-------|----------|-------|
+| `modid` | Yes | Unique identifier (usually matches slug) |
+| `name` | Yes | Display name |
+| `version` | Yes | Mod version |
+| `authors` | No | List of author names |
+| `description` | No | Mod description |
+
+### Error Handling
+
+**Use error codes from architecture.md:**
+```python
+# api/src/vintagestory_api/models/errors.py
+class ErrorCode:
+    # ... existing codes ...
+    MOD_NOT_FOUND = "MOD_NOT_FOUND"
+    MOD_NOT_INSTALLED = "MOD_NOT_INSTALLED"
+    MOD_ALREADY_INSTALLED = "MOD_ALREADY_INSTALLED"
+    MOD_STATE_CORRUPT = "MOD_STATE_CORRUPT"
+    MOD_FILE_CORRUPT = "MOD_FILE_CORRUPT"
+```
+
+**Graceful degradation:**
+- If modinfo.json is missing/corrupt: Use filename as fallback for modid/name
+- If state file is corrupt: Log error, recreate from disk scan
+- If mod file is missing: Remove from state, log warning
+
+### References
+
+- `project-context.md` - Critical implementation rules and patterns
+- `_bmad-output/planning-artifacts/architecture.md` - Full architecture doc (Epic 5 section)
+- `agentdocs/pending-restart-patterns.md` - Pending restart UI pattern
+- `agentdocs/caching-patterns.md` - Caching strategy guide (for future stories)
+- `agentdocs/vintagestory-modapi.md` - Mod API documentation (for future stories)
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 5.1: Mod Service and State Management]
+
+---
+
+## Dev Agent Record
+
+### Agent Model Used
+
+{{agent_model_name_version}}
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
+
