@@ -1,6 +1,6 @@
 # Story 5.0: Epic 5 Technical Preparation
 
-Status: done
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -97,7 +97,19 @@ NOTE: This is a research/documentation story - most tasks produce documentation,
   - [x] 6.2: Created shared fixtures in `tests/server/conftest.py` for reusable patterns
   - [x] 6.3: Created `agentdocs/test-refactoring-guide.md` with detailed migration plan
   - [x] 6.4: Documented line-by-line extraction plan for all 28 test classes
-  - [x] 6.5: Verified full test suite passes (308 tests, no regressions)
+   - [x] 6.5: Verified full test suite passes (308 tests, no regressions)
+
+---
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Fix AC #6 - Actually split test_console.py (1656 lines) and test_server.py (2929 lines) into focused modules per test-refactoring-guide.md plan
+- [ ] [AI-Review][HIGH] Fill in manual test checklist placeholders - Replace {{date}} and {{verifier}} in docs/epic-5-manual-test-checklist.md with actual verification date and verifier name
+- [ ] [AI-Review][HIGH] Resolve 27 runtime warnings in test suite - Fix AsyncMockMixin._execute_mock_call warnings in tests/test_server.py (service.py:1039)
+- [ ] [AI-Review][MEDIUM] Complete manual test verification - Document verification results in "Issues Found" table of docs/epic-5-manual-test-checklist.md
+- [ ] [AI-Review][MEDIUM] Re-document Task 2.4 completion accurately - Either fill verification metadata or acknowledge verification was not fully documented
+- [ ] [AI-Review][LOW] Fix documentation typo - Correct "invalidation" to "invalidation" in agentdocs/caching-patterns.md line 508
+- [ ] [AI-Review][LOW] Verify architecture.md completeness - Check if architecture.md content is truncated at line 2000
 
 ---
 
