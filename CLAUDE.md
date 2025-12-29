@@ -25,6 +25,10 @@ When implementing features:
 - Mark checklist items as complete in the story file
 - Create checkpoint commits at logical boundaries
 
+### Polish Backlog
+
+`_bmad-output/implementation-artifacts/polish-backlog.md` tracks small-to-medium improvements discovered during development that don't belong to a specific epic. Items are categorized (UI, API, Infrastructure, Tools, CI/CD) with priority, effort estimates, and status tracking. When you encounter minor issues or improvements while working on features, add them to this backlog rather than addressing them immediately.
+
 ## Architecture
 
 ```
