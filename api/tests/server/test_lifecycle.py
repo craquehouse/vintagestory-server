@@ -834,3 +834,111 @@ class TestRestartPartialFailures:
 
             assert response.action == LifecycleAction.RESTART
             assert response.new_state == ServerState.RUNNING
+
+
+class TestModServiceIntegration:
+    """Tests for integration between ServerService and ModService (Review Item #2)."""
+
+    @pytest.mark.asyncio
+    async def test_start_server_updates_mod_service_running_state(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """start_server() notifies mod service that server is running."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+
+        with patch(
+            "vintagestory_api.services.server._get_mod_service_module"
+        ) as mock_get_module:
+            mock_mod_service = MagicMock()
+            mock_module = MagicMock()
+            mock_module.get_mod_service.return_value = mock_mod_service
+            mock_get_module.return_value = mock_module
+
+            await installed_service.start_server()
+
+            mock_mod_service.set_server_running.assert_called_with(True)
+
+    @pytest.mark.asyncio
+    async def test_stop_server_updates_mod_service_running_state(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """stop_server() notifies mod service that server is stopped."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+
+        await installed_service.start_server()
+
+        with patch(
+            "vintagestory_api.services.server._get_mod_service_module"
+        ) as mock_get_module:
+            mock_mod_service = MagicMock()
+            mock_module = MagicMock()
+            mock_module.get_mod_service.return_value = mock_mod_service
+            mock_get_module.return_value = mock_module
+
+            await installed_service.stop_server()
+
+            mock_mod_service.set_server_running.assert_called_with(False)
+
+    @pytest.mark.asyncio
+    async def test_restart_server_clears_pending_restart(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """restart_server() clears pending restart state after successful restart."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+
+        with patch(
+            "vintagestory_api.services.server._get_mod_service_module"
+        ) as mock_get_module:
+            mock_restart_state = MagicMock()
+            mock_mod_service = MagicMock()
+            mock_module = MagicMock()
+            mock_module.get_mod_service.return_value = mock_mod_service
+            mock_module.get_restart_state.return_value = mock_restart_state
+            mock_get_module.return_value = mock_module
+
+            await installed_service.restart_server()
+
+            mock_restart_state.clear_restart.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_crash_updates_mod_service_running_state(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """When server crashes, mod service is notified server is not running."""
+        _, mock_process = mock_subprocess
+        # Simulate crash with non-zero exit code
+        mock_process.wait = AsyncMock(return_value=1)
+        mock_process.returncode = 1
+
+        with patch(
+            "vintagestory_api.services.server._get_mod_service_module"
+        ) as mock_get_module:
+            mock_mod_service = MagicMock()
+            mock_module = MagicMock()
+            mock_module.get_mod_service.return_value = mock_mod_service
+            mock_get_module.return_value = mock_module
+
+            await installed_service.start_server()
+
+            # Let monitor task run and detect the crash
+            await asyncio.sleep(0.1)
+
+            mock_mod_service.set_server_running.assert_called_with(False)
+
+    @pytest.mark.asyncio
+    async def test_mod_service_integration_graceful_when_unavailable(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """Server lifecycle operations succeed even when mod service unavailable."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+
+        with patch(
+            "vintagestory_api.services.server._get_mod_service_module"
+        ) as mock_get_module:
+            # Simulate mod service not available
+            mock_get_module.side_effect = ImportError("No mod service")
+
+            # Should not raise - gracefully handle missing mod service
+            response = await installed_service.start_server()
+
+            assert response.new_state == ServerState.RUNNING

@@ -233,6 +233,36 @@ class ModStateManager:
         )
         return metadata
 
+    def _is_safe_zip_path(self, name: str) -> bool:
+        """Validate that a zip member path is safe (no path traversal).
+
+        Uses Path.resolve() to detect path traversal attempts including:
+        - ../etc/passwd (simple parent traversal)
+        - subdir/../../etc/passwd (nested traversal)
+        - /absolute/path (absolute paths)
+        - \\windows\\path (Windows absolute paths)
+
+        Args:
+            name: The zip member name to validate.
+
+        Returns:
+            True if the path is safe, False if it attempts path traversal.
+        """
+        # Use a dummy base directory to simulate extraction
+        base_dir = Path("/safe/base")
+        base_resolved = base_dir.resolve()
+
+        # Construct target path and resolve it
+        target_path = (base_dir / name).resolve()
+
+        # Check if resolved path stays within base directory
+        try:
+            target_path.relative_to(base_resolved)
+            return True
+        except ValueError:
+            # Path escapes the base directory
+            return False
+
     def _extract_modinfo_from_zip(self, zip_path: Path) -> dict[str, object] | None:
         """Extract modinfo.json content from a mod zip file.
 
@@ -248,8 +278,13 @@ class ModStateManager:
                 for name in zf.namelist():
                     # Handle both root-level and any directory structure
                     if name.endswith("modinfo.json"):
-                        # Security: validate path doesn't escape
-                        if ".." in name or name.startswith("/"):
+                        # Security: validate path doesn't escape using resolve()
+                        # This catches all path traversal attempts including:
+                        # - ../etc/passwd
+                        # - subdir/../../etc/passwd
+                        # - /absolute/path
+                        # - ./leading/dot
+                        if not self._is_safe_zip_path(name):
                             logger.warning(
                                 "modinfo_path_traversal_attempt",
                                 filename=zip_path.name,

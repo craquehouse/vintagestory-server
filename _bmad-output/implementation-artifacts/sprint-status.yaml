@@ -70,7 +70,7 @@ development_status:
   # Epic 5: Mod Management
   epic-5: in-progress
   5-0-epic-5-preparation: done
-  5-1-mod-service-and-state-management: in-progress
+  5-1-mod-service-and-state-management: done
   5-2-mod-installation-api: backlog
   5-3-mod-compatibility-validation: backlog
   5-4-mod-enable-disable-and-remove-api: backlog

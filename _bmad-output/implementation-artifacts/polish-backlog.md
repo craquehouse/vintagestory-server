@@ -69,7 +69,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 | ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
-| TOOLS-001 | _Example: Add just recipe for database migrations_ | low | S | backlog | - | - |
+| TOOLS-001 | Add incremental test commit reminders to dev-story workflow to prevent test batching (Epic 1 retro lesson 2) | medium | S | backlog | Epic-5.1 | Tests should be committed alongside implementation, not batched at the end |
 
 ---
 

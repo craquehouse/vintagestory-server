@@ -487,6 +487,120 @@ class TestImportMod:
         assert cache_path.exists()
 
 
+class TestZipSlipProtection:
+    """Tests for zip slip protection via import_mod() (Review Item #3).
+
+    These tests verify that malicious zip files with path traversal attempts
+    in their modinfo.json locations are handled safely by falling back to
+    filename-derived metadata.
+    """
+
+    def test_import_mod_blocks_simple_traversal(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() blocks modinfo.json with simple path traversal (../)."""
+        zip_path = temp_mods_dir / "malicious_simple.zip"
+        modinfo_content = json.dumps({
+            "modid": "evilmod",
+            "name": "Evil Mod",
+            "version": "1.0.0",
+        })
+
+        # Create zip with path traversal in modinfo.json path
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("../modinfo.json", modinfo_content)
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use fallback since malicious path is blocked
+        assert metadata.modid == "malicious_simple"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_blocks_nested_traversal(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() blocks modinfo.json with nested path traversal (subdir/../../)."""
+        zip_path = temp_mods_dir / "malicious_nested.zip"
+        modinfo_content = json.dumps({
+            "modid": "sneakymod",
+            "name": "Sneaky Mod",
+            "version": "2.0.0",
+        })
+
+        # Create zip with nested path traversal
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("subdir/../../etc/modinfo.json", modinfo_content)
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use fallback since malicious path is blocked
+        assert metadata.modid == "malicious_nested"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_blocks_absolute_path(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() blocks modinfo.json with absolute path."""
+        zip_path = temp_mods_dir / "malicious_absolute.zip"
+        modinfo_content = json.dumps({
+            "modid": "absmod",
+            "name": "Absolute Mod",
+            "version": "3.0.0",
+        })
+
+        # Create zip with absolute path
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("/etc/modinfo.json", modinfo_content)
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use fallback since malicious path is blocked
+        assert metadata.modid == "malicious_absolute"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_accepts_safe_subdirectory(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() accepts modinfo.json in safe subdirectory."""
+        zip_path = temp_mods_dir / "safe_subdir.zip"
+        modinfo_content = json.dumps({
+            "modid": "safemod",
+            "name": "Safe Mod",
+            "version": "1.0.0",
+        })
+
+        # Create zip with modinfo.json in subdirectory (safe pattern)
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("content/modinfo.json", modinfo_content)
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should extract from safe subdirectory
+        assert metadata.modid == "safemod"
+        assert metadata.version == "1.0.0"
+
+    def test_import_mod_accepts_dots_in_filename(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() accepts modinfo.json with dots in directory names (not traversal)."""
+        zip_path = temp_mods_dir / "dots_in_name.zip"
+        modinfo_content = json.dumps({
+            "modid": "dotmod",
+            "name": "Dot Mod",
+            "version": "1.2.3",
+        })
+
+        # Create zip with dots in directory name (safe - not traversal)
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("mod.v1.2.3/modinfo.json", modinfo_content)
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should extract normally
+        assert metadata.modid == "dotmod"
+        assert metadata.version == "1.2.3"
+
+
 class TestGetCachedMetadata:
     """Tests for get_cached_metadata() function."""
 

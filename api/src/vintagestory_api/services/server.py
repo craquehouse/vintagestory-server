@@ -26,6 +26,19 @@ from vintagestory_api.models.server import (
 )
 from vintagestory_api.services.console import ConsoleBuffer
 
+# Lazy import to avoid circular dependency - imported at runtime when needed
+_mod_service_module = None
+
+
+def _get_mod_service_module():
+    """Lazy import of mod service module to avoid circular imports."""
+    global _mod_service_module
+    if _mod_service_module is None:
+        from vintagestory_api.services import mods as mod_service_module
+
+        _mod_service_module = mod_service_module
+    return _mod_service_module
+
 logger = structlog.get_logger()
 
 # VintageStory API endpoints
@@ -148,6 +161,42 @@ class ServerService:
     def console_buffer(self) -> ConsoleBuffer:
         """Get the console buffer for server output."""
         return self._console_buffer
+
+    def _update_mod_service_server_state(self, running: bool) -> None:
+        """Update the mod service with current server running state.
+
+        This allows the mod service to know when to set pending_restart flags.
+        Uses lazy import to avoid circular dependencies.
+
+        Args:
+            running: Whether the server is currently running.
+        """
+        try:
+            mod_module = _get_mod_service_module()
+            mod_service = mod_module.get_mod_service()
+            mod_service.set_server_running(running)
+            logger.debug("mod_service_server_state_updated", running=running)
+        except Exception as e:
+            # Non-fatal: mod service integration is optional
+            logger.debug(
+                "mod_service_update_skipped",
+                reason=str(e),
+                running=running,
+            )
+
+    def _clear_pending_restart(self) -> None:
+        """Clear the pending restart state after successful server restart.
+
+        Called after the server has been successfully restarted.
+        """
+        try:
+            mod_module = _get_mod_service_module()
+            restart_state = mod_module.get_restart_state()
+            restart_state.clear_restart()
+            logger.debug("pending_restart_cleared")
+        except Exception as e:
+            # Non-fatal: restart state integration is optional
+            logger.debug("pending_restart_clear_skipped", reason=str(e))
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client for API requests.
@@ -847,6 +896,9 @@ class ServerService:
                 state=self._server_state.value,
             )
 
+            # Notify mod service that server is now running
+            self._update_mod_service_server_state(True)
+
             return LifecycleResponse(
                 action=LifecycleAction.START,
                 previous_state=previous_state,
@@ -924,6 +976,9 @@ class ServerService:
                     except asyncio.CancelledError:
                         pass
 
+            # Notify mod service that server is no longer running
+            self._update_mod_service_server_state(False)
+
             return LifecycleResponse(
                 action=LifecycleAction.STOP,
                 previous_state=previous_state,
@@ -969,6 +1024,9 @@ class ServerService:
         logger.info("restart_starting_server")
         await self._start_server_locked()
 
+        # Clear pending restart state since server has been restarted
+        self._clear_pending_restart()
+
         return LifecycleResponse(
             action=LifecycleAction.RESTART,
             previous_state=previous_state,
@@ -992,6 +1050,8 @@ class ServerService:
             # Only update state if we weren't already stopping
             if self._server_state != ServerState.STOPPING:
                 self._server_state = ServerState.INSTALLED
+                # Notify mod service that server is no longer running
+                self._update_mod_service_server_state(False)
                 if returncode == 0:
                     logger.info("server_exited_normally", returncode=returncode)
                 else:
