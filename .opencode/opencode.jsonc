@@ -1,5 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "git commit*": "allow",
+    "git diff*": "allow",
+    "git status*": "allow",
+    "grep *": "allow",
+    "just lint*": "allow",
+    "just typecheck*": "allow",
+    "just test*": "allow",
+    "just docker*": "allow"
+  },
   "mcp": {
     "playwright": {
       "type": "local",
