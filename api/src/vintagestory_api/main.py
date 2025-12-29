@@ -69,6 +69,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         data_dir=str(settings.data_dir),
     )
     yield
+    # Shutdown: close any open resources
+    from vintagestory_api.services.mods import close_mod_service
+
+    await close_mod_service()
     logger.info("api_shutting_down")
 
 

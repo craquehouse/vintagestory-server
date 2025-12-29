@@ -144,6 +144,36 @@ class TestValidateSlug:
         assert validate_slug("mod/name") is False
         assert validate_slug("mod.name") is False
 
+    def test_path_traversal_rejected(self) -> None:
+        """Path traversal patterns are rejected."""
+        assert validate_slug("../etc") is False
+        assert validate_slug("..\\windows") is False
+        assert validate_slug("mod/../secret") is False
+        assert validate_slug("./current") is False
+
+    def test_windows_reserved_names_rejected(self) -> None:
+        """Windows reserved device names are rejected."""
+        # Basic reserved names
+        assert validate_slug("con") is False
+        assert validate_slug("prn") is False
+        assert validate_slug("aux") is False
+        assert validate_slug("nul") is False
+        # Case insensitive
+        assert validate_slug("CON") is False
+        assert validate_slug("Con") is False
+        # COM and LPT ports
+        assert validate_slug("com1") is False
+        assert validate_slug("COM9") is False
+        assert validate_slug("lpt1") is False
+        assert validate_slug("LPT9") is False
+
+    def test_valid_slug_similar_to_reserved(self) -> None:
+        """Slugs that contain but aren't reserved names are valid."""
+        assert validate_slug("console") is True
+        assert validate_slug("mycon") is True
+        assert validate_slug("auxiliary") is True
+        assert validate_slug("com10") is True  # Only COM1-9 are reserved
+
 
 # --- Tests for check_compatibility ---
 
@@ -170,21 +200,51 @@ class TestCheckCompatibility:
         assert result == "incompatible"
 
     def test_empty_tags(self) -> None:
-        """Empty tags returns 'incompatible'."""
+        """Empty tags returns 'not_verified' (safe default)."""
         release: dict[str, str | list[str]] = {"modversion": "1.8.3", "tags": []}
         result = check_compatibility(release, "1.21.0")
-        assert result == "incompatible"
+        assert result == "not_verified"
 
     def test_missing_tags(self) -> None:
-        """Missing tags key returns 'incompatible'."""
+        """Missing tags key returns 'not_verified' (safe default)."""
         release = {"modversion": "1.8.3"}
         result = check_compatibility(release, "1.21.0")
-        assert result == "incompatible"
+        assert result == "not_verified"
 
     def test_major_only_tag_match(self) -> None:
         """Tag like '1.21' matches version '1.21.3'."""
         release = {"modversion": "1.8.3", "tags": ["1.21"]}
         result = check_compatibility(release, "1.21.3")
+        assert result == "not_verified"
+
+    def test_version_with_v_prefix(self) -> None:
+        """Version with 'v' prefix is normalized."""
+        release = {"modversion": "1.8.3", "tags": ["1.21.3"]}
+        result = check_compatibility(release, "v1.21.3")
+        assert result == "compatible"
+
+    def test_version_stable_returns_not_verified(self) -> None:
+        """Non-numeric version like 'stable' returns safe default."""
+        release = {"modversion": "1.8.3", "tags": ["1.21.0", "1.21.1"]}
+        result = check_compatibility(release, "stable")
+        assert result == "not_verified"
+
+    def test_version_latest_returns_not_verified(self) -> None:
+        """Non-numeric version like 'latest' returns safe default."""
+        release = {"modversion": "1.8.3", "tags": ["1.21.0"]}
+        result = check_compatibility(release, "latest")
+        assert result == "not_verified"
+
+    def test_empty_game_version(self) -> None:
+        """Empty game version returns 'not_verified'."""
+        release = {"modversion": "1.8.3", "tags": ["1.21.0"]}
+        result = check_compatibility(release, "")
+        assert result == "not_verified"
+
+    def test_single_number_version(self) -> None:
+        """Single number version like '1' returns safe default."""
+        release = {"modversion": "1.8.3", "tags": ["1.21.0"]}
+        result = check_compatibility(release, "1")
         assert result == "not_verified"
 
 

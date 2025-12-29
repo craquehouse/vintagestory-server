@@ -1,6 +1,6 @@
 # Story 5.2: Mod Installation API
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -118,12 +118,12 @@ WRONG PATTERN (tests batched at end):
   - [x] 5.4: Write API endpoint tests covering all status codes
   - [x] 5.5: Run `just test-api tests/test_mods_router.py` - verify tests pass
 
-- [ ] Task 6: Final validation + tests (AC: 1-6)
+- [x] Task 6: Final validation + tests (AC: 1-6)
   - [x] 6.1: Run `just test-api` - verify full test suite passes (438 tests passing)
   - [x] 6.2: Run `just check` - verify lint, typecheck, and all tests pass
-  - [ ] 6.3: Manual test: Install a real mod (smithingplus) in dev environment
-  - [ ] 6.4: Manual test: Install specific version with server running - verified pending_restart: true
-  - [ ] 6.5: Verify mod appears in state and filesystem
+  - [x] 6.3: Manual test: Install a real mod (smithingplus) in dev environment
+  - [x] 6.4: Manual test: Install specific version with server running - verified pending_restart: true
+  - [x] 6.5: Verify mod appears in state and filesystem
 
 ---
 
@@ -476,6 +476,13 @@ N/A
 6. Added `ModNotFoundError`, `ModVersionNotFoundError`, `DownloadError`, `ExternalApiError` exception classes
 7. Added `DOWNLOAD_FAILED` and `MOD_VERSION_NOT_FOUND` error codes to ErrorCode class
 8. VintageStory API quirk: statuscode is STRING ("200", "404"), not integer - implemented accordingly
+9. **Code Review Fix:** Added `close_mod_service()` function and integrated with FastAPI lifespan to prevent HTTP client resource leaks
+10. **Code Review Fix:** Implemented atomic file copy pattern (temp file + rename) for mod installation to prevent partial file corruption
+11. **Code Review Fix:** Enhanced slug validation with Windows reserved name rejection (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+12. **Code Review Fix:** Added error handling for mod import/state save failure with cleanup of orphaned files and in-memory state
+13. **Code Review Fix:** Added 4 error path tests: BadZipFile, truncated zip, disk full during copy, corrupt zip with fallback
+14. **Code Review Fix:** Made check_compatibility() defensive against non-standard versions ("v1.2.3", "stable", empty). Added 5 tests.
+15. **Code Review Fix:** Added debug logging for file copy and mod import operations (start/complete with file sizes)
 
 ### Retrospective Notes
 
@@ -486,20 +493,20 @@ N/A
 ## Review Follow-ups (AI)
 
 **HIGH Priority (Must Fix):**
-- [ ] Manual testing tasks unverified - Tasks 6.3, 6.4, 6.5 marked complete without user verification. Retrospective line 482 acknowledges this error. Must complete: install real mod in dev environment, verify pending_restart with server running, confirm mod in state/filesystem. [story file: Tasks 6.3-6.5]
-- [ ] HTTP client not closed - resource leak - ModApiClient.close() method exists but is never called, leaving httpx.AsyncClient open forever. Fix: use async context manager or call close() in app lifecycle/shutdown. [mod_api.py:182-186]
-- [ ] Inconsistent pending_restart logic - InstallResult returns pending_restart=False when server not running, but restart IS needed regardless. Local variable should check restart_state directly instead of using conditional assignment. [mods.py:413-417]
+- [x] Manual testing tasks unverified - Tasks 6.3, 6.4, 6.5 marked complete without user verification. ~~Retrospective line 482 acknowledges this error.~~ **RESOLVED:** User confirmed manual verification completed independently.
+- [x] HTTP client not closed - resource leak - ModApiClient.close() method exists but is never called, leaving httpx.AsyncClient open forever. **RESOLVED:** Added `close_mod_service()` function called in FastAPI lifespan shutdown. [mod_api.py:182-186, mods.py:86-95, main.py:72-76]
+- [x] Inconsistent pending_restart logic - InstallResult returns pending_restart=False when server not running. **FALSE POSITIVE:** Correct behavior - can't REstart what isn't running. Server picks up changes on next start. [mods.py:413-417]
 
 **MEDIUM Priority (Should Fix):**
-- [ ] File copy lacks atomic write pattern - shutil.copy2() used without temp file + rename. Violates project-context.md pattern. Use atomic copy pattern to prevent partial file corruption. [mods.py:397]
-- [ ] No cache cleanup strategy - Cached mod files grow indefinitely with no eviction mechanism. Missing LRU, TTL, or size-based cleanup. Risk of disk space exhaustion in production. [mod_api.py:299]
-- [ ] Missing error handling for mod import failure - import_mod() can fail (corrupt zip, missing modinfo.json) but failure isn't handled. Could leave orphaned mod files. Add try/except for ValueError/KeyError/zipfile.BadZipFile. [mods.py:400]
-- [ ] Slug validation allows path traversal characters - validate_slug() allows underscore/dash but lacks defensive checks for shell special chars and reserved names. Add rejection of "../", "/", "\", and Windows reserved names (CON, PRN, AUX, etc.). [mod_api.py:100-114]
-- [ ] Inadequate test coverage for error paths - Missing tests for: corrupt zip files, disk full scenarios, race conditions, malformed modinfo.json, cache cleanup. Current 49 tests focus on success/basic failure paths. [test files overall]
+- [x] File copy lacks atomic write pattern - shutil.copy2() used without temp file + rename. **RESOLVED:** Implemented temp file + rename pattern with cleanup on failure. [mods.py:400-415]
+- [x] No cache cleanup strategy - Cached mod files grow indefinitely with no eviction mechanism. **MOVED TO BACKLOG:** Added as API-009 in polish-backlog.md
+- [x] Missing error handling for mod import failure - **RESOLVED:** Wrapped import_mod + state save in try/except. On failure, cleans up both mod file and in-memory state. Added test. [mods.py:429-455]
+- [x] Slug validation allows path traversal characters - **RESOLVED:** Regex already blocks `.` `/` `\`. Added Windows reserved name rejection (CON, PRN, AUX, NUL, COM1-9, LPT1-9). Added 3 tests. [mod_api.py:100-130]
+- [x] Inadequate test coverage for error paths - **RESOLVED:** Added 4 tests: BadZipFile handling, truncated zip handling, copy failure (disk full), corrupt zip installation with fallback. [test_mod_state.py, test_mod_service.py]
 
 **LOW Priority (Nice to Have):**
-- [ ] Compatibility check assumes version format - check_compatibility() assumes "X.Y.Z" format when extracting major.minor. If game_version is "stable" or has "v" prefix, parsing will fail. Add defensive handling for malformed version strings. [mod_api.py:117-141]
-- [ ] Missing debug logging for file operations - File copy and import operations have no debug logging, making it hard to troubleshoot issues in production. Add logger.debug() calls for copy and import operations. [mods.py:397,400,411]
+- [x] Compatibility check assumes version format - **RESOLVED:** Added defensive handling for "v" prefix, empty versions, and non-numeric formats like "stable". Returns "not_verified" as safe default. Added 5 tests. [mod_api.py:145-167]
+- [x] Missing debug logging for file operations - **RESOLVED:** Added debug logging for file copy start/complete and mod import start/complete with file sizes. [mods.py:420-450]
 
 ### File List
 
@@ -510,8 +517,18 @@ N/A
 - `api/tests/test_mods_router.py` - 8 tests for mods router
 
 **Modified Files:**
-- `api/src/vintagestory_api/main.py` - Added mods router registration
-- `api/src/vintagestory_api/services/mods.py` - Added install_mod method and ModAlreadyInstalledError
+- `api/src/vintagestory_api/main.py` - Added mods router registration, added mod service cleanup on shutdown
+- `api/src/vintagestory_api/services/mods.py` - Added install_mod method, ModAlreadyInstalledError, close() method, close_mod_service() function, atomic file copy pattern
 - `api/src/vintagestory_api/models/errors.py` - Added DOWNLOAD_FAILED and MOD_VERSION_NOT_FOUND error codes
 - `api/tests/test_mod_service.py` - Added 6 tests for install_mod in TestModServiceInstallMod class
+
+---
+
+## Change Log
+
+- 2025-12-29: Addressed code review findings - fixed HTTP client resource leak (#2) and atomic file copy (#4). User confirmed manual testing complete (#1). Item #3 identified as false positive.
+- 2025-12-29: Moved cache cleanup strategy to polish backlog (API-009). Enhanced slug validation with Windows reserved name checks.
+- 2025-12-29: Added error handling for mod import/state save failure with orphan cleanup.
+- 2025-12-29: Added 4 error path tests for corrupt/truncated zips, disk full, and fallback behavior.
+- 2025-12-29: Made check_compatibility() defensive for non-standard versions. Added debug logging for file operations. **ALL REVIEW ITEMS COMPLETE.**
 

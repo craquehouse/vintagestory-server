@@ -644,6 +644,120 @@ class TestModServiceInstallMod:
         assert restart_state.pending_restart is True
         assert "smithingplus" in restart_state.pending_changes[0]
 
+    @pytest.mark.asyncio
+    async def test_install_mod_cleans_up_on_import_failure(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() cleans up mod file if import or state save fails."""
+        import respx
+        from httpx import Response
+
+        _, mods_dir = temp_dirs
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            # Mock state manager save to fail
+            with patch.object(
+                install_service.state_manager, "save", side_effect=OSError("Disk full")
+            ):
+                with pytest.raises(OSError, match="Disk full"):
+                    await install_service.install_mod("smithingplus")
+
+        # Verify mod file was cleaned up (not left orphaned)
+        assert not (mods_dir / "smithingplus_1.8.3.zip").exists()
+
+        # Verify no state was persisted
+        assert install_service.state_manager.get_mod_by_slug("smithingplus") is None
+
+    @pytest.mark.asyncio
+    async def test_install_mod_handles_copy_failure(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() cleans up temp file if copy fails (e.g., disk full)."""
+        import shutil
+
+        import respx
+        from httpx import Response
+
+        _, mods_dir = temp_dirs
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            # Mock shutil.copy2 to simulate disk full
+            with patch.object(
+                shutil, "copy2", side_effect=OSError("No space left on device")
+            ):
+                with pytest.raises(OSError, match="No space left on device"):
+                    await install_service.install_mod("smithingplus")
+
+        # Verify no temp or final files left behind
+        assert not (mods_dir / "smithingplus_1.8.3.zip").exists()
+        assert not (mods_dir / "smithingplus_1.8.3.tmp").exists()
+
+    @pytest.mark.asyncio
+    async def test_install_mod_with_corrupt_zip_uses_fallback(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() succeeds with fallback metadata for corrupt zip."""
+        import respx
+        from httpx import Response
+
+        _, mods_dir = temp_dirs
+
+        # Create corrupt zip content (not a valid zip)
+        corrupt_zip_content = b"this is not a valid zip file"
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=corrupt_zip_content)
+            )
+
+            result = await install_service.install_mod("smithingplus")
+
+        # Should succeed using filename-derived fallback metadata
+        assert result.success is True
+        assert result.filename == "smithingplus_1.8.3.zip"
+        # Slug comes from fallback (filename without version)
+        assert result.slug == "smithingplus_1.8.3"
+
+        # Verify file exists
+        assert (mods_dir / "smithingplus_1.8.3.zip").exists()
+
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""

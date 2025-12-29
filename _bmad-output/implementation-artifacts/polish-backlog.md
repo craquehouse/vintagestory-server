@@ -55,7 +55,8 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                   | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
 | API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                        | high       | M        | backlog  | UI-005    | - |  
 | API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist       | high       | M        | backlog  | -         | - |  
-| API-008 | API should track available space on data volume, and we should have a config var for warning threshold     | high       | M        | backlog  | -         | - |  
+| API-008 | API should track available space on data volume, and we should have a config var for warning threshold     | high       | M        | backlog  | -         | - |
+| API-009 | Mod cache cleanup strategy - cached mod files grow indefinitely with no eviction (LRU, TTL, or size-based) | medium     | M        | backlog  | Story-5.2 | Risk of disk space exhaustion in production |
 
 ---
 

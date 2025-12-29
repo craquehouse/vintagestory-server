@@ -459,6 +459,34 @@ class TestImportMod:
         assert metadata.modid == "corruptmod_1.0.0"
         assert metadata.version == "unknown"
 
+    def test_import_mod_handles_bad_zip_file(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() uses filename fallback if zip file is completely corrupt."""
+        zip_path = temp_mods_dir / "badzip_1.0.0.zip"
+        # Write garbage data that isn't a valid zip
+        zip_path.write_bytes(b"this is not a zip file at all")
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback (BadZipFile is caught)
+        assert metadata.modid == "badzip_1.0.0"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_handles_truncated_zip(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() uses filename fallback if zip is truncated."""
+        zip_path = temp_mods_dir / "truncated_2.0.0.zip"
+        # Write partial zip header but truncated
+        zip_path.write_bytes(b"PK\x03\x04" + b"\x00" * 20)  # Incomplete zip
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback
+        assert metadata.modid == "truncated_2.0.0"
+        assert metadata.version == "unknown"
+
     def test_import_mod_zip_slip_protection(
         self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
     ) -> None:

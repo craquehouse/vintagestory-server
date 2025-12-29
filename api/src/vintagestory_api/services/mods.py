@@ -83,6 +83,18 @@ def get_mod_service() -> "ModService":
     return _mod_service
 
 
+async def close_mod_service() -> None:
+    """Close the mod service singleton and release resources.
+
+    Should be called during application shutdown to prevent resource leaks.
+    Safe to call even if the service was never initialized.
+    """
+    global _mod_service
+    if _mod_service is not None:
+        await _mod_service.close()
+        _mod_service = None
+
+
 class ModNotFoundError(Exception):
     """Raised when a mod is not found by slug."""
 
@@ -342,6 +354,16 @@ class ModService:
             self._mod_api_client = ModApiClient(cache_dir=self._cache_dir)
         return self._mod_api_client
 
+    async def close(self) -> None:
+        """Close any open resources (HTTP clients, etc.).
+
+        Should be called during application shutdown to prevent resource leaks.
+        """
+        if self._mod_api_client is not None:
+            await self._mod_api_client.close()
+            self._mod_api_client = None
+            logger.debug("mod_api_client_closed")
+
     async def install_mod(
         self,
         slug_or_url: str,
@@ -387,28 +409,68 @@ class ModService:
             download_result.release, self._game_version
         )
 
-        # Copy from cache to mods directory
+        # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
+        temp_path = dest_path.with_suffix(".tmp")
 
         # Ensure mods directory exists
         self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy file from cache to mods directory
-        shutil.copy2(download_result.path, dest_path)
-
-        # Import mod (extracts modinfo.json and caches metadata)
-        metadata = self._state_manager.import_mod(dest_path)
-
-        # Create and save mod state
-        mod_state = ModState(
-            filename=download_result.filename,
-            slug=metadata.modid,
-            version=metadata.version,
-            enabled=True,
-            installed_at=datetime.now(UTC),
+        # Copy file from cache to mods directory using temp file + rename
+        logger.debug(
+            "mod_file_copy_start",
+            source=str(download_result.path),
+            dest=str(dest_path),
+            temp=str(temp_path),
         )
-        self._state_manager.set_mod_state(download_result.filename, mod_state)
-        self._state_manager.save()
+        try:
+            shutil.copy2(download_result.path, temp_path)
+            temp_path.rename(dest_path)
+            logger.debug(
+                "mod_file_copy_complete",
+                filename=download_result.filename,
+                size_bytes=dest_path.stat().st_size,
+            )
+        except OSError:
+            # Cleanup partial file on failure
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
+
+        # Import mod and save state - cleanup dest_path and state if anything fails
+        try:
+            # Import mod (extracts modinfo.json and caches metadata)
+            logger.debug("mod_import_start", filename=download_result.filename)
+            metadata = self._state_manager.import_mod(dest_path)
+            logger.debug(
+                "mod_import_complete",
+                filename=download_result.filename,
+                modid=metadata.modid,
+                version=metadata.version,
+            )
+
+            # Create and save mod state
+            mod_state = ModState(
+                filename=download_result.filename,
+                slug=metadata.modid,
+                version=metadata.version,
+                enabled=True,
+                installed_at=datetime.now(UTC),
+            )
+            self._state_manager.set_mod_state(download_result.filename, mod_state)
+            self._state_manager.save()
+        except Exception:
+            # Cleanup orphaned mod file on any failure
+            if dest_path.exists():
+                dest_path.unlink()
+            # Remove from in-memory state if it was added
+            self._state_manager.remove_mod(download_result.filename)
+            logger.warning(
+                "mod_install_cleanup",
+                filename=download_result.filename,
+                reason="import or state save failed",
+            )
+            raise
 
         # Determine if restart is needed
         pending_restart = False

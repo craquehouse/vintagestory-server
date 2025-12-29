@@ -106,12 +106,28 @@ def validate_slug(slug: str) -> bool:
     Returns:
         True if valid, False otherwise.
 
-    Valid slugs are alphanumeric with dashes, max 50 chars.
+    Valid slugs are alphanumeric with dashes/underscores, max 50 chars.
+    Rejects Windows reserved names and path traversal patterns.
     """
     if not slug or len(slug) > 50:
         return False
-    # Allow alphanumeric, dash, underscore
-    return bool(re.match(r"^[a-zA-Z0-9_-]+$", slug))
+
+    # Must be alphanumeric with dash/underscore only
+    # This already blocks: . / \ and other path traversal chars
+    if not re.match(r"^[a-zA-Z0-9_-]+$", slug):
+        return False
+
+    # Reject Windows reserved device names (case-insensitive)
+    # These cause issues on Windows filesystems
+    reserved_names = {
+        "con", "prn", "aux", "nul",
+        "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+        "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+    }
+    if slug.lower() in reserved_names:
+        return False
+
+    return True
 
 
 def check_compatibility(release: ReleaseDict, game_version: str) -> CompatibilityStatus:
@@ -123,17 +139,31 @@ def check_compatibility(release: ReleaseDict, game_version: str) -> Compatibilit
 
     Returns:
         - "compatible": Exact version match in release tags
-        - "not_verified": Same major.minor version
+        - "not_verified": Same major.minor version, or version format unrecognized
         - "incompatible": No matching version found
     """
     tags = release.get("tags", [])
 
-    # Exact match
-    if game_version in tags:
+    # Handle empty or non-standard game versions defensively
+    if not game_version or not tags:
+        return "not_verified"
+
+    # Strip common prefixes (v1.2.3 -> 1.2.3)
+    normalized_version = game_version.lstrip("vV")
+
+    # Exact match (try both original and normalized)
+    if game_version in tags or normalized_version in tags:
         return "compatible"
 
+    # Try to extract major.minor for fuzzy matching
+    # Handle non-standard formats like "stable", "latest", etc.
+    parts = normalized_version.split(".")
+    if len(parts) < 2 or not parts[0].isdigit() or not parts[1].isdigit():
+        # Can't parse version - return safe default
+        return "not_verified"
+
     # Major.minor match (e.g., 1.21.x)
-    major_minor = ".".join(game_version.split(".")[:2])
+    major_minor = f"{parts[0]}.{parts[1]}"
     for tag in tags:
         if tag.startswith(major_minor + ".") or tag == major_minor:
             return "not_verified"
