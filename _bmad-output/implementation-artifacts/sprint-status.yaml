@@ -1,4 +1,4 @@
-# generated: 2025-12-27
+# generated: 2025-12-28
 # project: vintagestory-server
 # project_key: vintagestory-server
 # tracking_system: file-system
@@ -68,7 +68,8 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Mod Management
-  epic-5: backlog
+  epic-5: in-progress
+  5-0-epic-5-preparation: ready-for-dev
   5-1-mod-service-and-state-management: backlog
   5-2-mod-installation-api: backlog
   5-3-mod-compatibility-validation: backlog

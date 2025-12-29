@@ -980,6 +980,51 @@ So that **I can view and interact with the server console visually**.
 
 Admins can install, enable/disable, and remove mods via the web UI with automatic compatibility validation.
 
+### Story 5.0: Epic 5 Technical Preparation
+
+As a **development team**,
+I want **to complete technical preparation for Epic 5 (Mod Management)**,
+So that **we have updated architecture docs, caching patterns, and refactored tests before implementing mod features**.
+
+**Background:** This preparatory story was defined during the Epic 4 retrospective. Epic 5 introduces external API dependencies and new UI patterns that benefit from upfront research and infrastructure improvements.
+
+**Acceptance Criteria:**
+
+**Given** the architecture documentation is reviewed
+**When** I read the architecture.md file
+**Then** it reflects current implementation state and any needed updates for Epic 5
+
+**Given** a manual test checklist exists
+**When** I review `docs/manual-test-checklist.md`
+**Then** it contains smoke tests for Epics 1-4 functionality and placeholders for Epic 5
+
+**Given** the mod API patterns are verified
+**When** I review `agentdocs/modstoryapi.md`
+**Then** it contains current API patterns with working examples verified against the live API
+
+**Given** pending restart pattern research is complete
+**When** I review the research findings
+**Then** it documents the UI pattern for tracking changes requiring server restart
+
+**Given** caching strategy research is complete
+**When** I review the caching documentation
+**Then** it covers artifact caching (server tarballs) and API response caching (mod data, TTL-based)
+
+**Given** large test files are refactored
+**When** I examine `api/tests/`
+**Then** `test_console.py` and `test_server.py` are split into focused modules
+
+**Tasks:**
+
+- [ ] Task 1: Architecture doc review and update
+- [ ] Task 2: Manual test checklist creation (`docs/manual-test-checklist.md`)
+- [ ] Task 3: Mod API integration patterns verification
+- [ ] Task 4: Pending restart pattern research
+- [ ] Task 5: Caching strategy research (artifacts + API responses)
+- [ ] Task 6: Refactor large test files into focused modules
+
+---
+
 ### Story 5.1: Mod Service and State Management
 
 As a **backend developer**,
@@ -1396,9 +1441,9 @@ So that **I can configure the server visually**.
 |------|---------|-------|
 | Epic 1: Project Foundation & Health Monitoring | 1.1, 1.2, 1.3, 1.4 | 4 |
 | Epic 2: Authentication & API Security | 2.1, 2.2, 2.3 | 3 |
-| Epic 3: Server Lifecycle Management | 3.1, 3.2, 3.3, 3.4 | 4 |
-| Epic 4: Real-Time Console Access | 4.1, 4.2, 4.3, 4.4 | 4 |
-| Epic 5: Mod Management | 5.1, 5.2, 5.3, 5.4, 5.5, 5.6 | 6 |
+| Epic 3: Server Lifecycle Management | 3.1, 3.2, 3.3, 3.4, 3.5 | 5 |
+| Epic 4: Real-Time Console Access | 4.0, 4.1, 4.2, 4.3, 4.4 | 5 |
+| Epic 5: Mod Management | 5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6 | 7 |
 | Epic 6: Game Configuration Management | 6.1, 6.2, 6.3 | 3 |
 | Epic 7: Server Settings & Whitelist Management | 7.1, 7.2, 7.3 | 3 |
-| **Total** | | **27** |
+| **Total** | | **30** |
