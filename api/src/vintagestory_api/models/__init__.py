@@ -1,6 +1,7 @@
 """Pydantic models."""
 
 from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.mods import ModInfo, ModMetadata, ModState
 from vintagestory_api.models.responses import (
     ApiResponse,
     GameServerStatus,
@@ -13,5 +14,8 @@ __all__ = [
     "ErrorCode",
     "GameServerStatus",
     "HealthData",
+    "ModInfo",
+    "ModMetadata",
+    "ModState",
     "ReadinessData",
 ]
