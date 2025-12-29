@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { TerminalView } from '@/components/terminal/TerminalView';
 import { ConnectionStatus } from '@/components/terminal/ConnectionStatus';
 import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
+import { useServerStatus } from '@/hooks/use-server-status';
 
 /**
  * Terminal page component that displays the server console.
@@ -23,6 +24,10 @@ export function Terminal() {
   const messageQueueRef = useRef<string[]>([]);
   const [command, setCommand] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get server status for connection indicator
+  const { data: statusResponse } = useServerStatus();
+  const serverState = statusResponse?.data?.state;
 
   // Write a message to terminal, or queue if terminal not ready
   const writeToTerminal = useCallback((data: string) => {
@@ -60,7 +65,7 @@ export function Terminal() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmedCommand = command.trim();
-    if (trimmedCommand && connectionState === 'connected') {
+    if (trimmedCommand && connectionState === 'connected' && serverState === 'running') {
       sendCommand(trimmedCommand);
       setCommand('');
     }
@@ -75,6 +80,15 @@ export function Terminal() {
   };
 
   const isConnected = connectionState === 'connected';
+  const isServerRunning = serverState === 'running';
+  const canSendCommands = isConnected && isServerRunning;
+
+  // Determine input placeholder based on state
+  const getPlaceholder = () => {
+    if (!isConnected) return 'Disconnected';
+    if (!isServerRunning) return 'Server not running';
+    return 'Enter command...';
+  };
 
   return (
     <div className="flex h-full flex-col gap-4" aria-label="Terminal page">
@@ -82,7 +96,7 @@ export function Terminal() {
         <CardHeader className="flex-shrink-0 border-b py-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Server Console</CardTitle>
-            <ConnectionStatus state={connectionState} />
+            <ConnectionStatus state={connectionState} serverState={serverState} />
           </div>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col overflow-hidden p-0">
@@ -103,14 +117,14 @@ export function Terminal() {
               value={command}
               onChange={(e) => setCommand(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isConnected ? 'Enter command...' : 'Disconnected'}
-              disabled={!isConnected}
+              placeholder={getPlaceholder()}
+              disabled={!canSendCommands}
               className="flex-1 font-mono"
               aria-label="Command input"
             />
             <Button
               type="submit"
-              disabled={!isConnected || !command.trim()}
+              disabled={!canSendCommands || !command.trim()}
               variant="default"
             >
               Send
