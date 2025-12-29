@@ -1,6 +1,6 @@
 # Story 5.3: Mod Compatibility Validation
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -335,6 +335,18 @@ raise HTTPException(
 - `_bmad-output/implementation-artifacts/5-2-mod-installation-api.md` - Previous story patterns
 - `api/src/vintagestory_api/services/mod_api.py` - ModApiClient implementation
 - [Source: _bmad-output/planning-artifacts/epics.md#Story 5.3: Mod Compatibility Validation]
+
+---
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] Fix URL parsing test to actually use URL in request - Test `test_lookup_mod_with_url` in api/tests/test_mods_router.py:484 doesn't pass a full URL in the path parameter, it uses plain slug. Should test with actual URL like "/api/v1alpha1/mods/lookup/https://mods.vintagestory.at/smithingplus" to verify AC7 URL extraction works.
+- [ ] [AI-Review][LOW] Add Literal type for side field - Change `side: str` to `side: Literal["Both", "Client", "Server"]` in api/src/vintagestory_api/models/mods.py:145 for better type safety.
+- [ ] [AI-Review][LOW] Add logging to lookup_mod() - Add `logger.info()` statements at start and completion of lookup_mod() method in api/src/vintagestory_api/services/mods.py:319 for production debugging visibility.
+- [ ] [AI-Review][LOW] Extract magic string "stable" to constant - Replace hardcoded `game_version == "stable"` check with `UNKNOWN_VERSION = "stable"` constant in api/src/vintagestory_api/services/mods.py:359 for maintainability.
+- [ ] [AI-Review][LOW] Fix downloads calculation - Use `latest_release.get("downloads", 0)` instead of summing all releases in api/src/vintagestory_api/services/mods.py:381 to return accurate latest release download count.
+- [ ] [AI-Review][LOW] Add test for server not installed scenario - Add `test_lookup_mod_server_not_installed()` test in api/tests/test_mod_service.py to verify behavior when game_version is "stable" or None.
+- [ ] [AI-Review][LOW] Document MOD_NOT_FOUND ambiguity - Consider splitting MOD_NOT_FOUND into MOD_NOT_FOUND (external API) and MOD_NOT_INSTALLED (local) in api/src/vintagestory_api/models/errors.py:24 to avoid user confusion between "mod doesn't exist online" vs "mod not installed locally".
 
 ---
 
