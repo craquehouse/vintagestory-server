@@ -39,6 +39,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "Console", "Mods", "Config"         | low        | S        | backlog  | -         | -       |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
+| UI-006  | If the frontend has lost connection to the backend, we need to block futher interactions and pop up some sort of modal that indicates retry status | medium        | M        | backlog  | -         | -       |
 
 ---
 
