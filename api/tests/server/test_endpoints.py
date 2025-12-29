@@ -19,6 +19,18 @@ from vintagestory_api.services.server import ServerService
 # pyright: reportUnknownParameterType=false
 # pyright: reportUnknownVariableType=false
 
+
+def _configure_stream_mocks(process: AsyncMock) -> None:
+    """Configure stdout/stderr mocks to return EOF immediately.
+
+    This prevents 'coroutine was never awaited' warnings from stream reading tasks.
+    """
+    process.stdout = AsyncMock()
+    process.stdout.readline = AsyncMock(return_value=b"")
+    process.stderr = AsyncMock()
+    process.stderr.readline = AsyncMock(return_value=b"")
+
+
 # Test API keys
 TEST_ADMIN_KEY = "test-admin-key-12345"
 TEST_MONITOR_KEY = "test-monitor-key-67890"
@@ -93,6 +105,7 @@ class TestServerStartEndpoint:
             process.returncode = None
             process.send_signal = MagicMock()
             process.kill = MagicMock()
+            _configure_stream_mocks(process)
 
             # Block forever for monitor
             async def blocking_wait():
@@ -240,6 +253,7 @@ class TestServerStopEndpoint:
             process.returncode = None
             process.send_signal = MagicMock()
             process.kill = MagicMock()
+            _configure_stream_mocks(process)
 
             # Use event to control wait behavior
             started = False
@@ -353,6 +367,7 @@ class TestServerRestartEndpoint:
             process.returncode = None
             process.send_signal = MagicMock()
             process.kill = MagicMock()
+            _configure_stream_mocks(process)
 
             # Block forever for monitor
             async def blocking_wait():
@@ -400,6 +415,7 @@ class TestServerRestartEndpoint:
         mock_process.returncode = None  # None = still running
         mock_process.send_signal = MagicMock()
         mock_process.kill = MagicMock()
+        _configure_stream_mocks(mock_process)
 
         # wait() completes immediately for stop
         async def stop_wait():
@@ -416,6 +432,7 @@ class TestServerRestartEndpoint:
             new_process.returncode = None
             new_process.send_signal = MagicMock()
             new_process.kill = MagicMock()
+            _configure_stream_mocks(new_process)
 
             # Block forever for new monitor
             async def blocking_wait():
@@ -493,6 +510,7 @@ class TestRestartEndpointErrorHandling:
         mock_process.returncode = None
         mock_process.send_signal = MagicMock(side_effect=OSError("Permission denied"))
         mock_process.kill = MagicMock()
+        _configure_stream_mocks(mock_process)
 
         async def blocking_wait():
             await asyncio.sleep(100)
