@@ -125,7 +125,7 @@ describe('apiClient', () => {
     vi.resetAllMocks();
     // Set up environment variables for tests
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -179,7 +179,7 @@ describe('apiClient', () => {
       await apiClient('/api/v1/test');
 
       const [url] = mockFetch.mock.calls[0];
-      expect(url).toBe('http://localhost:8000/api/v1/test');
+      expect(url).toBe('http://localhost:8080/api/v1/test');
     });
   });
 

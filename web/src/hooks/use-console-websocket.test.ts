@@ -83,14 +83,14 @@ describe('useConsoleWebSocket', () => {
     it('builds correct URL with API key', () => {
       // Mock window.location
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
 
       const url = buildConsoleWebSocketUrl(100);
 
       expect(url).toBe(
-        'ws://localhost:8000/api/v1alpha1/console/ws?api_key=test-api-key&history_lines=100'
+        'ws://localhost:8080/api/v1alpha1/console/ws?api_key=test-api-key&history_lines=100'
       );
     });
 
@@ -121,7 +121,7 @@ describe('useConsoleWebSocket', () => {
   describe('connection lifecycle (AC: 1, 4)', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });
@@ -256,7 +256,7 @@ describe('useConsoleWebSocket', () => {
     beforeEach(() => {
       vi.useFakeTimers();
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });
@@ -370,7 +370,7 @@ describe('useConsoleWebSocket', () => {
   describe('sendCommand', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });
@@ -425,7 +425,7 @@ describe('useConsoleWebSocket', () => {
   describe('disconnect', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });
@@ -454,7 +454,7 @@ describe('useConsoleWebSocket', () => {
   describe('reconnect', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });
@@ -477,7 +477,7 @@ describe('useConsoleWebSocket', () => {
   describe('cleanup', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8000' },
+        value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
     });

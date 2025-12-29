@@ -125,7 +125,7 @@ describe('Terminal Page', () => {
     global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
     import.meta.env.VITE_API_KEY = 'test-api-key';
     Object.defineProperty(window, 'location', {
-      value: { protocol: 'http:', host: 'localhost:8000' },
+      value: { protocol: 'http:', host: 'localhost:8080' },
       writable: true,
     });
 

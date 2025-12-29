@@ -33,7 +33,7 @@ describe('useAuthMe', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -67,7 +67,7 @@ describe('useAuthMe', () => {
 
       // Verify the request was made with correct headers
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/auth/me',
+        'http://localhost:8080/api/v1alpha1/auth/me',
         expect.objectContaining({
           headers: expect.any(Headers),
         })

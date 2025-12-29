@@ -35,7 +35,7 @@ describe('ServerControls', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -146,7 +146,7 @@ describe('ServerControls', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/v1alpha1/server/start',
+          'http://localhost:8080/api/v1alpha1/server/start',
           expect.objectContaining({ method: 'POST' })
         );
       });
@@ -173,7 +173,7 @@ describe('ServerControls', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/v1alpha1/server/stop',
+          'http://localhost:8080/api/v1alpha1/server/stop',
           expect.objectContaining({ method: 'POST' })
         );
       });
@@ -200,7 +200,7 @@ describe('ServerControls', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/v1alpha1/server/restart',
+          'http://localhost:8080/api/v1alpha1/server/restart',
           expect.objectContaining({ method: 'POST' })
         );
       });

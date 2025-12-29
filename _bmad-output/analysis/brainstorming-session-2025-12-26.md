@@ -150,7 +150,7 @@ api/
 
 ### Key Patterns
 
-- **API Port:** 8000 (main API + WebSocket)
+- **API Port:** 8080 (main API + WebSocket)
 - **Metrics Port:** 9090 (Prometheus /metrics)
 - **Auth:** X-API-Key header on all endpoints except health
 - **Config:** Environment variables with VS_ prefix

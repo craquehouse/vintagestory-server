@@ -35,7 +35,7 @@ describe('ServerInstallCard', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -203,7 +203,7 @@ describe('ServerInstallCard', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:8000/api/v1alpha1/server/install',
+          'http://localhost:8080/api/v1alpha1/server/install',
           expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ version: '1.21.3' }),

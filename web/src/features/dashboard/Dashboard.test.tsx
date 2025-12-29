@@ -46,7 +46,7 @@ describe('Dashboard', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -329,7 +329,7 @@ describe('Dashboard', () => {
       // The hook uses useQuery which enables polling
       // We verify the query was made with the correct endpoint
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/status',
+        'http://localhost:8080/api/v1alpha1/server/status',
         expect.anything()
       );
     });

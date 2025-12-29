@@ -39,7 +39,7 @@ describe('useServerStatus', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -71,7 +71,7 @@ describe('useServerStatus', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/status',
+        'http://localhost:8080/api/v1alpha1/server/status',
         expect.objectContaining({
           headers: expect.any(Headers),
         })
@@ -137,7 +137,7 @@ describe('useStartServer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -168,7 +168,7 @@ describe('useStartServer', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/start',
+        'http://localhost:8080/api/v1alpha1/server/start',
         expect.objectContaining({
           method: 'POST',
         })
@@ -249,7 +249,7 @@ describe('useStopServer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -280,7 +280,7 @@ describe('useStopServer', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/stop',
+        'http://localhost:8080/api/v1alpha1/server/stop',
         expect.objectContaining({
           method: 'POST',
         })
@@ -295,7 +295,7 @@ describe('useRestartServer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -326,7 +326,7 @@ describe('useRestartServer', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/restart',
+        'http://localhost:8080/api/v1alpha1/server/restart',
         expect.objectContaining({
           method: 'POST',
         })
@@ -370,7 +370,7 @@ describe('useInstallServer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8000';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
 
   afterEach(() => {
@@ -401,7 +401,7 @@ describe('useInstallServer', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8000/api/v1alpha1/server/install',
+        'http://localhost:8080/api/v1alpha1/server/install',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ version: '1.21.3' }),
