@@ -1,16 +1,29 @@
 """Mod management service orchestrator.
 
 This service orchestrates mod state management, providing a unified interface
-for listing, enabling, and disabling mods. It coordinates the ModStateManager
-for state persistence and PendingRestartState for restart tracking.
+for listing, enabling, disabling, and installing mods. It coordinates the
+ModStateManager for state persistence, ModApiClient for external API access,
+and PendingRestartState for restart tracking.
 """
 
+import shutil
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
 
 from vintagestory_api.config import Settings
-from vintagestory_api.models.mods import ModInfo
+from vintagestory_api.models.mods import ModInfo, ModState
+from vintagestory_api.services.mod_api import (
+    CompatibilityStatus,
+    ModApiClient,
+    check_compatibility,
+    extract_slug,
+)
+from vintagestory_api.services.mod_api import (
+    ModNotFoundError as ApiModNotFoundError,
+)
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -37,6 +50,7 @@ def get_mod_service() -> "ModService":
     Uses paths from Settings:
     - state_dir: {vsmanager_dir}/state
     - mods_dir: {serverdata_dir}/Mods
+    - cache_dir: {vsmanager_dir}/cache (for downloaded mod files)
 
     Returns:
         ModService instance configured for the application.
@@ -46,11 +60,14 @@ def get_mod_service() -> "ModService":
         settings = Settings()
         state_dir = settings.vsmanager_dir / "state"
         mods_dir = settings.serverdata_dir / "Mods"
+        cache_dir = settings.cache_dir
 
         _mod_service = ModService(
             state_dir=state_dir,
             mods_dir=mods_dir,
+            cache_dir=cache_dir,
             restart_state=get_restart_state(),
+            game_version=settings.game_version,
         )
 
         # Load existing state
@@ -60,6 +77,7 @@ def get_mod_service() -> "ModService":
             "mod_service_initialized",
             state_dir=str(state_dir),
             mods_dir=str(mods_dir),
+            cache_dir=str(cache_dir),
         )
 
     return _mod_service
@@ -73,13 +91,46 @@ class ModNotFoundError(Exception):
         super().__init__(f"Mod '{slug}' not found")
 
 
+class ModAlreadyInstalledError(Exception):
+    """Raised when attempting to install a mod that is already installed."""
+
+    def __init__(self, slug: str, current_version: str) -> None:
+        self.slug = slug
+        self.current_version = current_version
+        super().__init__(f"Mod '{slug}' is already installed (version {current_version})")
+
+
+@dataclass
+class InstallResult:
+    """Result of a mod installation operation."""
+
+    success: bool
+    """Whether the installation succeeded."""
+
+    slug: str
+    """The mod slug that was installed."""
+
+    version: str
+    """The installed version."""
+
+    filename: str
+    """The filename of the installed mod."""
+
+    compatibility: CompatibilityStatus
+    """Compatibility status with the game version."""
+
+    pending_restart: bool
+    """Whether a server restart is required."""
+
+
 class ModService:
     """Orchestrates mod management operations.
 
     Provides a unified interface for mod operations, coordinating:
     - ModStateManager for state persistence
+    - ModApiClient for external mod database API access
     - PendingRestartState for restart tracking
-    - File system operations for enable/disable
+    - File system operations for enable/disable/install
 
     Attributes:
         state_manager: The ModStateManager instance.
@@ -90,6 +141,8 @@ class ModService:
         state_dir: Path,
         mods_dir: Path,
         restart_state: PendingRestartState,
+        cache_dir: Path | None = None,
+        game_version: str = "stable",
     ) -> None:
         """Initialize the mod service.
 
@@ -97,10 +150,22 @@ class ModService:
             state_dir: Directory for state files (mods.json).
             mods_dir: Directory containing mod zip files.
             restart_state: Shared PendingRestartState for restart tracking.
+            cache_dir: Directory for caching downloaded mods. Defaults to
+                       state_dir.parent / "cache" if not provided.
+            game_version: Game version for compatibility checking (e.g., "1.21.3").
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
         self._server_running = False
+
+        # Set up cache directory with default
+        if cache_dir is None:
+            cache_dir = state_dir.parent / "cache"
+        self._cache_dir = cache_dir
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
+
+        self._game_version = game_version
+        self._mod_api_client: ModApiClient | None = None
 
     @property
     def state_manager(self) -> ModStateManager:
@@ -270,3 +335,101 @@ class ModService:
         # Set pending restart if server is running
         if self._server_running:
             self._restart_state.require_restart(f"Mod '{slug}' was disabled")
+
+    def _get_mod_api_client(self) -> ModApiClient:
+        """Get or create the ModApiClient instance (lazy initialization)."""
+        if self._mod_api_client is None:
+            self._mod_api_client = ModApiClient(cache_dir=self._cache_dir)
+        return self._mod_api_client
+
+    async def install_mod(
+        self,
+        slug_or_url: str,
+        version: str | None = None,
+    ) -> InstallResult:
+        """Install a mod from the VintageStory mod database.
+
+        Downloads the mod from mods.vintagestory.at and installs it to the
+        mods directory. Uses the download cache to avoid re-downloading.
+
+        Args:
+            slug_or_url: Mod slug (e.g., "smithingplus") or full URL
+                         (e.g., "https://mods.vintagestory.at/smithingplus").
+            version: Specific version to install, or None for latest.
+
+        Returns:
+            InstallResult with installation details.
+
+        Raises:
+            ModAlreadyInstalledError: If the mod is already installed.
+            ApiModNotFoundError: If the mod doesn't exist in the database.
+            ModVersionNotFoundError: If the specific version doesn't exist.
+            ExternalApiError: If the mod API is unavailable.
+            DownloadError: If the download fails.
+        """
+        # Extract slug from URL if needed
+        slug = extract_slug(slug_or_url)
+
+        # Check if already installed
+        existing = self._state_manager.get_mod_by_slug(slug)
+        if existing is not None:
+            raise ModAlreadyInstalledError(slug, existing.version)
+
+        # Download mod via API client
+        api_client = self._get_mod_api_client()
+        download_result = await api_client.download_mod(slug, version)
+
+        if download_result is None:
+            raise ApiModNotFoundError(slug)
+
+        # Check compatibility with game version
+        compatibility = check_compatibility(
+            download_result.release, self._game_version
+        )
+
+        # Copy from cache to mods directory
+        dest_path = self._state_manager.mods_dir / download_result.filename
+
+        # Ensure mods directory exists
+        self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy file from cache to mods directory
+        shutil.copy2(download_result.path, dest_path)
+
+        # Import mod (extracts modinfo.json and caches metadata)
+        metadata = self._state_manager.import_mod(dest_path)
+
+        # Create and save mod state
+        mod_state = ModState(
+            filename=download_result.filename,
+            slug=metadata.modid,
+            version=metadata.version,
+            enabled=True,
+            installed_at=datetime.now(UTC),
+        )
+        self._state_manager.set_mod_state(download_result.filename, mod_state)
+        self._state_manager.save()
+
+        # Determine if restart is needed
+        pending_restart = False
+        if self._server_running:
+            self._restart_state.require_restart(f"Mod '{slug}' was installed")
+            pending_restart = True
+
+        logger.info(
+            "mod_installed",
+            slug=slug,
+            version=download_result.version,
+            filename=download_result.filename,
+            compatibility=compatibility,
+            pending_restart=pending_restart,
+        )
+
+        return InstallResult(
+            success=True,
+            slug=metadata.modid,
+            version=download_result.version,
+            filename=download_result.filename,
+            compatibility=compatibility,
+            pending_restart=pending_restart,
+        )

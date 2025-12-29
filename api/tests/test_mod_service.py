@@ -382,17 +382,274 @@ class TestGetModServiceDependency:
 
             assert service1 is service2
 
-    def test_get_mod_service_uses_settings_paths(self) -> None:
+    def test_get_mod_service_uses_settings_paths(self, tmp_path: Path) -> None:
         """get_mod_service() uses paths from Settings."""
         import vintagestory_api.services.mods as mods_module
 
         mods_module._mod_service = None  # pyright: ignore[reportPrivateUsage]
 
+        custom_state = tmp_path / "custom" / "state"
+        custom_serverdata = tmp_path / "custom" / "serverdata"
+        custom_cache = tmp_path / "custom" / "cache"
+
         with patch.object(mods_module, "Settings") as mock_settings:
-            mock_settings.return_value.vsmanager_dir = Path("/custom/state")
-            mock_settings.return_value.serverdata_dir = Path("/custom/serverdata")
+            mock_settings.return_value.vsmanager_dir = custom_state
+            mock_settings.return_value.serverdata_dir = custom_serverdata
+            mock_settings.return_value.cache_dir = custom_cache
+            mock_settings.return_value.game_version = "1.21.3"
 
             service = get_mod_service()
 
-            assert service.state_manager.state_dir == Path("/custom/state/state")
-            assert service.state_manager.mods_dir == Path("/custom/serverdata/Mods")
+            assert service.state_manager.state_dir == custom_state / "state"
+            assert service.state_manager.mods_dir == custom_serverdata / "Mods"
+
+
+# --- Tests for ModService.install_mod ---
+
+
+SMITHINGPLUS_MOD = {
+    "modid": 2655,
+    "name": "Smithing Plus",
+    "urlalias": "smithingplus",
+    "author": "jayu",
+    "releases": [
+        {
+            "releaseid": 27001,
+            "modversion": "1.8.3",
+            "filename": "smithingplus_1.8.3.zip",
+            "fileid": 59176,
+            "downloads": 49726,
+            "tags": ["1.21.0", "1.21.1", "1.21.2", "1.21.3"],
+        },
+        {
+            "releaseid": 26543,
+            "modversion": "1.8.2",
+            "filename": "smithingplus_1.8.2.zip",
+            "fileid": 57894,
+            "downloads": 31245,
+            "tags": ["1.21.0", "1.21.1"],
+        },
+    ],
+}
+
+
+class TestModServiceInstallMod:
+    """Integration tests for ModService.install_mod()."""
+
+    @pytest.fixture
+    def install_service(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> ModService:
+        """Create a ModService with cache directory for install tests."""
+        state_dir, mods_dir = temp_dirs
+        cache_dir = state_dir.parent / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        return ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            cache_dir=cache_dir,
+            restart_state=restart_state,
+            game_version="1.21.3",
+        )
+
+    @pytest.mark.asyncio
+    async def test_install_mod_latest_version(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() downloads and installs latest version."""
+        import respx
+        from httpx import Response
+
+        _state_dir, mods_dir = temp_dirs
+
+        # Create fake mod zip content with modinfo.json
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            # Mock mod lookup
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            # Mock file download
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            result = await install_service.install_mod("smithingplus")
+
+        assert result.success is True
+        assert result.version == "1.8.3"
+        assert result.filename == "smithingplus_1.8.3.zip"
+        assert result.slug == "smithingplus"
+        assert result.compatibility == "compatible"  # 1.21.3 in tags
+
+        # Verify file exists in mods directory
+        assert (mods_dir / "smithingplus_1.8.3.zip").exists()
+
+        # Verify state was updated
+        mod_state = install_service.state_manager.get_mod_by_slug("smithingplus")
+        assert mod_state is not None
+        assert mod_state.version == "1.8.3"
+        assert mod_state.enabled is True
+
+    @pytest.mark.asyncio
+    async def test_install_mod_specific_version(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() installs specific version when requested."""
+        import respx
+        from httpx import Response
+
+        _, _mods_dir = temp_dirs
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.2"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=57894").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            result = await install_service.install_mod("smithingplus", version="1.8.2")
+
+        assert result.success is True
+        assert result.version == "1.8.2"
+        assert result.filename == "smithingplus_1.8.2.zip"
+        assert result.compatibility == "not_verified"  # 1.21.3 not in 1.8.2 tags
+
+    @pytest.mark.asyncio
+    async def test_install_mod_from_url(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() works with full URL input."""
+        import respx
+        from httpx import Response
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            result = await install_service.install_mod(
+                "https://mods.vintagestory.at/smithingplus"
+            )
+
+        assert result.success is True
+        assert result.slug == "smithingplus"
+
+    @pytest.mark.asyncio
+    async def test_install_mod_already_installed(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() raises error for already installed mod."""
+        from vintagestory_api.services.mods import ModAlreadyInstalledError
+
+        _, mods_dir = temp_dirs
+
+        # Pre-install the mod
+        create_mod_zip(
+            mods_dir / "smithingplus_1.8.0.zip",
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.0"},
+        )
+        install_service.state_manager.sync_state_with_disk()
+
+        with pytest.raises(ModAlreadyInstalledError) as exc_info:
+            await install_service.install_mod("smithingplus")
+
+        assert exc_info.value.slug == "smithingplus"
+        assert exc_info.value.current_version == "1.8.0"
+
+    @pytest.mark.asyncio
+    async def test_install_mod_not_found(self, install_service: ModService) -> None:
+        """install_mod() raises error for missing mod."""
+        import respx
+        from httpx import Response
+
+        from vintagestory_api.services.mod_api import ModNotFoundError
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/nonexistent").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "404", "mod": None},
+                )
+            )
+
+            with pytest.raises(ModNotFoundError) as exc_info:
+                await install_service.install_mod("nonexistent")
+
+            assert exc_info.value.slug == "nonexistent"
+
+    @pytest.mark.asyncio
+    async def test_install_mod_sets_pending_restart(
+        self,
+        install_service: ModService,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """install_mod() triggers pending restart when server is running."""
+        import respx
+        from httpx import Response
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            # Simulate server running
+            install_service.set_server_running(True)
+
+            result = await install_service.install_mod("smithingplus")
+
+        assert result.pending_restart is True
+        assert restart_state.pending_restart is True
+        assert "smithingplus" in restart_state.pending_changes[0]
+
+
+def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
+    """Create a mod zip file as bytes for mocking downloads."""
+    import io
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        zf.writestr("modinfo.json", json.dumps(modinfo))
+    return buffer.getvalue()

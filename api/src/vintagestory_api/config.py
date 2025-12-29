@@ -86,6 +86,11 @@ class Settings(BaseSettings):
         """Directory for API manager state (version tracking, install status)."""
         return self.data_dir / "vsmanager"
 
+    @property
+    def cache_dir(self) -> Path:
+        """Directory for cached data (downloaded mods, etc.)."""
+        return self.vsmanager_dir / "cache"
+
     def ensure_data_directories(self) -> None:
         """Create data directory structure if it doesn't exist."""
         # Security: Validate that admin API key is set
