@@ -7,6 +7,7 @@ let mockOpen: ReturnType<typeof vi.fn>;
 let mockLoadAddon: ReturnType<typeof vi.fn>;
 let mockFit: ReturnType<typeof vi.fn>;
 let lastTerminalOptions: Record<string, unknown> | undefined;
+let lastTerminalInstance: { options: Record<string, unknown> } | undefined;
 
 // Mock xterm.js - vi.mock is hoisted so we use factory pattern
 vi.mock('@xterm/xterm', () => {
@@ -26,6 +27,7 @@ vi.mock('@xterm/xterm', () => {
         mockDispose = this.dispose;
         mockOpen = this.open;
         mockLoadAddon = this.loadAddon;
+        lastTerminalInstance = this;
       }
     },
   };
@@ -42,13 +44,16 @@ vi.mock('@xterm/addon-fit', () => {
   };
 });
 
+// Mock theme state - mutable for testing theme changes
+let mockResolvedTheme = 'dark';
+
 // Mock next-themes
 vi.mock('next-themes', () => ({
   useTheme: () => ({
-    theme: 'dark',
+    theme: mockResolvedTheme,
     setTheme: vi.fn(),
-    resolvedTheme: 'dark',
-    systemTheme: 'dark',
+    resolvedTheme: mockResolvedTheme,
+    systemTheme: mockResolvedTheme,
   }),
 }));
 
@@ -72,6 +77,8 @@ describe('TerminalView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     lastTerminalOptions = undefined;
+    lastTerminalInstance = undefined;
+    mockResolvedTheme = 'dark';
     global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
   });
 
@@ -208,6 +215,35 @@ describe('TerminalView', () => {
       // Check for Catppuccin Mocha background color
       const theme = lastTerminalOptions?.theme as Record<string, string>;
       expect(theme?.background).toBe('#1e1e2e');
+    });
+
+    it('initializes terminal with light theme (Catppuccin Latte) when theme is light', () => {
+      mockResolvedTheme = 'light';
+
+      render(<TerminalView />);
+
+      // Check for Catppuccin Latte background color
+      const theme = lastTerminalOptions?.theme as Record<string, string>;
+      expect(theme?.background).toBe('#eff1f5');
+    });
+
+    it('updates terminal theme when ThemeContext changes after mount', () => {
+      // Start with dark theme
+      mockResolvedTheme = 'dark';
+      const { rerender } = render(<TerminalView />);
+
+      // Verify initial dark theme
+      expect(lastTerminalInstance?.options.theme).toBeDefined();
+      const initialTheme = lastTerminalInstance?.options.theme as Record<string, string>;
+      expect(initialTheme?.background).toBe('#1e1e2e');
+
+      // Change to light theme and re-render
+      mockResolvedTheme = 'light';
+      rerender(<TerminalView />);
+
+      // Verify theme was updated to Catppuccin Latte
+      const updatedTheme = lastTerminalInstance?.options.theme as Record<string, string>;
+      expect(updatedTheme?.background).toBe('#eff1f5');
     });
   });
 });

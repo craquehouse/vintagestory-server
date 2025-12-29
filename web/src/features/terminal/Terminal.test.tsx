@@ -52,6 +52,7 @@ vi.mock('@xterm/xterm', () => {
       dispose = vi.fn();
       writeln = vi.fn();
       write = vi.fn();
+      onData = vi.fn(() => ({ dispose: vi.fn() }));
     },
   };
 });
