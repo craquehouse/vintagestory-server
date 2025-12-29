@@ -50,6 +50,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status       | low        | S        | backlog  | -         | -       |  
 | API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)  | low        | S        | backlog  | -         | -       |  
 | API-004 | /readyz endpoint should report data.checks.game_server                                                     | low        | S        | backlog  | -         | -       |  
+| API-005 | Passing the api token in the URL to authorize the websocker is insecure. Use a short-lived token instead.  | high       | M        | backlog  | -         | -       |  
 
 ---
 
