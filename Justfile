@@ -45,10 +45,45 @@ test-api-watch:
 test-web-watch:
     mise exec -C web -- bun run test --watch
 
-# Run E2E tests (Playwright) - requires Docker app running
-# Examples: just test-e2e | just test-e2e -k "health" | just test-e2e --headed
-test-e2e *ARGS:
+# Run API E2E tests (pytest) - requires Docker stack running
+# Examples: just test-e2e-api | just test-e2e-api -k "health"
+test-e2e-api *ARGS:
     mise exec -C api -- uv run pytest tests/e2e {{ARGS}}
+
+# Run web E2E tests (Playwright) - manages Docker stack automatically
+# Starts fresh Docker stack, waits for health, runs tests, then stops stack
+# Examples: just test-e2e-web | just test-e2e-web --headed | just test-e2e-web --ui
+test-e2e-web *ARGS:
+    #!/usr/bin/env bash
+    set -e
+    echo "🐳 Starting Docker stack..."
+    just docker-start
+
+    echo "⏳ Waiting for API to be ready..."
+    for i in {1..30}; do
+        if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+            echo "✅ API is ready"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo "❌ API failed to start within 30 seconds"
+            just docker-logs
+            just docker-stop
+            exit 1
+        fi
+        sleep 1
+    done
+
+    echo "🎭 Running Playwright tests..."
+    mise exec -C web -- bun run test:e2e {{ARGS}} || TEST_EXIT=$?
+
+    echo "🧹 Stopping Docker stack..."
+    just docker-stop
+
+    exit ${TEST_EXIT:-0}
+
+# Alias for backward compatibility
+test-e2e *ARGS: test-e2e-api
 
 # =============================================================================
 # BUILDING

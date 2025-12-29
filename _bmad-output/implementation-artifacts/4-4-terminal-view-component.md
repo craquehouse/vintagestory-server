@@ -113,7 +113,7 @@ CRITICAL TASK STRUCTURE RULES:
 #### 🟢 LOW (3 issues)
 - [x] [AI-Review][LOW] Consider naming consistency - Evaluated: TerminalView name is appropriate, "View" suffix is a common React pattern and consistent with component's purpose
 - [x] [AI-Review][LOW] Add optional debug logging for connection lifecycle - Added debugLog helper with DEV mode gating for connect, connected, close, error, and reconnection events
-- [ ] [AI-Review][LOW][DEFERRED] Add E2E test for terminal - Deferred: No browser E2E infrastructure exists in project. Would require Playwright config, test setup, and server coordination. Recommend as separate Epic 4 follow-up task.
+- [x] [AI-Review][LOW] Add E2E test for terminal - Created Playwright E2E test suite with 8 tests covering UI rendering, terminal initialization, connection status, and WebSocket connection attempts. Docker orchestration via `just test-e2e-web`.
 
 ---
 
