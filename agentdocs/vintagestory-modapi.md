@@ -501,6 +501,201 @@ No documented rate limits. However, best practices:
 
 ---
 
+## httpx-Based Examples for Epic 5
+
+_Added 2025-12-28 for Story 5.2 implementation_
+
+These examples use `httpx` (the async HTTP client used in the vintagestory-server API).
+
+### Async Mod Lookup
+
+```python
+import httpx
+from typing import Optional
+
+async def get_mod(slug: str, timeout: float = 30.0) -> Optional[dict]:
+    """
+    Get mod details by slug using httpx async client.
+
+    Args:
+        slug: URL-friendly mod identifier (e.g., "smithingplus")
+        timeout: Request timeout in seconds
+
+    Returns:
+        Mod dictionary if found, None if not found or error
+
+    Note:
+        - statuscode is a STRING ("200", "404"), not an integer
+        - releases[0] is always the latest release
+        - tags in releases are game version strings
+    """
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            response = await client.get(
+                f"https://mods.vintagestory.at/api/mod/{slug}"
+            )
+            data = response.json()
+
+            # IMPORTANT: statuscode is a string!
+            if data.get("statuscode") == "200":
+                return data["mod"]
+            return None
+
+        except httpx.TimeoutException:
+            # Log and return None for graceful degradation
+            return None
+        except httpx.HTTPError:
+            return None
+```
+
+### Async File Download with Streaming
+
+```python
+from pathlib import Path
+
+async def download_mod_file(
+    fileid: int,
+    dest_path: Path,
+    timeout: float = 120.0
+) -> bool:
+    """
+    Download mod file by fileid using streaming.
+
+    Args:
+        fileid: Unique file identifier from release object
+        dest_path: Local path to save the file
+
+    Returns:
+        True if download successful, False otherwise
+
+    Note:
+        - Download endpoint redirects to CDN (moddbcdn.vintagestory.at)
+        - follow_redirects=True handles the 302 redirect
+    """
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        follow_redirects=True
+    ) as client:
+        try:
+            async with client.stream(
+                "GET",
+                f"https://mods.vintagestory.at/download?fileid={fileid}"
+            ) as response:
+                response.raise_for_status()
+
+                # Stream to file to handle large mods
+                with open(dest_path, "wb") as f:
+                    async for chunk in response.aiter_bytes(chunk_size=8192):
+                        f.write(chunk)
+
+            return True
+
+        except (httpx.HTTPError, IOError):
+            # Clean up partial download
+            if dest_path.exists():
+                dest_path.unlink()
+            return False
+```
+
+### Compatibility Check
+
+```python
+from typing import Literal, Tuple
+
+CompatibilityStatus = Literal["compatible", "not_verified", "incompatible"]
+
+def check_compatibility(
+    releases: list[dict],
+    game_version: str
+) -> Tuple[CompatibilityStatus, Optional[dict]]:
+    """
+    Check mod compatibility with installed game version.
+
+    Args:
+        releases: List of release objects from mod API (newest first)
+        game_version: Installed game version (e.g., "1.21.3")
+
+    Returns:
+        Tuple of (status, matching_release):
+        - "compatible": Exact version match in release tags
+        - "not_verified": Same major.minor, different patch
+        - "incompatible": No matching version found
+
+    Example:
+        >>> releases = [{"modversion": "1.8.3", "tags": ["1.21.0", "1.21.1"]}]
+        >>> check_compatibility(releases, "1.21.0")
+        ("compatible", {"modversion": "1.8.3", ...})
+        >>> check_compatibility(releases, "1.21.3")
+        ("not_verified", {"modversion": "1.8.3", ...})
+    """
+    # Exact match - best case
+    for release in releases:
+        if game_version in release.get("tags", []):
+            return ("compatible", release)
+
+    # Major.minor match (e.g., 1.21.x matches any 1.21.*)
+    major_minor = ".".join(game_version.split(".")[:2])
+    for release in releases:
+        for tag in release.get("tags", []):
+            if tag.startswith(major_minor + ".") or tag == major_minor:
+                return ("not_verified", release)
+
+    # No match - return latest anyway for user decision
+    if releases:
+        return ("incompatible", releases[0])
+    return ("incompatible", None)
+```
+
+### Full Example: Install Latest Compatible Mod
+
+```python
+async def install_mod(
+    slug: str,
+    game_version: str,
+    mods_dir: Path
+) -> dict:
+    """
+    Install the latest compatible version of a mod.
+
+    Returns dict with:
+        - success: bool
+        - version: str (installed version)
+        - compatibility: str (compatible/not_verified/incompatible)
+        - error: Optional[str]
+    """
+    # 1. Lookup mod
+    mod = await get_mod(slug)
+    if not mod:
+        return {"success": False, "error": "Mod not found"}
+
+    releases = mod.get("releases", [])
+    if not releases:
+        return {"success": False, "error": "No releases available"}
+
+    # 2. Check compatibility
+    compat_status, release = check_compatibility(releases, game_version)
+
+    if release is None:
+        return {"success": False, "error": "No compatible release found"}
+
+    # 3. Download
+    filename = release["filename"]
+    dest_path = mods_dir / filename
+
+    success = await download_mod_file(release["fileid"], dest_path)
+    if not success:
+        return {"success": False, "error": "Download failed"}
+
+    return {
+        "success": True,
+        "version": release["modversion"],
+        "compatibility": compat_status,
+        "filename": filename
+    }
+```
+
+---
+
 ## CDN Structure
 
 Download files are hosted on:
