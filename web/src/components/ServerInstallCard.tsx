@@ -78,7 +78,7 @@ export function ServerInstallCard({
           <div className="flex gap-2">
             <Input
               type="text"
-              placeholder="e.g., 1.21.3"
+              placeholder="e.g., stable, unstable, 1.21.6"
               value={version}
               onChange={(e) => setVersion(e.target.value)}
               disabled={isInstalling || installMutation.isPending}

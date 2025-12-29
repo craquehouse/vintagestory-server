@@ -401,3 +401,72 @@ None - implementation proceeded without significant blockers.
 - `web/src/features/terminal/Terminal.test.tsx` - Updated tests for new implementation
 - `web/package.json` - Added xterm.js dependencies
 
+---
+
+## Follow-up Fixes (Post-Implementation)
+
+### Fix 1: E2E Test Corrections
+
+**Problem:** E2E health tests were failing with "Unprocessable Entity" errors.
+
+**Root Causes:**
+1. Tests used browser navigation (`page.goto()`) for API endpoints, but the SPA served HTML instead of JSON
+2. Tests called wrong URLs (`/api/v1alpha1/healthz`) when health endpoints are at root (`/healthz`)
+3. Tests referenced non-existent endpoints (`/health`, `/api/v1alpha1` root)
+
+**Solution:**
+- Changed API tests to use `page.request.get()` (Playwright's API context) for direct HTTP requests
+- Fixed endpoint URLs to use correct root-level paths (`/healthz`, `/readyz`)
+- Removed tests for non-existent endpoints
+
+**Files Modified:**
+- `api/tests/e2e/test_e2e_health.py` - Fixed endpoint URLs and HTTP request method
+
+### Fix 2: pytest-asyncio Event Loop Isolation
+
+**Problem:** Running full test suite caused 69 failures and 14 errors due to event loop conflicts between Playwright E2E tests and pytest-asyncio.
+
+**Root Cause:** Playwright's sync_api uses its own internal event loop which conflicts with pytest-asyncio when tests run in the same session.
+
+**Solution:**
+- Excluded E2E tests from default `just test-api` run via `--ignore=tests/e2e`
+- E2E tests run separately with `just test-e2e-api` (requires Docker)
+- Added `asyncio_default_fixture_loop_scope = "function"` to pytest config
+
+**Files Modified:**
+- `Justfile` - Added `--ignore=tests/e2e` to `test-api` recipe
+- `api/pyproject.toml` - Added asyncio fixture loop scope config
+- `api/tests/e2e/conftest.py` - Updated docstring explaining separation
+
+### Fix 3: Version Alias Support for Installation
+
+**Problem:** Installing with "stable" returned "Unprocessable Entity" - API only accepted specific version numbers.
+
+**Solution:**
+- Updated `InstallRequest` model regex to accept "stable" and "unstable" as valid values
+- Added version alias resolution in `_install_server_locked()` before validation
+- Aliases resolve to latest version in that channel via existing `resolve_version_alias()` method
+
+**Files Modified:**
+- `api/src/vintagestory_api/models/server.py` - Updated version pattern regex
+- `api/src/vintagestory_api/services/server.py` - Added alias resolution in install flow
+
+### Fix 4: Install Card Placeholder Text
+
+**Problem:** Placeholder showed static "e.g., 1.21.3" which didn't indicate alias support.
+
+**Solution:** Updated placeholder to "e.g., stable, unstable, 1.21.6" to show valid options.
+
+**Files Modified:**
+- `web/src/components/ServerInstallCard.tsx` - Updated placeholder text
+
+### Fix 5: Sidebar Navigation Label
+
+**Problem:** Sidebar showed "Terminal" but "Console" is more accurate for this feature.
+
+**Solution:** Changed navigation label from "Terminal" to "Console" in sidebar.
+
+**Files Modified:**
+- `web/src/components/layout/Sidebar.tsx` - Changed label to "Console"
+- `web/src/components/layout/Sidebar.test.tsx` - Updated test assertions
+

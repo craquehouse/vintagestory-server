@@ -19,7 +19,7 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /mods/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /config/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /terminal/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /console/i })).toBeInTheDocument();
   });
 
   it('renders Dashboard with correct icon', () => {
@@ -46,12 +46,12 @@ describe('Sidebar', () => {
     expect(configLink).toHaveAttribute('href', '/config');
   });
 
-  it('renders Terminal with correct icon', () => {
+  it('renders Console with correct icon', () => {
     renderWithProviders(<Sidebar />);
 
-    const terminalLink = screen.getByRole('link', { name: /terminal/i });
-    expect(terminalLink).toBeInTheDocument();
-    expect(terminalLink).toHaveAttribute('href', '/terminal');
+    const consoleLink = screen.getByRole('link', { name: /console/i });
+    expect(consoleLink).toBeInTheDocument();
+    expect(consoleLink).toHaveAttribute('href', '/terminal');
   });
 
   it('highlights active route with bg-sidebar-accent class', () => {
@@ -169,7 +169,7 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
     expect(screen.queryByText('Mods')).not.toBeInTheDocument();
     expect(screen.queryByText('Config')).not.toBeInTheDocument();
-    expect(screen.queryByText('Terminal')).not.toBeInTheDocument();
+    expect(screen.queryByText('Console')).not.toBeInTheDocument();
   });
 
   it('renders logo "VS Server" when expanded', () => {

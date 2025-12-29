@@ -28,9 +28,12 @@ class ServerState(str, Enum):
 class InstallRequest(BaseModel):
     """Request body for server installation endpoint."""
 
-    # Matches: 1.21.3, 1.22.0-rc, 1.22.0-pre.1, 1.21.3+build.123
+    # Accepts either:
+    # - Specific version: 1.21.3, 1.22.0-rc, 1.22.0-pre.1, 1.21.3+build.123
+    # - Channel alias: "stable" or "unstable" (resolved to latest version)
     version: str = Field(
-        ..., pattern=r"^\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a-zA-Z0-9.]+)?$"
+        ...,
+        pattern=r"^(\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a-zA-Z0-9.]+)?|stable|unstable)$",
     )
 
 

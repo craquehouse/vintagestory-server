@@ -11,6 +11,10 @@ pytest-playwright provides the following fixtures automatically:
 - `browser_name`: Name of the browser being used
 
 See: https://playwright.dev/python/docs/test-runners#fixtures
+
+Note: E2E tests are excluded from the main test run (just test-api) because
+Playwright's sync_api uses its own event loop which conflicts with pytest-asyncio.
+Run E2E tests separately with: just test-e2e-api
 """
 
 import os

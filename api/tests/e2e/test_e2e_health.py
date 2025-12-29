@@ -1,7 +1,11 @@
 """E2E tests for health endpoints.
 
 These tests verify the application health endpoints are accessible
-via browser automation against the running Docker application.
+against the running Docker application.
+
+Note: Health endpoints are at root level (K8s convention), not under /api/v1alpha1.
+API endpoint tests use Playwright's request context (direct HTTP) rather than
+browser navigation, since the web server serves the SPA for browser requests.
 """
 
 import re
@@ -9,23 +13,25 @@ import re
 from playwright.sync_api import Page, expect
 
 
-def test_healthz_endpoint_returns_ok(page: Page, api_base_url: str) -> None:
-    """Verify /healthz endpoint returns health status via browser."""
-    page.goto(f"{api_base_url}/healthz")
+def test_healthz_endpoint_returns_ok(page: Page, base_url: str) -> None:
+    """Verify /healthz liveness probe returns health status."""
+    response = page.request.get(f"{base_url}/healthz")
 
-    # The response should be JSON with status field
-    # Playwright displays raw JSON in the page body
-    expect(page.locator("body")).to_contain_text("ok")
+    assert response.ok
+    data = response.json()
+    assert data.get("status") == "ok"
+    assert "data" in data
+    assert data["data"].get("api") == "healthy"
 
 
-def test_health_endpoint_returns_detailed_status(page: Page, api_base_url: str) -> None:
-    """Verify /health endpoint returns detailed health status."""
-    page.goto(f"{api_base_url}/health")
+def test_readyz_endpoint_returns_ready(page: Page, base_url: str) -> None:
+    """Verify /readyz readiness probe returns ready status."""
+    response = page.request.get(f"{base_url}/readyz")
 
-    # Should contain status and version information
-    body = page.locator("body")
-    expect(body).to_contain_text("status")
-    expect(body).to_contain_text("version")
+    assert response.ok
+    data = response.json()
+    assert data.get("status") == "ok"
+    assert data["data"].get("ready") is True
 
 
 def test_web_ui_loads_successfully(page: Page, base_url: str) -> None:
@@ -34,13 +40,3 @@ def test_web_ui_loads_successfully(page: Page, base_url: str) -> None:
 
     # The page should have a title containing VintageStory or similar
     expect(page).to_have_title(re.compile(r"VintageStory|VS Server", re.IGNORECASE))
-
-
-def test_api_root_returns_info(page: Page, api_base_url: str) -> None:
-    """Verify API root endpoint returns API information."""
-    page.goto(api_base_url)
-
-    # API root should return service info
-    body = page.locator("body")
-    # Check for typical API info fields
-    expect(body).to_contain_text("vintagestory")

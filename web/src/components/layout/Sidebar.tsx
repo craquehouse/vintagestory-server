@@ -23,7 +23,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/mods", icon: Package, label: "Mods" },
   { to: "/config", icon: Settings, label: "Config" },
-  { to: "/terminal", icon: Terminal, label: "Terminal" },
+  { to: "/terminal", icon: Terminal, label: "Console" },
 ];
 
 interface SidebarProps {

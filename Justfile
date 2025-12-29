@@ -29,13 +29,14 @@ default:
 test: test-api test-web
 
 # Run API tests (Python/pytest) - accepts optional pytest args
+# Excludes E2E tests by default (run with just test-e2e-api)
 # Examples: just test-api -k "restart" | just test-api tests/test_server.py -xvs
 test-api *ARGS:
-    mise exec -C api -- uv run pytest {{ARGS}}
+    mise exec -C api -- uv run pytest --ignore=tests/e2e {{ARGS}}
 
 # Run web tests (Vitest) - accepts optional vitest args
 test-web *ARGS:
-    mise exec -C web -- bun run test {{ARGS}}
+    mise exec -C web -- bun run test --run {{ARGS}}
 
 # Run API tests in watch mode (TDD)
 test-api-watch:

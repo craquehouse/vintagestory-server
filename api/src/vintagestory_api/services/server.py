@@ -613,6 +613,18 @@ class ServerService:
         if self._install_state == ServerState.ERROR:
             self._reset_install_state()
 
+        # Resolve version aliases (stable/unstable) to actual version numbers
+        if version.lower() in VERSION_ALIASES:
+            resolved = await self.resolve_version_alias(version)
+            if resolved is None:
+                self._set_install_error(
+                    f"Could not resolve '{version}' to a specific version",
+                    ErrorCode.VERSION_NOT_FOUND,
+                )
+                return self.get_install_progress()
+            logger.info("version_alias_resolved", alias=version, resolved_version=resolved)
+            version = resolved
+
         # Validate version format
         if not self.validate_version(version):
             self._set_install_error(
