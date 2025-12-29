@@ -175,13 +175,11 @@ Similar approach for `test_console.py`:
 
 ## Timeline
 
-This refactoring should be done incrementally:
+This refactoring was completed in Story 5.0:
 
-1. **Story 5.1**: Create `tests/server/conftest.py` ✅ Done
-2. **Story 5.2-5.4**: Add new mod tests in `tests/mods/` package (new structure)
-3. **Post-Epic 5**: Migrate existing test_server.py and test_console.py
-   - Lower priority since existing tests work
-   - Can be done in a dedicated tech debt story
+1. **Story 5.0 Tasks 6-12**: Migrated `test_server.py` (136 tests) to `tests/server/` package ✅ Done
+2. **Story 5.0 Tasks 13-19**: Migrated `test_console.py` (75 tests) to `tests/console/` package ✅ Done
+3. **Story 5.2-5.4**: Add new mod tests in `tests/mods/` package (new structure)
 
 ## Benefits
 
