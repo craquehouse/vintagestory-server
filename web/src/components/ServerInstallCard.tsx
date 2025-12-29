@@ -90,7 +90,7 @@ export function ServerInstallCard({
               disabled={isButtonDisabled}
               aria-label="Install server"
             >
-              {installMutation.isPending ? (
+              {isInstalling || installMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
                   Installing...

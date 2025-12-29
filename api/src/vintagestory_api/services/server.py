@@ -37,6 +37,9 @@ VS_CDN_BASE = "https://cdn.vintagestory.at/gamefiles"
 # and optional build metadata (+build.123)
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a-zA-Z0-9.]+)?$")
 
+# Channel aliases that resolve to the latest version in that channel
+VERSION_ALIASES = {"stable", "unstable"}
+
 # Required server files to verify installation
 REQUIRED_SERVER_FILES = ["VintagestoryServer.dll", "VintagestoryLib.dll"]
 
@@ -172,6 +175,63 @@ class ServerService:
             True if version format is valid, False otherwise.
         """
         return VERSION_PATTERN.match(version) is not None
+
+    def is_version_alias(self, version: str) -> bool:
+        """Check if version string is an alias (e.g., "stable", "unstable").
+
+        Args:
+            version: Version string to check.
+
+        Returns:
+            True if version is an alias, False otherwise.
+        """
+        return version.lower() in VERSION_ALIASES
+
+    async def resolve_version_alias(self, alias: str) -> str | None:
+        """Resolve a version alias to the latest actual version number.
+
+        Args:
+            alias: Version alias ("stable" or "unstable").
+
+        Returns:
+            Latest version string for the channel, or None if not found.
+        """
+        channel = alias.lower()
+        if channel not in VERSION_ALIASES:
+            return None
+
+        try:
+            versions = await self.get_available_versions(channel)
+            # Find version marked as latest
+            for version, info in versions.items():
+                if info.is_latest:
+                    logger.info(
+                        "resolved_version_alias",
+                        alias=alias,
+                        version=version,
+                    )
+                    return version
+
+            # Fallback: if no version is marked as latest, return the highest version
+            if versions:
+                # Sort versions and return the highest
+                sorted_versions = sorted(versions.keys(), reverse=True)
+                latest = sorted_versions[0]
+                logger.info(
+                    "resolved_version_alias_fallback",
+                    alias=alias,
+                    version=latest,
+                )
+                return latest
+
+            return None
+        except httpx.HTTPError as e:
+            logger.warning(
+                "failed_to_resolve_alias",
+                alias=alias,
+                error=str(e),
+            )
+            return None
 
     async def get_available_versions(self, channel: str = "stable") -> dict[str, VersionInfo]:
         """Fetch available versions from VintageStory API.

@@ -40,7 +40,9 @@ async def install_server(
     poll for progress.
 
     Args:
-        request: Installation request with version number
+        request: Installation request with version number. Can be a specific
+            version (e.g., "1.21.3") or an alias ("stable" or "unstable") to
+            install the latest version from that channel.
 
     Returns:
         ApiResponse with initial installation status
@@ -51,6 +53,19 @@ async def install_server(
         HTTPException: 404 if version not found
     """
     version = request.version
+
+    # Handle version aliases (e.g., "stable", "unstable")
+    if service.is_version_alias(version):
+        resolved = await service.resolve_version_alias(version)
+        if resolved is None:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": ErrorCode.VERSION_NOT_FOUND,
+                    "message": f"Could not find latest version for channel: {version}",
+                },
+            )
+        version = resolved
 
     # Validate version format (422 per AC4)
     if not service.validate_version(version):

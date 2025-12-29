@@ -57,7 +57,7 @@ test-e2e-web *ARGS:
     #!/usr/bin/env bash
     set -e
     echo "🐳 Starting Docker stack..."
-    just docker-start
+    just docker start
 
     echo "⏳ Waiting for API to be ready..."
     for i in {1..30}; do
@@ -67,8 +67,8 @@ test-e2e-web *ARGS:
         fi
         if [ $i -eq 30 ]; then
             echo "❌ API failed to start within 30 seconds"
-            just docker-logs
-            just docker-stop
+            just docker logs
+            just docker stop
             exit 1
         fi
         sleep 1
@@ -78,7 +78,7 @@ test-e2e-web *ARGS:
     mise exec -C web -- bun run test:e2e {{ARGS}} || TEST_EXIT=$?
 
     echo "🧹 Stopping Docker stack..."
-    just docker-stop
+    just docker stop
 
     exit ${TEST_EXIT:-0}
 
@@ -181,25 +181,36 @@ install-web *ARGS:
 # DOCKER
 # =============================================================================
 
-# Build Docker image for development
-docker-build:
-    docker compose -f docker-compose.dev.yaml build
-
-# Start Docker container (builds if needed)
-docker-start:
-    docker compose -f docker-compose.dev.yaml up -d --build
-
-# Stop Docker container
-docker-stop:
-    docker compose -f docker-compose.dev.yaml down
-
-# Show Docker container status
-docker-status:
-    docker compose -f docker-compose.dev.yaml ps
-
-# View Docker container logs
-docker-logs:
-    docker compose -f docker-compose.dev.yaml logs -f
+# Docker commands: build, start, stop, restart, status, logs
+# Usage: just docker <command> [args]
+docker COMMAND *ARGS:
+    #!/usr/bin/env bash
+    case "{{COMMAND}}" in
+        build)
+            docker compose -f docker-compose.dev.yaml build {{ARGS}}
+            ;;
+        start)
+            docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
+            ;;
+        stop)
+            docker compose -f docker-compose.dev.yaml down {{ARGS}}
+            ;;
+        restart)
+            just docker stop {{ARGS}}
+            just docker start {{ARGS}}
+            ;;
+        status)
+            docker compose -f docker-compose.dev.yaml ps {{ARGS}}
+            ;;
+        logs)
+            docker compose -f docker-compose.dev.yaml logs -f {{ARGS}}
+            ;;
+        *)
+            echo "Unknown docker command: {{COMMAND}}"
+            echo "Available commands: build, start, stop, restart, status, logs"
+            exit 1
+            ;;
+    esac
 
 # =============================================================================
 # DATA MANAGEMENT
