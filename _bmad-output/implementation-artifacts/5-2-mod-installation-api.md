@@ -68,38 +68,35 @@ WRONG PATTERN (tests batched at end):
   - [ ] 1.4: Write tests using respx to mock httpx calls
   - [ ] 1.5: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
-- [ ] Task 2: Implement mod file download with streaming + tests (AC: 1, 6)
+- [ ] Task 2: Implement mod file download with streaming + tests (AC: 1, 2, 6)
   - [ ] 2.1: Add to ModApiClient:
-    - `download_mod(fileid, filename)` - stream download to internal cache directory
-    - Cache path determined internally: `{cache_dir}/mods/{filename}`
+    - `download_mod(slug, version=None)` - full download flow
+    - Internally: lookup mod → select release → get fileid → download
+    - If version specified: find exact match or raise error
+    - If version is None: use latest release (`releases[0]`)
     - Use `client.stream()` for memory-efficient large file handling
+    - Extract filename from response headers or release object
     - Write to temp file first, then rename (atomic write pattern)
-    - Returns Path to downloaded file on success
+    - Returns Path to downloaded file on success, None on failure
   - [ ] 2.2: Implement cleanup on download failure (delete partial temp file)
-  - [ ] 2.3: Write tests for successful download, partial failure cleanup
+  - [ ] 2.3: Write tests for: latest download, specific version, version not found, partial failure cleanup
   - [ ] 2.4: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
-- [ ] Task 3: Implement release selection and compatibility check + tests (AC: 1, 2)
-  - [ ] 3.1: Add `select_release(releases, version=None)` function:
-    - If version specified: find exact match or return None
-    - If version is None: return `releases[0]` (latest)
-  - [ ] 3.2: Add `check_compatibility(releases, game_version)` → (status, release):
+- [ ] Task 3: Implement compatibility check + tests (AC: 1)
+  - [ ] 3.1: Add `check_compatibility(release, game_version)` → CompatibilityStatus:
     - Status is Literal["compatible", "not_verified", "incompatible"]
     - "compatible" = exact version match in release tags
     - "not_verified" = same major.minor version match
     - "incompatible" = no matching version found
-  - [ ] 3.3: Write tests for version selection and all three compatibility scenarios
-  - [ ] 3.4: Run `just test-api tests/test_mod_api.py` - verify tests pass
+  - [ ] 3.2: Write tests for all three compatibility scenarios
+  - [ ] 3.3: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
 - [ ] Task 4: Extend ModService with install_mod method + tests (AC: 1, 2, 3, 4)
   - [ ] 4.1: Add to ModService in `api/src/vintagestory_api/services/mods.py`:
     - `install_mod(slug_or_url, version=None)` async method
     - Parse slug from URL if provided
-    - Lookup mod via ModApiClient
-    - Select release: specific version if provided, otherwise latest
-    - Return 404 if specified version not found
     - Check if mod already installed (return error or update)
-    - Download file via ModApiClient (to cache)
+    - Call `ModApiClient.download_mod(slug, version)` - handles lookup + download
     - Copy/link from cache to mods directory
     - Import mod (extract metadata, update state)
     - Set pending_restart if server running
@@ -204,6 +201,15 @@ Use `just` for all development tasks:
 import httpx
 from pathlib import Path
 from typing import Optional
+from dataclasses import dataclass
+
+@dataclass
+class DownloadResult:
+    """Result of a mod download operation."""
+    path: Path
+    filename: str
+    version: str
+    release: dict  # Full release object for compatibility check
 
 class ModApiClient:
     BASE_URL = "https://mods.vintagestory.at/api"
@@ -239,13 +245,46 @@ class ModApiClient:
         except httpx.HTTPError:
             return None
 
-    async def download_mod(self, fileid: int, filename: str) -> Path | None:
-        """Download mod file to internal cache directory.
+    async def download_mod(
+        self,
+        slug: str,
+        version: str | None = None
+    ) -> DownloadResult | None:
+        """Lookup mod, select release, and download to cache.
 
-        Returns path to downloaded file, or None on failure.
+        Args:
+            slug: Mod slug (e.g., "smithingplus")
+            version: Specific version to download, or None for latest
+
+        Returns:
+            DownloadResult with path and metadata, or None on failure
         """
+        # 1. Lookup mod
+        mod = await self.get_mod(slug)
+        if not mod:
+            return None
+
+        releases = mod.get("releases", [])
+        if not releases:
+            return None
+
+        # 2. Select release
+        if version is None:
+            release = releases[0]  # Latest
+        else:
+            release = next(
+                (r for r in releases if r.get("modversion") == version),
+                None
+            )
+            if not release:
+                return None  # Version not found
+
+        # 3. Download file
+        fileid = release["fileid"]
+        filename = release["filename"]
         dest_path = self._mods_cache / filename
         temp_path = dest_path.with_suffix('.tmp')
+
         client = await self._get_client()
         try:
             async with client.stream(
@@ -259,7 +298,12 @@ class ModApiClient:
                         f.write(chunk)
             # Atomic rename
             temp_path.rename(dest_path)
-            return dest_path
+            return DownloadResult(
+                path=dest_path,
+                filename=filename,
+                version=release["modversion"],
+                release=release
+            )
         except (httpx.HTTPError, IOError):
             # Cleanup partial download
             if temp_path.exists():
@@ -267,65 +311,37 @@ class ModApiClient:
             return None
 ```
 
-**Version selection pattern:**
-```python
-from typing import Optional
-
-def select_release(
-    releases: list[dict],
-    version: str | None = None
-) -> Optional[dict]:
-    """Select a release by version, or latest if version is None.
-
-    Args:
-        releases: List of release objects (newest first)
-        version: Specific version to find, or None for latest
-
-    Returns:
-        Matching release dict, or None if version not found
-    """
-    if not releases:
-        return None
-
-    if version is None:
-        # releases[0] is always latest
-        return releases[0]
-
-    # Find specific version
-    for release in releases:
-        if release.get("modversion") == version:
-            return release
-
-    return None  # Version not found
-```
-
 **Compatibility check pattern:**
 ```python
-from typing import Literal, Tuple, Optional
+from typing import Literal
 
 CompatibilityStatus = Literal["compatible", "not_verified", "incompatible"]
 
-def check_compatibility(
-    releases: list[dict],
-    game_version: str
-) -> Tuple[CompatibilityStatus, Optional[dict]]:
-    """Check mod compatibility with installed game version."""
+def check_compatibility(release: dict, game_version: str) -> CompatibilityStatus:
+    """Check if a release is compatible with the installed game version.
+
+    Args:
+        release: Release object from download_mod result
+        game_version: Installed game version (e.g., "1.21.3")
+
+    Returns:
+        - "compatible": Exact version match in release tags
+        - "not_verified": Same major.minor version
+        - "incompatible": No matching version
+    """
+    tags = release.get("tags", [])
+
     # Exact match
-    for release in releases:
-        if game_version in release.get("tags", []):
-            return ("compatible", release)
+    if game_version in tags:
+        return "compatible"
 
-    # Major.minor match
+    # Major.minor match (e.g., 1.21.x)
     major_minor = ".".join(game_version.split(".")[:2])
-    for release in releases:
-        for tag in release.get("tags", []):
-            if tag.startswith(major_minor + ".") or tag == major_minor:
-                return ("not_verified", release)
+    for tag in tags:
+        if tag.startswith(major_minor + ".") or tag == major_minor:
+            return "not_verified"
 
-    # No match - return latest
-    if releases:
-        return ("incompatible", releases[0])
-    return ("incompatible", None)
+    return "incompatible"
 ```
 
 **URL slug extraction pattern:**
