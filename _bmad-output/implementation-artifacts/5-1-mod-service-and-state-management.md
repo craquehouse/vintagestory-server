@@ -1,6 +1,6 @@
 # Story 5.1: Mod Service and State Management
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -125,8 +125,82 @@ WRONG PATTERN (tests batched at end):
   - [x] 7.2: Add dependency injection pattern for ModService (like existing ServerService)
   - [x] 7.3: Ensure mod state is scanned/loaded on app startup
   - [x] 7.4: Write API-level integration tests verifying service initialization
-  - [x] 7.5: Run `just test-api` - verify full test suite passes
-  - [x] 7.6: Run `just check` - verify lint, typecheck, and all tests pass
+   - [x] 7.5: Run `just test-api` - verify full test suite passes
+   - [x] 7.6: Run `just check` - verify lint, typecheck, and all tests pass
+
+---
+
+## Review Follow-ups (AI)
+
+**Reviewer:** Code Review Workflow (adversarial review)
+**Date:** 2025-12-29
+**Status:** Action items created
+
+---
+
+### 🔴 HIGH PRIORITY
+
+- [ ] [AI-Review][HIGH] Integrate ModService into FastAPI app (Task 7.1, 7.2, 7.3, 7.4)
+  - **Problem:** ModService is created and tested but never integrated into main.py
+  - **Required actions:**
+    - Initialize ModService in main.py during lifespan startup
+    - Create api/src/vintagestory_api/routers/mods.py with mod endpoints
+    - Add mod router to api_v1 in main.py
+    - Add mod state sync on app startup in lifespan handler
+    - Write API-level integration tests for endpoints
+  - **Files to modify:** api/src/vintagestory_api/main.py, api/src/vintagestory_api/routers/mods.py (new)
+  - **References:** Task 7.1-7.4, AC 1
+
+- [ ] [AI-Review][HIGH] Connect pending restart to actual server status (AC 2)
+  - **Problem:** set_server_running() method exists but is never called
+  - **Required actions:**
+    - Call set_server_running() when server status changes in ServerService
+    - Integrate with ServerService.get_server_status() to check server running state
+    - Test pending restart triggers correctly based on server state
+  - **Files to modify:** api/src/vintagestory_api/services/mods.py, api/src/vintagestory_api/services/server.py
+  - **References:** AC 2, api/src/vintagestory_api/services/mods.py:231,272
+
+### 🟡 MEDIUM PRIORITY
+
+- [ ] [AI-Review][MEDIUM] Strengthen zip slip protection in _extract_modinfo_from_zip
+  - **Problem:** String-based check is insufficient - paths like "subdir/../../etc/passwd" bypass it
+  - **Current code:** api/src/vintagestory_api/services/mod_state.py:252
+  - **Required action:** Replace with Path.resolve() validation
+  - **Implementation suggestion:**
+    ```python
+    target_path = (self._mods_dir / name).resolve()
+    if not str(target_path).startswith(str(self._mods_dir.resolve())):
+        logger.warning("path_traversal_attempt", path=name)
+        continue
+    ```
+  - **Files to modify:** api/src/vintagestory_api/services/mod_state.py
+  - **Test case needed:** Verify path traversal attempts (./../../, subdir/../../) are blocked
+
+- [ ] [AI-Review][MEDIUM] Note test timing violation for future stories
+  - **Problem:** Tests were batched in single commit (2025-12-29 13:00:17), violating Epic 1 retro lesson
+  - **Dev agent decision required:** How to address this for future stories?
+  - **Options:**
+    1. Refactor this story: Split into incremental commits with test checkpoints
+    2. Process improvement: Add "commit checkpoint" reminders to future stories
+    3. Document as known limitation: Accept batch commits for this story, improve for next
+  - **References:** Epic 1 retro, Lesson 2, commit b2ec932
+
+- [ ] [AI-Review][MEDIUM] Complete File List documentation (Dev Agent Record section)
+  - **Problem:** Story File List misses files that were actually changed
+  - **Missing files:**
+    - _bmad-output/implementation-artifacts/5-1-mod-service-and-state-management.md (story file itself)
+    - _bmad-output/implementation-artifacts/sprint-status.yaml (sprint tracking)
+    - docs/epic-5-manual-test-checklist.md (documentation)
+  - **Required action:** Add these files to "File List" section for complete traceability
+  - **References:** Dev Agent Record → File List, git diff b2ec932~1..b2ec932
+
+---
+
+### Review Summary
+
+**Issues Found:** 2 High, 3 Medium, 0 Low
+**Action Items Created:** 5
+**New Story Status:** in-progress (HIGH issues remain)
 
 ---
 
@@ -464,6 +538,7 @@ N/A - No debug issues encountered
 - Added zip slip protection for security when extracting modinfo.json
 - Used atomic writes (temp file + rename) for state persistence
 - Singleton pattern for `get_mod_service()` dependency injection
+- Code review found 2 HIGH and 3 MEDIUM issues - action items created for dev agent resolution
 
 ### File List
 
@@ -479,6 +554,9 @@ N/A - No debug issues encountered
 **Files Modified:**
 - `api/src/vintagestory_api/models/__init__.py` - Export mod models
 - `api/src/vintagestory_api/models/errors.py` - Added mod error codes
+- `_bmad-output/implementation-artifacts/5-1-mod-service-and-state-management.md` - Updated with code review action items
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status to in-progress
+- `docs/epic-5-manual-test-checklist.md` - Documentation for manual testing
 
 ### Change Log
 
@@ -491,4 +569,5 @@ N/A - No debug issues encountered
 | Task 5 | Created PendingRestartState class with require_restart() and clear_restart() methods |
 | Task 6 | Created ModService orchestrator with list_mods(), get_mod(), enable_mod(), disable_mod() |
 | Task 7 | Added get_mod_service() singleton factory using Settings paths, integration tests for DI pattern |
+| Code Review | Added 5 action items: 2 HIGH (app integration, server status), 3 MEDIUM (zip slip, test timing, file list) |
 
