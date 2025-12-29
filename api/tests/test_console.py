@@ -834,6 +834,187 @@ class TestConsoleHistoryEndpoint:
         assert timestamp is not None
 
 
+class TestServerServiceSendCommand:
+    """Unit tests for ServerService.send_command() (Story 4.3, Task 1)."""
+
+    @pytest.fixture
+    def temp_dir(self, tmp_path: Path) -> Path:
+        """Create temporary directory structure for server tests."""
+        server_dir = tmp_path / "server"
+        server_dir.mkdir()
+        serverdata_dir = tmp_path / "serverdata"
+        serverdata_dir.mkdir()
+        vsmanager_dir = tmp_path / "vsmanager"
+        vsmanager_dir.mkdir()
+
+        # Create required server files to mark as "installed"
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (vsmanager_dir / "current_version").write_text("1.21.3")
+
+        return tmp_path
+
+    @pytest.fixture
+    def settings(self, temp_dir: Path) -> Settings:
+        """Create settings with temp directories."""
+        return Settings(
+            data_dir=temp_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def service(self, settings: Settings) -> ServerService:
+        """Create ServerService with custom settings."""
+        return ServerService(settings)
+
+    @pytest.mark.asyncio
+    async def test_send_command_returns_false_when_server_not_running(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command returns False when server is not running."""
+        # Server is not running (no process)
+        result = await service.send_command("/help")
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_command_returns_false_when_process_exited(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command returns False when process has exited."""
+        # Set up a mock process that has exited (returncode is not None)
+        mock_process = AsyncMock()
+        mock_process.returncode = 0  # Process has exited
+        mock_process.stdin = AsyncMock()
+        service._process = mock_process
+
+        result = await service.send_command("/help")
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_command_returns_false_when_stdin_not_available(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command returns False when stdin is None."""
+        # Set up a mock process with no stdin
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # Process is running
+        mock_process.stdin = None  # stdin not available
+        service._process = mock_process
+
+        result = await service.send_command("/help")
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_command_writes_to_stdin_with_newline(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command writes command to stdin with newline."""
+        # Set up a mock running process with stdin
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # Process is running
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()  # write is sync
+        mock_process.stdin.drain = AsyncMock()
+        service._process = mock_process
+
+        result = await service.send_command("/help")
+
+        assert result is True
+        mock_process.stdin.write.assert_called_once_with(b"/help\n")
+        mock_process.stdin.drain.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_send_command_echoes_to_console_buffer(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command echoes command to console buffer with [CMD] prefix."""
+        # Set up a mock running process with stdin
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # Process is running
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()  # write is sync
+        mock_process.stdin.drain = AsyncMock()
+        service._process = mock_process
+
+        await service.send_command("/time set day")
+
+        # Check that command was echoed to buffer
+        history = service.console_buffer.get_history()
+        assert len(history) == 1
+        assert "[CMD] /time set day" in history[0]
+
+    @pytest.mark.asyncio
+    async def test_send_command_handles_empty_command(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command handles empty string command."""
+        # Set up a mock running process with stdin
+        mock_process = AsyncMock()
+        mock_process.returncode = None  # Process is running
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        service._process = mock_process
+
+        result = await service.send_command("")
+
+        # Empty command should still be sent (server will handle it)
+        assert result is True
+        mock_process.stdin.write.assert_called_once_with(b"\n")
+
+    @pytest.mark.asyncio
+    async def test_send_command_handles_special_characters(
+        self, service: ServerService
+    ) -> None:
+        """Test that send_command handles commands with special characters."""
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        service._process = mock_process
+
+        # Command with unicode and special characters
+        result = await service.send_command("/say Hello, World! 🎮")
+
+        assert result is True
+        mock_process.stdin.write.assert_called_once_with("/say Hello, World! 🎮\n".encode())
+
+    @pytest.mark.asyncio
+    async def test_send_command_echo_notifies_subscribers(
+        self, service: ServerService
+    ) -> None:
+        """Test that command echo is sent to all subscribers in real-time (AC: 2)."""
+        # Set up a mock running process
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        service._process = mock_process
+
+        # Subscribe to console buffer
+        received_lines: list[str] = []
+
+        async def subscriber(line: str) -> None:
+            received_lines.append(line)
+
+        service.console_buffer.subscribe(subscriber)
+
+        # Send a command
+        await service.send_command("/time set day")
+
+        # Verify subscriber received the echoed command
+        assert len(received_lines) == 1
+        assert "[CMD] /time set day" in received_lines[0]
+
+        # Clean up
+        service.console_buffer.unsubscribe(subscriber)
+
+
 class TestConsoleWebSocket:
     """WebSocket tests for /api/v1alpha1/console/ws endpoint (Story 4.2)."""
 
@@ -1023,3 +1204,453 @@ class TestConsoleWebSocket:
 
         # Verify subscriber was removed
         assert len(test_service.console_buffer._subscribers) == initial_subscribers
+
+
+class TestConsoleCommandEndpoint:
+    """REST API tests for POST /api/v1alpha1/console/command endpoint (Story 4.3, Task 4)."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temp data directory with server files."""
+        server_dir = tmp_path / "server"
+        server_dir.mkdir()
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        return tmp_path
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def test_service(self, test_settings: Settings) -> ServerService:
+        """Create ServerService with test settings."""
+        return ServerService(test_settings)
+
+    @pytest.fixture
+    def integration_app(
+        self, test_settings: Settings, test_service: ServerService
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Headers with admin API key."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Headers with monitor API key (non-admin)."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    # ======================================
+    # Authentication tests (AC: 4)
+    # ======================================
+
+    def test_command_requires_authentication(self, client: TestClient) -> None:
+        """Test that command endpoint requires authentication."""
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": "/help"},
+        )
+
+        assert response.status_code == 401
+
+    def test_command_requires_admin_role(
+        self, client: TestClient, monitor_headers: dict[str, str]
+    ) -> None:
+        """Test that command endpoint requires Admin role (AC: 4)."""
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": "/help"},
+            headers=monitor_headers,
+        )
+
+        assert response.status_code == 403
+        assert "Console access requires Admin role" in response.json()["detail"]["message"]
+
+    # ======================================
+    # Success case tests (AC: 1)
+    # ======================================
+
+    def test_command_admin_success(
+        self, client: TestClient, admin_headers: dict[str, str], test_service: ServerService
+    ) -> None:
+        """Test that Admin can send console command (AC: 1)."""
+        # Set up mock running process
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": "/help"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["command"] == "/help"
+        assert data["data"]["sent"] is True
+
+    def test_command_writes_to_stdin(
+        self, client: TestClient, admin_headers: dict[str, str], test_service: ServerService
+    ) -> None:
+        """Test that command is written to server stdin."""
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": "/time set day"},
+            headers=admin_headers,
+        )
+
+        mock_process.stdin.write.assert_called_with(b"/time set day\n")
+
+    # ======================================
+    # Error case tests (AC: 3)
+    # ======================================
+
+    def test_command_error_when_server_not_running(
+        self, client: TestClient, admin_headers: dict[str, str], test_service: ServerService
+    ) -> None:
+        """Test that 400 is returned when server is not running (AC: 3)."""
+        # Server is not running (no process set)
+        assert test_service._process is None
+
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": "/help"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "SERVER_NOT_RUNNING"
+        assert "server is not running" in data["detail"]["message"]
+
+    # ======================================
+    # Validation tests
+    # ======================================
+
+    def test_command_rejects_empty_command(
+        self, client: TestClient, admin_headers: dict[str, str]
+    ) -> None:
+        """Test that empty command is rejected with 422."""
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": ""},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
+
+    def test_command_rejects_missing_command(
+        self, client: TestClient, admin_headers: dict[str, str]
+    ) -> None:
+        """Test that missing command field is rejected with 422."""
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
+
+    def test_command_rejects_too_long_command(
+        self, client: TestClient, admin_headers: dict[str, str]
+    ) -> None:
+        """Test that command > 1000 chars is rejected with 422."""
+        long_command = "/" + "a" * 1001
+        response = client.post(
+            "/api/v1alpha1/console/command",
+            json={"command": long_command},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
+
+
+class TestConsoleWebSocketCommands:
+    """WebSocket command handling tests for Story 4.3 (Task 3)."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temp data directory with server files."""
+        server_dir = tmp_path / "server"
+        server_dir.mkdir()
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        return tmp_path
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def test_service(self, test_settings: Settings) -> ServerService:
+        """Create ServerService with test settings."""
+        return ServerService(test_settings)
+
+    @pytest.fixture
+    def ws_client(
+        self, test_settings: Settings, test_service: ServerService
+    ) -> Generator[TestClient, None, None]:
+        """Create test client with overrides for WebSocket testing."""
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        with TestClient(app) as client:
+            yield client
+
+        app.dependency_overrides.clear()
+
+    # ======================================
+    # Command message handling tests (AC: 1, 3)
+    # ======================================
+
+    def test_websocket_command_sends_to_server(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that WebSocket command is written to server stdin (AC: 1)."""
+        # Set up mock running process
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send command
+            ws.send_json({"type": "command", "content": "/help"})
+
+            # Give time for processing
+            import time
+            time.sleep(0.1)
+
+            ws.close()
+
+        # Verify command was written to stdin
+        mock_process.stdin.write.assert_called_with(b"/help\n")
+
+    def test_websocket_command_echoes_in_stream(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that sent command is echoed back in console stream (AC: 2).
+
+        Verifies that:
+        1. The echo is received immediately after sending the command
+        2. The echo contains the [CMD] prefix
+        3. The echo appears before any potential server response would
+        """
+        # Set up mock running process
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send command
+            ws.send_json({"type": "command", "content": "/time set day"})
+
+            # Should receive the command echo immediately (before any server response)
+            # The echo is the first message we receive after sending
+            response = ws.receive_text()
+
+            # Verify echo format and content
+            assert "[CMD] /time set day" in response
+            # Verify it has a timestamp prefix (ISO 8601 format)
+            assert response.startswith("[")
+            assert "]" in response
+
+            ws.close()
+
+    def test_websocket_command_error_when_server_not_running(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that error is returned when server is not running (AC: 3)."""
+        # Server is not running (no process set)
+        assert test_service._process is None
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send command
+            ws.send_json({"type": "command", "content": "/help"})
+
+            # Should receive error message
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert response["content"] == "Server is not running"
+
+            ws.close()
+
+    def test_websocket_malformed_json_returns_error(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that malformed JSON returns error but doesn't disconnect (Task 3.5)."""
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send invalid JSON
+            ws.send_text("not valid json {")
+
+            # Should receive error message
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert response["content"] == "Invalid message format"
+
+            # Connection should still be open - send another message
+            ws.send_json({"type": "command", "content": "/help"})
+
+            # Should receive error (server not running)
+            response2 = ws.receive_json()
+            assert response2["type"] == "error"
+
+            ws.close()
+
+    def test_websocket_unknown_message_type_ignored(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that unknown message types are silently ignored."""
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send unknown message type
+            ws.send_json({"type": "unknown", "content": "test"})
+
+            # Connection should still work - send valid command
+            ws.send_json({"type": "command", "content": "/help"})
+
+            # Should receive error (server not running)
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert response["content"] == "Server is not running"
+
+            ws.close()
+
+    # ======================================
+    # Validation tests (match REST endpoint)
+    # ======================================
+
+    def test_websocket_command_rejects_empty_command(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that empty command returns error (matches REST validation)."""
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send empty command
+            ws.send_json({"type": "command", "content": ""})
+
+            # Should receive error message
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert response["content"] == "Empty command"
+
+            # Connection should still be open
+            ws.close()
+
+    def test_websocket_command_rejects_too_long_command(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that command > 1000 chars returns error (matches REST validation)."""
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send command that's too long (1001 chars)
+            long_command = "/" + "a" * 1000
+            ws.send_json({"type": "command", "content": long_command})
+
+            # Should receive error message
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert response["content"] == "Command too long (max 1000 characters)"
+
+            # Connection should still be open
+            ws.close()
+
+    def test_websocket_command_accepts_max_length_command(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that command exactly 1000 chars is accepted."""
+        # Set up mock running process
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Send command that's exactly 1000 chars (should be accepted)
+            max_command = "/" + "a" * 999
+            assert len(max_command) == 1000
+            ws.send_json({"type": "command", "content": max_command})
+
+            # Should receive the echo (not an error)
+            response = ws.receive_text()
+            assert "[CMD]" in response
+
+            ws.close()
+
+    # ======================================
+    # Role-based access tests (AC: 4)
+    # ======================================
+
+    def test_websocket_monitor_cannot_send_commands(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that Monitor role cannot send commands via WebSocket (AC: 4).
+
+        Monitor users are rejected at connection time (code 4003), so they
+        never get the chance to send commands.
+        """
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_MONITOR_KEY}"
+        ) as ws:
+            # Connection should be rejected with 4003
+            data = ws.receive()
+            assert data["type"] == "websocket.close"
+            assert data["code"] == 4003
+            assert data["reason"] == "Forbidden: Admin role required"

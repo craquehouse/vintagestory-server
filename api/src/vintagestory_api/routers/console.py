@@ -1,15 +1,18 @@
 """Console API endpoints for history and streaming."""
 
+import json
 import secrets
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, Query, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.middleware.permissions import RequireConsoleAccess
+from vintagestory_api.models.console import ConsoleCommandRequest
+from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.server import ServerService
 
@@ -53,6 +56,47 @@ async def get_console_history(
             "total": len(service.console_buffer),
             "limit": lines,
         },
+    }
+
+
+@router.post("/command")
+async def send_console_command(
+    _role: RequireConsoleAccess,
+    body: ConsoleCommandRequest,
+    service: ServerService = Depends(get_server_service),
+) -> dict[str, object]:
+    """Send a command to the game server console.
+
+    Writes the command to the server's stdin, which is equivalent to typing
+    the command directly into the server console.
+
+    Requires Admin role (console commands are restricted to administrators).
+
+    Args:
+        _role: Enforces Admin-only access via RequireConsoleAccess dependency.
+        body: Request body with command to send.
+        service: ServerService for command execution.
+
+    Returns:
+        API envelope with command that was sent.
+
+    Raises:
+        HTTPException: 400 if server is not running.
+    """
+    success = await service.send_command(body.command)
+
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.SERVER_NOT_RUNNING,
+                "message": "Cannot send command: server is not running",
+            },
+        )
+
+    return {
+        "status": "ok",
+        "data": {"command": body.command, "sent": True},
     }
 
 
@@ -200,9 +244,56 @@ async def console_websocket(
     service.console_buffer.subscribe(on_new_line)
 
     try:
-        # Keep connection alive, receive any client messages (future: commands)
+        # Receive and process client messages
         while True:
-            await websocket.receive_text()
+            message_text = await websocket.receive_text()
+
+            # Parse JSON message
+            try:
+                message = json.loads(message_text)
+            except json.JSONDecodeError:
+                logger.warning(
+                    "websocket_invalid_json",
+                    client_ip=client_ip,
+                )
+                await websocket.send_json({"type": "error", "content": "Invalid message format"})
+                continue
+
+            # Handle command messages
+            if message.get("type") == "command":
+                command = message.get("content", "")
+
+                # Validate command (match REST endpoint validation)
+                if not command:
+                    await websocket.send_json(
+                        {"type": "error", "content": "Empty command"}
+                    )
+                    continue
+
+                if len(command) > 1000:
+                    await websocket.send_json(
+                        {"type": "error", "content": "Command too long (max 1000 characters)"}
+                    )
+                    continue
+
+                # Log command attempt (without content for security)
+                logger.info("websocket_command_received", client_ip=client_ip)
+
+                # Try to send command to server
+                success = await service.send_command(command)
+
+                if not success:
+                    await websocket.send_json(
+                        {"type": "error", "content": "Server is not running"}
+                    )
+            else:
+                # Unknown message type
+                logger.debug(
+                    "websocket_unknown_message_type",
+                    client_ip=client_ip,
+                    message_type=message.get("type"),
+                )
+
     except WebSocketDisconnect as e:
         logger.info("websocket_disconnected", client_ip=client_ip, code=e.code)
     finally:

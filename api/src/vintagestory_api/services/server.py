@@ -749,6 +749,7 @@ class ServerService:
         try:
             self._process = await asyncio.create_subprocess_exec(
                 *command,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -964,3 +965,33 @@ class ServerService:
             pass
         except Exception as e:
             logger.error("stream_read_error", stream=stream_name, error=str(e))
+
+    async def send_command(self, command: str) -> bool:
+        """Send a command to the game server's stdin.
+
+        The command is echoed to the console buffer with a [CMD] prefix for
+        visibility, then written to the server process stdin.
+
+        Args:
+            command: The command to send (without trailing newline).
+
+        Returns:
+            True if command was sent, False if server not running.
+        """
+        if self._process is None or self._process.returncode is not None:
+            logger.warning("send_command_failed", reason="server_not_running")
+            return False
+
+        if self._process.stdin is None:
+            logger.warning("send_command_failed", reason="stdin_not_available")
+            return False
+
+        # Echo command to console buffer for visibility
+        await self._console_buffer.append(f"[CMD] {command}")
+
+        # Write to stdin with newline
+        self._process.stdin.write(f"{command}\n".encode())
+        await self._process.stdin.drain()
+
+        logger.debug("command_sent", command_length=len(command))
+        return True
