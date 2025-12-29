@@ -64,7 +64,7 @@ development_status:
   4-1-console-buffer-service: done
   4-2-websocket-console-streaming: done
   4-3-console-command-input: done
-  4-4-terminal-view-component: backlog
+  4-4-terminal-view-component: done
   epic-4-retrospective: optional
 
   # Epic 5: Mod Management

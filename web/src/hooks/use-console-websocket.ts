@@ -1,0 +1,278 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+/**
+ * Connection states for the console WebSocket.
+ */
+export type ConnectionState =
+  | 'connecting'
+  | 'connected'
+  | 'disconnected'
+  | 'forbidden';
+
+/**
+ * WebSocket close codes from the backend.
+ */
+export const WS_CLOSE_CODES = {
+  NORMAL: 1000,
+  UNAUTHORIZED: 4001,
+  FORBIDDEN: 4003,
+} as const;
+
+/**
+ * Options for the useConsoleWebSocket hook.
+ */
+export interface UseConsoleWebSocketOptions {
+  /** Number of history lines to fetch on connect (default: 100) */
+  historyLines?: number;
+  /** Maximum number of reconnection attempts (default: 10) */
+  maxRetries?: number;
+  /** Base delay for reconnection in ms (default: 1000) */
+  baseDelayMs?: number;
+  /** Maximum delay for reconnection in ms (default: 30000) */
+  maxDelayMs?: number;
+  /** Callback when WebSocket is ready */
+  onOpen?: (ws: WebSocket) => void;
+  /** Callback when connection state changes */
+  onStateChange?: (state: ConnectionState) => void;
+  /** Callback when a message is received */
+  onMessage?: (data: string) => void;
+  /** Callback when the connection is closed */
+  onClose?: (event: CloseEvent) => void;
+}
+
+/**
+ * Return value from useConsoleWebSocket hook.
+ */
+export interface UseConsoleWebSocketResult {
+  /** Current connection state */
+  connectionState: ConnectionState;
+  /** Current retry count */
+  retryCount: number;
+  /** Whether currently reconnecting */
+  isReconnecting: boolean;
+  /** Reference to the WebSocket instance */
+  wsRef: React.RefObject<WebSocket | null>;
+  /** Send a command to the server */
+  sendCommand: (command: string) => void;
+  /** Manually reconnect */
+  reconnect: () => void;
+  /** Disconnect from the WebSocket */
+  disconnect: () => void;
+}
+
+/**
+ * Get API key from Vite environment variables.
+ */
+function getApiKey(): string {
+  return import.meta.env.VITE_API_KEY || '';
+}
+
+/**
+ * Build the WebSocket URL for the console endpoint.
+ */
+export function buildConsoleWebSocketUrl(historyLines: number = 100): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  const apiKey = getApiKey();
+
+  return `${protocol}//${host}/api/v1alpha1/console/ws?api_key=${encodeURIComponent(apiKey)}&history_lines=${historyLines}`;
+}
+
+/**
+ * Custom hook for managing WebSocket connection to the console endpoint.
+ *
+ * Features:
+ * - Automatic connection on mount
+ * - Exponential backoff reconnection with jitter
+ * - Connection state tracking
+ * - Authentication via API key query parameter
+ * - History lines on connect
+ *
+ * @example
+ * ```tsx
+ * function ConsoleView() {
+ *   const { connectionState, wsRef, sendCommand } = useConsoleWebSocket({
+ *     onMessage: (data) => terminal.write(data),
+ *     onStateChange: (state) => console.log('Connection:', state),
+ *   });
+ *
+ *   return <div>Status: {connectionState}</div>;
+ * }
+ * ```
+ */
+export function useConsoleWebSocket(
+  options: UseConsoleWebSocketOptions = {}
+): UseConsoleWebSocketResult {
+  const {
+    historyLines = 100,
+    maxRetries = 10,
+    baseDelayMs = 1000,
+    maxDelayMs = 30000,
+    onOpen,
+    onStateChange,
+    onMessage,
+    onClose,
+  } = options;
+
+  const [connectionState, setConnectionState] =
+    useState<ConnectionState>('connecting');
+  const [retryCount, setRetryCount] = useState(0);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const shouldReconnectRef = useRef(true);
+
+  // Update connection state and notify callback
+  const updateState = useCallback(
+    (state: ConnectionState) => {
+      setConnectionState(state);
+      onStateChange?.(state);
+    },
+    [onStateChange]
+  );
+
+  // Connect to WebSocket
+  const connect = useCallback(() => {
+    // Clear any existing reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      window.clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Close existing connection if any
+    if (wsRef.current) {
+      wsRef.current.close(WS_CLOSE_CODES.NORMAL);
+      wsRef.current = null;
+    }
+
+    updateState('connecting');
+
+    const url = buildConsoleWebSocketUrl(historyLines);
+    const ws = new WebSocket(url);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      updateState('connected');
+      setRetryCount(0);
+      onOpen?.(ws);
+    };
+
+    ws.onmessage = (event) => {
+      onMessage?.(event.data);
+    };
+
+    ws.onclose = (event) => {
+      onClose?.(event);
+
+      // Handle specific close codes
+      if (event.code === WS_CLOSE_CODES.FORBIDDEN) {
+        updateState('forbidden');
+        return;
+      }
+
+      if (event.code === WS_CLOSE_CODES.UNAUTHORIZED) {
+        updateState('forbidden');
+        return;
+      }
+
+      // Normal close - don't reconnect
+      if (event.code === WS_CLOSE_CODES.NORMAL) {
+        updateState('disconnected');
+        return;
+      }
+
+      // Unexpected close - attempt reconnection
+      updateState('disconnected');
+
+      if (shouldReconnectRef.current && retryCount < maxRetries) {
+        // Calculate delay with exponential backoff and jitter
+        const delay = Math.min(
+          baseDelayMs * Math.pow(2, retryCount),
+          maxDelayMs
+        );
+        const jitter = Math.random() * 1000;
+
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          setRetryCount((c) => c + 1);
+          connect();
+        }, delay + jitter);
+      }
+    };
+
+    ws.onerror = () => {
+      // Error will trigger onclose
+    };
+  }, [
+    historyLines,
+    maxRetries,
+    baseDelayMs,
+    maxDelayMs,
+    retryCount,
+    updateState,
+    onOpen,
+    onMessage,
+    onClose,
+  ]);
+
+  // Send a command to the server
+  const sendCommand = useCallback((command: string) => {
+    if (
+      wsRef.current &&
+      wsRef.current.readyState === WebSocket.OPEN
+    ) {
+      wsRef.current.send(JSON.stringify({ type: 'command', content: command }));
+    }
+  }, []);
+
+  // Manual reconnect
+  const reconnect = useCallback(() => {
+    shouldReconnectRef.current = true;
+    setRetryCount(0);
+    connect();
+  }, [connect]);
+
+  // Disconnect
+  const disconnect = useCallback(() => {
+    shouldReconnectRef.current = false;
+
+    if (reconnectTimeoutRef.current) {
+      window.clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    if (wsRef.current) {
+      wsRef.current.close(WS_CLOSE_CODES.NORMAL);
+      wsRef.current = null;
+    }
+
+    updateState('disconnected');
+  }, [updateState]);
+
+  // Connect on mount, disconnect on unmount
+  useEffect(() => {
+    shouldReconnectRef.current = true;
+    connect();
+
+    return () => {
+      shouldReconnectRef.current = false;
+
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+      }
+
+      if (wsRef.current) {
+        wsRef.current.close(WS_CLOSE_CODES.NORMAL);
+      }
+    };
+  }, [connect]);
+
+  return {
+    connectionState,
+    retryCount,
+    isReconnecting: retryCount > 0 && connectionState === 'connecting',
+    wsRef,
+    sendCommand,
+    reconnect,
+    disconnect,
+  };
+}

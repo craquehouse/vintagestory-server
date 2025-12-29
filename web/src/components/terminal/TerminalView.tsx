@@ -1,0 +1,123 @@
+import { useEffect, useRef, useCallback } from 'react';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
+
+import { cn } from '@/lib/utils';
+import { getTerminalTheme } from '@/lib/terminal-themes';
+import { useTheme } from '@/hooks/use-theme';
+
+export interface TerminalViewProps {
+  /** Callback when terminal is initialized and ready */
+  onReady?: (terminal: Terminal) => void;
+  /** Callback when terminal is disposed */
+  onDispose?: () => void;
+  /** Additional CSS classes for the container */
+  className?: string;
+}
+
+/**
+ * Terminal component using xterm.js with Catppuccin theming.
+ *
+ * This component initializes and manages an xterm.js terminal instance
+ * with automatic resize handling and theme synchronization.
+ *
+ * @example
+ * ```tsx
+ * <TerminalView
+ *   onReady={(terminal) => console.log('Terminal ready', terminal)}
+ *   className="h-full"
+ * />
+ * ```
+ */
+export function TerminalView({
+  onReady,
+  onDispose,
+  className,
+}: TerminalViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const isInitializedRef = useRef(false);
+
+  const { resolvedTheme } = useTheme();
+  const themeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
+
+  // Update theme when it changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.theme = getTerminalTheme(themeMode);
+    }
+  }, [themeMode]);
+
+  // Fit terminal to container - memoized for use in effects
+  const fit = useCallback(() => {
+    if (fitAddonRef.current) {
+      try {
+        fitAddonRef.current.fit();
+      } catch {
+        // Terminal may be disposed during resize
+      }
+    }
+  }, []);
+
+  // Initialize terminal
+  useEffect(() => {
+    if (!containerRef.current || isInitializedRef.current) return;
+
+    const terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
+      convertEol: true,
+      theme: getTerminalTheme(themeMode),
+    });
+
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
+
+    terminal.open(containerRef.current);
+    fitAddon.fit();
+
+    terminalRef.current = terminal;
+    fitAddonRef.current = fitAddon;
+    isInitializedRef.current = true;
+
+    onReady?.(terminal);
+
+    return () => {
+      isInitializedRef.current = false;
+      terminal.dispose();
+      terminalRef.current = null;
+      fitAddonRef.current = null;
+      onDispose?.();
+    };
+  }, [onReady, onDispose, themeMode]);
+
+  // Handle resize with ResizeObserver
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const container = containerRef.current;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame to debounce and ensure DOM is ready
+      requestAnimationFrame(fit);
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [fit]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn('min-h-0 min-w-0', className)}
+      role="application"
+      aria-label="Server console terminal"
+    />
+  );
+}
