@@ -69,15 +69,13 @@ WRONG PATTERN (tests batched at end):
   - [ ] 1.5: Run `just test-api tests/test_mod_api.py` - verify tests pass
 
 - [ ] Task 2: Implement mod file download with streaming + tests (AC: 1, 2, 6)
-  - [ ] 2.1: Add to ModApiClient:
-    - `download_mod(slug, version=None)` - full download flow
-    - Internally: lookup mod → select release → get fileid → download
-    - If version specified: find exact match or raise error
+  - [ ] 2.1: Add `download_mod(slug, version=None)` to ModApiClient:
+    - Full download flow: lookup mod → select release → download to cache
     - If version is None: use latest release (`releases[0]`)
+    - If version specified: find exact match or return None
     - Use `client.stream()` for memory-efficient large file handling
-    - Extract filename from response headers or release object
     - Write to temp file first, then rename (atomic write pattern)
-    - Returns Path to downloaded file on success, None on failure
+    - Returns `DownloadResult(path, filename, version, release)` or None on failure
   - [ ] 2.2: Implement cleanup on download failure (delete partial temp file)
   - [ ] 2.3: Write tests for: latest download, specific version, version not found, partial failure cleanup
   - [ ] 2.4: Run `just test-api tests/test_mod_api.py` - verify tests pass
