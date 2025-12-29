@@ -37,6 +37,8 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-001  | The sidebar is much wider than it needs to be.                                                             | low        | S        | backlog  | -         | -       |
 | UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "Console", "Mods", "Config"         | low        | S        | backlog  | -         | -       |
+| UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
+| UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 
 ---
 
@@ -50,7 +52,10 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status       | low        | S        | backlog  | -         | -       |  
 | API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)  | low        | S        | backlog  | -         | -       |  
 | API-004 | /readyz endpoint should report data.checks.game_server                                                     | low        | S        | backlog  | -         | -       |  
-| API-005 | Passing the api token in the URL to authorize the websocker is insecure. Use a short-lived token instead.  | high       | M        | backlog  | -         | -       |  
+| API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                   | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
+| API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                        | high       | M        | backlog  | UI-005    | - |  
+| API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist       | high       | M        | backlog  | -         | - |  
+| API-008 | API should track available space on data volume, and we should have a config var for warning threshold     | high       | M        | backlog  | -         | - |  
 
 ---
 
@@ -60,7 +65,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 | ID        | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
 | --------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
-| INFRA-001 | _Example: Optimize container image size_ | low | M | backlog | - | - |
+| INFRA-001 | If a server is installed, the api should autostart it when initializing, unless overriden by env variable  | low        | S        | backlog  | -         | -       |
 
 ---
 
@@ -68,9 +73,10 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 <!-- Items related to development tooling, scripts, justfile -->
 
-| ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
-| ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
-| TOOLS-001 | Add incremental test commit reminders to dev-story workflow to prevent test batching (Epic 1 retro lesson 2) | medium | S | backlog | Epic-5.1 | Tests should be committed alongside implementation, not batched at the end |
+| ID        | Description                                                                                                  | Priority   | Effort   |  Status  | Related   | Notes   |
+| --------- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------- | -------- | --------- | ------- |
+| TOOLS-001 | Add incremental test commit reminders to dev-story workflow to prevent test batching (Epic 1 retro lesson 2) | medium     | S        | backlog  | Epic-5.1  | Tests should be committed alongside implementation, not batched at the end |
+| TOOLS-002 | Add semgrep justfile recipies. Need to decide if add to existing test-api, test-web in addition.             | medium     | S        | backlog  |           | semgrep scan --verbose --error ./api |
 
 ---
 
@@ -78,9 +84,13 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 <!-- Items related to continuous integration and deployment -->
 
-| ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
-| ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
-| CICD-001 | _Example: Add test coverage reporting_ | medium | M | backlog | - | - |
+| ID       | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
+| -------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
+| CICD-001 | Integrate semgrep into pipeline                                                                            | medium     | M        | backlog  | -         | -       |
+| CICD-002 | Integrate linting into pipeline                                                                            | medium     | M        | backlog  | -         | -       |
+| CICD-003 | Integrate testing into pipeline                                                                            | medium     | M        | backlog  | -         | -       |
+| CICD-004 | Integrate Renovate into repository                                                                         | medium     | M        | backlog  | -         | -       |
+| CICD-005 | Add release action                                                                                         | medium     | M        | backlog  | -         | -       |
 
 ---
 
