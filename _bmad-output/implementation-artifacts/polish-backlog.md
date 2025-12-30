@@ -58,6 +58,9 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist       | high       | M        | backlog  | -         | - |  
 | API-008 | API should track available space on data volume, and we should have a config var for warning threshold     | high       | M        | backlog  | -         | - |
 | API-009 | Mod cache cleanup strategy - cached mod files grow indefinitely with no eviction (LRU, TTL, or size-based) | medium     | M        | backlog  | Story-5.2 | Risk of disk space exhaustion in production |
+| API-010 | We need extensive debug logging. Most functions should generate debug logs. disk is cheap.                 | medium     | M        | backlog  | -         | - |
+| API-011 | This might need to be an entire story, but, scheduled restarts along with disk cleanup and log rotation    | medium     | L        | backlog  | -         | - |
+| API-012 | Parse serverconfig.json into internal object, validate paths (ModPaths, SaveFileLocation), expose via API  | medium     | M        | backlog  | Story-5.4 | Would enable detecting misconfigured paths and provide config visibility |
 
 ---
 

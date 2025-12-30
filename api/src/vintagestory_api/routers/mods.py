@@ -212,3 +212,155 @@ async def install_mod(
                 "message": str(e),
             },
         )
+
+
+@router.post("/{slug}/enable", response_model=ApiResponse)
+async def enable_mod(
+    slug: Annotated[
+        str,
+        Path(
+            description="Mod slug (modid) to enable",
+            min_length=1,
+            max_length=100,
+        ),
+    ],
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Enable a disabled mod.
+
+    Renames the mod file from .zip.disabled to .zip and updates state.
+    Sets pending_restart if the server is currently running.
+
+    This operation is idempotent - enabling an already-enabled mod returns
+    success without making changes.
+
+    Args:
+        slug: The mod slug (modid) to enable.
+
+    Returns:
+        ApiResponse with EnableResult containing:
+        - slug: The mod slug that was enabled
+        - enabled: Whether the mod is now enabled (always True)
+        - pending_restart: Whether server restart is required
+
+    Raises:
+        HTTPException: 403 if user is not Admin
+        HTTPException: 404 if mod is not installed
+    """
+    try:
+        result = service.enable_mod(slug)
+
+        return ApiResponse(
+            status="ok",
+            data=result.model_dump(mode="json"),
+        )
+
+    except ModNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.MOD_NOT_INSTALLED,
+                "message": f"Mod '{e.slug}' is not installed",
+            },
+        )
+
+
+@router.post("/{slug}/disable", response_model=ApiResponse)
+async def disable_mod(
+    slug: Annotated[
+        str,
+        Path(
+            description="Mod slug (modid) to disable",
+            min_length=1,
+            max_length=100,
+        ),
+    ],
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Disable an enabled mod.
+
+    Renames the mod file from .zip to .zip.disabled and updates state.
+    Sets pending_restart if the server is currently running.
+
+    This operation is idempotent - disabling an already-disabled mod returns
+    success without making changes.
+
+    Args:
+        slug: The mod slug (modid) to disable.
+
+    Returns:
+        ApiResponse with DisableResult containing:
+        - slug: The mod slug that was disabled
+        - enabled: Whether the mod is now enabled (always False)
+        - pending_restart: Whether server restart is required
+
+    Raises:
+        HTTPException: 403 if user is not Admin
+        HTTPException: 404 if mod is not installed
+    """
+    try:
+        result = service.disable_mod(slug)
+
+        return ApiResponse(
+            status="ok",
+            data=result.model_dump(mode="json"),
+        )
+
+    except ModNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.MOD_NOT_INSTALLED,
+                "message": f"Mod '{e.slug}' is not installed",
+            },
+        )
+
+
+@router.delete("/{slug}", response_model=ApiResponse)
+async def remove_mod(
+    slug: Annotated[
+        str,
+        Path(
+            description="Mod slug (modid) to remove",
+            min_length=1,
+            max_length=100,
+        ),
+    ],
+    _: RequireAdmin,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Remove an installed mod.
+
+    Deletes the mod file from disk, removes it from state, and cleans up
+    cached metadata. Sets pending_restart if the server is currently running.
+
+    Args:
+        slug: The mod slug (modid) to remove.
+
+    Returns:
+        ApiResponse with RemoveResult containing:
+        - slug: The mod slug that was removed
+        - pending_restart: Whether server restart is required
+
+    Raises:
+        HTTPException: 403 if user is not Admin
+        HTTPException: 404 if mod is not installed
+    """
+    try:
+        result = service.remove_mod(slug)
+
+        return ApiResponse(
+            status="ok",
+            data=result.model_dump(mode="json"),
+        )
+
+    except ModNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.MOD_NOT_INSTALLED,
+                "message": f"Mod '{e.slug}' is not installed",
+            },
+        )

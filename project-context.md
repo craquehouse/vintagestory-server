@@ -453,7 +453,8 @@ Run `just` with no arguments to see all available commands.
 - Full architecture: `_bmad-output/planning-artifacts/architecture.md`
 - Epic breakdown: `_bmad-output/planning-artifacts/epics.md`
 - Sprint status: `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- **VintageStory server troubleshooting:** `agentdocs/vs-server-troubleshooting.md` - Known quirks, path resolution issues, config file behaviors
 
 ---
 
-_Last updated: 2025-12-28 (Added logging conventions and E2E testing)_
+_Last updated: 2025-12-29 (Added VintageStory troubleshooting reference)_

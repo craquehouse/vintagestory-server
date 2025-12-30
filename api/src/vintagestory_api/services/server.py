@@ -855,14 +855,26 @@ class ServerService:
 
         # Build command to run server
         # --dataPath tells VintageStory where to store persistent data (Mods, Saves, configs)
+        # VintageStory expects a path relative to its data root (/data), so we extract
+        # just the relative portion (e.g., "serverdata" from "/data/serverdata")
+        serverdata_relative = self._settings.serverdata_dir.relative_to(
+            self._settings.data_dir
+        )
         command = [
             "dotnet",
             str(self._settings.server_dir / "VintagestoryServer.dll"),
             "--dataPath",
-            str(self._settings.serverdata_dir),
+            str(serverdata_relative),
         ]
 
-        logger.info("starting_server", command=command)
+        logger.info(
+            "starting_server",
+            command=command,
+            cwd=str(self._settings.data_dir),
+            data_dir=str(self._settings.data_dir),
+            serverdata_dir=str(self._settings.serverdata_dir),
+            serverdata_relative=str(serverdata_relative),
+        )
 
         self._server_state = ServerState.STARTING
         self._last_exit_code = None
@@ -873,6 +885,7 @@ class ServerService:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                cwd=str(self._settings.data_dir),  # Run from data dir for relative paths
             )
 
             # Record start time and update state

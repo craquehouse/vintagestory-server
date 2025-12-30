@@ -16,9 +16,12 @@ import structlog
 from vintagestory_api.config import Settings
 from vintagestory_api.models.mods import (
     CompatibilityInfo,
+    DisableResult,
+    EnableResult,
     ModInfo,
     ModLookupResponse,
     ModState,
+    RemoveResult,
 )
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
@@ -405,7 +408,7 @@ class ModService:
 
         return result
 
-    def enable_mod(self, slug: str) -> None:
+    def enable_mod(self, slug: str) -> EnableResult:
         """Enable a disabled mod.
 
         Renames the mod file from .zip.disabled to .zip and updates state.
@@ -414,6 +417,9 @@ class ModService:
         Args:
             slug: The mod slug (modid) to enable.
 
+        Returns:
+            EnableResult with the mod slug, enabled status, and pending restart flag.
+
         Raises:
             ModNotFoundError: If the mod is not found.
         """
@@ -421,10 +427,10 @@ class ModService:
         if state is None:
             raise ModNotFoundError(slug)
 
-        # Already enabled - nothing to do
+        # Already enabled - idempotent success
         if state.enabled:
             logger.debug("mod_already_enabled", slug=slug)
-            return
+            return EnableResult(slug=slug, enabled=True, pending_restart=False)
 
         # Rename file: remove .disabled suffix
         old_path = self._state_manager.mods_dir / state.filename
@@ -443,10 +449,14 @@ class ModService:
         logger.info("mod_enabled", slug=slug, filename=new_filename)
 
         # Set pending restart if server is running
+        pending_restart = False
         if self._server_running:
             self._restart_state.require_restart(f"Mod '{slug}' was enabled")
+            pending_restart = True
 
-    def disable_mod(self, slug: str) -> None:
+        return EnableResult(slug=slug, enabled=True, pending_restart=pending_restart)
+
+    def disable_mod(self, slug: str) -> DisableResult:
         """Disable an enabled mod.
 
         Renames the mod file from .zip to .zip.disabled and updates state.
@@ -455,6 +465,9 @@ class ModService:
         Args:
             slug: The mod slug (modid) to disable.
 
+        Returns:
+            DisableResult with the mod slug, enabled status, and pending restart flag.
+
         Raises:
             ModNotFoundError: If the mod is not found.
         """
@@ -462,10 +475,10 @@ class ModService:
         if state is None:
             raise ModNotFoundError(slug)
 
-        # Already disabled - nothing to do
+        # Already disabled - idempotent success
         if not state.enabled:
             logger.debug("mod_already_disabled", slug=slug)
-            return
+            return DisableResult(slug=slug, enabled=False, pending_restart=False)
 
         # Rename file: add .disabled suffix
         old_path = self._state_manager.mods_dir / state.filename
@@ -484,8 +497,57 @@ class ModService:
         logger.info("mod_disabled", slug=slug, filename=new_filename)
 
         # Set pending restart if server is running
+        pending_restart = False
         if self._server_running:
             self._restart_state.require_restart(f"Mod '{slug}' was disabled")
+            pending_restart = True
+
+        return DisableResult(slug=slug, enabled=False, pending_restart=pending_restart)
+
+    def remove_mod(self, slug: str) -> RemoveResult:
+        """Remove an installed mod.
+
+        Deletes the mod file from disk, removes it from state, and cleans up
+        cached metadata. Sets pending_restart if the server is running.
+
+        Args:
+            slug: The mod slug (modid) to remove.
+
+        Returns:
+            RemoveResult with the mod slug and pending restart flag.
+
+        Raises:
+            ModNotFoundError: If the mod is not installed.
+        """
+        state = self._state_manager.get_mod_by_slug(slug)
+        if state is None:
+            raise ModNotFoundError(slug)
+
+        # Delete mod file from disk (handle both enabled and disabled)
+        file_path = self._state_manager.mods_dir / state.filename
+        if file_path.exists():
+            file_path.unlink()
+            logger.debug("mod_file_deleted", filename=state.filename)
+
+        # Remove from state index
+        self._state_manager.remove_mod(state.filename)
+        self._state_manager.save()
+
+        # Clean up cached metadata directory
+        cache_dir = self._state_manager.state_dir / "mods" / slug
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+            logger.debug("mod_cache_deleted", slug=slug, path=str(cache_dir))
+
+        logger.info("mod_removed", slug=slug, filename=state.filename)
+
+        # Set pending restart if server is running
+        pending_restart = False
+        if self._server_running:
+            self._restart_state.require_restart(f"Mod '{slug}' was removed")
+            pending_restart = True
+
+        return RemoveResult(slug=slug, pending_restart=pending_restart)
 
     def _get_mod_api_client(self) -> ModApiClient:
         """Get or create the ModApiClient instance (lazy initialization)."""

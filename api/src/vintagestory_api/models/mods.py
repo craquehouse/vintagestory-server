@@ -146,3 +146,39 @@ class ModLookupResponse(BaseModel):
 
     compatibility: CompatibilityInfo
     """Compatibility status with current game version."""
+
+
+class EnableResult(BaseModel):
+    """Result of enabling a mod."""
+
+    slug: str
+    """The mod slug that was enabled."""
+
+    enabled: bool
+    """Whether the mod is now enabled (always True for successful enable)."""
+
+    pending_restart: bool
+    """Whether a server restart is required for changes to take effect."""
+
+
+class DisableResult(BaseModel):
+    """Result of disabling a mod."""
+
+    slug: str
+    """The mod slug that was disabled."""
+
+    enabled: bool
+    """Whether the mod is now enabled (always False for successful disable)."""
+
+    pending_restart: bool
+    """Whether a server restart is required for changes to take effect."""
+
+
+class RemoveResult(BaseModel):
+    """Result of removing a mod."""
+
+    slug: str
+    """The mod slug that was removed."""
+
+    pending_restart: bool
+    """Whether a server restart is required for changes to take effect."""

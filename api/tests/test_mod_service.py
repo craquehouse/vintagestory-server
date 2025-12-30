@@ -244,7 +244,7 @@ class TestModServiceEnableMod:
     def test_enable_already_enabled_mod_no_op(
         self, mod_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
-        """enable_mod() on already enabled mod does nothing."""
+        """enable_mod() on already enabled mod returns success with no state change."""
         _, mods_dir = temp_dirs
 
         create_mod_zip(
@@ -254,12 +254,37 @@ class TestModServiceEnableMod:
 
         mod_service.state_manager.sync_state_with_disk()
 
-        # Should not raise or change anything
-        mod_service.enable_mod("alreadyenabled")
+        # Should return success (idempotent)
+        result = mod_service.enable_mod("alreadyenabled")
+
+        assert result.slug == "alreadyenabled"
+        assert result.enabled is True
+        assert result.pending_restart is False  # No change, no restart needed
 
         state = mod_service.state_manager.get_mod("alreadyenabled_1.0.0.zip")
         assert state is not None
         assert state.enabled is True
+
+    def test_enable_mod_returns_result(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """enable_mod() returns EnableResult with correct values."""
+        _, mods_dir = temp_dirs
+
+        zip_path = mods_dir / "resultmod_1.0.0.zip"
+        create_mod_zip(
+            zip_path,
+            {"modid": "resultmod", "name": "Result Mod", "version": "1.0.0"},
+        )
+        zip_path.rename(mods_dir / "resultmod_1.0.0.zip.disabled")
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        result = mod_service.enable_mod("resultmod")
+
+        assert result.slug == "resultmod"
+        assert result.enabled is True
+        assert result.pending_restart is False  # Server not running
 
     def test_enable_unknown_mod_raises(self, mod_service: ModService) -> None:
         """enable_mod() raises for unknown mod slug."""
@@ -338,7 +363,7 @@ class TestModServiceDisableMod:
     def test_disable_already_disabled_mod_no_op(
         self, mod_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
-        """disable_mod() on already disabled mod does nothing."""
+        """disable_mod() on already disabled mod returns success with no state change."""
         _, mods_dir = temp_dirs
 
         zip_path = mods_dir / "alreadydisabled_1.0.0.zip"
@@ -350,12 +375,35 @@ class TestModServiceDisableMod:
 
         mod_service.state_manager.sync_state_with_disk()
 
-        # Should not raise or change anything
-        mod_service.disable_mod("alreadydisabled")
+        # Should return success (idempotent)
+        result = mod_service.disable_mod("alreadydisabled")
+
+        assert result.slug == "alreadydisabled"
+        assert result.enabled is False
+        assert result.pending_restart is False  # No change, no restart needed
 
         state = mod_service.state_manager.get_mod("alreadydisabled_1.0.0.zip.disabled")
         assert state is not None
         assert state.enabled is False
+
+    def test_disable_mod_returns_result(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """disable_mod() returns DisableResult with correct values."""
+        _, mods_dir = temp_dirs
+
+        create_mod_zip(
+            mods_dir / "disableresultmod_1.0.0.zip",
+            {"modid": "disableresultmod", "name": "Disable Result Mod", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        result = mod_service.disable_mod("disableresultmod")
+
+        assert result.slug == "disableresultmod"
+        assert result.enabled is False
+        assert result.pending_restart is False  # Server not running
 
     def test_disable_unknown_mod_raises(self, mod_service: ModService) -> None:
         """disable_mod() raises for unknown mod slug."""
@@ -363,6 +411,139 @@ class TestModServiceDisableMod:
 
         with pytest.raises(ModNotFoundError):
             mod_service.disable_mod("nonexistent")
+
+
+class TestModServiceRemoveMod:
+    """Tests for remove_mod() function."""
+
+    def test_remove_mod_deletes_enabled_mod(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """remove_mod() deletes an enabled mod file and removes from state."""
+        _, mods_dir = temp_dirs
+
+        create_mod_zip(
+            mods_dir / "removemod_1.0.0.zip",
+            {"modid": "removemod", "name": "Remove Mod", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Verify mod exists before removal
+        assert (mods_dir / "removemod_1.0.0.zip").exists()
+        assert mod_service.get_mod("removemod") is not None
+
+        result = mod_service.remove_mod("removemod")
+
+        # File should be deleted
+        assert not (mods_dir / "removemod_1.0.0.zip").exists()
+
+        # Mod should be removed from state
+        assert mod_service.get_mod("removemod") is None
+
+        # Result should have correct values
+        assert result.slug == "removemod"
+        assert result.pending_restart is False
+
+    def test_remove_mod_deletes_disabled_mod(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """remove_mod() deletes a disabled mod file and removes from state."""
+        _, mods_dir = temp_dirs
+
+        zip_path = mods_dir / "removedisabled_1.0.0.zip"
+        create_mod_zip(
+            zip_path,
+            {"modid": "removedisabled", "name": "Remove Disabled", "version": "1.0.0"},
+        )
+        # Rename to disabled
+        zip_path.rename(mods_dir / "removedisabled_1.0.0.zip.disabled")
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Verify disabled mod exists
+        assert (mods_dir / "removedisabled_1.0.0.zip.disabled").exists()
+
+        result = mod_service.remove_mod("removedisabled")
+
+        # File should be deleted
+        assert not (mods_dir / "removedisabled_1.0.0.zip.disabled").exists()
+
+        # Mod should be removed from state
+        assert mod_service.get_mod("removedisabled") is None
+        assert result.slug == "removedisabled"
+
+    def test_remove_mod_sets_pending_restart(
+        self,
+        mod_service: ModService,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """remove_mod() triggers pending restart when server is running."""
+        _, mods_dir = temp_dirs
+
+        create_mod_zip(
+            mods_dir / "removerestartmod_1.0.0.zip",
+            {"modid": "removerestartmod", "name": "Remove Restart Mod", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+        mod_service.set_server_running(True)
+
+        result = mod_service.remove_mod("removerestartmod")
+
+        assert result.pending_restart is True
+        assert restart_state.pending_restart is True
+        assert "removerestartmod" in restart_state.pending_changes[0]
+
+    def test_remove_mod_unknown_raises(self, mod_service: ModService) -> None:
+        """remove_mod() raises for unknown mod slug."""
+        with pytest.raises(ModNotFoundError):
+            mod_service.remove_mod("nonexistent")
+
+    def test_remove_mod_cleans_up_cached_metadata(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """remove_mod() deletes cached metadata directory."""
+        state_dir, mods_dir = temp_dirs
+
+        create_mod_zip(
+            mods_dir / "removecache_1.0.0.zip",
+            {"modid": "removecache", "name": "Remove Cache", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Verify cached metadata exists (created by import_mod)
+        cache_dir = state_dir / "mods" / "removecache"
+        assert cache_dir.exists()
+
+        mod_service.remove_mod("removecache")
+
+        # Cache directory should be deleted
+        assert not cache_dir.exists()
+
+    def test_remove_mod_handles_already_deleted_file(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """remove_mod() succeeds even if file was already deleted from disk."""
+        _, mods_dir = temp_dirs
+
+        create_mod_zip(
+            mods_dir / "deletedfile_1.0.0.zip",
+            {"modid": "deletedfile", "name": "Deleted File", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Manually delete the file (simulating external deletion)
+        (mods_dir / "deletedfile_1.0.0.zip").unlink()
+
+        # Should succeed - just removes from state
+        result = mod_service.remove_mod("deletedfile")
+
+        assert result.slug == "deletedfile"
+        assert mod_service.get_mod("deletedfile") is None
 
 
 # --- Task 7: FastAPI integration tests ---

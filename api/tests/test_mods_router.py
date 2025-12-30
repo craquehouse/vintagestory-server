@@ -504,3 +504,480 @@ class TestLookupModEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["slug"] == "smithingplus"
+
+
+def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:
+    """Create a mod zip file at the given path."""
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr("modinfo.json", json.dumps(modinfo))
+
+
+class TestEnableModEndpoint:
+    """Tests for POST /api/v1alpha1/mods/{slug}/enable endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    def test_enable_mod_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/enable successfully enables a disabled mod."""
+        mods_dir = temp_data_dir / "mods"
+        zip_path = mods_dir / "testmod_1.0.0.zip"
+        create_mod_zip_file(zip_path, {"modid": "testmod", "name": "Test", "version": "1.0.0"})
+        zip_path.rename(mods_dir / "testmod_1.0.0.zip.disabled")
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/testmod/enable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["slug"] == "testmod"
+        assert data["data"]["enabled"] is True
+        assert data["data"]["pending_restart"] is False
+
+        # Verify file was renamed
+        assert (mods_dir / "testmod_1.0.0.zip").exists()
+        assert not (mods_dir / "testmod_1.0.0.zip.disabled").exists()
+
+    def test_enable_already_enabled_mod_idempotent(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/enable on already-enabled mod returns success."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "enabledmod_1.0.0.zip",
+            {"modid": "enabledmod", "name": "Enabled", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/enabledmod/enable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["slug"] == "enabledmod"
+        assert data["data"]["enabled"] is True
+        assert data["data"]["pending_restart"] is False
+
+    def test_enable_mod_not_installed(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods/{slug}/enable returns 404 for non-installed mod."""
+        response = client.post(
+            "/api/v1alpha1/mods/nonexistent/enable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "MOD_NOT_INSTALLED"
+
+    def test_enable_mod_requires_admin(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/enable requires Admin role."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "admintest_1.0.0.zip",
+            {"modid": "admintest", "name": "Admin Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/admintest/enable",
+            headers=monitor_headers,
+        )
+
+        assert response.status_code == 403
+
+    def test_enable_mod_requires_auth(self, client: TestClient) -> None:
+        """POST /mods/{slug}/enable requires authentication."""
+        response = client.post("/api/v1alpha1/mods/testmod/enable")
+
+        assert response.status_code == 401
+
+
+class TestDisableModEndpoint:
+    """Tests for POST /api/v1alpha1/mods/{slug}/disable endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    def test_disable_mod_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/disable successfully disables an enabled mod."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "disablemod_1.0.0.zip",
+            {"modid": "disablemod", "name": "Disable Me", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/disablemod/disable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["slug"] == "disablemod"
+        assert data["data"]["enabled"] is False
+        assert data["data"]["pending_restart"] is False
+
+        # Verify file was renamed
+        assert (mods_dir / "disablemod_1.0.0.zip.disabled").exists()
+        assert not (mods_dir / "disablemod_1.0.0.zip").exists()
+
+    def test_disable_already_disabled_mod_idempotent(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/disable on already-disabled mod returns success."""
+        mods_dir = temp_data_dir / "mods"
+        zip_path = mods_dir / "disabledmod_1.0.0.zip"
+        modinfo: dict[str, object] = {
+            "modid": "disabledmod",
+            "name": "Disabled",
+            "version": "1.0.0",
+        }
+        create_mod_zip_file(zip_path, modinfo)
+        zip_path.rename(mods_dir / "disabledmod_1.0.0.zip.disabled")
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/disabledmod/disable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["slug"] == "disabledmod"
+        assert data["data"]["enabled"] is False
+        assert data["data"]["pending_restart"] is False
+
+    def test_disable_mod_not_installed(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods/{slug}/disable returns 404 for non-installed mod."""
+        response = client.post(
+            "/api/v1alpha1/mods/nonexistent/disable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "MOD_NOT_INSTALLED"
+
+    def test_disable_mod_requires_admin(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """POST /mods/{slug}/disable requires Admin role."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "admintest_1.0.0.zip",
+            {"modid": "admintest", "name": "Admin Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.post(
+            "/api/v1alpha1/mods/admintest/disable",
+            headers=monitor_headers,
+        )
+
+        assert response.status_code == 403
+
+    def test_disable_mod_requires_auth(self, client: TestClient) -> None:
+        """POST /mods/{slug}/disable requires authentication."""
+        response = client.post("/api/v1alpha1/mods/testmod/disable")
+
+        assert response.status_code == 401
+
+
+class TestRemoveModEndpoint:
+    """Tests for DELETE /api/v1alpha1/mods/{slug} endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    def test_remove_mod_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """DELETE /mods/{slug} successfully removes a mod."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "removemod_1.0.0.zip",
+            {"modid": "removemod", "name": "Remove Me", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.delete(
+            "/api/v1alpha1/mods/removemod",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["slug"] == "removemod"
+        assert data["data"]["pending_restart"] is False
+
+        # Verify file was deleted
+        assert not (mods_dir / "removemod_1.0.0.zip").exists()
+
+    def test_remove_disabled_mod(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """DELETE /mods/{slug} removes a disabled mod."""
+        mods_dir = temp_data_dir / "mods"
+        zip_path = mods_dir / "removedisabled_1.0.0.zip"
+        modinfo: dict[str, object] = {
+            "modid": "removedisabled",
+            "name": "Remove Disabled",
+            "version": "1.0.0",
+        }
+        create_mod_zip_file(zip_path, modinfo)
+        zip_path.rename(mods_dir / "removedisabled_1.0.0.zip.disabled")
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.delete(
+            "/api/v1alpha1/mods/removedisabled",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["slug"] == "removedisabled"
+
+        # Verify file was deleted
+        assert not (mods_dir / "removedisabled_1.0.0.zip.disabled").exists()
+
+    def test_remove_mod_not_installed(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """DELETE /mods/{slug} returns 404 for non-installed mod."""
+        response = client.delete(
+            "/api/v1alpha1/mods/nonexistent",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "MOD_NOT_INSTALLED"
+
+    def test_remove_mod_requires_admin(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """DELETE /mods/{slug} requires Admin role."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "admintest_1.0.0.zip",
+            {"modid": "admintest", "name": "Admin Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.delete(
+            "/api/v1alpha1/mods/admintest",
+            headers=monitor_headers,
+        )
+
+        assert response.status_code == 403
+
+    def test_remove_mod_requires_auth(self, client: TestClient) -> None:
+        """DELETE /mods/{slug} requires authentication."""
+        response = client.delete("/api/v1alpha1/mods/testmod")
+
+        assert response.status_code == 401
+
+    def test_remove_mod_with_pending_restart(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """DELETE /mods/{slug} sets pending_restart when server is running."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "restartmod_1.0.0.zip",
+            {"modid": "restartmod", "name": "Restart Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Simulate server running
+        mod_service.set_server_running(True)
+
+        response = client.delete(
+            "/api/v1alpha1/mods/restartmod",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["pending_restart"] is True
