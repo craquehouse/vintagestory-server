@@ -1,6 +1,6 @@
 # Story 5.3: Mod Compatibility Validation
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -340,13 +340,13 @@ raise HTTPException(
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] Fix URL parsing test to actually use URL in request - Test `test_lookup_mod_with_url` in api/tests/test_mods_router.py:484 doesn't pass a full URL in the path parameter, it uses plain slug. Should test with actual URL like "/api/v1alpha1/mods/lookup/https://mods.vintagestory.at/smithingplus" to verify AC7 URL extraction works.
-- [ ] [AI-Review][LOW] Add Literal type for side field - Change `side: str` to `side: Literal["Both", "Client", "Server"]` in api/src/vintagestory_api/models/mods.py:145 for better type safety.
-- [ ] [AI-Review][LOW] Add logging to lookup_mod() - Add `logger.info()` statements at start and completion of lookup_mod() method in api/src/vintagestory_api/services/mods.py:319 for production debugging visibility.
-- [ ] [AI-Review][LOW] Extract magic string "stable" to constant - Replace hardcoded `game_version == "stable"` check with `UNKNOWN_VERSION = "stable"` constant in api/src/vintagestory_api/services/mods.py:359 for maintainability.
-- [ ] [AI-Review][LOW] Fix downloads calculation - Use `latest_release.get("downloads", 0)` instead of summing all releases in api/src/vintagestory_api/services/mods.py:381 to return accurate latest release download count.
-- [ ] [AI-Review][LOW] Add test for server not installed scenario - Add `test_lookup_mod_server_not_installed()` test in api/tests/test_mod_service.py to verify behavior when game_version is "stable" or None.
-- [ ] [AI-Review][LOW] Document MOD_NOT_FOUND ambiguity - Consider splitting MOD_NOT_FOUND into MOD_NOT_FOUND (external API) and MOD_NOT_INSTALLED (local) in api/src/vintagestory_api/models/errors.py:24 to avoid user confusion between "mod doesn't exist online" vs "mod not installed locally".
+- [x] [AI-Review][MEDIUM] Fix URL parsing test to actually use URL in request - **No fix needed**: Test already uses full URL at line 500: `/api/v1alpha1/mods/lookup/https://mods.vintagestory.at/smithingplus`. Verified test passes.
+- [x] [AI-Review][LOW] Add Literal type for side field - **Fixed**: Changed to `Literal["Both", "Client", "Server", "Universal"]` in mods.py:144.
+- [x] [AI-Review][LOW] Add logging to lookup_mod() - **Fixed**: Added `logger.info("lookup_mod_start")` and `logger.info("lookup_mod_complete")` in mods.py:342,399.
+- [x] [AI-Review][LOW] Extract magic string "stable" to constant - **Fixed**: Added `UNKNOWN_VERSION = "stable"` constant in mods.py:39.
+- [x] [AI-Review][LOW] Fix downloads calculation - **Won't fix**: Summing all releases is intentional - shows total mod popularity across all versions, which is more useful than just latest release downloads.
+- [x] [AI-Review][LOW] Add test for server not installed scenario - **Already exists**: `test_lookup_mod_server_not_installed()` exists in test_mod_service.py:986.
+- [x] [AI-Review][LOW] Document MOD_NOT_FOUND ambiguity - **Deferred**: Design consideration for future. Current usage is clear from context (lookup vs local operations).
 
 ---
 

@@ -141,8 +141,8 @@ class ModLookupResponse(BaseModel):
     downloads: int
     """Total download count."""
 
-    side: str
-    """Mod side: 'Both', 'Client', or 'Server'."""
+    side: Literal["Both", "Client", "Server", "Universal"]
+    """Mod side: 'Both', 'Client', 'Server', or 'Universal'."""
 
     compatibility: CompatibilityInfo
     """Compatibility status with current game version."""

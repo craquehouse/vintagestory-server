@@ -35,6 +35,9 @@ from vintagestory_api.services.pending_restart import PendingRestartState
 
 logger = structlog.get_logger()
 
+# Version placeholder when server is not installed or version unknown
+UNKNOWN_VERSION = "stable"
+
 # Module-level service instance (singleton pattern)
 _mod_service: "ModService | None" = None
 
@@ -336,6 +339,8 @@ class ModService:
         """
         # Extract and validate slug
         slug = extract_slug(slug_or_url)
+        logger.info("lookup_mod_start", slug=slug, input=slug_or_url)
+
         if not validate_slug(slug):
             raise InvalidSlugError(slug)
 
@@ -356,7 +361,7 @@ class ModService:
 
         # Check compatibility with current game version
         game_version = self._game_version
-        if not game_version or game_version == "stable":
+        if not game_version or game_version == UNKNOWN_VERSION:
             # Server not installed or version unknown
             status: CompatibilityStatus = "not_verified"
             message = "Game server version unknown - cannot verify compatibility"
@@ -380,7 +385,7 @@ class ModService:
         # Calculate total downloads across all releases
         total_downloads = sum(r.get("downloads", 0) for r in releases)
 
-        return ModLookupResponse(
+        result = ModLookupResponse(
             slug=mod.get("urlalias", slug),
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
@@ -390,6 +395,15 @@ class ModService:
             side=mod.get("side", "Both"),
             compatibility=compatibility,
         )
+
+        logger.info(
+            "lookup_mod_complete",
+            slug=result.slug,
+            version=mod_version,
+            compatibility=status,
+        )
+
+        return result
 
     def enable_mod(self, slug: str) -> None:
         """Enable a disabled mod.
