@@ -36,7 +36,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
 | UI-001  | The sidebar is much wider than it needs to be.                                                             | low        | S        | backlog  | -         | -       |
 | UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
-| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "Console", "Mods", "Config"         | low        | S        | backlog  | -         | -       |
+| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 | UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |
@@ -46,6 +46,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-010  | Mods installed when server is not running should not generate "server may need to be restarted" toast      | low        | S        | backlog  | -         | -       |
 | UI-011  | Installed mods table should be sortable, and sort order should stay consistent                             | low        | S        | backlog  | -         | -       |
 | UI-012  | Installed mods in table should have clickable link to vintgestory mods page                                | low        | S        | backlog  | -         | -       |
+| UI-013  | Migrate mod list from cards to TanStack Table for sorting, filtering, search (5+ mods gets unwieldy)       | medium     | M        | backlog  | UI-011    | Architecture decision: use TanStack Table for all data lists |
 
 ---
 
