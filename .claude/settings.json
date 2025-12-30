@@ -15,7 +15,21 @@
       "mcp__context7__*",
       "mcp__grep__*",
       "Edit(_bmad-output/**)",
-      "Write(_bmad-output/**)"
+      "Write(_bmad-output/**)",
+      "Bash(/opt/homebrew/bin/mise exec:*)",
+      "Bash(just test-api:*)",
+      "Bash(just test-web:*)",
+      "Bash(just dev-api:*)",
+      "Bash(just dev-web:*)",
+      "Bash(just docker:*)",
+      "Bash(cat:*)",
+      "Bash(lsof:*)",
+      "Bash(docker compose:*)",
+      "Bash(mise exec:*)",
+      "Bash(just lint-api:*)",
+      "Bash(just typecheck-api:*)",
+      "Bash(just build-api:*)",
+      "Bash(just check:*)"
     ]
   }
 }
