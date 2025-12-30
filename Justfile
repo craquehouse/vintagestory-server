@@ -32,24 +32,24 @@ test: test-api test-web
 # Excludes E2E tests by default (run with just test-e2e-api)
 # Examples: just test-api -k "restart" | just test-api tests/test_server.py -xvs
 test-api *ARGS:
-    mise exec -C api -- uv run pytest --ignore=tests/e2e {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e {{ARGS}}
 
 # Run web tests (Vitest) - accepts optional vitest args
 test-web *ARGS:
-    mise exec -C web -- bun run test --run {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run {{ARGS}}
 
 # Run API tests in watch mode (TDD)
 test-api-watch:
-    mise exec -C api -- uv run pytest --watch
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --watch
 
 # Run web tests in watch mode (TDD)
 test-web-watch:
-    mise exec -C web -- bun run test --watch
+    VS_DATA_DIR=../dev mise exec -C web -- bun run test --watch
 
 # Run API E2E tests (pytest) - requires Docker stack running
 # Examples: just test-e2e-api | just test-e2e-api -k "health"
 test-e2e-api *ARGS:
-    mise exec -C api -- uv run pytest tests/e2e {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest tests/e2e {{ARGS}}
 
 # Run web E2E tests (Playwright) - manages Docker stack automatically
 # Starts fresh Docker stack, waits for health, runs tests, then stops stack

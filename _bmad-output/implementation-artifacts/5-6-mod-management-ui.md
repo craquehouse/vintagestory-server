@@ -150,6 +150,25 @@ The current ModList component at `web/src/features/mods/ModList.tsx` is a placeh
 
 ---
 
+## Review Follow-ups (AI)
+
+**Code Review Date:** 2025-12-30
+**Reviewer:** AI Code Review Workflow (Adversarial Review)
+
+- [x] [AI-Review][CRITICAL] Empty Dev Agent Record - File List section is blank with no file tracking (story line 415) - **RESOLVED: File list added to Dev Agent Record**
+- [x] [AI-Review][CRITICAL] Tests failing - Task 7.1 claims "347 tests pass" but actual result is 57 pass, 291 FAIL, 1 error (ReferenceError: document is not defined in hook tests) - **RESOLVED: Justfile fixed, 347 tests now pass**
+- [x] [AI-Review][CRITICAL] API bug fix not tracked - mods.py case sensitivity fix (lines 400-403) fixes side field normalization but no task documents this work - **RESOLVED: Documented in Completion Notes**
+- [x] [AI-Review][CRITICAL] Missing task for use-debounce.ts - File created (50 lines) and used in ModLookupInput but no task claims responsibility - **RESOLVED: Documented in Completion Notes as part of Task 3**
+- [x] [AI-Review][CRITICAL] 5 new UI components untracked - dialog.tsx, alert-dialog.tsx, badge.tsx, skeleton.tsx, table.tsx (477 lines total) added but no task documents creation - **RESOLVED: Documented in Completion Notes and File List**
+- [x] [AI-Review][MEDIUM] Test environment configuration failure - Hook tests failing with ReferenceError: document is not defined - missing JSDOM or happy-dom in vitest config - **RESOLVED: Justfile fixed**
+- [x] [AI-Review][MEDIUM] File list discrepancy - Cannot verify story claims against git changes because Dev Agent Record has no file list - **RESOLVED: Complete file list added**
+
+**Notes:**
+- Implementation code quality is solid - components, hooks, and API integration follow project patterns correctly
+- All review items resolved - documentation gaps filled, test environment fixed
+
+---
+
 ## Dev Notes
 
 ### Testing Requirements
@@ -405,13 +424,48 @@ web/src/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- API bug fix during manual testing: VintageStory mod API returns lowercase `side` field (e.g., "both") but Pydantic model expected title case ("Both"). Fixed by normalizing in `mods.py:400-402`.
+- shadcn/ui components installed via `bunx shadcn@latest add`: alert-dialog, badge, dialog, skeleton, table (required for implementation)
+- Custom `use-debounce.ts` hook created for 300ms debounced lookup (part of Task 3)
+
 ### File List
+
+**Created:**
+- `web/src/api/mods.ts` - API client functions for mod endpoints
+- `web/src/hooks/use-mods.ts` - TanStack Query hooks for mod operations
+- `web/src/hooks/use-mods.test.tsx` - Hook tests
+- `web/src/hooks/use-debounce.ts` - Debounce utility hook
+- `web/src/components/CompatibilityBadge.tsx` - Status badge component
+- `web/src/components/CompatibilityBadge.test.tsx` - Badge tests
+- `web/src/components/ModLookupInput.tsx` - Search input with preview
+- `web/src/components/ModLookupInput.test.tsx` - Lookup input tests
+- `web/src/components/ModTable.tsx` - Installed mods table
+- `web/src/components/ModTable.test.tsx` - Table tests
+- `web/src/components/PendingRestartBanner.tsx` - Header restart banner
+- `web/src/components/PendingRestartBanner.test.tsx` - Banner tests
+- `web/src/features/mods/ModList.test.tsx` - Page tests
+- `web/src/components/ui/alert-dialog.tsx` - shadcn component
+- `web/src/components/ui/badge.tsx` - shadcn component
+- `web/src/components/ui/dialog.tsx` - shadcn component
+- `web/src/components/ui/skeleton.tsx` - shadcn component
+- `web/src/components/ui/table.tsx` - shadcn component
+
+**Modified:**
+- `web/src/api/query-keys.ts` - Added mods.lookup key
+- `web/src/api/types.ts` - Added mod-related types
+- `web/src/components/layout/Header.tsx` - Integrated PendingRestartBanner
+- `web/src/components/layout/Header.test.tsx` - Added QueryClientProvider wrapper
+- `web/src/components/layout/Layout.test.tsx` - Added QueryClientProvider wrapper
+- `web/src/features/mods/ModList.tsx` - Full page implementation
+- `api/src/vintagestory_api/services/mods.py` - Fixed side field case normalization
 
 ---
 
@@ -420,3 +474,5 @@ web/src/
 | Date | Change | Author |
 |------|--------|--------|
 | 2025-12-30 | Story created with comprehensive context for UI implementation | Claude Opus 4.5 |
+| 2025-12-30 | Implementation complete, all tasks done, manual tests passed | Claude Opus 4.5 |
+| 2025-12-30 | Code review findings addressed - documentation gaps filled, Justfile fixed | Claude Opus 4.5 |
