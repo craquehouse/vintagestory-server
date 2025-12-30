@@ -137,13 +137,21 @@ Task 3: Write tests  <- TOO LATE
 
 **Why:** Code review should verify implementation quality, not discover missing tests. Tests written alongside code catch design issues early.
 
-### 2. A Task is Not Complete Until Tests Pass
+### 2. Testing Discipline is Non-Negotiable
+
+> **Rule:** Every test must pass, all the time. No exceptions without explicit project lead approval.
 
 Do not mark a task as complete if:
 - Tests are failing
 - Implementation is partial
 - You encountered unresolved errors
 - Test coverage for the new functionality is missing
+
+**Critical:**
+- Manual test tasks require **explicit user confirmation** before marking complete
+- Never auto-complete manual testing tasks
+- Deferring or excluding failing tests is a **grievous error in judgment**
+- If you think excluding a test is appropriate, stop and ask the user first
 
 ### 3. API Response Envelope
 
@@ -448,6 +456,129 @@ Run `just` with no arguments to see all available commands.
 
 ---
 
+## Git Workflow
+
+### Branch Strategy
+
+Each story gets its own branch. Branch names align with story filenames:
+
+```bash
+# Branch naming: story/<epic>-<story>-<slug>
+git checkout -b story/5-2-mod-installation-api
+git checkout -b story/6-1-config-files-api
+```
+
+**Flow:**
+```
+main (stable)
+    │
+    └── git checkout -b story/5-2-mod-installation-api
+            │
+            ├── feat(story-5.2/task-1): create ModApiClient
+            ├── feat(story-5.2/task-2): implement install_mod
+            ├── feat(story-5.2/task-3): add API endpoint + tests
+            │
+            └── Push branch, create PR
+                    │
+                    ├── Code review on PR
+                    ├── fix(story-5.2/review): address findings
+                    │
+                    └── Regular merge to main (not squash)
+```
+
+### Commit Message Format
+
+Task-level commits using slash notation:
+
+```
+type(story-X.Y/task-N): description
+```
+
+**Types:**
+- `feat` - New functionality
+- `fix` - Bug fixes
+- `test` - Test-only changes
+- `docs` - Documentation
+- `refactor` - Code restructuring
+
+**Standard suffixes:**
+- `/task-N` - Work directly tied to task N
+- `/ad-hoc` - Discovered issues fixed opportunistically
+- `/user` - User-directed changes during story execution
+- `/review` - Code review findings
+
+**Examples:**
+```bash
+git commit -m "feat(story-5.2/task-1): create ModApiClient with httpx"
+git commit -m "feat(story-5.2/task-2): implement install_mod method + tests"
+git commit -m "fix(story-5.2/ad-hoc): correct typo in error message"
+git commit -m "fix(story-5.2/user): handle edge case per user feedback"
+git commit -m "fix(story-5.2/review): address code review findings"
+```
+
+### Pull Request Process
+
+1. **Push branch when implementation complete:**
+   ```bash
+   git push -u origin story/5-2-mod-installation-api
+   ```
+
+2. **Create PR with template:**
+   ```bash
+   gh pr create --title "Story 5.2: Mod Installation API" --body "..."
+   ```
+
+3. **Code review happens on the PR** (not on uncommitted changes)
+
+4. **Review fixes committed to branch:**
+   ```bash
+   git commit -m "fix(story-5.2/review): address code review findings"
+   git push
+   ```
+
+5. **Regular merge (not squash)** - Preserves task-level history
+
+6. **Delete story branch after merge**
+
+### PR Template
+
+```markdown
+## Story Reference
+- Story: [5-2-mod-installation-api](_bmad-output/implementation-artifacts/5-2-mod-installation-api.md)
+- Epic: 5 - Mod Management
+
+## Summary
+<!-- 1-3 bullet points of what was implemented -->
+
+## Changes
+<!-- Key files modified/created -->
+
+## Test Results
+- [ ] `just check` passes
+- [ ] Manual tests completed (if applicable)
+
+## Acceptance Criteria Status
+- [x] AC 1: ...
+- [x] AC 2: ...
+
+## Deferred Items
+<!-- Any polish backlog items added -->
+
+## Notes for Reviewers
+<!-- Anything the reviewer should pay attention to -->
+```
+
+### Why This Workflow
+
+1. **Transparency** - Task-level commits show exactly when each piece was implemented
+2. **Verification** - Git history proves tests were written with features, not batched
+3. **Isolation** - Story branches keep main stable during development
+4. **Review integration** - Code review happens on PRs with full context
+5. **Easy rollback** - Revert merge commit if something goes wrong
+6. **Audit trail** - PR becomes permanent documentation of story completion
+
+---
+
 ## References
 
 - Full architecture: `_bmad-output/planning-artifacts/architecture.md`
@@ -457,4 +588,4 @@ Run `just` with no arguments to see all available commands.
 
 ---
 
-_Last updated: 2025-12-29 (Added VintageStory troubleshooting reference)_
+_Last updated: 2025-12-30 (Added Git Workflow section, strengthened testing discipline rules)_
