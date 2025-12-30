@@ -1,0 +1,157 @@
+# Story 6.0: Epic 6 Technical Preparation
+
+Status: ready-for-dev
+
+## Story
+
+As a **developer**,
+I want **to research VintageStory console commands and create configuration infrastructure**,
+So that **subsequent stories have a solid foundation for config management**.
+
+## Acceptance Criteria
+
+1. **Given** we need to understand console command behavior, **When** I research the `/serverconfig` command, **Then** I document which settings support live update vs require restart, **And** I verify that console changes persist to serverconfig.json automatically.
+
+2. **Given** we need a reference configuration template, **When** I analyze DarkMatterProductions and VintageStory defaults, **Then** I create `serverconfig-template.json` with sensible defaults, **And** the template includes all common settings.
+
+3. **Given** we need to support VS_CFG_* environment variables, **When** I define the environment variable mapping, **Then** I document the complete ENV_VAR_MAP (VS_CFG_SERVER_NAME → ServerName, etc.), **And** I verify the mapping covers all settings from the reference implementation.
+
+4. **Given** we need TanStack Table for data lists, **When** I add the dependency, **Then** `@tanstack/react-table` is added to web/package.json, **And** a basic table component pattern is documented.
+
+## Tasks / Subtasks
+
+- [ ] Task 1: Research `/serverconfig` command + tests (AC: 1)
+  - [ ] Subtask 1.1: Document available `/serverconfig` subcommands from VintageStory wiki/forums
+  - [ ] Subtask 1.2: Create reference document for console command syntax
+  - [ ] Subtask 1.3: Identify which settings are console-commandable vs file-only
+  - [ ] Subtask 1.4: Document which settings take effect immediately vs require restart
+  - [ ] Subtask 1.5: Add findings to architecture.md under Epic 6 section
+
+- [ ] Task 2: Create `serverconfig-template.json` + validation (AC: 2)
+  - [ ] Subtask 2.1: Analyze DarkMatterProductions generate-config.py for setting patterns
+  - [ ] Subtask 2.2: Analyze VintageStory default serverconfig.json structure
+  - [ ] Subtask 2.3: Create `api/src/vintagestory_api/data/serverconfig-template.json`
+  - [ ] Subtask 2.4: Include all common settings with sensible defaults
+  - [ ] Subtask 2.5: Write unit tests validating template is valid JSON and contains expected keys
+
+- [ ] Task 3: Define VS_CFG_* → serverconfig.json mapping + tests (AC: 3)
+  - [ ] Subtask 3.1: Create complete ENV_VAR_MAP in code or config file
+  - [ ] Subtask 3.2: Include type coercion rules (string → int, string → bool)
+  - [ ] Subtask 3.3: Document mapping in architecture.md
+  - [ ] Subtask 3.4: Write unit tests for type coercion (int, bool, string)
+
+- [ ] Task 4: Add TanStack Table dependency + tests (AC: 4)
+  - [ ] Subtask 4.1: Run `bun add @tanstack/react-table` in web directory
+  - [ ] Subtask 4.2: Document table component pattern in architecture.md (already partially done)
+  - [ ] Subtask 4.3: Verify web project builds successfully with new dependency
+  - [ ] Subtask 4.4: Write basic integration test for table component usage
+
+## Dev Notes
+
+### Testing Requirements
+
+**CRITICAL:** Tests must be written alongside implementation, not as a separate phase.
+
+- Each task that adds functionality must include its tests before marking complete
+- A task is NOT complete until tests pass
+- Do not batch tests into a separate "Write tests" task at the end
+- Run `just test` to verify all tests pass before marking task complete
+
+### Security Requirements
+
+**Follow patterns in `project-context.md` → Security Patterns section:**
+
+- DEBUG mode gating for test/dev endpoints
+- Timing-safe comparison for sensitive data (API keys, passwords)
+- Never log sensitive data in plaintext
+- Proxy-aware client IP logging
+- RBAC patterns for endpoint protection
+
+### Development Commands
+
+Use `just` for all development tasks:
+- `just test` - Run all tests
+- `just check` - Full validation (lint + typecheck + test)
+- `just lint` - Run all linters
+
+### Architecture & Patterns
+
+**Epic 6 Architectural Pivot:** This prep story establishes the foundation for a console-command-based configuration approach, NOT file editing.
+
+- **Console commands for live updates:** VintageStory supports `/serverconfig` for runtime changes
+- **File updates for restart-required settings:** Some settings (Port, world seed) need restart
+- **VS_CFG_* environment variables:** First-run config generation from container env vars
+- **Two config domains:**
+  - `/config/game` - Game server settings (serverconfig.json)
+  - `/config/api` - API operational settings (api-settings.json)
+
+**Reference Implementation:** [DarkMatterProductions generate-config.py](https://raw.githubusercontent.com/DarkMatterProductions/vintagestory/refs/heads/main/generate-config.py)
+
+### Project Structure Notes
+
+**New files to create:**
+- `api/src/vintagestory_api/data/serverconfig-template.json` - Reference config template
+- Consider `api/src/vintagestory_api/services/config_init.py` placeholder for Story 6.1
+
+**Configuration mapping location options:**
+1. In `config_init.py` as class constant (simpler)
+2. In separate `config/mappings.py` file (if mapping grows complex)
+
+### Epic 5 Retrospective Learnings
+
+From `epic-5-retro-2025-12-30.md`:
+
+1. **Testing discipline is paramount** - No exceptions without explicit user approval
+2. **Commit early, commit often** - Task-level commits enable verification
+3. **Branch per story with PRs** - Use `story/6-0-epic-6-technical-preparation` branch
+4. **Prep stories work** - Continue the pattern established in Epic 4/5
+
+### Git Workflow for This Story
+
+```bash
+# Create feature branch
+git checkout -b story/6-0-epic-6-technical-preparation
+
+# Task-level commits
+git commit -m "feat(story-6.0/task-1): document /serverconfig commands"
+git commit -m "feat(story-6.0/task-2): create serverconfig-template.json"
+git commit -m "feat(story-6.0/task-3): define VS_CFG_* env var mapping"
+git commit -m "feat(story-6.0/task-4): add TanStack Table dependency"
+
+# Push and create PR
+git push -u origin story/6-0-epic-6-technical-preparation
+gh pr create --title "Story 6.0: Epic 6 Technical Preparation" --body "..."
+```
+
+### Known Console Commands (Research Starting Point)
+
+From VintageStory documentation and community sources:
+
+| Command | Description |
+|---------|-------------|
+| `/serverconfig` | Base command for server configuration |
+| `/serverconfig list` | List available settings |
+| `/serverconfig Name "value"` | Set server name |
+| `/serverconfig MaxClients N` | Set max player count |
+
+**Research needed:** Complete list of `/serverconfig` subcommands, which are live-update vs restart-required.
+
+### References
+
+- `project-context.md` - Critical implementation rules and patterns
+- `_bmad-output/planning-artifacts/architecture.md#epic-6-game-configuration-management-architecture` - Full architecture details
+- `_bmad-output/implementation-artifacts/epic-5-retro-2025-12-30.md` - Retrospective learnings
+- `agentdocs/vs-server-troubleshooting.md` - VintageStory server quirks
+- [DarkMatterProductions generate-config.py](https://raw.githubusercontent.com/DarkMatterProductions/vintagestory/refs/heads/main/generate-config.py) - Reference implementation
+
+## Dev Agent Record
+
+### Agent Model Used
+
+{{agent_model_name_version}}
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
