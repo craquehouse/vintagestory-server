@@ -1,6 +1,6 @@
 # Story 5.6: Mod Management UI
 
-Status: review
+Status: done
 
 ## Story
 
