@@ -1,6 +1,6 @@
 # Story 5.5: Mod List API
 
-Status: review
+Status: done
 
 ## Story
 
