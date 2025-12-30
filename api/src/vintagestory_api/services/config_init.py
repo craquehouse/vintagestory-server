@@ -103,7 +103,9 @@ def parse_env_value(value: str, value_type: Literal["string", "int", "bool", "fl
             return True
         if value.lower() in ("false", "0", "no", "off"):
             return False
-        raise ValueError(f"Cannot convert '{value}' to bool. Use true/false, 1/0, yes/no, or on/off.")
+        raise ValueError(
+            f"Cannot convert '{value}' to bool. Use true/false, 1/0, yes/no, or on/off."
+        )
 
     if value_type == "int":
         return int(value)

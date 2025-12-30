@@ -11,7 +11,6 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
-  type ColumnDef,
 } from '@tanstack/react-table';
 
 // Sample data type for testing
@@ -35,25 +34,25 @@ describe('TanStack Table Integration', () => {
     it('can create column definitions with columnHelper', () => {
       const columnHelper = createColumnHelper<TestMod>();
 
-      const columns: ColumnDef<TestMod, unknown>[] = [
-        columnHelper.accessor('name', {
-          header: 'Mod Name',
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor('version', {
-          header: 'Version',
-          cell: (info) => `v${info.getValue()}`,
-        }),
-        columnHelper.accessor('enabled', {
-          header: 'Status',
-          cell: (info) => (info.getValue() ? 'Enabled' : 'Disabled'),
-        }),
-      ];
+      // Column definitions created with columnHelper
+      const nameColumn = columnHelper.accessor('name', {
+        header: 'Mod Name',
+        cell: (info) => info.getValue(),
+      });
 
-      expect(columns).toHaveLength(3);
-      expect(columns[0].header).toBe('Mod Name');
-      expect(columns[1].header).toBe('Version');
-      expect(columns[2].header).toBe('Status');
+      const versionColumn = columnHelper.accessor('version', {
+        header: 'Version',
+        cell: (info) => `v${info.getValue()}`,
+      });
+
+      const enabledColumn = columnHelper.accessor('enabled', {
+        header: 'Status',
+        cell: (info) => (info.getValue() ? 'Enabled' : 'Disabled'),
+      });
+
+      expect(nameColumn.header).toBe('Mod Name');
+      expect(versionColumn.header).toBe('Version');
+      expect(enabledColumn.header).toBe('Status');
     });
   });
 
