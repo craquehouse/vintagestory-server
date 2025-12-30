@@ -13,6 +13,7 @@ from vintagestory_api.services.mod_api import (
     DownloadError,
     ExternalApiError,
     ModVersionNotFoundError,
+    validate_slug,
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
@@ -248,6 +249,16 @@ async def enable_mod(
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
     """
+    # Defense-in-depth: validate slug format before state lookup
+    if not validate_slug(slug):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.INVALID_SLUG,
+                "message": f"Invalid mod slug: {slug}",
+            },
+        )
+
     try:
         result = service.enable_mod(slug)
 
@@ -300,6 +311,16 @@ async def disable_mod(
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
     """
+    # Defense-in-depth: validate slug format before state lookup
+    if not validate_slug(slug):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.INVALID_SLUG,
+                "message": f"Invalid mod slug: {slug}",
+            },
+        )
+
     try:
         result = service.disable_mod(slug)
 
@@ -348,6 +369,16 @@ async def remove_mod(
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
     """
+    # Defense-in-depth: validate slug format before state lookup
+    if not validate_slug(slug):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.INVALID_SLUG,
+                "message": f"Invalid mod slug: {slug}",
+            },
+        )
+
     try:
         result = service.remove_mod(slug)
 

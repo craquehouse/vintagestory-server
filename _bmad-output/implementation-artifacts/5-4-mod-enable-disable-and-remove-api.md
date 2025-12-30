@@ -1,6 +1,6 @@
 # Story 5.4: Mod Enable/Disable and Remove API
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -151,7 +151,7 @@ WRONG PATTERN (tests batched at end):
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] Add validate_slug() check to enable, disable, and remove endpoints for defense-in-depth security [api/src/vintagestory_api/routers/mods.py:217, 269, 321]
+- [x] [AI-Review][MEDIUM] Add validate_slug() check to enable, disable, and remove endpoints for defense-in-depth security [api/src/vintagestory_api/routers/mods.py:217, 269, 321]
   - Import validate_slug from vintagestory_api.services.mod_api
   - Add validation before service call: if not validate_slug(slug): raise HTTPException(400, INVALID_SLUG)
   - This prevents path traversal attempts and invalid slug formats before hitting state lookup
