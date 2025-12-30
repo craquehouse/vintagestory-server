@@ -1,6 +1,6 @@
 # Story 6.0: Epic 6 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -161,6 +161,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - **Task 3 (2025-12-30):** Created `config_init.py` with complete ENV_VAR_MAP (40+ mappings) covering server identity, network, gameplay, whitelist, performance, security, hosted mode, world settings, and safety settings. Implemented `parse_env_value()` with type coercion for string/int/bool/float. Updated architecture.md with complete mapping documentation. Created 53 tests for ENV_VAR_MAP structure and type coercion. All tests pass.
 
 - **Task 4 (2025-12-30):** Added @tanstack/react-table v8.21.3 to web dependencies. Verified build succeeds. Table component pattern already documented in architecture.md. Created 6 integration tests verifying TanStack Table import, column helper usage, row model functions, and type safety. All tests pass.
+
+- **Post-completion (2025-12-30):** Migrated development tool permissions (`just` commands, `mise exec`, `docker compose`, etc.) from `.claude/settings.local.json` to shared `.claude/settings.json` so they're available to all contributors.
 
 ### File List
 
