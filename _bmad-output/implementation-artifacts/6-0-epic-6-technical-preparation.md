@@ -20,12 +20,12 @@ So that **subsequent stories have a solid foundation for config management**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Research `/serverconfig` command + tests (AC: 1)
-  - [ ] Subtask 1.1: Document available `/serverconfig` subcommands from VintageStory wiki/forums
-  - [ ] Subtask 1.2: Create reference document for console command syntax
-  - [ ] Subtask 1.3: Identify which settings are console-commandable vs file-only
-  - [ ] Subtask 1.4: Document which settings take effect immediately vs require restart
-  - [ ] Subtask 1.5: Add findings to architecture.md under Epic 6 section
+- [x] Task 1: Research `/serverconfig` command + tests (AC: 1)
+  - [x] Subtask 1.1: Document available `/serverconfig` subcommands from VintageStory wiki/forums
+  - [x] Subtask 1.2: Create reference document for console command syntax
+  - [x] Subtask 1.3: Identify which settings are console-commandable vs file-only
+  - [x] Subtask 1.4: Document which settings take effect immediately vs require restart
+  - [x] Subtask 1.5: Add findings to architecture.md under Epic 6 section
 
 - [ ] Task 2: Create `serverconfig-template.json` + validation (AC: 2)
   - [ ] Subtask 2.1: Analyze DarkMatterProductions generate-config.py for setting patterns
@@ -148,10 +148,15 @@ From VintageStory documentation and community sources:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Task 1 (2025-12-30):** Researched VintageStory /serverconfig commands from wiki. Created `agentdocs/vs-serverconfig-commands.md` with complete command reference. Documented 22+ console-commandable settings with immediate effect vs 10+ restart-required settings. Updated architecture.md Epic 6 section with complete findings. Key insight: console commands automatically persist to serverconfig.json.
+
 ### File List
+
+- `agentdocs/vs-serverconfig-commands.md` (new) - Complete /serverconfig command reference
+- `_bmad-output/planning-artifacts/architecture.md` (modified) - Updated Epic 6 console commands section

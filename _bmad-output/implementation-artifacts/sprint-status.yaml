@@ -81,7 +81,7 @@ development_status:
   # Epic 6: Game Configuration Management (Revised 2025-12-30)
   # Architectural pivot: Console commands + ConfigInitService instead of file editing
   epic-6: in-progress
-  6-0-epic-6-technical-preparation: ready-for-dev
+  6-0-epic-6-technical-preparation: in-progress
   6-1-config-init-service-and-template: backlog
   6-2-game-settings-api: backlog
   6-3-api-settings-service: backlog

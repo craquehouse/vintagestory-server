@@ -2239,27 +2239,58 @@ User → Web UI → Setting Form → POST /config/settings/{key} → API decides
 
 Settings the API server can update via console commands while game server is running.
 
-**⚠️ Implementation Detail:** The console command syntax below is internal to the API server. The frontend only sees setting keys and values. This is an incomplete list.
+**⚠️ Implementation Detail:** The console command syntax below is internal to the API server. The frontend only sees setting keys and values.
 
-| Setting           | API Server Internal Command                | Effect    |
-| ----------------- | ------------------------------------------ | --------- |
-| ServerName        | `/serverconfig Name "value"`               | Immediate |
-| ServerDescription | `/serverconfig Description "value"  `      | Immediate |
-| WelcomeMessage    | `/serverconfig WelcomeMessage "value"`     | Immediate |
-| MaxClients        | `/serverconfig MaxClients N`               | Immediate |
-| Password          | `/serverconfig Password "value"`           | Immediate |
-| AllowPvP          | `/serverconfig AllowPvP true/false`        | Immediate |
-| OnlyWhitelisted   | `/serverconfig OnlyWhitelisted true/false` | Immediate |
+**Complete List (Researched Story 6.0, 2025-12-30):**
+
+| Setting | API Server Internal Command | Effect |
+|---------|----------------------------|--------|
+| ServerName | `/serverconfig name "value"` | Immediate |
+| ServerDescription | `/serverconfig description "value"` | Immediate |
+| WelcomeMessage | `/serverconfig motd "value"` | Immediate |
+| MaxClients | `/serverconfig maxclients N` | Immediate |
+| MaxChunkRadius | `/serverconfig maxchunkradius N` | Immediate |
+| Password | `/serverconfig password "value"` | Immediate |
+| (Remove password) | `/serverconfig nopassword` | Immediate |
+| AllowPvP | `/serverconfig allowpvp true/false` | Immediate |
+| AllowFireSpread | `/serverconfig allowfirespread true/false` | Immediate |
+| AllowFallingBlocks | `/serverconfig allowfallingblocks true/false` | Immediate |
+| EntitySpawning | `/serverconfig entityspawning true/false` | Immediate |
+| WhitelistMode | `/serverconfig WhitelistMode off/on/default` | Immediate |
+| AntiAbuse | `/serverconfig antiabuse Off/Basic/Pedantic` | Immediate |
+| TickRate | `/serverconfig tickrate N` (10-100) | Immediate |
+| RandomBlockTicksPerChunk | `/serverconfig blockTickSamplesPerChunk N` | Immediate |
+| PassTimeWhenEmpty | `/serverconfig passtimewhenempty true/false` | Immediate |
+| SpawnCapPlayerScaling | `/serverconfig spawncapplayerscaling N` (0-1) | Immediate |
+| Upnp | `/serverconfig upnp 0/1` | Immediate |
+| AdvertiseServer | `/serverconfig advertise 0/1` | Immediate |
+| DefaultSpawn | `/serverconfig defaultspawn x [y] z` | Immediate |
+| (Current location) | `/serverconfig setspawnhere` | Immediate |
+| TemporaryIpBlockList | `/serverconfig temporaryipblocklist 0/1` | Immediate |
+| LoginFloodProtection | `/serverconfig loginfloodprotection 0/1` | Immediate |
+
+**Persistence:** Console commands automatically persist changes to `serverconfig.json`. No manual save required.
+
+**Boolean Syntax Variations:** Note different commands use `true/false`, `0/1`, or enum values. API must normalize these internally.
 
 **2. Restart-Required Settings**
 
-Settings that require server restart to take effect:
+Settings that cannot be changed via console commands. Require editing `serverconfig.json` and server restart:
 
-| Setting           | Location          | Restart Required     |
-| ----------------- | ----------------- | -------------------- |
-| Port              | serverconfig.json | Yes                  |
-| World seed        | serverconfig.json | Yes (new world only) |
-| Game mode changes | serverconfig.json | Sometimes            |
+| Setting | Location | Notes |
+|---------|----------|-------|
+| Port | serverconfig.json | Server port (default: 42420) |
+| Ip | serverconfig.json | Bind IP address |
+| MapSizeX/Y/Z | serverconfig.json | World dimensions |
+| WorldConfig.Seed | serverconfig.json | New worlds only |
+| WorldConfig.SaveFileLocation | serverconfig.json | World save path |
+| ModPaths | serverconfig.json | Mod directories |
+| Roles | serverconfig.json | Role definitions |
+| DefaultRoleCode | serverconfig.json | Default player role |
+| ConfigVersion | serverconfig.json | Schema version |
+| CompressPackets | serverconfig.json | Network compression |
+
+**Reference:** See `agentdocs/vs-serverconfig-commands.md` for complete documentation.
 
 **3. Environment Variable Managed Settings**
 
