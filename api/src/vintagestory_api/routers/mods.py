@@ -33,6 +33,38 @@ router = APIRouter(prefix="/mods", tags=["Mods"])
 RequireAuth = Annotated[str, Depends(get_current_user)]
 
 
+@router.get("", response_model=ApiResponse, summary="List installed mods")
+async def list_mods(
+    _: RequireAuth,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """List all installed mods with status information.
+
+    Returns a list of installed mods with their metadata, enabled status,
+    and compatibility information. Also includes pending_restart flag.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Returns:
+        ApiResponse with data containing:
+        - mods: Array of mod information objects
+        - pending_restart: Whether server restart is required
+
+    Raises:
+        HTTPException: 401 if not authenticated
+    """
+    mods = service.list_mods()
+    pending_restart = service.restart_state.pending_restart
+
+    return ApiResponse(
+        status="ok",
+        data={
+            "mods": [m.model_dump(mode="json") for m in mods],
+            "pending_restart": pending_restart,
+        },
+    )
+
+
 @router.get("/lookup/{slug:path}", response_model=ApiResponse)
 async def lookup_mod(
     slug: Annotated[

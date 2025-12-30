@@ -204,6 +204,15 @@ class ModService:
         """Get the ModStateManager instance."""
         return self._state_manager
 
+    @property
+    def restart_state(self) -> PendingRestartState:
+        """Get the restart state instance.
+
+        This allows endpoints to check pending restart status
+        using the same restart state that the service uses.
+        """
+        return self._restart_state
+
     def set_server_running(self, running: bool) -> None:
         """Set the server running status.
 

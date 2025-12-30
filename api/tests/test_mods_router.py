@@ -981,3 +981,221 @@ class TestRemoveModEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["pending_restart"] is True
+
+
+class TestListModsEndpoint:
+    """Tests for GET /api/v1alpha1/mods endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def restart_state(self) -> PendingRestartState:
+        """Create a dedicated restart state for testing."""
+        return PendingRestartState()
+
+    @pytest.fixture
+    def mod_service(
+        self, temp_data_dir: Path, restart_state: PendingRestartState
+    ) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=restart_state,
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    def test_list_mods_admin_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """GET /mods returns list of installed mods as Admin (AC: 1)."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test Mod", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.get("/api/v1alpha1/mods", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "mods" in data["data"]
+        assert "pending_restart" in data["data"]
+        assert len(data["data"]["mods"]) == 1
+
+        mod = data["data"]["mods"][0]
+        assert mod["slug"] == "testmod"
+        assert mod["name"] == "Test Mod"
+        assert mod["version"] == "1.0.0"
+        assert mod["enabled"] is True
+
+    def test_list_mods_monitor_success(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """GET /mods returns list of installed mods as Monitor (AC: 2)."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "monitortest_1.0.0.zip",
+            {"modid": "monitortest", "name": "Monitor Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.get("/api/v1alpha1/mods", headers=monitor_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert len(data["data"]["mods"]) == 1
+        assert data["data"]["mods"][0]["slug"] == "monitortest"
+
+    def test_list_mods_empty_array_when_no_mods(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods returns empty array when no mods installed (AC: 3)."""
+        response = client.get("/api/v1alpha1/mods", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["mods"] == []
+        assert data["data"]["pending_restart"] is False
+
+    def test_list_mods_includes_pending_restart_flag(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+        restart_state: PendingRestartState,
+    ) -> None:
+        """GET /mods includes pending_restart: true when restart is pending (AC: 4)."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "restarttest_1.0.0.zip",
+            {"modid": "restarttest", "name": "Restart Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Set pending restart flag
+        restart_state.require_restart("Test mod change")
+
+        response = client.get("/api/v1alpha1/mods", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["pending_restart"] is True
+
+    def test_list_mods_requires_auth(self, client: TestClient) -> None:
+        """GET /mods returns 401 without authentication (AC: 5)."""
+        response = client.get("/api/v1alpha1/mods")
+
+        assert response.status_code == 401
+
+    def test_list_mods_rejects_invalid_api_key(self, client: TestClient) -> None:
+        """GET /mods returns 401 with invalid API key (AC: 5)."""
+        response = client.get(
+            "/api/v1alpha1/mods",
+            headers={"X-API-Key": "invalid-key-that-does-not-exist"},
+        )
+
+        assert response.status_code == 401
+
+    def test_list_mods_includes_multiple_mods(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """GET /mods returns all installed mods."""
+        mods_dir = temp_data_dir / "mods"
+
+        # Create multiple mods
+        create_mod_zip_file(
+            mods_dir / "mod1_1.0.0.zip",
+            {"modid": "mod1", "name": "Mod One", "version": "1.0.0"},
+        )
+        create_mod_zip_file(
+            mods_dir / "mod2_2.0.0.zip",
+            {"modid": "mod2", "name": "Mod Two", "version": "2.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.get("/api/v1alpha1/mods", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["data"]["mods"]) == 2
+
+        slugs = {mod["slug"] for mod in data["data"]["mods"]}
+        assert slugs == {"mod1", "mod2"}
+
+    def test_list_mods_includes_disabled_mods(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """GET /mods includes disabled mods with enabled=False."""
+        mods_dir = temp_data_dir / "mods"
+
+        # Create a disabled mod
+        zip_path = mods_dir / "disabledmod_1.0.0.zip"
+        create_mod_zip_file(
+            zip_path,
+            {"modid": "disabledmod", "name": "Disabled Mod", "version": "1.0.0"},
+        )
+        zip_path.rename(mods_dir / "disabledmod_1.0.0.zip.disabled")
+        mod_service.state_manager.sync_state_with_disk()
+
+        response = client.get("/api/v1alpha1/mods", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["data"]["mods"]) == 1
+        assert data["data"]["mods"][0]["slug"] == "disabledmod"
+        assert data["data"]["mods"][0]["enabled"] is False

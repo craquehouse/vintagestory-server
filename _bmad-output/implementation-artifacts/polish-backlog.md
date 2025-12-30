@@ -39,7 +39,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "Console", "Mods", "Config"         | low        | S        | backlog  | -         | -       |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
-| UI-006  | If the frontend has lost connection to the backend, we need to block futher interactions and pop up some sort of modal that indicates retry status | medium        | M        | backlog  | -         | -       |
+| UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |
 
 ---
 
@@ -47,20 +47,28 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 <!-- Items related to the FastAPI backend -->
 
-| ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
-| ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
-| API-001 | /docs endpoint shows inconsistent capitalization (Health, Authentication, console, Server, test, default)  | low        | S        | backlog  | -         | -       |  
-| API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status       | low        | S        | backlog  | -         | -       |  
-| API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)  | low        | S        | backlog  | -         | -       |  
-| API-004 | /readyz endpoint should report data.checks.game_server                                                     | low        | S        | backlog  | -         | -       |  
-| API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                   | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
-| API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                        | high       | M        | backlog  | UI-005    | - |  
-| API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist       | high       | M        | backlog  | -         | - |  
-| API-008 | API should track available space on data volume, and we should have a config var for warning threshold     | high       | M        | backlog  | -         | - |
-| API-009 | Mod cache cleanup strategy - cached mod files grow indefinitely with no eviction (LRU, TTL, or size-based) | medium     | M        | backlog  | Story-5.2 | Risk of disk space exhaustion in production |
-| API-010 | We need extensive debug logging. Most functions should generate debug logs. disk is cheap.                 | medium     | M        | backlog  | -         | - |
-| API-011 | This might need to be an entire story, but, scheduled restarts along with disk cleanup and log rotation    | medium     | L        | backlog  | -         | - |
-| API-012 | Parse serverconfig.json into internal object, validate paths (ModPaths, SaveFileLocation), expose via API  | medium     | M        | backlog  | Story-5.4 | Would enable detecting misconfigured paths and provide config visibility |
+| ID      | Description                                                                                                  | Priority   | Effort   |  Status  | Related   | Notes   |
+| ------- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------- | -------- | --------- | ------- |
+| API-001 | /docs endpoint shows inconsistent capitalization (Health, Authentication, console, Server, test, default)    | low        | S        | backlog  | -         | -       |  
+| API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status         | low        | S        | backlog  | -         | -       |  
+| API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)    | low        | S        | backlog  | -         | -       |  
+| API-004 | /readyz endpoint should report data.checks.game_server                                                       | low        | S        | backlog  | -         | -       |  
+| API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                     | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
+| API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                          | high       | M        | backlog  | UI-005    | -       |  
+| API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist         | high       | M        | backlog  | -         | -       |  
+| API-008 | API should track available space on data volume, and we should have a config var for warning threshold       | high       | M        | backlog  | -         | -       |
+| API-009 | Mod cache cleanup strategy - cached mod files grow indefinitely with no eviction (LRU, TTL, or size-based)   | medium     | M        | backlog  | Story-5.2 | Risk of disk space exhaustion in production |
+| API-010 | We need extensive debug logging. Most functions should generate debug logs. disk is cheap.                   | medium     | M        | backlog  | -         | -       |
+| API-011 | This might need to be an entire story, but, scheduled restarts along with disk cleanup and log rotation      | medium     | L        | backlog  | -         | -       |
+| API-012 | Parse serverconfig.json into internal object, validate paths (ModPaths, SaveFileLocation), expose via API    | medium     | M        | backlog  | Story-5.4 | Would enable detecting misconfigured paths and provide config visibility |
+| API-013 | routers/__init__.py only exports auth, health, test_rbac - should export all routers for module completeness | low        | S        | backlog  | -         | Minor but misleading module structure |
+| API-014 | Console router returns raw dict instead of ApiResponse model (console.py:34, console.py:67)                  | low        | S        | backlog  | -         | Pattern consistency - bypasses typed envelope |
+| API-015 | Move get_server_service() singleton from routers/server.py to services/server.py                             | low        | S        | backlog  | -         | Layer separation - mods.py does this correctly |
+| API-016 | CLAUDE.md documents WebSocket at /ws/console but actual path is /api/v1alpha1/console/ws                     | low        | S        | backlog  | -         | Documentation drift |
+| API-017 | Add pagination to GET /mods endpoint for large mod lists (50+ mods could violate <500ms NFR3)                | medium     | M        | backlog  | Story-5.5 | Deferred post-MVP per PRD |
+| API-018 | Success responses include null `error` field - consider exclude_none or document as design choice            | low        | S        | backlog  | Story-5.5 | Project-wide design decision |
+| API-019 | Add edge case tests for mod list: corrupted state.json, disk I/O errors, malformed mod zips                 | low        | M        | backlog  | Story-5.5 | Improve test coverage beyond happy paths |
+| API-020 | Extract common test fixtures (temp_data_dir, restart_state, auth_headers) to api/tests/conftest.py          | low        | S        | backlog  | Story-5.5 | DRY principle - fixtures duplicated across test classes |
 
 ---
 
