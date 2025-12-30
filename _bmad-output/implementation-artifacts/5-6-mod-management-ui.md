@@ -1,6 +1,6 @@
 # Story 5.6: Mod Management UI
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -61,37 +61,37 @@ The current ModList component at `web/src/features/mods/ModList.tsx` is a placeh
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create API integration hooks + tests (AC: 2-5, 7-8)
-  - [ ] 1.1: Create `web/src/api/mods.ts` with API functions:
+- [x] Task 1: Create API integration hooks + tests (AC: 2-5, 7-8)
+  - [x] 1.1: Create `web/src/api/mods.ts` with API functions:
     - `fetchMods()` - GET /mods
     - `lookupMod(slug: string)` - GET /mods/lookup/{slug}
     - `installMod(slug: string, version?: string)` - POST /mods
     - `enableMod(slug: string)` - POST /mods/{slug}/enable
     - `disableMod(slug: string)` - POST /mods/{slug}/disable
     - `removeMod(slug: string)` - DELETE /mods/{slug}
-  - [ ] 1.2: Create `web/src/hooks/use-mods.ts` with TanStack Query hooks:
+  - [x] 1.2: Create `web/src/hooks/use-mods.ts` with TanStack Query hooks:
     - `useMods()` - Query for installed mods list
     - `useLookupMod(slug: string)` - Query for mod lookup (enabled: !!slug)
     - `useInstallMod()` - Mutation for installation
     - `useEnableMod()` - Mutation for enabling
     - `useDisableMod()` - Mutation for disabling
     - `useRemoveMod()` - Mutation for removal
-  - [ ] 1.3: Update `web/src/api/query-keys.ts` to add lookup key
-  - [ ] 1.4: Write tests for API functions and hooks in `web/src/hooks/use-mods.test.ts`
-  - [ ] 1.5: Run `just test-web` to verify tests pass
+  - [x] 1.3: Update `web/src/api/query-keys.ts` to add lookup key
+  - [x] 1.4: Write tests for API functions and hooks in `web/src/hooks/use-mods.test.tsx`
+  - [x] 1.5: Run `just test-web` to verify tests pass
 
-- [ ] Task 2: Create CompatibilityBadge component + tests (AC: 3, 6)
-  - [ ] 2.1: Create `web/src/components/CompatibilityBadge.tsx`:
+- [x] Task 2: Create CompatibilityBadge component + tests (AC: 3, 6)
+  - [x] 2.1: Create `web/src/components/CompatibilityBadge.tsx`:
     - Props: `status: "compatible" | "not_verified" | "incompatible"`, optional `message`
     - Renders badge with appropriate color and icon
     - Green (#a6e3a1) + checkmark for compatible
     - Yellow (#f9e2af) + warning for not_verified
     - Red (#f38ba8) + X for incompatible
-  - [ ] 2.2: Write tests in `web/src/components/CompatibilityBadge.test.tsx`
-  - [ ] 2.3: Run `just test-web` to verify tests pass
+  - [x] 2.2: Write tests in `web/src/components/CompatibilityBadge.test.tsx`
+  - [x] 2.3: Run `just test-web` to verify tests pass
 
-- [ ] Task 3: Create ModLookupInput component + tests (AC: 1-5)
-  - [ ] 3.1: Create `web/src/components/ModLookupInput.tsx`:
+- [x] Task 3: Create ModLookupInput component + tests (AC: 1-5)
+  - [x] 3.1: Create `web/src/components/ModLookupInput.tsx`:
     - Input field with placeholder "Enter mod slug or paste URL"
     - Debounced (300ms) lookup trigger using useDeferredValue or custom debounce
     - Loading state with spinner in input
@@ -99,54 +99,54 @@ The current ModList component at `web/src/features/mods/ModList.tsx` is a placeh
     - Preview shows: name, author, description (truncated), side, CompatibilityBadge
     - Install button with loading state
     - Error state for mod not found
-  - [ ] 3.2: Smart URL parsing: extract slug from `https://mods.vintagestory.at/smithingplus` or `mods.vintagestory.at/smithingplus`
-  - [ ] 3.3: Confirmation dialog for incompatible mods before install
-  - [ ] 3.4: Write tests in `web/src/components/ModLookupInput.test.tsx`
-  - [ ] 3.5: Run `just test-web` to verify tests pass
+  - [x] 3.2: Smart URL parsing: extract slug from `https://mods.vintagestory.at/smithingplus` or `mods.vintagestory.at/smithingplus`
+  - [x] 3.3: Confirmation dialog for incompatible mods before install
+  - [x] 3.4: Write tests in `web/src/components/ModLookupInput.test.tsx`
+  - [x] 3.5: Run `just test-web` to verify tests pass
 
-- [ ] Task 4: Create ModTable component + tests (AC: 6-8)
-  - [ ] 4.1: Create `web/src/components/ModTable.tsx`:
+- [x] Task 4: Create ModTable component + tests (AC: 6-8)
+  - [x] 4.1: Create `web/src/components/ModTable.tsx`:
     - Table with columns: Name, Version, Compatibility, Status, Actions
     - Name column shows mod name with slug as subtitle
     - Version shows installed version
     - Compatibility shows CompatibilityBadge
     - Status shows enabled/disabled toggle (Switch component)
     - Actions shows Remove button (trash icon)
-  - [ ] 4.2: Implement optimistic updates for enable/disable toggle
-  - [ ] 4.3: Implement remove confirmation dialog
-  - [ ] 4.4: Empty state when no mods installed: "No mods installed yet"
-  - [ ] 4.5: Write tests in `web/src/components/ModTable.test.tsx`
-  - [ ] 4.6: Run `just test-web` to verify tests pass
+  - [x] 4.2: Implement optimistic updates for enable/disable toggle
+  - [x] 4.3: Implement remove confirmation dialog
+  - [x] 4.4: Empty state when no mods installed: "No mods installed yet"
+  - [x] 4.5: Write tests in `web/src/components/ModTable.test.tsx`
+  - [x] 4.6: Run `just test-web` to verify tests pass
 
-- [ ] Task 5: Create PendingRestartBanner component + tests (AC: 9)
-  - [ ] 5.1: Create `web/src/components/PendingRestartBanner.tsx`:
+- [x] Task 5: Create PendingRestartBanner component + tests (AC: 9)
+  - [x] 5.1: Create `web/src/components/PendingRestartBanner.tsx`:
     - Shows when `pending_restart` is true from mods or server status
     - Displays: "⟳ Restart required · [Restart Now]" with mauve accent button
     - Restart Now triggers server restart mutation
     - Loading state during restart
-  - [ ] 5.2: Integrate into Header component (conditionally rendered)
-  - [ ] 5.3: Write tests in `web/src/components/PendingRestartBanner.test.tsx`
-  - [ ] 5.4: Run `just test-web` to verify tests pass
+  - [x] 5.2: Integrate into Header component (conditionally rendered)
+  - [x] 5.3: Write tests in `web/src/components/PendingRestartBanner.test.tsx`
+  - [x] 5.4: Run `just test-web` to verify tests pass
 
-- [ ] Task 6: Update ModList feature page + tests (AC: 1, 4)
-  - [ ] 6.1: Update `web/src/features/mods/ModList.tsx`:
+- [x] Task 6: Update ModList feature page + tests (AC: 1, 4)
+  - [x] 6.1: Update `web/src/features/mods/ModList.tsx`:
     - Page heading "Mods"
     - ModLookupInput at top
     - ModTable below showing installed mods
     - Toast notifications for install/enable/disable/remove results
-  - [ ] 6.2: Use Sonner toast from shadcn/ui for notifications
-  - [ ] 6.3: Write/update tests in `web/src/features/mods/ModList.test.tsx`
-  - [ ] 6.4: Run `just test-web` to verify tests pass
+  - [x] 6.2: Use Sonner toast from shadcn/ui for notifications
+  - [x] 6.3: Write/update tests in `web/src/features/mods/ModList.test.tsx`
+  - [x] 6.4: Run `just test-web` to verify tests pass
 
-- [ ] Task 7: Final validation (AC: 1-10)
-  - [ ] 7.1: Run `just test-web` - verify full test suite passes
-  - [ ] 7.2: Run `just check` - verify lint, typecheck, and all tests pass
-  - [ ] 7.3: Manual test: Navigate to Mods page, verify UI renders
-  - [ ] 7.4: Manual test: Search for mod "smithingplus", verify preview appears
-  - [ ] 7.5: Manual test: Install mod, verify toast and table update
-  - [ ] 7.6: Manual test: Toggle enable/disable, verify optimistic update
-  - [ ] 7.7: Manual test: Remove mod, verify confirmation and removal
-  - [ ] 7.8: Manual test: Verify PendingRestartBanner appears after mod operations
+- [x] Task 7: Final validation (AC: 1-10)
+  - [x] 7.1: Run `just test-web` - verify full test suite passes (347 tests pass)
+  - [x] 7.2: Run `just check` - verify lint, typecheck, and all tests pass (511 API + 347 web)
+  - [x] 7.3: Manual test: Navigate to Mods page, verify UI renders
+  - [x] 7.4: Manual test: Search for mod "smithingplus", verify preview appears
+  - [x] 7.5: Manual test: Install mod, verify toast and table update
+  - [x] 7.6: Manual test: Toggle enable/disable, verify optimistic update
+  - [x] 7.7: Manual test: Remove mod, verify confirmation and removal
+  - [x] 7.8: Manual test: Verify PendingRestartBanner appears after mod operations
 
 ---
 

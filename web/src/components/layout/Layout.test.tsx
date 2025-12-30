@@ -1,48 +1,65 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './Layout';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { type ReactNode } from 'react';
 
-describe('Layout', () => {
-  it('renders Header component', () => {
-    render(
+// Create a fresh QueryClient for each test
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+}
+
+// Helper to render Layout with all providers
+function renderLayout(children: ReactNode) {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
       <SidebarProvider>
         <MemoryRouter>
-          <Layout>
-            <div>Test content</div>
-          </Layout>
+          <Layout>{children}</Layout>
         </MemoryRouter>
       </SidebarProvider>
-    );
+    </QueryClientProvider>
+  );
+}
+
+describe('Layout', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    // Mock fetch for the PendingRestartBanner's useMods query
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { mods: [], pendingRestart: false } }),
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('renders Header component', () => {
+    renderLayout(<div>Test content</div>);
 
     expect(screen.getByText('VintageStory Server')).toBeInTheDocument();
   });
 
   it('renders children in main content area', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div data-testid="test-child">Test content</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div data-testid="test-child">Test content</div>);
 
     expect(screen.getByTestId('test-child')).toBeInTheDocument();
   });
 
   it('sets --sidebar-width to 240px when expanded', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
     expect(layoutDiv).toBeInTheDocument();
@@ -51,15 +68,7 @@ describe('Layout', () => {
 
   it('sets --sidebar-width to 64px when collapsed', async () => {
     const user = userEvent.setup();
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     // Find and click collapse button
     const collapseButton = await screen.findByRole('button', { name: /collapse/i });
@@ -72,15 +81,7 @@ describe('Layout', () => {
   });
 
   it('hides mobile sidebar by default', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     // Mobile Sheet should exist but be closed
     const sheetContent = document.querySelector('[data-state="closed"]');
@@ -89,15 +90,7 @@ describe('Layout', () => {
 
   it('opens mobile Sheet when hamburger clicked', async () => {
     const user = userEvent.setup();
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const hamburgerButton = await screen.findByRole('button', { name: /open menu/i });
     await user.click(hamburgerButton);
@@ -111,15 +104,7 @@ describe('Layout', () => {
 
   it('closes mobile Sheet when setMobileOpen(false) called', async () => {
     const user = userEvent.setup();
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     // Open Sheet
     const hamburgerButton = await screen.findByRole('button', { name: /open menu/i });
@@ -135,15 +120,7 @@ describe('Layout', () => {
   });
 
   it('applies main content padding correctly', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const main = document.querySelector('main');
     expect(main).toHaveClass('pt-12');
@@ -154,15 +131,7 @@ describe('Layout', () => {
   });
 
   it('applies desktop margin to main content when sidebar visible', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const main = document.querySelector('main');
     expect(main).toHaveClass('md:ml-[var(--sidebar-width)]');
@@ -176,15 +145,7 @@ describe('Layout', () => {
       value: 767,
     });
 
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     // The sidebar div should be hidden via md:hidden class on mobile
     const sidebarDiv = document.querySelector('.hidden');
@@ -199,15 +160,7 @@ describe('Layout', () => {
       value: 768,
     });
 
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     // On tablet+, sidebar should be visible
     // We can't easily test this without a responsive testing library
@@ -217,16 +170,12 @@ describe('Layout', () => {
   });
 
   it('renders multiple children correctly', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Child 1</div>
-            <div>Child 2</div>
-            <div>Child 3</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
+    renderLayout(
+      <>
+        <div>Child 1</div>
+        <div>Child 2</div>
+        <div>Child 3</div>
+      </>
     );
 
     expect(screen.getByText('Child 1')).toBeInTheDocument();
@@ -235,30 +184,14 @@ describe('Layout', () => {
   });
 
   it('applies background color correctly', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
     expect(layoutDiv).toHaveClass('bg-background');
   });
 
   it('main content has pt-12 for fixed header', () => {
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const main = document.querySelector('main');
     expect(main).toHaveClass('pt-12');
@@ -266,15 +199,7 @@ describe('Layout', () => {
 
   it('Sheet contains Sidebar component', async () => {
     const user = userEvent.setup();
-    render(
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>
-            <div>Test</div>
-          </Layout>
-        </MemoryRouter>
-      </SidebarProvider>
-    );
+    renderLayout(<div>Test</div>);
 
     const hamburgerButton = await screen.findByRole('button', { name: /open menu/i });
     await user.click(hamburgerButton);

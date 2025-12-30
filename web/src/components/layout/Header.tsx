@@ -2,6 +2,7 @@ import { Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { PendingRestartBanner } from "@/components/PendingRestartBanner";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
@@ -29,9 +30,9 @@ export function Header() {
           </div>
         </div>
 
-        {/* Center: Pending restart indicator (placeholder, invisible for now) */}
+        {/* Center: Pending restart indicator */}
         <div className="hidden items-center md:flex">
-          {/* Placeholder for pending restart indicator */}
+          <PendingRestartBanner />
         </div>
 
         {/* Right: Theme toggle */}

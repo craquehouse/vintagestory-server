@@ -397,6 +397,10 @@ class ModService:
         # Calculate total downloads across all releases
         total_downloads = sum(r.get("downloads", 0) for r in releases)
 
+        # Normalize side value to title case (API returns lowercase)
+        raw_side = mod.get("side", "Both")
+        side = raw_side.title() if raw_side else "Both"
+
         result = ModLookupResponse(
             slug=mod.get("urlalias", slug),
             name=mod.get("name", slug),
@@ -404,7 +408,7 @@ class ModService:
             description=mod.get("text"),
             latest_version=mod_version,
             downloads=total_downloads,
-            side=mod.get("side", "Both"),
+            side=side,
             compatibility=compatibility,
         )
 

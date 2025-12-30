@@ -188,10 +188,10 @@ docker COMMAND *ARGS:
     #!/usr/bin/env bash
     case "{{COMMAND}}" in
         build)
-            VS_DATA_DIR=/data docker compose -f docker-compose.dev.yaml build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:8000" docker compose -f docker-compose.dev.yaml build {{ARGS}}
             ;;
         start)
-            VS_DATA_DIR=/data docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:8000" docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
             ;;
         stop)
             docker compose -f docker-compose.dev.yaml down {{ARGS}}
