@@ -1,6 +1,6 @@
 # Story 5.4: Mod Enable/Disable and Remove API
 
-Status: done
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -145,7 +145,20 @@ WRONG PATTERN (tests batched at end):
   - [x] 4.3: Manual test: Enable a disabled mod with server running
   - [x] 4.4: Manual test: Disable an enabled mod with server running
   - [x] 4.5: Manual test: Remove a mod and verify file deletion (including .disabled files)
-  - [x] 4.6: Verify pending_restart flag is set correctly in all cases
+   - [x] 4.6: Verify pending_restart flag is set correctly in all cases
+
+---
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] Add validate_slug() check to enable, disable, and remove endpoints for defense-in-depth security [api/src/vintagestory_api/routers/mods.py:217, 269, 321]
+  - Import validate_slug from vintagestory_api.services.mod_api
+  - Add validation before service call: if not validate_slug(slug): raise HTTPException(400, INVALID_SLUG)
+  - This prevents path traversal attempts and invalid slug formats before hitting state lookup
+
+- [ ] [AI-Review][LOW] (No action required) Document bonus features in future story tasks to improve tracking consistency
+  - Story 5.4 added server startup logging enhancements that weren't explicitly tracked
+  - This is positive work but should be documented for better story completion tracking
 
 ---
 
