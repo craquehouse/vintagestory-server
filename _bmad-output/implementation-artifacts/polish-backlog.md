@@ -76,6 +76,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-018 | Success responses include null `error` field - consider exclude_none or document as design choice            | low        | S        | backlog  | Story-5.5 | Project-wide design decision |
 | API-019 | Add edge case tests for mod list: corrupted state.json, disk I/O errors, malformed mod zips                 | low        | M        | backlog  | Story-5.5 | Improve test coverage beyond happy paths |
 | API-020 | Extract common test fixtures (temp_data_dir, restart_state, auth_headers) to api/tests/conftest.py          | low        | S        | backlog  | Story-5.5 | DRY principle - fixtures duplicated across test classes |
+| API-021 | Player whitelist management - API to view/add/remove whitelisted players, UI component in Settings tab      | medium     | M        | backlog  | FR25-26   | Moved from Epic 9; covers whitelist enable/disable toggle + player list CRUD |
 
 ---
 

@@ -104,10 +104,3 @@ development_status:
   8-2-server-versions-check-job: backlog
   8-3-job-configuration-ui: backlog
   epic-8-retrospective: optional
-
-  # Epic 9: Server Settings & Whitelist Management (Renumbered from Epic 7)
-  epic-9: backlog
-  9-1-server-settings-api: backlog
-  9-2-whitelist-management-api: backlog
-  9-3-settings-and-whitelist-ui: backlog
-  epic-9-retrospective: optional
