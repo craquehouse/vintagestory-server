@@ -161,7 +161,7 @@ format-web:
 # Examples: just dev-api --port 8001 | just dev-api --host 0.0.0.0
 # Sets up local development environment with relative data directory and dev API key
 dev-api *ARGS:
-    mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload {{ARGS}}
+    env VS_DATA_DIR=../dev mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload {{ARGS}}
 
 # Start web dev server - accepts optional args
 dev-web *ARGS:
@@ -188,10 +188,10 @@ docker COMMAND *ARGS:
     #!/usr/bin/env bash
     case "{{COMMAND}}" in
         build)
-            docker compose -f docker-compose.dev.yaml build {{ARGS}}
+            VS_DATA_DIR=/data docker compose -f docker-compose.dev.yaml build {{ARGS}}
             ;;
         start)
-            docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
+            VS_DATA_DIR=/data docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
             ;;
         stop)
             docker compose -f docker-compose.dev.yaml down {{ARGS}}
