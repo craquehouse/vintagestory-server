@@ -94,7 +94,6 @@ credentials/
 Thumbs.db
 
 # BMad
-_bmad
 .claude/commands/bmad
 .opencode/agent/bmad-*
 .opencode/command/bmad-*
