@@ -27,12 +27,12 @@ So that **subsequent stories have a solid foundation for config management**.
   - [x] Subtask 1.4: Document which settings take effect immediately vs require restart
   - [x] Subtask 1.5: Add findings to architecture.md under Epic 6 section
 
-- [ ] Task 2: Create `serverconfig-template.json` + validation (AC: 2)
-  - [ ] Subtask 2.1: Analyze DarkMatterProductions generate-config.py for setting patterns
-  - [ ] Subtask 2.2: Analyze VintageStory default serverconfig.json structure
-  - [ ] Subtask 2.3: Create `api/src/vintagestory_api/data/serverconfig-template.json`
-  - [ ] Subtask 2.4: Include all common settings with sensible defaults
-  - [ ] Subtask 2.5: Write unit tests validating template is valid JSON and contains expected keys
+- [x] Task 2: Create `serverconfig-template.json` + validation (AC: 2)
+  - [x] Subtask 2.1: Analyze DarkMatterProductions generate-config.py for setting patterns
+  - [x] Subtask 2.2: Analyze VintageStory default serverconfig.json structure
+  - [x] Subtask 2.3: Create `api/src/vintagestory_api/templates/serverconfig-template.json`
+  - [x] Subtask 2.4: Include all common settings with sensible defaults
+  - [x] Subtask 2.5: Write unit tests validating template is valid JSON and contains expected keys
 
 - [ ] Task 3: Define VS_CFG_* → serverconfig.json mapping + tests (AC: 3)
   - [ ] Subtask 3.1: Create complete ENV_VAR_MAP in code or config file
@@ -156,7 +156,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 1 (2025-12-30):** Researched VintageStory /serverconfig commands from wiki. Created `agentdocs/vs-serverconfig-commands.md` with complete command reference. Documented 22+ console-commandable settings with immediate effect vs 10+ restart-required settings. Updated architecture.md Epic 6 section with complete findings. Key insight: console commands automatically persist to serverconfig.json.
 
+- **Task 2 (2025-12-30):** Created `serverconfig-template.json` with sensible defaults based on VintageStory default config and DarkMatterProductions patterns. Includes 4 roles (visitor, player, creative, admin), all standard settings. Created 47 tests validating JSON validity, required keys, default values, role structure, world config, and mod paths. All tests pass.
+
 ### File List
 
 - `agentdocs/vs-serverconfig-commands.md` (new) - Complete /serverconfig command reference
 - `_bmad-output/planning-artifacts/architecture.md` (modified) - Updated Epic 6 console commands section
+- `api/src/vintagestory_api/templates/serverconfig-template.json` (new) - Reference config template
+- `api/tests/test_serverconfig_template.py` (new) - 47 tests for template validation
