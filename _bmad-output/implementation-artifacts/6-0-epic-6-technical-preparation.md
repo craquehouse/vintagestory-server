@@ -1,6 +1,6 @@
 # Story 6.0: Epic 6 Technical Preparation
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -173,5 +173,23 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `api/src/vintagestory_api/services/config_init.py` (new) - ENV_VAR_MAP and type coercion
 - `api/tests/test_config_init.py` (new) - 53 tests for config init
 - `web/package.json` (modified) - Added @tanstack/react-table dependency
-- `web/bun.lockb` (modified) - Updated lockfile
+- `web/bun.lock` (modified) - Updated lockfile
 - `web/src/lib/tanstack-table.test.ts` (new) - 6 integration tests for TanStack Table
+
+### Review Follow-ups (AI)
+
+Issues found during code review on 2025-12-30:
+
+#### High Priority Issues
+
+- [ ] [AI-Review][HIGH] Fix template file path in Dev Notes (line 93): Change `data/serverconfig-template.json` to `templates/serverconfig-template.json` to match actual implementation
+- [ ] [AI-Review][HIGH] Add symlink path to ModPaths template (line 153): Update `["Mods"]` to `["Mods", "/data/serverdata/Mods"]` to match architecture.md symlink strategy
+- [ ] [AI-Review][HIGH] Fix bool type coercion case handling (config_init.py lines 100-108): Either uppercase check strings to match input case or remove `.lower()` call for clarity
+- [ ] [AI-Review][HIGH] Add real TanStack Table integration tests (tanstack-table.test.ts): Add tests that render actual tables with sample data to verify sorting, filtering, and pagination work
+
+#### Medium Priority Issues
+
+- [ ] [AI-Review][MEDIUM] Fix file extension in File List (line 176): Change `bun.lockb` to `bun.lock` to match actual filename
+- [ ] [AI-Review][MEDIUM] Add EntitySpawning to ENV_VAR_MAP (config_init.py): Add `"VS_CFG_ENTITY_SPAWNING": ("EntitySpawning", "bool")` to match documented console command
+- [ ] [AI-Review][MEDIUM] Implement nested key application or clarify scope: Either implement full `_apply_overrides()` function that applies nested keys to config dict, or remove Task 3 claim about nested key support
+- [ ] [AI-Review][MEDIUM] Add end-to-end config generation test: Write integration test that validates template + env vars → valid serverconfig.json output

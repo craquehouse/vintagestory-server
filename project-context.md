@@ -516,6 +516,40 @@ git commit -m "fix(story-5.2/user): handle edge case per user feedback"
 git commit -m "fix(story-5.2/review): address code review findings"
 ```
 
+### Code Review Process
+
+**CRITICAL: Code review MUST start with checking for an existing Pull Request.**
+
+When beginning a code review for a story:
+
+1. **Check for existing PR first:**
+   ```bash
+   gh pr list --head story/<epic>-<story>-<slug>
+   ```
+
+2. **If PR exists:**
+   - Review code directly on PR (GitHub web UI or via `gh pr view/diff`)
+   - Use PR commits, not uncommitted changes
+   - Review changes against `main` branch
+
+3. **If PR does NOT exist:**
+   - Create PR first using the PR template below
+   - Then proceed with code review
+   - **NEVER review code on branch without PR**
+
+4. **Review on PR, not local files:**
+   - Use `gh pr diff` to see cumulative changes vs main
+   - Use `gh pr view` to see PR details and commits
+   - Review test results from CI/CD if available
+   - Verify PR body matches story acceptance criteria
+
+**Why PR-First Review:**
+- PR provides full commit history context
+- PR shows all changes vs main in one place
+- PR comments become permanent review record
+- CI/CD results are tied to PR
+- Review on uncommitted files misses context
+
 ### Pull Request Process
 
 1. **Push branch when implementation complete:**
@@ -528,7 +562,7 @@ git commit -m "fix(story-5.2/review): address code review findings"
    gh pr create --title "Story 5.2: Mod Installation API" --body "..."
    ```
 
-3. **Code review happens on the PR** (not on uncommitted changes)
+3. **Code review happens on PR** (not on uncommitted changes)
 
 4. **Review fixes committed to branch:**
    ```bash
@@ -539,6 +573,40 @@ git commit -m "fix(story-5.2/review): address code review findings"
 5. **Regular merge (not squash)** - Preserves task-level history
 
 6. **Delete story branch after merge**
+
+### Code Review Process
+
+**CRITICAL: Code review MUST start with checking for an existing Pull Request.**
+
+When beginning a code review for a story:
+
+1. **Check for existing PR first:**
+   ```bash
+   gh pr list --head story/<epic>-<story>-<slug>
+   ```
+
+2. **If PR exists:**
+   - Review code directly on the PR (GitHub web UI or via `gh pr view/diff`)
+   - Use PR commits, not uncommitted changes
+   - Review changes against `main` branch
+
+3. **If PR does NOT exist:**
+   - Create the PR first using the PR template below
+   - Then proceed with code review
+   - **NEVER review code on branch without PR**
+
+4. **Review on PR, not local files:**
+   - Use `gh pr diff` to see cumulative changes vs main
+   - Use `gh pr view` to see PR details and commits
+   - Review test results from CI/CD if available
+   - Verify PR body matches story acceptance criteria
+
+**Why PR-First Review:**
+- PR provides full commit history context
+- PR shows all changes vs main in one place
+- PR comments become permanent review record
+- CI/CD results are tied to PR
+- Review on uncommitted files misses context
 
 ### PR Template
 
@@ -588,4 +656,4 @@ git commit -m "fix(story-5.2/review): address code review findings"
 
 ---
 
-_Last updated: 2025-12-30 (Added Git Workflow section, strengthened testing discipline rules)_
+_Last updated: 2025-12-30 (Added Code Review Process section - PR-first workflow)_
