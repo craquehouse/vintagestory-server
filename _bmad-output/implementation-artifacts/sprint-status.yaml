@@ -67,16 +67,16 @@ development_status:
   4-4-terminal-view-component: done
   epic-4-retrospective: done
 
-   # Epic 5: Mod Management
-   epic-5: in-progress
-   5-0-epic-5-preparation: done
-   5-1-mod-service-and-state-management: done
-   5-2-mod-installation-api: done
-   5-3-mod-compatibility-validation: done
-   5-4-mod-enable-disable-and-remove-api: done
-   5-5-mod-list-api: review
-   5-6-mod-management-ui: backlog
-   epic-5-retrospective: optional
+  # Epic 5: Mod Management
+  epic-5: in-progress
+  5-0-epic-5-preparation: done
+  5-1-mod-service-and-state-management: done
+  5-2-mod-installation-api: done
+  5-3-mod-compatibility-validation: done
+  5-4-mod-enable-disable-and-remove-api: done
+  5-5-mod-list-api: review
+  5-6-mod-management-ui: backlog
+  epic-5-retrospective: optional
 
   # Epic 6: Game Configuration Management
   epic-6: backlog
