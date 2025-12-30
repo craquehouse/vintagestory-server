@@ -76,7 +76,7 @@ development_status:
   5-4-mod-enable-disable-and-remove-api: done
   5-5-mod-list-api: done
   5-6-mod-management-ui: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Epic 6: Game Configuration Management
   epic-6: backlog
