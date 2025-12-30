@@ -40,11 +40,11 @@ So that **subsequent stories have a solid foundation for config management**.
   - [x] Subtask 3.3: Document mapping in architecture.md
   - [x] Subtask 3.4: Write unit tests for type coercion (int, bool, string)
 
-- [ ] Task 4: Add TanStack Table dependency + tests (AC: 4)
-  - [ ] Subtask 4.1: Run `bun add @tanstack/react-table` in web directory
-  - [ ] Subtask 4.2: Document table component pattern in architecture.md (already partially done)
-  - [ ] Subtask 4.3: Verify web project builds successfully with new dependency
-  - [ ] Subtask 4.4: Write basic integration test for table component usage
+- [x] Task 4: Add TanStack Table dependency + tests (AC: 4)
+  - [x] Subtask 4.1: Run `bun add @tanstack/react-table` in web directory
+  - [x] Subtask 4.2: Document table component pattern in architecture.md (already partially done)
+  - [x] Subtask 4.3: Verify web project builds successfully with new dependency
+  - [x] Subtask 4.4: Write basic integration test for table component usage
 
 ## Dev Notes
 
@@ -160,6 +160,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 3 (2025-12-30):** Created `config_init.py` with complete ENV_VAR_MAP (40+ mappings) covering server identity, network, gameplay, whitelist, performance, security, hosted mode, world settings, and safety settings. Implemented `parse_env_value()` with type coercion for string/int/bool/float. Updated architecture.md with complete mapping documentation. Created 53 tests for ENV_VAR_MAP structure and type coercion. All tests pass.
 
+- **Task 4 (2025-12-30):** Added @tanstack/react-table v8.21.3 to web dependencies. Verified build succeeds. Table component pattern already documented in architecture.md. Created 6 integration tests verifying TanStack Table import, column helper usage, row model functions, and type safety. All tests pass.
+
 ### File List
 
 - `agentdocs/vs-serverconfig-commands.md` (new) - Complete /serverconfig command reference
@@ -168,3 +170,6 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `api/tests/test_serverconfig_template.py` (new) - 47 tests for template validation
 - `api/src/vintagestory_api/services/config_init.py` (new) - ENV_VAR_MAP and type coercion
 - `api/tests/test_config_init.py` (new) - 53 tests for config init
+- `web/package.json` (modified) - Added @tanstack/react-table dependency
+- `web/bun.lockb` (modified) - Updated lockfile
+- `web/src/lib/tanstack-table.test.ts` (new) - 6 integration tests for TanStack Table
