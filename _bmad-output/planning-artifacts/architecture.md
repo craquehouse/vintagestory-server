@@ -2320,16 +2320,38 @@ from typing import Any
 class ConfigInitService:
     """Handles initial serverconfig.json generation from template + env vars."""
 
-    # Maps VS_CFG_* env vars to serverconfig.json keys
+    # Complete ENV_VAR_MAP with type information
+    # See api/src/vintagestory_api/services/config_init.py for implementation
+    # Format: {env_var: (config_key, type)}
     ENV_VAR_MAP = {
-        "VS_CFG_SERVER_NAME": "ServerName",
-        "VS_CFG_SERVER_PORT": "Port",
-        "VS_CFG_MAX_CLIENTS": "MaxClients",
-        "VS_CFG_PASSWORD": "Password",
-        "VS_CFG_ALLOW_PVP": "AllowPvP",
-        "VS_CFG_ONLY_WHITELISTED": "OnlyWhitelisted",
-        "VS_CFG_ADVERTISE_SERVER": "AdvertiseServer",
-        # ... additional mappings
+        # Server identity
+        "VS_CFG_SERVER_NAME": ("ServerName", "string"),
+        "VS_CFG_SERVER_URL": ("ServerUrl", "string"),
+        "VS_CFG_SERVER_DESCRIPTION": ("ServerDescription", "string"),
+        "VS_CFG_WELCOME_MESSAGE": ("WelcomeMessage", "string"),
+        # Network settings
+        "VS_CFG_SERVER_IP": ("Ip", "string"),
+        "VS_CFG_SERVER_PORT": ("Port", "int"),
+        "VS_CFG_SERVER_UPNP": ("Upnp", "bool"),
+        "VS_CFG_ADVERTISE_SERVER": ("AdvertiseServer", "bool"),
+        "VS_CFG_MAX_CLIENTS": ("MaxClients", "int"),
+        # Gameplay settings
+        "VS_CFG_SERVER_PASSWORD": ("Password", "string"),
+        "VS_CFG_MAX_CHUNK_RADIUS": ("MaxChunkRadius", "int"),
+        "VS_CFG_ALLOW_PVP": ("AllowPvP", "bool"),
+        "VS_CFG_ALLOW_FIRE_SPREAD": ("AllowFireSpread", "bool"),
+        "VS_CFG_PASS_TIME_WHEN_EMPTY": ("PassTimeWhenEmpty", "bool"),
+        # Whitelist settings
+        "VS_CFG_ONLY_WHITELISTED": ("OnlyWhitelisted", "bool"),
+        "VS_CFG_WHITELIST_MODE": ("WhitelistMode", "int"),
+        # Performance settings
+        "VS_CFG_TICK_TIME": ("TickTime", "float"),
+        "VS_CFG_SPAWN_CAP_PLAYER_SCALING": ("SpawnCapPlayerScaling", "float"),
+        # World settings (nested keys use dot notation)
+        "VS_CFG_WORLD_NAME": ("WorldConfig.WorldName", "string"),
+        "VS_CFG_WORLD_SEED": ("WorldConfig.Seed", "string"),
+        "VS_CFG_ALLOW_CREATIVE_MODE": ("WorldConfig.AllowCreativeMode", "bool"),
+        # ... 40+ total mappings in implementation
     }
 
     def __init__(self, data_dir: Path, template_path: Path):

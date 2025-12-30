@@ -34,11 +34,11 @@ So that **subsequent stories have a solid foundation for config management**.
   - [x] Subtask 2.4: Include all common settings with sensible defaults
   - [x] Subtask 2.5: Write unit tests validating template is valid JSON and contains expected keys
 
-- [ ] Task 3: Define VS_CFG_* → serverconfig.json mapping + tests (AC: 3)
-  - [ ] Subtask 3.1: Create complete ENV_VAR_MAP in code or config file
-  - [ ] Subtask 3.2: Include type coercion rules (string → int, string → bool)
-  - [ ] Subtask 3.3: Document mapping in architecture.md
-  - [ ] Subtask 3.4: Write unit tests for type coercion (int, bool, string)
+- [x] Task 3: Define VS_CFG_* → serverconfig.json mapping + tests (AC: 3)
+  - [x] Subtask 3.1: Create complete ENV_VAR_MAP in code or config file
+  - [x] Subtask 3.2: Include type coercion rules (string → int, string → bool)
+  - [x] Subtask 3.3: Document mapping in architecture.md
+  - [x] Subtask 3.4: Write unit tests for type coercion (int, bool, string)
 
 - [ ] Task 4: Add TanStack Table dependency + tests (AC: 4)
   - [ ] Subtask 4.1: Run `bun add @tanstack/react-table` in web directory
@@ -158,9 +158,13 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 2 (2025-12-30):** Created `serverconfig-template.json` with sensible defaults based on VintageStory default config and DarkMatterProductions patterns. Includes 4 roles (visitor, player, creative, admin), all standard settings. Created 47 tests validating JSON validity, required keys, default values, role structure, world config, and mod paths. All tests pass.
 
+- **Task 3 (2025-12-30):** Created `config_init.py` with complete ENV_VAR_MAP (40+ mappings) covering server identity, network, gameplay, whitelist, performance, security, hosted mode, world settings, and safety settings. Implemented `parse_env_value()` with type coercion for string/int/bool/float. Updated architecture.md with complete mapping documentation. Created 53 tests for ENV_VAR_MAP structure and type coercion. All tests pass.
+
 ### File List
 
 - `agentdocs/vs-serverconfig-commands.md` (new) - Complete /serverconfig command reference
-- `_bmad-output/planning-artifacts/architecture.md` (modified) - Updated Epic 6 console commands section
+- `_bmad-output/planning-artifacts/architecture.md` (modified) - Updated Epic 6 console commands section, ENV_VAR_MAP
 - `api/src/vintagestory_api/templates/serverconfig-template.json` (new) - Reference config template
 - `api/tests/test_serverconfig_template.py` (new) - 47 tests for template validation
+- `api/src/vintagestory_api/services/config_init.py` (new) - ENV_VAR_MAP and type coercion
+- `api/tests/test_config_init.py` (new) - 53 tests for config init
