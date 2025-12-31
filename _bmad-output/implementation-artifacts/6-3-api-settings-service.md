@@ -1,6 +1,6 @@
 # Story 6.3: API Settings Service
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,34 +20,34 @@ So that **I can configure auto-start, refresh intervals, and environment handlin
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create ApiSettingsService + tests (AC: 1, 2)
-  - [ ] Subtask 1.1: Create `api/src/vintagestory_api/services/api_settings.py` with ApiSettingsService class
-  - [ ] Subtask 1.2: Define `ApiSettings` Pydantic model with defaults matching architecture spec
-  - [ ] Subtask 1.3: Implement `get_settings()` method - reads api-settings.json or returns defaults
-  - [ ] Subtask 1.4: Implement `update_setting()` method - validates, persists, and returns result
-  - [ ] Subtask 1.5: Implement atomic file writes (temp file + rename pattern)
-  - [ ] Subtask 1.6: Add setting validation (e.g., intervals must be positive integers)
-  - [ ] Subtask 1.7: Write tests for get_settings() - returns defaults when file missing
-  - [ ] Subtask 1.8: Write tests for get_settings() - reads existing file correctly
-  - [ ] Subtask 1.9: Write tests for update_setting() - validates and persists setting
-  - [ ] Subtask 1.10: Write tests for validation errors (negative intervals, unknown keys)
+- [x] Task 1: Create ApiSettingsService + tests (AC: 1, 2)
+  - [x] Subtask 1.1: Create `api/src/vintagestory_api/services/api_settings.py` with ApiSettingsService class
+  - [x] Subtask 1.2: Define `ApiSettings` Pydantic model with defaults matching architecture spec
+  - [x] Subtask 1.3: Implement `get_settings()` method - reads api-settings.json or returns defaults
+  - [x] Subtask 1.4: Implement `update_setting()` method - validates, persists, and returns result
+  - [x] Subtask 1.5: Implement atomic file writes (temp file + rename pattern)
+  - [x] Subtask 1.6: Add setting validation (e.g., intervals must be positive integers)
+  - [x] Subtask 1.7: Write tests for get_settings() - returns defaults when file missing
+  - [x] Subtask 1.8: Write tests for get_settings() - reads existing file correctly
+  - [x] Subtask 1.9: Write tests for update_setting() - validates and persists setting
+  - [x] Subtask 1.10: Write tests for validation errors (negative intervals, unknown keys)
 
-- [ ] Task 2: Add /config/api router + tests (AC: 1, 2, 4)
-  - [ ] Subtask 2.1: Add `/config/api` GET endpoint to existing `routers/config.py`
-  - [ ] Subtask 2.2: Add `POST /config/api/settings/{key}` endpoint for setting updates
-  - [ ] Subtask 2.3: Add Admin-only authorization (require_admin dependency)
-  - [ ] Subtask 2.4: Write integration tests for GET endpoint
-  - [ ] Subtask 2.5: Write integration tests for POST endpoint
-  - [ ] Subtask 2.6: Write integration tests for RBAC (Monitor blocked from all API settings endpoints)
+- [x] Task 2: Add /config/api router + tests (AC: 1, 2, 4)
+  - [x] Subtask 2.1: Add `/config/api` GET endpoint to existing `routers/config.py`
+  - [x] Subtask 2.2: Add `POST /config/api/settings/{key}` endpoint for setting updates
+  - [x] Subtask 2.3: Add Admin-only authorization (require_admin dependency)
+  - [x] Subtask 2.4: Write integration tests for GET endpoint
+  - [x] Subtask 2.5: Write integration tests for POST endpoint
+  - [x] Subtask 2.6: Write integration tests for RBAC (Monitor blocked from all API settings endpoints)
 
-- [ ] Task 3: Add API settings error codes + tests (AC: 2)
-  - [ ] Subtask 3.1: Add API_SETTING_UNKNOWN, API_SETTING_INVALID to ErrorCode class if not present
-  - [ ] Subtask 3.2: Write tests verifying error codes in error responses
+- [x] Task 3: Add API settings error codes + tests (AC: 2)
+  - [x] Subtask 3.1: Add API_SETTING_UNKNOWN, API_SETTING_INVALID to ErrorCode class if not present
+  - [x] Subtask 3.2: Write tests verifying error codes in error responses
 
-- [ ] Task 4: Add scheduler interface stub (AC: 3)
-  - [ ] Subtask 4.1: Add optional scheduler_callback parameter to ApiSettingsService
-  - [ ] Subtask 4.2: Call callback when refresh interval settings change (stub for Epic 7)
-  - [ ] Subtask 4.3: Add test verifying callback is invoked on interval change
+- [x] Task 4: Add scheduler interface stub (AC: 3)
+  - [x] Subtask 4.1: Add optional scheduler_callback parameter to ApiSettingsService
+  - [x] Subtask 4.2: Call callback when refresh interval settings change (stub for Epic 7)
+  - [x] Subtask 4.3: Add test verifying callback is invoked on interval change
 
 ## Dev Notes
 
@@ -383,10 +383,37 @@ class ApiSettingsService:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - Implementation completed without issues.
+
 ### Completion Notes List
 
+- ✅ Created ApiSettingsService with full Pydantic model validation
+- ✅ Implemented get_settings() with defaults when file missing
+- ✅ Implemented update_setting() with type coercion and validation
+- ✅ Added atomic file writes using temp file + rename pattern
+- ✅ Added scheduler_callback stub for Epic 7 integration
+- ✅ Added GET /config/api endpoint (Admin only)
+- ✅ Added POST /config/api/settings/{key} endpoint (Admin only)
+- ✅ Added API_SETTING_UNKNOWN and API_SETTING_INVALID error codes
+- ✅ All 4 acceptance criteria satisfied
+- ✅ 763 tests pass (24 new service tests + 15 new router tests)
+
+### Change Log
+
+- 2025-12-31: Story implementation complete (Opus 4.5)
+
 ### File List
+
+**New Files:**
+- `api/src/vintagestory_api/services/api_settings.py` - ApiSettingsService class
+- `api/tests/test_api_settings.py` - 24 service unit tests
+
+**Modified Files:**
+- `api/src/vintagestory_api/routers/config.py` - Added /config/api endpoints
+- `api/src/vintagestory_api/models/errors.py` - Added API settings error codes
+- `api/tests/test_routers_config.py` - Added 15 API settings router tests
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status
