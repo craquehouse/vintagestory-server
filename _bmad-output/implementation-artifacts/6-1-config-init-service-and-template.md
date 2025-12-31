@@ -1,6 +1,6 @@
 # Story 6.1: ConfigInitService and Template
 
-Status: review
+Status: done
 
 ## Story
 
@@ -55,7 +55,10 @@ So that **I can deploy with custom settings without manual file creation**.
   - **Resolution**: Intentionally not modified. Python's direct import paths (`from vintagestory_api.services.config_init_service import ConfigInitService`) work without `__init__.py` exports. Adding exports would be redundant and create maintenance overhead. The story template was overly prescriptive; actual implementation is correct.
 
 - [x] [AI-Review][LOW] Complete manual tests in PR test plan - 2 unchecked manual tests: verify template+overrides applied on first run, verify existing config not overwritten
-  - **Resolution**: Manual tests require a deployed VintageStory server environment. The automated test suite (26 tests) covers all acceptance criteria including these scenarios via mocked subprocess. Manual verification should be done during integration/staging deployment.
+  - **Resolution**: Manual tests completed successfully:
+    1. First run: Config generated from template with env var overrides ✓
+    2. Existing config: Not overwritten on subsequent starts ✓
+  - **Bug found during manual testing**: Quoted env var values (e.g., `VS_CFG_SERVER_NAME="My Server"`) included literal quotes. Fixed by adding `_strip_surrounding_quotes()` helper.
 
 ## Dev Notes
 
@@ -261,6 +264,9 @@ None
   - Implemented env var override application with type coercion
   - Integrated with ServerService.start() lifecycle
   - Added 26 tests covering all acceptance criteria
+  - Fixed: Strip surrounding quotes from env var values (docker-compose UX issue)
+  - Added 5 tests for quote-stripping behavior (31 total tests)
+  - Manual tests completed: first run config generation ✓, idempotency ✓
 
 ### File List
 
