@@ -1,11 +1,19 @@
 """Integration tests for config router endpoints.
 
 Story 6.2: Game Settings API
+Story 6.3: API Settings Service
 
 Tests the config router endpoints for:
+
+Game Settings (6.2):
 - GET /config/game - Read settings with metadata
 - POST /config/game/settings/{key} - Update settings
 - RBAC: Monitor can read, only Admin can write
+
+API Settings (6.3):
+- GET /config/api - Read API settings (Admin only)
+- POST /config/api/settings/{key} - Update API settings (Admin only)
+- RBAC: Only Admin can access API settings
 """
 
 from __future__ import annotations
@@ -26,10 +34,12 @@ from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.routers.config import (
+    get_api_settings_service,
     get_game_config_service,
     get_pending_restart_state,
 )
 from vintagestory_api.routers.server import get_server_service
+from vintagestory_api.services.api_settings import ApiSettingsService
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.server import ServerService
@@ -502,6 +512,279 @@ class TestConfigAPIResponseFormat:
         """Error response uses FastAPI detail structure."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/Unknown",
+            json={"value": "test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "detail" in data
+        assert "code" in data["detail"]
+        assert "message" in data["detail"]
+
+
+# ==============================================================================
+# API Settings Endpoint Tests (Story 6.3)
+# ==============================================================================
+
+
+@pytest.fixture
+def api_settings_app(
+    temp_settings: Settings,
+    mock_server_service: MagicMock,
+) -> Generator[FastAPI, None, None]:
+    """Create app with overridden dependencies for API settings testing."""
+
+    def get_test_settings() -> Settings:
+        return temp_settings
+
+    def get_test_server_service() -> MagicMock:
+        return mock_server_service
+
+    def get_test_api_settings_service() -> ApiSettingsService:
+        return ApiSettingsService(settings=temp_settings)
+
+    app.dependency_overrides[get_settings] = get_test_settings
+    app.dependency_overrides[get_server_service] = get_test_server_service
+    app.dependency_overrides[get_api_settings_service] = get_test_api_settings_service
+
+    yield app
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def api_settings_client(api_settings_app: FastAPI) -> TestClient:
+    """Create test client for API settings tests."""
+    return TestClient(api_settings_app)
+
+
+class TestGetApiSettings:
+    """Tests for GET /config/api endpoint - Story 6.3 AC 1."""
+
+    def test_get_api_settings_returns_all_settings(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 1: GET returns all API settings."""
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "settings" in data["data"]
+
+        settings = data["data"]["settings"]
+        assert "auto_start_server" in settings
+        assert "block_env_managed_settings" in settings
+        assert "mod_list_refresh_interval" in settings
+        assert "server_versions_refresh_interval" in settings
+
+    def test_get_api_settings_returns_defaults(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 1: When no file exists, returns default values."""
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        settings = response.json()["data"]["settings"]
+        assert settings["auto_start_server"] is False
+        assert settings["block_env_managed_settings"] is True
+        assert settings["mod_list_refresh_interval"] == 3600
+        assert settings["server_versions_refresh_interval"] == 86400
+
+
+class TestGetApiSettingsRBAC:
+    """Tests for GET /config/api RBAC - Story 6.3 AC 4."""
+
+    def test_admin_can_access_api_settings(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Admin role can access GET /config/api."""
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_monitor_blocked_from_api_settings(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 4: Monitor role is blocked from GET /config/api with 403."""
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.FORBIDDEN
+
+    def test_unauthenticated_blocked_from_api_settings(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = api_settings_client.get("/api/v1alpha1/config/api")
+
+        assert response.status_code == 401
+
+
+class TestUpdateApiSetting:
+    """Tests for POST /config/api/settings/{key} - Story 6.3 AC 2."""
+
+    def test_update_api_setting_success(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 2: POST updates setting and confirms update."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["key"] == "auto_start_server"
+        assert data["data"]["value"] is True
+
+    def test_update_api_setting_persists(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 2: Update is persisted to api-settings.json."""
+        # Update setting
+        api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/mod_list_refresh_interval",
+            json={"value": 1800},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        # Verify persisted via GET
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        settings = response.json()["data"]["settings"]
+        assert settings["mod_list_refresh_interval"] == 1800
+
+
+class TestUpdateApiSettingErrors:
+    """Tests for POST /config/api/settings/{key} error handling."""
+
+    def test_unknown_setting_returns_400(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Unknown setting returns 400 with API_SETTING_UNKNOWN."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/unknown_setting",
+            json={"value": "test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.API_SETTING_UNKNOWN
+        assert "unknown_setting" in error["message"]
+
+    def test_invalid_value_returns_400(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Invalid value returns 400 with API_SETTING_INVALID."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/mod_list_refresh_interval",
+            json={"value": -100},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.API_SETTING_INVALID
+
+
+class TestUpdateApiSettingRBAC:
+    """Tests for POST /config/api/settings/{key} RBAC - Story 6.3 AC 4."""
+
+    def test_admin_can_update_api_setting(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Admin role can update API settings."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_monitor_blocked_from_update_api_setting(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """AC 4: Monitor role is blocked from POST with 403."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.FORBIDDEN
+
+    def test_unauthenticated_blocked_from_update_api_setting(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+        )
+
+        assert response.status_code == 401
+
+
+class TestApiSettingsResponseFormat:
+    """Tests for API response format - Story 6.3."""
+
+    def test_get_response_uses_standard_envelope(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """GET response uses standard API envelope."""
+        response = api_settings_client.get(
+            "/api/v1alpha1/config/api",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+
+    def test_post_response_uses_standard_envelope(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """POST response uses standard API envelope."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+
+    def test_error_response_uses_detail_structure(
+        self, api_settings_client: TestClient
+    ) -> None:
+        """Error response uses FastAPI detail structure."""
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/unknown",
             json={"value": "test"},
             headers={"X-API-Key": TEST_ADMIN_KEY},
         )

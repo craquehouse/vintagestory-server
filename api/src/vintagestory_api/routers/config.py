@@ -1,10 +1,17 @@
-"""Game configuration API endpoints.
+"""Configuration API endpoints.
 
 Story 6.2: Game Settings API
+Story 6.3: API Settings Service
 
-Provides endpoints for reading and updating game server settings.
-- GET /config/game - Read all settings with metadata
-- POST /config/game/settings/{key} - Update a specific setting
+Provides endpoints for reading and updating server configuration.
+
+Game Settings (6.2):
+- GET /config/game - Read all game settings with metadata
+- POST /config/game/settings/{key} - Update a specific game setting
+
+API Settings (6.3):
+- GET /config/api - Read API operational settings (Admin only)
+- POST /config/api/settings/{key} - Update a specific API setting (Admin only)
 """
 
 from typing import Annotated, Any
@@ -17,6 +24,11 @@ from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.routers.server import get_server_service
+from vintagestory_api.services.api_settings import (
+    ApiSettingInvalidError,
+    ApiSettingsService,
+    ApiSettingUnknownError,
+)
 from vintagestory_api.services.game_config import (
     GameConfigService,
     SettingEnvManagedError,
@@ -191,6 +203,117 @@ async def update_game_setting(
             status_code=500,
             detail={
                 "code": ErrorCode.SETTING_UPDATE_FAILED,
+                "message": e.message,
+            },
+        )
+
+
+# =============================================================================
+# API Settings Endpoints (Story 6.3)
+# =============================================================================
+
+
+def get_api_settings_service(
+    server_service: Any = Depends(get_server_service),
+) -> ApiSettingsService:
+    """Dependency to get ApiSettingsService instance.
+
+    Args:
+        server_service: ServerService for accessing application settings.
+
+    Returns:
+        ApiSettingsService instance.
+    """
+    return ApiSettingsService(settings=server_service.settings)
+
+
+@router.get("/api", response_model=ApiResponse, summary="Get API settings")
+async def get_api_settings(
+    _: RequireAdmin,
+    service: ApiSettingsService = Depends(get_api_settings_service),
+) -> ApiResponse:
+    """Get API operational settings.
+
+    Returns all API settings including:
+    - auto_start_server: Start game server on API launch
+    - block_env_managed_settings: Block UI changes to env-controlled settings
+    - mod_list_refresh_interval: Seconds between mod cache refreshes
+    - server_versions_refresh_interval: Seconds between version checks
+
+    **Admin role required.** API settings contain sensitive configuration
+    that should only be accessible to administrators.
+
+    Returns:
+        ApiResponse with data containing:
+        - settings: Object with all API settings and their values
+
+    Raises:
+        HTTPException: 401 if not authenticated
+        HTTPException: 403 if not Admin role
+    """
+    settings = service.get_settings()
+    return ApiResponse(status="ok", data={"settings": settings.model_dump()})
+
+
+@router.post(
+    "/api/settings/{key}",
+    response_model=ApiResponse,
+    summary="Update API setting",
+)
+async def update_api_setting(
+    key: Annotated[
+        str,
+        Path(
+            description="Setting key to update (e.g., 'auto_start_server')",
+            min_length=1,
+            max_length=100,
+        ),
+    ],
+    request: SettingUpdateRequest,
+    _: RequireAdmin,
+    service: ApiSettingsService = Depends(get_api_settings_service),
+) -> ApiResponse:
+    """Update a specific API setting.
+
+    Updates the setting in api-settings.json and returns the updated value.
+    For refresh interval settings (mod_list_refresh_interval,
+    server_versions_refresh_interval), the scheduler will be notified
+    to reschedule the job (Epic 7 integration).
+
+    **Admin role required.**
+
+    Args:
+        key: The setting key to update.
+        request: Request body containing the new value.
+
+    Returns:
+        ApiResponse with data containing:
+        - key: The setting that was updated
+        - value: The new value
+
+    Raises:
+        HTTPException: 400 if setting unknown or value invalid
+        HTTPException: 401 if not authenticated
+        HTTPException: 403 if not Admin role
+    """
+    try:
+        result = await service.update_setting(key, request.value)
+        return ApiResponse(status="ok", data=result)
+
+    except ApiSettingUnknownError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.API_SETTING_UNKNOWN,
+                "message": e.message,
+            },
+        )
+
+    except ApiSettingInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.API_SETTING_INVALID,
                 "message": e.message,
             },
         )
