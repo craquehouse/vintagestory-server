@@ -163,6 +163,24 @@ describe('ModTable', () => {
       });
     });
 
+    it('renders mod name as clickable link to VintageStory mods page', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        const modLink = screen.getByTestId('mod-link-smithingplus');
+        expect(modLink).toBeInTheDocument();
+        expect(modLink).toHaveAttribute('href', 'https://mods.vintagestory.at/smithingplus');
+        expect(modLink).toHaveAttribute('target', '_blank');
+        expect(modLink).toHaveAttribute('rel', 'noopener noreferrer');
+      });
+    });
+
     it('displays mod version', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
