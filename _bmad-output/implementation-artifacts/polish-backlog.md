@@ -35,7 +35,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
 | ~~UI-001~~  | ~~The sidebar is much wider than it needs to be.~~                                                     | ~~low~~    | ~~S~~    | done     | -         | Reduced from 240px to 160px |
-| UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
+| UI-002  | "VS Server" in the upper lefthand corner should be replaced with assets/vintagestory-logobanner.png        | low        | S        | backlog  | -         | Create a webp optimized, appropriately resized version to serve |
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
@@ -45,7 +45,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-009  | Mod preview card doesn't explain what "Both" means - presumeably client and server. use badges for each?   | low        | S        | backlog  | -         | -       |
 | UI-010  | Mods installed when server is not running should not generate "server may need to be restarted" toast      | low        | S        | backlog  | -         | -       |
 | UI-011  | Installed mods table should be sortable, and sort order should stay consistent                             | low        | S        | backlog  | -         | -       |
-| UI-012  | Installed mods in table should have clickable link to vintgestory mods page                                | low        | S        | backlog  | -         | -       |
+| UI-012  | Installed mods in table, and mods in the install card should have clickable link to vintgestory mods page  | low        | S        | backlog  | -         | -       |
 | UI-013  | Migrate mod list from cards to TanStack Table for sorting, filtering, search (5+ mods gets unwieldy)       | medium     | M        | backlog  | UI-011    | Architecture decision: use TanStack Table for all data lists |
 | UI-014  | When mod is not_verified/incompatible, show the most recent compatible game version in mod card/list       | low        | M        | backlog  | -         | Helps users understand which game version the mod supports |
 
@@ -59,7 +59,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ------- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------- | -------- | --------- | ------- |
 | ~~API-001~~ | ~~/docs endpoint shows inconsistent capitalization (Health, Authentication, console, Server, test, default)~~    | ~~low~~        | ~~S~~        | ~~done~~     | ~~-~~         | ~~-~~       |  
 | ~~API-002~~ | ~~/healthz endpoint returns data.game_server but the value doesn't seem to report actual server status~~ | ~~low~~ | ~~S~~ | ~~done~~ | ~~-~~ | Fixed alongside API-004 |
-| API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)    | low        | S        | backlog  | -         | -       |
+| API-003 | /healthz endpoint should report data.(game_server_version,game_server_uptime,game_server_pending_restart)    | low        | S        | backlog  | -         | -       |
 | ~~API-004~~ | ~~/readyz endpoint should report data.checks.game_server~~ | ~~low~~ | ~~S~~ | ~~done~~ | ~~-~~ | ~~-~~ |  
 | API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                     | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
 | API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                          | high       | M        | backlog  | UI-005    | -       |  
