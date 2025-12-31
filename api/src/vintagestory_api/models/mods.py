@@ -147,6 +147,9 @@ class ModLookupResponse(BaseModel):
     compatibility: CompatibilityInfo
     """Compatibility status with current game version."""
 
+    logo_url: str | None = None
+    """URL to the mod's logo image from the mod database CDN."""
+
 
 class EnableResult(BaseModel):
     """Result of enabling a mod."""

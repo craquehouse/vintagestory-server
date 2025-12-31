@@ -19,11 +19,11 @@ from vintagestory_api.services.server import ServerService
 logger = structlog.get_logger()
 
 # HTTP router for console endpoints (included under api_v1 with auth dependency)
-router = APIRouter(prefix="/console", tags=["console"])
+router = APIRouter(prefix="/console", tags=["Console"])
 
 # WebSocket router for real-time streaming (no auth dependency at router level)
 # WebSocket handles its own authentication via query parameter
-ws_router = APIRouter(prefix="/console", tags=["console"])
+ws_router = APIRouter(prefix="/console", tags=["Console"])
 
 
 @router.get("/history")

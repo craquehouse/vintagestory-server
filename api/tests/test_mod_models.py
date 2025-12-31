@@ -396,6 +396,7 @@ class TestModLookupResponse:
                 "mod_version": "1.8.3",
                 "message": None,
             },
+            "logo_url": None,
         }
 
     def test_nested_compatibility_info(self) -> None:
