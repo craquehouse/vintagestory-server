@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Trash2, Loader2, ExternalLink } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -150,7 +150,18 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             <TableRow key={mod.slug} data-testid={`mod-row-${mod.slug}`}>
               <TableCell>
                 <div>
-                  <div className="font-medium">{mod.name || mod.slug}</div>
+                  <div className="font-medium">
+                    <a
+                      href={`https://mods.vintagestory.at/${mod.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 hover:underline"
+                      data-testid={`mod-link-${mod.slug}`}
+                    >
+                      {mod.name || mod.slug}
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </a>
+                  </div>
                   {mod.name && (
                     <div className="text-sm text-muted-foreground">{mod.slug}</div>
                   )}

@@ -21,9 +21,9 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/terminal", icon: Terminal, label: "GameServer" },
   { to: "/mods", icon: Package, label: "Mods" },
-  { to: "/config", icon: Settings, label: "Config" },
-  { to: "/terminal", icon: Terminal, label: "Console" },
+  { to: "/config", icon: Settings, label: "Settings" },
 ];
 
 interface SidebarProps {
@@ -45,15 +45,23 @@ export function Sidebar({ className }: SidebarProps) {
         <div
           className={cn(
             "flex h-12 items-center border-b border-sidebar-border",
-            isCollapsed ? "justify-center px-2" : "px-4"
+            isCollapsed ? "justify-center px-2" : "px-3"
           )}
         >
           {isCollapsed ? (
-            <span className="text-lg font-bold text-sidebar-primary">VS</span>
+            <img
+              src="/vintagestory-icon.webp"
+              srcSet="/vintagestory-icon.webp 1x, /vintagestory-icon@2x.webp 2x"
+              alt="VS"
+              className="h-6 w-6"
+            />
           ) : (
-            <span className="text-lg font-bold text-sidebar-primary">
-              VS Server
-            </span>
+            <img
+              src="/vintagestory-logo.webp"
+              srcSet="/vintagestory-logo.webp 1x, /vintagestory-logo@2x.webp 2x"
+              alt="Vintage Story"
+              className="h-6 w-auto"
+            />
           )}
         </div>
 
