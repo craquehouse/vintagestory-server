@@ -1,6 +1,6 @@
 # Story 6.3: API Settings Service
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -47,7 +47,19 @@ So that **I can configure auto-start, refresh intervals, and environment handlin
 - [x] Task 4: Add scheduler interface stub (AC: 3)
   - [x] Subtask 4.1: Add optional scheduler_callback parameter to ApiSettingsService
   - [x] Subtask 4.2: Call callback when refresh interval settings change (stub for Epic 7)
-  - [x] Subtask 4.3: Add test verifying callback is invoked on interval change
+   - [x] Subtask 4.3: Add test verifying callback is invoked on interval change
+
+### Review Follow-ups (AI)
+- [ ] [AI-Review][MEDIUM] Fix typo in ApiSettings model docstring: "refreshes" → "refreshes" (api_settings.py:43)
+- [ ] [AI-Review][MEDIUM] Test timing documentation discrepancy: Update completion notes to reflect actual new test count (39: 24 service + 15 router)
+- [ ] [AI-Review][MEDIUM] Document scheduler integration pattern for Epic 7: Add TODO comment in config.py explaining how to wire scheduler callback when Epic 7 is implemented
+- [ ] [AI-Review][LOW-MEDIUM] Refactor error codes section: Add docstring in errors.py explaining SETTING_* vs API_SETTING_* scope
+- [ ] [AI-Review][LOW-MEDIUM] Enhance logging context: Add old_value and source fields to api_setting_updated log
+- [ ] [AI-Review][LOW-MEDIUM] Add error handling to _save_settings(): Wrap write operations in try/except OSError
+- [ ] [AI-Review][LOW] Rename test class: TestApiSettingsResponseFormat → TestConfigResponseFormat or split into TestGameSettingsResponseFormat and TestApiSettingsResponseFormat
+- [ ] [AI-Review][LOW] Add docstring to get_api_settings_service(): Match pattern of get_game_config_service()
+- [ ] [AI-Review][LOW] Document graceful degradation strategy: Add comment explaining why get_settings() returns defaults on JSON/ValidationError
+- [ ] [AI-Review][LOW] Add edge case comment: Document why validated_value is safe for scheduler callback (validation happens before callback)
 
 ## Dev Notes
 
@@ -405,6 +417,7 @@ N/A - Implementation completed without issues.
 ### Change Log
 
 - 2025-12-31: Story implementation complete (Opus 4.5)
+- 2025-12-31: Code review completed - Found 10 issues (0 Critical, 6 Medium, 4 Low). All acceptance criteria implemented, 41 tests passing. Status changed to in-progress pending action items.
 
 ### File List
 
