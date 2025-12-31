@@ -13,6 +13,11 @@ const renderWithProviders = (ui: React.ReactElement) => {
 };
 
 describe('Sidebar', () => {
+  beforeEach(() => {
+    // Clear localStorage to ensure consistent initial state (sidebar expanded)
+    localStorage.clear();
+  });
+
   it('renders all 4 navigation items', () => {
     renderWithProviders(<Sidebar />);
 
@@ -172,12 +177,12 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Console')).not.toBeInTheDocument();
   });
 
-  it('renders logo "VS Server" when expanded', () => {
+  it('renders logo image when expanded', () => {
     renderWithProviders(<Sidebar />);
 
-    // Check for any logo text - either "VS Server" or "VS"
-    const logo = screen.queryByText(/VS( Server)?/);
+    const logo = screen.getByRole('img', { name: /vintage story/i });
     expect(logo).toBeInTheDocument();
+    expect(logo).toHaveAttribute('src', '/vintagestory-logo.webp');
   });
 
   it('renders logo "VS" when collapsed', async () => {
@@ -196,11 +201,11 @@ describe('Sidebar', () => {
 
     await user.click(collapseButton);
 
-    // After collapse, logo should be "VS"
+    // After collapse, logo should be "VS" text
     const logo = screen.getByText('VS');
     expect(logo).toBeInTheDocument();
-    // "VS Server" should not be present
-    expect(screen.queryByText('VS Server')).not.toBeInTheDocument();
+    // Logo image should not be present when collapsed
+    expect(screen.queryByRole('img', { name: /vintage story/i })).not.toBeInTheDocument();
   });
 
   it('shows tooltips when collapsed', async () => {
