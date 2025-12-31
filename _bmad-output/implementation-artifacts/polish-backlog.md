@@ -36,7 +36,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
 | ~~UI-001~~  | ~~The sidebar is much wider than it needs to be.~~                                                     | ~~low~~    | ~~S~~    | done     | -         | Reduced from 240px to 160px |
 | UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
-| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
+| ~~UI-003~~  | ~~Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"~~    | ~~low~~        | ~~S~~        | done  | ~~Epic-6~~    | Reordered nav items, renamed Console→GameServer, Config→Settings |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 | UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |

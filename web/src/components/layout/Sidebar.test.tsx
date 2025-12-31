@@ -17,9 +17,9 @@ describe('Sidebar', () => {
     renderWithProviders(<Sidebar />);
 
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /gameserver/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /mods/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /config/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /console/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
   });
 
   it('renders Dashboard with correct icon', () => {
@@ -38,20 +38,20 @@ describe('Sidebar', () => {
     expect(modsLink).toHaveAttribute('href', '/mods');
   });
 
-  it('renders Config with correct icon', () => {
+  it('renders GameServer with correct icon', () => {
     renderWithProviders(<Sidebar />);
 
-    const configLink = screen.getByRole('link', { name: /config/i });
-    expect(configLink).toBeInTheDocument();
-    expect(configLink).toHaveAttribute('href', '/config');
+    const gameServerLink = screen.getByRole('link', { name: /gameserver/i });
+    expect(gameServerLink).toBeInTheDocument();
+    expect(gameServerLink).toHaveAttribute('href', '/terminal');
   });
 
-  it('renders Console with correct icon', () => {
+  it('renders Settings with correct icon', () => {
     renderWithProviders(<Sidebar />);
 
-    const consoleLink = screen.getByRole('link', { name: /console/i });
-    expect(consoleLink).toBeInTheDocument();
-    expect(consoleLink).toHaveAttribute('href', '/terminal');
+    const settingsLink = screen.getByRole('link', { name: /settings/i });
+    expect(settingsLink).toBeInTheDocument();
+    expect(settingsLink).toHaveAttribute('href', '/config');
   });
 
   it('highlights active route with bg-sidebar-accent class', () => {
@@ -167,9 +167,9 @@ describe('Sidebar', () => {
 
     // All nav labels should be hidden
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    expect(screen.queryByText('GameServer')).not.toBeInTheDocument();
     expect(screen.queryByText('Mods')).not.toBeInTheDocument();
-    expect(screen.queryByText('Config')).not.toBeInTheDocument();
-    expect(screen.queryByText('Console')).not.toBeInTheDocument();
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
   it('renders logo "VS Server" when expanded', () => {

@@ -21,9 +21,9 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/terminal", icon: Terminal, label: "GameServer" },
   { to: "/mods", icon: Package, label: "Mods" },
-  { to: "/config", icon: Settings, label: "Config" },
-  { to: "/terminal", icon: Terminal, label: "Console" },
+  { to: "/config", icon: Settings, label: "Settings" },
 ];
 
 interface SidebarProps {
