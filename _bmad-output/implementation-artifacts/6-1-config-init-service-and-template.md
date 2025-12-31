@@ -1,6 +1,6 @@
 # Story 6.1: ConfigInitService and Template
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -45,6 +45,12 @@ So that **I can deploy with custom settings without manual file creation**.
   - [x] Subtask 3.4: Log initialization event with structured logging
   - [x] Subtask 3.5: Write integration test verifying config is created before server start
   - [x] Subtask 3.6: Write integration test verifying existing config is not overwritten
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] Git commit message format violation - Single commit `feat(story-6.1): implement ConfigInitService` instead of expected 3 task-level commits with `/task-N` suffixes (per project-context.md Git Workflow section)
+- [ ] [AI-Review][MEDIUM] Story File List discrepancy - `api/src/vintagestory_api/services/__init__.py` listed in "Files to modify" but not actually modified (exports not needed since direct import paths used)
+- [ ] [AI-Review][LOW] Complete manual tests in PR test plan - 2 unchecked manual tests: verify template+overrides applied on first run, verify existing config not overwritten
 
 ## Dev Notes
 
