@@ -92,8 +92,3 @@ credentials/
 # OS files
 .DS_Store
 Thumbs.db
-
-# BMad
-.claude/commands/bmad
-.opencode/agent/bmad-*
-.opencode/command/bmad-*
