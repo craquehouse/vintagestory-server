@@ -37,7 +37,6 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ~~UI-001~~  | ~~The sidebar is much wider than it needs to be.~~                                                     | ~~low~~    | ~~S~~    | done     | -         | Reduced from 240px to 160px |
 | UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
-| UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 | UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |
 | ~~UI-007~~  | ~~Mod preview card should display mod image~~                                                          | ~~low~~    | ~~S~~    | done     | -         | Added logo_url to ModLookupResponse and display in card |
@@ -142,4 +141,4 @@ When items are marked `done`, optionally move them here for historical reference
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
-| - | - | - | - |
+| UI-004 | Toasts for server starting and server stopping exist, but not server started and server stopped | 2025-12-31 | Added useServerStateToasts hook to detect state transitions |

@@ -9,7 +9,11 @@ import {
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerControls } from './ServerControls';
-import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
+import {
+  useServerStatus,
+  useInstallStatus,
+  useServerStateToasts,
+} from '@/hooks/use-server-status';
 
 /**
  * Dashboard page showing server status and controls.
@@ -23,6 +27,9 @@ import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
 export function Dashboard() {
   const { data: statusResponse, isLoading, error } = useServerStatus();
   const serverStatus = statusResponse?.data;
+
+  // Show toasts when server state transitions complete
+  useServerStateToasts(serverStatus?.state);
 
   // Only poll install status when installing
   const isInstalling = serverStatus?.state === 'installing';
