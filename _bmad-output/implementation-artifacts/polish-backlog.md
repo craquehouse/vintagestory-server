@@ -47,6 +47,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-011  | Installed mods table should be sortable, and sort order should stay consistent                             | low        | S        | backlog  | -         | -       |
 | UI-012  | Installed mods in table should have clickable link to vintgestory mods page                                | low        | S        | backlog  | -         | -       |
 | UI-013  | Migrate mod list from cards to TanStack Table for sorting, filtering, search (5+ mods gets unwieldy)       | medium     | M        | backlog  | UI-011    | Architecture decision: use TanStack Table for all data lists |
+| UI-014  | When mod is not_verified/incompatible, show the most recent compatible game version in mod card/list       | low        | M        | backlog  | -         | Helps users understand which game version the mod supports |
 
 ---
 
