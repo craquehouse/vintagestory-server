@@ -1,6 +1,6 @@
 # Story 6.0: Epic 6 Technical Preparation
 
-Status: in-progress
+Status: done
 
 ## Story
 
