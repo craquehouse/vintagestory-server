@@ -100,6 +100,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | --------- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------- | -------- | --------- | ------- |
 | TOOLS-001 | Add incremental test commit reminders to dev-story workflow to prevent test batching (Epic 1 retro lesson 2) | medium     | S        | backlog  | Epic-5.1  | Tests should be committed alongside implementation, not batched at the end |
 | TOOLS-002 | Add semgrep justfile recipies. Need to decide if add to existing test-api, test-web in addition.             | medium     | S        | backlog  |           | semgrep scan --verbose --error ./api |
+| TOOLS-003 | worktree dev experience is poor. conflicting ports on web and ui servers, missing API keys make tests fail   | medium     | S        | backlog  |           |         |
 
 ---
 
