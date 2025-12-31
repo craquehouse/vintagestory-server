@@ -71,10 +71,10 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 4.4: Add loading spinner during save, error display
   - [x] Subtask 4.5: Write tests for all variants and states
 
-- [ ] Task 5: Create SettingGroup component + tests (AC: 3)
-  - [ ] Subtask 5.1: Create `web/src/components/SettingGroup.tsx` for grouping related settings
-  - [ ] Subtask 5.2: Implement collapsible sections with Card wrapper
-  - [ ] Subtask 5.3: Write tests for render and collapse behavior
+- [x] Task 5: Create SettingGroup component + tests (AC: 3)
+  - [x] Subtask 5.1: Create `web/src/components/SettingGroup.tsx` for grouping related settings
+  - [x] Subtask 5.2: Implement collapsible sections with Card wrapper
+  - [x] Subtask 5.3: Write tests for render and collapse behavior
 
 - [ ] Task 6: Create GameConfigPanel component + tests (AC: 1, 2, 3, 4, 5)
   - [ ] Subtask 6.1: Create `web/src/features/game-server/GameConfigPanel.tsx`
