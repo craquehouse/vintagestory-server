@@ -148,7 +148,7 @@ class TestParseEnvValueFloat:
 
     def test_positive_float(self) -> None:
         """Positive floats are parsed correctly."""
-        assert parse_env_value("3.14", "float") == pytest.approx(3.14)
+        assert parse_env_value("3.14", "float") == 3.14
 
     def test_zero_float(self) -> None:
         """Zero float is parsed correctly."""
@@ -156,7 +156,7 @@ class TestParseEnvValueFloat:
 
     def test_negative_float(self) -> None:
         """Negative floats are parsed correctly."""
-        assert parse_env_value("-2.5", "float") == pytest.approx(-2.5)
+        assert parse_env_value("-2.5", "float") == -2.5
 
     def test_int_as_float(self) -> None:
         """Integer strings parse as floats."""
@@ -164,7 +164,7 @@ class TestParseEnvValueFloat:
 
     def test_scientific_notation(self) -> None:
         """Scientific notation is parsed correctly."""
-        assert parse_env_value("1e3", "float") == pytest.approx(1000.0)
+        assert parse_env_value("1e3", "float") == 1000.0
 
     def test_invalid_float_raises(self) -> None:
         """Invalid float strings raise ValueError."""
