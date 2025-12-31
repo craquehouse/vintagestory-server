@@ -43,13 +43,13 @@ So that **I can configure the server visually and see console command feedback**
 - [ ] Task 3: Write all tests  <- NEVER DO THIS
 -->
 
-- [ ] Task 1: Create Game Settings API hooks + types + tests (AC: 3, 4, 5)
-  - [ ] Subtask 1.1: Add game config types to `web/src/api/types.ts`
-  - [ ] Subtask 1.2: Add game config API functions to `web/src/api/config.ts`
-  - [ ] Subtask 1.3: Add query keys for game config to `web/src/api/query-keys.ts`
-  - [ ] Subtask 1.4: Create `web/src/hooks/use-game-config.ts` with useGameConfig query hook
-  - [ ] Subtask 1.5: Create useUpdateGameSetting mutation hook with optimistic updates
-  - [ ] Subtask 1.6: Write tests for useGameConfig and useUpdateGameSetting hooks
+- [x] Task 1: Create Game Settings API hooks + types + tests (AC: 3, 4, 5)
+  - [x] Subtask 1.1: Add game config types to `web/src/api/types.ts`
+  - [x] Subtask 1.2: Add game config API functions to `web/src/api/config.ts`
+  - [x] Subtask 1.3: Add query keys for game config to `web/src/api/query-keys.ts`
+  - [x] Subtask 1.4: Create `web/src/hooks/use-game-config.ts` with useGameConfig query hook
+  - [x] Subtask 1.5: Create useUpdateGameSetting mutation hook with optimistic updates
+  - [x] Subtask 1.6: Write tests for useGameConfig and useUpdateGameSetting hooks
 
 - [ ] Task 2: Create API Settings hooks + tests (AC: 6)
   - [ ] Subtask 2.1: Add api settings types to `web/src/api/types.ts`
