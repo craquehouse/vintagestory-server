@@ -71,8 +71,35 @@ export function useStartServer() {
 
   return useMutation({
     mutationFn: startServer,
-    onSuccess: () => {
-      // Immediately refetch status after starting
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.server.status });
+
+      // Snapshot the previous value
+      const previousStatus = queryClient.getQueryData(queryKeys.server.status);
+
+      // Optimistically update to 'starting' state
+      queryClient.setQueryData(queryKeys.server.status, (old: unknown) => {
+        if (old && typeof old === 'object' && 'data' in old) {
+          const oldData = old as { data: { state: string } };
+          return {
+            ...old,
+            data: { ...oldData.data, state: 'starting' },
+          };
+        }
+        return old;
+      });
+
+      return { previousStatus };
+    },
+    onError: (_err, _variables, context) => {
+      // Roll back on error
+      if (context?.previousStatus) {
+        queryClient.setQueryData(queryKeys.server.status, context.previousStatus);
+      }
+    },
+    onSettled: () => {
+      // Refetch after mutation settles
       queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
     },
   });
@@ -88,7 +115,35 @@ export function useStopServer() {
 
   return useMutation({
     mutationFn: stopServer,
-    onSuccess: () => {
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.server.status });
+
+      // Snapshot the previous value
+      const previousStatus = queryClient.getQueryData(queryKeys.server.status);
+
+      // Optimistically update to 'stopping' state
+      queryClient.setQueryData(queryKeys.server.status, (old: unknown) => {
+        if (old && typeof old === 'object' && 'data' in old) {
+          const oldData = old as { data: { state: string } };
+          return {
+            ...old,
+            data: { ...oldData.data, state: 'stopping' },
+          };
+        }
+        return old;
+      });
+
+      return { previousStatus };
+    },
+    onError: (_err, _variables, context) => {
+      // Roll back on error
+      if (context?.previousStatus) {
+        queryClient.setQueryData(queryKeys.server.status, context.previousStatus);
+      }
+    },
+    onSettled: () => {
+      // Refetch after mutation settles
       queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
     },
   });
