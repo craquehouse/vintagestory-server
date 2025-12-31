@@ -180,17 +180,27 @@ export function ModLookupInput({ onInstalled }: ModLookupInputProps) {
           ) : modData ? (
             <>
               <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="truncate">{modData.name}</CardTitle>
-                    <CardDescription className="mt-1">
-                      by {modData.author}
-                    </CardDescription>
+                <div className="flex items-start gap-3">
+                  {modData.logoUrl && (
+                    <img
+                      src={modData.logoUrl}
+                      alt={`${modData.name} logo`}
+                      className="h-16 w-16 rounded-md object-cover flex-shrink-0"
+                      data-testid="mod-logo"
+                    />
+                  )}
+                  <div className="flex items-start justify-between gap-4 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="truncate">{modData.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        by {modData.author}
+                      </CardDescription>
+                    </div>
+                    <CompatibilityBadge
+                      status={modData.compatibility.status}
+                      message={modData.compatibility.message}
+                    />
                   </div>
-                  <CompatibilityBadge
-                    status={modData.compatibility.status}
-                    message={modData.compatibility.message}
-                  />
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">

@@ -132,6 +132,7 @@ export interface ModLookupData {
   downloads: number;
   side: ModSide;
   compatibility: ModCompatibility;
+  logoUrl: string | null;
 }
 
 /**
