@@ -410,6 +410,7 @@ class ModService:
             downloads=total_downloads,
             side=side,
             compatibility=compatibility,
+            logo_url=mod.get("logofilename"),
         )
 
         logger.info(

@@ -40,7 +40,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 | UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |
-| UI-007  | Mod preview card should display mod image                                                                  | low        | S        | backlog  | -         | -       |
+| ~~UI-007~~  | ~~Mod preview card should display mod image~~                                                          | ~~low~~    | ~~S~~    | done     | -         | Added logo_url to ModLookupResponse and display in card |
 | UI-008  | Mod preview card parse HTML                                                                                | low        | S        | backlog  | -         | -       |
 | UI-009  | Mod preview card doesn't explain what "Both" means - presumeably client and server. use badges for each?   | low        | S        | backlog  | -         | -       |
 | UI-010  | Mods installed when server is not running should not generate "server may need to be restarted" toast      | low        | S        | backlog  | -         | -       |
