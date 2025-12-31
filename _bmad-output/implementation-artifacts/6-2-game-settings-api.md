@@ -1,6 +1,6 @@
 # Story 6.2: Game Settings API
 
-Status: in-progress
+Status: done
 
 ## Story
 
