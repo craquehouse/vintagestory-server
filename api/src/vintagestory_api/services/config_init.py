@@ -32,6 +32,7 @@ ENV_VAR_MAP: dict[str, tuple[str, Literal["string", "int", "bool", "float"]]] = 
     "VS_CFG_ALLOW_PVP": ("AllowPvP", "bool"),
     "VS_CFG_ALLOW_FIRE_SPREAD": ("AllowFireSpread", "bool"),
     "VS_CFG_ALLOW_FALLING_BLOCKS": ("AllowFallingBlocks", "bool"),
+    "VS_CFG_ENTITY_SPAWNING": ("EntitySpawning", "bool"),
     "VS_CFG_PASS_TIME_WHEN_EMPTY": ("PassTimeWhenEmpty", "bool"),
     "VS_CFG_ALLOW_CREATIVE_MODE": ("WorldConfig.AllowCreativeMode", "bool"),
     # Whitelist settings
@@ -98,10 +99,11 @@ def parse_env_value(value: str, value_type: Literal["string", "int", "bool", "fl
         return value
 
     if value_type == "bool":
-        # Accept various truthy/falsy string representations
-        if value.lower() in ("true", "1", "yes", "on"):
+        # Case-insensitive comparison: normalize input to lowercase then compare
+        normalized = value.lower()
+        if normalized in ("true", "1", "yes", "on"):
             return True
-        if value.lower() in ("false", "0", "no", "off"):
+        if normalized in ("false", "0", "no", "off"):
             return False
         raise ValueError(
             f"Cannot convert '{value}' to bool. Use true/false, 1/0, yes/no, or on/off."
@@ -119,6 +121,10 @@ def parse_env_value(value: str, value_type: Literal["string", "int", "bool", "fl
 def get_config_key_path(key: str) -> list[str]:
     """Split a dotted config key into path components.
 
+    This is a helper function for ConfigInitService (Story 6.1) to apply
+    environment variable overrides to nested config keys like
+    "WorldConfig.AllowCreativeMode".
+
     Args:
         key: The config key, possibly with dots for nested access.
 
@@ -130,5 +136,9 @@ def get_config_key_path(key: str) -> list[str]:
         ['ServerName']
         >>> get_config_key_path("WorldConfig.AllowCreativeMode")
         ['WorldConfig', 'AllowCreativeMode']
+
+    Note:
+        Full nested key application is implemented in ConfigInitService._apply_overrides()
+        (Story 6.1). This prep story only defines the mapping and parsing utilities.
     """
     return key.split(".")

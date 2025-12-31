@@ -150,7 +150,7 @@
     }
   ],
   "DefaultRoleCode": "suplayer",
-  "ModPaths": ["Mods"],
+  "ModPaths": ["Mods", "/data/serverdata/Mods"],
   "AntiAbuse": 0,
   "WorldConfig": {
     "Seed": null,

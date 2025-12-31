@@ -1,5 +1,7 @@
 """Tests for config initialization and environment variable parsing."""
 
+from typing import Any
+
 import pytest
 
 from vintagestory_api.services.config_init import (
@@ -191,3 +193,144 @@ class TestGetConfigKeyPath:
     def test_empty_string(self) -> None:
         """Empty string returns empty-string element."""
         assert get_config_key_path("") == [""]
+
+
+class TestEndToEndConfigGeneration:
+    """End-to-end tests for config generation from template + env vars.
+
+    These tests validate the complete flow: loading the template,
+    applying environment variable overrides, and producing valid config.
+    """
+
+    @pytest.fixture
+    def template_config(self) -> dict[str, Any]:
+        """Load the serverconfig template."""
+        import json
+        from pathlib import Path
+
+        template_path = (
+            Path(__file__).parent.parent
+            / "src"
+            / "vintagestory_api"
+            / "templates"
+            / "serverconfig-template.json"
+        )
+        with open(template_path) as f:
+            result: dict[str, Any] = json.load(f)
+            return result
+
+    def test_template_loads_as_valid_json(self, template_config: dict[str, Any]) -> None:
+        """Template loads successfully as JSON."""
+        assert isinstance(template_config, dict)
+        assert "ServerName" in template_config
+        assert "Port" in template_config
+
+    def test_env_var_map_covers_template_keys(self, template_config: dict[str, Any]) -> None:
+        """ENV_VAR_MAP covers common template settings."""
+        # Extract all config keys from ENV_VAR_MAP
+        mapped_keys = {mapping[0] for mapping in ENV_VAR_MAP.values()}
+
+        # These critical settings should have environment variable mappings
+        critical_settings = [
+            "ServerName",
+            "Port",
+            "MaxClients",
+            "Password",
+            "AllowPvP",
+            "OnlyWhitelisted",
+        ]
+
+        for setting in critical_settings:
+            assert setting in mapped_keys, f"Missing ENV_VAR_MAP for {setting}"
+            assert setting in template_config, f"Template missing {setting}"
+
+    def test_apply_env_override_to_template(
+        self, template_config: dict[str, Any]
+    ) -> None:
+        """Simulate applying environment variable overrides to template."""
+        # Simulate env vars that would be set
+        mock_env_vars = {
+            "VS_CFG_SERVER_NAME": "Test Server",
+            "VS_CFG_SERVER_PORT": "42421",
+            "VS_CFG_MAX_CLIENTS": "32",
+            "VS_CFG_ALLOW_PVP": "false",
+        }
+
+        # Apply overrides using our mapping and parsing
+        config: dict[str, Any] = template_config.copy()
+        for env_var, value in mock_env_vars.items():
+            if env_var in ENV_VAR_MAP:
+                config_key, value_type = ENV_VAR_MAP[env_var]
+                parsed_value = parse_env_value(value, value_type)
+
+                # Handle nested keys
+                path = get_config_key_path(config_key)
+                if len(path) == 1:
+                    config[path[0]] = parsed_value
+                else:
+                    # Navigate to nested location
+                    target: dict[str, Any] = config
+                    for key in path[:-1]:
+                        target = target[key]
+                    target[path[-1]] = parsed_value
+
+        # Verify overrides were applied correctly
+        assert config["ServerName"] == "Test Server"
+        assert config["Port"] == 42421
+        assert config["MaxClients"] == 32
+        assert config["AllowPvP"] is False
+
+        # Verify unchanged values remain
+        assert config["AdvertiseServer"] is False  # Template default
+        assert config["CompressPackets"] is True  # Template default
+
+    def test_generated_config_is_json_serializable(
+        self, template_config: dict[str, Any]
+    ) -> None:
+        """Config with applied overrides can be serialized back to JSON."""
+        import json
+
+        # Apply some overrides
+        config: dict[str, Any] = template_config.copy()
+        config["ServerName"] = "Serialization Test"
+        config["Port"] = parse_env_value("42421", "int")
+        config["AllowPvP"] = parse_env_value("true", "bool")
+        config["TickTime"] = parse_env_value("33.333", "float")
+
+        # Should serialize without error
+        json_output = json.dumps(config, indent=2)
+        assert isinstance(json_output, str)
+        assert "Serialization Test" in json_output
+
+        # Should round-trip correctly
+        reparsed = json.loads(json_output)
+        assert reparsed["ServerName"] == "Serialization Test"
+        assert reparsed["Port"] == 42421
+
+    def test_nested_config_key_override(
+        self, template_config: dict[str, Any]
+    ) -> None:
+        """Nested config keys (WorldConfig.Seed) are applied correctly."""
+        mock_env_vars = {
+            "VS_CFG_WORLD_NAME": "My Custom World",
+            "VS_CFG_ALLOW_CREATIVE_MODE": "false",
+        }
+
+        config: dict[str, Any] = template_config.copy()
+        for env_var, value in mock_env_vars.items():
+            if env_var in ENV_VAR_MAP:
+                config_key, value_type = ENV_VAR_MAP[env_var]
+                parsed_value = parse_env_value(value, value_type)
+
+                path = get_config_key_path(config_key)
+                if len(path) == 1:
+                    config[path[0]] = parsed_value
+                else:
+                    target: dict[str, Any] = config
+                    for key in path[:-1]:
+                        target = target[key]
+                    target[path[-1]] = parsed_value
+
+        # Verify nested values were updated
+        assert config["WorldConfig"]["WorldName"] == "My Custom World"
+        assert config["WorldConfig"]["AllowCreativeMode"] is False
