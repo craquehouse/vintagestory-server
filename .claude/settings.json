@@ -1,8 +1,4 @@
 {
-  "enabledPlugins": {
-    "typescript-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true
-  },
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
@@ -31,5 +27,11 @@
       "Bash(just build-api:*)",
       "Bash(just check:*)"
     ]
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "frontend-skills@claude-skills": true,
+    "serena@claude-plugins-official": true
   }
 }

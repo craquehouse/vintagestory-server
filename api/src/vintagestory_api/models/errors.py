@@ -33,11 +33,17 @@ class ErrorCode:
     INVALID_CONFIG = "INVALID_CONFIG"
     CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
 
-    # Settings (Epic 6)
+    # Game Settings (Epic 6) - serverconfig.json settings managed via console commands
+    # These apply to VintageStory game server configuration (Port, ServerName, etc.)
     SETTING_UNKNOWN = "SETTING_UNKNOWN"
     SETTING_ENV_MANAGED = "SETTING_ENV_MANAGED"
     SETTING_UPDATE_FAILED = "SETTING_UPDATE_FAILED"
     SETTING_VALUE_INVALID = "SETTING_VALUE_INVALID"
+
+    # API Settings (Story 6.3) - api-settings.json for management API configuration
+    # These apply to API operational settings (auto_start, refresh intervals, etc.)
+    API_SETTING_UNKNOWN = "API_SETTING_UNKNOWN"
+    API_SETTING_INVALID = "API_SETTING_INVALID"
 
     # External APIs
     EXTERNAL_API_ERROR = "EXTERNAL_API_ERROR"
