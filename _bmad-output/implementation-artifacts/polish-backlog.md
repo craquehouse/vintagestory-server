@@ -132,14 +132,14 @@ When adding new items, copy this template:
 
 When items are marked `done`, optionally move them here for historical reference:
 
-| ID      | Description                                                                                             | Completed  | Notes                                                                     |
-| ------- | ------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped         | 2025-12-31 | Added useServerStateToasts hook to detect state transitions               |
-| UI-001  | The sidebar is much wider than it needs to be                                                           | 2025-12-31 | Reduced from 240px to 160px                                               |
-| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings" | 2025-12-31 | Reordered nav items, renamed Console→GameServer, Config→Settings          |
-| UI-007  | Mod preview card should display mod image                                                               | 2025-12-31 | Added logo_url to ModLookupResponse and display in card                   |
-| API-001 | /docs endpoint shows inconsistent capitalization                                                        | 2025-12-31 | -                                                                         |
-| API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status    | 2025-12-31 | Fixed alongside API-004                                                   |
-| API-004 | /readyz endpoint should report data.checks.game_server                                                  | 2025-12-31 | -                                                                         |
-| UI-002  | Replace "VS Server" text with Vintage Story logo banner                                                 | 2025-12-31 | WebP logo (3.3KB + 8.4KB 2x) + icon for collapsed state (742B + 1.6KB 2x) |
-| UI-012  | Installed mods in table should have clickable link to VintageStory mods page                            | 2025-12-31 | Mod name is now a clickable external link                                 |
+| ID | Description | Completed | Notes |
+| -- | ----------- | --------- | ----- |
+| [UI-004](https://github.com/craquehouse/vintagestory-server/pull/10) | Toasts for server starting and server stopping exist, but not server started and server stopped | 2025-12-31 | Added useServerStateToasts hook to detect state transitions |
+| [UI-001](https://github.com/craquehouse/vintagestory-server/pull/4) | The sidebar is much wider than it needs to be | 2025-12-31 | Reduced from 240px to 160px |
+| [UI-003](https://github.com/craquehouse/vintagestory-server/pull/11) | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings" | 2025-12-31 | Reordered nav items, renamed Console→GameServer, Config→Settings |
+| [UI-007](https://github.com/craquehouse/vintagestory-server/pull/6) | Mod preview card should display mod image | 2025-12-31 | Added logo_url to ModLookupResponse and display in card |
+| [API-001](https://github.com/craquehouse/vintagestory-server/pull/5) | /docs endpoint shows inconsistent capitalization | 2025-12-31 | - |
+| [API-002](https://github.com/craquehouse/vintagestory-server/pull/7) | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status | 2025-12-31 | Fixed alongside API-004 |
+| [API-004](https://github.com/craquehouse/vintagestory-server/pull/7) | /readyz endpoint should report data.checks.game_server | 2025-12-31 | - |
+| [UI-002](https://github.com/craquehouse/vintagestory-server/pull/8) | Replace "VS Server" text with Vintage Story logo banner | 2025-12-31 | WebP logo (3.3KB + 8.4KB 2x) + icon for collapsed state (742B + 1.6KB 2x) |
+| [UI-012](https://github.com/craquehouse/vintagestory-server/pull/9) | Installed mods in table should have clickable link to VintageStory mods page | 2025-12-31 | Mod name is now a clickable external link |
