@@ -58,9 +58,9 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ID      | Description                                                                                                  | Priority   | Effort   |  Status  | Related   | Notes   |
 | ------- | ------------------------------------------------------------------------------------------------------------ | ---------- | -------- | -------- | --------- | ------- |
 | ~~API-001~~ | ~~/docs endpoint shows inconsistent capitalization (Health, Authentication, console, Server, test, default)~~    | ~~low~~        | ~~S~~        | ~~done~~     | ~~-~~         | ~~-~~       |  
-| API-002 | /healthz endpoint returns data.game_server but the value doesn't seem to report actual server status         | low        | S        | backlog  | -         | -       |  
-| API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)    | low        | S        | backlog  | -         | -       |  
-| API-004 | /readyz endpoint should report data.checks.game_server                                                       | low        | S        | backlog  | -         | -       |  
+| ~~API-002~~ | ~~/healthz endpoint returns data.game_server but the value doesn't seem to report actual server status~~ | ~~low~~ | ~~S~~ | ~~done~~ | ~~-~~ | Fixed alongside API-004 |
+| API-003 | /healthz endpoint should report data.(game_server_version|game_server_uptime|game_server_pending_restart)    | low        | S        | backlog  | -         | -       |
+| ~~API-004~~ | ~~/readyz endpoint should report data.checks.game_server~~ | ~~low~~ | ~~S~~ | ~~done~~ | ~~-~~ | ~~-~~ |  
 | API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                     | high       | M        | backlog  | -         | Implement self-signed wss:// ? |  
 | API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                          | high       | M        | backlog  | UI-005    | -       |  
 | API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist         | high       | M        | backlog  | -         | -       |  

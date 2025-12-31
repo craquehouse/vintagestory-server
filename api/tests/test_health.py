@@ -63,6 +63,14 @@ class TestReadyz:
         assert "checks" in data["data"]
         assert data["data"]["checks"]["api"] is True
 
+    def test_readyz_includes_game_server_check(self, client: TestClient) -> None:
+        """Test that /readyz includes game_server check."""
+        response = client.get("/readyz")
+        data = response.json()
+        assert "game_server" in data["data"]["checks"]
+        # Game server is not running by default, so check is False
+        assert data["data"]["checks"]["game_server"] is False
+
 
 class TestHealthEndpointsNoAuth:
     """Tests that health endpoints require no authentication."""
