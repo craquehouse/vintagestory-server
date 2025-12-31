@@ -13,7 +13,7 @@ from vintagestory_api.middleware.auth import CurrentUser
 from vintagestory_api.middleware.permissions import require_admin, require_console_access
 from vintagestory_api.models.responses import ApiResponse
 
-router = APIRouter(prefix="/test", tags=["test"])
+router = APIRouter(prefix="/test", tags=["Test"])
 
 
 @router.get("/read")
