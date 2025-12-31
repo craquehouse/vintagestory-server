@@ -22,17 +22,17 @@ So that **I can configure the server using console commands for live updates**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create GameConfigService + tests (AC: 1, 2, 3, 4)
-  - [ ] Subtask 1.1: Create `api/src/vintagestory_api/services/game_config.py` with GameConfigService class
-  - [ ] Subtask 1.2: Implement `LIVE_SETTINGS` dict with ServerSetting model (key, value_type, console_command, requires_restart)
-  - [ ] Subtask 1.3: Implement `get_settings()` method - reads serverconfig.json and enriches with metadata
-  - [ ] Subtask 1.4: Implement `update_setting()` method - console command for live settings, file update for restart-required
-  - [ ] Subtask 1.5: Implement `_execute_console_command()` - uses ServerService.send_command()
-  - [ ] Subtask 1.6: Implement `_update_config_file()` - atomic write for file-based updates
-  - [ ] Subtask 1.7: Write tests for get_settings() - returns enriched settings with metadata
-  - [ ] Subtask 1.8: Write tests for update_setting() with live update path
-  - [ ] Subtask 1.9: Write tests for update_setting() with file update path
-  - [ ] Subtask 1.10: Write tests for env-managed setting blocking
+- [x] Task 1: Create GameConfigService + tests (AC: 1, 2, 3, 4)
+  - [x] Subtask 1.1: Create `api/src/vintagestory_api/services/game_config.py` with GameConfigService class
+  - [x] Subtask 1.2: Implement `LIVE_SETTINGS` dict with ServerSetting model (key, value_type, console_command, requires_restart)
+  - [x] Subtask 1.3: Implement `get_settings()` method - reads serverconfig.json and enriches with metadata
+  - [x] Subtask 1.4: Implement `update_setting()` method - console command for live settings, file update for restart-required
+  - [x] Subtask 1.5: Implement `_execute_console_command()` - uses ServerService.send_command()
+  - [x] Subtask 1.6: Implement `_update_config_file()` - atomic write for file-based updates
+  - [x] Subtask 1.7: Write tests for get_settings() - returns enriched settings with metadata
+  - [x] Subtask 1.8: Write tests for update_setting() with live update path
+  - [x] Subtask 1.9: Write tests for update_setting() with file update path
+  - [x] Subtask 1.10: Write tests for env-managed setting blocking
 
 - [ ] Task 2: Add /config/game router + tests (AC: 1, 2, 3, 4, 5)
   - [ ] Subtask 2.1: Create `api/src/vintagestory_api/routers/config.py` with config router
