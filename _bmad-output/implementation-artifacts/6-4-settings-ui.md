@@ -58,11 +58,11 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 2.4: Create `web/src/hooks/use-api-settings.ts` with useApiSettings and useUpdateApiSetting hooks
   - [x] Subtask 2.5: Write tests for useApiSettings and useUpdateApiSetting hooks
 
-- [ ] Task 3: Create useSettingField custom hook + tests (AC: 3, 4, 5)
-  - [ ] Subtask 3.1: Create `web/src/hooks/use-setting-field.ts` with Zod validation pattern
-  - [ ] Subtask 3.2: Implement field state management (value, error, isDirty, isPending)
-  - [ ] Subtask 3.3: Implement auto-save on blur with validation
-  - [ ] Subtask 3.4: Write tests for validation, save, and error handling
+- [x] Task 3: Create useSettingField custom hook + tests (AC: 3, 4, 5)
+  - [x] Subtask 3.1: Create `web/src/hooks/use-setting-field.ts` with Zod validation pattern
+  - [x] Subtask 3.2: Implement field state management (value, error, isDirty, isPending)
+  - [x] Subtask 3.3: Implement auto-save on blur with validation
+  - [x] Subtask 3.4: Write tests for validation, save, and error handling
 
 - [ ] Task 4: Create SettingField component + tests (AC: 3, 5)
   - [ ] Subtask 4.1: Create `web/src/components/SettingField.tsx` base component
