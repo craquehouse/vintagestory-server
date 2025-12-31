@@ -106,6 +106,12 @@ docker compose up -d                   # Start stack
 docker compose logs -f vintagestory    # Follow game logs
 ```
 
+## Git Workflow
+
+- **Merge PRs, do not squash** - Preserve individual commit history when merging pull requests
+- **Delete branches after merge** - Clean up feature branches once merged to main
+- **Commit after each task** - Create checkpoint commits at logical boundaries (see BMad methodology above)
+
 ## Key Conventions
 
 - **API responses** use consistent envelope: `{"status": "ok/error", "data": {...}}`
