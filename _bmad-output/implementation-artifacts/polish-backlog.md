@@ -36,7 +36,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
 | UI-001  | The sidebar is much wider than it needs to be.                                                             | low        | S        | backlog  | -         | -       |
 | UI-002  | "VS Server" in the upper lefthand corner should read "VS Server Manager"                                   | low        | S        | backlog  | -         | -       |
-| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "Console", "Mods", "Config"         | low        | S        | backlog  | -         | -       |
+| UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
 | UI-006  | Better detection and handling of the state where the frontend has lost connection to the API               | medium     | M        | backlog  | -         | -       |
@@ -46,6 +46,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-010  | Mods installed when server is not running should not generate "server may need to be restarted" toast      | low        | S        | backlog  | -         | -       |
 | UI-011  | Installed mods table should be sortable, and sort order should stay consistent                             | low        | S        | backlog  | -         | -       |
 | UI-012  | Installed mods in table should have clickable link to vintgestory mods page                                | low        | S        | backlog  | -         | -       |
+| UI-013  | Migrate mod list from cards to TanStack Table for sorting, filtering, search (5+ mods gets unwieldy)       | medium     | M        | backlog  | UI-011    | Architecture decision: use TanStack Table for all data lists |
 
 ---
 
@@ -75,6 +76,9 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-018 | Success responses include null `error` field - consider exclude_none or document as design choice            | low        | S        | backlog  | Story-5.5 | Project-wide design decision |
 | API-019 | Add edge case tests for mod list: corrupted state.json, disk I/O errors, malformed mod zips                 | low        | M        | backlog  | Story-5.5 | Improve test coverage beyond happy paths |
 | API-020 | Extract common test fixtures (temp_data_dir, restart_state, auth_headers) to api/tests/conftest.py          | low        | S        | backlog  | Story-5.5 | DRY principle - fixtures duplicated across test classes |
+ | API-021 | Player whitelist management - API to view/add/remove whitelisted players, UI component in Settings tab      | medium     | M        | backlog  | FR25-26   | Moved from Epic 9; covers whitelist enable/disable toggle + player list CRUD |
+ | API-022 | Add Prometheus metrics endpoint (/metrics) with CPU, memory, and process stats using psutil and prometheus-fastapi-instrumentator | medium     | M        | backlog  | -         | Expose CPU%, memory (RSS/VMS), thread count for APM integration |
+ | API-023 | Extend /metrics to include VintageStory game server metrics: concurrent players, game server process CPU/memory, uptime | high       | M        | backlog  | API-022    | Requires process discovery (find VintageStory.exe), game server API integration for player count |
 
 ---
 

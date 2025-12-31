@@ -1235,203 +1235,483 @@ So that **I can install, view, and manage mods visually**.
 
 ## Epic 6: Game Configuration Management
 
-Admins can view and edit game server configuration files through the web UI.
+Admins can configure game server settings through the web UI using console commands for live updates. The Console tab is renamed to GameServer and includes both console output and a configuration panel side-by-side. API operational settings are managed separately in a new Settings tab.
 
-### Story 6.1: Configuration Files API
+**Architectural Pivot (2025-12-30):** Original file-editing approach replaced with console command pattern. VintageStory server handles JSON persistence automatically when settings are changed via `/serverconfig` commands.
+
+**Key Decisions:**
+- `/config/game` - Game server settings (console commands for live update)
+- `/config/api` - API operational settings (auto_start, refresh intervals)
+- ConfigInitService - First-run config generation from template + VS_CFG_* env vars
+- Console tab → GameServer tab with responsive split layout
+- TanStack Table for data lists, Zod + custom hooks for field validation
+
+---
+
+### Story 6.0: Epic 6 Technical Preparation
+
+As a **developer**,
+I want **to research VintageStory console commands and create configuration infrastructure**,
+So that **subsequent stories have a solid foundation for config management**.
+
+**Acceptance Criteria:**
+
+**Given** we need to understand console command behavior
+**When** I research the `/serverconfig` command
+**Then** I document which settings support live update vs require restart
+**And** I verify that console changes persist to serverconfig.json automatically
+
+**Given** we need a reference configuration template
+**When** I analyze DarkMatterProductions and VintageStory defaults
+**Then** I create `serverconfig-template.json` with sensible defaults
+**And** the template includes all common settings with documentation comments removed
+
+**Given** we need to support VS_CFG_* environment variables
+**When** I define the environment variable mapping
+**Then** I document the complete ENV_VAR_MAP (VS_CFG_SERVER_NAME → ServerName, etc.)
+**And** I verify the mapping covers all settings from the reference implementation
+
+**Given** we need TanStack Table for data lists
+**When** I add the dependency
+**Then** `@tanstack/react-table` is added to web/package.json
+**And** a basic table component pattern is documented
+
+**Tasks:**
+- [ ] Research `/serverconfig` command - document supported settings
+- [ ] Test console command persistence - verify JSON auto-save
+- [ ] Create `serverconfig-template.json` from DarkMatterProductions reference
+- [ ] Define complete VS_CFG_* → serverconfig.json key mapping
+- [ ] Add TanStack Table dependency to web project
+- [ ] Update architecture.md with research findings
+
+---
+
+### Story 6.1: ConfigInitService and Template
+
+As an **administrator**,
+I want **the server to automatically generate an initial configuration from environment variables**,
+So that **I can deploy with custom settings without manual file creation**.
+
+**Acceptance Criteria:**
+
+**Given** the game server is installed but no serverconfig.json exists
+**When** the server start is requested
+**Then** ConfigInitService generates serverconfig.json from the template
+**And** any VS_CFG_* environment variables override template defaults
+
+**Given** VS_CFG_SERVER_NAME is set to "My Custom Server"
+**When** ConfigInitService generates the config
+**Then** serverconfig.json contains `"ServerName": "My Custom Server"`
+
+**Given** VS_CFG_MAX_CLIENTS is set to "32"
+**When** ConfigInitService generates the config
+**Then** serverconfig.json contains `"MaxClients": 32` (integer, not string)
+
+**Given** serverconfig.json already exists
+**When** the server start is requested
+**Then** ConfigInitService does NOT overwrite the existing config
+**And** the existing config is used as-is
+
+**Given** an invalid VS_CFG_* value is provided (e.g., VS_CFG_MAX_CLIENTS="abc")
+**When** ConfigInitService processes environment variables
+**Then** the invalid value is logged as a warning
+**And** the template default is used instead
+
+**Tasks:**
+- [ ] Create ConfigInitService class with needs_initialization() and initialize_config()
+- [ ] Implement ENV_VAR_MAP with type coercion (string, int, bool)
+- [ ] Ship serverconfig-template.json in api package
+- [ ] Integrate with ServerService.start() - call before server launch
+- [ ] Add comprehensive tests for env var processing
+- [ ] Test atomic write pattern (temp file + rename)
+
+---
+
+### Story 6.2: Game Settings API
+
+As an **administrator**,
+I want **to view and update game server settings through the API**,
+So that **I can configure the server using console commands for live updates**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/config/game` as Admin or Monitor
+**When** serverconfig.json exists
+**Then** I receive settings with metadata (key, value, type, live_update, env_managed)
+**And** the response includes source_file and last_modified
+
+**Given** I call `POST /api/v1alpha1/config/game/settings/ServerName` with `{"value": "New Name"}`
+**When** the game server is running
+**Then** the API executes `/serverconfig Name "New Name"` via console
+**And** the response includes `method: "console_command"` and `pending_restart: false`
+
+**Given** I call `POST /api/v1alpha1/config/game/settings/Port` with `{"value": 42421}`
+**When** the game server is running
+**Then** the setting is written to serverconfig.json (Port requires restart)
+**And** the response includes `method: "file_update"` and `pending_restart: true`
+
+**Given** I attempt to update a setting managed by VS_CFG_* environment variable
+**When** block_env_managed_settings is true (default)
+**Then** I receive a 400 error with code SETTING_ENV_MANAGED
+**And** the error message identifies the controlling environment variable
+
+**Given** I am authenticated as Monitor
+**When** I attempt to POST a setting update
+**Then** I receive a 403 Forbidden
+
+**Tasks:**
+- [ ] Create GameConfigService with get_settings() and update_setting()
+- [ ] Implement LIVE_SETTINGS map with console command templates
+- [ ] Add /config/game router with GET and POST endpoints
+- [ ] Integrate with ConsoleService for command execution
+- [ ] Add pending restart state integration
+- [ ] Comprehensive tests for live vs restart-required settings
+
+---
+
+### Story 6.3: API Settings Service
+
+As an **administrator**,
+I want **to view and update API operational settings**,
+So that **I can configure auto-start, refresh intervals, and environment handling**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/config/api` as Admin
+**When** api-settings.json exists (or defaults are used)
+**Then** I receive current API settings: auto_start_server, block_env_managed_settings, refresh intervals
+
+**Given** I call `POST /api/v1alpha1/config/api/settings/auto_start_server` with `{"value": true}`
+**When** the request is valid
+**Then** the setting is saved to api-settings.json
+**And** the response confirms the update
+
+**Given** I update mod_list_refresh_interval
+**When** the scheduler is running (Epic 7+)
+**Then** the job is rescheduled with the new interval
+
+**Given** I am authenticated as Monitor
+**When** I call GET /api/v1alpha1/config/api
+**Then** I receive a 403 Forbidden (API settings are Admin-only)
+
+**Tasks:**
+- [ ] Create ApiSettingsService with get_settings() and update_setting()
+- [ ] Define ApiSettings Pydantic model with defaults
+- [ ] Implement api-settings.json persistence with atomic writes
+- [ ] Add /config/api router with GET and POST endpoints
+- [ ] Add setting validation (e.g., intervals must be positive)
+
+---
+
+### Story 6.4: Settings UI
+
+As an **administrator**,
+I want **a web interface for managing game and API settings**,
+So that **I can configure the server visually and see console command feedback**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to the GameServer tab as Admin
+**When** the page loads on desktop (≥1024px)
+**Then** I see Game Config panel on left and Console on right (split view)
+
+**Given** I navigate to the GameServer tab on mobile (<1024px)
+**When** the page loads
+**Then** I see Console on top and Game Config below (stacked, scrollable)
+
+**Given** I change the ServerName field in Game Config
+**When** I blur the field (auto-save)
+**Then** the API is called and I see the `/serverconfig` command execute in Console
+**And** a success toast appears
+
+**Given** I change a restart-required setting (e.g., Port)
+**When** the save completes
+**Then** the PendingRestartBanner appears (consistent with mod changes)
+
+**Given** a setting is managed by VS_CFG_* environment variable
+**When** I view the setting
+**Then** it shows an "Env: VS_CFG_*" badge and the input is disabled
+
+**Given** I navigate to the Settings tab
+**When** the page loads
+**Then** I see tabs for "API Settings" and "File Manager"
+**And** API Settings shows auto_start, env handling, and refresh intervals
+**And** File Manager shows a "coming soon" stub
+
+**Tasks:**
+- [ ] Rename Console → GameServer in navigation
+- [ ] Create GameServerPage with responsive split layout
+- [ ] Create GameConfigPanel with SettingGroup and SettingField components
+- [ ] Implement useSettingField hook with Zod validation
+- [ ] Create SettingsPage with API Settings and File Manager tabs
+- [ ] Create ApiSettingsPanel component
+- [ ] Add File Manager stub component
+
+---
+
+### Story 6.5: Raw Config Viewer
 
 As an **administrator or monitor**,
-I want **to list and read game configuration files**,
-So that **I can view server settings without file system access**.
+I want **read-only access to raw configuration files**,
+So that **I can troubleshoot configuration issues**.
 
 **Acceptance Criteria:**
 
 **Given** I call `GET /api/v1alpha1/config/files` as Admin or Monitor
-**When** config files exist in `/data/config/`
-**Then** I receive a list of configuration file names (e.g., `serverconfig.json`, `servermagicnumbers.json`)
-*(Covers FR18, FR21)*
+**When** config files exist in the data directory
+**Then** I receive a list of configuration file names
 
-**Given** I call `GET /api/v1alpha1/config/files/{filename}` as Admin or Monitor
+**Given** I call `GET /api/v1alpha1/config/files/serverconfig.json`
 **When** the file exists
-**Then** I receive the file contents as JSON
-*(Covers FR19, FR22)*
+**Then** I receive the raw JSON content
 
-**Given** I request a file that doesn't exist
-**When** the API processes the request
-**Then** I receive a 404 error
-
-**Given** I request a file outside the config directory (path traversal attempt)
+**Given** I request a file with path traversal (e.g., `../secrets.json`)
 **When** the API validates the path
 **Then** I receive a 400 error and the request is rejected
 
+**Note:** This story provides the backend for the File Manager UI (stub in 6.4). Full File Manager UI is deferred to a future epic.
+
+**Tasks:**
+- [ ] Create /config/files router with list and read endpoints
+- [ ] Implement path validation to prevent traversal attacks
+- [ ] Add Monitor + Admin role access
+- [ ] Add tests for path traversal prevention
+
 ---
 
-### Story 6.2: Configuration File Editing API
+## Epic 7: APScheduler Integration
 
-As an **administrator**,
-I want **to edit and save game configuration files**,
-So that **I can change server settings without file system access**.
+The API server can execute periodic background tasks using APScheduler, enabling features like cache refresh and version checking.
+
+**Added (2025-12-30):** New epic for background task scheduling infrastructure.
+
+**Key Decisions:**
+- APScheduler with AsyncIOScheduler and MemoryJobStore
+- No external dependencies (in-memory job store)
+- SchedulerService pattern with lifespan integration
+- Job management API for visibility
+
+---
+
+### Story 7.0: Epic 7 Preparation
+
+As a **developer**,
+I want **to research APScheduler patterns and async integration**,
+So that **subsequent stories have a solid foundation for scheduling**.
 
 **Acceptance Criteria:**
 
-**Given** I call `PUT /api/v1alpha1/config/files/{filename}` as Admin with valid JSON body
-**When** the file exists and JSON is valid
-**Then** the file is saved using atomic write (temp + rename)
-**And** a pending restart flag is set
-*(Covers FR20)*
+**Given** we need to understand APScheduler async patterns
+**When** I research the library
+**Then** I document AsyncIOScheduler configuration best practices
+**And** I verify compatibility with our FastAPI lifespan pattern
 
-**Given** I submit invalid JSON
-**When** the API validates the content
-**Then** I receive a 400 error with JSON parsing error details
+**Given** we need to add APScheduler
+**When** I add the dependency
+**Then** `apscheduler` is added to api/pyproject.toml
+**And** version is pinned appropriately
+
+**Tasks:**
+- [ ] Research APScheduler AsyncIOScheduler patterns
+- [ ] Add apscheduler dependency to pyproject.toml
+- [ ] Document job defaults (coalesce, max_instances, misfire_grace_time)
+
+---
+
+### Story 7.1: SchedulerService
+
+As a **developer**,
+I want **a scheduler service that manages periodic background tasks**,
+So that **jobs can be added, removed, and monitored**.
+
+**Acceptance Criteria:**
+
+**Given** the API server starts
+**When** the lifespan context initializes
+**Then** the SchedulerService starts the AsyncIOScheduler
+**And** a log entry confirms "scheduler_started"
+
+**Given** the API server shuts down
+**When** the lifespan context exits
+**Then** the SchedulerService stops the scheduler gracefully
+**And** running jobs complete before shutdown
+
+**Given** I need to add an interval job
+**When** I call scheduler.add_interval_job(func, seconds, job_id)
+**Then** the job is registered and will execute at the specified interval
+
+**Given** I need to add a cron job
+**When** I call scheduler.add_cron_job(func, cron_expression, job_id)
+**Then** the job is registered with the cron schedule
+
+**Tasks:**
+- [ ] Create SchedulerService class with start/shutdown methods
+- [ ] Implement add_interval_job and add_cron_job methods
+- [ ] Integrate with FastAPI lifespan in main.py
+- [ ] Add structured logging for scheduler events
+- [ ] Add tests for scheduler lifecycle
+
+---
+
+### Story 7.2: Job Management API
+
+As an **administrator**,
+I want **to view and manage scheduled jobs through the API**,
+So that **I can monitor background task status**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/jobs` as Admin
+**When** jobs are registered
+**Then** I receive a list of jobs with: id, next_run_time, interval/cron, last_run_status
+
+**Given** I call `DELETE /api/v1alpha1/jobs/{job_id}` as Admin
+**When** the job exists
+**Then** the job is removed from the scheduler
+**And** the response confirms deletion
 
 **Given** I am authenticated as Monitor
-**When** I attempt to PUT a config file
-**Then** I receive a 403 Forbidden
+**When** I call GET /api/v1alpha1/jobs
+**Then** I receive a 403 Forbidden (job management is Admin-only)
 
-**Given** I save a config file
-**When** the save succeeds
-**Then** the response includes `pending_restart: true` indicator
+**Tasks:**
+- [ ] Create /jobs router with list and delete endpoints
+- [ ] Implement job serialization (id, schedule, status)
+- [ ] Add Admin-only authorization
+- [ ] Add tests for job API
 
 ---
 
-### Story 6.3: Configuration Editor UI
+### Story 7.3: Scheduler Health
 
-As an **administrator**,
-I want **a web interface for viewing and editing configuration files**,
-So that **I can manage server settings visually**.
+As an **operator**,
+I want **scheduler status included in health checks**,
+So that **I can monitor the background task system**.
 
 **Acceptance Criteria:**
 
-**Given** I navigate to the Config page as Admin
+**Given** I call `GET /healthz`
+**When** the scheduler is running
+**Then** the response includes `scheduler: { status: "running", job_count: N }`
+
+**Given** the scheduler has failed to start
+**When** I call /healthz
+**Then** the response includes `scheduler: { status: "stopped" }`
+
+**Tasks:**
+- [ ] Add scheduler status to health endpoint
+- [ ] Include job count in health response
+- [ ] Add tests for scheduler health reporting
+
+---
+
+## Epic 8: Periodic Task Patterns
+
+Initial periodic jobs are implemented using the APScheduler infrastructure, enabling automated cache refresh and version checking.
+
+**Added (2025-12-30):** New epic for implementing periodic jobs.
+
+---
+
+### Story 8.0: Epic 8 Preparation
+
+As a **developer**,
+I want **to define job patterns and error handling strategy**,
+So that **periodic tasks are implemented consistently**.
+
+**Acceptance Criteria:**
+
+**Given** we need a standard job pattern
+**When** I define the template
+**Then** jobs follow a consistent structure: try/except, structured logging, no re-raise
+
+**Given** we need job registration patterns
+**When** I define the approach
+**Then** jobs are registered in a central register_default_jobs() function
+**And** registration respects API settings (interval values)
+
+**Tasks:**
+- [ ] Define standard job template in architecture
+- [ ] Create jobs/ directory structure
+- [ ] Implement register_default_jobs() function
+
+---
+
+### Story 8.1: Mod Cache Refresh Job
+
+As an **administrator**,
+I want **the mod API cache to refresh automatically**,
+So that **mod information stays current without manual intervention**.
+
+**Acceptance Criteria:**
+
+**Given** mod_list_refresh_interval is set to 3600 (1 hour)
+**When** the scheduler runs
+**Then** the mod cache refresh job executes every hour
+
+**Given** the mod API is unreachable during refresh
+**When** the job executes
+**Then** the error is logged but the job continues on schedule
+**And** stale cache data is preserved
+
+**Given** mod_list_refresh_interval is set to 0
+**When** the scheduler starts
+**Then** the mod cache refresh job is NOT registered
+
+**Tasks:**
+- [ ] Create refresh_mod_cache job function
+- [ ] Register job in register_default_jobs()
+- [ ] Add error handling and logging
+- [ ] Add tests for job execution
+
+---
+
+### Story 8.2: Server Versions Check Job
+
+As an **administrator**,
+I want **automatic checks for new VintageStory versions**,
+So that **I'm notified when updates are available**.
+
+**Acceptance Criteria:**
+
+**Given** server_versions_refresh_interval is set to 86400 (24 hours)
+**When** the scheduler runs
+**Then** the version check job executes daily
+
+**Given** a new version is available
+**When** the job detects it
+**Then** the new version is logged
+**And** the version info is available via status API
+
+**Tasks:**
+- [ ] Create check_server_versions job function
+- [ ] Register job in register_default_jobs()
+- [ ] Store latest version info for status API
+- [ ] Add tests for version checking
+
+---
+
+### Story 8.3: Job Configuration UI
+
+As an **administrator**,
+I want **to view scheduled jobs in the Settings UI**,
+So that **I can monitor background task status**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to the Settings page
 **When** the page loads
-**Then** I see a list/tabs of available configuration files
+**Then** I see a "Scheduled Jobs" section showing registered jobs
 
-**Given** I select a configuration file
-**When** the file loads
-**Then** I see a JSON editor with syntax highlighting
-**And** the current file contents are displayed
+**Given** jobs are displayed
+**When** I view a job
+**Then** I see: job name, interval/schedule, next run time, last status
 
-**Given** I am viewing a config file as Monitor
-**When** the file loads
-**Then** I see the contents in read-only mode
-**And** the save button is hidden or disabled
-
-**Given** I make changes to a config file as Admin
-**When** I click "Save"
-**Then** the file is saved via the API
-**And** a success toast appears
-**And** the pending restart banner updates
-
-**Given** I make changes and attempt to navigate away
-**When** unsaved changes exist
-**Then** a warning dialog asks for confirmation
-
-**Given** I submit invalid JSON
-**When** validation fails
-**Then** an inline error message appears
-**And** the save button is disabled until JSON is valid
-
----
-
-## Epic 7: Server Settings & Whitelist Management
-
-Admins can manage server-level settings and control player access via whitelist.
-
-### Story 7.1: Server Settings API
-
-As an **administrator**,
-I want **to view and update server management settings**,
-So that **I can configure the management application**.
-
-**Acceptance Criteria:**
-
-**Given** I call `GET /api/v1alpha1/settings` as Admin
-**When** settings exist
-**Then** I receive current settings including: server_name, whitelist_enabled, and other management settings
-*(Covers FR23)*
-
-**Given** I call `PUT /api/v1alpha1/settings` as Admin with updated values
-**When** the request is valid
-**Then** the settings are saved using atomic write
-**And** the response confirms the update
-*(Covers FR24)*
-
-**Given** I submit invalid setting values
-**When** validation fails
-**Then** I receive a 400 error with field-specific validation messages
-
-**Given** I am authenticated as Monitor
-**When** I attempt to update settings
-**Then** I receive a 403 Forbidden
-
----
-
-### Story 7.2: Whitelist Management API
-
-As an **administrator**,
-I want **to view and manage the player whitelist**,
-So that **I can control who can join the server**.
-
-**Acceptance Criteria:**
-
-**Given** I call `GET /api/v1alpha1/settings/whitelist` as Admin
-**When** the whitelist exists
-**Then** I receive a list of whitelisted player names/UUIDs
-*(Covers FR25)*
-
-**Given** I call `POST /api/v1alpha1/settings/whitelist` with `{"player": "PlayerName"}`
-**When** the player is not already whitelisted
-**Then** the player is added to the whitelist
-**And** the whitelist file is saved
-*(Covers FR26)*
-
-**Given** I call `DELETE /api/v1alpha1/settings/whitelist/{player}`
-**When** the player is whitelisted
-**Then** the player is removed from the whitelist
-**And** the whitelist file is saved
-*(Covers FR26)*
-
-**Given** I attempt to add a player already on the whitelist
-**When** the API processes the request
-**Then** I receive a 409 Conflict or the request is idempotent (no error, already exists)
-
----
-
-### Story 7.3: Settings and Whitelist UI
-
-As an **administrator**,
-I want **a web interface for managing settings and whitelist**,
-So that **I can configure the server visually**.
-
-**Acceptance Criteria:**
-
-**Given** I navigate to a Settings page as Admin
-**When** the page loads
-**Then** I see current settings in a form layout
-**And** I see the whitelist section with player list
-
-**Given** I modify a setting
-**When** I click "Save"
-**Then** the settings are saved via the API
-**And** a success toast appears
-
-**Given** I view the whitelist section
-**When** players are whitelisted
-**Then** I see a list of player names with remove buttons
-
-**Given** I type a player name in the "Add Player" input
-**When** I click "Add" or press Enter
-**Then** the player is added to the whitelist
-**And** the list updates to show the new player
-
-**Given** I click remove on a whitelisted player
-**When** I confirm the action
-**Then** the player is removed from the list
-**And** a success toast appears
-
-**Given** whitelist_enabled is a toggle setting
-**When** I toggle it
-**Then** the setting updates immediately
-**And** the whitelist section visual state reflects enabled/disabled
+**Tasks:**
+- [ ] Add jobs section to SettingsPage
+- [ ] Create JobsTable component using TanStack Table
+- [ ] Add useJobs query hook
+- [ ] Style with badges for status (running, scheduled, failed)
 
 ---
 
@@ -1444,6 +1724,7 @@ So that **I can configure the server visually**.
 | Epic 3: Server Lifecycle Management | 3.1, 3.2, 3.3, 3.4, 3.5 | 5 |
 | Epic 4: Real-Time Console Access | 4.0, 4.1, 4.2, 4.3, 4.4 | 5 |
 | Epic 5: Mod Management | 5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6 | 7 |
-| Epic 6: Game Configuration Management | 6.1, 6.2, 6.3 | 3 |
-| Epic 7: Server Settings & Whitelist Management | 7.1, 7.2, 7.3 | 3 |
-| **Total** | | **30** |
+| Epic 6: Game Configuration Management | 6.0, 6.1, 6.2, 6.3, 6.4, 6.5 | 6 |
+| Epic 7: APScheduler Integration | 7.0, 7.1, 7.2, 7.3 | 4 |
+| Epic 8: Periodic Task Patterns | 8.0, 8.1, 8.2, 8.3 | 4 |
+| **Total** | | **38** |

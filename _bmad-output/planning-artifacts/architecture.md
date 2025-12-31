@@ -2,6 +2,7 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 status: 'complete'
 completedAt: '2025-12-26'
+lastUpdated: '2025-12-30'
 inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
@@ -10,6 +11,13 @@ workflowType: 'architecture'
 project_name: 'vintagestory-server'
 user_name: 'Matt'
 date: '2025-12-26'
+updates:
+  - date: '2025-12-28'
+    section: 'Epic 5 Mod Management'
+    description: 'Added mod management architecture patterns'
+  - date: '2025-12-30'
+    section: 'Epic 6 Configuration Management'
+    description: 'Architectural pivot from file editing to console commands'
 ---
 
 # Architecture Decision Document
@@ -24,26 +32,26 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 37 functional requirements spanning 8 capability areas:
 
-| Category | FRs | Architectural Implication |
-|----------|-----|---------------------------|
-| Server Lifecycle | FR1-5 | Process manager component, state machine for server status |
-| Console Access | FR6-9 | WebSocket server, ring buffer implementation, Admin-only access |
-| Mod Management | FR10-17 | External HTTP client, file system operations, compatibility logic |
-| Game Configuration | FR18-22 | JSON file I/O, validation layer |
-| Settings Management | FR23-26 | Lightweight persistence (JSON files) |
-| Health & Observability | FR27-30 | Kubernetes-compatible endpoints, process health checks |
-| Authentication | FR31-37 | Middleware for API key validation, role-based access control |
-| Deployment | FR38-39 | Docker Compose, environment variable configuration |
+| Category               | FRs     | Architectural Implication                                         |
+| ---------------------- | ------- | ----------------------------------------------------------------- |
+| Server Lifecycle       | FR1-5   | Process manager component, state machine for server status        |
+| Console Access         | FR6-9   | WebSocket server, ring buffer implementation, Admin-only access   |
+| Mod Management         | FR10-17 | External HTTP client, file system operations, compatibility logic |
+| Game Configuration     | FR18-22 | JSON file I/O, validation layer                                   |
+| Settings Management    | FR23-26 | Lightweight persistence (JSON files)                              |
+| Health & Observability | FR27-30 | Kubernetes-compatible endpoints, process health checks            |
+| Authentication         | FR31-37 | Middleware for API key validation, role-based access control      |
+| Deployment             | FR38-39 | Docker Compose, environment variable configuration                |
 
 **Non-Functional Requirements:**
 
-| Category | Key Requirements | Architectural Impact |
-|----------|-----------------|---------------------|
-| Performance | <1s console latency, <500ms API response | In-memory operations, efficient WebSocket handling |
-| Security | API keys never logged, in-memory console buffer | Logging configuration, no persistence for sensitive data |
-| Reliability | API survives game crashes, auto-reconnect | Decoupled process management, WebSocket reconnection logic |
-| Integration | Graceful mod API failures, clear error messages | Circuit breaker pattern, response caching |
-| Observability | Structured JSON logs, contextual errors | Logging framework configuration, error envelope design |
+| Category      | Key Requirements                                | Architectural Impact                                       |
+| ------------- | ----------------------------------------------- | ---------------------------------------------------------- |
+| Performance   | <1s console latency, <500ms API response        | In-memory operations, efficient WebSocket handling         |
+| Security      | API keys never logged, in-memory console buffer | Logging configuration, no persistence for sensitive data   |
+| Reliability   | API survives game crashes, auto-reconnect       | Decoupled process management, WebSocket reconnection logic |
+| Integration   | Graceful mod API failures, clear error messages | Circuit breaker pattern, response caching                  |
+| Observability | Structured JSON logs, contextual errors         | Logging framework configuration, error envelope design     |
 
 **Scale & Complexity:**
 
@@ -144,19 +152,19 @@ mise install
 
 #### Backend (FastAPI)
 
-| Option | Evaluation |
-|--------|------------|
+| Option                        | Evaluation                                                       |
+| ----------------------------- | ---------------------------------------------------------------- |
 | uv-fastapi-example (Official) | ✅ Selected - Official Astral pattern, minimal, production-ready |
-| py-fastapi-starter | Modular but includes PostgreSQL/Alembic we don't need |
-| Full starter templates | Over-engineered for our no-database requirement |
+| py-fastapi-starter            | Modular but includes PostgreSQL/Alembic we don't need            |
+| Full starter templates        | Over-engineered for our no-database requirement                  |
 
 #### Frontend (React + shadcn/ui)
 
-| Option | Evaluation |
-|--------|------------|
+| Option                    | Evaluation                                          |
+| ------------------------- | --------------------------------------------------- |
 | Official shadcn/ui + Vite | ✅ Selected - Documented, Tailwind v4, full control |
-| react-ts-shadcn-starter | Good but third-party maintenance |
-| vite-react-ts-shadcn-ui | Includes extras (Husky, etc.) we may not need |
+| react-ts-shadcn-starter   | Good but third-party maintenance                    |
+| vite-react-ts-shadcn-ui   | Includes extras (Husky, etc.) we may not need       |
 
 ### Selected Approach: Official Patterns
 
@@ -271,12 +279,12 @@ bunx shadcn@canary add button card table dialog toast tabs input badge switch sk
 
 ### Data Architecture
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Persistence** | In-memory + JSON file sync | Fast reads, durable writes, no database overhead |
-| **State Location** | `data/state.json` | Single source of truth for server state, mod states, pending restarts |
-| **Validation** | Pydantic v2 models | Type-safe, automatic serialization |
-| **Write Safety** | Atomic file writes | Prevents corruption on crash (temp file + rename) |
+| Decision           | Choice                     | Rationale                                                             |
+| ------------------ | -------------------------- | --------------------------------------------------------------------- |
+| **Persistence**    | In-memory + JSON file sync | Fast reads, durable writes, no database overhead                      |
+| **State Location** | `data/state.json`          | Single source of truth for server state, mod states, pending restarts |
+| **Validation**     | Pydantic v2 models         | Type-safe, automatic serialization                                    |
+| **Write Safety**   | Atomic file writes         | Prevents corruption on crash (temp file + rename)                     |
 
 **State Management Pattern:**
 
@@ -303,22 +311,22 @@ async def save_state(self):
 
 ### Authentication & Security
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Auth Method** | API key via `X-API-Key` header | Simple, stateless, sufficient for single-server |
-| **Roles** | Admin / Monitor / None | Three-tier access per PRD |
-| **Key Storage** | Environment variables | `VS_API_KEY_ADMIN`, `VS_API_KEY_MONITOR` |
-| **WebSocket Auth** | Query param on connection | `?api_key=xxx` validated on connect |
+| Decision           | Choice                         | Rationale                                       |
+| ------------------ | ------------------------------ | ----------------------------------------------- |
+| **Auth Method**    | API key via `X-API-Key` header | Simple, stateless, sufficient for single-server |
+| **Roles**          | Admin / Monitor / None         | Three-tier access per PRD                       |
+| **Key Storage**    | Environment variables          | `VS_API_KEY_ADMIN`, `VS_API_KEY_MONITOR`        |
+| **WebSocket Auth** | Query param on connection      | `?api_key=xxx` validated on connect             |
 
 ### API & Communication Patterns
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **API Style** | REST + WebSocket | REST for CRUD, WebSocket for streaming |
-| **Versioning** | `/api/v1alpha1` | Kubernetes-style, signals API maturity |
-| **HTTP Client** | httpx | Async-native, modern, mockable with respx |
-| **WebSocket** | Starlette built-in | No additional dependencies, well-integrated |
-| **Response Envelope** | `{"status": "ok\|error", "data": {...}}` | Consistent, predictable |
+| Decision              | Choice                                   | Rationale                                   |
+| --------------------- | ---------------------------------------- | ------------------------------------------- |
+| **API Style**         | REST + WebSocket                         | REST for CRUD, WebSocket for streaming      |
+| **Versioning**        | `/api/v1alpha1`                          | Kubernetes-style, signals API maturity      |
+| **HTTP Client**       | httpx                                    | Async-native, modern, mockable with respx   |
+| **WebSocket**         | Starlette built-in                       | No additional dependencies, well-integrated |
+| **Response Envelope** | `{"status": "ok\|error", "data": {...}}` | Consistent, predictable                     |
 
 **External API Integration:**
 
@@ -346,13 +354,14 @@ const reconnect = (attempt: number) => {
 
 ### Frontend Architecture
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Server State** | TanStack Query v5 | Caching, auto-refresh, optimistic updates |
-| **Client State** | React Context | Theme, sidebar state, simple UI state |
-| **Routing** | React Router v7 | Standard, well-documented, stable |
-| **Forms** | React Hook Form (if needed) | Type-safe, performant |
-| **API Mocking (tests)** | MSW (Mock Service Worker) | Realistic API mocking for tests |
+| Decision                | Choice                      | Rationale                                 |
+| ----------------------- | --------------------------- | ----------------------------------------- |
+| **Server State**        | TanStack Query v5           | Caching, auto-refresh, optimistic updates |
+| **Client State**        | React Context               | Theme, sidebar state, simple UI state     |
+| **Routing**             | React Router v7             | Standard, well-documented, stable         |
+| **Tables**              | TanStack Table v8           | Sorting, filtering, pagination for mods, files, jobs |
+| **Field Validation**    | Zod + custom hooks          | Lightweight, no form library overhead     |
+| **API Mocking (tests)** | MSW (Mock Service Worker)   | Realistic API mocking for tests           |
 
 **State Management Boundaries:**
 
@@ -376,14 +385,88 @@ const reconnect = (attempt: number) => {
 ⚠️ NEVER mix these. If data comes from API, use TanStack Query.
 ```
 
+**Field Validation Pattern (Epic 6+):**
+
+For auto-save settings fields, use Zod + custom hook instead of a form library:
+
+```typescript
+// Shared Zod schema (can be derived from OpenAPI/Pydantic)
+const gameSettingSchema = z.object({
+  MaxClients: z.coerce.number().min(1).max(128),
+  ServerName: z.string().min(1).max(64),
+  Port: z.coerce.number().min(1024).max(65535),
+});
+
+// Custom field hook
+function useSettingField<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState(initialValue);
+  const [error, setError] = useState<string | null>(null);
+  const mutation = useUpdateGameSetting();
+
+  const validate = (val: unknown): string | null => {
+    const fieldSchema = gameSettingSchema.shape[key];
+    if (!fieldSchema) return null;
+    const result = fieldSchema.safeParse(val);
+    return result.success ? null : result.error.errors[0]?.message ?? "Invalid";
+  };
+
+  const save = async () => {
+    const err = validate(value);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    await mutation.mutateAsync({ key, value });
+  };
+
+  return {
+    value,
+    setValue,
+    error: error ?? (mutation.error ? String(mutation.error) : null),
+    save,
+    isPending: mutation.isPending,
+    isDirty: value !== initialValue,
+  };
+}
+```
+
+**TanStack Table Usage (Epic 6+):**
+
+Use TanStack Table for data lists that benefit from sorting, filtering, or pagination:
+
+| Component | Use TanStack Table? | Rationale |
+|-----------|---------------------|-----------|
+| Mod List | ✅ Yes | 5+ mods becomes unwieldy as cards, need search/filter |
+| File Manager | ✅ Yes | File lists need sorting by name/date |
+| Jobs List | ✅ Yes | Consistent pattern, even for small lists |
+| Game Settings | ❌ No | Fixed list of fields, not tabular data |
+| API Settings | ❌ No | Fixed list of fields, not tabular data |
+
+```typescript
+// Example: Mod table with TanStack Table
+const columns = [
+  columnHelper.accessor("name", { header: "Mod Name" }),
+  columnHelper.accessor("version", { header: "Version" }),
+  columnHelper.accessor("enabled", {
+    header: "Status",
+    cell: (info) => <Badge>{info.getValue() ? "Enabled" : "Disabled"}</Badge>,
+  }),
+  columnHelper.display({
+    id: "actions",
+    cell: (info) => <ModActions mod={info.row.original} />,
+  }),
+];
+```
+
 ### Infrastructure & Deployment
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Logging** | structlog | Structured JSON, beautiful dev output |
-| **Container Strategy** | Single container (API + game server) | API serves static files, manages game server binary, simplified deployment |
-| **Base Image** | `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64` | Ubuntu 24.04 Noble with .NET 8 (for game server) + Python 3.12 native to apt |
-| **Process Manager** | Uvicorn (single process) + Subprocess management | Uvicorn serves API, game server runs as subprocess |
+| Decision               | Choice                                                | Rationale                                                                    |
+| ---------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Logging**            | structlog                                             | Structured JSON, beautiful dev output                                        |
+| **Container Strategy** | Single container (API + game server)                  | API serves static files, manages game server binary, simplified deployment   |
+| **Base Image**         | `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64` | Ubuntu 24.04 Noble with .NET 8 (for game server) + Python 3.12 native to apt |
+| **Process Manager**    | Uvicorn (single process) + Subprocess management      | Uvicorn serves API, game server runs as subprocess                           |
 
 **Logging Configuration:**
 
@@ -445,12 +528,12 @@ structlog.configure(
 
 ### Testability Considerations
 
-| Component | Testing Strategy | Tools |
-|-----------|-----------------|-------|
-| StateManager | Unit tests with temp files | pytest |
-| Mod API integration | Mock external API | respx |
-| WebSocket streaming | Abstract stdout capture as service | pytest-asyncio |
-| Frontend components | Component + integration tests | @testing-library/react + MSW |
+| Component           | Testing Strategy                   | Tools                        |
+| ------------------- | ---------------------------------- | ---------------------------- |
+| StateManager        | Unit tests with temp files         | pytest                       |
+| Mod API integration | Mock external API                  | respx                        |
+| WebSocket streaming | Abstract stdout capture as service | pytest-asyncio               |
+| Frontend components | Component + integration tests      | @testing-library/react + MSW |
 
 ### Decision Impact Analysis
 
@@ -505,33 +588,33 @@ vintagestory-server/
 
 **API Naming Conventions:**
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Endpoints | Plural nouns, kebab-case | `/api/v1alpha1/mods`, `/api/v1alpha1/config-files` |
-| Route params | snake_case | `/mods/{mod_slug}` |
-| Query params | snake_case | `?game_version=1.21.3` |
-| Headers | X-Prefix for custom | `X-API-Key` |
+| Element      | Convention               | Example                                            |
+| ------------ | ------------------------ | -------------------------------------------------- |
+| Endpoints    | Plural nouns, kebab-case | `/api/v1alpha1/mods`, `/api/v1alpha1/config-files` |
+| Route params | snake_case               | `/mods/{mod_slug}`                                 |
+| Query params | snake_case               | `?game_version=1.21.3`                             |
+| Headers      | X-Prefix for custom      | `X-API-Key`                                        |
 
 **Python Naming Conventions:**
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files/modules | snake_case | `mod_service.py`, `server_router.py` |
-| Classes | PascalCase | `ModService`, `StateManager` |
-| Functions | snake_case | `get_mod_details()`, `install_mod()` |
-| Variables | snake_case | `mod_slug`, `game_version` |
-| Constants | SCREAMING_SNAKE | `DEFAULT_TIMEOUT`, `MAX_RETRIES` |
+| Element       | Convention      | Example                              |
+| ------------- | --------------- | ------------------------------------ |
+| Files/modules | snake_case      | `mod_service.py`, `server_router.py` |
+| Classes       | PascalCase      | `ModService`, `StateManager`         |
+| Functions     | snake_case      | `get_mod_details()`, `install_mod()` |
+| Variables     | snake_case      | `mod_slug`, `game_version`           |
+| Constants     | SCREAMING_SNAKE | `DEFAULT_TIMEOUT`, `MAX_RETRIES`     |
 
 **TypeScript Naming Conventions:**
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files | kebab-case | `mod-card.tsx`, `use-server-status.ts` |
-| Components | PascalCase | `ModCard`, `ServerStatus` |
-| Hooks | camelCase with `use` prefix | `useServerStatus`, `useInstallMod` |
-| Functions | camelCase | `formatModVersion()`, `parseSlug()` |
-| Variables | camelCase | `modSlug`, `isLoading` |
-| Types/Interfaces | PascalCase | `Mod`, `ServerState`, `ApiResponse` |
+| Element          | Convention                  | Example                                |
+| ---------------- | --------------------------- | -------------------------------------- |
+| Files            | kebab-case                  | `mod-card.tsx`, `use-server-status.ts` |
+| Components       | PascalCase                  | `ModCard`, `ServerStatus`              |
+| Hooks            | camelCase with `use` prefix | `useServerStatus`, `useInstallMod`     |
+| Functions        | camelCase                   | `formatModVersion()`, `parseSlug()`    |
+| Variables        | camelCase                   | `modSlug`, `isLoading`                 |
+| Types/Interfaces | PascalCase                  | `Mod`, `ServerState`, `ApiResponse`    |
 
 ### JSON Field Naming (API Boundary)
 
@@ -668,10 +751,10 @@ web/
 
 ### Test Organization
 
-| Stack | Pattern | Location |
-|-------|---------|----------|
-| Backend | Separate `tests/` directory | `api/tests/test_*.py` |
-| Frontend | Co-located with components | `*.test.tsx` next to component |
+| Stack    | Pattern                     | Location                       |
+| -------- | --------------------------- | ------------------------------ |
+| Backend  | Separate `tests/` directory | `api/tests/test_*.py`          |
+| Frontend | Co-located with components  | `*.test.tsx` next to component |
 
 **Test Naming:**
 
@@ -721,17 +804,17 @@ class ErrorCode:
 
 **HTTP Status Code Usage:**
 
-| Status | Usage |
-|--------|-------|
-| 200 | Success (GET, PUT) |
-| 201 | Created (POST that creates) |
-| 204 | No content (DELETE) |
-| 400 | Bad request (validation error) |
-| 401 | Unauthorized (missing/invalid key) |
-| 403 | Forbidden (insufficient role) |
-| 404 | Not found |
-| 500 | Server error |
-| 502 | External API error |
+| Status | Usage                              |
+| ------ | ---------------------------------- |
+| 200    | Success (GET, PUT)                 |
+| 201    | Created (POST that creates)        |
+| 204    | No content (DELETE)                |
+| 400    | Bad request (validation error)     |
+| 401    | Unauthorized (missing/invalid key) |
+| 403    | Forbidden (insufficient role)      |
+| 404    | Not found                          |
+| 500    | Server error                       |
+| 502    | External API error                 |
 
 ### Communication Patterns
 
@@ -832,16 +915,16 @@ raise HTTPException(
 
 ### Anti-Patterns to Avoid
 
-| Avoid | Do Instead |
-|-------|------------|
-| `getUserData()` in Python | `get_user_data()` |
-| `mod-service.py` filename | `mod_service.py` |
+| Avoid                                      | Do Instead                              |
+| ------------------------------------------ | --------------------------------------- |
+| `getUserData()` in Python                  | `get_user_data()`                       |
+| `mod-service.py` filename                  | `mod_service.py`                        |
 | `ModCard.tsx` filename with default export | Keep PascalCase, it's correct for React |
-| Mixing snake_case in frontend code | Transform at API boundary |
-| Storing API data in React Context | Use TanStack Query |
-| `tests/` folder in web/ | Co-locate tests with components |
-| Custom loading state variables | Use TanStack Query's isLoading |
-| Generic error messages | Use error codes + descriptive messages |
+| Mixing snake_case in frontend code         | Transform at API boundary               |
+| Storing API data in React Context          | Use TanStack Query                      |
+| `tests/` folder in web/                    | Co-locate tests with components         |
+| Custom loading state variables             | Use TanStack Query's isLoading          |
+| Generic error messages                     | Use error codes + descriptive messages  |
 
 ## Project Structure & Boundaries
 
@@ -963,10 +1046,10 @@ vintagestory-server/
 
 **Alternatives Considered:**
 
-| Pattern | Description | Pros | Cons |
-|---------|-------------|------|------|
+| Pattern                       | Description                               | Pros                                                                                                                                       | Cons                                                                                                                                   |
+| ----------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Single Container** (CHOSEN) | API and game server run in same container | ✓ Simpler deployment (one service) <br> ✓ Shared data volume <br> ✓ No inter-container networking <br> ✓ Lower infrastructure overhead | ✗ Larger image (~300MB) <br> ✗ Cannot scale independently <br> ✗ Game server crash impacts API (mitigated by subprocess management) |
-| **Two Containers** | Separate API and game server containers | ✓ Smaller API image (~150MB) <br> ✓ Independent scaling <br> ✓ Isolated failures | ✗ More complex deployment <br> ✗ Inter-container networking <br> ✗ Shared volume management <br> ✗ Higher infrastructure overhead |
+| **Two Containers**            | Separate API and game server containers   | ✓ Smaller API image (~150MB) <br> ✓ Independent scaling <br> ✓ Isolated failures                                                        | ✗ More complex deployment <br> ✗ Inter-container networking <br> ✗ Shared volume management <br> ✗ Higher infrastructure overhead  |
 
 **Rationale for Single Container:**
 
@@ -1115,12 +1198,12 @@ services:
 
 **API Boundaries:**
 
-| Boundary | Internal | External |
-|----------|----------|----------|
-| `/api/v1alpha1/*` | All API routes | Clients (Web UI, CLI) |
-| `/ws/console` | Console WebSocket | Admin clients only |
-| `/*` (static) | Vite build output | Web browsers |
-| `/healthz`, `/readyz` | Health endpoints | Load balancers, K8s |
+| Boundary              | Internal          | External              |
+| --------------------- | ----------------- | --------------------- |
+| `/api/v1alpha1/*`     | All API routes    | Clients (Web UI, CLI) |
+| `/ws/console`         | Console WebSocket | Admin clients only    |
+| `/*` (static)         | Vite build output | Web browsers          |
+| `/healthz`, `/readyz` | Health endpoints  | Load balancers, K8s   |
 
 **Service Boundaries (Backend):**
 
@@ -1181,35 +1264,35 @@ services:
 
 **Data Boundaries:**
 
-| Data Type | Storage | Access Pattern |
-|-----------|---------|----------------|
-| Server state | `/data/state/state.json` | In-memory + atomic file sync |
-| Mod files | `/data/mods/` | File system operations |
-| Game config | `/data/config/` | Read/write JSON files |
-| Console buffer | In-memory ring buffer | WebSocket streaming |
-| Logs | `/data/logs/` | Append-only files |
+| Data Type      | Storage                  | Access Pattern               |
+| -------------- | ------------------------ | ---------------------------- |
+| Server state   | `/data/state/state.json` | In-memory + atomic file sync |
+| Mod files      | `/data/mods/`            | File system operations       |
+| Game config    | `/data/config/`          | Read/write JSON files        |
+| Console buffer | In-memory ring buffer    | WebSocket streaming          |
+| Logs           | `/data/logs/`            | Append-only files            |
 
 ### Requirements to Structure Mapping
 
 **Epic/Feature → Directory Mapping:**
 
-| Feature Area | Backend Location | Frontend Location |
-|--------------|-----------------|-------------------|
-| Server Lifecycle | `routers/server.py`, `services/server.py` | `features/dashboard/` |
-| Mod Management | `routers/mods.py`, `services/mods.py` | `features/mods/` |
-| Config Editing | `routers/config.py` | `features/config/` |
-| Console Access | `services/console.py`, WebSocket handler | `features/terminal/` |
-| Authentication | `middleware/auth.py` | `api/client.ts` (headers) |
-| Health Checks | `routers/health.py` | N/A (infrastructure) |
+| Feature Area     | Backend Location                          | Frontend Location         |
+| ---------------- | ----------------------------------------- | ------------------------- |
+| Server Lifecycle | `routers/server.py`, `services/server.py` | `features/dashboard/`     |
+| Mod Management   | `routers/mods.py`, `services/mods.py`     | `features/mods/`          |
+| Config Editing   | `routers/config.py`                       | `features/config/`        |
+| Console Access   | `services/console.py`, WebSocket handler  | `features/terminal/`      |
+| Authentication   | `middleware/auth.py`                      | `api/client.ts` (headers) |
+| Health Checks    | `routers/health.py`                       | N/A (infrastructure)      |
 
 **Cross-Cutting Concerns:**
 
-| Concern | Backend Files | Frontend Files |
-|---------|---------------|----------------|
-| State Management | `services/state.py`, `models/state.py` | `hooks/use-*.ts`, `contexts/` |
-| Error Handling | `models/errors.py`, exception handlers | Error boundaries, toast |
-| Logging | `structlog` configuration | Browser console |
-| API Response Format | `models/responses.py` | `api/types.ts` |
+| Concern             | Backend Files                          | Frontend Files                |
+| ------------------- | -------------------------------------- | ----------------------------- |
+| State Management    | `services/state.py`, `models/state.py` | `hooks/use-*.ts`, `contexts/` |
+| Error Handling      | `models/errors.py`, exception handlers | Error boundaries, toast       |
+| Logging             | `structlog` configuration              | Browser console               |
+| API Response Format | `models/responses.py`                  | `api/types.ts`                |
 
 ### Integration Points
 
@@ -1230,11 +1313,11 @@ services:
 
 **External Integrations:**
 
-| Integration | Protocol | Error Handling |
-|-------------|----------|----------------|
-| VintageStory Mod API | HTTPS (httpx) | Timeout, cache, graceful fallback |
-| GitHub Container Registry | Docker pull | Version tags, SHA pinning |
-| Game Server Binary | HTTPS download | Checksum verification |
+| Integration               | Protocol       | Error Handling                    |
+| ------------------------- | -------------- | --------------------------------- |
+| VintageStory Mod API      | HTTPS (httpx)  | Timeout, cache, graceful fallback |
+| GitHub Container Registry | Docker pull    | Version tags, SHA pinning         |
+| Game Server Binary        | HTTPS download | Checksum verification             |
 
 **Data Flow:**
 
@@ -1297,23 +1380,23 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 
 **Configuration Files (Root):**
 
-| File | Purpose |
-|------|---------|
-| `.mise.toml` | Tool version management |
-| `docker-compose.yaml` | Production deployment |
-| `docker-compose.dev.yaml` | Local development |
-| `Dockerfile` | Container build |
-| `.env.example` | Environment template |
-| `.gitignore` | Git exclusions |
+| File                      | Purpose                 |
+| ------------------------- | ----------------------- |
+| `.mise.toml`              | Tool version management |
+| `docker-compose.yaml`     | Production deployment   |
+| `docker-compose.dev.yaml` | Local development       |
+| `Dockerfile`              | Container build         |
+| `.env.example`            | Environment template    |
+| `.gitignore`              | Git exclusions          |
 
 **Environment Variables:**
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `VS_API_KEY_ADMIN` | Yes | Admin API key |
-| `VS_API_KEY_MONITOR` | No | Read-only API key |
-| `VS_GAME_VERSION` | No | Game version (default: stable) |
-| `VS_DEBUG` | No | Enable debug logging |
+| Variable             | Required | Description                    |
+| -------------------- | -------- | ------------------------------ |
+| `VS_API_KEY_ADMIN`   | Yes      | Admin API key                  |
+| `VS_API_KEY_MONITOR` | No       | Read-only API key              |
+| `VS_GAME_VERSION`    | No       | Game version (default: stable) |
+| `VS_DEBUG`           | No       | Enable debug logging           |
 
 ## Architecture Validation Results
 
@@ -1344,33 +1427,33 @@ All technology choices work together without conflicts:
 
 **Functional Requirements Coverage:**
 
-| Category | FRs | Architectural Support |
-|----------|-----|----------------------|
-| Server Lifecycle | FR1-5 | `routers/server.py` + `services/server.py` |
-| Console Access | FR6-9 | `services/console.py` + WebSocket handler |
-| Mod Management | FR10-17 | `routers/mods.py` + `services/mods.py` |
-| Game Configuration | FR18-22 | `routers/config.py` |
-| Settings Management | FR23-26 | `services/state.py` + config endpoints |
-| Health & Observability | FR27-30 | `routers/health.py` |
-| Authentication | FR31-37 | `middleware/auth.py` |
-| Deployment | FR38-39 | `docker-compose.yaml` + env vars |
+| Category               | FRs     | Architectural Support                      |
+| ---------------------- | ------- | ------------------------------------------ |
+| Server Lifecycle       | FR1-5   | `routers/server.py` + `services/server.py` |
+| Console Access         | FR6-9   | `services/console.py` + WebSocket handler  |
+| Mod Management         | FR10-17 | `routers/mods.py` + `services/mods.py`     |
+| Game Configuration     | FR18-22 | `routers/config.py`                        |
+| Settings Management    | FR23-26 | `services/state.py` + config endpoints     |
+| Health & Observability | FR27-30 | `routers/health.py`                        |
+| Authentication         | FR31-37 | `middleware/auth.py`                       |
+| Deployment             | FR38-39 | `docker-compose.yaml` + env vars           |
 
 **Non-Functional Requirements Coverage:**
 
-| NFR | Requirement | Architectural Support |
-|-----|-------------|----------------------|
-| NFR1 | <1s console latency | WebSocket streaming, in-memory buffer |
-| NFR2 | Real-time streaming | Starlette WebSocket |
-| NFR3 | <500ms API response | In-memory state, async operations |
-| NFR4 | Secure key storage | Environment variables |
-| NFR5 | TLS termination | Out of scope (reverse proxy) |
-| NFR6 | No console persistence | In-memory ring buffer only |
-| NFR7 | Auth failure logging | structlog with security context |
-| NFR8 | API survives crashes | Decoupled process management |
-| NFR9 | Crash recovery | StateManager with file sync |
-| NFR10 | Auto-reconnect | Exponential backoff pattern |
-| NFR11-13 | Graceful API failures | httpx timeout + cache |
-| NFR14-16 | Structured logs | structlog JSON + context |
+| NFR      | Requirement            | Architectural Support                 |
+| -------- | ---------------------- | ------------------------------------- |
+| NFR1     | <1s console latency    | WebSocket streaming, in-memory buffer |
+| NFR2     | Real-time streaming    | Starlette WebSocket                   |
+| NFR3     | <500ms API response    | In-memory state, async operations     |
+| NFR4     | Secure key storage     | Environment variables                 |
+| NFR5     | TLS termination        | Out of scope (reverse proxy)          |
+| NFR6     | No console persistence | In-memory ring buffer only            |
+| NFR7     | Auth failure logging   | structlog with security context       |
+| NFR8     | API survives crashes   | Decoupled process management          |
+| NFR9     | Crash recovery         | StateManager with file sync           |
+| NFR10    | Auto-reconnect         | Exponential backoff pattern           |
+| NFR11-13 | Graceful API failures  | httpx timeout + cache                 |
+| NFR14-16 | Structured logs        | structlog JSON + context              |
 
 ### Implementation Readiness Validation ✅
 
@@ -1623,24 +1706,24 @@ This section documents how the actual implementation has evolved from the origin
 
 **Routers (evolved):**
 
-| Original Spec | Actual Implementation | Reason |
-|---------------|----------------------|--------|
+| Original Spec                                    | Actual Implementation                                             | Reason                                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `server.py`, `mods.py`, `config.py`, `health.py` | `server.py`, `health.py`, `console.py`, `auth.py`, `test_rbac.py` | Console became its own router (WebSocket complexity). Auth split out for security isolation. |
 
 **Models (evolved):**
 
-| Original Spec | Actual Implementation | Reason |
-|---------------|----------------------|--------|
+| Original Spec                                      | Actual Implementation                                  | Reason                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | `state.py`, `mods.py`, `responses.py`, `errors.py` | `console.py`, `server.py`, `responses.py`, `errors.py` | Component-specific models (`console.py`, `server.py`) provide better cohesion than generic `state.py` |
 
 **Services (current):**
 
-| Service | Status | Notes |
-|---------|--------|-------|
-| `server.py` | ✅ Implemented | Handles lifecycle, installation, version management |
-| `console.py` | ✅ Implemented | WebSocket streaming, console buffer |
-| `state.py` | ⏳ Future | Will be added when needed for shared state patterns |
-| `mods.py` | ⏳ Epic 5 | Mod management service (Stories 5.1-5.6) |
+| Service      | Status         | Notes                                               |
+| ------------ | -------------- | --------------------------------------------------- |
+| `server.py`  | ✅ Implemented | Handles lifecycle, installation, version management |
+| `console.py` | ✅ Implemented | WebSocket streaming, console buffer                 |
+| `state.py`   | ⏳ Future       | Will be added when needed for shared state patterns |
+| `mods.py`    | ⏳ Epic 5       | Mod management service (Stories 5.1-5.6)            |
 
 ### Frontend API Client (enhanced)
 
@@ -2118,3 +2201,1043 @@ async def test_get_mod_with_cache_fallback():
     mod2 = await client.get_mod("smithingplus")
     assert mod2 is not None  # From stale cache
 ```
+
+---
+
+## Epic 6: Game Configuration Management Architecture
+
+_Added during Epic 5 retrospective (2025-12-30)_
+
+This section defines architecture patterns specific to Epic 6 (Game Configuration Management).
+
+### Architectural Pivot: Console Commands vs. File Editing
+
+**Research Finding (Epic 5 Retrospective):**
+
+VintageStory server console commands can modify most server settings, and the game server handles JSON persistence automatically. This changes our approach from "file editing" to "command-based configuration."
+
+**Reference Implementation:**
+[DarkMatterProductions generate-config.py](https://raw.githubusercontent.com/DarkMatterProductions/vintagestory/refs/heads/main/generate-config.py) demonstrates a data model with ~20 configurable settings.
+
+**Original Approach (Deferred):**
+```
+User → Web UI → JSON Editor → PUT /config/files/{name} → File Write → Restart
+```
+
+**New Approach:**
+```
+User → Web UI → Setting Form → POST /config/settings/{key} → API decides method → Game Server
+                                                              ↓
+                                              (Console command if running, file update otherwise)
+```
+
+**Key Boundary:** The frontend never constructs or sees console commands. It simply calls `POST /config/settings/{key}` with a value. The API server internally decides whether to use a console command or file update based on server state.
+
+### Setting Categories
+
+**1. Console-Commandable Settings (Live Update)**
+
+Settings the API server can update via console commands while game server is running.
+
+**⚠️ Implementation Detail:** The console command syntax below is internal to the API server. The frontend only sees setting keys and values.
+
+**Complete List (Researched Story 6.0, 2025-12-30):**
+
+| Setting | API Server Internal Command | Effect |
+|---------|----------------------------|--------|
+| ServerName | `/serverconfig name "value"` | Immediate |
+| ServerDescription | `/serverconfig description "value"` | Immediate |
+| WelcomeMessage | `/serverconfig motd "value"` | Immediate |
+| MaxClients | `/serverconfig maxclients N` | Immediate |
+| MaxChunkRadius | `/serverconfig maxchunkradius N` | Immediate |
+| Password | `/serverconfig password "value"` | Immediate |
+| (Remove password) | `/serverconfig nopassword` | Immediate |
+| AllowPvP | `/serverconfig allowpvp true/false` | Immediate |
+| AllowFireSpread | `/serverconfig allowfirespread true/false` | Immediate |
+| AllowFallingBlocks | `/serverconfig allowfallingblocks true/false` | Immediate |
+| EntitySpawning | `/serverconfig entityspawning true/false` | Immediate |
+| WhitelistMode | `/serverconfig WhitelistMode off/on/default` | Immediate |
+| AntiAbuse | `/serverconfig antiabuse Off/Basic/Pedantic` | Immediate |
+| TickRate | `/serverconfig tickrate N` (10-100) | Immediate |
+| RandomBlockTicksPerChunk | `/serverconfig blockTickSamplesPerChunk N` | Immediate |
+| PassTimeWhenEmpty | `/serverconfig passtimewhenempty true/false` | Immediate |
+| SpawnCapPlayerScaling | `/serverconfig spawncapplayerscaling N` (0-1) | Immediate |
+| Upnp | `/serverconfig upnp 0/1` | Immediate |
+| AdvertiseServer | `/serverconfig advertise 0/1` | Immediate |
+| DefaultSpawn | `/serverconfig defaultspawn x [y] z` | Immediate |
+| (Current location) | `/serverconfig setspawnhere` | Immediate |
+| TemporaryIpBlockList | `/serverconfig temporaryipblocklist 0/1` | Immediate |
+| LoginFloodProtection | `/serverconfig loginfloodprotection 0/1` | Immediate |
+
+**Persistence:** Console commands automatically persist changes to `serverconfig.json`. No manual save required.
+
+**Boolean Syntax Variations:** Note different commands use `true/false`, `0/1`, or enum values. API must normalize these internally.
+
+**2. Restart-Required Settings**
+
+Settings that cannot be changed via console commands. Require editing `serverconfig.json` and server restart:
+
+| Setting | Location | Notes |
+|---------|----------|-------|
+| Port | serverconfig.json | Server port (default: 42420) |
+| Ip | serverconfig.json | Bind IP address |
+| MapSizeX/Y/Z | serverconfig.json | World dimensions |
+| WorldConfig.Seed | serverconfig.json | New worlds only |
+| WorldConfig.SaveFileLocation | serverconfig.json | World save path |
+| ModPaths | serverconfig.json | Mod directories |
+| Roles | serverconfig.json | Role definitions |
+| DefaultRoleCode | serverconfig.json | Default player role |
+| ConfigVersion | serverconfig.json | Schema version |
+| CompressPackets | serverconfig.json | Network compression |
+
+**Reference:** See `agentdocs/vs-serverconfig-commands.md` for complete documentation.
+
+**3. Environment Variable Managed Settings**
+
+Settings controlled by container environment variables (read-only in UI):
+
+| Setting        | Env Var           | Behavior                                       |
+| -------------- | ----------------- | ---------------------------------------------- |
+| Game version   | `VS_GAME_VERSION` | Display only, warn if different from installed |
+| Data directory | `VS_DATA_DIR`     | Display only                                   |
+| Debug mode     | `VS_DEBUG`        | Display only                                   |
+
+### Initial Configuration Generation (ConfigInitService)
+
+On first server start, if no `serverconfig.json` exists, the API generates one from:
+1. A reference template (`serverconfig-template.json`)
+2. VS_CFG_* environment variable overrides
+
+**Pattern:** Inspired by [DarkMatterProductions](https://github.com/DarkMatterProductions/vintagestory) but adapted for our architecture.
+
+```python
+# api/src/vintagestory_api/services/config_init.py
+import os
+import json
+from pathlib import Path
+from typing import Any
+
+class ConfigInitService:
+    """Handles initial serverconfig.json generation from template + env vars."""
+
+    # Complete ENV_VAR_MAP with type information
+    # See api/src/vintagestory_api/services/config_init.py for implementation
+    # Format: {env_var: (config_key, type)}
+    ENV_VAR_MAP = {
+        # Server identity
+        "VS_CFG_SERVER_NAME": ("ServerName", "string"),
+        "VS_CFG_SERVER_URL": ("ServerUrl", "string"),
+        "VS_CFG_SERVER_DESCRIPTION": ("ServerDescription", "string"),
+        "VS_CFG_WELCOME_MESSAGE": ("WelcomeMessage", "string"),
+        # Network settings
+        "VS_CFG_SERVER_IP": ("Ip", "string"),
+        "VS_CFG_SERVER_PORT": ("Port", "int"),
+        "VS_CFG_SERVER_UPNP": ("Upnp", "bool"),
+        "VS_CFG_ADVERTISE_SERVER": ("AdvertiseServer", "bool"),
+        "VS_CFG_MAX_CLIENTS": ("MaxClients", "int"),
+        # Gameplay settings
+        "VS_CFG_SERVER_PASSWORD": ("Password", "string"),
+        "VS_CFG_MAX_CHUNK_RADIUS": ("MaxChunkRadius", "int"),
+        "VS_CFG_ALLOW_PVP": ("AllowPvP", "bool"),
+        "VS_CFG_ALLOW_FIRE_SPREAD": ("AllowFireSpread", "bool"),
+        "VS_CFG_PASS_TIME_WHEN_EMPTY": ("PassTimeWhenEmpty", "bool"),
+        # Whitelist settings
+        "VS_CFG_ONLY_WHITELISTED": ("OnlyWhitelisted", "bool"),
+        "VS_CFG_WHITELIST_MODE": ("WhitelistMode", "int"),
+        # Performance settings
+        "VS_CFG_TICK_TIME": ("TickTime", "float"),
+        "VS_CFG_SPAWN_CAP_PLAYER_SCALING": ("SpawnCapPlayerScaling", "float"),
+        # World settings (nested keys use dot notation)
+        "VS_CFG_WORLD_NAME": ("WorldConfig.WorldName", "string"),
+        "VS_CFG_WORLD_SEED": ("WorldConfig.Seed", "string"),
+        "VS_CFG_ALLOW_CREATIVE_MODE": ("WorldConfig.AllowCreativeMode", "bool"),
+        # ... 40+ total mappings in implementation
+    }
+
+    def __init__(self, data_dir: Path, template_path: Path):
+        self.config_path = data_dir / "config" / "serverconfig.json"
+        self.template_path = template_path
+
+    def needs_initialization(self) -> bool:
+        """Check if config needs to be created."""
+        return not self.config_path.exists()
+
+    def initialize_config(self) -> Path:
+        """Generate serverconfig.json from template + VS_CFG_* overrides."""
+        # Load template
+        config = self._load_template()
+
+        # Apply environment variable overrides
+        overrides = self._collect_env_overrides()
+        config = self._apply_overrides(config, overrides)
+
+        # Write config (atomic)
+        self._write_config(config)
+
+        return self.config_path
+
+    def _load_template(self) -> dict[str, Any]:
+        """Load the reference template."""
+        with open(self.template_path) as f:
+            return json.load(f)
+
+    def _collect_env_overrides(self) -> dict[str, Any]:
+        """Collect VS_CFG_* environment variables."""
+        overrides = {}
+        for env_key, config_key in self.ENV_VAR_MAP.items():
+            if env_key in os.environ:
+                value = os.environ[env_key]
+                overrides[config_key] = self._parse_value(value)
+        return overrides
+
+    def _parse_value(self, value: str) -> Any:
+        """Convert string env var to appropriate type."""
+        if value.lower() in ("true", "false"):
+            return value.lower() == "true"
+        try:
+            return int(value)
+        except ValueError:
+            return value
+
+    def _apply_overrides(self, config: dict, overrides: dict) -> dict:
+        """Apply overrides to config, handling nested keys."""
+        for key, value in overrides.items():
+            config[key] = value
+        return config
+
+    def _write_config(self, config: dict) -> None:
+        """Atomic write to config file."""
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self.config_path.with_suffix(".tmp")
+        temp.write_text(json.dumps(config, indent=2))
+        temp.rename(self.config_path)
+```
+
+**Integration with ServerService:**
+
+```python
+# In ServerService.start()
+async def start(self):
+    if self.config_init.needs_initialization():
+        self.config_init.initialize_config()
+        logger.info("config_initialized", source="template+env")
+    # proceed with start...
+```
+
+**Reference Template:**
+
+Ship `serverconfig-template.json` with sensible defaults. The template is JSON (not YAML) since:
+- Target format is JSON
+- No conversion step needed
+- Pydantic natively handles JSON
+
+**Backlog: State Enforcement**
+
+Future enhancement (not MVP): `enforce_env_on_restart` setting would re-apply VS_CFG_* values on each server restart, ensuring env vars always win over manual changes.
+
+### Configuration Service Pattern
+
+```python
+# api/src/vintagestory_api/services/config.py
+from typing import Optional, Literal
+from pydantic import BaseModel
+
+class ServerSetting(BaseModel):
+    """Definition of a server setting."""
+    key: str
+    value_type: Literal["string", "int", "bool"]
+    console_command: Optional[str] = None  # None = restart required
+    requires_restart: bool = False
+    env_var_override: Optional[str] = None  # If set, controlled by env
+
+class ConfigService:
+    """Service for reading and modifying server configuration."""
+
+    LIVE_SETTINGS = {
+        "ServerName": ServerSetting(
+            key="ServerName",
+            value_type="string",
+            console_command='/serverconfig Name "{value}"'
+        ),
+        "MaxClients": ServerSetting(
+            key="MaxClients",
+            value_type="int",
+            console_command="/serverconfig MaxClients {value}"
+        ),
+        "AllowPvP": ServerSetting(
+            key="AllowPvP",
+            value_type="bool",
+            console_command="/serverconfig AllowPvP {value}"
+        ),
+        # ... more settings
+    }
+
+    async def get_settings(self) -> dict:
+        """Get current settings from serverconfig.json."""
+        config = await self._read_serverconfig()
+        return self._enrich_with_metadata(config)
+
+    async def update_setting(self, key: str, value: str) -> UpdateResult:
+        """Update a setting using appropriate method."""
+        setting = self.LIVE_SETTINGS.get(key)
+
+        if not setting:
+            raise ValueError(f"Unknown setting: {key}")
+
+        if setting.env_var_override:
+            return UpdateResult(
+                success=False,
+                error="Setting is managed by environment variable"
+            )
+
+        if setting.console_command and self.server_is_running:
+            # Use console command for live update
+            cmd = setting.console_command.format(value=value)
+            await self.console_service.send_command(cmd)
+            return UpdateResult(success=True, requires_restart=False)
+        else:
+            # Fall back to file edit + restart flag
+            await self._update_config_file(key, value)
+            return UpdateResult(success=True, requires_restart=True)
+```
+
+### API Endpoints for Epic 6
+
+**Configuration Domain Separation:**
+
+| Endpoint | Domain | Description |
+|----------|--------|-------------|
+| `/api/v1alpha1/config/game` | Game Server | Settings stored in serverconfig.json, managed by VintageStory |
+| `/api/v1alpha1/config/api` | API Server | Operational settings for the management API itself |
+
+---
+
+#### Game Configuration (`/config/game`)
+
+**Read Game Settings:**
+
+```
+GET /api/v1alpha1/config/game
+```
+
+Returns current game server settings with metadata:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "settings": [
+      {
+        "key": "ServerName",
+        "value": "My Server",
+        "type": "string",
+        "live_update": true,
+        "env_managed": false
+      },
+      {
+        "key": "Port",
+        "value": 42420,
+        "type": "int",
+        "live_update": false,
+        "requires_restart": true
+      },
+      {
+        "key": "MaxClients",
+        "value": 16,
+        "type": "int",
+        "live_update": true,
+        "env_managed": true,
+        "env_var": "VS_CFG_MAX_CLIENTS"
+      }
+    ],
+    "source_file": "serverconfig.json",
+    "last_modified": "2025-12-30T10:00:00Z"
+  }
+}
+```
+
+**Update Game Setting:**
+
+```
+POST /api/v1alpha1/config/game/settings/{key}
+```
+
+Request:
+```json
+{
+  "value": "New Server Name"
+}
+```
+
+Response (live update):
+```json
+{
+  "status": "ok",
+  "data": {
+    "key": "ServerName",
+    "value": "New Server Name",
+    "method": "console_command",
+    "pending_restart": false
+  }
+}
+```
+
+Response (requires restart):
+```json
+{
+  "status": "ok",
+  "data": {
+    "key": "Port",
+    "value": 42421,
+    "method": "file_update",
+    "pending_restart": true
+  }
+}
+```
+
+Response (env managed, blocked):
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "SETTING_ENV_MANAGED",
+    "message": "Setting 'MaxClients' is managed by environment variable VS_CFG_MAX_CLIENTS"
+  }
+}
+```
+
+---
+
+#### API Configuration (`/config/api`)
+
+**Read API Settings:**
+
+```
+GET /api/v1alpha1/config/api
+```
+
+Returns API server operational settings:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "settings": {
+      "auto_start_server": false,
+      "block_env_managed_settings": true,
+      "enforce_env_on_restart": false,
+      "mod_list_refresh_interval": 3600,
+      "server_versions_refresh_interval": 86400
+    }
+  }
+}
+```
+
+**Update API Setting:**
+
+```
+POST /api/v1alpha1/config/api/settings/{key}
+```
+
+Request:
+```json
+{
+  "value": true
+}
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "data": {
+    "key": "auto_start_server",
+    "value": true
+  }
+}
+```
+
+**API Settings Reference:**
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `auto_start_server` | bool | false | Start game server automatically when API launches |
+| `block_env_managed_settings` | bool | true | Reject UI changes to settings controlled by VS_CFG_* env vars |
+| `enforce_env_on_restart` | bool | false | Re-apply VS_CFG_* values on each game server restart (backlog) |
+| `mod_list_refresh_interval` | int | 3600 | Seconds between mod API cache refreshes |
+| `server_versions_refresh_interval` | int | 86400 | Seconds between checking for new VS versions |
+
+---
+
+#### Raw Config Files (`/config/files`)
+
+**Read Raw Config File (Monitor + Admin):**
+
+```
+GET /api/v1alpha1/config/files/{filename}
+```
+
+Returns raw JSON content (read-only view for troubleshooting).
+
+### UI Architecture
+
+**Navigation Structure (Revised):**
+
+```
+Dashboard | GameServer | Mods | Settings
+              │                   │
+              ├── Console         ├── API Settings
+              └── Game Config     └── File Manager (stub)
+```
+
+**Key UX Decision:** Game Config shares the GameServer tab with Console, so users see console commands execute in real-time when changing settings.
+
+---
+
+#### GameServer Page (Responsive Layout)
+
+```typescript
+// web/src/features/gameserver/GameServerPage.tsx
+function GameServerPage() {
+  return (
+    <div className="flex flex-col lg:flex-row gap-4 h-full">
+      {/* Console: top on mobile, right on desktop */}
+      <div className="lg:order-2 lg:w-1/2 min-h-[300px] lg:min-h-[600px]">
+        <ConsoleView />
+      </div>
+
+      {/* Config: bottom on mobile, left on desktop */}
+      <div className="lg:order-1 lg:w-1/2 overflow-y-auto">
+        <GameConfigPanel />
+      </div>
+    </div>
+  );
+}
+```
+
+**Responsive Behavior:**
+
+| Viewport | Layout |
+|----------|--------|
+| Mobile/Narrow (<1024px) | Console (top) → Config (bottom, scrollable) |
+| Desktop/Wide (≥1024px) | Config (left) ↔ Console (right) |
+
+---
+
+#### Auto-Save Pattern
+
+**Per-field auto-save** - each setting saves immediately on change:
+
+```typescript
+// web/src/features/config/SettingField.tsx
+function SettingField({ setting }: { setting: GameSetting }) {
+  const updateSetting = useUpdateGameSetting();
+  const { toast } = useToast();
+
+  const handleChange = async (value: string | boolean) => {
+    try {
+      const result = await updateSetting.mutateAsync({
+        key: setting.key,
+        value: String(value)
+      });
+
+      if (result.data.pending_restart) {
+        // Triggers PendingRestartBanner (same pattern as mods)
+      } else {
+        toast({ title: "Setting updated", variant: "success" });
+      }
+    } catch (error) {
+      toast({ title: "Failed to update setting", variant: "destructive" });
+    }
+  };
+
+  // ... render
+}
+```
+
+**Restart-Required Fields (Option B - Consistent with Mods):**
+- Allowed even when server is running
+- Changes written to file
+- PendingRestartBanner appears (reuses existing component from mod management)
+- User restarts when ready
+
+**Partial Failure Handling:**
+- Each field independent - no batching
+- Error shown on specific field that failed
+- Other fields unaffected
+
+---
+
+#### Game Config Panel
+
+```typescript
+// web/src/features/config/GameConfigPanel.tsx
+function GameConfigPanel() {
+  const { data: settings } = useGameSettings();
+
+  return (
+    <div className="space-y-6">
+      <SettingGroup title="Server Identity">
+        <SettingField setting={settings.ServerName} />
+        <SettingField setting={settings.ServerDescription} />
+        <SettingField setting={settings.WelcomeMessage} />
+      </SettingGroup>
+
+      <SettingGroup title="Player Limits">
+        <SettingField setting={settings.MaxClients} />
+        <SettingField setting={settings.OnlyWhitelisted} />
+      </SettingGroup>
+
+      <SettingGroup title="Gameplay">
+        <SettingField setting={settings.AllowPvP} />
+        <SettingField setting={settings.AllowCreativeMode} />
+      </SettingGroup>
+
+      <SettingGroup title="Network">
+        <SettingField setting={settings.Port} />
+      </SettingGroup>
+
+      <SettingGroup title="Environment Managed" variant="muted">
+        <ReadonlySetting setting={settings.VS_GAME_VERSION} />
+      </SettingGroup>
+    </div>
+  );
+}
+```
+
+---
+
+#### Setting Field Component
+
+```typescript
+// web/src/features/config/SettingField.tsx
+function SettingField({ setting }: { setting: GameSetting }) {
+  const updateSetting = useUpdateGameSetting();
+
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div className="flex items-center gap-2">
+        <Label>{setting.label}</Label>
+        {setting.live_update && <Badge variant="outline">Live</Badge>}
+        {setting.requires_restart && <Badge variant="warning">Restart</Badge>}
+        {setting.env_managed && (
+          <Badge variant="muted">Env: {setting.env_var}</Badge>
+        )}
+      </div>
+
+      <div className="w-48">
+        {setting.type === "bool" ? (
+          <Switch
+            checked={setting.value}
+            onCheckedChange={(v) => updateSetting.mutate({ key: setting.key, value: v })}
+            disabled={setting.env_managed}
+          />
+        ) : setting.type === "int" ? (
+          <Input
+            type="number"
+            value={setting.value}
+            onBlur={(e) => updateSetting.mutate({ key: setting.key, value: e.target.value })}
+            disabled={setting.env_managed}
+          />
+        ) : (
+          <Input
+            value={setting.value}
+            onBlur={(e) => updateSetting.mutate({ key: setting.key, value: e.target.value })}
+            disabled={setting.env_managed}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+#### Settings Page (API + File Manager)
+
+```typescript
+// web/src/features/settings/SettingsPage.tsx
+function SettingsPage() {
+  return (
+    <Tabs defaultValue="api">
+      <TabsList>
+        <TabsTrigger value="api">API Settings</TabsTrigger>
+        <TabsTrigger value="files">File Manager</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="api">
+        <ApiSettingsPanel />
+      </TabsContent>
+
+      <TabsContent value="files">
+        <FileManagerStub />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function FileManagerStub() {
+  return (
+    <div className="text-center py-12 text-muted-foreground">
+      <p>File Manager coming in a future release.</p>
+      <p className="text-sm">Read-only config file viewing will be available here.</p>
+    </div>
+  );
+}
+```
+
+---
+
+#### API Settings Panel
+
+```typescript
+// web/src/features/settings/ApiSettingsPanel.tsx
+function ApiSettingsPanel() {
+  const { data: settings } = useApiSettings();
+
+  return (
+    <div className="space-y-6">
+      <SettingGroup title="Startup">
+        <ApiSettingField setting={settings.auto_start_server} />
+      </SettingGroup>
+
+      <SettingGroup title="Environment Handling">
+        <ApiSettingField setting={settings.block_env_managed_settings} />
+        <ApiSettingField
+          setting={settings.enforce_env_on_restart}
+          disabled
+          hint="Coming in a future release"
+        />
+      </SettingGroup>
+
+      <SettingGroup title="Refresh Intervals">
+        <ApiSettingField
+          setting={settings.mod_list_refresh_interval}
+          suffix="seconds"
+        />
+        <ApiSettingField
+          setting={settings.server_versions_refresh_interval}
+          suffix="seconds"
+        />
+      </SettingGroup>
+    </div>
+  );
+}
+```
+
+### Generic File Editing (Future Epic)
+
+**Deferred to "File Manager" Epic:**
+
+- Full JSON editor with syntax highlighting
+- Create/delete config files
+- Backup before edit
+- Schema validation
+
+**Rationale:**
+- Console commands provide safer config changes for common settings
+- File editing requires more security considerations (path traversal, validation)
+- Deferring allows focus on high-value "live update" experience
+
+### Open Questions for Implementation
+
+| Question                                          | Answer                                   | Status           |
+| ------------------------------------------------- | ---------------------------------------- | ---------------- |
+| Which settings support console commands?          | Research console `/serverconfig` command | Needs Testing    |
+| Do console changes persist to JSON automatically? | Believed yes, needs verification         | Needs Testing    |
+| How to detect file changes made by game server?   | File watcher or poll on GET              | Decision Pending |
+| How to handle partial command failures?           | Return error, don't set restart flag     | Decided          |
+
+### Story Updates Required
+
+Original Epic 6 stories need complete rewrite to reflect architectural pivot:
+
+| Original Story               | Why It's Obsolete                                  |
+| ---------------------------- | -------------------------------------------------- |
+| 6.1: Config Files API        | File-centric approach replaced by settings API    |
+| 6.2: Config File Editing API | Direct file editing replaced by console commands  |
+| 6.3: Config Editor UI        | JSON editor replaced by form-based settings page  |
+
+**Revised Epic 6 Story Structure:**
+
+| Story | Title | Scope |
+|-------|-------|-------|
+| **6.0** | Epic 6 Technical Preparation | Research console commands, create serverconfig-template.json, test VS_CFG_* handling |
+| **6.1** | ConfigInitService & Template | First-run config generation from template + VS_CFG_* env vars |
+| **6.2** | Game Settings API | GET /config/game, POST /config/game/settings/{key} with console command path |
+| **6.3** | API Settings Service | GET /config/api, POST /config/api/settings/{key}, api-settings.json persistence |
+| **6.4** | Settings UI | Form-based settings page with Game and API tabs |
+| **6.5** | Raw Config Viewer | Read-only /config/files/{filename} for troubleshooting |
+
+**Key Changes from Original:**
+
+1. **Two config domains** - Game (`/config/game`) and API (`/config/api`) separated
+2. **ConfigInitService** - First-run initialization with VS_CFG_* environment variables
+3. **Console command path** - Live updates via `/serverconfig` commands, not file editing
+4. **Form-based UI** - Settings page with badges, not JSON editor
+5. **Deferred file editing** - Raw file viewer is read-only; editing pushed to future "File Manager" epic
+
+### Testing Strategy
+
+**Console Command Integration Tests:**
+
+```python
+@pytest.mark.integration
+async def test_setting_update_via_console(running_server):
+    """Test that setting updates use console commands."""
+    # Start with known value
+    config = await api_client.get("/config")
+    original_name = config["data"]["settings"]["ServerName"]["value"]
+
+    # Update via API
+    response = await api_client.post(
+        "/config/settings/ServerName",
+        json={"value": "Test Server Name"}
+    )
+
+    assert response["data"]["method"] == "console_command"
+    assert response["data"]["pending_restart"] == False
+
+    # Verify change took effect
+    config = await api_client.get("/config")
+    assert config["data"]["settings"]["ServerName"]["value"] == "Test Server Name"
+
+    # Verify persisted to file (game server handles this)
+    file_content = Path("/data/config/serverconfig.json").read_text()
+    assert "Test Server Name" in file_content
+```
+
+### Error Codes for Epic 6
+
+```python
+# api/src/vintagestory_api/models/errors.py
+class ErrorCode:
+    # ... existing codes ...
+
+    # Epic 6 additions
+    CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
+    CONFIG_READ_ERROR = "CONFIG_READ_ERROR"
+    SETTING_UNKNOWN = "SETTING_UNKNOWN"
+    SETTING_ENV_MANAGED = "SETTING_ENV_MANAGED"
+    SETTING_UPDATE_FAILED = "SETTING_UPDATE_FAILED"
+    CONSOLE_COMMAND_FAILED = "CONSOLE_COMMAND_FAILED"
+```
+
+---
+
+## Epic 7 & 8: APScheduler Integration & Periodic Tasks
+
+_Added during Epic 5 retrospective (2025-12-30)_
+
+### Background Task Scheduling Decision
+
+**Decision:** Use APScheduler with AsyncIOScheduler and MemoryJobStore
+
+**Rationale:**
+- Cron syntax support for flexible scheduling
+- Built-in job management (pause, resume, remove)
+- Async-native with `AsyncIOScheduler`
+- No external dependencies (MemoryJobStore is in-memory)
+- Good learning opportunity for the team
+
+**Alternatives Considered:**
+
+| Option | Rejected Because |
+|--------|------------------|
+| Manual asyncio loop | No cron syntax, manual job management |
+| Celery Beat | Requires broker, overkill for our needs |
+| arq | Requires Redis |
+| rocketry | Less proven, smaller community |
+
+### APScheduler Architecture Pattern
+
+**Scheduler Setup:**
+
+```python
+# api/src/vintagestory_api/services/scheduler.py
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.memory import MemoryJobStore
+from apscheduler.executors.asyncio import AsyncIOExecutor
+
+class SchedulerService:
+    """Manages periodic background tasks."""
+
+    def __init__(self):
+        self.scheduler = AsyncIOScheduler(
+            jobstores={"default": MemoryJobStore()},
+            executors={"default": AsyncIOExecutor()},
+            job_defaults={
+                "coalesce": True,  # Combine missed runs into one
+                "max_instances": 1,  # Only one instance of each job
+                "misfire_grace_time": 60,  # Allow 60s grace for misfires
+            }
+        )
+
+    def start(self):
+        """Start the scheduler."""
+        self.scheduler.start()
+
+    def shutdown(self, wait: bool = True):
+        """Shutdown the scheduler."""
+        self.scheduler.shutdown(wait=wait)
+
+    def add_interval_job(
+        self,
+        func,
+        seconds: int,
+        job_id: str,
+        **kwargs
+    ):
+        """Add an interval-based job."""
+        self.scheduler.add_job(
+            func,
+            trigger="interval",
+            seconds=seconds,
+            id=job_id,
+            replace_existing=True,
+            **kwargs
+        )
+
+    def add_cron_job(
+        self,
+        func,
+        cron_expression: str,
+        job_id: str,
+        **kwargs
+    ):
+        """Add a cron-based job."""
+        from apscheduler.triggers.cron import CronTrigger
+        self.scheduler.add_job(
+            func,
+            trigger=CronTrigger.from_crontab(cron_expression),
+            id=job_id,
+            replace_existing=True,
+            **kwargs
+        )
+
+    def remove_job(self, job_id: str):
+        """Remove a job by ID."""
+        self.scheduler.remove_job(job_id)
+
+    def get_jobs(self) -> list:
+        """List all scheduled jobs."""
+        return self.scheduler.get_jobs()
+```
+
+**Lifespan Integration:**
+
+```python
+# api/src/vintagestory_api/main.py
+from vintagestory_api.services.scheduler import SchedulerService
+
+scheduler_service: SchedulerService | None = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    global scheduler_service
+
+    # ... existing startup ...
+
+    # Initialize scheduler
+    scheduler_service = SchedulerService()
+    scheduler_service.start()
+    logger.info("scheduler_started")
+
+    yield
+
+    # Shutdown scheduler
+    if scheduler_service:
+        scheduler_service.shutdown(wait=True)
+        logger.info("scheduler_stopped")
+
+    # ... existing shutdown ...
+```
+
+### Epic 7: APScheduler Integration (Foundation)
+
+**Scope:** Basic scheduler infrastructure, no jobs yet.
+
+| Story | Title | Scope |
+|-------|-------|-------|
+| **7.0** | Epic 7 Preparation | Research APScheduler patterns, review async integration |
+| **7.1** | SchedulerService | Core service with start/shutdown, lifespan integration |
+| **7.2** | Job Management API | GET /jobs (list), DELETE /jobs/{id} (admin only) |
+| **7.3** | Scheduler Health | Include scheduler status in /healthz, job count metrics |
+
+### Epic 8: Periodic Task Patterns
+
+**Scope:** Implement initial periodic jobs using the scheduler.
+
+| Story | Title | Scope |
+|-------|-------|-------|
+| **8.0** | Epic 8 Preparation | Define job patterns, error handling strategy |
+| **8.1** | Mod Cache Refresh Job | Periodic mod API cache refresh (uses `mod_list_refresh_interval`) |
+| **8.2** | Server Versions Check Job | Check for new VS versions (uses `server_versions_refresh_interval`) |
+| **8.3** | Job Configuration UI | Display scheduled jobs in settings, allow interval changes |
+
+### Job Patterns
+
+**Standard Job Template:**
+
+```python
+# api/src/vintagestory_api/jobs/mod_cache_refresh.py
+import structlog
+
+logger = structlog.get_logger()
+
+async def refresh_mod_cache():
+    """Periodic job to refresh mod API cache."""
+    try:
+        from vintagestory_api.services.mods import get_mod_service
+        mod_service = get_mod_service()
+        await mod_service.refresh_cache()
+        logger.info("mod_cache_refreshed")
+    except Exception as e:
+        logger.error("mod_cache_refresh_failed", error=str(e))
+        # Don't re-raise - let scheduler continue
+```
+
+**Job Registration Pattern:**
+
+```python
+# api/src/vintagestory_api/jobs/__init__.py
+from vintagestory_api.services.scheduler import SchedulerService
+from vintagestory_api.services.api_settings import get_api_settings
+
+def register_default_jobs(scheduler: SchedulerService):
+    """Register all default periodic jobs."""
+    settings = get_api_settings()
+
+    # Mod cache refresh
+    if settings.mod_list_refresh_interval > 0:
+        from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
+        scheduler.add_interval_job(
+            refresh_mod_cache,
+            seconds=settings.mod_list_refresh_interval,
+            job_id="mod_cache_refresh"
+        )
+
+    # Server versions check
+    if settings.server_versions_refresh_interval > 0:
+        from vintagestory_api.jobs.server_versions import check_server_versions
+        scheduler.add_interval_job(
+            check_server_versions,
+            seconds=settings.server_versions_refresh_interval,
+            job_id="server_versions_check"
+        )
+```
+
+### Epic Reordering
+
+**Updated Epic Sequence:**
+
+| Epic | Title | Status |
+|------|-------|--------|
+| 1-5 | (Completed) | Done |
+| **6** | Game Configuration Management | Planned |
+| **7** | APScheduler Integration | New |
+| **8** | Periodic Task Patterns | New |
+| **9** | Server Settings & Whitelist | (Former Epic 7) |
+
+**Note:** Original Epic 7 (Server Settings & Whitelist) becomes Epic 9.
