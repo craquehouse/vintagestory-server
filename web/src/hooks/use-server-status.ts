@@ -4,7 +4,9 @@
  * Uses TanStack Query for data fetching with polling support.
  */
 
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { queryKeys } from '@/api/query-keys';
 import {
   fetchServerStatus,
@@ -14,6 +16,7 @@ import {
   installServer,
   fetchInstallStatus,
 } from '@/api/server';
+import type { ServerState } from '@/api/types';
 
 /**
  * Default polling interval for server status (5 seconds).
@@ -150,4 +153,41 @@ export function useInstallStatus(enabled: boolean) {
     // Poll more frequently during installation
     refetchInterval: enabled ? 2000 : false,
   });
+}
+
+/**
+ * Hook to show toast notifications when server state transitions complete.
+ *
+ * Detects when the server transitions from a transitional state to a stable state:
+ * - `starting` → `running`: Shows "Server started" toast
+ * - `stopping` → `installed`: Shows "Server stopped" toast
+ *
+ * @param currentState - Current server state from useServerStatus
+ */
+export function useServerStateToasts(currentState: ServerState | undefined) {
+  const previousStateRef = useRef<ServerState | undefined>(undefined);
+
+  useEffect(() => {
+    const previousState = previousStateRef.current;
+
+    // Only check for transitions after we have a previous state
+    if (previousState && currentState) {
+      // Server finished starting
+      if (previousState === 'starting' && currentState === 'running') {
+        toast.success('Server started', {
+          description: 'The server is now running.',
+        });
+      }
+
+      // Server finished stopping
+      if (previousState === 'stopping' && currentState === 'installed') {
+        toast.success('Server stopped', {
+          description: 'The server has stopped.',
+        });
+      }
+    }
+
+    // Update the ref for next render
+    previousStateRef.current = currentState;
+  }, [currentState]);
 }

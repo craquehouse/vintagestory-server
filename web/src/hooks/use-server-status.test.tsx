@@ -2,13 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+import { toast } from 'sonner';
 import {
   useServerStatus,
   useStartServer,
   useStopServer,
   useRestartServer,
   useInstallServer,
+  useServerStateToasts,
 } from './use-server-status';
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -473,6 +483,113 @@ describe('useInstallServer', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['server', 'status'],
       });
+    });
+  });
+});
+
+describe('useServerStateToasts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('server started toast (UI-004)', () => {
+    it('shows toast when transitioning from starting to running', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'starting' as const } }
+      );
+
+      // Transition to running
+      rerender({ state: 'running' as const });
+
+      expect(toast.success).toHaveBeenCalledWith('Server started', {
+        description: 'The server is now running.',
+      });
+    });
+
+    it('does not show toast when running without prior starting state', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'installed' as const } }
+      );
+
+      // Transition directly to running (shouldn't happen normally, but tests the guard)
+      rerender({ state: 'running' as const });
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('server stopped toast (UI-004)', () => {
+    it('shows toast when transitioning from stopping to installed', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'stopping' as const } }
+      );
+
+      // Transition to installed (stopped)
+      rerender({ state: 'installed' as const });
+
+      expect(toast.success).toHaveBeenCalledWith('Server stopped', {
+        description: 'The server has stopped.',
+      });
+    });
+
+    it('does not show toast when installed without prior stopping state', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'running' as const } }
+      );
+
+      // Transition directly to installed (shouldn't happen normally)
+      rerender({ state: 'installed' as const });
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('does not show toast on initial render', () => {
+      renderHook(() => useServerStateToasts('running'));
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it('handles undefined state gracefully', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: undefined as undefined } }
+      );
+
+      rerender({ state: 'running' as const });
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it('handles transition from undefined to starting without toast', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: undefined as undefined } }
+      );
+
+      rerender({ state: 'starting' as const });
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    it('does not show toast for other state transitions', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'installed' as const } }
+      );
+
+      // installed -> starting
+      rerender({ state: 'starting' as const });
+      expect(toast.success).not.toHaveBeenCalled();
+
+      // starting -> stopping (error case)
+      rerender({ state: 'stopping' as const });
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 });

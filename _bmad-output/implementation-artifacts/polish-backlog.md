@@ -135,6 +135,7 @@ When items are marked `done`, optionally move them here for historical reference
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| UI-004 | Toasts for server starting and server stopping exist, but not server started and server stopped | 2025-12-31 | Added useServerStateToasts hook to detect state transitions |
 | UI-001 | The sidebar is much wider than it needs to be | 2025-12-31 | Reduced from 240px to 160px |
 | UI-003 | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings" | 2025-12-31 | Reordered nav items, renamed Console→GameServer, Config→Settings |
 | UI-007 | Mod preview card should display mod image | 2025-12-31 | Added logo_url to ModLookupResponse and display in card |
