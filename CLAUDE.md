@@ -115,6 +115,6 @@ docker compose logs -f vintagestory    # Follow game logs
 ## Key Conventions
 
 - **API responses** use consistent envelope: `{"status": "ok/error", "data": {...}}`
-- **WebSocket** at `/ws/console` for real-time game console streaming
+- **WebSocket** at `/api/v1alpha1/console/ws` for real-time game console streaming
 - **Mod files** stored in mounted volume, not in container image
 - **Config files** are JSON (VintageStory native format)
