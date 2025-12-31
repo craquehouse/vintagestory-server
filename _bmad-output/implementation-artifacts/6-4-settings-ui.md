@@ -76,12 +76,12 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 5.2: Implement collapsible sections with Card wrapper
   - [x] Subtask 5.3: Write tests for render and collapse behavior
 
-- [ ] Task 6: Create GameConfigPanel component + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 6.1: Create `web/src/features/game-server/GameConfigPanel.tsx`
-  - [ ] Subtask 6.2: Organize settings into SettingGroups (Server Info, Player Settings, World Settings)
-  - [ ] Subtask 6.3: Wire up each setting field with appropriate validation schema
-  - [ ] Subtask 6.4: Handle loading and error states with skeletons
-  - [ ] Subtask 6.5: Write tests for render, field updates, and validation
+- [x] Task 6: Create GameConfigPanel component + tests (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 6.1: Create `web/src/features/game-server/GameConfigPanel.tsx`
+  - [x] Subtask 6.2: Organize settings into SettingGroups (Server Info, Player Settings, World Settings)
+  - [x] Subtask 6.3: Wire up each setting field with appropriate validation schema
+  - [x] Subtask 6.4: Handle loading and error states with skeletons
+  - [x] Subtask 6.5: Write tests for render, field updates, and validation
 
 - [ ] Task 7: Create GameServerPage with responsive split layout + tests (AC: 1, 2)
   - [ ] Subtask 7.1: Create `web/src/features/game-server/GameServerPage.tsx`
