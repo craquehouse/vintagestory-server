@@ -474,8 +474,8 @@ class TestUpdateGameSettingRBAC:
 # ==============================================================================
 
 
-class TestConfigAPIResponseFormat:
-    """Tests for API response envelope format."""
+class TestGameSettingsResponseFormat:
+    """Tests for game settings API response envelope format."""
 
     def test_get_response_uses_standard_envelope(
         self, client: TestClient

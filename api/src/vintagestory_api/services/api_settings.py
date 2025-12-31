@@ -127,6 +127,10 @@ class ApiSettingsService:
             logger.debug("api_settings_loaded", path=str(self._settings_file))
             return settings
         except (json.JSONDecodeError, ValidationError) as e:
+            # Graceful degradation: return defaults on corrupt/invalid file rather than
+            # failing the request. This ensures the API remains operational even if the
+            # settings file is manually edited incorrectly. The warning log allows
+            # administrators to detect and fix the issue.
             logger.warning(
                 "api_settings_load_failed",
                 path=str(self._settings_file),
@@ -155,8 +159,9 @@ class ApiSettingsService:
         if key not in ApiSettings.model_fields:
             raise ApiSettingUnknownError(key)
 
-        # Get current settings
+        # Get current settings and capture old value for logging
         current = self.get_settings()
+        old_value = getattr(current, key)
         current_dict = current.model_dump()
 
         # Get the field info for type validation
@@ -209,7 +214,10 @@ class ApiSettingsService:
         # Persist with atomic write
         self._save_settings(updated)
 
-        # Notify scheduler if refresh interval changed
+        # Notify scheduler if refresh interval changed.
+        # Note: validated_value is safe to pass here because Pydantic validation
+        # (including ge=0 constraint) has already succeeded above. The callback
+        # will only receive valid, type-checked integer values.
         if key in ("mod_list_refresh_interval", "server_versions_refresh_interval"):
             if self._scheduler_callback:
                 self._scheduler_callback(key, validated_value)
@@ -218,6 +226,8 @@ class ApiSettingsService:
             "api_setting_updated",
             key=key,
             value=validated_value,
+            old_value=old_value,
+            source="api",
         )
 
         return {"key": key, "value": getattr(updated, key)}
@@ -230,13 +240,32 @@ class ApiSettingsService:
 
         Args:
             settings: The ApiSettings model to persist.
+
+        Raises:
+            OSError: If directory creation or file write fails.
         """
-        # Ensure directory exists
-        self._settings_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # Atomic write: temp file then rename
         temp_file = self._settings_file.with_suffix(".tmp")
-        temp_file.write_text(json.dumps(settings.model_dump(), indent=2))
-        temp_file.rename(self._settings_file)
 
-        logger.info("api_settings_saved", path=str(self._settings_file))
+        try:
+            # Ensure directory exists
+            self._settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Atomic write: temp file then rename
+            temp_file.write_text(json.dumps(settings.model_dump(), indent=2))
+            temp_file.rename(self._settings_file)
+
+            logger.info("api_settings_saved", path=str(self._settings_file))
+
+        except OSError as e:
+            logger.error(
+                "api_settings_save_failed",
+                path=str(self._settings_file),
+                error=str(e),
+            )
+            # Clean up temp file if it exists
+            if temp_file.exists():
+                try:
+                    temp_file.unlink()
+                except OSError:
+                    pass
+            raise

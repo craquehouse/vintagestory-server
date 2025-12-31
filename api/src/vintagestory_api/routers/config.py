@@ -222,7 +222,19 @@ def get_api_settings_service(
         server_service: ServerService for accessing application settings.
 
     Returns:
-        ApiSettingsService instance.
+        ApiSettingsService instance with settings dependency injected.
+
+    Note:
+        TODO(Epic-7): When implementing the scheduler service, inject the
+        scheduler_callback parameter here to enable automatic rescheduling
+        when mod_list_refresh_interval or server_versions_refresh_interval
+        settings are updated. Example:
+
+            scheduler = get_scheduler_service()
+            return ApiSettingsService(
+                settings=server_service.settings,
+                scheduler_callback=scheduler.reschedule_job,
+            )
     """
     return ApiSettingsService(settings=server_service.settings)
 
