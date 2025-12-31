@@ -142,4 +142,4 @@ When items are marked `done`, optionally move them here for historical reference
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
-| - | - | - | - |
+| UI-002 | Replace "VS Server" text with Vintage Story logo banner | 2025-12-31 | WebP logo (3.3KB + 8.4KB 2x) + icon for collapsed state (742B + 1.6KB 2x) |

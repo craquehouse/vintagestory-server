@@ -49,7 +49,12 @@ export function Sidebar({ className }: SidebarProps) {
           )}
         >
           {isCollapsed ? (
-            <span className="text-lg font-bold text-sidebar-primary">VS</span>
+            <img
+              src="/vintagestory-icon.webp"
+              srcSet="/vintagestory-icon.webp 1x, /vintagestory-icon@2x.webp 2x"
+              alt="VS"
+              className="h-6 w-6"
+            />
           ) : (
             <img
               src="/vintagestory-logo.webp"

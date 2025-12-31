@@ -185,7 +185,7 @@ describe('Sidebar', () => {
     expect(logo).toHaveAttribute('src', '/vintagestory-logo.webp');
   });
 
-  it('renders logo "VS" when collapsed', async () => {
+  it('renders icon when collapsed', async () => {
     const user = userEvent.setup();
     render(
       <SidebarProvider>
@@ -201,10 +201,11 @@ describe('Sidebar', () => {
 
     await user.click(collapseButton);
 
-    // After collapse, logo should be "VS" text
-    const logo = screen.getByText('VS');
-    expect(logo).toBeInTheDocument();
-    // Logo image should not be present when collapsed
+    // After collapse, should show icon instead of full logo
+    const icon = screen.getByRole('img', { name: /vs/i });
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveAttribute('src', '/vintagestory-icon.webp');
+    // Full logo image should not be present when collapsed
     expect(screen.queryByRole('img', { name: /vintage story/i })).not.toBeInTheDocument();
   });
 
