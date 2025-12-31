@@ -1,6 +1,6 @@
 # Story 6.1: ConfigInitService and Template
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,29 +22,29 @@ So that **I can deploy with custom settings without manual file creation**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create ConfigInitService class + tests (AC: 1, 4, 5)
-  - [ ] Subtask 1.1: Create `api/src/vintagestory_api/services/config_init_service.py` with ConfigInitService class
-  - [ ] Subtask 1.2: Implement `needs_initialization()` method - checks if serverconfig.json exists at `data_dir / "serverdata" / "serverconfig.json"`
-  - [ ] Subtask 1.3: Implement `initialize_config()` method - loads template, applies overrides, writes atomically
-  - [ ] Subtask 1.4: Write tests for needs_initialization() - file exists vs not exists
-  - [ ] Subtask 1.5: Write tests for idempotency - existing config NOT overwritten
+- [x] Task 1: Create ConfigInitService class + tests (AC: 1, 4, 5)
+  - [x] Subtask 1.1: Create `api/src/vintagestory_api/services/config_init_service.py` with ConfigInitService class
+  - [x] Subtask 1.2: Implement `needs_initialization()` method - checks if serverconfig.json exists at `data_dir / "serverdata" / "serverconfig.json"`
+  - [x] Subtask 1.3: Implement `initialize_config()` method - loads template, applies overrides, writes atomically
+  - [x] Subtask 1.4: Write tests for needs_initialization() - file exists vs not exists
+  - [x] Subtask 1.5: Write tests for idempotency - existing config NOT overwritten
 
-- [ ] Task 2: Implement environment variable override application + tests (AC: 2, 3, 5)
-  - [ ] Subtask 2.1: Implement `_collect_env_overrides()` - collect all VS_CFG_* from os.environ
-  - [ ] Subtask 2.2: Implement `_apply_overrides()` - use `parse_env_value()` from config_init.py for type coercion
-  - [ ] Subtask 2.3: Handle nested keys (e.g., "WorldConfig.AllowCreativeMode") using `get_config_key_path()`
-  - [ ] Subtask 2.4: Implement graceful error handling - log warning on invalid value, use template default
-  - [ ] Subtask 2.5: Write tests for type coercion - string, int, bool, float values
-  - [ ] Subtask 2.6: Write tests for nested key application
-  - [ ] Subtask 2.7: Write tests for invalid value handling
+- [x] Task 2: Implement environment variable override application + tests (AC: 2, 3, 5)
+  - [x] Subtask 2.1: Implement `_collect_env_overrides()` - collect all VS_CFG_* from os.environ
+  - [x] Subtask 2.2: Implement `_apply_overrides()` - use `parse_env_value()` from config_init.py for type coercion
+  - [x] Subtask 2.3: Handle nested keys (e.g., "WorldConfig.AllowCreativeMode") using `get_config_key_path()`
+  - [x] Subtask 2.4: Implement graceful error handling - log warning on invalid value, use template default
+  - [x] Subtask 2.5: Write tests for type coercion - string, int, bool, float values
+  - [x] Subtask 2.6: Write tests for nested key application
+  - [x] Subtask 2.7: Write tests for invalid value handling
 
-- [ ] Task 3: Integrate with ServerService.start() + tests (AC: 1)
-  - [ ] Subtask 3.1: Add ConfigInitService as dependency to ServerService
-  - [ ] Subtask 3.2: Call `config_init.needs_initialization()` before server launch
-  - [ ] Subtask 3.3: Call `config_init.initialize_config()` if needed
-  - [ ] Subtask 3.4: Log initialization event with structured logging
-  - [ ] Subtask 3.5: Write integration test verifying config is created before server start
-  - [ ] Subtask 3.6: Write integration test verifying existing config is not overwritten
+- [x] Task 3: Integrate with ServerService.start() + tests (AC: 1)
+  - [x] Subtask 3.1: Add ConfigInitService as dependency to ServerService
+  - [x] Subtask 3.2: Call `config_init.needs_initialization()` before server launch
+  - [x] Subtask 3.3: Call `config_init.initialize_config()` if needed
+  - [x] Subtask 3.4: Log initialization event with structured logging
+  - [x] Subtask 3.5: Write integration test verifying config is created before server start
+  - [x] Subtask 3.6: Write integration test verifying existing config is not overwritten
 
 ## Dev Notes
 
@@ -216,10 +216,46 @@ gh pr create --title "Story 6.1: ConfigInitService and Template" --body "..."
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None
+
 ### Completion Notes List
 
+- **Task 1**: Created ConfigInitService class in `api/src/vintagestory_api/services/config_init_service.py` with:
+  - `needs_initialization()` - checks if serverconfig.json exists
+  - `initialize_config()` - loads template, applies VS_CFG_* env overrides, writes atomically
+  - Uses temp-file-then-rename pattern for atomic writes (prevents corruption)
+  - Tests cover file existence check, idempotency, atomic write behavior
+
+- **Task 2**: Implemented environment variable override application:
+  - `_collect_env_overrides()` collects VS_CFG_* env vars matching ENV_VAR_MAP
+  - `_apply_overrides()` applies type coercion using `parse_env_value()` from config_init.py
+  - `_set_nested_value()` handles dotted keys like "WorldConfig.AllowCreativeMode"
+  - Graceful error handling: invalid values logged as warning, template default used
+  - Tests cover string/int/bool/float coercion, nested keys, invalid value handling
+
+- **Task 3**: Integrated ConfigInitService with ServerService:
+  - Added `config_init_service` property to ServerService for dependency injection
+  - Called `needs_initialization()` and `initialize_config()` in `_start_server_locked()`
+  - Added structured logging for config initialization events
+  - Integration tests verify config creation before server start and idempotency
+
+### Change Log
+
+- 2025-12-30: Implemented Story 6.1 - ConfigInitService and Template
+  - Created ConfigInitService class with atomic write pattern
+  - Implemented env var override application with type coercion
+  - Integrated with ServerService.start() lifecycle
+  - Added 26 tests covering all acceptance criteria
+
 ### File List
+
+**New Files:**
+- `api/src/vintagestory_api/services/config_init_service.py` - ConfigInitService class
+- `api/tests/test_config_init_service.py` - Test suite (26 tests)
+
+**Modified Files:**
+- `api/src/vintagestory_api/services/server.py` - Added ConfigInitService dependency and integration
