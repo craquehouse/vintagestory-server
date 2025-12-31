@@ -22,6 +22,7 @@ from vintagestory_api.services.game_config import (
     SettingEnvManagedError,
     SettingUnknownError,
     SettingUpdateFailedError,
+    SettingValueInvalidError,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -172,6 +173,15 @@ async def update_game_setting(
             status_code=400,
             detail={
                 "code": ErrorCode.SETTING_ENV_MANAGED,
+                "message": e.message,
+            },
+        )
+
+    except SettingValueInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.SETTING_VALUE_INVALID,
                 "message": e.message,
             },
         )

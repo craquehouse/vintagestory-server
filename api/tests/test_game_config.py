@@ -653,3 +653,200 @@ class TestUpdateResultModel:
         assert result_dict["value"] == "Test"
         assert result_dict["method"] == "console_command"
         assert result_dict["pending_restart"] is False
+
+
+# ==============================================================================
+# Security tests: Command injection prevention
+# ==============================================================================
+
+
+class TestCommandInjectionPrevention:
+    """Tests for command injection prevention - Review Follow-up."""
+
+    @pytest.mark.asyncio
+    async def test_reject_double_quotes_in_string(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String values with double quotes are rejected to prevent command injection."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("ServerName", 'Test"; /stop')
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+        assert "double quotes" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_reject_backslashes_in_string(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String values with backslashes are rejected."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("ServerName", "Test\\nEscaped")
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+        assert "backslash" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_reject_newlines_in_string(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String values with newlines are rejected."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("ServerName", "Line1\nLine2")
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+        assert "newline" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_reject_carriage_returns_in_string(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String values with carriage returns are rejected."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("ServerName", "Line1\rLine2")
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+        assert "newline" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_accept_safe_string_value(
+        self, game_config_service: GameConfigService, mock_server_service: MagicMock
+    ) -> None:
+        """Safe string values without dangerous characters are accepted."""
+        result = await game_config_service.update_setting(
+            "ServerName", "My Awesome Server - Version 2.0!"
+        )
+
+        assert result.value == "My Awesome Server - Version 2.0!"
+
+
+# ==============================================================================
+# Type validation tests
+# ==============================================================================
+
+
+class TestTypeValidation:
+    """Tests for input type validation - Review Follow-up."""
+
+    @pytest.mark.asyncio
+    async def test_reject_string_for_int_setting(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String value for int setting is rejected."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("MaxClients", "not-a-number")
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+
+    @pytest.mark.asyncio
+    async def test_accept_int_for_int_setting(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """Int value for int setting is accepted."""
+        result = await game_config_service.update_setting("MaxClients", 32)
+
+        assert result.value == 32
+
+    @pytest.mark.asyncio
+    async def test_accept_string_that_parses_to_int(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String that can be parsed to int is coerced."""
+        result = await game_config_service.update_setting("MaxClients", "64")
+
+        assert result.value == 64
+        assert isinstance(result.value, int)
+
+    @pytest.mark.asyncio
+    async def test_reject_string_for_bool_setting(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """Invalid string value for bool setting is rejected."""
+        from vintagestory_api.services.game_config import SettingValueInvalidError
+
+        with pytest.raises(SettingValueInvalidError) as exc_info:
+            await game_config_service.update_setting("AllowPvP", "maybe")
+
+        assert exc_info.value.code == "SETTING_VALUE_INVALID"
+
+    @pytest.mark.asyncio
+    async def test_accept_bool_for_bool_setting(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """Bool value for bool setting is accepted."""
+        result = await game_config_service.update_setting("AllowPvP", True)
+
+        assert result.value is True
+
+    @pytest.mark.asyncio
+    async def test_accept_string_true_for_bool_setting(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """String 'true' for bool setting is coerced to True."""
+        result = await game_config_service.update_setting("AllowPvP", "true")
+
+        assert result.value is True
+        assert isinstance(result.value, bool)
+
+
+# ==============================================================================
+# Password redaction tests
+# ==============================================================================
+
+
+class TestPasswordRedaction:
+    """Tests for password redaction in logs - Review Follow-up."""
+
+    @pytest.mark.asyncio
+    async def test_password_value_redacted_in_console_command_log(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """Password values are redacted in console command logs."""
+        with patch("vintagestory_api.services.game_config.logger") as mock_logger:
+            await game_config_service.update_setting("Password", "my-secret-password")
+
+            # Check that logger.info was called with value="***"
+            calls = [
+                c for c in mock_logger.info.call_args_list if "executing_console_command" in str(c)
+            ]
+            assert len(calls) > 0
+            for call in calls:
+                kwargs = call[1]
+                if "value" in kwargs:
+                    assert kwargs["value"] == "***", "Password should be redacted as ***"
+
+    @pytest.mark.asyncio
+    async def test_password_value_redacted_in_file_update_log(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """Password values are redacted in file update logs."""
+        # Make server stopped so it uses file update
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
+
+        with patch("vintagestory_api.services.game_config.logger") as mock_logger:
+            await game_config_service.update_setting("Password", "my-secret-password")
+
+            # Check that logger.info was called with value="***"
+            calls = [
+                c for c in mock_logger.info.call_args_list if "setting_updated" in str(c)
+            ]
+            assert len(calls) > 0
+            for call in calls:
+                kwargs = call[1]
+                if "value" in kwargs:
+                    assert kwargs["value"] == "***", "Password should be redacted as ***"

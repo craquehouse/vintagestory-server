@@ -18,7 +18,7 @@ import structlog
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
-from vintagestory_api.services.config_init import ENV_VAR_MAP
+from vintagestory_api.services.config_init import ENV_VAR_MAP, parse_env_value
 
 if TYPE_CHECKING:
     from vintagestory_api.services.pending_restart import PendingRestartState
@@ -332,6 +332,16 @@ class SettingUpdateFailedError(GameConfigError):
         )
 
 
+class SettingValueInvalidError(GameConfigError):
+    """Raised when a setting value fails validation."""
+
+    def __init__(self, key: str, reason: str) -> None:
+        super().__init__(
+            message=f"Invalid value for setting '{key}': {reason}",
+            code="SETTING_VALUE_INVALID",
+        )
+
+
 class GameConfigService:
     """Service for reading and updating game server settings.
 
@@ -460,6 +470,83 @@ class GameConfigService:
             last_modified=last_modified,
         )
 
+    def _validate_value(self, key: str, value: Any, value_type: ValueType) -> Any:
+        """Validate and coerce a value to the expected type.
+
+        Args:
+            key: The setting key (for error messages).
+            value: The value to validate.
+            value_type: The expected type.
+
+        Returns:
+            The validated and coerced value.
+
+        Raises:
+            SettingValueInvalidError: If the value cannot be coerced to the expected type.
+        """
+        try:
+            # If already correct type, return as-is
+            if value_type == "string" and isinstance(value, str):
+                return value
+            if value_type == "int" and isinstance(value, int) and not isinstance(value, bool):
+                return value
+            if value_type == "bool" and isinstance(value, bool):
+                return value
+            if value_type == "float":
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    return float(value)
+
+            # Try to coerce using parse_env_value
+            str_value = str(value)
+            return parse_env_value(str_value, value_type)
+
+        except ValueError as e:
+            raise SettingValueInvalidError(
+                key,
+                f"Expected {value_type}, got {type(value).__name__}: {value}",
+            ) from e
+
+    def _sanitize_string_for_console(self, key: str, value: str) -> str:
+        """Sanitize a string value for safe use in console commands.
+
+        Prevents command injection by rejecting strings with dangerous characters.
+        Console commands use double quotes for strings, so embedded quotes could
+        break out of the string context.
+
+        Args:
+            key: The setting key (for error messages).
+            value: The string value to sanitize.
+
+        Returns:
+            The sanitized string (unchanged if valid).
+
+        Raises:
+            SettingValueInvalidError: If the string contains dangerous characters.
+        """
+        # Reject strings containing double quotes - these could break command syntax
+        # Example attack: 'Test"; /stop' would become '/serverconfig name "Test"; /stop"'
+        if '"' in value:
+            raise SettingValueInvalidError(
+                key,
+                "String values cannot contain double quotes",
+            )
+
+        # Also reject backslashes as they could be used for escape sequences
+        if "\\" in value:
+            raise SettingValueInvalidError(
+                key,
+                "String values cannot contain backslashes",
+            )
+
+        # Reject newlines/carriage returns which could inject additional commands
+        if "\n" in value or "\r" in value:
+            raise SettingValueInvalidError(
+                key,
+                "String values cannot contain newlines",
+            )
+
+        return value
+
     async def update_setting(self, key: str, value: Any) -> UpdateResult:
         """Update a server setting.
 
@@ -476,6 +563,7 @@ class GameConfigService:
         Raises:
             SettingUnknownError: If the setting key is not recognized.
             SettingEnvManagedError: If the setting is managed by an env var.
+            SettingValueInvalidError: If the value fails validation.
             SettingUpdateFailedError: If the update fails.
         """
         # Validate setting exists
@@ -483,6 +571,13 @@ class GameConfigService:
             raise SettingUnknownError(key)
 
         setting_def = LIVE_SETTINGS[key]
+
+        # Validate and coerce value type
+        validated_value = self._validate_value(key, value, setting_def.value_type)
+
+        # Sanitize string values for command injection prevention
+        if setting_def.value_type == "string" and isinstance(validated_value, str):
+            validated_value = self._sanitize_string_for_console(key, validated_value)
 
         # Check if env-managed
         if self._block_env_managed:
@@ -495,9 +590,9 @@ class GameConfigService:
         use_console = server_running and setting_def.live_update
 
         if use_console:
-            return await self._execute_console_command(key, value, setting_def)
+            return await self._execute_console_command(key, validated_value, setting_def)
         else:
-            return await self._update_config_file(key, value, setting_def)
+            return await self._update_config_file(key, validated_value, setting_def)
 
     def _format_bool_for_console(
         self, value: bool, bool_format: BoolFormat
