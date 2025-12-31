@@ -276,3 +276,4 @@ None
 
 **Modified Files:**
 - `api/src/vintagestory_api/services/server.py` - Added ConfigInitService dependency and integration
+- `docker-compose.dev.yaml` - Added VS_CFG_SERVER_NAME variable for testing

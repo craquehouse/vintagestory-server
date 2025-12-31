@@ -19,6 +19,7 @@ services:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
       - VS_API_KEY=${VS_API_KEY_ADMIN:-changeme}
+      - VS_CFG_SERVER_NAME="Test Docker Server"
       - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=true
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
