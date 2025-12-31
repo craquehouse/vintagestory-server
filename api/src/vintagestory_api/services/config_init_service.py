@@ -134,6 +134,27 @@ class ConfigInitService:
         logger.debug("template_loaded", template_path=str(self._template_path))
         return template
 
+    def _strip_surrounding_quotes(self, value: str) -> str:
+        """Strip surrounding quotes from a value.
+
+        Docker-compose users often write env vars with quotes:
+            VS_CFG_SERVER_NAME="My Server"
+        But the quotes are included literally. This strips matching
+        leading/trailing quotes for better UX.
+
+        Args:
+            value: Raw environment variable value.
+
+        Returns:
+            Value with surrounding quotes removed if present.
+        """
+        if len(value) >= 2:
+            if (value.startswith('"') and value.endswith('"')) or (
+                value.startswith("'") and value.endswith("'")
+            ):
+                return value[1:-1]
+        return value
+
     def _collect_env_overrides(self) -> dict[str, tuple[str, str, ValueType]]:
         """Collect VS_CFG_* environment variables for config overrides.
 
@@ -146,6 +167,8 @@ class ConfigInitService:
         for env_var, (config_key, value_type) in ENV_VAR_MAP.items():
             value = os.environ.get(env_var)
             if value is not None:
+                # Strip surrounding quotes (common docker-compose pattern)
+                value = self._strip_surrounding_quotes(value)
                 overrides[env_var] = (config_key, value, value_type)
                 # Log collection but mask sensitive values
                 if "PASSWORD" in env_var.upper():

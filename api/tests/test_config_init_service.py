@@ -389,6 +389,80 @@ class TestEnvVarFiltering:
         assert "OTHER_VAR" not in str(config)
 
 
+class TestQuoteStripping:
+    """Tests for surrounding quote stripping from env var values.
+
+    Docker-compose users often write: VS_CFG_SERVER_NAME="My Server"
+    but the quotes are included literally. We strip them for better UX.
+    """
+
+    def test_double_quotes_stripped(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Double-quoted values have quotes stripped."""
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with patch.dict(os.environ, {"VS_CFG_SERVER_NAME": '"My Docker Server"'}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        assert config["ServerName"] == "My Docker Server"
+
+    def test_single_quotes_stripped(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Single-quoted values have quotes stripped."""
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with patch.dict(os.environ, {"VS_CFG_SERVER_NAME": "'Single Quoted'"}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        assert config["ServerName"] == "Single Quoted"
+
+    def test_mismatched_quotes_not_stripped(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Mismatched quotes are NOT stripped (kept as-is)."""
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with patch.dict(os.environ, {"VS_CFG_SERVER_NAME": "\"Mismatched'"}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        assert config["ServerName"] == "\"Mismatched'"
+
+    def test_no_quotes_unchanged(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Values without quotes are unchanged."""
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with patch.dict(os.environ, {"VS_CFG_SERVER_NAME": "Plain Value"}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        assert config["ServerName"] == "Plain Value"
+
+    def test_quoted_integer_stripped_then_parsed(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Quoted integers have quotes stripped before type conversion."""
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with patch.dict(os.environ, {"VS_CFG_MAX_CLIENTS": '"64"'}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        assert config["MaxClients"] == 64
+        assert isinstance(config["MaxClients"], int)
+
+
 class TestNestedKeyApplication:
     """Tests for nested key application (tested via initialize_config public interface)."""
 
