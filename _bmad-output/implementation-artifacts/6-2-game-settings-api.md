@@ -1,6 +1,6 @@
 # Story 6.2: Game Settings API
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -451,3 +451,24 @@ Modified files:
 ### Change Log
 
 - 2025-12-30: Story 6.2 implementation complete - Game Settings API with console commands for live updates
+
+### Review Follow-ups (AI)
+
+Issues found during code review on 2025-12-30:
+
+#### High Priority Issues
+
+- [x] [AI-Review][HIGH] Fix command injection vulnerability: String values in console commands aren't sanitized, allowing potential injection via quotes (e.g., value: 'Test"; malicious command'). Add input sanitization in _execute_console_command() at game_config.py:547.
+- [x] [AI-Review][HIGH] Add type validation for API input: UpdateRequest accepts any value without validating it matches expected type (int/bool/string). Use or create validation based on LIVE_SETTINGS value_type at game_config.py:463 and routers_config.py:37.
+
+#### Medium Priority Issues
+
+- [x] [AI-Review][MEDIUM] Add test for password redaction: No test verifies password values are properly redacted in logs. Add test case verifying logger receives "***" instead of actual password at game_config.py:551-552, 608-614.
+- [x] [AI-Review][MEDIUM] Add tests for invalid type input: No test verifies error handling when wrong type is sent (e.g., string for int setting like MaxClients). Add test cases that expect 400 or validation errors.
+- [x] [AI-Review][MEDIUM] Integrate type validation layer: parse_env_value() exists in config_init.py with proper type coercion but isn't used for API input validation. Import and leverage this function for consistency.
+- [x] [AI-Review][MEDIUM] Add security test for command injection: No test verifies that malicious input with quotes/semicolons is properly rejected or escaped. Add test case with malicious string input.
+- [x] [AI-Review][MEDIUM] Verify test timing: Per Epic 5 retro lesson, confirm tests were written alongside implementation (not batched at end). Git commit history shows 2 commits - review if tests were included in task-1 commit.
+
+#### Low Priority Issues
+
+- [x] [AI-Review][LOW] Import parse_env_value for consistency: Utility function exists in config_init.py but isn't imported/used in game_config.py. Import for future type validation work.
