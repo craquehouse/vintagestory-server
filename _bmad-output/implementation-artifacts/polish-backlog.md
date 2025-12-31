@@ -35,7 +35,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ID      | Description                                                                                                | Priority   | Effort   |  Status  | Related   | Notes   |
 | ------- | ---------------------------------------------------------------------------------------------------------- | ---------- | -------- | -------- | --------- | ------- |
 | ~~UI-001~~  | ~~The sidebar is much wider than it needs to be.~~                                                     | ~~low~~    | ~~S~~    | done     | -         | Reduced from 240px to 160px |
-| UI-002  | "VS Server" in the upper lefthand corner should be replaced with assets/vintagestory-logobanner.png        | low        | S        | backlog  | -         | Create a webp optimized, appropriately resized version to serve |
+| ~~UI-002~~  | ~~"VS Server" in the upper lefthand corner should be replaced with assets/vintagestory-logobanner.png~~        | ~~low~~        | ~~S~~        | done  | -         | WebP format (3.3KB + 8.4KB 2x retina), srcset for resolution switching |
 | UI-003  | Vertical order, top to bottom, of sidebar items should be "Dashboard", "GameServer", "Mods", "Settings"    | low        | S        | backlog  | Epic-6    | Renamed per Epic 6 architecture: Console→GameServer, added Settings tab |
 | UI-004  | Toasts for server starting and server stopping exist, but not server started and server stopped            | low        | S        | backlog  | -         | -       |
 | UI-005  | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                   | low        | S        | backlog  | -         | -       |
@@ -142,4 +142,4 @@ When items are marked `done`, optionally move them here for historical reference
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
-| - | - | - | - |
+| UI-002 | Replace "VS Server" text with Vintage Story logo banner | 2025-12-31 | WebP logo (3.3KB + 8.4KB 2x) + icon for collapsed state (742B + 1.6KB 2x) |
