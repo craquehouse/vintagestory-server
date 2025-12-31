@@ -64,12 +64,12 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 3.3: Implement auto-save on blur with validation
   - [x] Subtask 3.4: Write tests for validation, save, and error handling
 
-- [ ] Task 4: Create SettingField component + tests (AC: 3, 5)
-  - [ ] Subtask 4.1: Create `web/src/components/SettingField.tsx` base component
-  - [ ] Subtask 4.2: Implement text/number/boolean input variants
-  - [ ] Subtask 4.3: Implement env_managed badge and disabled state
-  - [ ] Subtask 4.4: Add loading spinner during save, error display
-  - [ ] Subtask 4.5: Write tests for all variants and states
+- [x] Task 4: Create SettingField component + tests (AC: 3, 5)
+  - [x] Subtask 4.1: Create `web/src/components/SettingField.tsx` base component
+  - [x] Subtask 4.2: Implement text/number/boolean input variants
+  - [x] Subtask 4.3: Implement env_managed badge and disabled state
+  - [x] Subtask 4.4: Add loading spinner during save, error display
+  - [x] Subtask 4.5: Write tests for all variants and states
 
 - [ ] Task 5: Create SettingGroup component + tests (AC: 3)
   - [ ] Subtask 5.1: Create `web/src/components/SettingGroup.tsx` for grouping related settings
