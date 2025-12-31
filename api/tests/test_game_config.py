@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,10 +25,6 @@ from vintagestory_api.services.game_config import (
     SettingUnknownError,
     SettingUpdateFailedError,
 )
-
-if TYPE_CHECKING:
-    from vintagestory_api.services.pending_restart import PendingRestartState
-    from vintagestory_api.services.server import ServerService
 
 
 @pytest.fixture
@@ -75,7 +70,9 @@ def config_file(temp_settings: Settings, sample_config: dict[str, object]) -> Pa
 def mock_server_service() -> MagicMock:
     """Create a mock ServerService."""
     service = MagicMock()
-    service._get_runtime_state.return_value = ServerState.RUNNING
+    mock_status = MagicMock()
+    mock_status.state = ServerState.RUNNING
+    service.get_server_status.return_value = mock_status
     service.send_command = AsyncMock(return_value=True)
     return service
 
@@ -262,7 +259,7 @@ class TestGetSettings:
         assert response.last_modified is not None
 
     def test_get_settings_includes_value_from_config(
-        self, game_config_service: GameConfigService, sample_config: dict
+        self, game_config_service: GameConfigService, sample_config: dict[str, object]
     ) -> None:
         """Settings include values from serverconfig.json."""
         response = game_config_service.get_settings()
@@ -459,7 +456,9 @@ class TestUpdateSettingFileUpdate:
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
         """AC 3: When server is stopped, update uses file update."""
-        mock_server_service._get_runtime_state.return_value = ServerState.INSTALLED
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
 
         result = await game_config_service.update_setting("ServerName", "New Name")
 
@@ -471,9 +470,7 @@ class TestUpdateSettingFileUpdate:
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
         """AC 3: Restart-required settings use file update even when running."""
-        # Server is running
-        mock_server_service._get_runtime_state.return_value = ServerState.RUNNING
-
+        # Server is running (default in mock_server_service fixture)
         result = await game_config_service.update_setting("Port", 42421)
 
         assert result.method == "file_update"
@@ -485,7 +482,9 @@ class TestUpdateSettingFileUpdate:
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
         """File update writes new value to serverconfig.json."""
-        mock_server_service._get_runtime_state.return_value = ServerState.INSTALLED
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
 
         await game_config_service.update_setting("ServerName", "Updated Name")
 
@@ -498,7 +497,9 @@ class TestUpdateSettingFileUpdate:
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
         """File update uses atomic write pattern (no .tmp files left)."""
-        mock_server_service._get_runtime_state.return_value = ServerState.INSTALLED
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
 
         await game_config_service.update_setting("ServerName", "Atomic Test")
 
@@ -610,23 +611,27 @@ class TestServerServiceIntegration:
     def test_is_server_running_with_service(
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
-        """_is_server_running() returns True when server is running."""
-        mock_server_service._get_runtime_state.return_value = ServerState.RUNNING
-        assert game_config_service._is_server_running() is True
+        """is_server_running() returns True when server is running."""
+        mock_status = MagicMock()
+        mock_status.state = ServerState.RUNNING
+        mock_server_service.get_server_status.return_value = mock_status
+        assert game_config_service.is_server_running() is True
 
     def test_is_server_running_without_service(
         self, temp_settings: Settings, config_file: Path
     ) -> None:
-        """_is_server_running() returns False when no ServerService."""
+        """is_server_running() returns False when no ServerService."""
         service = GameConfigService(settings=temp_settings, server_service=None)
-        assert service._is_server_running() is False
+        assert service.is_server_running() is False
 
     def test_is_server_running_when_stopped(
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
-        """_is_server_running() returns False when server is stopped."""
-        mock_server_service._get_runtime_state.return_value = ServerState.INSTALLED
-        assert game_config_service._is_server_running() is False
+        """is_server_running() returns False when server is stopped."""
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
+        assert game_config_service.is_server_running() is False
 
 
 class TestUpdateResultModel:

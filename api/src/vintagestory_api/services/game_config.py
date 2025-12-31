@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -30,8 +30,19 @@ logger = structlog.get_logger()
 ValueType = Literal["string", "int", "bool", "float"]
 
 
+# Type alias for bool format
+BoolFormat = Literal["true_false", "0_1"]
+
+
 class ServerSetting:
     """Definition of a server setting with update behavior."""
+
+    key: str
+    value_type: ValueType
+    console_command: str | None
+    requires_restart: bool
+    live_update: bool
+    bool_format: BoolFormat
 
     def __init__(
         self,
@@ -40,7 +51,7 @@ class ServerSetting:
         console_command: str | None = None,
         requires_restart: bool = False,
         live_update: bool = True,
-        bool_format: Literal["true_false", "0_1"] = "true_false",
+        bool_format: BoolFormat = "true_false",
     ) -> None:
         """Initialize a server setting definition.
 
@@ -373,7 +384,7 @@ class GameConfigService:
                 return env_var
         return None
 
-    def _is_server_running(self) -> bool:
+    def is_server_running(self) -> bool:
         """Check if the game server is currently running.
 
         Returns:
@@ -381,8 +392,8 @@ class GameConfigService:
         """
         if self._server_service is None:
             return False
-        state = self._server_service._get_runtime_state()
-        return state == ServerState.RUNNING
+        status = self._server_service.get_server_status()
+        return status.state == ServerState.RUNNING
 
     def _load_config(self) -> dict[str, Any]:
         """Load the serverconfig.json file.
@@ -406,7 +417,7 @@ class GameConfigService:
             Last modification time as UTC datetime.
         """
         stat = self.config_path.stat()
-        return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+        return datetime.fromtimestamp(stat.st_mtime, tz=UTC)
 
     def get_settings(self) -> SettingsResponse:
         """Get all managed settings with metadata.
@@ -480,7 +491,7 @@ class GameConfigService:
                 raise SettingEnvManagedError(key, env_var)
 
         # Determine update method
-        server_running = self._is_server_running()
+        server_running = self.is_server_running()
         use_console = server_running and setting_def.live_update
 
         if use_console:
@@ -489,7 +500,7 @@ class GameConfigService:
             return await self._update_config_file(key, value, setting_def)
 
     def _format_bool_for_console(
-        self, value: bool, bool_format: Literal["true_false", "0_1"]
+        self, value: bool, bool_format: BoolFormat
     ) -> str:
         """Format a boolean value for a console command.
 

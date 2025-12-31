@@ -13,7 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from vintagestory_api.config import Settings, configure_logging
 from vintagestory_api.middleware.auth import get_current_user
-from vintagestory_api.routers import auth, console, health, mods, server, test_rbac
+from vintagestory_api.routers import auth, config, console, health, mods, server, test_rbac
 
 logger = structlog.get_logger()
 
@@ -108,6 +108,7 @@ app.include_router(health.router)
 # API v1alpha1 endpoints (versioned, auth-protected)
 api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
 api_v1.include_router(auth.router)
+api_v1.include_router(config.router)
 api_v1.include_router(console.router)
 api_v1.include_router(mods.router)
 api_v1.include_router(server.router)

@@ -1,0 +1,512 @@
+"""Integration tests for config router endpoints.
+
+Story 6.2: Game Settings API
+
+Tests the config router endpoints for:
+- GET /config/game - Read settings with metadata
+- POST /config/game/settings/{key} - Update settings
+- RBAC: Monitor can read, only Admin can write
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from collections.abc import Generator
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from vintagestory_api.config import Settings
+from vintagestory_api.main import app
+from vintagestory_api.middleware.auth import get_settings
+from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.server import ServerState
+from vintagestory_api.routers.config import (
+    get_game_config_service,
+    get_pending_restart_state,
+)
+from vintagestory_api.routers.server import get_server_service
+from vintagestory_api.services.game_config import GameConfigService
+from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.server import ServerService
+
+# Test API keys
+TEST_ADMIN_KEY = "test-admin-key-12345"
+TEST_MONITOR_KEY = "test-monitor-key-67890"
+
+
+@pytest.fixture
+def temp_settings(tmp_path: Path) -> Settings:
+    """Create Settings with temporary data directory and test API keys."""
+    settings = Settings(
+        data_dir=tmp_path,
+        api_key_admin=TEST_ADMIN_KEY,
+        api_key_monitor=TEST_MONITOR_KEY,
+        debug=True,
+    )
+    return settings
+
+
+@pytest.fixture
+def sample_config() -> dict[str, object]:
+    """Sample serverconfig.json content for testing."""
+    return {
+        "ServerName": "Test Server",
+        "ServerDescription": "A test server",
+        "WelcomeMessage": "Welcome!",
+        "Port": 42420,
+        "Ip": "",
+        "MaxClients": 16,
+        "MaxChunkRadius": 12,
+        "Password": "",
+        "AllowPvP": True,
+        "AllowFireSpread": True,
+        "AllowFallingBlocks": True,
+        "EntitySpawning": True,
+        "PassTimeWhenEmpty": False,
+        "Upnp": False,
+        "AdvertiseServer": True,
+    }
+
+
+@pytest.fixture
+def config_file(temp_settings: Settings, sample_config: dict[str, object]) -> Path:
+    """Create a sample serverconfig.json file."""
+    config_path = temp_settings.serverdata_dir / "serverconfig.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(json.dumps(sample_config, indent=2))
+    return config_path
+
+
+@pytest.fixture
+def mock_server_service(temp_settings: Settings) -> MagicMock:
+    """Create a mock ServerService."""
+    service = MagicMock(spec=ServerService)
+    service.settings = temp_settings
+    mock_status = MagicMock()
+    mock_status.state = ServerState.RUNNING
+    service.get_server_status.return_value = mock_status
+    service.send_command = AsyncMock(return_value=True)
+    return service
+
+
+@pytest.fixture
+def mock_pending_restart() -> PendingRestartState:
+    """Create a real PendingRestartState instance."""
+    return PendingRestartState()
+
+
+@pytest.fixture
+def integration_app(
+    temp_settings: Settings,
+    config_file: Path,
+    mock_server_service: MagicMock,
+    mock_pending_restart: PendingRestartState,
+) -> Generator[FastAPI, None, None]:
+    """Create app with overridden dependencies for integration testing."""
+
+    def get_test_settings() -> Settings:
+        return temp_settings
+
+    def get_test_server_service() -> MagicMock:
+        return mock_server_service
+
+    def get_test_pending_restart() -> PendingRestartState:
+        return mock_pending_restart
+
+    def get_test_game_config_service() -> GameConfigService:
+        return GameConfigService(
+            settings=temp_settings,
+            server_service=mock_server_service,
+            pending_restart_state=mock_pending_restart,
+        )
+
+    app.dependency_overrides[get_settings] = get_test_settings
+    app.dependency_overrides[get_server_service] = get_test_server_service
+    app.dependency_overrides[get_pending_restart_state] = get_test_pending_restart
+    app.dependency_overrides[get_game_config_service] = get_test_game_config_service
+
+    yield app
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client(integration_app: FastAPI) -> TestClient:
+    """Create test client for integration tests."""
+    return TestClient(integration_app)
+
+
+# ==============================================================================
+# GET /config/game endpoint tests (AC: 1)
+# ==============================================================================
+
+
+class TestGetGameSettings:
+    """Tests for GET /config/game endpoint - AC 1."""
+
+    def test_get_game_settings_returns_all_settings(
+        self, client: TestClient
+    ) -> None:
+        """AC 1: GET returns all settings with metadata."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "settings" in data["data"]
+        assert len(data["data"]["settings"]) > 0
+
+    def test_get_game_settings_includes_source_file(
+        self, client: TestClient
+    ) -> None:
+        """AC 1: Response includes source_file metadata."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert data["data"]["source_file"] == "serverconfig.json"
+
+    def test_get_game_settings_includes_last_modified(
+        self, client: TestClient
+    ) -> None:
+        """AC 1: Response includes last_modified timestamp."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "last_modified" in data["data"]
+
+    def test_get_game_settings_setting_has_metadata(
+        self, client: TestClient
+    ) -> None:
+        """AC 1: Each setting includes key, value, type, live_update, env_managed."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        setting = data["data"]["settings"][0]
+        assert "key" in setting
+        assert "value" in setting
+        assert "type" in setting
+        assert "live_update" in setting
+        assert "env_managed" in setting
+
+    def test_get_game_settings_monitor_can_access(
+        self, client: TestClient
+    ) -> None:
+        """AC 1: Monitor role can access GET endpoint (read-only)."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_get_game_settings_unauthenticated_blocked(
+        self, client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = client.get("/api/v1alpha1/config/game")
+
+        assert response.status_code == 401
+
+
+class TestGetGameSettingsConfigNotFound:
+    """Tests for GET /config/game when config file doesn't exist."""
+
+    @pytest.fixture
+    def app_without_config(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> Generator[FastAPI, None, None]:
+        """Create app without config file."""
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_game_config_service() -> GameConfigService:
+            return GameConfigService(
+                settings=temp_settings,
+                server_service=mock_server_service,
+            )
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_game_config_service] = get_test_game_config_service
+
+        yield app
+
+        app.dependency_overrides.clear()
+
+    def test_get_game_settings_returns_404_when_config_missing(
+        self, app_without_config: FastAPI, temp_settings: Settings
+    ) -> None:
+        """GET returns 404 when serverconfig.json doesn't exist."""
+        client = TestClient(app_without_config)
+
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 404
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_NOT_FOUND
+
+
+# ==============================================================================
+# POST /config/game/settings/{key} endpoint tests (AC: 2, 3, 4, 5)
+# ==============================================================================
+
+
+class TestUpdateGameSettingLiveUpdate:
+    """Tests for POST /config/game/settings/{key} with live update - AC 2."""
+
+    def test_update_setting_live_success(
+        self, client: TestClient, mock_server_service: MagicMock
+    ) -> None:
+        """AC 2: Update setting via console command when server running."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "New Name"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["key"] == "ServerName"
+        assert data["data"]["value"] == "New Name"
+        assert data["data"]["method"] == "console_command"
+        assert data["data"]["pending_restart"] is False
+
+    def test_update_setting_calls_send_command(
+        self, client: TestClient, mock_server_service: MagicMock
+    ) -> None:
+        """AC 2: Update executes /serverconfig console command."""
+        client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "Console Test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        mock_server_service.send_command.assert_called_once()
+        call_args = mock_server_service.send_command.call_args[0][0]
+        assert '/serverconfig name "Console Test"' == call_args
+
+
+class TestUpdateGameSettingFileUpdate:
+    """Tests for POST /config/game/settings/{key} with file update - AC 3."""
+
+    def test_update_port_uses_file_update(
+        self, client: TestClient, mock_server_service: MagicMock
+    ) -> None:
+        """AC 3: Port update uses file update and sets pending_restart."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/Port",
+            json={"value": 42421},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["method"] == "file_update"
+        assert data["data"]["pending_restart"] is True
+        mock_server_service.send_command.assert_not_called()
+
+
+class TestUpdateGameSettingEnvManaged:
+    """Tests for POST /config/game/settings/{key} with env-managed settings - AC 4."""
+
+    def test_update_env_managed_setting_blocked(
+        self,
+        temp_settings: Settings,
+        config_file: Path,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """AC 4: Update blocked for env-managed setting with proper error."""
+        with patch.dict(os.environ, {"VS_CFG_MAX_CLIENTS": "32"}):
+
+            def get_test_settings() -> Settings:
+                return temp_settings
+
+            def get_test_server_service() -> MagicMock:
+                return mock_server_service
+
+            def get_test_game_config_service() -> GameConfigService:
+                return GameConfigService(
+                    settings=temp_settings,
+                    server_service=mock_server_service,
+                    block_env_managed_settings=True,
+                )
+
+            app.dependency_overrides[get_settings] = get_test_settings
+            app.dependency_overrides[get_server_service] = get_test_server_service
+            app.dependency_overrides[get_game_config_service] = (
+                get_test_game_config_service
+            )
+
+            try:
+                client = TestClient(app)
+                response = client.post(
+                    "/api/v1alpha1/config/game/settings/MaxClients",
+                    json={"value": 64},
+                    headers={"X-API-Key": TEST_ADMIN_KEY},
+                )
+
+                assert response.status_code == 400
+                error = response.json()["detail"]
+                assert error["code"] == ErrorCode.SETTING_ENV_MANAGED
+                assert "MaxClients" in error["message"]
+                assert "VS_CFG_MAX_CLIENTS" in error["message"]
+            finally:
+                app.dependency_overrides.clear()
+
+
+class TestUpdateGameSettingErrors:
+    """Tests for POST /config/game/settings/{key} error handling."""
+
+    def test_update_unknown_setting_returns_400(
+        self, client: TestClient
+    ) -> None:
+        """Unknown setting key returns 400 with SETTING_UNKNOWN error."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/UnknownSetting",
+            json={"value": "test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.SETTING_UNKNOWN
+
+    def test_update_console_command_fails(
+        self, client: TestClient, mock_server_service: MagicMock
+    ) -> None:
+        """Console command failure returns 500 with SETTING_UPDATE_FAILED."""
+        mock_server_service.send_command.return_value = False
+
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "Fail Test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.SETTING_UPDATE_FAILED
+
+
+# ==============================================================================
+# RBAC tests (AC: 5)
+# ==============================================================================
+
+
+class TestUpdateGameSettingRBAC:
+    """Tests for POST endpoint RBAC - AC 5."""
+
+    def test_admin_can_update_setting(
+        self, client: TestClient
+    ) -> None:
+        """Admin role can update settings."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "Admin Updated"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_monitor_blocked_from_update(
+        self, client: TestClient
+    ) -> None:
+        """AC 5: Monitor role is blocked from POST with 403 Forbidden."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "Monitor Attempt"},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.FORBIDDEN
+
+    def test_unauthenticated_blocked_from_update(
+        self, client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "No Auth"},
+        )
+
+        assert response.status_code == 401
+
+
+# ==============================================================================
+# API Response format tests
+# ==============================================================================
+
+
+class TestConfigAPIResponseFormat:
+    """Tests for API response envelope format."""
+
+    def test_get_response_uses_standard_envelope(
+        self, client: TestClient
+    ) -> None:
+        """GET response uses standard API envelope."""
+        response = client.get(
+            "/api/v1alpha1/config/game",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+
+    def test_post_response_uses_standard_envelope(
+        self, client: TestClient
+    ) -> None:
+        """POST response uses standard API envelope."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": "Envelope Test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+
+    def test_error_response_uses_detail_structure(
+        self, client: TestClient
+    ) -> None:
+        """Error response uses FastAPI detail structure."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/Unknown",
+            json={"value": "test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "detail" in data
+        assert "code" in data["detail"]
+        assert "message" in data["detail"]

@@ -1,6 +1,6 @@
 # Story 6.2: Game Settings API
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -34,26 +34,26 @@ So that **I can configure the server using console commands for live updates**.
   - [x] Subtask 1.9: Write tests for update_setting() with file update path
   - [x] Subtask 1.10: Write tests for env-managed setting blocking
 
-- [ ] Task 2: Add /config/game router + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 2.1: Create `api/src/vintagestory_api/routers/config.py` with config router
-  - [ ] Subtask 2.2: Implement `GET /config/game` endpoint - returns settings with metadata
-  - [ ] Subtask 2.3: Implement `POST /config/game/settings/{key}` endpoint - updates setting
-  - [ ] Subtask 2.4: Add Monitor + Admin auth for GET (read-only)
-  - [ ] Subtask 2.5: Add Admin-only auth for POST (write operations)
-  - [ ] Subtask 2.6: Register router in main.py
-  - [ ] Subtask 2.7: Write integration tests for GET endpoint
-  - [ ] Subtask 2.8: Write integration tests for POST endpoint with live update
-  - [ ] Subtask 2.9: Write integration tests for POST endpoint with file update
-  - [ ] Subtask 2.10: Write integration tests for RBAC (Monitor blocked from POST)
+- [x] Task 2: Add /config/game router + tests (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 2.1: Create `api/src/vintagestory_api/routers/config.py` with config router
+  - [x] Subtask 2.2: Implement `GET /config/game` endpoint - returns settings with metadata
+  - [x] Subtask 2.3: Implement `POST /config/game/settings/{key}` endpoint - updates setting
+  - [x] Subtask 2.4: Add Monitor + Admin auth for GET (read-only)
+  - [x] Subtask 2.5: Add Admin-only auth for POST (write operations)
+  - [x] Subtask 2.6: Register router in main.py
+  - [x] Subtask 2.7: Write integration tests for GET endpoint
+  - [x] Subtask 2.8: Write integration tests for POST endpoint with live update
+  - [x] Subtask 2.9: Write integration tests for POST endpoint with file update
+  - [x] Subtask 2.10: Write integration tests for RBAC (Monitor blocked from POST)
 
-- [ ] Task 3: Add Epic 6 error codes + tests (AC: 4)
-  - [ ] Subtask 3.1: Add SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED to ErrorCode class
-  - [ ] Subtask 3.2: Write tests verifying error codes in error responses
+- [x] Task 3: Add Epic 6 error codes + tests (AC: 4)
+  - [x] Subtask 3.1: Add SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED to ErrorCode class
+  - [x] Subtask 3.2: Write tests verifying error codes in error responses
 
-- [ ] Task 4: Integrate pending restart state + tests (AC: 3)
-  - [ ] Subtask 4.1: Inject PendingRestartState into GameConfigService
-  - [ ] Subtask 4.2: Call require_restart() when file-based update occurs
-  - [ ] Subtask 4.3: Write tests verifying pending restart flag is set for restart-required settings
+- [x] Task 4: Integrate pending restart state + tests (AC: 3)
+  - [x] Subtask 4.1: Inject PendingRestartState into GameConfigService
+  - [x] Subtask 4.2: Call require_restart() when file-based update occurs
+  - [x] Subtask 4.3: Write tests verifying pending restart flag is set for restart-required settings
 
 ## Dev Notes
 
@@ -423,10 +423,31 @@ def get_env_var_for_setting(key: str) -> Optional[str]:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- Task 1: Created GameConfigService with LIVE_SETTINGS dict containing 15 settings (13 live, 2 restart-required). Service supports console command updates for running server, file updates for stopped server or restart-required settings.
+- Task 2: Created config router with GET /config/game and POST /config/game/settings/{key} endpoints. GET returns all settings with metadata, POST updates via console or file.
+- Task 3: Added SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED error codes to ErrorCode class.
+- Task 4: PendingRestartState injected into service, require_restart() called for restart-required settings.
+
 ### File List
+
+New files:
+- api/src/vintagestory_api/services/game_config.py
+- api/src/vintagestory_api/routers/config.py
+- api/tests/test_game_config.py
+- api/tests/test_routers_config.py
+
+Modified files:
+- api/src/vintagestory_api/models/errors.py (added Epic 6 error codes)
+- api/src/vintagestory_api/main.py (registered config router)
+
+### Change Log
+
+- 2025-12-30: Story 6.2 implementation complete - Game Settings API with console commands for live updates
