@@ -1,6 +1,6 @@
 # Story 6.2: Game Settings API
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -22,38 +22,38 @@ So that **I can configure the server using console commands for live updates**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create GameConfigService + tests (AC: 1, 2, 3, 4)
-  - [ ] Subtask 1.1: Create `api/src/vintagestory_api/services/game_config.py` with GameConfigService class
-  - [ ] Subtask 1.2: Implement `LIVE_SETTINGS` dict with ServerSetting model (key, value_type, console_command, requires_restart)
-  - [ ] Subtask 1.3: Implement `get_settings()` method - reads serverconfig.json and enriches with metadata
-  - [ ] Subtask 1.4: Implement `update_setting()` method - console command for live settings, file update for restart-required
-  - [ ] Subtask 1.5: Implement `_execute_console_command()` - uses ServerService.send_command()
-  - [ ] Subtask 1.6: Implement `_update_config_file()` - atomic write for file-based updates
-  - [ ] Subtask 1.7: Write tests for get_settings() - returns enriched settings with metadata
-  - [ ] Subtask 1.8: Write tests for update_setting() with live update path
-  - [ ] Subtask 1.9: Write tests for update_setting() with file update path
-  - [ ] Subtask 1.10: Write tests for env-managed setting blocking
+- [x] Task 1: Create GameConfigService + tests (AC: 1, 2, 3, 4)
+  - [x] Subtask 1.1: Create `api/src/vintagestory_api/services/game_config.py` with GameConfigService class
+  - [x] Subtask 1.2: Implement `LIVE_SETTINGS` dict with ServerSetting model (key, value_type, console_command, requires_restart)
+  - [x] Subtask 1.3: Implement `get_settings()` method - reads serverconfig.json and enriches with metadata
+  - [x] Subtask 1.4: Implement `update_setting()` method - console command for live settings, file update for restart-required
+  - [x] Subtask 1.5: Implement `_execute_console_command()` - uses ServerService.send_command()
+  - [x] Subtask 1.6: Implement `_update_config_file()` - atomic write for file-based updates
+  - [x] Subtask 1.7: Write tests for get_settings() - returns enriched settings with metadata
+  - [x] Subtask 1.8: Write tests for update_setting() with live update path
+  - [x] Subtask 1.9: Write tests for update_setting() with file update path
+  - [x] Subtask 1.10: Write tests for env-managed setting blocking
 
-- [ ] Task 2: Add /config/game router + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 2.1: Create `api/src/vintagestory_api/routers/config.py` with config router
-  - [ ] Subtask 2.2: Implement `GET /config/game` endpoint - returns settings with metadata
-  - [ ] Subtask 2.3: Implement `POST /config/game/settings/{key}` endpoint - updates setting
-  - [ ] Subtask 2.4: Add Monitor + Admin auth for GET (read-only)
-  - [ ] Subtask 2.5: Add Admin-only auth for POST (write operations)
-  - [ ] Subtask 2.6: Register router in main.py
-  - [ ] Subtask 2.7: Write integration tests for GET endpoint
-  - [ ] Subtask 2.8: Write integration tests for POST endpoint with live update
-  - [ ] Subtask 2.9: Write integration tests for POST endpoint with file update
-  - [ ] Subtask 2.10: Write integration tests for RBAC (Monitor blocked from POST)
+- [x] Task 2: Add /config/game router + tests (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 2.1: Create `api/src/vintagestory_api/routers/config.py` with config router
+  - [x] Subtask 2.2: Implement `GET /config/game` endpoint - returns settings with metadata
+  - [x] Subtask 2.3: Implement `POST /config/game/settings/{key}` endpoint - updates setting
+  - [x] Subtask 2.4: Add Monitor + Admin auth for GET (read-only)
+  - [x] Subtask 2.5: Add Admin-only auth for POST (write operations)
+  - [x] Subtask 2.6: Register router in main.py
+  - [x] Subtask 2.7: Write integration tests for GET endpoint
+  - [x] Subtask 2.8: Write integration tests for POST endpoint with live update
+  - [x] Subtask 2.9: Write integration tests for POST endpoint with file update
+  - [x] Subtask 2.10: Write integration tests for RBAC (Monitor blocked from POST)
 
-- [ ] Task 3: Add Epic 6 error codes + tests (AC: 4)
-  - [ ] Subtask 3.1: Add SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED to ErrorCode class
-  - [ ] Subtask 3.2: Write tests verifying error codes in error responses
+- [x] Task 3: Add Epic 6 error codes + tests (AC: 4)
+  - [x] Subtask 3.1: Add SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED to ErrorCode class
+  - [x] Subtask 3.2: Write tests verifying error codes in error responses
 
-- [ ] Task 4: Integrate pending restart state + tests (AC: 3)
-  - [ ] Subtask 4.1: Inject PendingRestartState into GameConfigService
-  - [ ] Subtask 4.2: Call require_restart() when file-based update occurs
-  - [ ] Subtask 4.3: Write tests verifying pending restart flag is set for restart-required settings
+- [x] Task 4: Integrate pending restart state + tests (AC: 3)
+  - [x] Subtask 4.1: Inject PendingRestartState into GameConfigService
+  - [x] Subtask 4.2: Call require_restart() when file-based update occurs
+  - [x] Subtask 4.3: Write tests verifying pending restart flag is set for restart-required settings
 
 ## Dev Notes
 
@@ -423,10 +423,52 @@ def get_env_var_for_setting(key: str) -> Optional[str]:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- Task 1: Created GameConfigService with LIVE_SETTINGS dict containing 15 settings (13 live, 2 restart-required). Service supports console command updates for running server, file updates for stopped server or restart-required settings.
+- Task 2: Created config router with GET /config/game and POST /config/game/settings/{key} endpoints. GET returns all settings with metadata, POST updates via console or file.
+- Task 3: Added SETTING_UNKNOWN, SETTING_ENV_MANAGED, SETTING_UPDATE_FAILED error codes to ErrorCode class.
+- Task 4: PendingRestartState injected into service, require_restart() called for restart-required settings.
+
 ### File List
+
+New files:
+- api/src/vintagestory_api/services/game_config.py
+- api/src/vintagestory_api/routers/config.py
+- api/tests/test_game_config.py
+- api/tests/test_routers_config.py
+
+Modified files:
+- api/src/vintagestory_api/models/errors.py (added Epic 6 error codes)
+- api/src/vintagestory_api/main.py (registered config router)
+
+### Change Log
+
+- 2025-12-30: Story 6.2 implementation complete - Game Settings API with console commands for live updates
+
+### Review Follow-ups (AI)
+
+Issues found during code review on 2025-12-30:
+
+#### High Priority Issues
+
+- [x] [AI-Review][HIGH] Fix command injection vulnerability: String values in console commands aren't sanitized, allowing potential injection via quotes (e.g., value: 'Test"; malicious command'). Add input sanitization in _execute_console_command() at game_config.py:547.
+- [x] [AI-Review][HIGH] Add type validation for API input: UpdateRequest accepts any value without validating it matches expected type (int/bool/string). Use or create validation based on LIVE_SETTINGS value_type at game_config.py:463 and routers_config.py:37.
+
+#### Medium Priority Issues
+
+- [x] [AI-Review][MEDIUM] Add test for password redaction: No test verifies password values are properly redacted in logs. Add test case verifying logger receives "***" instead of actual password at game_config.py:551-552, 608-614.
+- [x] [AI-Review][MEDIUM] Add tests for invalid type input: No test verifies error handling when wrong type is sent (e.g., string for int setting like MaxClients). Add test cases that expect 400 or validation errors.
+- [x] [AI-Review][MEDIUM] Integrate type validation layer: parse_env_value() exists in config_init.py with proper type coercion but isn't used for API input validation. Import and leverage this function for consistency.
+- [x] [AI-Review][MEDIUM] Add security test for command injection: No test verifies that malicious input with quotes/semicolons is properly rejected or escaped. Add test case with malicious string input.
+- [x] [AI-Review][MEDIUM] Verify test timing: Per Epic 5 retro lesson, confirm tests were written alongside implementation (not batched at end). Git commit history shows 2 commits - review if tests were included in task-1 commit.
+
+#### Low Priority Issues
+
+- [x] [AI-Review][LOW] Import parse_env_value for consistency: Utility function exists in config_init.py but isn't imported/used in game_config.py. Import for future type validation work.
