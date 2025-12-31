@@ -58,12 +58,12 @@ describe('Layout', () => {
     expect(screen.getByTestId('test-child')).toBeInTheDocument();
   });
 
-  it('sets --sidebar-width to 240px when expanded', () => {
+  it('sets --sidebar-width to 160px when expanded', () => {
     renderLayout(<div>Test</div>);
 
     const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
     expect(layoutDiv).toBeInTheDocument();
-    expect(layoutDiv?.getAttribute('style')).toContain('240px');
+    expect(layoutDiv?.getAttribute('style')).toContain('160px');
   });
 
   it('sets --sidebar-width to 64px when collapsed', async () => {

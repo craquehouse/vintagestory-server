@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
       className="min-h-screen bg-background"
       style={
         {
-          "--sidebar-width": isCollapsed ? "64px" : "240px",
+          "--sidebar-width": isCollapsed ? "64px" : "160px",
         } as React.CSSProperties
       }
     >
