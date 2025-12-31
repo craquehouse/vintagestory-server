@@ -24,6 +24,7 @@ from vintagestory_api.models.server import (
     ServerStatus,
     VersionInfo,
 )
+from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.console import ConsoleBuffer
 
 # Lazy import to avoid circular dependency - imported at runtime when needed
@@ -112,13 +113,21 @@ def _vintagestory_tar_filter(member: tarfile.TarInfo, path: str) -> tarfile.TarI
 class ServerService:
     """Service for VintageStory server installation and lifecycle management."""
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        config_init_service: ConfigInitService | None = None,
+    ) -> None:
         """Initialize the server service.
 
         Args:
             settings: Application settings. If None, creates new Settings instance.
+            config_init_service: Config init service. If None, creates one with settings.
         """
         self._settings = settings or Settings()
+        self._config_init_service = config_init_service or ConfigInitService(
+            settings=self._settings
+        )
         self._http_client: httpx.AsyncClient | None = None
 
         # Installation progress tracking
@@ -156,6 +165,11 @@ class ServerService:
     def settings(self) -> Settings:
         """Get application settings."""
         return self._settings
+
+    @property
+    def config_init_service(self) -> ConfigInitService:
+        """Get the config init service."""
+        return self._config_init_service
 
     @property
     def console_buffer(self) -> ConsoleBuffer:
@@ -852,6 +866,11 @@ class ServerService:
         if previous_state == ServerState.STARTING:
             logger.warning("start_server_failed", reason="already_starting")
             raise RuntimeError(ErrorCode.SERVER_ALREADY_RUNNING)
+
+        # Initialize config if needed (first run)
+        if self._config_init_service.needs_initialization():
+            self._config_init_service.initialize_config()
+            logger.info("config_initialized", source="template+env")
 
         # Build command to run server
         # --dataPath tells VintageStory where to store persistent data (Mods, Saves, configs)
