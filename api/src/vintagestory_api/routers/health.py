@@ -8,6 +8,8 @@ from vintagestory_api.models.responses import (
     HealthData,
     ReadinessData,
 )
+from vintagestory_api.models.server import ServerState
+from vintagestory_api.routers.server import get_server_service
 
 router = APIRouter(tags=["Health"])
 
@@ -22,12 +24,28 @@ async def health_check() -> ApiResponse:
     Returns:
         ApiResponse with health data including API and game server status.
     """
-    # TODO: Replace with actual game server status check in Epic 3
+    server_service = get_server_service()
+    server_status = server_service.get_server_status()
+
+    # Map ServerState to GameServerStatus
+    state_to_status = {
+        ServerState.NOT_INSTALLED: GameServerStatus.NOT_INSTALLED,
+        ServerState.INSTALLED: GameServerStatus.STOPPED,
+        ServerState.INSTALLING: GameServerStatus.STOPPED,
+        ServerState.STARTING: GameServerStatus.STARTING,
+        ServerState.RUNNING: GameServerStatus.RUNNING,
+        ServerState.STOPPING: GameServerStatus.STOPPING,
+        ServerState.ERROR: GameServerStatus.STOPPED,
+    }
+    game_server_status = state_to_status.get(
+        server_status.state, GameServerStatus.NOT_INSTALLED
+    )
+
     return ApiResponse(
         status="ok",
         data=HealthData(
             api="healthy",
-            game_server=GameServerStatus.NOT_INSTALLED,
+            game_server=game_server_status,
         ).model_dump(),
     )
 
@@ -39,14 +57,25 @@ async def readiness_check() -> ApiResponse:
     Returns True when all required services are initialized.
     No authentication required (per K8s convention).
 
+    The game_server check reports whether the game server process is running.
+    This is informational only - API readiness is not dependent on game server state.
+
     Returns:
         ApiResponse with readiness data.
     """
-    # Explicitly set ready=True after confirming API is operational
+    server_service = get_server_service()
+    server_status = server_service.get_server_status()
+
+    # Game server is considered "ready" when it is running
+    game_server_ready = server_status.state == ServerState.RUNNING
+
     return ApiResponse(
         status="ok",
         data=ReadinessData(
             ready=True,
-            checks={"api": True},
+            checks={
+                "api": True,
+                "game_server": game_server_ready,
+            },
         ).model_dump(),
     )
