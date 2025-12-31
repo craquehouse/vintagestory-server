@@ -1,0 +1,393 @@
+# Story 6.4: Settings UI
+
+Status: ready-for-dev
+
+## Story
+
+As an **administrator**,
+I want **a web interface for managing game and API settings**,
+So that **I can configure the server visually and see console command feedback**.
+
+## Acceptance Criteria
+
+1. **Given** I navigate to the GameServer tab as Admin, **When** the page loads on desktop (≥1024px), **Then** I see Game Config panel on left and Console on right (split view).
+
+2. **Given** I navigate to the GameServer tab on mobile (<1024px), **When** the page loads, **Then** I see Console on top and Game Config below (stacked, scrollable).
+
+3. **Given** I change the ServerName field in Game Config, **When** I blur the field (auto-save), **Then** the API is called and I see the `/serverconfig` command execute in Console, **And** a success toast appears.
+
+4. **Given** I change a restart-required setting (e.g., Port), **When** the save completes, **Then** the PendingRestartBanner appears (consistent with mod changes).
+
+5. **Given** a setting is managed by VS_CFG_* environment variable, **When** I view the setting, **Then** it shows an "Env: VS_CFG_*" badge and the input is disabled.
+
+6. **Given** I navigate to the Settings tab, **When** the page loads, **Then** I see tabs for "API Settings" and "File Manager", **And** API Settings shows auto_start, env handling, and refresh intervals, **And** File Manager shows a "coming soon" stub.
+
+## Tasks / Subtasks
+
+<!--
+🚨 CRITICAL TASK STRUCTURE RULES:
+1. Each functional task MUST include "+ tests" in its name
+2. Do NOT create separate "Write tests" tasks at the end
+3. A task is NOT complete until its tests pass
+4. Tests verify the specific AC listed for that task
+
+✅ CORRECT PATTERN:
+- [ ] Task 1: Implement user login endpoint + tests (AC: 1, 2)
+  - [ ] Create login route handler
+  - [ ] Add input validation
+  - [ ] Write tests for success/failure cases
+
+❌ WRONG PATTERN (tests batched at end):
+- [ ] Task 1: Implement user login endpoint (AC: 1, 2)
+- [ ] Task 2: Implement logout endpoint (AC: 3)
+- [ ] Task 3: Write all tests  <- NEVER DO THIS
+-->
+
+- [ ] Task 1: Create Game Settings API hooks + types + tests (AC: 3, 4, 5)
+  - [ ] Subtask 1.1: Add game config types to `web/src/api/types.ts`
+  - [ ] Subtask 1.2: Add game config API functions to `web/src/api/config.ts`
+  - [ ] Subtask 1.3: Add query keys for game config to `web/src/api/query-keys.ts`
+  - [ ] Subtask 1.4: Create `web/src/hooks/use-game-config.ts` with useGameConfig query hook
+  - [ ] Subtask 1.5: Create useUpdateGameSetting mutation hook with optimistic updates
+  - [ ] Subtask 1.6: Write tests for useGameConfig and useUpdateGameSetting hooks
+
+- [ ] Task 2: Create API Settings hooks + tests (AC: 6)
+  - [ ] Subtask 2.1: Add api settings types to `web/src/api/types.ts`
+  - [ ] Subtask 2.2: Add api settings API functions to `web/src/api/config.ts`
+  - [ ] Subtask 2.3: Add query keys for api settings to `web/src/api/query-keys.ts`
+  - [ ] Subtask 2.4: Create `web/src/hooks/use-api-settings.ts` with useApiSettings and useUpdateApiSetting hooks
+  - [ ] Subtask 2.5: Write tests for useApiSettings and useUpdateApiSetting hooks
+
+- [ ] Task 3: Create useSettingField custom hook + tests (AC: 3, 4, 5)
+  - [ ] Subtask 3.1: Create `web/src/hooks/use-setting-field.ts` with Zod validation pattern
+  - [ ] Subtask 3.2: Implement field state management (value, error, isDirty, isPending)
+  - [ ] Subtask 3.3: Implement auto-save on blur with validation
+  - [ ] Subtask 3.4: Write tests for validation, save, and error handling
+
+- [ ] Task 4: Create SettingField component + tests (AC: 3, 5)
+  - [ ] Subtask 4.1: Create `web/src/components/SettingField.tsx` base component
+  - [ ] Subtask 4.2: Implement text/number/boolean input variants
+  - [ ] Subtask 4.3: Implement env_managed badge and disabled state
+  - [ ] Subtask 4.4: Add loading spinner during save, error display
+  - [ ] Subtask 4.5: Write tests for all variants and states
+
+- [ ] Task 5: Create SettingGroup component + tests (AC: 3)
+  - [ ] Subtask 5.1: Create `web/src/components/SettingGroup.tsx` for grouping related settings
+  - [ ] Subtask 5.2: Implement collapsible sections with Card wrapper
+  - [ ] Subtask 5.3: Write tests for render and collapse behavior
+
+- [ ] Task 6: Create GameConfigPanel component + tests (AC: 1, 2, 3, 4, 5)
+  - [ ] Subtask 6.1: Create `web/src/features/game-server/GameConfigPanel.tsx`
+  - [ ] Subtask 6.2: Organize settings into SettingGroups (Server Info, Player Settings, World Settings)
+  - [ ] Subtask 6.3: Wire up each setting field with appropriate validation schema
+  - [ ] Subtask 6.4: Handle loading and error states with skeletons
+  - [ ] Subtask 6.5: Write tests for render, field updates, and validation
+
+- [ ] Task 7: Create GameServerPage with responsive split layout + tests (AC: 1, 2)
+  - [ ] Subtask 7.1: Create `web/src/features/game-server/GameServerPage.tsx`
+  - [ ] Subtask 7.2: Implement desktop split layout (lg:flex-row, left: GameConfigPanel, right: Console)
+  - [ ] Subtask 7.3: Implement mobile stacked layout (flex-col, top: Console, bottom: GameConfigPanel)
+  - [ ] Subtask 7.4: Extract console functionality from Terminal.tsx to reusable component
+  - [ ] Subtask 7.5: Write tests for responsive layout behavior
+
+- [ ] Task 8: Rename Console → GameServer in navigation + tests (AC: 1)
+  - [ ] Subtask 8.1: Update `web/src/components/layout/Sidebar.tsx` - change Terminal label to "GameServer"
+  - [ ] Subtask 8.2: Update `web/src/App.tsx` - rename route from /terminal to /game-server, update import
+  - [ ] Subtask 8.3: Update any references to old route paths
+  - [ ] Subtask 8.4: Write/update navigation tests
+
+- [ ] Task 9: Create ApiSettingsPanel component + tests (AC: 6)
+  - [ ] Subtask 9.1: Create `web/src/features/settings/ApiSettingsPanel.tsx`
+  - [ ] Subtask 9.2: Display auto_start_server, block_env_managed_settings, enforce_env_on_restart toggles
+  - [ ] Subtask 9.3: Display mod_list_refresh_interval, server_versions_refresh_interval number inputs
+  - [ ] Subtask 9.4: Wire up settings with useApiSettings and useUpdateApiSetting hooks
+  - [ ] Subtask 9.5: Write tests for render and setting updates
+
+- [ ] Task 10: Create SettingsPage with tabs + tests (AC: 6)
+  - [ ] Subtask 10.1: Create `web/src/features/settings/SettingsPage.tsx`
+  - [ ] Subtask 10.2: Implement shadcn/ui Tabs component with "API Settings" and "File Manager" tabs
+  - [ ] Subtask 10.3: Add ApiSettingsPanel under "API Settings" tab
+  - [ ] Subtask 10.4: Add "Coming Soon" placeholder under "File Manager" tab
+  - [ ] Subtask 10.5: Update `web/src/App.tsx` - route /config to SettingsPage instead of ConfigEditor
+  - [ ] Subtask 10.6: Write tests for tab switching and content rendering
+
+## Dev Notes
+
+### Testing Requirements
+
+**CRITICAL:** Tests must be written alongside implementation, not as a separate phase.
+
+- Each task that adds functionality must include its tests before marking complete
+- A task is NOT complete until tests pass
+- Do not batch tests into a separate "Write tests" task at the end
+- Run `just test` to verify all tests pass before marking task complete
+
+### Security Requirements
+
+**Follow patterns in `project-context.md` → Security Patterns section:**
+
+- DEBUG mode gating for test/dev endpoints
+- Timing-safe comparison for sensitive data (API keys, passwords)
+- Never log sensitive data in plaintext
+- Proxy-aware client IP logging
+- RBAC patterns for endpoint protection
+
+### Development Commands
+
+Use `just` for all development tasks:
+- `just test` - Run all tests
+- `just test-web` - Run web tests only
+- `just check` - Full validation (lint + typecheck + test)
+- `just lint` - Run all linters
+- `just dev-web` - Start web dev server
+
+### Architecture & Patterns
+
+**Architectural Context (Epic 6):**
+
+The architectural pivot means console commands handle live updates, not file editing. The frontend simply calls `POST /config/game/settings/{key}` - it never constructs console commands. The API decides whether to use console command or file update based on server state.
+
+**Two Config Domains:**
+- `/api/v1alpha1/config/game` - Game server settings (serverconfig.json)
+- `/api/v1alpha1/config/api` - API operational settings (api-settings.json)
+
+**Game Settings Response Format (from architecture.md):**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "settings": [
+      {
+        "key": "ServerName",
+        "value": "My Server",
+        "type": "string",
+        "live_update": true,
+        "env_managed": false
+      },
+      {
+        "key": "Port",
+        "value": 42420,
+        "type": "int",
+        "live_update": false,
+        "requires_restart": true
+      }
+    ],
+    "source_file": "serverconfig.json",
+    "last_modified": "2025-12-30T10:00:00Z"
+  }
+}
+```
+
+**Game Setting Update Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "key": "ServerName",
+    "value": "New Server Name",
+    "method": "console_command",
+    "pending_restart": false
+  }
+}
+```
+
+**API Settings Response Format (from Story 6.3):**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "settings": {
+      "auto_start_server": false,
+      "block_env_managed_settings": true,
+      "enforce_env_on_restart": false,
+      "mod_list_refresh_interval": 3600,
+      "server_versions_refresh_interval": 86400
+    }
+  }
+}
+```
+
+**useSettingField Pattern (from architecture.md):**
+
+```typescript
+function useSettingField<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState(initialValue);
+  const [error, setError] = useState<string | null>(null);
+  const mutation = useUpdateGameSetting();
+
+  const validate = (val: unknown): string | null => {
+    const fieldSchema = gameSettingSchema.shape[key];
+    if (!fieldSchema) return null;
+    const result = fieldSchema.safeParse(val);
+    return result.success ? null : result.error.errors[0]?.message ?? "Invalid";
+  };
+
+  const save = async () => {
+    const err = validate(value);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    await mutation.mutateAsync({ key, value });
+  };
+
+  return {
+    value,
+    setValue,
+    error: error ?? (mutation.error ? String(mutation.error) : null),
+    save,
+    isPending: mutation.isPending,
+    isDirty: value !== initialValue,
+  };
+}
+```
+
+**Responsive Layout Pattern:**
+
+```tsx
+// GameServerPage responsive split
+<div className="flex h-full flex-col lg:flex-row gap-4">
+  {/* Desktop: left panel, Mobile: bottom panel */}
+  <div className="order-2 lg:order-1 lg:w-1/2 overflow-auto">
+    <GameConfigPanel />
+  </div>
+  {/* Desktop: right panel, Mobile: top panel */}
+  <div className="order-1 lg:order-2 lg:w-1/2 flex-1 lg:flex-none">
+    <ConsolePanel />
+  </div>
+</div>
+```
+
+### Previous Story Intelligence (Story 6.3)
+
+**Key learnings:**
+
+1. **ApiSettingsService pattern** - Service at `api/src/vintagestory_api/services/api_settings.py`
+2. **Atomic file writes** - Use temp file + rename pattern
+3. **Router pattern** - API settings endpoints at `/config/api`
+4. **Admin-only access** - All API settings endpoints require Admin role
+5. **Scheduler callback stub** - Ready for Epic 7 integration
+
+**Files created in Story 6.3:**
+- `api/src/vintagestory_api/services/api_settings.py`
+- `api/tests/test_api_settings.py`
+- Router extensions in `api/src/vintagestory_api/routers/config.py`
+
+### Existing Code to Reuse
+
+**File: `web/src/features/terminal/Terminal.tsx`**
+- Console functionality can be extracted to a reusable ConsolePanel component
+- WebSocket hook pattern from `use-console-websocket.ts`
+
+**File: `web/src/hooks/use-mods.ts`**
+- Pattern for TanStack Query hooks with optimistic updates
+- Cache invalidation pattern for mutations
+
+**File: `web/src/hooks/use-server-status.ts`**
+- Pattern for polling queries
+- Pattern for toast notifications on state changes
+
+**File: `web/src/components/ModTable.tsx`**
+- Pattern for table with loading/empty states
+
+**File: `web/src/components/PendingRestartBanner.tsx`**
+- Already integrated with mods - needs to also respond to config changes
+- Uses `useModsPendingRestart()` - may need to extend to config pending restart
+
+### Project Structure Notes
+
+**New files to create:**
+- `web/src/api/config.ts` - API functions for game/api config
+- `web/src/hooks/use-game-config.ts` - Game config query/mutation hooks
+- `web/src/hooks/use-api-settings.ts` - API settings query/mutation hooks
+- `web/src/hooks/use-setting-field.ts` - Field state management hook
+- `web/src/components/SettingField.tsx` - Reusable setting input component
+- `web/src/components/SettingGroup.tsx` - Setting group container
+- `web/src/features/game-server/GameServerPage.tsx` - Main game server page
+- `web/src/features/game-server/GameConfigPanel.tsx` - Game config settings panel
+- `web/src/features/settings/SettingsPage.tsx` - Settings page with tabs
+- `web/src/features/settings/ApiSettingsPanel.tsx` - API settings panel
+
+**Files to modify:**
+- `web/src/App.tsx` - Update routes
+- `web/src/components/layout/Sidebar.tsx` - Rename Terminal → GameServer
+- `web/src/api/types.ts` - Add game/api config types
+- `web/src/api/query-keys.ts` - Add config query keys
+- `web/src/features/terminal/Terminal.tsx` - Extract ConsolePanel
+
+**Directories to create:**
+- `web/src/features/game-server/`
+- `web/src/features/settings/`
+
+### Git Workflow for This Story
+
+```bash
+# Create feature branch
+git checkout -b story/6-4-settings-ui
+
+# Task-level commits
+git commit -m "feat(story-6.4/task-1): create game settings API hooks and types"
+git commit -m "feat(story-6.4/task-2): create API settings hooks"
+git commit -m "feat(story-6.4/task-3): create useSettingField hook with Zod validation"
+git commit -m "feat(story-6.4/task-4): create SettingField component"
+git commit -m "feat(story-6.4/task-5): create SettingGroup component"
+git commit -m "feat(story-6.4/task-6): create GameConfigPanel component"
+git commit -m "feat(story-6.4/task-7): create GameServerPage with split layout"
+git commit -m "refactor(story-6.4/task-8): rename Console to GameServer in navigation"
+git commit -m "feat(story-6.4/task-9): create ApiSettingsPanel component"
+git commit -m "feat(story-6.4/task-10): create SettingsPage with tabs"
+
+# Push and create PR
+git push -u origin story/6-4-settings-ui
+gh pr create --title "Story 6.4: Settings UI" --body "..."
+```
+
+### UX Design Considerations (from ux-design-specification.md)
+
+**Key UX Requirements:**
+
+1. **Relief-oriented design** - Eliminate steps, show success immediately
+2. **Fail loudly, succeed quietly** - Errors prominent, success subtle (toasts)
+3. **Auto-save on blur** - No explicit save button for individual fields
+4. **Pending restart awareness** - Consistent pattern with mod changes
+5. **Env-managed visual distinction** - Clear badge + disabled input
+6. **Responsive breakpoints** - Desktop ≥1024px (lg), Mobile <1024px
+
+**Component Patterns:**
+- Use shadcn/ui Card for panels
+- Use shadcn/ui Input for text/number fields
+- Use shadcn/ui Switch for boolean fields
+- Use shadcn/ui Badge for env_managed indicator
+- Use shadcn/ui Tabs for Settings page sections
+- Use sonner toast for success/error feedback
+
+**Color Semantics (Catppuccin):**
+- Success: `#a6e3a1` (subtle treatment)
+- Error: `#f38ba8` (prominent treatment)
+- Warning: `#f9e2af` (pending restart, env-managed)
+- Info: `#89b4fa` (informational badges)
+
+### References
+
+- `project-context.md` - Critical implementation rules and patterns
+- `_bmad-output/planning-artifacts/architecture.md#epic-6-game-configuration-management-architecture` - Full architecture details
+- `_bmad-output/planning-artifacts/ux-design-specification.md` - UX patterns and component guidance
+- `_bmad-output/implementation-artifacts/6-3-api-settings-service.md` - Previous story (API settings backend)
+- `web/src/hooks/use-mods.ts` - TanStack Query hook patterns
+- `web/src/features/terminal/Terminal.tsx` - Console component to extract
+
+## Dev Agent Record
+
+### Agent Model Used
+
+{{agent_model_name_version}}
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
