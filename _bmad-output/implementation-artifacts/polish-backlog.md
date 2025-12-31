@@ -131,6 +131,7 @@ When adding new items, copy this template:
 ## Completed Items Archive
 
 When items are marked `done`, optionally move them here for historical reference:
+Add the PR link to the item's ID.
 
 | ID | Description | Completed | Notes |
 | -- | ----------- | --------- | ----- |
