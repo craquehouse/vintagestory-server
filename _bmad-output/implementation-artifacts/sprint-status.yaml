@@ -85,7 +85,7 @@ development_status:
   6-1-config-init-service-and-template: done
   6-2-game-settings-api: done
   6-3-api-settings-service: done
-  6-4-settings-ui: in-progress
+  6-4-settings-ui: done
   6-5-raw-config-viewer: backlog
   epic-6-retrospective: optional
 

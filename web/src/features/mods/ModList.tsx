@@ -10,6 +10,7 @@
 import { toast } from 'sonner';
 import { ModLookupInput } from '@/components/ModLookupInput';
 import { ModTable } from '@/components/ModTable';
+import { useServerStatus } from '@/hooks/use-server-status';
 
 /**
  * Mod management page component.
@@ -25,21 +26,30 @@ import { ModTable } from '@/components/ModTable';
  * <ModList />
  */
 export function ModList() {
+  const { data: statusData } = useServerStatus();
+  const isServerRunning = statusData?.data?.state === 'running';
+
   const handleInstalled = (mod: { slug: string; version: string }) => {
     toast.success(`Installed ${mod.slug} v${mod.version}`, {
-      description: 'A server restart may be required for changes to take effect.',
+      description: isServerRunning
+        ? 'A server restart may be required for changes to take effect.'
+        : undefined,
     });
   };
 
   const handleToggled = (slug: string, enabled: boolean) => {
     toast.success(`${slug} ${enabled ? 'enabled' : 'disabled'}`, {
-      description: 'A server restart is required for changes to take effect.',
+      description: isServerRunning
+        ? 'A server restart is required for changes to take effect.'
+        : undefined,
     });
   };
 
   const handleRemoved = (slug: string) => {
     toast.success(`Removed ${slug}`, {
-      description: 'A server restart may be required for changes to take effect.',
+      description: isServerRunning
+        ? 'A server restart may be required for changes to take effect.'
+        : undefined,
     });
   };
 
