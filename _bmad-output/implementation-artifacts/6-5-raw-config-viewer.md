@@ -51,11 +51,11 @@ WRONG PATTERN (tests batched at end):
   - [x] Subtask 2.2: Add `CONFIG_PATH_INVALID` for path traversal attempts
   - [x] Subtask 2.3: Verify error codes are consistent with existing patterns
 
-- [ ] Task 3: Create /config/files router endpoints + tests (AC: 1, 2, 3)
-  - [ ] Subtask 3.1: Add list endpoint: `GET /api/v1alpha1/config/files`
-  - [ ] Subtask 3.2: Add read endpoint: `GET /api/v1alpha1/config/files/{filename}`
-  - [ ] Subtask 3.3: Ensure both Admin and Monitor roles can access (read-only)
-  - [ ] Subtask 3.4: Write router tests for success, 404, and path traversal cases
+- [x] Task 3: Create /config/files router endpoints + tests (AC: 1, 2, 3)
+  - [x] Subtask 3.1: Add list endpoint: `GET /api/v1alpha1/config/files`
+  - [x] Subtask 3.2: Add read endpoint: `GET /api/v1alpha1/config/files/{filename}`
+  - [x] Subtask 3.3: Ensure both Admin and Monitor roles can access (read-only)
+  - [x] Subtask 3.4: Write router tests for success, 404, and path traversal cases
 
 - [ ] Task 4: Run full test suite and verify + tests (AC: 1, 2, 3)
   - [ ] Subtask 4.1: Run `just check` to verify lint, typecheck, and all tests pass

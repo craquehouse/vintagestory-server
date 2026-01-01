@@ -2,6 +2,7 @@
 
 Story 6.2: Game Settings API
 Story 6.3: API Settings Service
+Story 6.5: Raw Config Viewer
 
 Tests the config router endpoints for:
 
@@ -14,6 +15,11 @@ API Settings (6.3):
 - GET /config/api - Read API settings (Admin only)
 - POST /config/api/settings/{key} - Update API settings (Admin only)
 - RBAC: Only Admin can access API settings
+
+Config Files (6.5):
+- GET /config/files - List JSON config files (read-only)
+- GET /config/files/{filename} - Read raw config file content (read-only)
+- RBAC: Both Admin and Monitor can access (read-only)
 """
 
 from __future__ import annotations
@@ -35,11 +41,13 @@ from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.routers.config import (
     get_api_settings_service,
+    get_config_files_service,
     get_game_config_service,
     get_pending_restart_state,
 )
 from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.api_settings import ApiSettingsService
+from vintagestory_api.services.config_files import ConfigFilesService
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.server import ServerService
@@ -786,6 +794,295 @@ class TestApiSettingsResponseFormat:
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/unknown",
             json={"value": "test"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "detail" in data
+        assert "code" in data["detail"]
+        assert "message" in data["detail"]
+
+
+# ==============================================================================
+# Config Files Endpoint Tests (Story 6.5)
+# ==============================================================================
+
+
+@pytest.fixture
+def config_files_app(
+    temp_settings: Settings,
+    config_file: Path,
+    mock_server_service: MagicMock,
+) -> Generator[FastAPI, None, None]:
+    """Create app with overridden dependencies for config files testing."""
+
+    def get_test_settings() -> Settings:
+        return temp_settings
+
+    def get_test_server_service() -> MagicMock:
+        return mock_server_service
+
+    def get_test_config_files_service() -> ConfigFilesService:
+        return ConfigFilesService(settings=temp_settings)
+
+    app.dependency_overrides[get_settings] = get_test_settings
+    app.dependency_overrides[get_server_service] = get_test_server_service
+    app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+    yield app
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def config_files_client(config_files_app: FastAPI) -> TestClient:
+    """Create test client for config files tests."""
+    return TestClient(config_files_app)
+
+
+class TestListConfigFiles:
+    """Tests for GET /config/files endpoint - Story 6.5 AC 1."""
+
+    def test_list_config_files_returns_json_files(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 1: GET returns list of JSON config files."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "files" in data["data"]
+        assert "serverconfig.json" in data["data"]["files"]
+
+    def test_list_config_files_empty_when_no_files(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """AC 1: GET returns empty list when no JSON files exist."""
+        # Create empty serverdata dir (no config files)
+        temp_settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/files",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["data"]["files"] == []
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_config_files_monitor_can_access(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 1: Monitor role can access GET endpoint (read-only)."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_list_config_files_unauthenticated_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = config_files_client.get("/api/v1alpha1/config/files")
+
+        assert response.status_code == 401
+
+
+class TestReadConfigFile:
+    """Tests for GET /config/files/{filename} endpoint - Story 6.5 AC 2."""
+
+    def test_read_config_file_returns_content(
+        self, config_files_client: TestClient, sample_config: dict[str, object]
+    ) -> None:
+        """AC 2: GET returns filename and raw JSON content."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/serverconfig.json",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["filename"] == "serverconfig.json"
+        assert data["data"]["content"]["ServerName"] == sample_config["ServerName"]
+
+    def test_read_config_file_not_found(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 2: Returns 404 for non-existent file."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/nonexistent.json",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 404
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_FILE_NOT_FOUND
+
+    def test_read_config_file_monitor_can_access(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Monitor role can read config files."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/serverconfig.json",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_read_config_file_unauthenticated_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/serverconfig.json"
+        )
+
+        assert response.status_code == 401
+
+
+class TestConfigFilePathTraversal:
+    """Tests for path traversal prevention - Story 6.5 AC 3.
+
+    Note: FastAPI/Starlette normalizes URL paths at the HTTP level, so
+    simple `../` sequences in URL paths are resolved BEFORE reaching
+    the handler. For example, `/config/files/../secrets.json` becomes
+    `/config/secrets.json` at the routing level.
+
+    Our service-level path validation (using _safe_path) provides
+    defense-in-depth for any traversal attempts that bypass HTTP normalization.
+
+    The tests here verify:
+    1. HTTP-level normalization happens (tests return 404, not the file)
+    2. Service-level validation works (tested in test_config_files.py)
+    3. Absolute paths are blocked (double slash creates absolute path)
+    """
+
+    def test_path_traversal_simple_parent_normalized_by_http(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 3: ../secrets.json is normalized by HTTP layer.
+
+        FastAPI/Starlette normalizes URL paths, so ../secrets.json becomes
+        secrets.json. The normalized path may match a different route entirely,
+        resulting in a 404 from routing. This is defense-in-depth.
+        """
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/../secrets.json",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        # HTTP normalization prevents the request from reaching our handler
+        # with the malicious path - any non-200 response is acceptable
+        assert response.status_code in (400, 404)
+
+    def test_path_traversal_nested_normalized_by_http(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 3: subdir/../../secrets.json normalized by HTTP layer."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/subdir/../../secrets.json",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        # HTTP normalization prevents the request from reaching our handler
+        # with the malicious path - any non-200 response is acceptable
+        assert response.status_code in (400, 404)
+
+    def test_path_traversal_absolute_path(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 3: Rejects absolute paths like /etc/passwd with 400 error.
+
+        Double slash in URL creates an absolute path that bypasses
+        HTTP normalization and reaches our service-level validation.
+        """
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files//etc/passwd",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_PATH_INVALID
+
+    def test_path_traversal_multiple_levels_normalized_by_http(
+        self, config_files_client: TestClient
+    ) -> None:
+        """AC 3: foo/../../../etc/passwd normalized by HTTP layer."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/foo/../../../etc/passwd",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        # HTTP normalization prevents the request from reaching our handler
+        # with the malicious path - any non-200 response is acceptable
+        assert response.status_code in (400, 404)
+
+
+class TestConfigFilesResponseFormat:
+    """Tests for config files API response format - Story 6.5."""
+
+    def test_list_response_uses_standard_envelope(
+        self, config_files_client: TestClient
+    ) -> None:
+        """GET /config/files response uses standard API envelope."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+
+    def test_read_response_uses_standard_envelope(
+        self, config_files_client: TestClient
+    ) -> None:
+        """GET /config/files/{filename} response uses standard API envelope."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files/serverconfig.json",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        data = response.json()
+        assert "status" in data
+        assert "data" in data
+        assert data["status"] == "ok"
+        assert "filename" in data["data"]
+        assert "content" in data["data"]
+
+    def test_error_response_uses_detail_structure(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Error response uses FastAPI detail structure."""
+        # Use absolute path (double slash) to trigger path traversal error
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files//etc/passwd",
             headers={"X-API-Key": TEST_ADMIN_KEY},
         )
 

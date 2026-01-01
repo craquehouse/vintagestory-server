@@ -2,6 +2,7 @@
 
 Story 6.2: Game Settings API
 Story 6.3: API Settings Service
+Story 6.5: Raw Config Viewer
 
 Provides endpoints for reading and updating server configuration.
 
@@ -12,6 +13,10 @@ Game Settings (6.2):
 API Settings (6.3):
 - GET /config/api - Read API operational settings (Admin only)
 - POST /config/api/settings/{key} - Update a specific API setting (Admin only)
+
+Config Files (6.5):
+- GET /config/files - List all JSON config files (read-only)
+- GET /config/files/{filename} - Read raw config file content (read-only)
 """
 
 from typing import Annotated, Any
@@ -28,6 +33,11 @@ from vintagestory_api.services.api_settings import (
     ApiSettingInvalidError,
     ApiSettingsService,
     ApiSettingUnknownError,
+)
+from vintagestory_api.services.config_files import (
+    ConfigFileNotFoundError,
+    ConfigFilesService,
+    ConfigPathInvalidError,
 )
 from vintagestory_api.services.game_config import (
     GameConfigService,
@@ -326,6 +336,109 @@ async def update_api_setting(
             status_code=400,
             detail={
                 "code": ErrorCode.API_SETTING_INVALID,
+                "message": e.message,
+            },
+        )
+
+
+# =============================================================================
+# Config Files Endpoints (Story 6.5)
+# =============================================================================
+
+
+def get_config_files_service(
+    server_service: Any = Depends(get_server_service),
+) -> ConfigFilesService:
+    """Dependency to get ConfigFilesService instance.
+
+    Args:
+        server_service: ServerService for accessing application settings.
+
+    Returns:
+        ConfigFilesService instance with settings dependency injected.
+    """
+    return ConfigFilesService(settings=server_service.settings)
+
+
+@router.get("/files", response_model=ApiResponse, summary="List config files")
+async def list_config_files(
+    _: RequireAuth,
+    service: ConfigFilesService = Depends(get_config_files_service),
+) -> ApiResponse:
+    """List all JSON configuration files in serverdata directory.
+
+    Returns a list of configuration file names available for viewing.
+    Files are from the serverdata directory (where VintageStory stores
+    serverconfig.json and other configuration files).
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Returns:
+        ApiResponse with data containing:
+        - files: Array of JSON filenames in serverdata directory
+
+    Raises:
+        HTTPException: 401 if not authenticated
+    """
+    files = service.list_files()
+    return ApiResponse(status="ok", data={"files": files})
+
+
+@router.get(
+    "/files/{filename:path}",
+    response_model=ApiResponse,
+    summary="Read config file",
+)
+async def read_config_file(
+    filename: Annotated[
+        str,
+        Path(
+            description="Name of the config file to read (e.g., 'serverconfig.json')",
+            min_length=1,
+            max_length=255,
+        ),
+    ],
+    _: RequireAuth,
+    service: ConfigFilesService = Depends(get_config_files_service),
+) -> ApiResponse:
+    """Read raw content of a configuration file.
+
+    Returns the raw JSON content of the specified configuration file.
+    Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Args:
+        filename: Name of the file to read (must be in serverdata directory).
+
+    Returns:
+        ApiResponse with data containing:
+        - filename: The requested filename
+        - content: Parsed JSON content from the file
+
+    Raises:
+        HTTPException: 400 if path traversal detected
+        HTTPException: 401 if not authenticated
+        HTTPException: 404 if file not found
+    """
+    try:
+        result = service.read_file(filename)
+        return ApiResponse(status="ok", data=result)
+
+    except ConfigPathInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.CONFIG_PATH_INVALID,
+                "message": e.message,
+            },
+        )
+
+    except ConfigFileNotFoundError as e:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": ErrorCode.CONFIG_FILE_NOT_FOUND,
                 "message": e.message,
             },
         )
