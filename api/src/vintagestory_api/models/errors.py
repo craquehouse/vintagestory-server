@@ -32,6 +32,8 @@ class ErrorCode:
     # Config
     INVALID_CONFIG = "INVALID_CONFIG"
     CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
+    CONFIG_FILE_NOT_FOUND = "CONFIG_FILE_NOT_FOUND"
+    CONFIG_PATH_INVALID = "CONFIG_PATH_INVALID"
 
     # Game Settings (Epic 6) - serverconfig.json settings managed via console commands
     # These apply to VintageStory game server configuration (Port, ServerName, etc.)
