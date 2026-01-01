@@ -39,12 +39,12 @@ WRONG PATTERN (tests batched at end):
 - [ ] Task 3: Write all tests  <- NEVER DO THIS
 -->
 
-- [ ] Task 1: Create ConfigFilesService with list and read methods + tests (AC: 1, 2, 3)
-  - [ ] Subtask 1.1: Create `api/src/vintagestory_api/services/config_files.py`
-  - [ ] Subtask 1.2: Implement `list_files()` method - scan `serverdata_dir` for JSON files
-  - [ ] Subtask 1.3: Implement `read_file(filename)` method - return raw file content
-  - [ ] Subtask 1.4: Implement path traversal validation using `_safe_path()` pattern from ServerService
-  - [ ] Subtask 1.5: Write comprehensive tests including path traversal attack vectors
+- [x] Task 1: Create ConfigFilesService with list and read methods + tests (AC: 1, 2, 3)
+  - [x] Subtask 1.1: Create `api/src/vintagestory_api/services/config_files.py`
+  - [x] Subtask 1.2: Implement `list_files()` method - scan `serverdata_dir` for JSON files
+  - [x] Subtask 1.3: Implement `read_file(filename)` method - return raw file content
+  - [x] Subtask 1.4: Implement path traversal validation using `_safe_path()` pattern from ServerService
+  - [x] Subtask 1.5: Write comprehensive tests including path traversal attack vectors
 
 - [ ] Task 2: Add error codes for config files + tests (AC: 3)
   - [ ] Subtask 2.1: Add `CONFIG_FILE_NOT_FOUND` to `api/src/vintagestory_api/models/errors.py`
