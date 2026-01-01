@@ -46,10 +46,10 @@ WRONG PATTERN (tests batched at end):
   - [x] Subtask 1.4: Implement path traversal validation using `_safe_path()` pattern from ServerService
   - [x] Subtask 1.5: Write comprehensive tests including path traversal attack vectors
 
-- [ ] Task 2: Add error codes for config files + tests (AC: 3)
-  - [ ] Subtask 2.1: Add `CONFIG_FILE_NOT_FOUND` to `api/src/vintagestory_api/models/errors.py`
-  - [ ] Subtask 2.2: Add `CONFIG_PATH_INVALID` for path traversal attempts
-  - [ ] Subtask 2.3: Verify error codes are consistent with existing patterns
+- [x] Task 2: Add error codes for config files + tests (AC: 3)
+  - [x] Subtask 2.1: Add `CONFIG_FILE_NOT_FOUND` to `api/src/vintagestory_api/models/errors.py`
+  - [x] Subtask 2.2: Add `CONFIG_PATH_INVALID` for path traversal attempts
+  - [x] Subtask 2.3: Verify error codes are consistent with existing patterns
 
 - [ ] Task 3: Create /config/files router endpoints + tests (AC: 1, 2, 3)
   - [ ] Subtask 3.1: Add list endpoint: `GET /api/v1alpha1/config/files`
