@@ -31,7 +31,7 @@ export function Header() {
         </div>
 
         {/* Center: Pending restart indicator */}
-        <div className="hidden items-center md:flex">
+        <div className="flex items-center">
           <PendingRestartBanner />
         </div>
 

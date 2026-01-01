@@ -151,9 +151,8 @@ export function SettingField({
             onCheckedChange={(checked) => {
               field.setValue(checked);
               // For boolean, save immediately on change (no blur needed)
-              if (!envManaged) {
-                onSave({ key: settingKey, value: checked });
-              }
+              // Use save() with value override for proper validation/error handling
+              field.save(checked);
             }}
             disabled={isDisabled}
             aria-describedby={description ? `${settingKey}-desc` : undefined}

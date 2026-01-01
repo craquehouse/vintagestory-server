@@ -180,15 +180,17 @@ describe('Header', () => {
     expect(pendingDiv).toBeInTheDocument();
   });
 
-  it('hides pending restart on mobile', () => {
+  it('pending restart container is visible on all screen sizes', () => {
     renderHeader();
 
-    // Find all elements with items-center class and check if any have hidden and md:flex
-    const divs = document.querySelectorAll('.items-center');
-    const hiddenOnMobile = Array.from(divs).some(div =>
-      div.classList.contains('hidden') && div.classList.contains('md:flex')
+    // The center container for pending restart banner should be visible on all screen sizes
+    // It no longer has 'hidden' class (was 'hidden md:flex', now just 'flex')
+    const containers = document.querySelectorAll('.items-center');
+    const hasHiddenMdFlex = Array.from(containers).some(
+      div => div.classList.contains('hidden') && div.classList.contains('md:flex')
     );
-    expect(hiddenOnMobile).toBe(true);
+    // No container should have hidden md:flex pattern anymore
+    expect(hasHiddenMdFlex).toBe(false);
   });
 
   it('has correct left margin on desktop for sidebar', () => {

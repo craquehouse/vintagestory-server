@@ -136,8 +136,9 @@ export interface UseSettingFieldReturn<T> {
 
   /**
    * Save the current value (called on blur).
+   * Optionally accepts a value override for immediate saves (e.g., boolean toggles).
    */
-  save: () => Promise<void>;
+  save: (valueOverride?: T) => Promise<void>;
 
   /**
    * Reset to initial value.
@@ -212,12 +213,15 @@ export function useSettingField<T extends string | number | boolean>(
     setError(null);
   }, []);
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (valueOverride?: T) => {
     if (disabled) return;
+
+    // Use override if provided (for immediate saves like boolean toggles)
+    const valueToSave = valueOverride !== undefined ? valueOverride : value;
 
     // Validate before saving
     if (validate) {
-      const validationError = validate(value);
+      const validationError = validate(valueToSave);
       if (validationError) {
         setError(validationError);
         return;
@@ -228,9 +232,9 @@ export function useSettingField<T extends string | number | boolean>(
     setIsPending(true);
 
     try {
-      await onSave({ key: settingKey, value });
+      await onSave({ key: settingKey, value: valueToSave });
       // Update the initial ref after successful save
-      initialRef.current = value;
+      initialRef.current = valueToSave;
     } catch (err) {
       // Extract error message from API error
       const message =

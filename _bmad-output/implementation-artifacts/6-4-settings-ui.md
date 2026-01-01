@@ -1,6 +1,6 @@
 # Story 6.4: Settings UI
 
-Status: in-progress
+Status: complete
 
 ## Story
 
@@ -113,10 +113,9 @@ So that **I can configure the server visually and see console command feedback**
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] Update File List with accurate categorization (missing files: config.ts, SettingGroup.tsx, tabs.tsx, game-server/*, settings/*)
 - [ ] [AI-Review][MEDIUM] Complete manual tests: navigate to /config verify tab switching, toggle API settings verify saves work
-- [ ] [AI-Review][MEDIUM] Fix PendingRestartBanner visibility - not on mobile or when user focused on GameConfigPanel [Header.tsx:34-36]
-- [ ] [AI-Review][MEDIUM] Fix SettingField boolean save inconsistency - bypasses useSettingField validation/error handling [SettingField.tsx:153-156]
+- [x] [AI-Review][MEDIUM] Fix PendingRestartBanner visibility - now visible on all screen sizes [Header.tsx:34]
+- [x] [AI-Review][MEDIUM] Fix SettingField boolean save inconsistency - now uses field.save(checked) with valueOverride [SettingField.tsx:155, use-setting-field.ts:216]
 
 ## Dev Notes
 
