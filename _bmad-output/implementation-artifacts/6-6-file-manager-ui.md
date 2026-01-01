@@ -80,10 +80,10 @@ WRONG PATTERN (tests batched at end):
   - [x] Subtask 4.4: Wire up hooks for data fetching
   - [x] Subtask 4.5: Write integration tests for component interaction
 
-- [ ] Task 5: Integrate FileManagerPanel into SettingsPage + tests (AC: 1)
-  - [ ] Subtask 5.1: Replace "Coming Soon" placeholder in SettingsPage.tsx
-  - [ ] Subtask 5.2: Import and render FileManagerPanel in File Manager tab
-  - [ ] Subtask 5.3: Update SettingsPage tests to verify File Manager renders correctly
+- [x] Task 5: Integrate FileManagerPanel into SettingsPage + tests (AC: 1)
+  - [x] Subtask 5.1: Replace "Coming Soon" placeholder in SettingsPage.tsx
+  - [x] Subtask 5.2: Import and render FileManagerPanel in File Manager tab
+  - [x] Subtask 5.3: Update SettingsPage tests to verify File Manager renders correctly
 
 - [ ] Task 6: Run full test suite and verify (AC: 1, 2, 3, 4, 5)
   - [ ] Subtask 6.1: Run `just check` to verify lint, typecheck, and all tests pass
