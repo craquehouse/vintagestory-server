@@ -53,16 +53,18 @@ test-e2e-api *ARGS:
 
 # Run web E2E tests (Playwright) - manages Docker stack automatically
 # Starts fresh Docker stack, waits for health, runs tests, then stops stack
+# Uses DOCKER_PORT env var for host port (default: 8080)
 # Examples: just test-e2e-web | just test-e2e-web --headed | just test-e2e-web --ui
 test-e2e-web *ARGS:
     #!/usr/bin/env bash
     set -e
+    DOCKER_PORT="${DOCKER_PORT:-8080}"
     echo "🐳 Starting Docker stack..."
     just docker start
 
     echo "⏳ Waiting for API to be ready..."
     for i in {1..30}; do
-        if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+        if curl -sf "http://localhost:$DOCKER_PORT/healthz" > /dev/null 2>&1; then
             echo "✅ API is ready"
             break
         fi
@@ -161,11 +163,11 @@ format-web:
 # Examples: just dev-api --port 8001 | just dev-api --host 0.0.0.0
 # Sets up local development environment with relative data directory and dev API key
 dev-api *ARGS:
-    env VS_DATA_DIR=../dev mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload {{ARGS}}
+    env VS_DATA_DIR=../dev mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload --port $API_PORT {{ARGS}}
 
 # Start web dev server - accepts optional args
 dev-web *ARGS:
-    mise exec -C web -- bun run dev {{ARGS}}
+    mise exec -C web -- bun run dev --port $WEB_PORT {{ARGS}}
 
 # Install all dependencies
 install: install-api install-web
@@ -184,14 +186,16 @@ install-web *ARGS:
 
 # Docker commands: build, start, stop, restart, status, logs
 # Usage: just docker <command> [args]
+# Uses DOCKER_PORT env var for host port mapping (default: 8080)
 docker COMMAND *ARGS:
     #!/usr/bin/env bash
+    DOCKER_PORT="${DOCKER_PORT:-8080}"
     case "{{COMMAND}}" in
         build)
-            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:8000" docker compose -f docker-compose.dev.yaml build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml build {{ARGS}}
             ;;
         start)
-            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:8000" docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
             ;;
         stop)
             docker compose -f docker-compose.dev.yaml down {{ARGS}}
