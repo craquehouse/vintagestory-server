@@ -38,7 +38,6 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-006 | Better detection and handling of the state where the frontend has lost connection to the API                              | medium   | M      | backlog | -       | -                                                            |
 | UI-008 | Mod preview card parse HTML                                                                                                | low      | S      | backlog | -       | -                                                            |
 | UI-009 | Mod preview card doesn't explain what "Both" means - presumeably client and server. use badges for each?                  | low      | S      | backlog | -       | -                                                            |
-| UI-010 | Mods installed when server is not running should not generate "server may need to be restarted" toast                     | low      | S      | done    | -       | -                                                            |
 | UI-011 | Installed mods table should be sortable, and sort order should stay consistent                                            | low      | S      | backlog | -       | -                                                            |
 | UI-013 | Migrate mod list from cards to TanStack Table for sorting, filtering, search (5+ mods gets unwieldy)                      | medium   | M      | backlog | UI-011  | Architecture decision: use TanStack Table for all data lists |
 | UI-014 | When mod is not_verified/incompatible, show the most recent compatible game version in mod card/list                      | low      | M      | backlog | -       | Helps users understand which game version the mod supports   |
@@ -47,6 +46,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-017 | User preferences such as light/dark mode (if overridden), console font size, etc. should be stored as a cookie            | low      | M      | backlog | -       | -                                                            |
 | UI-018 | Make better use of horizontal space on the server settings cards when in desktop mode. It's too wide.                     | low      | M      | backlog | -       | -                                                            |
 | UI-019 | "VintageStory Server" placeholder at the top of the screen should be updated with the server name                         | low      | M      | backlog | -       | -                                                            |
+| UI-020 | Mod List refresh and server version refresh duration should accept human readable strings, not seconds. Mod refresh default to 4 hours | low      | M      | backlog | -       | -                                                            |
 
 ---
 
@@ -150,3 +150,4 @@ Add the PR link to the item's ID.
 | [API-004](https://github.com/craquehouse/vintagestory-server/pull/7) | /readyz endpoint should report data.checks.game_server                                                  | 2025-12-31 | -                                                                         |
 | [UI-002](https://github.com/craquehouse/vintagestory-server/pull/8)  | Replace "VS Server" text with Vintage Story logo banner                                                 | 2025-12-31 | WebP logo (3.3KB + 8.4KB 2x) + icon for collapsed state (742B + 1.6KB 2x) |
 | [UI-012](https://github.com/craquehouse/vintagestory-server/pull/9)  | Installed mods in table should have clickable link to VintageStory mods page                            | 2025-12-31 | Mod name is now a clickable external link                                 |
+| [UI-010](https://github.com/craquehouse/vintagestory-server/pull/13) | Mods installed when server is not running should not generate "server may need to be restarted" toast   | 2025-12-31 | Only show restart toast when server is running                            |
