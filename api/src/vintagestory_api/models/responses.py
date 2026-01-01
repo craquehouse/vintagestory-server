@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 __all__ = [
     "ApiResponse",
@@ -41,6 +41,18 @@ class HealthData(BaseModel):
 
     api: str = "healthy"
     game_server: GameServerStatus
+    game_server_version: str | None = Field(
+        default=None,
+        description="Installed game server version (e.g., '1.19.8'). None if not installed.",
+    )
+    game_server_uptime: int | None = Field(
+        default=None,
+        description="Game server uptime in seconds. None if server is not running.",
+    )
+    game_server_pending_restart: bool = Field(
+        default=False,
+        description="Whether the game server needs to be restarted for changes to take effect.",
+    )
 
 
 class ReadinessData(BaseModel):

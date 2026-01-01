@@ -10,6 +10,7 @@ from vintagestory_api.models.responses import (
 )
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.routers.server import get_server_service
+from vintagestory_api.services.mods import get_restart_state
 
 router = APIRouter(tags=["Health"])
 
@@ -41,11 +42,21 @@ async def health_check() -> ApiResponse:
         server_status.state, GameServerStatus.NOT_INSTALLED
     )
 
+    # Get pending restart state - don't fail health checks if this errors
+    try:
+        restart_state = get_restart_state()
+        pending_restart = restart_state.pending_restart
+    except Exception:
+        pending_restart = False
+
     return ApiResponse(
         status="ok",
         data=HealthData(
             api="healthy",
             game_server=game_server_status,
+            game_server_version=server_status.version,
+            game_server_uptime=server_status.uptime_seconds,
+            game_server_pending_restart=pending_restart,
         ).model_dump(),
     )
 

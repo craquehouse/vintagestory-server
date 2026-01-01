@@ -1,6 +1,10 @@
 """Tests for health check endpoints."""
 
+from unittest.mock import MagicMock, patch
+
 from fastapi.testclient import TestClient
+
+from vintagestory_api.models.server import ServerState, ServerStatus
 
 
 class TestHealthz:
@@ -39,6 +43,99 @@ class TestHealthz:
         response = client.get("/healthz")
         data = response.json()
         assert data["data"]["game_server"] == "not_installed"
+
+    def test_healthz_includes_game_server_version(self, client: TestClient) -> None:
+        """Test that /healthz includes game_server_version field."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "game_server_version" in data["data"]
+        # Version is None when server is not installed
+        assert data["data"]["game_server_version"] is None
+
+    def test_healthz_includes_game_server_uptime(self, client: TestClient) -> None:
+        """Test that /healthz includes game_server_uptime field."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "game_server_uptime" in data["data"]
+        # Uptime is None when server is not running
+        assert data["data"]["game_server_uptime"] is None
+
+    def test_healthz_includes_pending_restart(self, client: TestClient) -> None:
+        """Test that /healthz includes game_server_pending_restart field."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "game_server_pending_restart" in data["data"]
+        # Pending restart is False by default
+        assert data["data"]["game_server_pending_restart"] is False
+
+
+class TestHealthzWithMockedServer:
+    """Tests for /healthz with mocked server state."""
+
+    def test_healthz_returns_version_when_installed(self, client: TestClient) -> None:
+        """Test that game_server_version is returned when server is installed."""
+        mock_status = ServerStatus(
+            state=ServerState.INSTALLED,
+            version="1.19.8",
+            uptime_seconds=None,
+        )
+        mock_service = MagicMock()
+        mock_service.get_server_status.return_value = mock_status
+
+        with patch(
+            "vintagestory_api.routers.health.get_server_service",
+            return_value=mock_service,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["game_server_version"] == "1.19.8"
+            assert data["data"]["game_server"] == "stopped"
+
+    def test_healthz_returns_uptime_when_running(self, client: TestClient) -> None:
+        """Test that game_server_uptime is returned when server is running."""
+        mock_status = ServerStatus(
+            state=ServerState.RUNNING,
+            version="1.19.8",
+            uptime_seconds=3600,
+        )
+        mock_service = MagicMock()
+        mock_service.get_server_status.return_value = mock_status
+
+        with patch(
+            "vintagestory_api.routers.health.get_server_service",
+            return_value=mock_service,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["game_server_uptime"] == 3600
+            assert data["data"]["game_server"] == "running"
+
+    def test_healthz_returns_pending_restart_when_true(
+        self, client: TestClient
+    ) -> None:
+        """Test that game_server_pending_restart reflects actual state."""
+        mock_restart_state = MagicMock()
+        mock_restart_state.pending_restart = True
+
+        with patch(
+            "vintagestory_api.routers.health.get_restart_state",
+            return_value=mock_restart_state,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["game_server_pending_restart"] is True
+
+    def test_healthz_handles_restart_state_error(self, client: TestClient) -> None:
+        """Test that health check succeeds even if get_restart_state() fails."""
+        with patch(
+            "vintagestory_api.routers.health.get_restart_state",
+            side_effect=RuntimeError("Restart state unavailable"),
+        ):
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            data = response.json()
+            # Should default to False on error
+            assert data["data"]["game_server_pending_restart"] is False
 
 
 class TestReadyz:
