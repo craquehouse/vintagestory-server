@@ -56,13 +56,13 @@ WRONG PATTERN (tests batched at end):
     - `useConfigFileContent(filename)`: Query hook for file content (enabled when filename provided)
   - [x] Subtask 1.5: Write tests for hooks (loading, success, error states)
 
-- [ ] Task 2: Create FileList component + tests (AC: 1, 4, 5)
-  - [ ] Subtask 2.1: Create `web/src/components/FileList.tsx`
-  - [ ] Subtask 2.2: Display list of file names with click handlers
-  - [ ] Subtask 2.3: Highlight selected file
-  - [ ] Subtask 2.4: Handle empty state (no files available)
-  - [ ] Subtask 2.5: Handle loading state with skeleton
-  - [ ] Subtask 2.6: Write tests for all states and selection behavior
+- [x] Task 2: Create FileList component + tests (AC: 1, 4, 5)
+  - [x] Subtask 2.1: Create `web/src/components/FileList.tsx`
+  - [x] Subtask 2.2: Display list of file names with click handlers
+  - [x] Subtask 2.3: Highlight selected file
+  - [x] Subtask 2.4: Handle empty state (no files available)
+  - [x] Subtask 2.5: Handle loading state with skeleton
+  - [x] Subtask 2.6: Write tests for all states and selection behavior
 
 - [ ] Task 3: Create FileViewer component + tests (AC: 2, 3, 4)
   - [ ] Subtask 3.1: Create `web/src/components/FileViewer.tsx`
