@@ -67,7 +67,7 @@ development_status:
   4-4-terminal-view-component: done
   epic-4-retrospective: done
 
-   # Epic 5: Mod Management
+  # Epic 5: Mod Management
   epic-5: done
   5-0-epic-5-preparation: done
   5-1-mod-service-and-state-management: done
@@ -85,7 +85,7 @@ development_status:
   6-1-config-init-service-and-template: done
   6-2-game-settings-api: done
   6-3-api-settings-service: done
-  6-4-settings-ui: ready-for-dev
+  6-4-settings-ui: in-progress
   6-5-raw-config-viewer: backlog
   epic-6-retrospective: optional
 
