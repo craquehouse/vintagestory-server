@@ -5,8 +5,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModList } from "@/features/mods/ModList";
-import { ConfigEditor } from "@/features/config/ConfigEditor";
-import { Terminal } from "@/features/terminal/Terminal";
+import { GameServerPage } from "@/features/game-server";
+import { SettingsPage } from "@/features/settings";
 
 function App() {
   return (
@@ -16,9 +16,9 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/game-server" element={<GameServerPage />} />
               <Route path="/mods" element={<ModList />} />
-              <Route path="/config" element={<ConfigEditor />} />
-              <Route path="/terminal" element={<Terminal />} />
+              <Route path="/config" element={<SettingsPage />} />
             </Routes>
           </Layout>
         </BrowserRouter>

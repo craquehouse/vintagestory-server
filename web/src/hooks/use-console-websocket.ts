@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Debug logging helper - only logs in development mode.
+ * Debug logging helper - only logs in development mode, not during tests.
  */
 function debugLog(message: string, data?: Record<string, unknown>): void {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !import.meta.env.VITEST) {
     if (data) {
-      console.debug(`[ConsoleWebSocket] ${message}`, data);
+      console.log(`[ConsoleWebSocket] ${message}`, data);
     } else {
-      console.debug(`[ConsoleWebSocket] ${message}`);
+      console.log(`[ConsoleWebSocket] ${message}`);
     }
   }
 }

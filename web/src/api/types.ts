@@ -162,3 +162,64 @@ export interface ModRemoveData {
   slug: string;
   pendingRestart: boolean;
 }
+
+// ===== Game Config Types =====
+
+/**
+ * Setting type values for game configuration.
+ */
+export type SettingType = 'string' | 'int' | 'bool' | 'float';
+
+/**
+ * Individual game setting with metadata.
+ */
+export interface GameSetting {
+  key: string;
+  value: string | number | boolean;
+  type: SettingType;
+  liveUpdate: boolean;
+  envManaged: boolean;
+  requiresRestart?: boolean;
+}
+
+/**
+ * Response from GET /api/v1alpha1/config/game.
+ */
+export interface GameConfigData {
+  settings: GameSetting[];
+  sourceFile: string;
+  lastModified: string; // ISO 8601
+}
+
+/**
+ * Response from POST /api/v1alpha1/config/game/settings/{key}.
+ */
+export interface GameSettingUpdateData {
+  key: string;
+  value: string | number | boolean;
+  method: 'console_command' | 'file_update';
+  pendingRestart: boolean;
+}
+
+// ===== API Settings Types =====
+
+/**
+ * API operational settings from GET /api/v1alpha1/config/api.
+ */
+export interface ApiSettingsData {
+  settings: {
+    autoStartServer: boolean;
+    blockEnvManagedSettings: boolean;
+    enforceEnvOnRestart: boolean;
+    modListRefreshInterval: number;
+    serverVersionsRefreshInterval: number;
+  };
+}
+
+/**
+ * Response from POST /api/v1alpha1/config/api/settings/{key}.
+ */
+export interface ApiSettingUpdateData {
+  key: string;
+  value: string | number | boolean;
+}

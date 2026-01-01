@@ -23,5 +23,9 @@ export const queryKeys = {
   config: {
     files: ['config', 'files'] as const,
     file: (name: string) => ['config', 'files', name] as const,
+    // Game settings (Story 6.4)
+    game: ['config', 'game'] as const,
+    // API settings (Story 6.4)
+    api: ['config', 'api'] as const,
   },
 };
