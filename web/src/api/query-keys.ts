@@ -28,4 +28,7 @@ export const queryKeys = {
     // API settings (Story 6.4)
     api: ['config', 'api'] as const,
   },
+  console: {
+    logs: ['console', 'logs'] as const,
+  },
 };
