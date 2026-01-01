@@ -1,6 +1,6 @@
 # Story 6.4: Settings UI
 
-Status: complete
+Status: in-progress
 
 ## Story
 
@@ -108,8 +108,15 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 10.2: Implement shadcn/ui Tabs component with "API Settings" and "File Manager" tabs
   - [x] Subtask 10.3: Add ApiSettingsPanel under "API Settings" tab
   - [x] Subtask 10.4: Add "Coming Soon" placeholder under "File Manager" tab
-  - [x] Subtask 10.5: Update `web/src/App.tsx` - route /config to SettingsPage instead of ConfigEditor
-  - [x] Subtask 10.6: Write tests for tab switching and content rendering
+ - [x] Subtask 10.5: Update `web/src/App.tsx` - route /config to SettingsPage instead of ConfigEditor
+   - [x] Subtask 10.6: Write tests for tab switching and content rendering
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] Update File List with accurate categorization (missing files: config.ts, SettingGroup.tsx, tabs.tsx, game-server/*, settings/*)
+- [ ] [AI-Review][MEDIUM] Complete manual tests: navigate to /config verify tab switching, toggle API settings verify saves work
+- [ ] [AI-Review][MEDIUM] Fix PendingRestartBanner visibility - not on mobile or when user focused on GameConfigPanel [Header.tsx:34-36]
+- [ ] [AI-Review][MEDIUM] Fix SettingField boolean save inconsistency - bypasses useSettingField validation/error handling [SettingField.tsx:153-156]
 
 ## Dev Notes
 
