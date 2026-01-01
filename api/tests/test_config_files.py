@@ -115,8 +115,10 @@ class TestReadFile:
         result = service.read_file("broken.json")
 
         assert result["filename"] == "broken.json"
-        assert "_raw" in result["content"]
-        assert "_parse_error" in result["content"]
+        content = result["content"]
+        assert isinstance(content, dict)
+        assert "_raw" in content
+        assert "_parse_error" in content
 
 
 class TestPathTraversalPrevention:
@@ -211,14 +213,19 @@ class TestPathTraversalPrevention:
 
 
 class TestSafePathMethod:
-    """Direct tests for the _safe_path() method."""
+    """Direct tests for the _safe_path() method.
+
+    Note: _safe_path is a private method, but we test it directly to ensure
+    the security-critical path validation logic works correctly.
+    """
 
     def test_safe_path_valid_filename(
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
         """Should return resolved path for valid filename."""
         base_dir = mock_settings.serverdata_dir
-        result = service._safe_path(base_dir, "serverconfig.json")
+        # pyright: ignore[reportPrivateUsage] - Testing private security method
+        result = service._safe_path(base_dir, "serverconfig.json")  # pyright: ignore[reportPrivateUsage]
 
         assert result == base_dir.resolve() / "serverconfig.json"
 
@@ -229,4 +236,4 @@ class TestSafePathMethod:
         base_dir = mock_settings.serverdata_dir
 
         with pytest.raises(ConfigPathInvalidError):
-            service._safe_path(base_dir, "../etc/passwd")
+            service._safe_path(base_dir, "../etc/passwd")  # pyright: ignore[reportPrivateUsage]

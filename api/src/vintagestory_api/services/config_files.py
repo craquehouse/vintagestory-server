@@ -114,7 +114,7 @@ class ConfigFilesService:
         logger.debug("config_files_listed", count=len(json_files))
         return json_files
 
-    def read_file(self, filename: str) -> dict:
+    def read_file(self, filename: str) -> dict[str, object]:
         """Read a JSON configuration file and return its content.
 
         Args:
