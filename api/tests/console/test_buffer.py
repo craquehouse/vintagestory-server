@@ -1,7 +1,5 @@
 """Unit tests for ConsoleBuffer service."""
 
-from datetime import datetime
-
 import pytest
 
 from vintagestory_api.services.console import ConsoleBuffer
@@ -35,28 +33,22 @@ class TestConsoleBuffer:
         assert len(buffer) == 1
         history = buffer.get_history()
         assert len(history) == 1
-        assert "Test line" in history[0]
+        assert history[0] == "Test line"
 
     @pytest.mark.asyncio
-    async def test_append_adds_iso8601_timestamp(self, buffer: ConsoleBuffer) -> None:
-        """Test that append prefixes lines with ISO 8601 timestamp (AC1)."""
-        await buffer.append("Server starting")
+    async def test_append_stores_line_without_modification(self, buffer: ConsoleBuffer) -> None:
+        """Test that append stores lines without modification.
+
+        VintageStory server output already includes timestamps, so we don't
+        add our own. Lines are stored exactly as received.
+        """
+        # Simulate VintageStory server output with its own timestamp
+        server_line = "[12:34:56] Server starting"
+        await buffer.append(server_line)
 
         history = buffer.get_history()
         assert len(history) == 1
-
-        # Check timestamp format: [YYYY-MM-DDTHH:MM:SS.ffffff]
-        line = history[0]
-        assert line.startswith("[")
-        assert "]" in line
-
-        # Extract timestamp and verify it's valid ISO 8601
-        timestamp_str = line[1 : line.index("]")]
-        timestamp = datetime.fromisoformat(timestamp_str)
-        assert timestamp is not None
-
-        # Verify the original message is preserved
-        assert "Server starting" in line
+        assert history[0] == server_line  # Exact match, no modification
 
     @pytest.mark.asyncio
     async def test_append_multiple_lines_preserves_order(self, buffer: ConsoleBuffer) -> None:
@@ -173,7 +165,7 @@ class TestConsoleBuffer:
         await buffer.append("Test message")
 
         assert len(received_lines) == 1
-        assert "Test message" in received_lines[0]
+        assert received_lines[0] == "Test message"
 
     @pytest.mark.asyncio
     async def test_multiple_subscribers_all_notified(self, buffer: ConsoleBuffer) -> None:
@@ -193,8 +185,8 @@ class TestConsoleBuffer:
 
         assert len(received_1) == 1
         assert len(received_2) == 1
-        assert "Broadcast message" in received_1[0]
-        assert "Broadcast message" in received_2[0]
+        assert received_1[0] == "Broadcast message"
+        assert received_2[0] == "Broadcast message"
 
     @pytest.mark.asyncio
     async def test_unsubscribe_stops_notifications(self, buffer: ConsoleBuffer) -> None:
@@ -211,7 +203,7 @@ class TestConsoleBuffer:
         await buffer.append("After unsubscribe")
 
         assert len(received_lines) == 1
-        assert "Before unsubscribe" in received_lines[0]
+        assert received_lines[0] == "Before unsubscribe"
 
     @pytest.mark.asyncio
     async def test_failed_subscriber_is_removed(self, buffer: ConsoleBuffer) -> None:
@@ -246,7 +238,7 @@ class TestConsoleBuffer:
 
         # Good subscriber should still receive the message
         assert len(received_good) == 1
-        assert "Test message" in received_good[0]
+        assert received_good[0] == "Test message"
 
     # ======================================
     # Buffer properties and clear
@@ -288,8 +280,8 @@ class TestConsoleBuffer:
         await buffer.append("After clear")
 
         assert len(received_lines) == 2
-        assert "Before clear" in received_lines[0]
-        assert "After clear" in received_lines[1]
+        assert received_lines[0] == "Before clear"
+        assert received_lines[1] == "After clear"
 
     # ======================================
     # Buffer preservation after server stop (AC4)
