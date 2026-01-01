@@ -68,6 +68,33 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         log_level=settings.log_level or ("DEBUG" if settings.debug else "INFO"),
         data_dir=str(settings.data_dir),
     )
+
+    # Auto-start game server if enabled in API settings
+    from vintagestory_api.models.server import ServerState
+    from vintagestory_api.routers.server import get_server_service
+    from vintagestory_api.services.api_settings import ApiSettingsService
+
+    api_settings_service = ApiSettingsService(settings)
+    api_settings = api_settings_service.get_settings()
+
+    if api_settings.auto_start_server:
+        logger.info("auto_start_server_enabled", auto_start=True)
+        try:
+            server_service = get_server_service()
+            # Only start if server is installed and not already running
+            status = server_service.get_server_status()
+            if status.state == ServerState.INSTALLED:
+                logger.info("auto_starting_game_server")
+                await server_service.start_server()
+            elif status.state == ServerState.NOT_INSTALLED:
+                logger.warning("auto_start_skipped", reason="server_not_installed")
+            else:
+                logger.info("auto_start_skipped", reason=f"server_state_{status.state.value}")
+        except Exception as e:
+            logger.error("auto_start_failed", error=str(e))
+    else:
+        logger.debug("auto_start_server_disabled")
+
     yield
     # Shutdown: close any open resources
     from vintagestory_api.services.mods import close_mod_service

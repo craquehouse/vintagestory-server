@@ -113,7 +113,7 @@ So that **I can configure the server visually and see console command feedback**
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] Complete manual tests: navigate to /config verify tab switching, toggle API settings verify saves work
+- [x] [AI-Review][MEDIUM] Complete manual tests: navigate to /config verify tab switching, toggle API settings verify saves work
 - [x] [AI-Review][MEDIUM] Fix PendingRestartBanner visibility - now visible on all screen sizes [Header.tsx:34]
 - [x] [AI-Review][MEDIUM] Fix SettingField boolean save inconsistency - now uses field.save(checked) with valueOverride [SettingField.tsx:155, use-setting-field.ts:216]
 
