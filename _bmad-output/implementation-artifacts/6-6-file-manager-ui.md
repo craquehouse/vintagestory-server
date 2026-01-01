@@ -1,6 +1,6 @@
 # Story 6.6: File Manager UI
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -43,18 +43,18 @@ WRONG PATTERN (tests batched at end):
 - [ ] Task 3: Write all tests  <- NEVER DO THIS
 -->
 
-- [ ] Task 1: Create config files API hooks + types + tests (AC: 1, 2, 5)
-  - [ ] Subtask 1.1: Add config file types to `web/src/api/types.ts`
+- [x] Task 1: Create config files API hooks + types + tests (AC: 1, 2, 5)
+  - [x] Subtask 1.1: Add config file types to `web/src/api/types.ts`
     - `ConfigFileListResponse`: `{ files: string[] }`
     - `ConfigFileContentResponse`: `{ filename: string, content: unknown }`
-  - [ ] Subtask 1.2: Add config files API functions to `web/src/api/config.ts`
+  - [x] Subtask 1.2: Add config files API functions to `web/src/api/config.ts`
     - `fetchConfigFiles()`: GET /config/files
     - `fetchConfigFileContent(filename)`: GET /config/files/{filename}
-  - [ ] Subtask 1.3: Add query keys for config files to `web/src/api/query-keys.ts`
-  - [ ] Subtask 1.4: Create `web/src/hooks/use-config-files.ts`
+  - [x] Subtask 1.3: Add query keys for config files to `web/src/api/query-keys.ts`
+  - [x] Subtask 1.4: Create `web/src/hooks/use-config-files.ts`
     - `useConfigFiles()`: Query hook for file list
     - `useConfigFileContent(filename)`: Query hook for file content (enabled when filename provided)
-  - [ ] Subtask 1.5: Write tests for hooks (loading, success, error states)
+  - [x] Subtask 1.5: Write tests for hooks (loading, success, error states)
 
 - [ ] Task 2: Create FileList component + tests (AC: 1, 4, 5)
   - [ ] Subtask 2.1: Create `web/src/components/FileList.tsx`

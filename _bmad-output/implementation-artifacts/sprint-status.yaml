@@ -87,7 +87,7 @@ development_status:
   6-3-api-settings-service: done
   6-4-settings-ui: done
   6-5-raw-config-viewer: done
-  6-6-file-manager-ui: ready-for-dev
+  6-6-file-manager-ui: in-progress
   epic-6-retrospective: optional
 
   # Epic 7: APScheduler Integration (New 2025-12-30)
