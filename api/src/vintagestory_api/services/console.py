@@ -2,7 +2,6 @@
 
 from collections import deque
 from collections.abc import Awaitable, Callable
-from datetime import datetime
 
 import structlog
 
@@ -40,23 +39,23 @@ class ConsoleBuffer:
         return self._max_lines
 
     async def append(self, line: str) -> None:
-        """Add a line to the buffer with timestamp and notify subscribers.
+        """Add a line to the buffer and notify subscribers.
 
-        The line is prefixed with an ISO 8601 timestamp before storage.
+        The line is stored as-is without modification.
+        VintageStory server output already includes timestamps.
         All registered subscribers are notified asynchronously.
         Failed subscribers are automatically removed.
 
         Args:
             line: The console output line to add.
         """
-        timestamped = f"[{datetime.now().isoformat()}] {line}"
-        self._buffer.append(timestamped)
+        self._buffer.append(line)
 
         # Notify all subscribers
         # Use list() to avoid "set changed size during iteration" if callback fails
         for callback in list(self._subscribers):
             try:
-                await callback(timestamped)
+                await callback(line)
             except Exception as e:
                 # Remove failed subscriber (e.g., disconnected WebSocket)
                 self._subscribers.discard(callback)

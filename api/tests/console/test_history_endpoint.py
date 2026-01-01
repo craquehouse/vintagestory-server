@@ -1,7 +1,5 @@
 """API tests for GET /api/v1alpha1/console/history endpoint."""
 
-from datetime import datetime
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -169,25 +167,21 @@ class TestConsoleHistoryEndpoint:
     # ======================================
 
     @pytest.mark.asyncio
-    async def test_history_lines_have_timestamps(
+    async def test_history_lines_stored_without_modification(
         self, client: TestClient, admin_headers: dict[str, str], test_service: ServerService
     ) -> None:
-        """Test that returned lines include ISO 8601 timestamps (AC1)."""
-        await test_service.console_buffer.append("Test message")
+        """Test that returned lines are stored exactly as received from server.
+
+        VintageStory server output already includes timestamps, so we store
+        lines without modification to avoid double timestamps.
+        """
+        # Simulate VintageStory server output (includes its own timestamp)
+        server_line = "[12:34:56] Test message"
+        await test_service.console_buffer.append(server_line)
 
         response = client.get("/api/v1alpha1/console/history", headers=admin_headers)
 
         assert response.status_code == 200
         lines = response.json()["data"]["lines"]
         assert len(lines) == 1
-
-        # Verify timestamp format: [YYYY-MM-DDTHH:MM:SS.ffffff]
-        line = lines[0]
-        assert line.startswith("[")
-        assert "]" in line
-        assert "Test message" in line
-
-        # Parse the timestamp
-        timestamp_str = line[1 : line.index("]")]
-        timestamp = datetime.fromisoformat(timestamp_str)
-        assert timestamp is not None
+        assert lines[0] == server_line  # Exact match, no modification

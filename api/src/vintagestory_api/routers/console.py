@@ -34,8 +34,9 @@ async def get_console_history(
 ) -> dict[str, object]:
     """Get console history from the buffer.
 
-    Returns timestamped console output lines from the server's stdout/stderr.
-    Oldest lines are returned first. Each line is prefixed with ISO 8601 timestamp.
+    Returns console output lines from the server's stdout/stderr.
+    Oldest lines are returned first. Lines are stored as-is from the server
+    (VintageStory includes its own timestamps).
 
     Requires Admin role (console access is restricted to administrators).
 
