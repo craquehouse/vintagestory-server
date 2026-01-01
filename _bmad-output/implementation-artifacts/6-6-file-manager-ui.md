@@ -278,6 +278,14 @@ gh pr create --title "Story 6.6: File Manager UI" --body "..."
 - `web/src/features/settings/SettingsPage.tsx` - Integration target
 - `web/src/hooks/use-api-settings.ts` - Hook pattern reference
 
+## Review Follow-ups
+
+- [ ] [HIGH] Fix test file path mismatch - Update Task 6.1 to reflect actual test location (`web/src/components/FileList.test.tsx` not `tests/web/components/FileList.test.tsx`)
+- [ ] [MEDIUM] Implement syntax highlighting - Replace simple `JSON.stringify()` with proper syntax highlighting library (react-json-view, shiki, or similar) OR update AC3 to remove syntax highlighting requirement
+- [ ] [MEDIUM] Add responsive layout tests - Add tests for mobile behavior of split layout FileManagerPanel or defer responsive testing as explicit task
+- [ ] [LOW] Tighten FileViewer content type - Change `content: unknown` to `content: Record<string, unknown> | null` for better type safety
+- [ ] [LOW] Improve empty state accessibility - Add more descriptive ARIA labels for screen readers explaining File Manager purpose
+
 ## Dev Agent Record
 
 ### Agent Model Used
