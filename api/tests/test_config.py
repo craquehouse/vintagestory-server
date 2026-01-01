@@ -44,6 +44,16 @@ class TestDataDirectories:
         settings = Settings()
         assert settings.vsmanager_dir == settings.data_dir / "vsmanager"
 
+    def test_cache_dir_property(self) -> None:
+        """Cache directory is a subdirectory of vsmanager_dir."""
+        settings = Settings()
+        assert settings.cache_dir == settings.vsmanager_dir / "cache"
+
+    def test_state_dir_property(self) -> None:
+        """State directory is a subdirectory of vsmanager_dir."""
+        settings = Settings()
+        assert settings.state_dir == settings.vsmanager_dir / "state"
+
 
 class TestEnsureDataDirectories:
     """Tests for ensure_data_directories method."""
@@ -57,6 +67,8 @@ class TestEnsureDataDirectories:
             assert settings.server_dir.exists()
             assert settings.serverdata_dir.exists()
             assert settings.vsmanager_dir.exists()
+            assert settings.cache_dir.exists()
+            assert settings.state_dir.exists()
 
     def test_idempotent(self, tmp_path: Path) -> None:
         """Calling ensure_data_directories multiple times is safe."""
