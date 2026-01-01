@@ -73,12 +73,12 @@ WRONG PATTERN (tests batched at end):
   - [x] Subtask 3.6: Handle error state (file not found, etc.)
   - [x] Subtask 3.7: Write tests for all states
 
-- [ ] Task 4: Create FileManagerPanel component + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] Subtask 4.1: Create `web/src/features/settings/FileManagerPanel.tsx`
-  - [ ] Subtask 4.2: Compose FileList and FileViewer in split layout
-  - [ ] Subtask 4.3: Manage selected file state
-  - [ ] Subtask 4.4: Wire up hooks for data fetching
-  - [ ] Subtask 4.5: Write integration tests for component interaction
+- [x] Task 4: Create FileManagerPanel component + tests (AC: 1, 2, 3, 4, 5)
+  - [x] Subtask 4.1: Create `web/src/features/settings/FileManagerPanel.tsx`
+  - [x] Subtask 4.2: Compose FileList and FileViewer in split layout
+  - [x] Subtask 4.3: Manage selected file state
+  - [x] Subtask 4.4: Wire up hooks for data fetching
+  - [x] Subtask 4.5: Write integration tests for component interaction
 
 - [ ] Task 5: Integrate FileManagerPanel into SettingsPage + tests (AC: 1)
   - [ ] Subtask 5.1: Replace "Coming Soon" placeholder in SettingsPage.tsx
