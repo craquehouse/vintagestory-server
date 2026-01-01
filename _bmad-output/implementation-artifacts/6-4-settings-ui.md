@@ -1,6 +1,6 @@
 # Story 6.4: Settings UI
 
-Status: ready-for-dev
+Status: complete
 
 ## Story
 
@@ -83,33 +83,33 @@ So that **I can configure the server visually and see console command feedback**
   - [x] Subtask 6.4: Handle loading and error states with skeletons
   - [x] Subtask 6.5: Write tests for render, field updates, and validation
 
-- [ ] Task 7: Create GameServerPage with responsive split layout + tests (AC: 1, 2)
-  - [ ] Subtask 7.1: Create `web/src/features/game-server/GameServerPage.tsx`
-  - [ ] Subtask 7.2: Implement desktop split layout (lg:flex-row, left: GameConfigPanel, right: Console)
-  - [ ] Subtask 7.3: Implement mobile stacked layout (flex-col, top: Console, bottom: GameConfigPanel)
-  - [ ] Subtask 7.4: Extract console functionality from Terminal.tsx to reusable component
-  - [ ] Subtask 7.5: Write tests for responsive layout behavior
+- [x] Task 7: Create GameServerPage with responsive split layout + tests (AC: 1, 2)
+  - [x] Subtask 7.1: Create `web/src/features/game-server/GameServerPage.tsx`
+  - [x] Subtask 7.2: Implement desktop split layout (lg:flex-row, left: GameConfigPanel, right: Console)
+  - [x] Subtask 7.3: Implement mobile stacked layout (flex-col, top: Console, bottom: GameConfigPanel)
+  - [x] Subtask 7.4: Extract console functionality from Terminal.tsx to reusable component
+  - [x] Subtask 7.5: Write tests for responsive layout behavior
 
-- [ ] Task 8: Rename Console → GameServer in navigation + tests (AC: 1)
-  - [ ] Subtask 8.1: Update `web/src/components/layout/Sidebar.tsx` - change Terminal label to "GameServer"
-  - [ ] Subtask 8.2: Update `web/src/App.tsx` - rename route from /terminal to /game-server, update import
-  - [ ] Subtask 8.3: Update any references to old route paths
-  - [ ] Subtask 8.4: Write/update navigation tests
+- [x] Task 8: Rename Console → GameServer in navigation + tests (AC: 1)
+  - [x] Subtask 8.1: Update `web/src/components/layout/Sidebar.tsx` - change Terminal label to "Game Server"
+  - [x] Subtask 8.2: Update `web/src/App.tsx` - rename route from /terminal to /game-server, update import
+  - [x] Subtask 8.3: Update any references to old route paths
+  - [x] Subtask 8.4: Write/update navigation tests
 
-- [ ] Task 9: Create ApiSettingsPanel component + tests (AC: 6)
-  - [ ] Subtask 9.1: Create `web/src/features/settings/ApiSettingsPanel.tsx`
-  - [ ] Subtask 9.2: Display auto_start_server, block_env_managed_settings, enforce_env_on_restart toggles
-  - [ ] Subtask 9.3: Display mod_list_refresh_interval, server_versions_refresh_interval number inputs
-  - [ ] Subtask 9.4: Wire up settings with useApiSettings and useUpdateApiSetting hooks
-  - [ ] Subtask 9.5: Write tests for render and setting updates
+- [x] Task 9: Create ApiSettingsPanel component + tests (AC: 6)
+  - [x] Subtask 9.1: Create `web/src/features/settings/ApiSettingsPanel.tsx`
+  - [x] Subtask 9.2: Display auto_start_server, block_env_managed_settings, enforce_env_on_restart toggles
+  - [x] Subtask 9.3: Display mod_list_refresh_interval, server_versions_refresh_interval number inputs
+  - [x] Subtask 9.4: Wire up settings with useApiSettings and useUpdateApiSetting hooks
+  - [x] Subtask 9.5: Write tests for render and setting updates
 
-- [ ] Task 10: Create SettingsPage with tabs + tests (AC: 6)
-  - [ ] Subtask 10.1: Create `web/src/features/settings/SettingsPage.tsx`
-  - [ ] Subtask 10.2: Implement shadcn/ui Tabs component with "API Settings" and "File Manager" tabs
-  - [ ] Subtask 10.3: Add ApiSettingsPanel under "API Settings" tab
-  - [ ] Subtask 10.4: Add "Coming Soon" placeholder under "File Manager" tab
-  - [ ] Subtask 10.5: Update `web/src/App.tsx` - route /config to SettingsPage instead of ConfigEditor
-  - [ ] Subtask 10.6: Write tests for tab switching and content rendering
+- [x] Task 10: Create SettingsPage with tabs + tests (AC: 6)
+  - [x] Subtask 10.1: Create `web/src/features/settings/SettingsPage.tsx`
+  - [x] Subtask 10.2: Implement shadcn/ui Tabs component with "API Settings" and "File Manager" tabs
+  - [x] Subtask 10.3: Add ApiSettingsPanel under "API Settings" tab
+  - [x] Subtask 10.4: Add "Coming Soon" placeholder under "File Manager" tab
+  - [x] Subtask 10.5: Update `web/src/App.tsx` - route /config to SettingsPage instead of ConfigEditor
+  - [x] Subtask 10.6: Write tests for tab switching and content rendering
 
 ## Dev Notes
 
@@ -384,10 +384,43 @@ gh pr create --title "Story 6.4: Settings UI" --body "..."
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None
+
 ### Completion Notes List
 
+1. **All 10 tasks completed** - Full implementation of Settings UI story
+2. **551 tests passing** - All web tests pass with clean output
+3. **Test quality improvements made:**
+   - Fixed React `act()` warnings in `SettingField.test.tsx` by wrapping promise resolution in `act()`
+   - Fixed Radix UI accessibility warnings in `Layout.tsx` by adding `SheetTitle` and `SheetDescription` with `sr-only` class
+   - Suppressed debug logs during tests by adding `!import.meta.env.VITEST` check to `debugLog()` in `use-console-websocket.ts`
+4. **Navigation updated:** Terminal → "Game Server" (kept Terminal icon per user preference)
+5. **Routes updated:** `/terminal` → `/game-server`, `/config` → SettingsPage with tabs
+
 ### File List
+
+**New files created:**
+- `web/src/components/ConsolePanel.tsx` - Reusable console panel extracted from Terminal
+- `web/src/components/ConsolePanel.test.tsx` - Tests for ConsolePanel
+- `web/src/features/game-server/GameServerPage.tsx` - Responsive split layout page
+- `web/src/features/game-server/GameServerPage.test.tsx` - Tests for GameServerPage
+- `web/src/features/game-server/index.ts` - Feature exports
+- `web/src/features/settings/ApiSettingsPanel.tsx` - API settings management panel
+- `web/src/features/settings/ApiSettingsPanel.test.tsx` - Tests for ApiSettingsPanel
+- `web/src/features/settings/SettingsPage.tsx` - Tabbed settings page
+- `web/src/features/settings/SettingsPage.test.tsx` - Tests for SettingsPage
+- `web/src/features/settings/index.ts` - Feature exports
+- `web/src/components/ui/tabs.tsx` - shadcn/ui Tabs component
+
+**Files modified:**
+- `web/src/App.tsx` - Updated routes for game-server and settings
+- `web/src/components/layout/Sidebar.tsx` - Changed Terminal to "Game Server"
+- `web/src/components/layout/Sidebar.test.tsx` - Updated navigation tests
+- `web/src/components/layout/Layout.tsx` - Added SheetTitle/SheetDescription for accessibility
+- `web/src/components/SettingField.test.tsx` - Fixed act() warnings
+- `web/src/hooks/use-console-websocket.ts` - Suppressed debug logs during tests
+- `web/src/hooks/use-setting-field.ts` - Updated validator types to use SettingValue union

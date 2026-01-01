@@ -11,6 +11,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { SettingType } from '@/api/types';
 
 /**
+ * Union type for all possible setting values.
+ */
+export type SettingValue = string | number | boolean;
+
+/**
  * Validation function type.
  * Returns null if valid, or error message string if invalid.
  */
@@ -18,13 +23,14 @@ export type Validator<T> = (value: T) => string | null;
 
 /**
  * Built-in validators for common setting types.
+ * All validators accept SettingValue to work with the generic SettingField.
  */
 export const validators = {
   /**
    * Validates that a string is not empty.
    */
-  required: (message = 'This field is required'): Validator<string> => (value) =>
-    value.trim() === '' ? message : null,
+  required: (message = 'This field is required'): Validator<SettingValue> => (value) =>
+    typeof value === 'string' && value.trim() === '' ? message : null,
 
   /**
    * Validates that a number is within a range.
@@ -33,27 +39,29 @@ export const validators = {
     min: number,
     max: number,
     message?: string
-  ): Validator<number> => (value) =>
-    value < min || value > max
+  ): Validator<SettingValue> => (value) =>
+    typeof value === 'number' && (value < min || value > max)
       ? message ?? `Value must be between ${min} and ${max}`
       : null,
 
   /**
    * Validates that a number is a positive integer.
    */
-  positiveInt: (message = 'Must be a positive integer'): Validator<number> => (value) =>
-    !Number.isInteger(value) || value < 0 ? message : null,
+  positiveInt: (message = 'Must be a positive integer'): Validator<SettingValue> => (value) =>
+    typeof value === 'number' && (!Number.isInteger(value) || value < 0) ? message : null,
 
   /**
    * Validates that a port number is valid.
    */
-  port: (message = 'Port must be between 1 and 65535'): Validator<number> => (value) =>
-    !Number.isInteger(value) || value < 1 || value > 65535 ? message : null,
+  port: (message = 'Port must be between 1 and 65535'): Validator<SettingValue> => (value) =>
+    typeof value === 'number' && (!Number.isInteger(value) || value < 1 || value > 65535)
+      ? message
+      : null,
 
   /**
    * Combines multiple validators, returning first error or null.
    */
-  compose: <T>(...fns: Validator<T>[]): Validator<T> => (value) => {
+  compose: (...fns: Validator<SettingValue>[]): Validator<SettingValue> => (value) => {
     for (const fn of fns) {
       const error = fn(value);
       if (error) return error;

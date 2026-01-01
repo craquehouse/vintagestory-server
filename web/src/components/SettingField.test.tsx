@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { SettingField } from './SettingField';
 
 describe('SettingField', () => {
@@ -364,9 +364,11 @@ describe('SettingField', () => {
       // Note: The loader appears after isPending becomes true
       expect(screen.getByRole('textbox')).toBeDisabled();
 
-      // Complete the save
-      resolveSave!();
-      await savePromise;
+      // Complete the save and wait for state updates
+      await act(async () => {
+        resolveSave!();
+        await savePromise;
+      });
     });
 
     it('disables input while saving', async () => {
@@ -386,8 +388,11 @@ describe('SettingField', () => {
         expect(input).toBeDisabled();
       });
 
-      resolveSave!();
-      await savePromise;
+      // Complete the save and wait for state updates
+      await act(async () => {
+        resolveSave!();
+        await savePromise;
+      });
 
       await waitFor(() => {
         expect(input).not.toBeDisabled();

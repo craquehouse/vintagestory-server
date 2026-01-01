@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { useSidebar } from "@/contexts/SidebarContext";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,6 +23,10 @@ export function Layout({ children }: LayoutProps) {
       {/* Mobile sidebar sheet */}
       <Sheet open={isMobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+          <SheetDescription className="sr-only">
+            Main navigation links for the application
+          </SheetDescription>
           <Sidebar />
         </SheetContent>
       </Sheet>

@@ -13,7 +13,7 @@ import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
-import { validators } from '@/hooks/use-setting-field';
+import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
 
 /**
@@ -23,7 +23,7 @@ interface SettingDefinition {
   key: string;
   label: string;
   description?: string;
-  validate?: ReturnType<typeof validators.compose>;
+  validate?: Validator<SettingValue>;
 }
 
 /**

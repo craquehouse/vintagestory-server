@@ -22,7 +22,7 @@ describe('Sidebar', () => {
     renderWithProviders(<Sidebar />);
 
     expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /gameserver/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /game server/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /mods/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
   });
@@ -43,12 +43,12 @@ describe('Sidebar', () => {
     expect(modsLink).toHaveAttribute('href', '/mods');
   });
 
-  it('renders GameServer with correct icon', () => {
+  it('renders Game Server with correct icon', () => {
     renderWithProviders(<Sidebar />);
 
-    const gameServerLink = screen.getByRole('link', { name: /gameserver/i });
+    const gameServerLink = screen.getByRole('link', { name: /game server/i });
     expect(gameServerLink).toBeInTheDocument();
-    expect(gameServerLink).toHaveAttribute('href', '/terminal');
+    expect(gameServerLink).toHaveAttribute('href', '/game-server');
   });
 
   it('renders Settings with correct icon', () => {
@@ -172,7 +172,7 @@ describe('Sidebar', () => {
 
     // All nav labels should be hidden
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
-    expect(screen.queryByText('GameServer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Game Server')).not.toBeInTheDocument();
     expect(screen.queryByText('Mods')).not.toBeInTheDocument();
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });

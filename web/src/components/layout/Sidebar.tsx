@@ -21,7 +21,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/terminal", icon: Terminal, label: "GameServer" },
+  { to: "/game-server", icon: Terminal, label: "Game Server" },
   { to: "/mods", icon: Package, label: "Mods" },
   { to: "/config", icon: Settings, label: "Settings" },
 ];

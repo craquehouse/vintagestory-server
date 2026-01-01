@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   useSettingField,
@@ -63,7 +63,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'old value',
+          initialValue: 'old value' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           onSave,
@@ -82,7 +82,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'original',
+          initialValue: 'original' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           onSave,
@@ -103,7 +103,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'value',
+          initialValue: 'value' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           validate: validators.required(),
@@ -257,7 +257,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'original',
+          initialValue: 'original' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           onSave,
@@ -304,7 +304,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'original',
+          initialValue: 'original' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           onSave,
@@ -330,7 +330,7 @@ describe('useSettingField', () => {
 
       const { result } = renderHook(() =>
         useSettingField({
-          initialValue: 'original',
+          initialValue: 'original' as string,
           settingKey: 'ServerName',
           settingType: 'string',
           onSave,
