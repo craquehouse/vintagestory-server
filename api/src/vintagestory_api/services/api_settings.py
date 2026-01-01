@@ -102,7 +102,7 @@ class ApiSettingsService:
         """
         self._settings = settings or Settings()
         self._scheduler_callback = scheduler_callback
-        self._settings_file = self._settings.data_dir / "state" / "api-settings.json"
+        self._settings_file = self._settings.state_dir / "api-settings.json"
 
     @property
     def settings_file(self) -> Path:
