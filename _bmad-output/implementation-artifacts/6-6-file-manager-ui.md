@@ -64,14 +64,14 @@ WRONG PATTERN (tests batched at end):
   - [x] Subtask 2.5: Handle loading state with skeleton
   - [x] Subtask 2.6: Write tests for all states and selection behavior
 
-- [ ] Task 3: Create FileViewer component + tests (AC: 2, 3, 4)
-  - [ ] Subtask 3.1: Create `web/src/components/FileViewer.tsx`
-  - [ ] Subtask 3.2: Display JSON with proper formatting (JSON.stringify with indentation)
-  - [ ] Subtask 3.3: Use monospace font and preserve whitespace
-  - [ ] Subtask 3.4: Handle "no file selected" state with prompt message
-  - [ ] Subtask 3.5: Handle loading state with skeleton
-  - [ ] Subtask 3.6: Handle error state (file not found, etc.)
-  - [ ] Subtask 3.7: Write tests for all states
+- [x] Task 3: Create FileViewer component + tests (AC: 2, 3, 4)
+  - [x] Subtask 3.1: Create `web/src/components/FileViewer.tsx`
+  - [x] Subtask 3.2: Display JSON with proper formatting (JSON.stringify with indentation)
+  - [x] Subtask 3.3: Use monospace font and preserve whitespace
+  - [x] Subtask 3.4: Handle "no file selected" state with prompt message
+  - [x] Subtask 3.5: Handle loading state with skeleton
+  - [x] Subtask 3.6: Handle error state (file not found, etc.)
+  - [x] Subtask 3.7: Write tests for all states
 
 - [ ] Task 4: Create FileManagerPanel component + tests (AC: 1, 2, 3, 4, 5)
   - [ ] Subtask 4.1: Create `web/src/features/settings/FileManagerPanel.tsx`
