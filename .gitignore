@@ -92,3 +92,6 @@ credentials/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Auto Claude data directory
+.auto-claude/

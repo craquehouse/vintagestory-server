@@ -31,7 +31,6 @@
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
-    "frontend-skills@claude-skills": true,
-    "serena@claude-plugins-official": true
+    "frontend-skills@claude-skills": true
   }
 }
