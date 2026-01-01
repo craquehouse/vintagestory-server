@@ -4,6 +4,7 @@ Story 6.3: API Settings Service
 """
 
 import json
+import shutil
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -23,8 +24,9 @@ def temp_data_dir(tmp_path: Path) -> Path:
     """Create a temporary data directory structure."""
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    state_dir = data_dir / "state"
-    state_dir.mkdir()
+    # State dir is now under vsmanager: data/vsmanager/state
+    state_dir = data_dir / "vsmanager" / "state"
+    state_dir.mkdir(parents=True)
     return data_dir
 
 
@@ -239,10 +241,10 @@ class TestAtomicWrite:
     ) -> None:
         """_save_settings creates parent directory if missing."""
         # Subtask 1.5: atomic file writes (temp file + rename)
-        # Remove the state directory
-        state_dir = settings.data_dir / "state"
+        # Remove the state directory (now under vsmanager)
+        state_dir = settings.state_dir
         if state_dir.exists():
-            state_dir.rmdir()
+            shutil.rmtree(state_dir)
 
         service = ApiSettingsService(settings=settings)
         await service.update_setting("auto_start_server", True)

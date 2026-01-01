@@ -91,6 +91,11 @@ class Settings(BaseSettings):
         """Directory for cached data (downloaded mods, etc.)."""
         return self.vsmanager_dir / "cache"
 
+    @property
+    def state_dir(self) -> Path:
+        """Directory for API state files (mods.json, api-settings.json, etc.)."""
+        return self.vsmanager_dir / "state"
+
     def ensure_data_directories(self) -> None:
         """Create data directory structure if it doesn't exist."""
         # Security: Validate that admin API key is set
@@ -100,12 +105,23 @@ class Settings(BaseSettings):
                 "See .env.example for configuration details."
             )
 
+        logger = structlog.get_logger()
         for directory in [
             self.server_dir,
             self.serverdata_dir,
             self.vsmanager_dir,
+            self.cache_dir,
+            self.state_dir,
         ]:
-            directory.mkdir(parents=True, exist_ok=True)
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                logger.error(
+                    "directory_creation_failed",
+                    directory=str(directory),
+                    error=str(e),
+                )
+                raise
 
 
 def configure_logging(debug: bool = False, log_level: str | None = None) -> None:
