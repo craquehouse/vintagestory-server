@@ -45,12 +45,11 @@ from vintagestory_api.routers.config import (
     get_game_config_service,
     get_pending_restart_state,
 )
-from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.api_settings import ApiSettingsService
 from vintagestory_api.services.config_files import ConfigFilesService
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
-from vintagestory_api.services.server import ServerService
+from vintagestory_api.services.server import ServerService, get_server_service
 
 # Test API keys
 TEST_ADMIN_KEY = "test-admin-key-12345"

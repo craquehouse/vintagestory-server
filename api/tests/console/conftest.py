@@ -10,8 +10,7 @@ from fastapi.testclient import TestClient
 from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
-from vintagestory_api.routers.server import get_server_service
-from vintagestory_api.services.server import ServerService
+from vintagestory_api.services.server import ServerService, get_server_service
 
 # pyright: reportPrivateUsage=false
 # Note: Tests need access to private members to verify internal state

@@ -28,7 +28,6 @@ from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
-from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.api_settings import (
     ApiSettingInvalidError,
     ApiSettingsService,
@@ -47,6 +46,7 @@ from vintagestory_api.services.game_config import (
     SettingValueInvalidError,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(prefix="/config", tags=["Config"])
 

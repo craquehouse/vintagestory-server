@@ -71,8 +71,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Auto-start game server if enabled in API settings
     from vintagestory_api.models.server import ServerState
-    from vintagestory_api.routers.server import get_server_service
     from vintagestory_api.services.api_settings import ApiSettingsService
+    from vintagestory_api.services.server import get_server_service
 
     api_settings_service = ApiSettingsService(settings)
     api_settings = api_settings_service.get_settings()
