@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Header } from './Header';
+import { Header, DEFAULT_SERVER_NAME } from './Header';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { mockUseGameSetting } from '@/test/mocks/use-game-config';
 
 // Mock next-themes
 const setThemeMock = vi.fn();
@@ -14,6 +15,11 @@ vi.mock('next-themes', () => ({
     resolvedTheme: 'dark',
     systemTheme: 'dark',
   }),
+}));
+
+// Mock useGameSetting hook
+vi.mock('@/hooks/use-game-config', () => ({
+  useGameSetting: (key: string) => mockUseGameSetting(key),
 }));
 
 // Create a fresh QueryClient for each test
@@ -46,6 +52,8 @@ describe('Header', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: no server name configured (returns fallback)
+    mockUseGameSetting.mockReturnValue(undefined);
     // Mock fetch for the PendingRestartBanner's useMods query
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -58,23 +66,51 @@ describe('Header', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('renders server name "VintageStory Server"', () => {
+  it('renders fallback server name when config not loaded', () => {
+    // Uses default mock from beforeEach (undefined)
     renderHeader();
 
-    expect(screen.getByText('VintageStory Server')).toBeInTheDocument();
+    expect(screen.getByText(DEFAULT_SERVER_NAME)).toBeInTheDocument();
   });
 
-  it('renders placeholder text on desktop', () => {
+  it('renders configured server name from game config', () => {
+    mockUseGameSetting.mockReturnValue({
+      key: 'ServerName',
+      value: 'My Awesome Server',
+      type: 'string',
+      liveUpdate: true,
+      envManaged: false,
+    });
     renderHeader();
 
-    expect(screen.getByText('(placeholder)')).toBeInTheDocument();
+    expect(screen.getByText('My Awesome Server')).toBeInTheDocument();
+    expect(screen.queryByText(DEFAULT_SERVER_NAME)).not.toBeInTheDocument();
   });
 
-  it('hides placeholder on small screens', () => {
+  it('renders fallback when server name is empty string', () => {
+    mockUseGameSetting.mockReturnValue({
+      key: 'ServerName',
+      value: '',
+      type: 'string',
+      liveUpdate: true,
+      envManaged: false,
+    });
     renderHeader();
 
-    const placeholder = screen.getByText('(placeholder)');
-    expect(placeholder).toHaveClass('hidden', 'sm:inline');
+    expect(screen.getByText(DEFAULT_SERVER_NAME)).toBeInTheDocument();
+  });
+
+  it('calls useGameSetting with ServerName key', () => {
+    renderHeader();
+
+    expect(mockUseGameSetting).toHaveBeenCalledWith('ServerName');
+  });
+
+  it('does not render placeholder text', () => {
+    // The old "(placeholder)" text should no longer appear
+    renderHeader();
+
+    expect(screen.queryByText('(placeholder)')).not.toBeInTheDocument();
   });
 
   it('renders theme toggle button', () => {

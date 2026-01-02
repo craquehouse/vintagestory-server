@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './Layout';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { type ReactNode } from 'react';
+import { mockUseGameSetting } from '@/test/mocks/use-game-config';
+
+// Mock useGameSetting hook for Header component
+vi.mock('@/hooks/use-game-config', () => ({
+  useGameSetting: (key: string) => mockUseGameSetting(key),
+}));
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -35,6 +41,8 @@ describe('Layout', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
+    // Default: no server name configured (returns fallback)
+    mockUseGameSetting.mockReturnValue(undefined);
     // Mock fetch for the PendingRestartBanner's useMods query
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
