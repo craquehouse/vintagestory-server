@@ -249,11 +249,24 @@ Use `just` for all development tasks:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+- Task 1+2 commit: b642615 - SchedulerService class with job management
+- Task 3 commit: 6ef0ecc - FastAPI lifespan integration
+
 ### Completion Notes List
+
+- APScheduler v3.11.x patterns used (v4.x is alpha, not recommended)
+- Added `# type: ignore[import-untyped]` comments for APScheduler imports (no type stubs available)
+- structlog writes to stdout, so tests use `capsys` instead of `caplog` for log assertions
+- Integration tests use `with TestClient(app):` pattern for proper lifespan handling
+- 26 new tests covering lifecycle, job management, execution, and lifespan integration
+- All 853 API tests pass, all 686 web tests pass
 
 ### File List
 
+- `api/src/vintagestory_api/services/scheduler.py` - NEW: SchedulerService implementation (195 lines)
+- `api/src/vintagestory_api/main.py` - MODIFIED: lifespan integration (+29 lines)
+- `api/tests/test_scheduler.py` - NEW: comprehensive test suite (415 lines)
