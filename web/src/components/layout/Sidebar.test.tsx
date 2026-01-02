@@ -3,12 +3,31 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn().mockReturnValue(null),
+  setCookie: vi.fn(),
+}));
+
+// Mock next-themes
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
+}));
 
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
-    <SidebarProvider>
-      <MemoryRouter initialEntries={['/']}>{ui}</MemoryRouter>
-    </SidebarProvider>
+    <PreferencesProvider>
+      <SidebarProvider>
+        <MemoryRouter initialEntries={['/']}>{ui}</MemoryRouter>
+      </SidebarProvider>
+    </PreferencesProvider>
   );
 };
 
@@ -61,11 +80,13 @@ describe('Sidebar', () => {
 
   it('highlights active route with bg-sidebar-accent class', () => {
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/mods']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/mods']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const modsLink = screen.getByRole('link', { name: /mods/i });
@@ -76,11 +97,13 @@ describe('Sidebar', () => {
 
   it('does not highlight inactive routes', () => {
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/mods']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/mods']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
@@ -136,11 +159,13 @@ describe('Sidebar', () => {
   it('hides version label when collapsed', async () => {
     const user = userEvent.setup();
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const collapseButton = screen.getAllByRole('button').find(
@@ -157,11 +182,13 @@ describe('Sidebar', () => {
   it('hides nav labels when collapsed', async () => {
     const user = userEvent.setup();
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const collapseButton = screen.getAllByRole('button').find(
@@ -188,11 +215,13 @@ describe('Sidebar', () => {
   it('renders icon when collapsed', async () => {
     const user = userEvent.setup();
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const collapseButton = screen.getAllByRole('button').find(
@@ -212,11 +241,13 @@ describe('Sidebar', () => {
   it('shows tooltips when collapsed', async () => {
     const user = userEvent.setup();
     render(
-      <SidebarProvider>
-        <MemoryRouter initialEntries={['/']}>
-          <Sidebar />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Sidebar />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     );
 
     const collapseButton = screen.getAllByRole('button').find(

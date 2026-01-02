@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css';
 import { cn } from '@/lib/utils';
 import { getTerminalTheme } from '@/lib/terminal-themes';
 import { useTheme } from '@/hooks/use-theme';
+import { usePreferences, FONT_SIZE_DEFAULT } from '@/contexts/PreferencesContext';
 
 export interface TerminalViewProps {
   /** Callback when terminal is initialized and ready */
@@ -14,6 +15,8 @@ export interface TerminalViewProps {
   onDispose?: () => void;
   /** Additional CSS classes for the container */
   className?: string;
+  /** Override font size from preferences (optional, defaults to user preference) */
+  fontSize?: number;
 }
 
 /**
@@ -34,6 +37,7 @@ export function TerminalView({
   onReady,
   onDispose,
   className,
+  fontSize: fontSizeProp,
 }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -49,12 +53,29 @@ export function TerminalView({
   const { resolvedTheme } = useTheme();
   const themeMode = resolvedTheme === 'dark' ? 'dark' : 'light';
 
+  // Get font size from preferences, with prop override
+  const { preferences } = usePreferences();
+  const fontSize = fontSizeProp ?? preferences.consoleFontSize ?? FONT_SIZE_DEFAULT;
+
   // Update theme when it changes
   useEffect(() => {
     if (terminalRef.current) {
       terminalRef.current.options.theme = getTerminalTheme(themeMode);
     }
   }, [themeMode]);
+
+  // Update font size when it changes
+  useEffect(() => {
+    if (terminalRef.current && fitAddonRef.current) {
+      terminalRef.current.options.fontSize = fontSize;
+      // Re-fit terminal after font size change
+      try {
+        fitAddonRef.current.fit();
+      } catch {
+        // Terminal may be disposed
+      }
+    }
+  }, [fontSize]);
 
   // Fit terminal to container - memoized for use in effects
   const fit = useCallback(() => {
@@ -73,7 +94,7 @@ export function TerminalView({
 
     const terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize,
       fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
       convertEol: true,
       theme: getTerminalTheme(themeMode),

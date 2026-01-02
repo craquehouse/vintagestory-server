@@ -58,8 +58,15 @@ vi.mock('@/hooks/use-server-status', () => ({
   })),
 }));
 
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn().mockReturnValue(null),
+  setCookie: vi.fn(),
+}));
+
 // Import after mocks
 import { GameServerPage } from './GameServerPage';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 
 // Create fresh QueryClient for each test
 function createTestQueryClient() {
@@ -76,7 +83,9 @@ function createTestQueryClient() {
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </QueryClientProvider>
     );
   };
 }

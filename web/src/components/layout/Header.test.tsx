@@ -4,6 +4,14 @@ import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header } from './Header';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import * as cookies from '@/lib/cookies';
+
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn(),
+  setCookie: vi.fn(),
+}));
 
 // Mock next-themes
 const setThemeMock = vi.fn();
@@ -15,6 +23,8 @@ vi.mock('next-themes', () => ({
     systemTheme: 'dark',
   }),
 }));
+
+const mockedSetCookie = vi.mocked(cookies.setCookie);
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -32,11 +42,13 @@ function renderHeader() {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <MemoryRouter>
-          <Header />
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter>
+            <Header />
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     </QueryClientProvider>
   );
 }
@@ -84,14 +96,20 @@ describe('Header', () => {
     expect(themeButton).toBeInTheDocument();
   });
 
-  it('calls setTheme when theme toggle clicked', async () => {
+  it('updates theme preference when theme toggle clicked', async () => {
     const user = userEvent.setup();
     renderHeader();
 
     const themeButton = screen.getByRole('button', { name: /toggle theme/i });
     await user.click(themeButton);
 
+    // Theme toggle goes through PreferencesContext, which syncs to next-themes
     expect(setThemeMock).toHaveBeenCalledWith('light');
+    // Also persists to cookie
+    expect(mockedSetCookie).toHaveBeenCalledWith(
+      'vs_ui_prefs',
+      expect.stringContaining('"theme":"light"')
+    );
   });
 
   it('renders Sun icon in light theme mode', () => {
