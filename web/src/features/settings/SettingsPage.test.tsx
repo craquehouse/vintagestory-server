@@ -4,6 +4,23 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { SettingsPage } from './SettingsPage';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn().mockReturnValue(null),
+  setCookie: vi.fn(),
+}));
+
+// Mock next-themes
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'system',
+    setTheme: vi.fn(),
+    systemTheme: 'dark',
+    resolvedTheme: 'dark',
+  }),
+}));
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -19,11 +36,13 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper component for rendering with QueryClientProvider
+// Wrapper component for rendering with QueryClientProvider and PreferencesProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </QueryClientProvider>
     );
   };
 }
@@ -110,6 +129,16 @@ describe('SettingsPage', () => {
   });
 
   describe('tab navigation', () => {
+    it('renders UI Preferences tab', async () => {
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      expect(screen.getByTestId('ui-preferences-tab')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /ui preferences/i })).toBeInTheDocument();
+    });
+
     it('renders API Settings tab', async () => {
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
@@ -130,14 +159,30 @@ describe('SettingsPage', () => {
       expect(screen.getByRole('tab', { name: /file manager/i })).toBeInTheDocument();
     });
 
-    it('API Settings tab is active by default', async () => {
+    it('UI Preferences tab is active by default', async () => {
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const uiPrefsTab = screen.getByTestId('ui-preferences-tab');
+      expect(uiPrefsTab).toHaveAttribute('data-state', 'active');
+    });
+
+    it('switches to API Settings tab on click', async () => {
+      const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
         wrapper: createWrapper(queryClient),
       });
 
       const apiTab = screen.getByTestId('api-settings-tab');
-      expect(apiTab).toHaveAttribute('data-state', 'active');
+      await user.click(apiTab);
+
+      await waitFor(() => {
+        expect(apiTab).toHaveAttribute('data-state', 'active');
+      });
+      expect(screen.getByTestId('ui-preferences-tab')).toHaveAttribute('data-state', 'inactive');
     });
 
     it('switches to File Manager tab on click', async () => {
@@ -153,31 +198,61 @@ describe('SettingsPage', () => {
       await waitFor(() => {
         expect(fileManagerTab).toHaveAttribute('data-state', 'active');
       });
-      expect(screen.getByTestId('api-settings-tab')).toHaveAttribute('data-state', 'inactive');
+      expect(screen.getByTestId('ui-preferences-tab')).toHaveAttribute('data-state', 'inactive');
+    });
+  });
+
+  describe('UI Preferences tab content', () => {
+    it('shows UI Preferences panel by default', async () => {
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      expect(screen.getByTestId('ui-preferences-panel')).toBeInTheDocument();
+    });
+
+    it('displays appearance settings', async () => {
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      expect(screen.getByText('Appearance')).toBeInTheDocument();
+      expect(screen.getByText('Console')).toBeInTheDocument();
+      expect(screen.getByText('Layout')).toBeInTheDocument();
     });
   });
 
   describe('API Settings tab content', () => {
     it('shows API Settings panel when tab is active', async () => {
+      const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
         wrapper: createWrapper(queryClient),
       });
 
+      // Switch to API Settings tab
+      await user.click(screen.getByTestId('api-settings-tab'));
+
       await waitFor(() => {
         // Should show API settings content (loading or loaded)
         expect(
-          screen.getByTestId('api-settings-loading') ||
-            screen.getByTestId('api-settings-panel')
+          screen.queryByTestId('api-settings-loading') ||
+            screen.queryByTestId('api-settings-panel')
         ).toBeInTheDocument();
       });
     });
 
     it('loads API settings data', async () => {
+      const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
         wrapper: createWrapper(queryClient),
       });
+
+      // Switch to API Settings tab
+      await user.click(screen.getByTestId('api-settings-tab'));
 
       await waitFor(() => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();

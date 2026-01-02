@@ -91,8 +91,15 @@ class MockResizeObserver {
   unobserve = vi.fn();
 }
 
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn().mockReturnValue(null),
+  setCookie: vi.fn(),
+}));
+
 // Import after mocks
 import { Terminal } from './Terminal';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 
 // Create a wrapper with QueryClientProvider
 function createWrapper() {
@@ -106,7 +113,9 @@ function createWrapper() {
 
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </QueryClientProvider>
     );
   };
 }

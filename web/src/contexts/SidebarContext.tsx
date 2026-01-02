@@ -1,10 +1,18 @@
+/**
+ * SidebarContext - Manages sidebar collapsed state and mobile visibility.
+ *
+ * Integrates with PreferencesContext for persistent storage of collapsed state.
+ * Mobile open state is transient (not persisted).
+ */
+
 import {
   createContext,
   useContext,
   useState,
-  useEffect,
+  useCallback,
   type ReactNode,
 } from "react";
+import { usePreferences } from "@/contexts/PreferencesContext";
 
 interface SidebarContextType {
   isCollapsed: boolean;
@@ -15,32 +23,22 @@ interface SidebarContextType {
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
-const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
-
 interface SidebarProviderProps {
   children: ReactNode;
 }
 
 export function SidebarProvider({ children }: SidebarProviderProps) {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    return stored === "true";
-  });
+  const { preferences, setSidebarCollapsed } = usePreferences();
   const [isMobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isCollapsed));
-  }, [isCollapsed]);
-
-  const toggleCollapse = () => {
-    setIsCollapsed((prev) => !prev);
-  };
+  const toggleCollapse = useCallback(() => {
+    setSidebarCollapsed(!preferences.sidebarCollapsed);
+  }, [preferences.sidebarCollapsed, setSidebarCollapsed]);
 
   return (
     <SidebarContext.Provider
       value={{
-        isCollapsed,
+        isCollapsed: preferences.sidebarCollapsed,
         isMobileOpen,
         toggleCollapse,
         setMobileOpen,
