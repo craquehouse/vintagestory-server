@@ -1,6 +1,6 @@
 # Story 7.0: Epic 7 Preparation
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
