@@ -35,6 +35,7 @@ export interface FileManagerPanelProps {
  */
 export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [wordWrap, setWordWrap] = useState(false);
 
   // Fetch file list
   const {
@@ -97,6 +98,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
           content={contentData?.data?.content ?? null}
           isLoading={isLoadingContent}
           error={contentError?.message ?? null}
+          wordWrap={wordWrap}
+          onWordWrapChange={setWordWrap}
           className="h-full"
         />
       </div>

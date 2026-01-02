@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { FileViewer } from './FileViewer';
 
 describe('FileViewer', () => {
@@ -353,6 +354,138 @@ describe('FileViewer', () => {
 
       expect(screen.getByTestId('file-viewer-error')).toBeInTheDocument();
       expect(screen.queryByTestId('file-viewer-empty')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('word wrap (UI-022)', () => {
+    it('does not show toggle button when onWordWrapChange is not provided', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+        />
+      );
+
+      expect(screen.queryByTestId('file-viewer-wrap-toggle')).not.toBeInTheDocument();
+    });
+
+    it('shows toggle button when onWordWrapChange is provided', () => {
+      const handleChange = vi.fn();
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          onWordWrapChange={handleChange}
+        />
+      );
+
+      expect(screen.getByTestId('file-viewer-wrap-toggle')).toBeInTheDocument();
+    });
+
+    it('applies whitespace-pre class when wordWrap is false (default)', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+        />
+      );
+
+      const contentElement = screen.getByTestId('file-viewer-content');
+      expect(contentElement).toHaveClass('whitespace-pre');
+      expect(contentElement).not.toHaveClass('whitespace-pre-wrap');
+    });
+
+    it('applies whitespace-pre-wrap and break-words classes when wordWrap is true', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={true}
+        />
+      );
+
+      const contentElement = screen.getByTestId('file-viewer-content');
+      expect(contentElement).toHaveClass('whitespace-pre-wrap');
+      expect(contentElement).toHaveClass('break-words');
+      expect(contentElement).not.toHaveClass('whitespace-pre');
+    });
+
+    it('calls onWordWrapChange with toggled value when button is clicked', async () => {
+      const user = userEvent.setup();
+      const handleChange = vi.fn();
+
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={false}
+          onWordWrapChange={handleChange}
+        />
+      );
+
+      await user.click(screen.getByTestId('file-viewer-wrap-toggle'));
+
+      expect(handleChange).toHaveBeenCalledWith(true);
+    });
+
+    it('calls onWordWrapChange with false when wordWrap is true and button clicked', async () => {
+      const user = userEvent.setup();
+      const handleChange = vi.fn();
+
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={true}
+          onWordWrapChange={handleChange}
+        />
+      );
+
+      await user.click(screen.getByTestId('file-viewer-wrap-toggle'));
+
+      expect(handleChange).toHaveBeenCalledWith(false);
+    });
+
+    it('toggle button shows active state when wordWrap is true', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={true}
+          onWordWrapChange={vi.fn()}
+        />
+      );
+
+      const toggleButton = screen.getByTestId('file-viewer-wrap-toggle');
+      expect(toggleButton).toHaveClass('bg-accent');
+    });
+
+    it('toggle button has appropriate title when wordWrap is false', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={false}
+          onWordWrapChange={vi.fn()}
+        />
+      );
+
+      const toggleButton = screen.getByTestId('file-viewer-wrap-toggle');
+      expect(toggleButton).toHaveAttribute('title', 'Enable word wrap');
+    });
+
+    it('toggle button has appropriate title when wordWrap is true', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={mockContent}
+          wordWrap={true}
+          onWordWrapChange={vi.fn()}
+        />
+      );
+
+      const toggleButton = screen.getByTestId('file-viewer-wrap-toggle');
+      expect(toggleButton).toHaveAttribute('title', 'Disable word wrap');
     });
   });
 });

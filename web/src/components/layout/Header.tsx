@@ -1,7 +1,8 @@
 import { Moon, Sun, Menu } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { usePreferences } from "@/contexts/PreferencesContext";
 import { PendingRestartBanner } from "@/components/PendingRestartBanner";
 import { useGameSetting } from "@/hooks/use-game-config";
 
@@ -9,7 +10,8 @@ import { useGameSetting } from "@/hooks/use-game-config";
 export const DEFAULT_SERVER_NAME = "VintageStory Server";
 
 export function Header() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const { setThemePreference } = usePreferences();
   const { setMobileOpen } = useSidebar();
   const serverNameSetting = useGameSetting("ServerName");
   const serverName =
@@ -44,7 +46,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setThemePreference(resolvedTheme === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

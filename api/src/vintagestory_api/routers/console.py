@@ -11,8 +11,15 @@ from starlette.websockets import WebSocketDisconnect
 from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.middleware.permissions import RequireConsoleAccess
-from vintagestory_api.models.console import ConsoleCommandRequest, LogFileInfo, LogFilesResponse
+from vintagestory_api.models.console import (
+    ConsoleCommandData,
+    ConsoleCommandRequest,
+    ConsoleHistoryData,
+    LogFileInfo,
+    LogFilesResponse,
+)
 from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.services.server import ServerService, get_server_service
 
 logger = structlog.get_logger()
@@ -30,7 +37,7 @@ async def get_console_history(
     _role: RequireConsoleAccess,
     lines: Annotated[int | None, Query(ge=1, le=10000, description="Max lines to return")] = None,
     service: ServerService = Depends(get_server_service),
-) -> dict[str, object]:
+) -> ApiResponse:
     """Get console history from the buffer.
 
     Returns console output lines from the server's stdout/stderr.
@@ -49,14 +56,13 @@ async def get_console_history(
     """
     history = service.console_buffer.get_history(limit=lines)
 
-    return {
-        "status": "ok",
-        "data": {
-            "lines": history,
-            "total": len(service.console_buffer),
-            "limit": lines,
-        },
-    }
+    data = ConsoleHistoryData(
+        lines=history,
+        total=len(service.console_buffer),
+        limit=lines,
+    )
+
+    return ApiResponse(status="ok", data=data.model_dump())
 
 
 @router.post("/command")
@@ -64,7 +70,7 @@ async def send_console_command(
     _role: RequireConsoleAccess,
     body: ConsoleCommandRequest,
     service: ServerService = Depends(get_server_service),
-) -> dict[str, object]:
+) -> ApiResponse:
     """Send a command to the game server console.
 
     Writes the command to the server's stdin, which is equivalent to typing
@@ -94,17 +100,16 @@ async def send_console_command(
             },
         )
 
-    return {
-        "status": "ok",
-        "data": {"command": body.command, "sent": True},
-    }
+    data = ConsoleCommandData(command=body.command, sent=True)
+
+    return ApiResponse(status="ok", data=data.model_dump())
 
 
 @router.get("/logs")
 async def list_log_files(
     _role: RequireConsoleAccess,
     settings: Settings = Depends(get_settings),
-) -> dict[str, object]:
+) -> ApiResponse:
     """List available log files in the serverdata/Logs directory.
 
     Returns information about each log file including name, size, and modification time.
@@ -150,12 +155,9 @@ async def list_log_files(
     # Sort by modification time, most recent first
     files.sort(key=lambda f: f.modified_at, reverse=True)
 
-    response = LogFilesResponse(files=files, logs_dir=str(logs_dir))
+    data = LogFilesResponse(files=files, logs_dir=str(logs_dir))
 
-    return {
-        "status": "ok",
-        "data": response.model_dump(),
-    }
+    return ApiResponse(status="ok", data=data.model_dump())
 
 
 def _get_websocket_client_ip(websocket: WebSocket) -> str:

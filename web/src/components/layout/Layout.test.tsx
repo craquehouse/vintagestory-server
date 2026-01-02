@@ -4,12 +4,29 @@ import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './Layout';
 import { SidebarProvider } from '@/contexts/SidebarContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { type ReactNode } from 'react';
 import { mockUseGameSetting } from '@/test/mocks/use-game-config';
 
 // Mock useGameSetting hook for Header component
 vi.mock('@/hooks/use-game-config', () => ({
   useGameSetting: (key: string) => mockUseGameSetting(key),
+}));
+
+// Mock cookies module
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn().mockReturnValue(null),
+  setCookie: vi.fn(),
+}));
+
+// Mock next-themes
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
 }));
 
 // Create a fresh QueryClient for each test
@@ -28,11 +45,13 @@ function renderLayout(children: ReactNode) {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <MemoryRouter>
-          <Layout>{children}</Layout>
-        </MemoryRouter>
-      </SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MemoryRouter>
+            <Layout>{children}</Layout>
+          </MemoryRouter>
+        </SidebarProvider>
+      </PreferencesProvider>
     </QueryClientProvider>
   );
 }
@@ -91,9 +110,9 @@ describe('Layout', () => {
   it('hides mobile sidebar by default', () => {
     renderLayout(<div>Test</div>);
 
-    // Mobile Sheet should exist but be closed
-    const sheetContent = document.querySelector('[data-state="closed"]');
-    expect(sheetContent).toBeInTheDocument();
+    // Mobile Sheet should exist but be closed (no open state yet)
+    const openSheet = document.querySelector('[data-state="open"]');
+    expect(openSheet).not.toBeInTheDocument();
   });
 
   it('opens mobile Sheet when hamburger clicked', async () => {

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -11,7 +12,8 @@ import { SettingsPage } from "@/features/settings";
 function App() {
   return (
     <ThemeProvider>
-      <SidebarProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
         <BrowserRouter>
           <Layout>
             <Routes>
@@ -23,7 +25,8 @@ function App() {
           </Layout>
         </BrowserRouter>
         <Toaster />
-      </SidebarProvider>
+        </SidebarProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   );
 }
