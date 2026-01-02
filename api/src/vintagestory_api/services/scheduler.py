@@ -17,7 +17,8 @@ from typing import Any
 import structlog
 
 # APScheduler v3.x does not ship with type stubs
-# Tracking: APScheduler may add stubs in a future release; no known py.typed package available
+# TODO: Track APScheduler type stubs availability - may add py.typed in future release
+# See: https://github.com/agronholm/apscheduler/issues (no stubs package available as of 2026-01)
 from apscheduler.executors.asyncio import AsyncIOExecutor  # type: ignore[import-untyped]
 from apscheduler.job import Job  # type: ignore[import-untyped]
 from apscheduler.jobstores.memory import MemoryJobStore  # type: ignore[import-untyped]

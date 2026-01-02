@@ -14,6 +14,8 @@ import asyncio
 import pytest
 
 # APScheduler v3.x does not ship with type stubs
+# TODO: Track APScheduler type stubs availability - may add py.typed in future release
+# See: https://github.com/agronholm/apscheduler/issues (no stubs package available as of 2026-01)
 from apscheduler.jobstores.base import JobLookupError  # type: ignore[import-untyped]
 
 from vintagestory_api.services.scheduler import SchedulerService
@@ -106,7 +108,7 @@ class TestSchedulerServiceLifecycle:
         scheduler = SchedulerService()
 
         # Access the underlying scheduler's job defaults (testing internal state)
-        job_defaults = scheduler.scheduler._job_defaults  # pyright: ignore[reportPrivateUsage]
+        job_defaults = scheduler.scheduler._job_defaults  # type: ignore[reportPrivateUsage]
 
         assert job_defaults.get("coalesce") is True
         assert job_defaults.get("max_instances") == 1

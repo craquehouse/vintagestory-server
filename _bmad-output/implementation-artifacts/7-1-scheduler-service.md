@@ -1,6 +1,6 @@
 # Story 7.1: SchedulerService
 
-Status: review
+Status: done
 
 ## Story
 
@@ -48,6 +48,13 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 3.3: Shutdown scheduler in lifespan cleanup (before mod service close)
   - [x] Subtask 3.4: Add getter function `get_scheduler_service()` for dependency injection
   - [x] Subtask 3.5: Write integration tests verifying lifespan startup/shutdown
+
+### Review Follow-ups (AI)
+<!-- Created by adversarial code review workflow -->
+
+- [x] [AI-Review][MEDIUM] Add TODO comment with tracking issue for APScheduler type suppressions (scheduler.py:21-26, 177-194)
+- [x] [AI-Review][MEDIUM] Add TODO comment with tracking issue for APScheduler type suppressions in test file (test_scheduler.py:17, 120, 124, 249)
+- [x] [AI-Review][LOW] Standardize pyright ignore style: change `# pyright: ignore[reportPrivateUsage]` to `# type: ignore` (test_scheduler.py:109)
 
 ## Dev Notes
 
