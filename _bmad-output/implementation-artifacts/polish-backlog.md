@@ -34,7 +34,6 @@ Tracks small-to-medium improvements discovered during development and testing th
 
 | ID     | Description                                                                                                                | Priority | Effort | Status  | Related | Notes                                                        |
 | ------ | -------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------- | ------- | ------------------------------------------------------------ |
-| UI-005 | The server console tab should have ways to also "tail" *.log logfiles in serverdata/Logs                                  | low      | S      | done    | API-006 | -                                                            |
 | UI-006 | Better detection and handling of the state where the frontend has lost connection to the API                              | medium   | M      | backlog | -       | -                                                            |
 | UI-008 | Mod preview card parse HTML                                                                                                | low      | S      | backlog | -       | -                                                            |
 | UI-009 | Mod preview card doesn't explain what "Both" means - presumeably client and server. use badges for each?                  | low      | S      | backlog | -       | -                                                            |
@@ -47,6 +46,12 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-018 | Make better use of horizontal space on the server settings cards when in desktop mode. It's too wide.                     | low      | M      | backlog | -       | -                                                            |
 | UI-019 | "VintageStory Server" placeholder at the top of the screen should be updated with the server name                         | low      | M      | backlog | -       | -                                                            |
 | UI-020 | Mod List refresh and server version refresh duration should accept human readable strings, not seconds. Mod refresh default to 4 hours | low      | M      | backlog | -       | -                                                            |
+| UI-021 | Server commands entered by the user should have a different color when output in the console. Prefixed by \[CMD] | low | s | backlog | - |
+| UI-022 | Implement word wrap in file viewer  | low | s | backlog | - |
+| UI-023 | Implement json colorization in file viewer  | low | s | backlog | - |
+| UI-024 | Filebrowser show all the directories in /data/serverdata, including but not limited to ModConfigs, Macros, Playerdata | low | s | backlog | - |
+| UI-025 | Implement file editing capability in filebrowser. Require server to be stopped in order to edit file | low | s | backlog | - |
+
 
 ---
 
@@ -58,7 +63,6 @@ Tracks small-to-medium improvements discovered during development and testing th
 | ------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------ | --------- | ------------------------------------------------------------------------------------------------ |
 | API-003 | /healthz endpoint should report game_server_version, game_server_uptime, game_server_pending_restart                              | low      | S      | done   | -         | -                                                                                                |
 | API-005 | Passing the api token in the URL to authorize the websocket is insecure.                                                          | high               | M                            | backlog | -         | Implement self-signed wss:// ?                                                                   |
-| API-006 | API should be able to stream/tail *.log logfiles in serverdata/Logs                                                               | high               | M                            | done    | UI-005    | -                                                                                                |
 | API-007 | API should create expected directories under data/vsmanager like cache and state if they don't exist                              | high               | M                            | backlog | -         | -                                                                                                |
 | API-008 | API should track available space on data volume, and we should have a config var for warning threshold                            | high               | M                            | backlog | -         | -                                                                                                |
 | API-009 | Mod cache cleanup strategy - cached mod files grow indefinitely with no eviction (LRU, TTL, or size-based)                        | medium             | M                            | backlog | Story-5.2 | Risk of disk space exhaustion in production                                                      |
