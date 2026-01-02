@@ -324,6 +324,160 @@ describe('useSettingField', () => {
     });
   });
 
+  describe('onKeyDown', () => {
+    it('saves on Enter key when dirty', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'original' as string,
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+        })
+      );
+
+      act(() => {
+        result.current.setValue('changed');
+      });
+
+      const enterEvent = {
+        key: 'Enter',
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      await act(async () => {
+        result.current.onKeyDown(enterEvent);
+      });
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({
+          key: 'ServerName',
+          value: 'changed',
+        });
+      });
+      expect(enterEvent.preventDefault).toHaveBeenCalled();
+    });
+
+    it('does not save on Enter when not dirty', () => {
+      const onSave = vi.fn();
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'value',
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+        })
+      );
+
+      const enterEvent = {
+        key: 'Enter',
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      act(() => {
+        result.current.onKeyDown(enterEvent);
+      });
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(enterEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('does not save on Enter when disabled', () => {
+      const onSave = vi.fn();
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'original' as string,
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+          disabled: true,
+        })
+      );
+
+      act(() => {
+        result.current.setValue('changed');
+      });
+
+      const enterEvent = {
+        key: 'Enter',
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      act(() => {
+        result.current.onKeyDown(enterEvent);
+      });
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(enterEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('does not trigger save on other keys', () => {
+      const onSave = vi.fn();
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'original' as string,
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+        })
+      );
+
+      act(() => {
+        result.current.setValue('changed');
+      });
+
+      const escapeEvent = {
+        key: 'Escape',
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      act(() => {
+        result.current.onKeyDown(escapeEvent);
+      });
+
+      expect(onSave).not.toHaveBeenCalled();
+      expect(escapeEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('shows validation error on Enter when value is invalid', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'original' as string,
+          settingKey: 'ServerName',
+          settingType: 'string',
+          validate: validators.required('Server name is required'),
+          onSave,
+        })
+      );
+
+      // Set to empty string (invalid)
+      act(() => {
+        result.current.setValue('');
+      });
+
+      const enterEvent = {
+        key: 'Enter',
+        preventDefault: vi.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      await act(async () => {
+        result.current.onKeyDown(enterEvent);
+      });
+
+      // Should show validation error, not call onSave
+      expect(result.current.error).toBe('Server name is required');
+      expect(onSave).not.toHaveBeenCalled();
+      // preventDefault is still called because Enter was pressed while dirty
+      expect(enterEvent.preventDefault).toHaveBeenCalled();
+    });
+  });
+
   describe('reset', () => {
     it('resets value to initial', () => {
       const onSave = vi.fn();

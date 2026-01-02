@@ -174,6 +174,7 @@ export function SettingField({
             field.setValue(newValue as string | number);
           }}
           onBlur={field.onBlur}
+          onKeyDown={field.onKeyDown}
           disabled={isDisabled}
           aria-describedby={
             field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined

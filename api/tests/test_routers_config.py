@@ -325,7 +325,7 @@ class TestUpdateGameSettingLiveUpdate:
 
         mock_server_service.send_command.assert_called_once()
         call_args = mock_server_service.send_command.call_args[0][0]
-        assert '/serverconfig name "Console Test"' == call_args
+        assert "/serverconfig name Console Test" == call_args
 
 
 class TestUpdateGameSettingFileUpdate:
