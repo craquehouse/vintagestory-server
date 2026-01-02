@@ -48,7 +48,6 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-023 | Implement json colorization in file viewer                                                                                             | low      | s      | backlog | -                       |                                                              |
 | UI-024 | Filebrowser show all the directories in /data/serverdata, including but not limited to ModConfigs, Macros, Playerdata                  | low      | s      | backlog | -                       |                                                              |
 | UI-025 | Implement file editing capability in filebrowser. Require server to be stopped in order to edit file                                   | low      | s      | backlog | -                       |                                                              |
-| UI-026 | When updating the servername in the game server panel, the name is getting wrapped in quotes. Also the field reverts until the api polls the game server again. It should happen immediatelyish.                                | low      | s      | backlog | -                       |                                                              |
 
 
 ---
@@ -159,3 +158,4 @@ Add the PR link to the item's ID.
 | [UI-017](https://github.com/craquehouse/vintagestory-server/pull/26)  | User preferences such as light/dark mode (if overridden), console font size, etc. should be stored as a cookie | 2026-01-02 | Added cookie-based preferences system                                     |
 | [API-013](https://github.com/craquehouse/vintagestory-server/pull/23) | routers/__init__.py only exports auth, health, test_rbac - should export all routers for module completeness   | 2026-01-02 | Export all routers from __init__.py                                       |
 | [UI-019](https://github.com/craquehouse/vintagestory-server/pull/27)  | "VintageStory Server" placeholder at the top of the screen should be updated with the server name              | 2026-01-02 | Display server name from game config in header                            |
+| [UI-026](https://github.com/craquehouse/vintagestory-server/pull/28)  | When updating the servername in the game server panel, the name is getting wrapped in quotes. Also the field reverts until the api polls the game server again. It should happen immediatelyish. | 2026-01-02 | Fixed quote wrapping and immediate optimistic update                      |
