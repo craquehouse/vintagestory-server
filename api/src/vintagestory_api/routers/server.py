@@ -10,20 +10,9 @@ from vintagestory_api.models.server import (
     InstallRequest,
     ServerState,
 )
-from vintagestory_api.services.server import ServerService
+from vintagestory_api.services.server import ServerService, get_server_service
 
 router = APIRouter(prefix="/server", tags=["Server"])
-
-# Module-level service instance (singleton pattern for state tracking)
-_server_service: ServerService | None = None
-
-
-def get_server_service() -> ServerService:
-    """Get or create the server service singleton."""
-    global _server_service
-    if _server_service is None:
-        _server_service = ServerService()
-    return _server_service
 
 
 @router.post("/install", response_model=ApiResponse)

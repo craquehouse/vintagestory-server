@@ -9,8 +9,8 @@ from vintagestory_api.models.responses import (
     ReadinessData,
 )
 from vintagestory_api.models.server import ServerState
-from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.mods import get_restart_state
+from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(tags=["Health"])
 

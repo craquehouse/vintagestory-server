@@ -12,8 +12,7 @@ from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
-from vintagestory_api.routers.server import get_server_service
-from vintagestory_api.services.server import ServerService
+from vintagestory_api.services.server import ServerService, get_server_service
 
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownParameterType=false

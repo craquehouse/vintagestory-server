@@ -13,8 +13,7 @@ from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.middleware.permissions import RequireConsoleAccess
 from vintagestory_api.models.console import ConsoleCommandRequest
 from vintagestory_api.models.errors import ErrorCode
-from vintagestory_api.routers.server import get_server_service
-from vintagestory_api.services.server import ServerService
+from vintagestory_api.services.server import ServerService, get_server_service
 
 logger = structlog.get_logger()
 

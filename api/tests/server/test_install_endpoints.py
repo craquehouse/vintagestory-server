@@ -10,11 +10,11 @@ from fastapi.testclient import TestClient
 from httpx import Response
 
 from vintagestory_api.config import Settings
-from vintagestory_api.routers.server import get_server_service
 from vintagestory_api.services.server import (
     VS_CDN_BASE,
     VS_STABLE_API,
     ServerService,
+    get_server_service,
 )
 
 from .test_install import create_mock_server_tarball
