@@ -125,7 +125,13 @@ async def list_log_files(
     files: list[LogFileInfo] = []
 
     if logs_dir.exists() and logs_dir.is_dir():
-        for path in logs_dir.iterdir():
+        try:
+            dir_entries = list(logs_dir.iterdir())
+        except OSError as e:
+            logger.warning("logs_dir_read_failed", logs_dir=str(logs_dir), error=str(e))
+            dir_entries = []
+
+        for path in dir_entries:
             # Only include regular files with log-like extensions
             if path.is_file() and path.suffix in (".log", ".txt"):
                 try:
@@ -433,9 +439,24 @@ async def logs_websocket(
         return
 
     logs_dir = settings.serverdata_dir / "Logs"
+    file_path = logs_dir / file
+
+    # Resolve path and verify it's within logs_dir (prevents symlink attacks)
+    try:
+        resolved_path = file_path.resolve()
+        resolved_logs_dir = logs_dir.resolve()
+        resolved_path.relative_to(resolved_logs_dir)
+    except (ValueError, OSError):
+        logger.warning(
+            "logs_websocket_path_traversal",
+            client_ip=client_ip,
+            filename=file,
+        )
+        await websocket.accept()
+        await websocket.close(code=4005, reason=f"Invalid path: {file}")
+        return
 
     # Check file exists before accepting
-    file_path = logs_dir / file
     if not file_path.exists():
         logger.warning(
             "logs_websocket_file_not_found",
@@ -484,7 +505,11 @@ async def logs_websocket(
 
             # Check for new content
             try:
-                current_size = file_path.stat().st_size
+                # Get file size in executor to avoid blocking event loop
+                loop = asyncio.get_event_loop()
+                current_size = await loop.run_in_executor(
+                    None, lambda: file_path.stat().st_size
+                )
 
                 # File was truncated or rotated
                 if current_size < last_position:
@@ -500,21 +525,24 @@ async def logs_websocket(
 
                 # New content available
                 if current_size > last_position:
+                    # Limit chunk size to prevent memory exhaustion (1MB max)
+                    max_chunk_size = 1024 * 1024
+                    bytes_to_read = min(current_size - last_position, max_chunk_size)
 
-                    def read_new_content() -> list[str]:
+                    def read_new_content() -> tuple[list[str], int]:
                         with open(file_path, encoding="utf-8", errors="replace") as f:
                             f.seek(last_position)
-                            return f.readlines()
+                            content = f.read(bytes_to_read)
+                            new_position = f.tell()
+                            return content.splitlines(), new_position
 
-                    loop = asyncio.get_event_loop()
-                    new_lines = await loop.run_in_executor(None, read_new_content)
+                    new_lines, new_position = await loop.run_in_executor(None, read_new_content)
 
                     for line in new_lines:
-                        stripped = line.rstrip("\n\r")
-                        if stripped:
-                            await websocket.send_text(stripped)
+                        if line:  # splitlines already strips newlines
+                            await websocket.send_text(line)
 
-                    last_position = current_size
+                    last_position = new_position
 
             except FileNotFoundError:
                 logger.warning("logs_websocket_file_deleted", filename=file)

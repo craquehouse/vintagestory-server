@@ -75,16 +75,48 @@ async def tail_log_file(
 
     file_path = logs_dir / filename
 
+    # Resolve the path and verify it's still within logs_dir (prevents symlink attacks)
+    resolved_path: Path | None = None
+    try:
+        resolved_path = file_path.resolve()
+        resolved_logs_dir = logs_dir.resolve()
+        resolved_path.relative_to(resolved_logs_dir)
+    except (ValueError, OSError) as e:
+        logger.warning(
+            "path_traversal_attempt",
+            filename=filename,
+            resolved_path=str(resolved_path) if resolved_path else "unknown",
+            logs_dir=str(logs_dir),
+        )
+        raise LogFileAccessError(f"Path traversal attempt detected: {filename}") from e
+
     if not file_path.exists():
         raise LogFileNotFoundError(f"Log file not found: {filename}")
 
     if not file_path.is_file():
         raise LogFileAccessError(f"Not a file: {filename}")
 
+    # Check file size before reading (limit to 100MB to prevent memory exhaustion)
+    max_file_size = 100 * 1024 * 1024  # 100MB
+    try:
+        file_size = file_path.stat().st_size
+        if file_size > max_file_size:
+            logger.warning(
+                "log_file_too_large",
+                filename=filename,
+                size_bytes=file_size,
+                max_size_bytes=max_file_size,
+            )
+            size_mb = file_size // (1024 * 1024)
+            max_mb = max_file_size // (1024 * 1024)
+            raise LogFileAccessError(f"Log file too large ({size_mb}MB > {max_mb}MB limit)")
+    except OSError as e:
+        raise LogFileAccessError(f"Cannot stat file: {e}") from e
+
     try:
         # Read file in a thread pool to avoid blocking
         def read_tail() -> list[str]:
-            with open(file_path, encoding="utf-8", errors="replace") as f:
+            with open(resolved_path, encoding="utf-8", errors="replace") as f:
                 # Read all lines and return last N
                 all_lines = f.readlines()
                 return [line.rstrip("\n\r") for line in all_lines[-lines:]]
