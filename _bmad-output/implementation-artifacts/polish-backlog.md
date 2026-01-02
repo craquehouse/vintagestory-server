@@ -48,6 +48,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-023 | Implement json colorization in file viewer                                                                                             | low      | s      | backlog | -                       |                                                              |
 | UI-024 | Filebrowser show all the directories in /data/serverdata, including but not limited to ModConfigs, Macros, Playerdata                  | low      | s      | backlog | -                       |                                                              |
 | UI-025 | Implement file editing capability in filebrowser. Require server to be stopped in order to edit file                                   | low      | s      | backlog | -                       |                                                              |
+| UI-026 | When updating the servername in the game server panel, the name is getting wrapped in quotes. Also the field reverts until the api polls the game server again. It should happen immediatelyish.                                | low      | s      | backlog | -                       |                                                              |
 
 
 ---
