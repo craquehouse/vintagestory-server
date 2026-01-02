@@ -14,8 +14,26 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from vintagestory_api.config import Settings, configure_logging
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.routers import auth, config, console, health, mods, server, test_rbac
+from vintagestory_api.services.scheduler import SchedulerService
 
 logger = structlog.get_logger()
+
+# Global scheduler service instance
+scheduler_service: SchedulerService | None = None
+
+
+def get_scheduler_service() -> SchedulerService:
+    """Get the scheduler service instance.
+
+    Returns:
+        The global SchedulerService instance.
+
+    Raises:
+        RuntimeError: If called before scheduler is initialized (during startup).
+    """
+    if scheduler_service is None:
+        raise RuntimeError("Scheduler service not initialized")
+    return scheduler_service
 
 # Static files directory (frontend build output)
 STATIC_DIR = Path("/app/static")
@@ -57,6 +75,8 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan handler for startup and shutdown."""
+    global scheduler_service
+
     settings = Settings()
     configure_logging(debug=settings.debug, log_level=settings.log_level)
 
@@ -95,7 +115,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         logger.debug("auto_start_server_disabled")
 
+    # Initialize and start scheduler (after auto-start, before yield)
+    scheduler_service = SchedulerService()
+    scheduler_service.start()
+
     yield
+
+    # Shutdown scheduler first (before other cleanup)
+    if scheduler_service:
+        scheduler_service.shutdown(wait=True)
+
     # Shutdown: close any open resources
     from vintagestory_api.services.mods import close_mod_service
 

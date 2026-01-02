@@ -335,3 +335,81 @@ class TestSchedulerServiceJobExecution:
         scheduler.shutdown(wait=True)
 
         assert received_args.get("value") == "test_value"
+
+
+class TestSchedulerLifespanIntegration:
+    """Tests for scheduler integration with FastAPI lifespan (AC: 1, 2)."""
+
+    def test_get_scheduler_service_returns_instance(self) -> None:
+        """get_scheduler_service() returns the global scheduler after app starts."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app, get_scheduler_service
+
+        # Use context manager to trigger lifespan
+        with TestClient(app):
+            scheduler = get_scheduler_service()
+            assert scheduler is not None
+            assert scheduler.is_running is True
+
+    def test_scheduler_logs_started_during_startup(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Scheduler logs 'scheduler_started' during app startup."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app
+
+        capsys.readouterr()  # Clear prior output
+
+        # Creating TestClient triggers lifespan startup
+        with TestClient(app):
+            captured = capsys.readouterr()
+            assert "scheduler_started" in captured.out
+
+    def test_scheduler_logs_stopped_during_shutdown(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Scheduler logs 'scheduler_stopped' during app shutdown."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app
+
+        # Create and close TestClient to trigger full lifecycle
+        with TestClient(app):
+            capsys.readouterr()  # Clear startup output
+
+        # After context exits, shutdown should have occurred
+        captured = capsys.readouterr()
+        assert "scheduler_stopped" in captured.out
+
+    def test_scheduler_is_running_during_request(self) -> None:
+        """Scheduler is running and accessible during HTTP requests."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app, get_scheduler_service
+
+        # Use context manager to trigger lifespan
+        with TestClient(app) as client:
+            # Make a request to ensure app is fully initialized
+            response = client.get("/healthz")
+            assert response.status_code == 200
+
+            # Scheduler should be running
+            scheduler = get_scheduler_service()
+            assert scheduler.is_running is True
+
+    def test_get_scheduler_service_raises_before_init(self) -> None:
+        """get_scheduler_service() raises RuntimeError before initialization."""
+        import vintagestory_api.main as main_module
+
+        # Temporarily set to None to test error case
+        original = main_module.scheduler_service
+        main_module.scheduler_service = None
+
+        try:
+            with pytest.raises(RuntimeError, match="Scheduler service not initialized"):
+                main_module.get_scheduler_service()
+        finally:
+            # Restore original
+            main_module.scheduler_service = original

@@ -1,6 +1,6 @@
 # Story 7.1: SchedulerService
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -42,12 +42,12 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 2.4: Implement `get_jobs()` method to list registered jobs
   - [x] Subtask 2.5: Write tests for job registration, execution, and removal
 
-- [ ] Task 3: Integrate SchedulerService with FastAPI lifespan + tests (AC: 1, 2)
-  - [ ] Subtask 3.1: Add scheduler_service global variable in main.py
-  - [ ] Subtask 3.2: Initialize and start scheduler in lifespan startup (after auto-start logic)
-  - [ ] Subtask 3.3: Shutdown scheduler in lifespan cleanup (before mod service close)
-  - [ ] Subtask 3.4: Add getter function `get_scheduler_service()` for dependency injection
-  - [ ] Subtask 3.5: Write integration tests verifying lifespan startup/shutdown
+- [x] Task 3: Integrate SchedulerService with FastAPI lifespan + tests (AC: 1, 2)
+  - [x] Subtask 3.1: Add scheduler_service global variable in main.py
+  - [x] Subtask 3.2: Initialize and start scheduler in lifespan startup (after auto-start logic)
+  - [x] Subtask 3.3: Shutdown scheduler in lifespan cleanup (before mod service close)
+  - [x] Subtask 3.4: Add getter function `get_scheduler_service()` for dependency injection
+  - [x] Subtask 3.5: Write integration tests verifying lifespan startup/shutdown
 
 ## Dev Notes
 
