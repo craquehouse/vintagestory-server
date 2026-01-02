@@ -3029,6 +3029,20 @@ class ErrorCode:
 ## Epic 7 & 8: APScheduler Integration & Periodic Tasks
 
 _Added during Epic 5 retrospective (2025-12-30)_
+_Updated during Story 7.0 research (2026-01-02)_
+
+### Version Selection
+
+**Use APScheduler v3.11.x (stable), NOT v4.x (alpha)**
+
+| Version | Status | Key Classes | Use? |
+|---------|--------|-------------|------|
+| **3.11.2** | Stable (Dec 2025) | `AsyncIOScheduler`, `MemoryJobStore`, `AsyncIOExecutor` | **YES** |
+| **4.0.0a6** | Alpha (Apr 2025) | `AsyncScheduler`, `MemoryDataStore` | NO |
+
+**Version constraint:** `apscheduler>=3.11.0,<4.0`
+
+**Warning:** AI documentation tools may return v4 patterns (`AsyncScheduler` with `MemoryDataStore`). Always verify you're using v3 patterns with `AsyncIOScheduler`.
 
 ### Background Task Scheduling Decision
 

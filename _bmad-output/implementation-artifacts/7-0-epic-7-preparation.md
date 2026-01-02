@@ -38,11 +38,11 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 2.2: Run `just build-api` to sync dependencies
   - [x] Subtask 2.3: Verify import works: `from apscheduler.schedulers.asyncio import AsyncIOScheduler`
 
-- [ ] Task 3: Update architecture.md with APScheduler patterns (AC: 1, 3)
-  - [ ] Subtask 3.1: Review existing Epic 7 & 8 section in architecture.md
-  - [ ] Subtask 3.2: Update SchedulerService code pattern if needed based on research
-  - [ ] Subtask 3.3: Document job_defaults rationale (why coalesce=True, max_instances=1, etc.)
-  - [ ] Subtask 3.4: Add any additional patterns discovered during research
+- [x] Task 3: Update architecture.md with APScheduler patterns (AC: 1, 3)
+  - [x] Subtask 3.1: Review existing Epic 7 & 8 section in architecture.md
+  - [x] Subtask 3.2: Update SchedulerService code pattern if needed based on research
+  - [x] Subtask 3.3: Document job_defaults rationale (why coalesce=True, max_instances=1, etc.)
+  - [x] Subtask 3.4: Add any additional patterns discovered during research
 
 ## Dev Notes
 
@@ -194,6 +194,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 1 Complete (2026-01-02):** Research confirmed APScheduler v3.11.2 is latest stable (v4 is alpha). Verified architecture.md patterns are correct: AsyncIOScheduler + MemoryJobStore + AsyncIOExecutor. Job defaults (coalesce=True, max_instances=1, misfire_grace_time=60) properly documented with rationale. FastAPI lifespan pattern verified against real-world implementations (openreplay, letta-ai, rasa). Context7 showed v4 patterns (AsyncScheduler) - confirmed NOT for production use.
 - **Task 2 Complete (2026-01-02):** Added `apscheduler>=3.11.0,<4.0` to api/pyproject.toml. Installed apscheduler==3.11.2 + tzlocal==5.3.1. Verified all v3 imports work (AsyncIOScheduler, MemoryJobStore, AsyncIOExecutor). All 827 API tests pass.
+- **Task 3 Complete (2026-01-02):** Reviewed architecture.md - existing patterns are correct. Added "Version Selection" section documenting v3 vs v4 differences and AI tool warning. job_defaults rationale already well-documented. No changes needed to SchedulerService pattern.
 
 ### File List
 
@@ -202,6 +203,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 **Files Modified:**
 - `api/pyproject.toml` - Added `apscheduler>=3.11.0,<4.0` dependency (Task 2)
+- `api/uv.lock` - Updated with apscheduler and tzlocal (Task 2)
+- `_bmad-output/planning-artifacts/architecture.md` - Added Version Selection section (Task 3)
 - `_bmad-output/implementation-artifacts/7-0-epic-7-preparation.md` - Story file updates
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status to in-progress
 
@@ -211,3 +214,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **2026-01-02 Task 1:** Completed APScheduler research - confirmed v3.11.2 is latest stable, verified architecture.md patterns are correct
 - **2026-01-02 Task 2:** Added apscheduler dependency to pyproject.toml, verified imports and tests pass
+- **2026-01-02 Task 3:** Updated architecture.md with Version Selection section, documenting v3 vs v4 differences
