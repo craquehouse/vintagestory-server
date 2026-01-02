@@ -4,11 +4,20 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { PendingRestartBanner } from "@/components/PendingRestartBanner";
+import { useGameSetting } from "@/hooks/use-game-config";
+
+/** Default server name shown when game config is not available */
+export const DEFAULT_SERVER_NAME = "VintageStory Server";
 
 export function Header() {
   const { resolvedTheme } = useTheme();
   const { setThemePreference } = usePreferences();
   const { setMobileOpen } = useSidebar();
+  const serverNameSetting = useGameSetting("ServerName");
+  const serverName =
+    typeof serverNameSetting?.value === "string" && serverNameSetting.value
+      ? serverNameSetting.value
+      : DEFAULT_SERVER_NAME;
 
   return (
     <header className="fixed top-0 right-0 left-0 z-40 h-12 border-b border-border bg-background md:left-[var(--sidebar-width)]">
@@ -24,12 +33,7 @@ export function Header() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">VintageStory Server</span>
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              (placeholder)
-            </span>
-          </div>
+          <span className="font-semibold">{serverName}</span>
         </div>
 
         {/* Center: Pending restart indicator */}

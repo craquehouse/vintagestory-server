@@ -6,6 +6,12 @@ import { Layout } from './Layout';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { type ReactNode } from 'react';
+import { mockUseGameSetting } from '@/test/mocks/use-game-config';
+
+// Mock useGameSetting hook for Header component
+vi.mock('@/hooks/use-game-config', () => ({
+  useGameSetting: (key: string) => mockUseGameSetting(key),
+}));
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -54,6 +60,8 @@ describe('Layout', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
+    // Default: no server name configured (returns fallback)
+    mockUseGameSetting.mockReturnValue(undefined);
     // Mock fetch for the PendingRestartBanner's useMods query
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
