@@ -24,3 +24,20 @@ class LogFilesResponse(BaseModel):
 
     files: list[LogFileInfo] = []
     logs_dir: str
+
+
+class ConsoleHistoryData(BaseModel):
+    """Data payload for console history response."""
+
+    lines: list[str] = Field(
+        default_factory=list, description="Console output lines (oldest first)"
+    )
+    total: int = Field(..., description="Total number of lines in the buffer")
+    limit: int | None = Field(None, description="Requested line limit (if provided)")
+
+
+class ConsoleCommandData(BaseModel):
+    """Data payload for console command response."""
+
+    command: str = Field(..., description="The command that was sent")
+    sent: bool = Field(True, description="Whether the command was successfully sent")
