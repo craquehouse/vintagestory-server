@@ -59,6 +59,46 @@ This is a COMPETITION to create the **ULTIMATE story context** that makes LLM de
 
 You will systematically re-do the entire story creation process, but with a critical eye for what the original LLM might have missed:
 
+### **Step 0: Story Structure Validation (MANDATORY GATES)**
+
+**🚨 CRITICAL: These gates MUST pass before proceeding with quality review**
+
+Execute these validations FIRST - they are enforcement mechanisms from Epic 5/6 retrospectives:
+
+#### **Gate 1: Task Count Validation**
+
+1. **Count total tasks** in the Tasks/Subtasks section
+2. **Check task count**:
+   - If task_count > 6:
+     - **WARN**: "Story has {task_count} tasks. Recommended maximum: 6 tasks for documentation fidelity."
+     - **SUGGEST**: "Consider splitting into multiple stories. Large stories cause context compaction and documentation gaps."
+     - **ASK USER**: "Proceed with {task_count} tasks, or abort to revise story structure? (proceed/abort)"
+     - If user chooses "abort" → HALT validation, return to story creation
+
+#### **Gate 2: Test Suffix Validation**
+
+1. **Scan all tasks** in Tasks/Subtasks section
+2. **For each task that creates code or functionality**:
+   - Check if task name ends with "+ tests" suffix
+   - If functional task is missing "+ tests":
+     - **ERROR**: "Task '{task_name}' performs functionality but doesn't include '+ tests' suffix"
+     - **REQUIREMENT**: "All tasks that write code MUST include their tests - no batching tests at end"
+     - **ACTION**: Mark this as CRITICAL ISSUE that MUST be fixed
+3. **Enforcement**: Do NOT proceed if functional tasks are missing "+ tests" suffix
+
+#### **Gate 3: Acceptance Criteria Mapping**
+
+1. **Extract all Acceptance Criteria** (AC) from story
+2. **For each AC**:
+   - Scan task descriptions for reference to this AC (look for "AC: N" or "AC N")
+   - If AC not referenced in any task:
+     - **WARN**: "Acceptance Criteria {ac_number} not mapped to any task"
+     - **SUGGEST**: "Unmapped ACs may not get implemented"
+3. **Ask user**: "Continue with unmapped ACs? (yes/no)"
+   - If "no" → HALT validation
+
+---
+
 ### **Step 1: Load and Understand the Target**
 
 1. **Load the workflow configuration**: `{installed_path}/workflow.yaml` for variable inclusion

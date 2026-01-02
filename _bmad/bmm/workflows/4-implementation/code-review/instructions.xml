@@ -104,6 +104,38 @@
       5. **Test Quality**: Are tests real assertions or placeholders?
     </action>
 
+    <!-- Suppression Detection (Epic 5/6 Retro Enforcement) -->
+    <action>**SUPPRESSION SCAN** - Detect code suppressions that hide real issues (Epic 5/6 retro requirement):
+      1. Search ALL files for suppression patterns:
+         - // eslint-disable (any variant)
+         - @ts-ignore / @ts-expect-error
+         - pytest.skip / pytest.mark.xfail
+         - # noqa / # type: ignore
+         - Any language-specific linting or type suppressions
+
+      2. For EACH suppression found:
+         **Check documentation requirements:**
+         - Does suppression have inline comment explaining WHY it's necessary?
+         - Does suppression reference tracking issue (GitHub issue #, backlog item)?
+         - Is explanation substantive (not just "fixing build" or "temporarily disabled")?
+
+      3. **Severity classification:**
+         - **HIGH severity**: Undocumented suppression (no explanation or tracking issue)
+         - **MEDIUM severity**: Weak explanation ("fixing build", "TODO fix later" without tracking)
+         - **LOW severity**: Well-documented with tracking issue but suspicious pattern
+
+      4. **Record findings:**
+         - Location: {file}:{line}
+         - Pattern: {suppression_type}
+         - Recommendation: Remove suppression and fix root cause, OR add proper documentation + tracking issue
+         - Action: REJECT PR if any HIGH severity suppressions found (zero tolerance policy)
+
+      **Why this matters (from Epic 6 retro):**
+      - Suppressions accumulate as technical debt
+      - They hide real problems instead of fixing them
+      - Epic 6 found eslint-disable in TerminalView.tsx with no justification
+    </action>
+
     <!-- Test Timing Audit (Epic 1 Retro Lesson) -->
     <action>**TEST TIMING CHECK** - Were tests written alongside implementation?
       1. Check git history: Were test files committed with or after feature code?

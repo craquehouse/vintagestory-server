@@ -277,8 +277,36 @@
 
   <step n="8" goal="Validate and mark task complete ONLY when fully done">
     <critical>NEVER mark a task complete unless ALL conditions are met - NO LYING OR CHEATING</critical>
+    <critical>EPIC 5/6 RETROSPECTIVE ENFORCEMENT: These gates are MANDATORY to prevent repeated process failures</critical>
 
-    <!-- VALIDATION GATES -->
+    <!-- MANDATORY GATE 1: Git Commit Verification (Epic 5/6 retro enforcement) -->
+    <action>MANDATORY: Verify git commit exists for this task BEFORE marking complete</action>
+    <action>Check commit message format EXACTLY matches: feat(story-X.Y/task-N): description</action>
+    <check if="commit missing or format incorrect">
+      <action>ERROR: Task cannot be marked complete without proper git commit</action>
+      <action>Create commit NOW with correct format before proceeding</action>
+      <action>DO NOT proceed until git commit verification passes</action>
+    </check>
+
+    <!-- MANDATORY GATE 2: File List Documentation (Epic 5/6 retro enforcement) -->
+    <action>MANDATORY: Update "File List" section in Dev Agent Record with files changed in this task</action>
+    <action>List all files created, modified, or deleted (paths relative to repo root)</action>
+    <check if="File List not updated for this task">
+      <action>ERROR: Task cannot be marked complete without File List update</action>
+      <note>Real-time documentation prevents retroactive gaps discovered in Epic 6</note>
+      <action>DO NOT proceed until File List is updated</action>
+    </check>
+
+    <!-- MANDATORY GATE 3: Test Verification (Epic 5/6 retro enforcement) -->
+    <action>MANDATORY: Run relevant tests for this task and verify ALL pass</action>
+    <action>Execute: just test-api -k "{story_context}" OR just test-web (depending on task scope)</action>
+    <check if="tests failing or not run">
+      <action>ERROR: Task cannot be marked complete with failing or unrun tests</action>
+      <action>Fix tests FIRST before marking task complete</action>
+      <action>DO NOT proceed until all tests pass</action>
+    </check>
+
+    <!-- VALIDATION GATES (existing requirements) -->
     <action>Verify ALL tests for this task/subtask ACTUALLY EXIST and PASS 100%</action>
     <action>Confirm implementation matches EXACTLY what the task/subtask specifies - no extra features</action>
     <action>Validate that ALL acceptance criteria related to this task are satisfied</action>

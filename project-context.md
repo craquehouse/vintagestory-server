@@ -204,6 +204,72 @@ When documenting or requiring versions:
 - **Document rationale** for any exact version pins
 - **Consider external dependencies** when specifying infrastructure (e.g., VintageStory requires .NET)
 
+### 8. No Silent Failures Rule
+
+**Code Suppressions Require Justification and Tracking** (Epic 5/6 Retrospective Enforcement)
+
+Code suppressions hide real issues instead of fixing them. They are **forbidden** unless ALL requirements are met:
+
+1. **Inline comment** explaining WHY suppression is necessary (not just "fixing build")
+2. **Tracking issue** linked (GitHub issue, backlog item) for proper fix
+3. **Explicit approval** in code review
+
+**Forbidden Patterns Without Justification:**
+- `// eslint-disable`
+- `@ts-ignore` / `@ts-expect-error`
+- `pytest.skip` / `pytest.mark.xfail`
+- `# noqa` / `# type: ignore`
+
+**Good Example:**
+```typescript
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// TODO(#123): Remove when API types are available from upstream
+const data: any = await fetchThirdPartyAPI();
+```
+
+**Bad Example:**
+```typescript
+// @ts-ignore - fixing build
+const data = await fetchThirdPartyAPI();
+```
+
+**Enforcement:**
+- `code-review` workflow scans for undocumented suppressions and auto-rejects PR
+- Zero tolerance policy for HIGH severity findings (undocumented suppressions)
+
+**Why This Matters (from Epic 6):**
+- Suppressions accumulate as technical debt
+- They hide real problems instead of fixing them
+- Epic 6 found `eslint-disable` in TerminalView.tsx with no justification
+- Make suppressions painful to add so we fix root causes instead
+
+### 9. Story Sizing Guidelines
+
+**Maximum Story Size: 4-6 Tasks** (Epic 5/6 Retrospective Enforcement)
+
+Stories with more than 6 tasks should be split into multiple stories. Large stories cause:
+- Context compaction issues (documentation gaps)
+- Harder code review (mega-PRs)
+- Reduced granularity for progress tracking
+
+**How to Split Stories:**
+- Each story should accomplish ONE user-facing capability
+- Group related tasks (e.g., "API hooks + components", "Page layouts", "Settings panels")
+- Better to have 3 focused PRs than 1 mega-PR
+
+**Enforcement:**
+- `create-story` workflow validates task count and warns if >6 tasks
+- User must explicitly approve proceeding with large stories
+
+**Example - Story Too Large:**
+- ❌ Story 6.4: Settings UI (10 tasks - hooks, components, pages, routing, tabs)
+- Impact: Context compaction caused empty File List in Story 6.5
+
+**Example - Proper Split:**
+- ✅ Story 6.4a: Game Settings Hooks & Components (4 tasks)
+- ✅ Story 6.4b: Game Server Page (3 tasks)
+- ✅ Story 6.4c: API Settings Interface (3 tasks)
+
 ---
 
 ## Security Patterns
@@ -514,6 +580,35 @@ git commit -m "feat(story-5.2/task-2): implement install_mod method + tests"
 git commit -m "fix(story-5.2/ad-hoc): correct typo in error message"
 git commit -m "fix(story-5.2/user): handle edge case per user feedback"
 git commit -m "fix(story-5.2/review): address code review findings"
+```
+
+### Commit Discipline
+
+**Task-Level Commits Are Mandatory** (Epic 5/6 Retrospective Enforcement)
+
+Every completed task MUST have a corresponding git commit before marking the task complete in the story file.
+
+**Why This Matters:**
+- Enables task-level verification (git bisect)
+- Creates audit trail for code review
+- Prevents "big bang" commits that are hard to review
+- Documents incremental progress for retrospectives
+
+**Enforcement:**
+- The `dev-story` workflow verifies commit exists with correct format before allowing task completion
+- Tasks cannot be marked complete without a proper commit
+- Commit message MUST match pattern: `feat(story-X.Y/task-N): description`
+
+**Pattern from Violations:**
+- ❌ Story 6.1: Single commit for all 3 tasks → Hard to review, no granularity
+- ✅ Expected: 3 commits (task-1, task-2, task-3) → Clear progress, reviewable chunks
+
+**How the Enforcement Works:**
+```xml
+<check if="commit missing or format incorrect">
+  <action>ERROR: Task cannot be marked complete without proper git commit</action>
+  <action>Create commit NOW with correct format before proceeding</action>
+</check>
 ```
 
 ### Code Review Process
