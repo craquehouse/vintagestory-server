@@ -11,7 +11,7 @@ Tests cover:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,7 +24,7 @@ class TestJobInfoModel:
 
     def test_jobinfo_with_next_run_time(self) -> None:
         """JobInfo accepts datetime for next_run_time."""
-        next_run = datetime(2026, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
+        next_run = datetime(2026, 1, 2, 12, 0, 0, tzinfo=UTC)
 
         job_info = JobInfo(
             id="test_job",
@@ -54,7 +54,7 @@ class TestJobInfoModel:
 
     def test_jobinfo_model_dump(self) -> None:
         """JobInfo.model_dump() returns dictionary for API response."""
-        next_run = datetime(2026, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
+        next_run = datetime(2026, 1, 2, 12, 0, 0, tzinfo=UTC)
         job_info = JobInfo(
             id="test_job",
             next_run_time=next_run,
@@ -83,7 +83,7 @@ class TestJobToInfo:
         # Create mock job with interval trigger
         mock_job = MagicMock()
         mock_job.id = "cache_refresh"
-        mock_job.next_run_time = datetime(2026, 1, 2, 13, 0, 0, tzinfo=timezone.utc)
+        mock_job.next_run_time = datetime(2026, 1, 2, 13, 0, 0, tzinfo=UTC)
         mock_job.trigger = IntervalTrigger(seconds=3600)
 
         result = job_to_info(mock_job)
@@ -101,7 +101,7 @@ class TestJobToInfo:
 
         mock_job = MagicMock()
         mock_job.id = "quick_check"
-        mock_job.next_run_time = datetime(2026, 1, 2, 12, 5, 0, tzinfo=timezone.utc)
+        mock_job.next_run_time = datetime(2026, 1, 2, 12, 5, 0, tzinfo=UTC)
         mock_job.trigger = IntervalTrigger(minutes=5)
 
         result = job_to_info(mock_job)
@@ -117,7 +117,7 @@ class TestJobToInfo:
 
         mock_job = MagicMock()
         mock_job.id = "daily_cleanup"
-        mock_job.next_run_time = datetime(2026, 1, 3, 2, 0, 0, tzinfo=timezone.utc)
+        mock_job.next_run_time = datetime(2026, 1, 3, 2, 0, 0, tzinfo=UTC)
         mock_job.trigger = CronTrigger.from_crontab("0 2 * * *")
 
         result = job_to_info(mock_job)
@@ -135,7 +135,7 @@ class TestJobToInfo:
 
         mock_job = MagicMock()
         mock_job.id = "periodic_sync"
-        mock_job.next_run_time = datetime(2026, 1, 2, 18, 0, 0, tzinfo=timezone.utc)
+        mock_job.next_run_time = datetime(2026, 1, 2, 18, 0, 0, tzinfo=UTC)
         mock_job.trigger = CronTrigger.from_crontab("0 */6 * * *")
 
         result = job_to_info(mock_job)
@@ -153,7 +153,7 @@ class TestJobToInfo:
 
         mock_job = MagicMock()
         mock_job.id = "one_time_job"
-        mock_job.next_run_time = datetime(2026, 1, 2, 15, 0, 0, tzinfo=timezone.utc)
+        mock_job.next_run_time = datetime(2026, 1, 2, 15, 0, 0, tzinfo=UTC)
         mock_job.trigger = unknown_trigger
 
         result = job_to_info(mock_job)
