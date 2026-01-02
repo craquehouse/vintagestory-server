@@ -3,11 +3,14 @@
  *
  * Displays formatted JSON content in a read-only viewer.
  * Handles loading, empty, and error states.
+ * Supports optional word wrap toggle for long lines.
  *
  * Story 6.6: File Manager UI - AC: 2, 3, 4
+ * Polish UI-022: Word wrap support
  */
 
-import { AlertCircle, FileText } from 'lucide-react';
+import { AlertCircle, FileText, WrapText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -32,6 +35,14 @@ export interface FileViewerProps {
    */
   error?: string | null;
   /**
+   * Whether word wrap is enabled.
+   */
+  wordWrap?: boolean;
+  /**
+   * Callback when word wrap toggle is clicked.
+   */
+  onWordWrapChange?: (enabled: boolean) => void;
+  /**
    * Additional CSS class names.
    */
   className?: string;
@@ -51,6 +62,8 @@ export function FileViewer({
   content,
   isLoading = false,
   error = null,
+  wordWrap = false,
+  onWordWrapChange,
   className,
 }: FileViewerProps) {
   // Loading state
@@ -105,14 +118,34 @@ export function FileViewer({
 
   return (
     <div className={cn('flex flex-col', className)} data-testid="file-viewer">
-      <div className="border-b px-4 py-2 bg-muted/30">
+      <div className="border-b px-4 py-2 bg-muted/30 flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">
           {filename}
         </span>
+        {onWordWrapChange && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onWordWrapChange(!wordWrap)}
+            className={cn(
+              'h-7 w-7 p-0',
+              wordWrap && 'bg-accent text-accent-foreground'
+            )}
+            title={wordWrap ? 'Disable word wrap' : 'Enable word wrap'}
+            data-testid="file-viewer-wrap-toggle"
+          >
+            <WrapText className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       <div className="flex-1 overflow-auto p-4">
         <pre
-          className="font-mono text-sm whitespace-pre overflow-x-auto"
+          className={cn(
+            'font-mono text-sm',
+            wordWrap
+              ? 'whitespace-pre-wrap break-words'
+              : 'whitespace-pre overflow-x-auto'
+          )}
           data-testid="file-viewer-content"
         >
           {formattedContent}
