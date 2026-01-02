@@ -5,6 +5,7 @@
  * configuration endpoints.
  *
  * Story 6.4: Settings UI
+ * Story 6.6: File Manager UI
  */
 
 import { apiClient } from './client';
@@ -14,6 +15,8 @@ import type {
   GameSettingUpdateData,
   ApiSettingsData,
   ApiSettingUpdateData,
+  ConfigFileListData,
+  ConfigFileContentData,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/config';
@@ -81,5 +84,32 @@ export async function updateApiSetting(
       method: 'POST',
       body: { value },
     }
+  );
+}
+
+// ===== Config Files API (Story 6.6) =====
+
+/**
+ * Fetch list of available configuration files.
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchConfigFiles(): Promise<ApiResponse<ConfigFileListData>> {
+  return apiClient<ApiResponse<ConfigFileListData>>(`${API_PREFIX}/files`);
+}
+
+/**
+ * Fetch the content of a specific configuration file.
+ *
+ * @param filename - Name of the config file (e.g., 'serverconfig.json')
+ * @returns File content as parsed JSON
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchConfigFileContent(
+  filename: string
+): Promise<ApiResponse<ConfigFileContentData>> {
+  return apiClient<ApiResponse<ConfigFileContentData>>(
+    `${API_PREFIX}/files/${encodeURIComponent(filename)}`
   );
 }

@@ -42,6 +42,14 @@ const mockApiSettings = {
   },
 };
 
+// Mock config files response
+const mockConfigFiles = {
+  status: 'ok',
+  data: {
+    files: ['serverconfig.json', 'worldconfig.json'],
+  },
+};
+
 describe('SettingsPage', () => {
   const originalFetch = globalThis.fetch;
 
@@ -50,10 +58,18 @@ describe('SettingsPage', () => {
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
 
-    // Default mock that returns API settings
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockApiSettings),
+    // Default mock that returns appropriate responses
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/config/files')) {
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockConfigFiles),
+        };
+      }
+      return {
+        ok: true,
+        json: () => Promise.resolve(mockApiSettings),
+      };
     });
   });
 
@@ -172,8 +188,8 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('File Manager tab content', () => {
-    it('shows coming soon message when File Manager tab is active', async () => {
+  describe('File Manager tab content (Story 6.6)', () => {
+    it('shows FileManagerPanel when File Manager tab is active', async () => {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
@@ -184,29 +200,11 @@ describe('SettingsPage', () => {
       await user.click(screen.getByTestId('file-manager-tab'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-coming-soon')).toBeInTheDocument();
-      });
-      expect(screen.getByText('Coming Soon')).toBeInTheDocument();
-    });
-
-    it('shows descriptive text for File Manager', async () => {
-      const user = userEvent.setup();
-      const queryClient = createTestQueryClient();
-      render(<SettingsPage />, {
-        wrapper: createWrapper(queryClient),
-      });
-
-      // Switch to File Manager tab
-      await user.click(screen.getByTestId('file-manager-tab'));
-
-      await waitFor(() => {
-        expect(
-          screen.getByText(/file manager will allow you to browse/i)
-        ).toBeInTheDocument();
+        expect(screen.getByTestId('file-manager-panel')).toBeInTheDocument();
       });
     });
 
-    it('shows file manager icon in coming soon section', async () => {
+    it('displays file list in File Manager', async () => {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       render(<SettingsPage />, {
@@ -217,9 +215,31 @@ describe('SettingsPage', () => {
       await user.click(screen.getByTestId('file-manager-tab'));
 
       await waitFor(() => {
-        const comingSoon = screen.getByTestId('file-manager-coming-soon');
-        expect(comingSoon.querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
       });
+
+      // Verify file names are displayed
+      expect(screen.getByText('serverconfig.json')).toBeInTheDocument();
+      expect(screen.getByText('worldconfig.json')).toBeInTheDocument();
+    });
+
+    it('shows prompt to select a file when none selected', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Switch to File Manager tab
+      await user.click(screen.getByTestId('file-manager-tab'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText('Select a file to view its contents')
+      ).toBeInTheDocument();
     });
   });
 

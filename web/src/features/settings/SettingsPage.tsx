@@ -3,22 +3,23 @@
  *
  * Provides tabbed interface for different settings domains:
  * - API Settings: Server auto-start, environment handling, refresh intervals
- * - File Manager: Coming soon placeholder
+ * - File Manager: Browse and view server configuration files
  *
  * Story 6.4: Settings UI - AC6
+ * Story 6.6: File Manager UI
  */
 
 import { Settings, FolderOpen } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiSettingsPanel } from './ApiSettingsPanel';
+import { FileManagerPanel } from './FileManagerPanel';
 
 /**
  * Settings page with tabbed navigation.
  *
  * Displays different settings domains in separate tabs:
  * - API Settings: Operational configuration for the API server
- * - File Manager: Placeholder for future file management feature
+ * - File Manager: Browse and view server configuration files
  */
 export function SettingsPage() {
   return (
@@ -44,27 +45,7 @@ export function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="file-manager" className="flex-1 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>File Manager</CardTitle>
-              <CardDescription>
-                Browse and manage server configuration files
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className="flex flex-col items-center justify-center py-12 text-center"
-                data-testid="file-manager-coming-soon"
-              >
-                <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Coming Soon</h3>
-                <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                  The file manager will allow you to browse, edit, and manage server
-                  configuration files directly from the web interface.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <FileManagerPanel />
         </TabsContent>
       </Tabs>
     </div>

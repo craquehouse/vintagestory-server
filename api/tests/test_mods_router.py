@@ -12,7 +12,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import Response
 
+from vintagestory_api.config import Settings
 from vintagestory_api.main import app
+from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.services.mods import ModService, get_mod_service
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -61,6 +63,16 @@ class TestInstallModEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def mod_service(self, temp_data_dir: Path) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
@@ -72,9 +84,12 @@ class TestInstallModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 
@@ -310,6 +325,16 @@ class TestLookupModEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def mod_service(self, temp_data_dir: Path) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
@@ -321,9 +346,12 @@ class TestLookupModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 
@@ -525,6 +553,16 @@ class TestEnableModEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def mod_service(self, temp_data_dir: Path) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
@@ -536,9 +574,12 @@ class TestEnableModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 
@@ -670,6 +711,16 @@ class TestDisableModEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def mod_service(self, temp_data_dir: Path) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
@@ -681,9 +732,12 @@ class TestDisableModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 
@@ -820,6 +874,16 @@ class TestRemoveModEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def mod_service(self, temp_data_dir: Path) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
@@ -831,9 +895,12 @@ class TestRemoveModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 
@@ -996,6 +1063,16 @@ class TestListModsEndpoint:
         return data_dir
 
     @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
     def restart_state(self) -> PendingRestartState:
         """Create a dedicated restart state for testing."""
         return PendingRestartState()
@@ -1014,9 +1091,12 @@ class TestListModsEndpoint:
         )
 
     @pytest.fixture
-    def test_app(self, mod_service: ModService) -> Generator[FastAPI, None, None]:
-        """Create app with test mod service injected."""
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
         yield app
         app.dependency_overrides.clear()
 

@@ -223,3 +223,20 @@ export interface ApiSettingUpdateData {
   key: string;
   value: string | number | boolean;
 }
+
+// ===== Config File Types (Story 6.6) =====
+
+/**
+ * Response from GET /api/v1alpha1/config/files (list config files).
+ */
+export interface ConfigFileListData {
+  files: string[];
+}
+
+/**
+ * Response from GET /api/v1alpha1/config/files/{filename} (read config file).
+ */
+export interface ConfigFileContentData {
+  filename: string;
+  content: unknown;
+}
