@@ -94,7 +94,7 @@ development_status:
   # Epic 7: APScheduler Integration (New 2025-12-30)
   epic-7: in-progress
   7-0-epic-7-preparation: review
-  7-1-scheduler-service: backlog
+  7-1-scheduler-service: in-progress
   7-2-job-management-api: backlog
   7-3-scheduler-health: backlog
   epic-7-retrospective: optional
