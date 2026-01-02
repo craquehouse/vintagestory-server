@@ -70,9 +70,14 @@ export function FileList({
   // Empty state
   if (files.length === 0) {
     return (
-      <div className={className} data-testid="file-list-empty">
+      <div
+        className={className}
+        data-testid="file-list-empty"
+        role="status"
+        aria-label="No configuration files available"
+      >
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <FolderOpen className="h-12 w-12 text-muted-foreground/50" />
+          <FolderOpen className="h-12 w-12 text-muted-foreground/50" aria-hidden="true" />
           <p className="mt-2 text-sm text-muted-foreground">
             No configuration files found
           </p>
