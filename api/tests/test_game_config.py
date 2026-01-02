@@ -371,12 +371,12 @@ class TestUpdateSettingLiveUpdate:
     async def test_update_setting_console_command_format_string(
         self, game_config_service: GameConfigService, mock_server_service: MagicMock
     ) -> None:
-        """String settings use quoted console command format."""
+        """String settings use unquoted console command format."""
         await game_config_service.update_setting("ServerName", "New Server Name")
 
         call_args = mock_server_service.send_command.call_args
         command = call_args[0][0]
-        assert command == '/serverconfig name "New Server Name"'
+        assert command == "/serverconfig name New Server Name"
 
     @pytest.mark.asyncio
     async def test_update_setting_console_command_format_int(

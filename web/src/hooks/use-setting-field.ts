@@ -7,6 +7,7 @@
  * Story 6.4: Settings UI
  */
 
+import type { KeyboardEvent } from 'react';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { SettingType } from '@/api/types';
 
@@ -149,6 +150,11 @@ export interface UseSettingFieldReturn<T> {
    * Handler for blur events (triggers save if dirty and valid).
    */
   onBlur: () => void;
+
+  /**
+   * Handler for keydown events (triggers save on Enter if dirty and valid).
+   */
+  onKeyDown: (e: KeyboardEvent) => void;
 }
 
 /**
@@ -259,6 +265,14 @@ export function useSettingField<T extends string | number | boolean>(
     }
   }, [isDirty, disabled, isPending, save]);
 
+  const onKeyDown = useCallback((e: KeyboardEvent) => {
+    // Save on Enter key if dirty, not disabled, and not already pending
+    if (e.key === 'Enter' && isDirty && !disabled && !isPending) {
+      e.preventDefault();
+      save();
+    }
+  }, [isDirty, disabled, isPending, save]);
+
   return {
     value,
     setValue,
@@ -268,6 +282,7 @@ export function useSettingField<T extends string | number | boolean>(
     save,
     reset,
     onBlur,
+    onKeyDown,
   };
 }
 

@@ -76,19 +76,19 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
     "ServerName": ServerSetting(
         key="ServerName",
         value_type="string",
-        console_command='/serverconfig name "{value}"',
+        console_command="/serverconfig name {value}",
         live_update=True,
     ),
     "ServerDescription": ServerSetting(
         key="ServerDescription",
         value_type="string",
-        console_command='/serverconfig description "{value}"',
+        console_command="/serverconfig description {value}",
         live_update=True,
     ),
     "WelcomeMessage": ServerSetting(
         key="WelcomeMessage",
         value_type="string",
-        console_command='/serverconfig motd "{value}"',
+        console_command="/serverconfig motd {value}",
         live_update=True,
     ),
     "MaxClients": ServerSetting(
@@ -106,7 +106,7 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
     "Password": ServerSetting(
         key="Password",
         value_type="string",
-        console_command='/serverconfig password "{value}"',
+        console_command="/serverconfig password {value}",
         live_update=True,
     ),
     "AllowPvP": ServerSetting(
