@@ -212,9 +212,9 @@ describe('TerminalView', () => {
 
       // Theme should be passed to terminal constructor
       expect(lastTerminalOptions?.theme).toBeDefined();
-      // Check for Catppuccin Mocha background color
+      // Check for Catppuccin Mocha background color (mantle)
       const theme = lastTerminalOptions?.theme as Record<string, string>;
-      expect(theme?.background).toBe('#1e1e2e');
+      expect(theme?.background).toBe('#181825');
     });
 
     it('initializes terminal with light theme (Catppuccin Latte) when theme is light', () => {
@@ -232,10 +232,10 @@ describe('TerminalView', () => {
       mockResolvedTheme = 'dark';
       const { rerender } = render(<TerminalView />);
 
-      // Verify initial dark theme
+      // Verify initial dark theme (mantle)
       expect(lastTerminalInstance?.options.theme).toBeDefined();
       const initialTheme = lastTerminalInstance?.options.theme as Record<string, string>;
-      expect(initialTheme?.background).toBe('#1e1e2e');
+      expect(initialTheme?.background).toBe('#181825');
 
       // Change to light theme and re-render
       mockResolvedTheme = 'light';

@@ -39,9 +39,9 @@ describe('terminal-themes', () => {
       expect(catppuccinMocha.brightWhite).toMatch(hexColorRegex);
     });
 
-    it('uses correct Catppuccin Mocha base color for background', () => {
-      // Mocha base color is #1e1e2e
-      expect(catppuccinMocha.background).toBe('#1e1e2e');
+    it('uses correct Catppuccin Mocha mantle color for background', () => {
+      // Using mantle (#181825) for terminal background to match app's --background
+      expect(catppuccinMocha.background).toBe('#181825');
     });
 
     it('uses correct Catppuccin Mocha text color for foreground', () => {
