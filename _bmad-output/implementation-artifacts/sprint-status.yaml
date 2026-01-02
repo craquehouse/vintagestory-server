@@ -95,7 +95,7 @@ development_status:
   epic-7: in-progress
   7-0-epic-7-preparation: done
   7-1-scheduler-service: done
-  7-2-job-management-api: backlog
+  7-2-job-management-api: review
   7-3-scheduler-health: backlog
   epic-7-retrospective: optional
 

@@ -1,6 +1,6 @@
 # Story 7.2: Job Management API
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -307,3 +307,35 @@ gh pr create --title "Story 7.2: Job Management API" --body "..."
 - `_bmad-output/planning-artifacts/epics.md` - Story requirements [Source: epics.md#Story 7.2]
 - `_bmad-output/implementation-artifacts/7-1-scheduler-service.md` - SchedulerService implementation
 - [APScheduler 3.x Documentation](https://apscheduler.readthedocs.io/en/3.x/)
+
+## Dev Agent Record
+
+### Agent Model Used
+Claude Opus 4.5 (claude-opus-4-5-20251101)
+
+### Debug Log References
+No debug issues encountered.
+
+### Completion Notes
+- 2026-01-02: All 3 tasks completed
+- Task 2 and Task 3 implemented together (delete endpoint naturally part of jobs router)
+- 24 tests added (12 model tests + 12 router tests)
+- 877 total API tests pass
+- Lint and typecheck pass (pre-existing typecheck warnings from APScheduler untyped package)
+
+### File List
+
+**Files Created:**
+- `api/src/vintagestory_api/models/jobs.py` (70 lines) - JobInfo model and job_to_info() serializer
+- `api/src/vintagestory_api/routers/jobs.py` (80 lines) - Jobs router with GET and DELETE endpoints
+- `api/tests/test_job_models.py` (248 lines) - Unit tests for job model serialization
+- `api/tests/test_jobs_router.py` (300 lines) - Integration tests for jobs router
+
+**Files Modified:**
+- `api/src/vintagestory_api/models/errors.py` - Added JOB_NOT_FOUND error code
+- `api/src/vintagestory_api/main.py` - Registered jobs router
+
+**No Files Deleted**
+
+### Change Log
+- 2026-01-02: Story implementation complete, all ACs verified by tests
