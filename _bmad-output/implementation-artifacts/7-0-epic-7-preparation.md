@@ -33,10 +33,10 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 1.4: Research FastAPI lifespan integration pattern (startup/shutdown)
   - [x] Subtask 1.5: Verify async job execution patterns (asyncio executor)
 
-- [ ] Task 2: Add APScheduler dependency to pyproject.toml + verify install (AC: 2)
-  - [ ] Subtask 2.1: Add `apscheduler>=3.11.0,<4.0` to api/pyproject.toml dependencies
-  - [ ] Subtask 2.2: Run `just build-api` to sync dependencies
-  - [ ] Subtask 2.3: Verify import works: `from apscheduler.schedulers.asyncio import AsyncIOScheduler`
+- [x] Task 2: Add APScheduler dependency to pyproject.toml + verify install (AC: 2)
+  - [x] Subtask 2.1: Add `apscheduler>=3.11.0,<4.0` to api/pyproject.toml dependencies
+  - [x] Subtask 2.2: Run `just build-api` to sync dependencies
+  - [x] Subtask 2.3: Verify import works: `from apscheduler.schedulers.asyncio import AsyncIOScheduler`
 
 - [ ] Task 3: Update architecture.md with APScheduler patterns (AC: 1, 3)
   - [ ] Subtask 3.1: Review existing Epic 7 & 8 section in architecture.md
@@ -193,18 +193,21 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - **Task 1 Complete (2026-01-02):** Research confirmed APScheduler v3.11.2 is latest stable (v4 is alpha). Verified architecture.md patterns are correct: AsyncIOScheduler + MemoryJobStore + AsyncIOExecutor. Job defaults (coalesce=True, max_instances=1, misfire_grace_time=60) properly documented with rationale. FastAPI lifespan pattern verified against real-world implementations (openreplay, letta-ai, rasa). Context7 showed v4 patterns (AsyncScheduler) - confirmed NOT for production use.
+- **Task 2 Complete (2026-01-02):** Added `apscheduler>=3.11.0,<4.0` to api/pyproject.toml. Installed apscheduler==3.11.2 + tzlocal==5.3.1. Verified all v3 imports work (AsyncIOScheduler, MemoryJobStore, AsyncIOExecutor). All 827 API tests pass.
 
 ### File List
 
-**Files to Create:**
-- None (documentation/research story)
+**Files Created:**
+- None
 
-**Files to Modify:**
-- `api/pyproject.toml` - Add apscheduler dependency
-- `_bmad-output/planning-artifacts/architecture.md` - Update Epic 7 section if needed
+**Files Modified:**
+- `api/pyproject.toml` - Added `apscheduler>=3.11.0,<4.0` dependency (Task 2)
+- `_bmad-output/implementation-artifacts/7-0-epic-7-preparation.md` - Story file updates
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status to in-progress
 
-**No Files to Delete**
+**No Files Deleted**
 
 ### Change Log
 
 - **2026-01-02 Task 1:** Completed APScheduler research - confirmed v3.11.2 is latest stable, verified architecture.md patterns are correct
+- **2026-01-02 Task 2:** Added apscheduler dependency to pyproject.toml, verified imports and tests pass
