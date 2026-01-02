@@ -240,3 +240,22 @@ export interface ConfigFileContentData {
   filename: string;
   content: unknown;
 }
+
+// ===== Log Types =====
+
+/**
+ * Information about a single log file.
+ */
+export interface LogFileInfo {
+  name: string;
+  sizeBytes: number;
+  modifiedAt: string; // ISO 8601
+}
+
+/**
+ * Response from GET /api/v1alpha1/console/logs.
+ */
+export interface LogFilesData {
+  files: LogFileInfo[];
+  logsDir: string;
+}
