@@ -101,10 +101,11 @@ development_status:
   epic-7-retrospective: done  # Retrospective complete 2026-01-02
 
   # Epic 8: Periodic Task Patterns (New 2025-12-30)
-  # COMPLETED 2026-01-02: All 4 stories done, 1683 tests total (966 API + 717 web)
+  # COMPLETED 2026-01-02: All 4 stories done + retrospective complete, 1683 tests total (966 API + 717 web)
+  # ACHIEVEMENT: First epic with 100% retro follow-through from Epic 7 action items
   epic-8: done
   8-0-epic-8-preparation: done  # Story complete
   8-1-mod-cache-refresh-job: done  # Code review complete 2026-01-02, all 5 items resolved (3 already done, 2 won't fix)
   8-2-server-versions-check-job: done  # Story complete 2026-01-02, 4 tasks with 41 tests
   8-3-job-configuration-ui: done  # Story complete 2026-01-02, 31 new web tests (717 total), all 4 ACs covered
-  epic-8-retrospective: optional
+  epic-8-retrospective: done  # Retrospective complete 2026-01-02, 4 action items defined
