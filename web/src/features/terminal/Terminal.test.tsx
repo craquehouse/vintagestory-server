@@ -97,6 +97,21 @@ vi.mock('@/lib/cookies', () => ({
   setCookie: vi.fn(),
 }));
 
+// Mock ws-token module for Story 9.1
+vi.mock('@/api/ws-token', () => ({
+  requestWebSocketToken: vi.fn().mockResolvedValue({
+    token: 'mock-token-123',
+    expiresAt: '2026-01-03T12:05:00Z',
+    expiresInSeconds: 300,
+  }),
+  WebSocketTokenError: class WebSocketTokenError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'WebSocketTokenError';
+    }
+  },
+}));
+
 // Import after mocks
 import { Terminal } from './Terminal';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
@@ -222,17 +237,24 @@ describe('Terminal Page', () => {
   });
 
   describe('WebSocket connection (AC: 1)', () => {
-    it('creates WebSocket connection with correct URL', () => {
+    it('creates WebSocket connection with correct URL', async () => {
       renderTerminal();
 
-      expect(MockWebSocket.instances).toHaveLength(1);
+      // Wait for token request and WebSocket creation
+      await waitFor(() => {
+        expect(MockWebSocket.instances).toHaveLength(1);
+      });
       expect(MockWebSocket.instances[0]?.url).toContain('/api/v1alpha1/console/ws');
-      expect(MockWebSocket.instances[0]?.url).toContain('api_key=test-api-key');
+      expect(MockWebSocket.instances[0]?.url).toContain('token=mock-token-123');
     });
 
-    it('creates WebSocket with history_lines parameter', () => {
+    it('creates WebSocket with history_lines parameter', async () => {
       renderTerminal();
 
+      // Wait for token request and WebSocket creation
+      await waitFor(() => {
+        expect(MockWebSocket.instances).toHaveLength(1);
+      });
       expect(MockWebSocket.instances[0]?.url).toContain('history_lines=100');
     });
   });
@@ -248,6 +270,11 @@ describe('Terminal Page', () => {
     it('enables input when connected', async () => {
       renderTerminal();
 
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       // Simulate connection
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -261,6 +288,12 @@ describe('Terminal Page', () => {
 
     it('disables send button when input is empty', async () => {
       renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -274,6 +307,12 @@ describe('Terminal Page', () => {
     it('enables send button when input has content', async () => {
       const user = userEvent.setup();
       renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -292,6 +331,12 @@ describe('Terminal Page', () => {
     it('sends command when form is submitted', async () => {
       const user = userEvent.setup();
       renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -314,6 +359,12 @@ describe('Terminal Page', () => {
     it('clears input after sending command', async () => {
       const user = userEvent.setup();
       renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -332,6 +383,12 @@ describe('Terminal Page', () => {
     it('sends command on Enter key', async () => {
       const user = userEvent.setup();
       renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -353,6 +410,11 @@ describe('Terminal Page', () => {
 
       const input = screen.getByLabelText('Command input');
       expect(input).toHaveAttribute('placeholder', 'Disconnected');
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();

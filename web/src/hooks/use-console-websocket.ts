@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { requestWebSocketToken } from '../api/ws-token';
 
 /**
  * Debug logging helper - only logs in development mode, not during tests.
@@ -20,7 +21,8 @@ export type ConnectionState =
   | 'connecting'
   | 'connected'
   | 'disconnected'
-  | 'forbidden';
+  | 'forbidden'
+  | 'token_error';
 
 /**
  * WebSocket close codes from the backend.
@@ -74,21 +76,19 @@ export interface UseConsoleWebSocketResult {
 }
 
 /**
- * Get API key from Vite environment variables.
+ * Build the WebSocket URL for the console endpoint with token authentication.
+ *
+ * @param token - WebSocket authentication token from requestWebSocketToken()
+ * @param historyLines - Number of history lines to request on connect
  */
-function getApiKey(): string {
-  return import.meta.env.VITE_API_KEY || '';
-}
-
-/**
- * Build the WebSocket URL for the console endpoint.
- */
-export function buildConsoleWebSocketUrl(historyLines: number = 100): string {
+export function buildConsoleWebSocketUrl(
+  token: string,
+  historyLines: number = 100
+): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
-  const apiKey = getApiKey();
 
-  return `${protocol}//${host}/api/v1alpha1/console/ws?api_key=${encodeURIComponent(apiKey)}&history_lines=${historyLines}`;
+  return `${protocol}//${host}/api/v1alpha1/console/ws?token=${encodeURIComponent(token)}&history_lines=${historyLines}`;
 }
 
 /**
@@ -96,10 +96,12 @@ export function buildConsoleWebSocketUrl(historyLines: number = 100): string {
  *
  * Features:
  * - Automatic connection on mount
+ * - Token-based authentication (requests token before connecting)
  * - Exponential backoff reconnection with jitter
  * - Connection state tracking
- * - Authentication via API key query parameter
  * - History lines on connect
+ *
+ * Story 9.1: Uses secure token authentication instead of API keys in URLs.
  *
  * @example
  * ```tsx
@@ -155,8 +157,8 @@ export function useConsoleWebSocket(
     onStateChangeRef.current?.(state);
   }, []);
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
+  // Connect to WebSocket (requests token first, then establishes connection)
+  const connect = useCallback(async () => {
     // Clear any existing reconnect timeout
     if (reconnectTimeoutRef.current) {
       window.clearTimeout(reconnectTimeoutRef.current);
@@ -171,8 +173,22 @@ export function useConsoleWebSocket(
 
     updateState('connecting');
 
-    const url = buildConsoleWebSocketUrl(historyLines);
-    debugLog('Connecting', { url: url.replace(/api_key=[^&]+/, 'api_key=***') });
+    // Request WebSocket token before connecting (Story 9.1)
+    let token: string;
+    try {
+      debugLog('Requesting WebSocket token');
+      const tokenData = await requestWebSocketToken();
+      token = tokenData.token;
+      debugLog('Token acquired', { expiresInSeconds: tokenData.expiresInSeconds });
+    } catch (error) {
+      debugLog('Token request failed', { error: String(error) });
+      updateState('token_error');
+      return;
+    }
+
+    // Build URL with token and connect
+    const url = buildConsoleWebSocketUrl(token, historyLines);
+    debugLog('Connecting', { url: url.replace(/token=[^&]+/, 'token=***') });
     const ws = new WebSocket(url);
     wsRef.current = ws;
 

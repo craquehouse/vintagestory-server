@@ -205,7 +205,7 @@ export function ConsolePanel({
   };
 
   // Map log connection state to console connection state for ConnectionStatus
-  const getDisplayConnectionState = (): 'connecting' | 'connected' | 'disconnected' | 'forbidden' => {
+  const getDisplayConnectionState = (): 'connecting' | 'connected' | 'disconnected' | 'forbidden' | 'token_error' => {
     if (source.type === 'console') return consoleConnectionState;
     // Map log-specific states to compatible states
     const state = logConnectionState;

@@ -21,6 +21,10 @@ from vintagestory_api.models.console import (
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.services.server import ServerService, get_server_service
+from vintagestory_api.services.ws_token_service import (
+    WebSocketTokenService,
+    get_ws_token_service,
+)
 
 logger = structlog.get_logger()
 
@@ -210,15 +214,62 @@ def _verify_api_key_with_settings(
     return None
 
 
+async def _verify_ws_auth(
+    token: str | None,
+    api_key: str | None,
+    token_service: WebSocketTokenService,
+    settings: Settings,
+    client_ip: str,
+) -> str | None:
+    """Verify WebSocket authentication using token or legacy API key.
+
+    Token authentication takes precedence over API key. If a token is provided,
+    the API key is ignored. This enables gradual migration from API key to token auth.
+
+    If api_key is used (token is None), a deprecation warning is logged.
+
+    Args:
+        token: WebSocket auth token from query parameter
+        api_key: Legacy API key from query parameter (deprecated)
+        token_service: Service for token validation
+        settings: Application settings with API keys
+        client_ip: Client IP for logging
+
+    Returns:
+        Role string ("admin" or "monitor") if authenticated, None otherwise.
+    """
+    # Prefer token auth over api_key
+    if token:
+        role = await token_service.validate_token(token)
+        if role:
+            logger.debug("ws_auth_via_token", client_ip=client_ip, role=role)
+        return role
+
+    # Fall back to legacy API key (deprecated)
+    if api_key:
+        logger.warning(
+            "ws_auth_deprecated_api_key",
+            client_ip=client_ip,
+            message="Deprecated api_key param used. Use token auth instead.",
+        )
+        return _verify_api_key_with_settings(
+            api_key, settings.api_key_admin, settings.api_key_monitor
+        )
+
+    return None
+
+
 @ws_router.websocket("/ws")
 async def console_websocket(
     websocket: WebSocket,
-    api_key: Annotated[str | None, Query(description="API key for authentication")] = None,
+    token: Annotated[str | None, Query(description="WebSocket auth token")] = None,
+    api_key: Annotated[str | None, Query(description="API key (deprecated, use token)")] = None,
     history_lines: Annotated[
         int | None, Query(ge=1, le=10000, description="Number of history lines to send on connect")
     ] = None,
     settings: Settings = Depends(get_settings),
     service: ServerService = Depends(get_server_service),
+    token_service: WebSocketTokenService = Depends(get_ws_token_service),
 ) -> None:
     """WebSocket endpoint for real-time console streaming.
 
@@ -226,41 +277,52 @@ async def console_websocket(
     output streaming. On connection, sends recent buffer history then streams
     new lines as they arrive.
 
-    Authentication is via query parameter since WebSocket in browsers cannot
-    use custom headers.
+    Authentication options (token preferred, api_key deprecated):
+    - token: Short-lived WebSocket token from POST /auth/ws-token
+    - api_key: Legacy API key (deprecated, will be removed in future version)
 
     Args:
         websocket: The WebSocket connection
-        api_key: Admin API key for authentication (query parameter)
+        token: WebSocket auth token (preferred)
+        api_key: Legacy API key for authentication (deprecated)
         history_lines: Number of history lines to send on connect (default from settings)
         settings: Application settings (injected via dependency)
         service: Server service for console buffer access (injected via dependency)
+        token_service: WebSocket token service for token validation
 
     Close Codes:
-        4001: Unauthorized - Missing or invalid API key
-        4003: Forbidden - Valid key but insufficient role (Monitor, not Admin)
+        4001: Unauthorized - Missing or invalid token/API key
+        4003: Forbidden - Valid token but insufficient role (Monitor, not Admin)
     """
     client_ip = _get_websocket_client_ip(websocket)
 
-    # Verify API key before accepting connection
-    role = _verify_api_key_with_settings(api_key, settings.api_key_admin, settings.api_key_monitor)
+    # Verify authentication (token preferred, api_key as fallback)
+    role = await _verify_ws_auth(token, api_key, token_service, settings, client_ip)
 
     if role is None:
-        # Log failed auth attempt (key_prefix only, never full key)
-        key_info = f"{api_key[:8]}..." if api_key else "none"
-        logger.warning(
-            "websocket_auth_failed",
-            client_ip=client_ip,
-            key_prefix=key_info,
-            reason="invalid_key",
-        )
-        # Accept then close with error code (WebSocket protocol requirement)
-        await websocket.accept()
-        await websocket.close(code=4001, reason="Unauthorized: Invalid API key")
+        # Log failed auth attempt
+        if token:
+            logger.warning(
+                "websocket_auth_failed",
+                client_ip=client_ip,
+                reason="invalid_token",
+            )
+            await websocket.accept()
+            await websocket.close(code=4001, reason="Unauthorized: Invalid or expired token")
+        else:
+            key_info = f"{api_key[:8]}..." if api_key else "none"
+            logger.warning(
+                "websocket_auth_failed",
+                client_ip=client_ip,
+                key_prefix=key_info,
+                reason="invalid_key",
+            )
+            await websocket.accept()
+            await websocket.close(code=4001, reason="Unauthorized: Invalid API key")
         return
 
     if role != "admin":
-        # Valid key but wrong role
+        # Valid token/key but wrong role
         logger.warning(
             "websocket_auth_forbidden",
             client_ip=client_ip,
@@ -365,30 +427,35 @@ async def console_websocket(
 async def logs_websocket(
     websocket: WebSocket,
     file: Annotated[str, Query(description="Log file name to stream (e.g., 'server-main.log')")],
-    api_key: Annotated[str | None, Query(description="API key for authentication")] = None,
+    token: Annotated[str | None, Query(description="WebSocket auth token")] = None,
+    api_key: Annotated[str | None, Query(description="API key (deprecated, use token)")] = None,
     history_lines: Annotated[
         int, Query(ge=1, le=10000, description="Number of history lines to send on connect")
     ] = 100,
     settings: Settings = Depends(get_settings),
+    token_service: WebSocketTokenService = Depends(get_ws_token_service),
 ) -> None:
     """WebSocket endpoint for real-time log file streaming.
 
     Streams a specific log file from the serverdata/Logs directory.
     On connection, sends recent file history then streams new lines as they appear.
 
-    Authentication is via query parameter since WebSocket in browsers cannot
-    use custom headers.
+    Authentication options (token preferred, api_key deprecated):
+    - token: Short-lived WebSocket token from POST /auth/ws-token
+    - api_key: Legacy API key (deprecated, will be removed in future version)
 
     Args:
         websocket: The WebSocket connection
         file: Log file name to stream (validated, no path traversal)
-        api_key: Admin API key for authentication (query parameter)
+        token: WebSocket auth token (preferred)
+        api_key: Legacy API key for authentication (deprecated)
         history_lines: Number of history lines to send on connect (default 100)
         settings: Application settings (injected via dependency)
+        token_service: WebSocket token service for token validation
 
     Close Codes:
-        4001: Unauthorized - Missing or invalid API key
-        4003: Forbidden - Valid key but insufficient role (Monitor, not Admin)
+        4001: Unauthorized - Missing or invalid token/API key
+        4003: Forbidden - Valid token but insufficient role (Monitor, not Admin)
         4004: Not Found - Log file does not exist
         4005: Invalid Request - Invalid filename or access error
     """
@@ -403,19 +470,28 @@ async def logs_websocket(
 
     client_ip = _get_websocket_client_ip(websocket)
 
-    # Verify API key before accepting connection
-    role = _verify_api_key_with_settings(api_key, settings.api_key_admin, settings.api_key_monitor)
+    # Verify authentication (token preferred, api_key as fallback)
+    role = await _verify_ws_auth(token, api_key, token_service, settings, client_ip)
 
     if role is None:
-        key_info = f"{api_key[:8]}..." if api_key else "none"
-        logger.warning(
-            "logs_websocket_auth_failed",
-            client_ip=client_ip,
-            key_prefix=key_info,
-            reason="invalid_key",
-        )
-        await websocket.accept()
-        await websocket.close(code=4001, reason="Unauthorized: Invalid API key")
+        if token:
+            logger.warning(
+                "logs_websocket_auth_failed",
+                client_ip=client_ip,
+                reason="invalid_token",
+            )
+            await websocket.accept()
+            await websocket.close(code=4001, reason="Unauthorized: Invalid or expired token")
+        else:
+            key_info = f"{api_key[:8]}..." if api_key else "none"
+            logger.warning(
+                "logs_websocket_auth_failed",
+                client_ip=client_ip,
+                key_prefix=key_info,
+                reason="invalid_key",
+            )
+            await websocket.accept()
+            await websocket.close(code=4001, reason="Unauthorized: Invalid API key")
         return
 
     if role != "admin":
