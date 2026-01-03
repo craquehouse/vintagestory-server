@@ -204,7 +204,7 @@ class TestModCacheRefreshErrorHandling:
 
         call_count = 0
 
-        async def mock_get_mod(slug: str) -> dict | None:
+        async def mock_get_mod(slug: str) -> dict[str, str] | None:
             nonlocal call_count
             call_count += 1
             if slug == "modA":
