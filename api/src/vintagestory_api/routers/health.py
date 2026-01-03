@@ -16,10 +16,13 @@ from vintagestory_api.services.server import get_server_service
 router = APIRouter(tags=["Health"])
 
 
-def _get_scheduler_service():
+def get_scheduler():
     """Get scheduler service with deferred import.
 
     Deferred import to avoid circular import with main.py.
+
+    Returns:
+        SchedulerService instance from main module.
     """
     from vintagestory_api.main import get_scheduler_service
 
@@ -62,7 +65,7 @@ async def health_check() -> ApiResponse:
 
     # Get scheduler status - don't fail health checks if this errors
     try:
-        scheduler = _get_scheduler_service()
+        scheduler = get_scheduler()
         scheduler_data = SchedulerHealthData(
             status="running" if scheduler.is_running else "stopped",
             job_count=len(scheduler.get_jobs()),

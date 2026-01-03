@@ -283,7 +283,7 @@ class TestHealthzScheduler:
         mock_scheduler.get_jobs.return_value = []
 
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             return_value=mock_scheduler,
         ):
             response = client.get("/healthz")
@@ -305,7 +305,7 @@ class TestHealthzScheduler:
         mock_scheduler.get_jobs.return_value = []
 
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             return_value=mock_scheduler,
         ):
             response = client.get("/healthz")
@@ -317,7 +317,7 @@ class TestHealthzScheduler:
     ) -> None:
         """Test that scheduler status is 'stopped' when scheduler unavailable."""
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             side_effect=RuntimeError("Scheduler not initialized"),
         ):
             response = client.get("/healthz")
@@ -331,7 +331,7 @@ class TestHealthzScheduler:
     ) -> None:
         """Test that scheduler status is 'stopped' on unexpected errors."""
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             side_effect=ValueError("Unexpected error"),
         ):
             response = client.get("/healthz")
@@ -349,7 +349,7 @@ class TestHealthzScheduler:
         mock_scheduler.get_jobs.return_value = []
 
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             return_value=mock_scheduler,
         ):
             response = client.get("/healthz")
@@ -365,7 +365,7 @@ class TestHealthzScheduler:
         mock_scheduler.get_jobs.return_value = [MagicMock(), MagicMock(), MagicMock()]
 
         with patch(
-            "vintagestory_api.routers.health._get_scheduler_service",
+            "vintagestory_api.routers.health.get_scheduler",
             return_value=mock_scheduler,
         ):
             response = client.get("/healthz")
