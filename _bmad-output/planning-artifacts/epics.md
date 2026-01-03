@@ -4,6 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
+lastUpdated: '2026-01-03'
+updates:
+  - date: '2026-01-03'
+    description: 'Added Epic 9 (7 stories) and Epic 10 (8 stories) for QoL Polish and Advanced Mod Browser'
 ---
 
 # vintagestory-server - Epic Breakdown
@@ -224,6 +228,57 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR39 | Epic 1 | Environment variable config |
 
 **Note:** FR30 (Metrics endpoint) is marked POST-MVP in PRD, not included in MVP epics.
+
+### Post-MVP FR Coverage Map
+
+| FR | Epic | Description |
+|----|------|-------------|
+| FR40 | Epic 9 | Secure WebSocket token auth |
+| FR41 | Epic 9 | Short-lived token validation |
+| FR42 | Epic 9 | Auto-create directories on startup |
+| FR43 | Epic 9 | Log directory creation |
+| FR44 | Epic 9 | Cache eviction strategy |
+| FR45 | Epic 9 | Configurable cache limits |
+| FR46 | Epic 9 | Log cache eviction events |
+| FR47 | Epic 9 | Debug logging throughout services |
+| FR48 | Epic 9 | Toggle debug via env var |
+| FR49 | Epic 9 | Correlation IDs in debug logs |
+| FR50 | Epic 9 | Distinct color for user commands |
+| FR51 | Epic 9 | [CMD] prefix for commands |
+| FR52 | Epic 9 | JSON syntax colorization |
+| FR53 | Epic 9 | Distinct colors for JSON types |
+| FR54 | Epic 9 | Show all directories in browser |
+| FR55 | Epic 9 | Dynamic directory listing |
+| FR56 | Epic 10 | Split Mods into tabs |
+| FR57 | Epic 10 | Installed tab functionality |
+| FR58 | Epic 10 | Browse tab experience |
+| FR59 | Epic 10 | Default newest mods |
+| FR60 | Epic 10 | Pre-filter compatible mods |
+| FR61 | Epic 10 | Immediate content load |
+| FR62 | Epic 10 | Keyword search |
+| FR63 | Epic 10 | Debounced search |
+| FR64 | Epic 10 | Maintain filters during search |
+| FR65 | Epic 10 | Filter by side |
+| FR66 | Epic 10 | Filter by tags |
+| FR67 | Epic 10 | Filter by game version |
+| FR68 | Epic 10 | Filter by mod type |
+| FR69 | Epic 10 | Combined filters (AND) |
+| FR70 | Epic 10 | Display/remove active filters |
+| FR71 | Epic 10 | Sort options |
+| FR72 | Epic 10 | Default sort: newest |
+| FR73 | Epic 10 | Persist sort selection |
+| FR74 | Epic 10 | Card display format |
+| FR75 | Epic 10 | Compatibility badges on cards |
+| FR76 | Epic 10 | Clickable cards to details |
+| FR77 | Epic 10 | Full mod detail view |
+| FR78 | Epic 10 | Install with version selection |
+| FR79 | Epic 10 | Show installed status in detail |
+| FR80 | Epic 10 | Pagination support |
+| FR81 | Epic 10 | Infinite scroll or pages |
+| FR82 | Epic 10 | Maintain position on return |
+| FR83 | Epic 10 | Install from browse/detail |
+| FR84 | Epic 10 | Show compatibility before install |
+| FR85 | Epic 10 | Update UI after install |
 
 ## Epic List
 
@@ -1727,4 +1782,531 @@ So that **I can monitor background task status**.
 | Epic 6: Game Configuration Management | 6.0, 6.1, 6.2, 6.3, 6.4, 6.5 | 6 |
 | Epic 7: APScheduler Integration | 7.0, 7.1, 7.2, 7.3 | 4 |
 | Epic 8: Periodic Task Patterns | 8.0, 8.1, 8.2, 8.3 | 4 |
-| **Total** | | **38** |
+| Epic 9: Quality of Life Polish Pass | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7 | 7 |
+| Epic 10: Advanced Mod Browser | 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8 | 8 |
+| **Total** | | **53** |
+
+---
+
+## Epic 9: Quality of Life Polish Pass
+
+Admins benefit from security improvements, better debugging capabilities, and enhanced UI features that improve daily operations and troubleshooting.
+
+**FRs covered:** FR40, FR41, FR42, FR43, FR44, FR45, FR46, FR47, FR48, FR49, FR50, FR51, FR52, FR53, FR54, FR55
+
+**MVP Scope:**
+
+- Secure WebSocket token authentication (replaces API key in URL)
+- Directory auto-creation on startup
+- Mod cache eviction strategy
+- Debug logging with correlation IDs
+- Console command highlighting with [CMD] prefix
+- JSON syntax colorization in file viewer
+- Dynamic directory listing in file browser
+
+---
+
+### Story 9.1: Secure WebSocket Authentication
+
+As an **administrator**,
+I want **WebSocket connections to use secure token authentication**,
+So that **my API key is not exposed in URL query parameters**.
+
+**Acceptance Criteria:**
+
+**Given** I need to connect to the console WebSocket
+**When** I request a connection token via `POST /api/v1alpha1/auth/ws-token`
+**Then** I receive a short-lived token (e.g., 30 second TTL)
+**And** the response includes `{"token": "<jwt-or-opaque-token>", "expires_in": 30}`
+*(Covers FR40)*
+
+**Given** I have a valid WebSocket token
+**When** I connect to `ws://host/api/v1alpha1/console?token=<token>`
+**Then** the connection is established successfully
+**And** the token is validated server-side
+*(Covers FR41)*
+
+**Given** I attempt to connect with an expired token
+**When** the token TTL has passed
+**Then** the WebSocket connection is rejected with 401
+
+**Given** the frontend needs to connect to the console
+**When** the Terminal component mounts
+**Then** it first requests a token, then connects with that token
+**And** token refresh is handled automatically before expiry
+
+---
+
+### Story 9.2: Directory Auto-Creation on Startup
+
+As an **operator**,
+I want **the API server to create required directories on startup**,
+So that **I don't encounter errors from missing directories**.
+
+**Acceptance Criteria:**
+
+**Given** the API server starts
+**When** expected directories don't exist under `/data/vsmanager/`
+**Then** the directories are created: `cache/`, `state/`, `logs/`
+*(Covers FR42)*
+
+**Given** directories are created on startup
+**When** any directory is created
+**Then** a log entry is emitted: `{"event": "directory_created", "path": "..."}`
+*(Covers FR43)*
+
+**Given** directories already exist
+**When** the API server starts
+**Then** no errors occur and no creation logs are emitted
+
+**Given** directory creation fails (permissions issue)
+**When** startup encounters the error
+**Then** a clear error is logged and startup fails gracefully
+
+---
+
+### Story 9.3: Mod Cache Eviction Strategy
+
+As an **administrator**,
+I want **the mod cache to automatically clean up old files**,
+So that **disk space is managed without manual intervention**.
+
+**Acceptance Criteria:**
+
+**Given** the mod cache directory exists
+**When** total cache size exceeds the configured limit (default 500MB)
+**Then** the oldest accessed files are evicted until under limit (LRU strategy)
+*(Covers FR44)*
+
+**Given** I set `VS_MOD_CACHE_MAX_SIZE` environment variable
+**When** the API server starts
+**Then** the cache limit is set to the configured value
+*(Covers FR45)*
+
+**Given** cache eviction occurs
+**When** files are removed
+**Then** log entries are emitted: `{"event": "cache_evicted", "file": "...", "reason": "size_limit"}`
+*(Covers FR46)*
+
+**Given** the cache is under the size limit
+**When** eviction check runs
+**Then** no files are removed
+
+---
+
+### Story 9.4: Debug Logging Infrastructure
+
+As a **developer or operator**,
+I want **comprehensive debug logging throughout the API**,
+So that **I can troubleshoot issues with detailed request tracing**.
+
+**Acceptance Criteria:**
+
+**Given** `VS_DEBUG=true` is set
+**When** API requests are processed
+**Then** debug-level logs are emitted for each service layer (router → service → repository)
+*(Covers FR47)*
+
+**Given** `VS_DEBUG` is changed at runtime
+**When** the environment variable is updated
+**Then** debug logging is enabled/disabled without server restart
+*(Covers FR48)*
+
+**Given** debug logging is enabled
+**When** a request is processed
+**Then** all log entries include a correlation ID (`request_id`) for tracing
+**And** the correlation ID is consistent across all logs for that request
+*(Covers FR49)*
+
+**Given** debug logging is disabled (default)
+**When** requests are processed
+**Then** only info, warning, and error logs are emitted
+
+---
+
+### Story 9.5: Console Command Highlighting
+
+As an **administrator**,
+I want **my commands to be visually distinct in the console**,
+So that **I can easily identify what I typed vs server output**.
+
+**Acceptance Criteria:**
+
+**Given** I send a command via the console
+**When** the command is echoed in the terminal
+**Then** it is displayed in a distinct color (e.g., cyan or yellow)
+*(Covers FR50)*
+
+**Given** I send a command via the console
+**When** the command appears in the output
+**Then** it is prefixed with `[CMD]` marker
+*(Covers FR51)*
+
+**Given** server output arrives
+**When** it is displayed in the terminal
+**Then** it uses the default console color (not the command color)
+
+---
+
+### Story 9.6: JSON Syntax Colorization
+
+As an **administrator**,
+I want **JSON files to be syntax-highlighted in the file viewer**,
+So that **configuration files are easier to read and understand**.
+
+**Acceptance Criteria:**
+
+**Given** I open a `.json` file in the file viewer
+**When** the content is rendered
+**Then** syntax colorization is applied
+*(Covers FR52)*
+
+**Given** JSON content is displayed
+**When** I view the highlighted content
+**Then** keys, strings, numbers, booleans, and null values each have distinct colors
+*(Covers FR53)*
+
+**Given** I open a non-JSON file
+**When** the content is rendered
+**Then** no JSON colorization is applied (plain text)
+
+**Given** the JSON file contains invalid JSON
+**When** the file is displayed
+**Then** it renders as plain text with no colorization errors
+
+---
+
+### Story 9.7: Dynamic File Browser
+
+As an **administrator**,
+I want **the file browser to show all directories dynamically**,
+So that **I can access ModConfigs, Macros, Playerdata, and other directories**.
+
+**Acceptance Criteria:**
+
+**Given** I open the file browser
+**When** the directory listing loads
+**Then** all directories under `/data/serverdata/` are displayed
+**And** this includes ModConfigs, Macros, Playerdata, and any others present
+*(Covers FR54)*
+
+**Given** the file browser lists directories
+**When** the list is generated
+**Then** it is dynamically discovered from the filesystem (not hardcoded)
+*(Covers FR55)*
+
+**Given** a new directory is created in `/data/serverdata/`
+**When** I refresh the file browser
+**Then** the new directory appears in the listing
+
+---
+
+## Epic 10: Advanced Mod Browser
+
+Admins can discover and install mods through a full-featured browser with search, filters, and sorting - matching the experience of mods.vintagestory.at directly within the management UI.
+
+**FRs covered:** FR56, FR57, FR58, FR59, FR60, FR61, FR62, FR63, FR64, FR65, FR66, FR67, FR68, FR69, FR70, FR71, FR72, FR73, FR74, FR75, FR76, FR77, FR78, FR79, FR80, FR81, FR82, FR83, FR84, FR85
+
+**MVP Scope:**
+
+- Split Mods view into Installed/Browse tabs
+- Smart landing page with newest mods, pre-filtered to game version
+- Keyword search with debounce
+- Filters: side, tags, game version, mod type
+- Sorting: newest, downloads, updated, trending, name
+- Card display with thumbnails and compatibility badges
+- Mod detail view with install/update actions
+- Pagination for large result sets
+- Direct install from browse results
+
+---
+
+### Story 10.1: Mod Browse API
+
+As a **frontend developer**,
+I want **an API endpoint that searches and filters the mod database**,
+So that **the browse UI can display mods with all filtering and sorting options**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/mods/browse`
+**When** no parameters are provided
+**Then** I receive the newest mods, pre-filtered to the current game server version
+**And** the response includes pagination metadata (total, page, per_page)
+*(Covers FR59, FR60, FR61)*
+
+**Given** I call `GET /api/v1alpha1/mods/browse?q=magic`
+**When** the search parameter is provided
+**Then** results are filtered to mods matching "magic" in name or description
+*(Covers FR62)*
+
+**Given** I call with filter parameters
+**When** I include `side=server`, `tags=qol,utility`, `version=1.21`, `type=code`
+**Then** results are filtered by all specified criteria (AND logic)
+*(Covers FR65, FR66, FR67, FR68, FR69)*
+
+**Given** I call with sort parameter
+**When** I include `sort=downloads` (or `newest`, `updated`, `trending`, `name`)
+**Then** results are sorted accordingly
+*(Covers FR71, FR72, FR73)*
+
+**Given** I call with pagination parameters
+**When** I include `page=2&per_page=20`
+**Then** I receive the second page of 20 results
+**And** response includes `total_count` for pagination UI
+*(Covers FR80)*
+
+**Given** the VintageStory mod API is unavailable
+**When** I attempt to browse mods
+**Then** I receive cached data if available, or a clear error message
+*(Covers NFR11)*
+
+---
+
+### Story 10.2: Mods Tab Restructure
+
+As an **administrator**,
+I want **the Mods page split into Installed and Browse tabs**,
+So that **I can manage installed mods separately from discovering new ones**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to the Mods page
+**When** the page loads
+**Then** I see two tabs: "Installed" and "Browse"
+**And** "Installed" is the default active tab
+*(Covers FR56)*
+
+**Given** I click the "Installed" tab
+**When** the tab activates
+**Then** I see the existing mod management UI (list, enable, disable, remove, update)
+*(Covers FR57)*
+
+**Given** I click the "Browse" tab
+**When** the tab activates
+**Then** I see the new mod discovery interface
+*(Covers FR58)*
+
+**Given** I am on either tab
+**When** I switch tabs
+**Then** the URL updates to reflect the active tab (e.g., `/mods/installed`, `/mods/browse`)
+**And** browser back/forward navigation works correctly
+
+---
+
+### Story 10.3: Browse Landing Page & Search
+
+As an **administrator**,
+I want **the Browse tab to show newest mods immediately with search capability**,
+So that **I can discover mods without having to search first**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to the Browse tab
+**When** the page loads
+**Then** newest mods are displayed immediately (no user action required)
+**And** results are pre-filtered to my game server version
+*(Covers FR59, FR60, FR61)*
+
+**Given** I see the Browse interface
+**When** I look at the top of the page
+**Then** I see a search input field
+
+**Given** I type in the search field
+**When** I stop typing (300ms debounce)
+**Then** search results update automatically
+*(Covers FR62, FR63)*
+
+**Given** I have filters or sort applied
+**When** I perform a search
+**Then** the search respects existing filter and sort selections
+*(Covers FR64)*
+
+**Given** the search field has text
+**When** I click a clear button or press Escape
+**Then** the search is cleared and results return to default (newest)
+
+---
+
+### Story 10.4: Filter & Sort Controls
+
+As an **administrator**,
+I want **to filter and sort mod results**,
+So that **I can find specific types of mods quickly**.
+
+**Acceptance Criteria:**
+
+**Given** I am on the Browse tab
+**When** I view the filter controls
+**Then** I see filter options for: Side, Tags, Game Version, Mod Type
+
+**Given** I select a Side filter
+**When** I choose "Server-only"
+**Then** results update to show only server-side mods
+*(Covers FR65)*
+
+**Given** I select Tags
+**When** I choose multiple tags (e.g., "QoL", "Utility")
+**Then** results show mods matching ANY selected tag
+*(Covers FR66)*
+
+**Given** I select a Game Version filter
+**When** I choose a specific version
+**Then** results show mods compatible with that version
+*(Covers FR67)*
+
+**Given** I select a Mod Type filter
+**When** I choose "Code Mod"
+**Then** results show only code mods
+*(Covers FR68)*
+
+**Given** I have multiple filters active
+**When** results are displayed
+**Then** all filters are applied together (AND logic)
+*(Covers FR69)*
+
+**Given** filters are active
+**When** I view the filter area
+**Then** active filters are displayed as chips/badges that can be individually removed
+*(Covers FR70)*
+
+**Given** I view the sort dropdown
+**When** I select a sort option (Newest, Downloads, Updated, Trending, Name)
+**Then** results are re-sorted accordingly
+*(Covers FR71)*
+
+**Given** I haven't changed the sort
+**When** browsing mods
+**Then** the default sort is "Newest"
+*(Covers FR72)*
+
+**Given** I change the sort option
+**When** I navigate within the browse experience
+**Then** my sort selection persists
+*(Covers FR73)*
+
+---
+
+### Story 10.5: Mod Card Display
+
+As an **administrator**,
+I want **mods displayed as informative cards**,
+So that **I can quickly scan and evaluate mods**.
+
+**Acceptance Criteria:**
+
+**Given** browse results are displayed
+**When** I view the mod grid/list
+**Then** each mod shows: thumbnail image (or placeholder), name, author, download count, short description
+*(Covers FR74)*
+
+**Given** a mod card is displayed
+**When** I view the compatibility indicator
+**Then** I see a badge showing compatibility with my game server version (Compatible/Not verified/Incompatible)
+*(Covers FR75)*
+
+**Given** I see a mod card
+**When** I click anywhere on the card
+**Then** I navigate to the mod detail view
+*(Covers FR76)*
+
+**Given** mods have no thumbnail
+**When** the card is rendered
+**Then** a placeholder image is displayed
+
+---
+
+### Story 10.6: Mod Detail View
+
+As an **administrator**,
+I want **a detailed view of any mod**,
+So that **I can read full information before installing**.
+
+**Acceptance Criteria:**
+
+**Given** I click a mod card
+**When** the detail view opens
+**Then** I see: full description (rendered markdown), all releases, dependencies, compatibility information
+*(Covers FR77)*
+
+**Given** I am viewing mod details
+**When** I look at the install section
+**Then** I see an "Install" button with a version dropdown to select which release
+*(Covers FR78)*
+
+**Given** the mod is already installed
+**When** I view the detail page
+**Then** I see "Installed: v1.2.3" indicator
+**And** if an update is available, I see an "Update to v1.3.0" button
+*(Covers FR79)*
+
+**Given** I am on the detail view
+**When** I click the back button or breadcrumb
+**Then** I return to the browse results at the same position
+
+---
+
+### Story 10.7: Pagination
+
+As an **administrator**,
+I want **pagination for large result sets**,
+So that **I can browse through thousands of mods efficiently**.
+
+**Acceptance Criteria:**
+
+**Given** browse results exceed one page
+**When** results are displayed
+**Then** pagination controls are visible (page numbers or "Load more" button)
+*(Covers FR80)*
+
+**Given** the UI implements infinite scroll
+**When** I scroll to the bottom of the results
+**Then** the next page of results loads automatically
+*(Covers FR81 - Option A)*
+
+**Given** the UI implements page controls
+**When** I click page 2
+**Then** page 2 results are displayed
+*(Covers FR81 - Option B)*
+
+**Given** I am on page 3 of results
+**When** I click a mod card, view details, then go back
+**Then** I return to page 3 at approximately the same scroll position
+*(Covers FR82)*
+
+---
+
+### Story 10.8: Browse Install Integration
+
+As an **administrator**,
+I want **to install mods directly from the browser**,
+So that **discovery and installation is a seamless experience**.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a mod card or detail view
+**When** I click "Install"
+**Then** an install confirmation dialog appears
+*(Covers FR83)*
+
+**Given** the install dialog is open
+**When** I view the dialog
+**Then** I see the compatibility check result (Compatible/Not verified/Incompatible)
+**And** a warning is shown if not verified or incompatible
+*(Covers FR84)*
+
+**Given** I confirm installation
+**When** the install completes successfully
+**Then** a success toast appears
+**And** the mod card/detail updates to show "Installed"
+**And** the mod appears in the Installed tab
+*(Covers FR85)*
+
+**Given** I install a mod from the browse view
+**When** I switch to the Installed tab
+**Then** the newly installed mod is visible in the list
+
+**Given** installation fails
+**When** the error occurs
+**Then** a clear error message is displayed
+**And** the install button returns to its original state

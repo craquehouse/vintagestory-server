@@ -11,6 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
+lastUpdated: '2026-01-03'
+updates:
+  - date: '2026-01-03'
+    description: 'Added FR40-FR85 for Epic 9 (QoL Polish) and Epic 10 (Advanced Mod Browser)'
 ---
 
 # Product Requirements Document - vintagestory-server
@@ -371,3 +375,105 @@ If trivial to implement:
 - NFR14: API server logs are structured (JSON) for easy parsing; game server logs remain in their native format
 - NFR15: Health endpoints differentiate between "API healthy" and "game server healthy"
 - NFR16: Errors include sufficient context for debugging without exposing sensitive data
+
+---
+
+## Post-MVP Functional Requirements
+
+### Epic 9: Quality of Life Polish Pass
+
+#### WebSocket Security
+
+- FR40: WebSocket connections use secure token authentication instead of passing API key in URL query parameters
+- FR41: WebSocket authentication tokens are short-lived and validated server-side
+
+#### System Initialization
+
+- FR42: API server creates expected directories under data/vsmanager (cache, state, logs) on startup if they don't exist
+- FR43: Missing directory creation is logged for operational visibility
+
+#### Mod Cache Management
+
+- FR44: System implements cache eviction strategy for downloaded mod files (LRU, TTL, or size-based)
+- FR45: Admin can configure cache size limits or retention policies
+- FR46: System logs cache eviction events for operational visibility
+
+#### Debug Logging
+
+- FR47: API server provides comprehensive debug-level logging throughout all service layers
+- FR48: Debug logging can be enabled/disabled via environment variable without restart
+- FR49: Debug logs include correlation IDs for request tracing
+
+#### Console Display Enhancements
+
+- FR50: Commands entered by the user are displayed in a distinct color in the console output
+- FR51: User-entered commands are prefixed with [CMD] marker for easy identification
+
+#### File Viewer Enhancements
+
+- FR52: File viewer applies JSON syntax colorization when displaying .json files
+- FR53: JSON colorization highlights keys, strings, numbers, booleans, and null values distinctly
+
+#### File Browser Enhancements
+
+- FR54: File browser displays all directories under /data/serverdata including ModConfigs, Macros, Playerdata, and others
+- FR55: Directory listing is dynamically generated rather than hardcoded
+
+### Epic 10: Advanced Mod Browser
+
+#### Mod Tab Restructure
+
+- FR56: Mods view is split into two distinct tabs: "Installed" (mod management) and "Browse" (mod discovery)
+- FR57: Installed tab contains existing mod management functionality (list, enable, disable, remove, update)
+- FR58: Browse tab provides new mod discovery and installation experience
+
+#### Smart Landing Page
+
+- FR59: Browse tab displays newest mods by default when opened, matching mods.vintagestory.at behavior
+- FR60: Default results are pre-filtered to show mods compatible with the current game server version
+- FR61: Landing page loads content immediately without requiring user to initiate a search
+
+#### Mod Search
+
+- FR62: Admin can search for mods by keyword (searches mod name and description)
+- FR63: Search results update as user types (debounced) or on explicit submit
+- FR64: Search maintains current filter and sort selections
+
+#### Mod Filtering
+
+- FR65: Admin can filter mods by side: Any, Client-only, Server-only, Both
+- FR66: Admin can filter mods by tags (Crafting, Creatures, Food, QoL, Storage, Utility, Weapons, Worldgen, etc.)
+- FR67: Admin can filter mods by game version compatibility
+- FR68: Admin can filter mods by type: Content Mod, Code Mod, Theme Pack, External Tool
+- FR69: Multiple filters can be combined (AND logic)
+- FR70: Active filters are clearly displayed and individually removable
+
+#### Mod Sorting
+
+- FR71: Admin can sort mod results by: Newest, Most Downloaded, Recently Updated, Trending, Name
+- FR72: Default sort order is Newest (matching landing page behavior)
+- FR73: Sort selection persists during the browse session
+
+#### Mod Display
+
+- FR74: Mods are displayed in card format showing: thumbnail image, name, author, download count, short description
+- FR75: Mod cards indicate compatibility status with current game server version
+- FR76: Mod cards are clickable to view full mod details
+
+#### Mod Details
+
+- FR77: Mod detail view shows full description, all releases, dependencies, and compatibility information
+- FR78: Mod detail view provides install button with version selection
+- FR79: If mod is already installed, detail view shows current installed version and update option if available
+
+#### Pagination
+
+- FR80: Browse results support pagination for large result sets (5000+ mods in database)
+- FR81: Pagination can be implemented as infinite scroll or traditional page controls
+- FR82: Current page/position is maintained when returning from mod detail view
+
+#### Install Integration
+
+- FR83: Admin can install a mod directly from browse results or detail view
+- FR84: Installation shows compatibility check result before confirming
+- FR85: After successful installation, mod appears in Installed tab and browse UI updates to reflect installed state
