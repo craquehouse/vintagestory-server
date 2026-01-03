@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from vintagestory_api.services.server import ServerService
 from vintagestory_api.services.ws_token_service import WebSocketTokenService
 
-from .conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY
+from .conftest import TEST_ADMIN_KEY
 
 # pyright: reportPrivateUsage=false
 

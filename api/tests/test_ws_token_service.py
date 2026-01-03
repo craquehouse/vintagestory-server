@@ -8,10 +8,15 @@ Tests cover:
 - Token expiry and cleanup behavior
 - Role preservation through token lifecycle
 - Singleton service behavior
+
+Note: Tests access private members (_tokens, _cleanup_expired) to verify internal
+state changes that can't be observed through the public API. This is intentional
+for testing purposes.
 """
 
+# pyright: reportPrivateUsage=false
+
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
 
 import pytest
 

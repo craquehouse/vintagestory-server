@@ -13,7 +13,17 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from vintagestory_api.config import Settings, configure_logging
 from vintagestory_api.middleware.auth import get_current_user
-from vintagestory_api.routers import auth, config, console, health, jobs, mods, server, test_rbac, ws_token
+from vintagestory_api.routers import (
+    auth,
+    config,
+    console,
+    health,
+    jobs,
+    mods,
+    server,
+    test_rbac,
+    ws_token,
+)
 from vintagestory_api.services.scheduler import SchedulerService
 
 logger = structlog.get_logger()

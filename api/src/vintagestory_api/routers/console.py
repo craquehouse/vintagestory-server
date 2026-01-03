@@ -250,7 +250,7 @@ def _verify_ws_auth(
         logger.warning(
             "ws_auth_deprecated_api_key",
             client_ip=client_ip,
-            message="WebSocket connection using deprecated api_key parameter. Use token auth instead.",
+            message="Deprecated api_key param used. Use token auth instead.",
         )
         return _verify_api_key_with_settings(
             api_key, settings.api_key_admin, settings.api_key_monitor
