@@ -1,10 +1,56 @@
-"""Tests for health check endpoints."""
+"""Tests for health check endpoints.
+
+Includes Story 7.3: Scheduler Health - tests for scheduler status in /healthz endpoint.
+"""
 
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
+from vintagestory_api.models.responses import SchedulerHealthData
 from vintagestory_api.models.server import ServerState, ServerStatus
+
+
+class TestSchedulerHealthDataModel:
+    """Tests for SchedulerHealthData Pydantic model (Story 7.3, Task 1)."""
+
+    def test_scheduler_health_data_running(self) -> None:
+        """SchedulerHealthData correctly models running scheduler."""
+        data = SchedulerHealthData(status="running", job_count=5)
+
+        assert data.status == "running"
+        assert data.job_count == 5
+
+    def test_scheduler_health_data_stopped(self) -> None:
+        """SchedulerHealthData correctly models stopped scheduler."""
+        data = SchedulerHealthData(status="stopped", job_count=0)
+
+        assert data.status == "stopped"
+        assert data.job_count == 0
+
+    def test_scheduler_health_data_default_job_count(self) -> None:
+        """SchedulerHealthData defaults job_count to 0."""
+        data = SchedulerHealthData(status="running")
+
+        assert data.status == "running"
+        assert data.job_count == 0
+
+    def test_scheduler_health_data_model_dump(self) -> None:
+        """SchedulerHealthData.model_dump() returns dictionary for API response."""
+        data = SchedulerHealthData(status="running", job_count=3)
+
+        dumped = data.model_dump()
+
+        assert dumped == {"status": "running", "job_count": 3}
+
+    def test_scheduler_health_data_model_dump_json(self) -> None:
+        """SchedulerHealthData serializes to valid JSON."""
+        data = SchedulerHealthData(status="stopped", job_count=0)
+
+        json_str = data.model_dump_json()
+
+        assert '"status":"stopped"' in json_str
+        assert '"job_count":0' in json_str
 
 
 class TestHealthz:
@@ -218,3 +264,111 @@ class TestApiResponseEnvelope:
         response = client.get("/healthz")
         data = response.json()
         assert data["status"] in ["ok", "error"]
+
+
+class TestHealthzScheduler:
+    """Tests for scheduler status in /healthz endpoint (Story 7.3, Task 2)."""
+
+    def test_healthz_includes_scheduler_status(self, client: TestClient) -> None:
+        """Test that /healthz includes scheduler status."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "scheduler" in data["data"]
+        assert data["data"]["scheduler"]["status"] in ["running", "stopped"]
+
+    def test_healthz_scheduler_running_status(self, client: TestClient) -> None:
+        """Test that scheduler status is 'running' when scheduler is active."""
+        mock_scheduler = MagicMock()
+        mock_scheduler.is_running = True
+        mock_scheduler.get_jobs.return_value = []
+
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            return_value=mock_scheduler,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["scheduler"]["status"] == "running"
+
+    def test_healthz_includes_job_count(self, client: TestClient) -> None:
+        """Test that scheduler includes job_count field."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "job_count" in data["data"]["scheduler"]
+        assert isinstance(data["data"]["scheduler"]["job_count"], int)
+        assert data["data"]["scheduler"]["job_count"] >= 0
+
+    def test_healthz_job_count_is_zero_by_default(self, client: TestClient) -> None:
+        """Test that job_count is 0 when no jobs are registered."""
+        mock_scheduler = MagicMock()
+        mock_scheduler.is_running = True
+        mock_scheduler.get_jobs.return_value = []
+
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            return_value=mock_scheduler,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["scheduler"]["job_count"] == 0
+
+    def test_healthz_scheduler_stopped_when_unavailable(
+        self, client: TestClient
+    ) -> None:
+        """Test that scheduler status is 'stopped' when scheduler unavailable."""
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            side_effect=RuntimeError("Scheduler not initialized"),
+        ):
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["data"]["scheduler"]["status"] == "stopped"
+            assert data["data"]["scheduler"]["job_count"] == 0
+
+    def test_healthz_scheduler_stopped_on_unexpected_error(
+        self, client: TestClient
+    ) -> None:
+        """Test that scheduler status is 'stopped' on unexpected errors."""
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            side_effect=ValueError("Unexpected error"),
+        ):
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["data"]["scheduler"]["status"] == "stopped"
+            assert data["data"]["scheduler"]["job_count"] == 0
+
+    def test_healthz_scheduler_stopped_when_not_running(
+        self, client: TestClient
+    ) -> None:
+        """Test that scheduler status is 'stopped' when is_running is False."""
+        mock_scheduler = MagicMock()
+        mock_scheduler.is_running = False
+        mock_scheduler.get_jobs.return_value = []
+
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            return_value=mock_scheduler,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["scheduler"]["status"] == "stopped"
+            assert data["data"]["scheduler"]["job_count"] == 0
+
+    def test_healthz_reflects_actual_job_count(self, client: TestClient) -> None:
+        """Test that job_count reflects actual number of scheduled jobs."""
+        mock_scheduler = MagicMock()
+        mock_scheduler.is_running = True
+        # Simulate 3 registered jobs
+        mock_scheduler.get_jobs.return_value = [MagicMock(), MagicMock(), MagicMock()]
+
+        with patch(
+            "vintagestory_api.routers.health.get_scheduler",
+            return_value=mock_scheduler,
+        ):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["scheduler"]["status"] == "running"
+            assert data["data"]["scheduler"]["job_count"] == 3

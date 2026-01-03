@@ -7,12 +7,26 @@ from vintagestory_api.models.responses import (
     GameServerStatus,
     HealthData,
     ReadinessData,
+    SchedulerHealthData,
 )
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.mods import get_restart_state
 from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(tags=["Health"])
+
+
+def get_scheduler():
+    """Get scheduler service with deferred import.
+
+    Deferred import to avoid circular import with main.py.
+
+    Returns:
+        SchedulerService instance from main module.
+    """
+    from vintagestory_api.main import get_scheduler_service
+
+    return get_scheduler_service()
 
 
 @router.get("/healthz", response_model=ApiResponse)
@@ -49,6 +63,20 @@ async def health_check() -> ApiResponse:
     except Exception:
         pending_restart = False
 
+    # Get scheduler status - don't fail health checks if this errors
+    try:
+        scheduler = get_scheduler()
+        scheduler_data = SchedulerHealthData(
+            status="running" if scheduler.is_running else "stopped",
+            job_count=len(scheduler.get_jobs()),
+        )
+    except RuntimeError:
+        # Scheduler not initialized
+        scheduler_data = SchedulerHealthData(status="stopped", job_count=0)
+    except Exception:
+        # Unexpected error - default to stopped
+        scheduler_data = SchedulerHealthData(status="stopped", job_count=0)
+
     return ApiResponse(
         status="ok",
         data=HealthData(
@@ -57,6 +85,7 @@ async def health_check() -> ApiResponse:
             game_server_version=server_status.version,
             game_server_uptime=server_status.uptime_seconds,
             game_server_pending_restart=pending_restart,
+            scheduler=scheduler_data,
         ).model_dump(),
     )
 
