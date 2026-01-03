@@ -11,12 +11,14 @@ Tests cover:
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
 
 from vintagestory_api.models.jobs import JobInfo, job_to_info
+from vintagestory_api.services.scheduler import SchedulerService
 
 
 class TestJobInfoModel:
@@ -186,20 +188,20 @@ class TestJobInfoIntegration:
     """Integration tests with real SchedulerService jobs."""
 
     @pytest.fixture
-    async def scheduler(self):
+    async def scheduler(self) -> AsyncGenerator[SchedulerService]:
         """Create a started scheduler for testing (async context)."""
-        from vintagestory_api.services.scheduler import SchedulerService
-
         svc = SchedulerService()
         svc.start()
         yield svc
         svc.shutdown(wait=False)
 
     @pytest.mark.asyncio
-    async def test_serialize_real_interval_job(self, scheduler) -> None:
+    async def test_serialize_real_interval_job(
+        self, scheduler: SchedulerService
+    ) -> None:
         """job_to_info() works with real interval job from scheduler."""
 
-        async def dummy_task():
+        async def dummy_task() -> None:
             pass
 
         job = scheduler.add_interval_job(dummy_task, seconds=120, job_id="real_interval")
@@ -212,10 +214,10 @@ class TestJobInfoIntegration:
         assert result.next_run_time is not None
 
     @pytest.mark.asyncio
-    async def test_serialize_real_cron_job(self, scheduler) -> None:
+    async def test_serialize_real_cron_job(self, scheduler: SchedulerService) -> None:
         """job_to_info() works with real cron job from scheduler."""
 
-        async def dummy_task():
+        async def dummy_task() -> None:
             pass
 
         job = scheduler.add_cron_job(dummy_task, "0 3 * * *", job_id="real_cron")
@@ -227,13 +229,13 @@ class TestJobInfoIntegration:
         assert result.next_run_time is not None
 
     @pytest.mark.asyncio
-    async def test_serialize_all_jobs(self, scheduler) -> None:
+    async def test_serialize_all_jobs(self, scheduler: SchedulerService) -> None:
         """job_to_info() can serialize all jobs from get_jobs()."""
 
-        async def task1():
+        async def task1() -> None:
             pass
 
-        async def task2():
+        async def task2() -> None:
             pass
 
         scheduler.add_interval_job(task1, seconds=60, job_id="job1")

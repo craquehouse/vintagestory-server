@@ -41,9 +41,12 @@ include = ["src", "tests"]
 exclude = ["**/node_modules", "**/__pycache__", "**/.pytest_cache", ".venv"]
 typeCheckingMode = "strict"
 reportMissingImports = "warning"
+reportMissingTypeStubs = "warning"
 reportUndefinedVariable = "error"
 reportUnknownArgumentType = "warning"
 reportUnknownMemberType = "warning"
+reportUnknownParameterType = "warning"
+reportUnknownVariableType = "warning"
 reportUnusedFunction = "warning"
 venvPath = ".venv"
 

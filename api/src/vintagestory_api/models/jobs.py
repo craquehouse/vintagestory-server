@@ -46,8 +46,8 @@ def job_to_info(job: Job) -> JobInfo:
         at module level (they have no type stubs).
     """
     # Import trigger types inside function to avoid module-level import issues
-    # TODO: Track APScheduler type stubs availability - may add py.typed in future release
-    # See: https://github.com/agronholm/apscheduler/issues (no stubs package available as of 2026-01)
+    # TODO: Track APScheduler type stubs availability - may add py.typed in future
+    # See: https://github.com/agronholm/apscheduler/issues (no stubs as of 2026-01)
     from apscheduler.triggers.cron import (  # type: ignore[import-untyped]
         CronTrigger,
     )
