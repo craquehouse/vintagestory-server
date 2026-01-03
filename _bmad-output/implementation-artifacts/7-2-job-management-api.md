@@ -49,6 +49,14 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 3.3: Return success response confirming deletion
   - [x] Subtask 3.4: Write tests for delete endpoint (success, not found, forbidden)
 
+### Review Follow-ups (AI)
+
+Added 2026-01-02 by code-review workflow:
+
+- [ ] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppressions in models/jobs.py:50,53 [`api/src/vintagestory_api/models/jobs.py`]
+- [ ] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppression in routers/jobs.py:72 [`api/src/vintagestory_api/routers/jobs.py`]
+- [ ] [AI-Review][LOW] Update test count in Completion Notes - actually 26 tests, not 24 [`_bmad-output/implementation-artifacts/7-2-job-management-api.md:322`]
+
 ## Dev Notes
 
 ### Testing Requirements
@@ -339,3 +347,4 @@ No debug issues encountered.
 
 ### Change Log
 - 2026-01-02: Story implementation complete, all ACs verified by tests
+- 2026-01-02: Code review completed, 3 action items added to Review Follow-ups
