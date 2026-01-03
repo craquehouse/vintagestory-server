@@ -6,6 +6,28 @@ import {
   WS_CLOSE_CODES,
 } from './use-console-websocket';
 
+// Mock the ws-token module
+vi.mock('../api/ws-token', () => ({
+  requestWebSocketToken: vi.fn(),
+  WebSocketTokenError: class WebSocketTokenError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'WebSocketTokenError';
+    }
+  },
+}));
+
+import { requestWebSocketToken } from '../api/ws-token';
+
+const mockRequestWebSocketToken = vi.mocked(requestWebSocketToken);
+
+// Default mock token data
+const MOCK_TOKEN_DATA = {
+  token: 'mock-token-123',
+  expiresAt: '2026-01-03T12:05:00Z',
+  expiresInSeconds: 300,
+};
+
 // WebSocket constants
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
@@ -72,7 +94,8 @@ describe('useConsoleWebSocket', () => {
     MockWebSocket.lastUrl = '';
     // @ts-expect-error - Mocking global WebSocket
     global.WebSocket = MockWebSocket;
-    import.meta.env.VITE_API_KEY = 'test-api-key';
+    // Set up default token mock
+    mockRequestWebSocketToken.mockResolvedValue(MOCK_TOKEN_DATA);
   });
 
   afterEach(() => {
@@ -80,17 +103,17 @@ describe('useConsoleWebSocket', () => {
   });
 
   describe('buildConsoleWebSocketUrl', () => {
-    it('builds correct URL with API key', () => {
+    it('builds correct URL with token (AC: 5)', () => {
       // Mock window.location
       Object.defineProperty(window, 'location', {
         value: { protocol: 'http:', host: 'localhost:8080' },
         writable: true,
       });
 
-      const url = buildConsoleWebSocketUrl(100);
+      const url = buildConsoleWebSocketUrl('test-token-abc', 100);
 
       expect(url).toBe(
-        'ws://localhost:8080/api/v1alpha1/console/ws?api_key=test-api-key&history_lines=100'
+        'ws://localhost:8080/api/v1alpha1/console/ws?token=test-token-abc&history_lines=100'
       );
     });
 
@@ -100,9 +123,10 @@ describe('useConsoleWebSocket', () => {
         writable: true,
       });
 
-      const url = buildConsoleWebSocketUrl(50);
+      const url = buildConsoleWebSocketUrl('test-token', 50);
 
       expect(url).toContain('wss://example.com');
+      expect(url).toContain('token=test-token');
       expect(url).toContain('history_lines=50');
     });
 
@@ -112,9 +136,21 @@ describe('useConsoleWebSocket', () => {
         writable: true,
       });
 
-      const url = buildConsoleWebSocketUrl();
+      const url = buildConsoleWebSocketUrl('test-token');
 
       expect(url).toContain('history_lines=100');
+      expect(url).toContain('token=test-token');
+    });
+
+    it('URL-encodes token with special characters', () => {
+      Object.defineProperty(window, 'location', {
+        value: { protocol: 'http:', host: 'localhost' },
+        writable: true,
+      });
+
+      const url = buildConsoleWebSocketUrl('token+with/special=chars');
+
+      expect(url).toContain('token=token%2Bwith%2Fspecial%3Dchars');
     });
   });
 
@@ -132,8 +168,41 @@ describe('useConsoleWebSocket', () => {
       expect(result.current.connectionState).toBe('connecting');
     });
 
+    it('requests token before connecting (AC: 5)', async () => {
+      renderHook(() => useConsoleWebSocket());
+
+      // Wait for token request
+      await waitFor(() => {
+        expect(mockRequestWebSocketToken).toHaveBeenCalled();
+      });
+
+      // WebSocket should be created with token in URL
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+        expect(MockWebSocket.lastUrl).toContain('token=mock-token-123');
+      });
+    });
+
+    it('transitions to token_error when token request fails (AC: 5)', async () => {
+      mockRequestWebSocketToken.mockRejectedValueOnce(new Error('Auth failed'));
+
+      const { result } = renderHook(() => useConsoleWebSocket());
+
+      await waitFor(() => {
+        expect(result.current.connectionState).toBe('token_error');
+      });
+
+      // No WebSocket should be created
+      expect(MockWebSocket.instances).toHaveLength(0);
+    });
+
     it('transitions to connected on WebSocket open', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
+
+      // Wait for WebSocket to be created after token fetch
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -146,6 +215,11 @@ describe('useConsoleWebSocket', () => {
 
     it('transitions to disconnected on normal close', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -167,6 +241,11 @@ describe('useConsoleWebSocket', () => {
     it('transitions to forbidden on 4003 close code', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
 
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(WS_CLOSE_CODES.FORBIDDEN);
       });
@@ -178,6 +257,11 @@ describe('useConsoleWebSocket', () => {
 
     it('transitions to forbidden on 4001 close code', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(WS_CLOSE_CODES.UNAUTHORIZED);
@@ -191,6 +275,11 @@ describe('useConsoleWebSocket', () => {
     it('calls onOpen callback when connected', async () => {
       const onOpen = vi.fn();
       renderHook(() => useConsoleWebSocket({ onOpen }));
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -208,6 +297,11 @@ describe('useConsoleWebSocket', () => {
       // Initial connecting state
       expect(onStateChange).toHaveBeenCalledWith('connecting');
 
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -220,6 +314,11 @@ describe('useConsoleWebSocket', () => {
     it('calls onMessage callback when message received', async () => {
       const onMessage = vi.fn();
       renderHook(() => useConsoleWebSocket({ onMessage }));
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -237,6 +336,11 @@ describe('useConsoleWebSocket', () => {
     it('calls onClose callback when connection closes', async () => {
       const onClose = vi.fn();
       renderHook(() => useConsoleWebSocket({ onClose }));
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
@@ -268,13 +372,21 @@ describe('useConsoleWebSocket', () => {
     it('does not reconnect on normal close (code 1000)', async () => {
       renderHook(() => useConsoleWebSocket());
 
+      // Flush promise for token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      // Wait for WebSocket to be created
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(WS_CLOSE_CODES.NORMAL);
       });
 
       // Advance timers - no reconnection should happen
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        await vi.advanceTimersByTimeAsync(5000);
       });
 
       expect(MockWebSocket.instances).toHaveLength(1);
@@ -283,12 +395,19 @@ describe('useConsoleWebSocket', () => {
     it('does not reconnect on forbidden close (code 4003)', async () => {
       renderHook(() => useConsoleWebSocket());
 
+      // Flush promise for token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(WS_CLOSE_CODES.FORBIDDEN);
       });
 
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        await vi.advanceTimersByTimeAsync(5000);
       });
 
       expect(MockWebSocket.instances).toHaveLength(1);
@@ -302,14 +421,21 @@ describe('useConsoleWebSocket', () => {
         })
       );
 
+      // Flush promise for initial token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
       // Simulate unexpected close (code 1006)
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(1006, 'Connection lost');
       });
 
-      // Advance past first retry delay (1000ms + up to 1000ms jitter)
+      // Advance past first retry delay (1000ms + up to 1000ms jitter) and let token request resolve
       await act(async () => {
-        vi.advanceTimersByTime(2100);
+        await vi.advanceTimersByTimeAsync(2100);
       });
 
       // Should have created a new WebSocket instance
@@ -324,14 +450,21 @@ describe('useConsoleWebSocket', () => {
         })
       );
 
+      // Flush promise for initial token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
       // Simulate unexpected close
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(1006);
       });
 
-      // Wait for reconnect
+      // Wait for reconnect (timer + token request)
       await act(async () => {
-        vi.advanceTimersByTime(1200);
+        await vi.advanceTimersByTimeAsync(1200);
       });
 
       // Simulate successful connection
@@ -353,13 +486,20 @@ describe('useConsoleWebSocket', () => {
         })
       );
 
+      // Flush promise for initial token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
       // First close triggers reconnect
       act(() => {
         MockWebSocket.instances[0]?.simulateClose(1006);
       });
 
       await act(async () => {
-        vi.advanceTimersByTime(1200);
+        await vi.advanceTimersByTimeAsync(1200);
       });
 
       // Check that retry count increased
@@ -378,6 +518,11 @@ describe('useConsoleWebSocket', () => {
     it('sends command as JSON message when connected', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
 
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -395,8 +540,13 @@ describe('useConsoleWebSocket', () => {
       );
     });
 
-    it('does not send when WebSocket is closed', () => {
+    it('does not send when WebSocket is closed', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       // Open and then close the connection
       act(() => {
@@ -433,6 +583,11 @@ describe('useConsoleWebSocket', () => {
     it('closes the WebSocket with normal code', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
 
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       act(() => {
         MockWebSocket.instances[0]?.simulateOpen();
       });
@@ -462,15 +617,23 @@ describe('useConsoleWebSocket', () => {
     it('creates a new connection', async () => {
       const { result } = renderHook(() => useConsoleWebSocket());
 
+      // Wait for initial WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
       const initialInstanceCount = MockWebSocket.instances.length;
 
       act(() => {
         result.current.reconnect();
       });
 
-      expect(MockWebSocket.instances.length).toBeGreaterThan(
-        initialInstanceCount
-      );
+      // Wait for new WebSocket after reconnect
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(
+          initialInstanceCount
+        );
+      });
     });
   });
 
@@ -482,8 +645,13 @@ describe('useConsoleWebSocket', () => {
       });
     });
 
-    it('closes WebSocket on unmount', () => {
+    it('closes WebSocket on unmount', async () => {
       const { unmount } = renderHook(() => useConsoleWebSocket());
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
 
       unmount();
 

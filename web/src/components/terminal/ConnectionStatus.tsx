@@ -59,6 +59,12 @@ function getStatusConfig(
         indicatorClass: 'bg-red-500',
         textClass: 'text-red-600 dark:text-red-400',
       };
+    case 'token_error':
+      return {
+        label: 'Authentication Error',
+        indicatorClass: 'bg-red-500',
+        textClass: 'text-red-600 dark:text-red-400',
+      };
     default: {
       // TypeScript exhaustive check
       const _exhaustive: never = state;

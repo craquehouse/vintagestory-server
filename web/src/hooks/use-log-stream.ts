@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { requestWebSocketToken } from '../api/ws-token';
 
 /**
  * Debug logging helper - only logs in development mode, not during tests.
@@ -22,7 +23,8 @@ export type LogConnectionState =
   | 'disconnected'
   | 'forbidden'
   | 'not_found'
-  | 'invalid';
+  | 'invalid'
+  | 'token_error';
 
 /**
  * WebSocket close codes from the backend.
@@ -76,24 +78,21 @@ export interface UseLogStreamResult {
 }
 
 /**
- * Get API key from Vite environment variables.
- */
-function getApiKey(): string {
-  return import.meta.env.VITE_API_KEY || '';
-}
-
-/**
- * Build the WebSocket URL for the log streaming endpoint.
+ * Build the WebSocket URL for the log streaming endpoint with token authentication.
+ *
+ * @param filename - Log file name to stream
+ * @param token - WebSocket authentication token from requestWebSocketToken()
+ * @param historyLines - Number of history lines to request on connect
  */
 export function buildLogWebSocketUrl(
   filename: string,
+  token: string,
   historyLines: number = 100
 ): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
-  const apiKey = getApiKey();
 
-  return `${protocol}//${host}/api/v1alpha1/console/logs/ws?file=${encodeURIComponent(filename)}&api_key=${encodeURIComponent(apiKey)}&history_lines=${historyLines}`;
+  return `${protocol}//${host}/api/v1alpha1/console/logs/ws?file=${encodeURIComponent(filename)}&token=${encodeURIComponent(token)}&history_lines=${historyLines}`;
 }
 
 /**
@@ -101,10 +100,12 @@ export function buildLogWebSocketUrl(
  *
  * Features:
  * - Automatic connection when enabled and filename is provided
+ * - Token-based authentication (requests token before connecting)
  * - Exponential backoff reconnection with jitter
  * - Connection state tracking
- * - Authentication via API key query parameter
  * - History lines on connect
+ *
+ * Story 9.1: Uses secure token authentication instead of API keys in URLs.
  *
  * @example
  * ```tsx
@@ -159,8 +160,8 @@ export function useLogStream(
     onStateChangeRef.current?.(state);
   }, []);
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
+  // Connect to WebSocket (requests token first, then establishes connection)
+  const connect = useCallback(async () => {
     if (!filename || !enabled) {
       return;
     }
@@ -179,10 +180,24 @@ export function useLogStream(
 
     updateState('connecting');
 
-    const url = buildLogWebSocketUrl(filename, historyLines);
+    // Request WebSocket token before connecting (Story 9.1)
+    let token: string;
+    try {
+      debugLog('Requesting WebSocket token');
+      const tokenData = await requestWebSocketToken();
+      token = tokenData.token;
+      debugLog('Token acquired', { expiresInSeconds: tokenData.expiresInSeconds });
+    } catch (error) {
+      debugLog('Token request failed', { error: String(error) });
+      updateState('token_error');
+      return;
+    }
+
+    // Build URL with token and connect
+    const url = buildLogWebSocketUrl(filename, token, historyLines);
     debugLog('Connecting', {
       filename,
-      url: url.replace(/api_key=[^&]+/, 'api_key=***'),
+      url: url.replace(/token=[^&]+/, 'token=***'),
     });
     const ws = new WebSocket(url);
     wsRef.current = ws;
