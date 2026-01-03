@@ -10,6 +10,7 @@ __all__ = [
     "GameServerStatus",
     "HealthData",
     "ReadinessData",
+    "SchedulerHealthData",
 ]
 
 
@@ -36,6 +37,18 @@ class ApiResponse(BaseModel):
     error: dict[str, Any] | None = None
 
 
+class SchedulerHealthData(BaseModel):
+    """Scheduler health check data."""
+
+    status: Literal["running", "stopped"] = Field(
+        description="Current scheduler status"
+    )
+    job_count: int = Field(
+        default=0,
+        description="Number of registered scheduled jobs",
+    )
+
+
 class HealthData(BaseModel):
     """Health check response data."""
 
@@ -52,6 +65,10 @@ class HealthData(BaseModel):
     game_server_pending_restart: bool = Field(
         default=False,
         description="Whether the game server needs to be restarted for changes to take effect.",
+    )
+    scheduler: SchedulerHealthData | None = Field(
+        default=None,
+        description="Scheduler service status. None if scheduler not available.",
     )
 
 

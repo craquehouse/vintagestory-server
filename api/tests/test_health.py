@@ -1,10 +1,56 @@
-"""Tests for health check endpoints."""
+"""Tests for health check endpoints.
+
+Includes Story 7.3: Scheduler Health - tests for scheduler status in /healthz endpoint.
+"""
 
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
+from vintagestory_api.models.responses import SchedulerHealthData
 from vintagestory_api.models.server import ServerState, ServerStatus
+
+
+class TestSchedulerHealthDataModel:
+    """Tests for SchedulerHealthData Pydantic model (Story 7.3, Task 1)."""
+
+    def test_scheduler_health_data_running(self) -> None:
+        """SchedulerHealthData correctly models running scheduler."""
+        data = SchedulerHealthData(status="running", job_count=5)
+
+        assert data.status == "running"
+        assert data.job_count == 5
+
+    def test_scheduler_health_data_stopped(self) -> None:
+        """SchedulerHealthData correctly models stopped scheduler."""
+        data = SchedulerHealthData(status="stopped", job_count=0)
+
+        assert data.status == "stopped"
+        assert data.job_count == 0
+
+    def test_scheduler_health_data_default_job_count(self) -> None:
+        """SchedulerHealthData defaults job_count to 0."""
+        data = SchedulerHealthData(status="running")
+
+        assert data.status == "running"
+        assert data.job_count == 0
+
+    def test_scheduler_health_data_model_dump(self) -> None:
+        """SchedulerHealthData.model_dump() returns dictionary for API response."""
+        data = SchedulerHealthData(status="running", job_count=3)
+
+        dumped = data.model_dump()
+
+        assert dumped == {"status": "running", "job_count": 3}
+
+    def test_scheduler_health_data_model_dump_json(self) -> None:
+        """SchedulerHealthData serializes to valid JSON."""
+        data = SchedulerHealthData(status="stopped", job_count=0)
+
+        json_str = data.model_dump_json()
+
+        assert '"status":"stopped"' in json_str
+        assert '"job_count":0' in json_str
 
 
 class TestHealthz:
