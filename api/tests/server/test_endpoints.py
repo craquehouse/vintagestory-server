@@ -731,10 +731,11 @@ class TestServerStatusEndpoint:
         assert "status" in data
         assert "data" in data
         assert data["status"] == "ok"
-        # Check expected fields in data - exactly 7 fields (Story 8.2 added 3 version fields)
+        # Check expected fields in data - 8 fields (API-008 added disk_space)
         assert set(data["data"].keys()) == {
             "state", "version", "uptime_seconds", "last_exit_code",
-            "available_stable_version", "available_unstable_version", "version_last_checked"
+            "available_stable_version", "available_unstable_version", "version_last_checked",
+            "disk_space"
         }
 
     def test_status_returns_starting_state(self, temp_data_dir: Path) -> None:

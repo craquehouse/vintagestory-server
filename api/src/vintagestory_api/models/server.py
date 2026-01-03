@@ -5,6 +5,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from vintagestory_api.models.responses import DiskSpaceData
+
 
 class InstallationStage(str, Enum):
     """Stages during server installation process."""
@@ -98,3 +100,5 @@ class ServerStatus(BaseModel):
     available_stable_version: str | None = None
     available_unstable_version: str | None = None
     version_last_checked: datetime | None = None
+    # API-008: Disk space monitoring
+    disk_space: DiskSpaceData | None = None

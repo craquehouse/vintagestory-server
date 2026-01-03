@@ -1,4 +1,4 @@
-import { Clock, Server as ServerIcon, AlertCircle } from 'lucide-react';
+import { Clock, Server as ServerIcon, AlertCircle, HardDrive } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerControls } from './ServerControls';
@@ -78,6 +79,9 @@ export function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
+      {/* Disk space warning banner - shown when space is low */}
+      <DiskSpaceWarningBanner diskSpace={serverStatus?.diskSpace} />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -100,6 +104,16 @@ export function Dashboard() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="size-4" />
               <span>Uptime: {formatUptime(serverStatus.uptimeSeconds)}</span>
+            </div>
+          )}
+
+          {/* Disk space display - always shown when available */}
+          {serverStatus?.diskSpace && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <HardDrive className="size-4" />
+              <span>
+                Disk: {serverStatus.diskSpace.availableGb.toFixed(1)} GB free of {serverStatus.diskSpace.totalGb.toFixed(1)} GB ({serverStatus.diskSpace.usagePercent.toFixed(0)}% used)
+              </span>
             </div>
           )}
 

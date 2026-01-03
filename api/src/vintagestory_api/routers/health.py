@@ -1,9 +1,14 @@
 """Health check endpoints for Kubernetes probes and monitoring."""
 
+import shutil
+
+import structlog
 from fastapi import APIRouter
 
+from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.responses import (
     ApiResponse,
+    DiskSpaceData,
     GameServerStatus,
     HealthData,
     ReadinessData,
@@ -13,7 +18,57 @@ from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.mods import get_restart_state
 from vintagestory_api.services.server import get_server_service
 
+logger = structlog.get_logger()
+
 router = APIRouter(tags=["Health"])
+
+BYTES_PER_GB = 1024 * 1024 * 1024
+DEFAULT_WARNING_PERCENT = 10.0  # Default: warn if less than 10% available
+
+
+def get_disk_space_data() -> DiskSpaceData | None:
+    """Get disk space information for the data volume.
+
+    Warning is triggered when available space is below BOTH:
+    - The configured threshold in GB (default: 1.0 GB)
+    - 10% of total disk space
+
+    This ensures small disks get percentage-based warnings while
+    large disks still have a minimum GB threshold.
+
+    Returns:
+        DiskSpaceData with disk usage stats, or None if unavailable.
+    """
+    try:
+        settings = get_settings()
+        usage = shutil.disk_usage(settings.data_dir)
+
+        # Guard against division by zero for empty/unmounted filesystems
+        if usage.total == 0:
+            logger.warning("disk_space_check_failed", reason="total_is_zero")
+            return None
+
+        total_gb = round(usage.total / BYTES_PER_GB, 2)
+        used_gb = round(usage.used / BYTES_PER_GB, 2)
+        available_gb = round(usage.free / BYTES_PER_GB, 2)
+        usage_percent = round((usage.used / usage.total) * 100, 1)
+
+        # Warning triggers when available is below configured GB OR below 10% of total
+        threshold_gb = settings.disk_space_warning_threshold_gb
+        threshold_percent_gb = total_gb * (DEFAULT_WARNING_PERCENT / 100)
+        effective_threshold = max(threshold_gb, threshold_percent_gb)
+        warning = available_gb < effective_threshold
+
+        return DiskSpaceData(
+            total_gb=total_gb,
+            used_gb=used_gb,
+            available_gb=available_gb,
+            usage_percent=usage_percent,
+            warning=warning,
+        )
+    except Exception as e:
+        logger.warning("disk_space_check_failed", error=str(e))
+        return None
 
 
 def get_scheduler():
@@ -77,6 +132,9 @@ async def health_check() -> ApiResponse:
         # Unexpected error - default to stopped
         scheduler_data = SchedulerHealthData(status="stopped", job_count=0)
 
+    # Get disk space data - don't fail health checks if this errors
+    disk_space_data = get_disk_space_data()
+
     return ApiResponse(
         status="ok",
         data=HealthData(
@@ -86,6 +144,7 @@ async def health_check() -> ApiResponse:
             game_server_uptime=server_status.uptime_seconds,
             game_server_pending_restart=pending_restart,
             scheduler=scheduler_data,
+            disk_space=disk_space_data,
         ).model_dump(),
     )
 

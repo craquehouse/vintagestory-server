@@ -22,6 +22,28 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
+    disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
+
+    @field_validator("disk_space_warning_threshold_gb")
+    @classmethod
+    def validate_disk_space_threshold(cls, v: float) -> float:
+        """Validate that disk space threshold is non-negative.
+
+        Args:
+            v: Threshold in gigabytes
+
+        Returns:
+            Validated threshold
+
+        Raises:
+            ValueError: If threshold is negative
+        """
+        if v < 0:
+            raise ValueError(
+                "VS_DISK_SPACE_WARNING_THRESHOLD_GB must be non-negative. "
+                "Use 0 to disable the fixed GB threshold (percentage-based will still apply)."
+            )
+        return v
 
     @field_validator("cors_origins")
     @classmethod
