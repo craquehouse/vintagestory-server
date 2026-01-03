@@ -1,6 +1,6 @@
 # Story 8.1: Mod Cache Refresh Job
 
-Status: review
+Status: done
 
 ## Story
 
@@ -45,13 +45,21 @@ CRITICAL TASK STRUCTURE RULES:
 - [x] Task 2: Register job in register_default_jobs + tests (AC: 1, 3)
   - [x] Subtask 2.1: Update `jobs/__init__.py` to register mod_cache_refresh job
   - [x] Subtask 2.2: Verify job respects `mod_list_refresh_interval` setting
-  - [x] Subtask 2.3: Write test verifying job is registered when interval > 0
-  - [x] Subtask 2.4: Write test verifying job is NOT registered when interval = 0
+- [x] Subtask 2.3: Write test verifying job is registered when interval > 0
+- [x] Subtask 2.4: Write test verifying job is NOT registered when interval = 0
 
-- [x] Task 3: Implement cache data structure + tests (AC: 2)
-  - [x] Subtask 3.1: Define what "cache" means for installed mods (local modinfo.json files from install)
-  - [x] Subtask 3.2: Implement cache update logic that preserves state on API failure (no-write on failure)
-  - [x] Subtask 3.3: Write tests verifying cache integrity after API failures (Task 1 tests already cover this)
+### Review Follow-ups (AI) - RESOLVED
+
+- [x] [HIGH][AI-Review] Create missing `api/tests/jobs/__init__.py` file for test discovery
+  - **RESOLVED:** File already exists and was committed in 39eedbc (Task 1)
+- [x] [HIGH][AI-Review] Commit untracked `api/tests/jobs/__init__.py` to git
+  - **RESOLVED:** Already committed in 39eedbc - see git log
+- [x] [MEDIUM][AI-Review] Update story File List to include `api/tests/jobs/test_mod_cache_refresh.py`
+  - **RESOLVED:** Already in File List at line 267
+- [x] [MEDIUM][AI-Review] Remove dead code/TODO block for Story 8.2 in `jobs/__init__.py:71-81`
+  - **WON'T FIX:** This is an intentional placeholder for Story 8.2, not dead code. Standard practice in this project to show where next story's implementation goes.
+- [x] [LOW][AI-Review] Consider renaming test assertions to clarify they test @safe_job decorator behavior
+  - **WON'T FIX:** Test names already clearly describe behavior (e.g., `test_refresh_mod_cache_does_not_raise_on_exception`). Additional clarification not needed.
 
 ## Dev Notes
 
