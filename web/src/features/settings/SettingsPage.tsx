@@ -5,17 +5,21 @@
  * - UI Preferences: Theme, console font size, layout defaults
  * - API Settings: Server auto-start, environment handling, refresh intervals
  * - File Manager: Browse and view server configuration files
+ * - Scheduled Jobs: View registered background jobs (Admin only)
  *
  * Story 6.4: Settings UI - AC6
  * Story 6.6: File Manager UI
+ * Story 8.3: Job Configuration UI
  * Story UI-017: User preferences cookie persistence
  */
 
-import { Settings, FolderOpen, Palette } from 'lucide-react';
+import { Settings, FolderOpen, Palette, Clock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UIPreferencesPanel } from './UIPreferencesPanel';
 import { ApiSettingsPanel } from './ApiSettingsPanel';
 import { FileManagerPanel } from './FileManagerPanel';
+import { ScheduledJobsPanel } from './ScheduledJobsPanel';
+import { useAuthMe } from '@/api/hooks/use-auth-me';
 
 /**
  * Settings page with tabbed navigation.
@@ -24,8 +28,12 @@ import { FileManagerPanel } from './FileManagerPanel';
  * - UI Preferences: Local appearance and behavior preferences
  * - API Settings: Operational configuration for the API server
  * - File Manager: Browse and view server configuration files
+ * - Scheduled Jobs: View registered background jobs (Admin only)
  */
 export function SettingsPage() {
+  const { data: auth } = useAuthMe();
+  const isAdmin = auth?.data?.role === 'admin';
+
   return (
     <div
       className="flex h-full flex-col gap-4"
@@ -46,6 +54,12 @@ export function SettingsPage() {
             <FolderOpen className="h-4 w-4" />
             File Manager
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="scheduled-jobs" data-testid="scheduled-jobs-tab">
+              <Clock className="h-4 w-4" />
+              Scheduled Jobs
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="ui-preferences" className="flex-1 mt-4">
@@ -59,6 +73,12 @@ export function SettingsPage() {
         <TabsContent value="file-manager" className="flex-1 mt-4">
           <FileManagerPanel />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="scheduled-jobs" className="flex-1 mt-4">
+            <ScheduledJobsPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
