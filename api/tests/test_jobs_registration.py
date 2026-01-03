@@ -37,16 +37,18 @@ class TestRegisterDefaultJobs:
         svc.shutdown(wait=False)
 
     @pytest.mark.asyncio
-    async def test_register_default_jobs_no_jobs_initially(
+    async def test_register_default_jobs_registers_jobs(
         self, scheduler: SchedulerService
     ) -> None:
-        """register_default_jobs() registers zero jobs in initial stub (Story 8.0)."""
+        """register_default_jobs() registers jobs with default settings."""
         register_default_jobs(scheduler)
 
-        # In Story 8.0, no jobs are registered yet (stub implementation)
-        # Stories 8.1 and 8.2 will add actual jobs
+        # Story 8.1: mod_cache_refresh job should be registered with default settings
+        # (mod_list_refresh_interval=3600 by default)
         jobs = scheduler.get_jobs()
-        assert len(jobs) == 0
+        assert len(jobs) >= 1
+        job_ids = [job.id for job in jobs]
+        assert "mod_cache_refresh" in job_ids
 
     @pytest.mark.asyncio
     async def test_register_default_jobs_logs_registration_count(
@@ -69,7 +71,7 @@ class TestRegisterDefaultJobs:
         from vintagestory_api.services.api_settings import ApiSettings
 
         with patch(
-            "vintagestory_api.services.api_settings.ApiSettingsService"
+            "vintagestory_api.jobs.ApiSettingsService"
         ) as mock_settings_class:
             mock_instance = MagicMock()
             # Return a real ApiSettings object so interval comparisons work
@@ -305,7 +307,7 @@ class TestJobIntervalZeroNotRegistered:
         )
 
         with patch(
-            "vintagestory_api.services.api_settings.ApiSettingsService"
+            "vintagestory_api.jobs.ApiSettingsService"
         ) as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings_with_zero
@@ -330,7 +332,7 @@ class TestJobIntervalZeroNotRegistered:
         assert default_settings.server_versions_refresh_interval > 0
 
         with patch(
-            "vintagestory_api.services.api_settings.ApiSettingsService"
+            "vintagestory_api.jobs.ApiSettingsService"
         ) as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = default_settings
@@ -341,8 +343,118 @@ class TestJobIntervalZeroNotRegistered:
             # Settings were read
             mock_instance.get_settings.assert_called_once()
 
-            # In Story 8.0, no actual jobs are registered yet (stub)
-            # But the conditional checks are exercised
+            # Story 8.1: mod_cache_refresh job should be registered
+            # when mod_list_refresh_interval > 0
             jobs = scheduler.get_jobs()
-            # Still 0 because the actual registration is commented out in stub
-            assert len(jobs) == 0
+            job_ids = [job.id for job in jobs]
+            assert "mod_cache_refresh" in job_ids
+
+
+class TestModCacheRefreshJobRegistration:
+    """Tests for mod_cache_refresh job registration (Story 8.1)."""
+
+    @pytest.fixture
+    async def scheduler(self) -> SchedulerService:  # type: ignore[misc]
+        """Create a started scheduler for testing."""
+        svc = SchedulerService()
+        svc.start()
+        yield svc  # type: ignore[misc]
+        svc.shutdown(wait=False)
+
+    @pytest.mark.asyncio
+    async def test_mod_cache_refresh_registered_when_interval_positive(
+        self, scheduler: SchedulerService
+    ) -> None:
+        """mod_cache_refresh job is registered when interval > 0 (AC: 1)."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        settings = ApiSettings(mod_list_refresh_interval=3600)
+
+        with patch(
+            "vintagestory_api.jobs.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = settings
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(scheduler)
+
+            jobs = scheduler.get_jobs()
+            job_ids = [job.id for job in jobs]
+            assert "mod_cache_refresh" in job_ids
+
+    @pytest.mark.asyncio
+    async def test_mod_cache_refresh_not_registered_when_interval_zero(
+        self, scheduler: SchedulerService
+    ) -> None:
+        """mod_cache_refresh job is NOT registered when interval = 0 (AC: 3)."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        settings = ApiSettings(mod_list_refresh_interval=0)
+
+        with patch(
+            "vintagestory_api.jobs.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = settings
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(scheduler)
+
+            jobs = scheduler.get_jobs()
+            job_ids = [job.id for job in jobs]
+            assert "mod_cache_refresh" not in job_ids
+
+    @pytest.mark.asyncio
+    async def test_mod_cache_refresh_uses_correct_interval(
+        self, scheduler: SchedulerService
+    ) -> None:
+        """mod_cache_refresh job uses interval from settings."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        # Use a specific interval value
+        expected_interval = 7200  # 2 hours
+        settings = ApiSettings(mod_list_refresh_interval=expected_interval)
+
+        with patch(
+            "vintagestory_api.jobs.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = settings
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(scheduler)
+
+            jobs = scheduler.get_jobs()
+            mod_cache_job = next(
+                (job for job in jobs if job.id == "mod_cache_refresh"), None
+            )
+            assert mod_cache_job is not None
+
+            # APScheduler stores interval in trigger
+            trigger = mod_cache_job.trigger
+            # IntervalTrigger has interval as timedelta
+            assert trigger.interval.total_seconds() == expected_interval
+
+    @pytest.mark.asyncio
+    async def test_mod_cache_refresh_logs_registration(
+        self, scheduler: SchedulerService, capsys: CaptureFixture[str]
+    ) -> None:
+        """mod_cache_refresh job registration is logged."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        settings = ApiSettings(mod_list_refresh_interval=3600)
+
+        with patch(
+            "vintagestory_api.jobs.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = settings
+            mock_settings_class.return_value = mock_instance
+
+            capsys.readouterr()  # Clear prior output
+            register_default_jobs(scheduler)
+            captured = capsys.readouterr()
+
+            assert "job_registered" in captured.out
+            assert "mod_cache_refresh" in captured.out

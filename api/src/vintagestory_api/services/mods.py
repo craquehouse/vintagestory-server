@@ -563,11 +563,26 @@ class ModService:
 
         return RemoveResult(slug=slug, pending_restart=pending_restart)
 
-    def _get_mod_api_client(self) -> ModApiClient:
-        """Get or create the ModApiClient instance (lazy initialization)."""
+    @property
+    def api_client(self) -> ModApiClient:
+        """Get the ModApiClient instance (lazy initialization).
+
+        Provides access to the mod database API client for external use
+        (e.g., by the mod_cache_refresh job).
+
+        Returns:
+            ModApiClient instance configured for this service.
+        """
         if self._mod_api_client is None:
             self._mod_api_client = ModApiClient(cache_dir=self._cache_dir)
         return self._mod_api_client
+
+    def _get_mod_api_client(self) -> ModApiClient:
+        """Get or create the ModApiClient instance (lazy initialization).
+
+        Deprecated: Use api_client property instead. Kept for internal compatibility.
+        """
+        return self.api_client
 
     async def close(self) -> None:
         """Close any open resources (HTTP clients, etc.).
