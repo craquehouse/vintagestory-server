@@ -488,7 +488,7 @@ class TestHealthzDiskSpace:
         mock_usage = MagicMock()
         mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
         mock_usage.used = 50 * 1024 * 1024 * 1024  # 50 GB used
-        mock_usage.free = 50 * 1024 * 1024 * 1024  # 50 GB free (above 1.0 GB threshold)
+        mock_usage.free = 50 * 1024 * 1024 * 1024  # 50 GB free (above 10% = 10 GB threshold)
 
         with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
             response = client.get("/healthz")
@@ -524,15 +524,81 @@ class TestHealthzDiskSpace:
     def test_healthz_disk_space_respects_threshold_config(
         self, client: TestClient
     ) -> None:
-        """Test that warning threshold is configurable."""
+        """Test that warning uses max of GB threshold and 10% of total."""
         mock_usage = MagicMock()
         mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
-        mock_usage.used = 98 * 1024 * 1024 * 1024  # 98 GB used
-        mock_usage.free = 2 * 1024 * 1024 * 1024  # 2 GB free
+        mock_usage.used = 88 * 1024 * 1024 * 1024  # 88 GB used
+        mock_usage.free = 12 * 1024 * 1024 * 1024  # 12 GB free (above 10% threshold)
 
-        # With default threshold of 1.0 GB, 2 GB should not trigger warning
+        # With 100 GB disk, 10% = 10 GB threshold. 12 GB free should NOT warn.
         with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
             response = client.get("/healthz")
             data = response.json()
             assert data["data"]["disk_space"]["warning"] is False
-            assert data["data"]["disk_space"]["available_gb"] == 2.0
+            assert data["data"]["disk_space"]["available_gb"] == 12.0
+
+    def test_healthz_disk_space_percentage_threshold_warning(
+        self, client: TestClient
+    ) -> None:
+        """Test that 10% threshold triggers warning on large disks."""
+        mock_usage = MagicMock()
+        mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
+        mock_usage.used = 95 * 1024 * 1024 * 1024  # 95 GB used
+        mock_usage.free = 5 * 1024 * 1024 * 1024  # 5 GB free (below 10% of 100 GB)
+
+        # 5 GB > 1 GB fixed threshold, but < 10 GB (10% of 100 GB)
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["disk_space"]["warning"] is True
+
+    def test_healthz_disk_space_boundary_exactly_at_threshold(
+        self, client: TestClient
+    ) -> None:
+        """Test boundary: available_gb exactly equals effective threshold (no warning)."""
+        mock_usage = MagicMock()
+        mock_usage.total = 10 * 1024 * 1024 * 1024  # 10 GB total
+        mock_usage.used = 9 * 1024 * 1024 * 1024  # 9 GB used
+        mock_usage.free = 1 * 1024 * 1024 * 1024  # 1 GB free = exactly 10% of 10 GB
+
+        # 1 GB = 10% of 10 GB = max(1.0, 1.0). At threshold = no warning (< not <=)
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            data = response.json()
+            # 1 GB is NOT less than 1 GB, so no warning
+            assert data["data"]["disk_space"]["warning"] is False
+
+    def test_healthz_disk_space_zero_total_returns_none(
+        self, client: TestClient
+    ) -> None:
+        """Test that zero total disk (empty/unmounted) returns None."""
+        mock_usage = MagicMock()
+        mock_usage.total = 0
+        mock_usage.used = 0
+        mock_usage.free = 0
+
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["data"]["disk_space"] is None
+
+
+class TestDiskSpaceThresholdValidation:
+    """Tests for disk space threshold configuration validation."""
+
+    def test_negative_threshold_raises_error(self) -> None:
+        """Test that negative threshold raises ValueError."""
+        import pytest
+
+        from vintagestory_api.config import Settings
+
+        with pytest.raises(ValueError, match="non-negative"):
+            Settings(api_key_admin="test", disk_space_warning_threshold_gb=-1.0)
+
+    def test_zero_threshold_is_valid(self) -> None:
+        """Test that zero threshold is valid (disables fixed GB check)."""
+        from vintagestory_api.config import Settings
+
+        settings = Settings(api_key_admin="test", disk_space_warning_threshold_gb=0.0)
+        assert settings.disk_space_warning_threshold_gb == 0.0
