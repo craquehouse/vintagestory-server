@@ -817,14 +817,18 @@ class ServerService:
 
         Returns:
             ServerStatus with current state, version, uptime, exit code,
-            and latest available versions from cache (Story 8.2).
+            latest available versions from cache (Story 8.2), and disk space (API-008).
         """
         # Import here to avoid circular imports
+        from vintagestory_api.routers.health import get_disk_space_data
         from vintagestory_api.services.versions_cache import get_versions_cache
 
         # Get latest versions from cache (Story 8.2)
         versions_cache = get_versions_cache()
         latest_versions = versions_cache.get_latest_versions()
+
+        # Get disk space data (API-008)
+        disk_space = get_disk_space_data()
 
         # If not installed, return not_installed state (still include version info)
         if not self.is_installed():
@@ -833,6 +837,7 @@ class ServerService:
                 available_stable_version=latest_versions.stable_version,
                 available_unstable_version=latest_versions.unstable_version,
                 version_last_checked=latest_versions.last_checked,
+                disk_space=disk_space,
             )
 
         # Determine current runtime state
@@ -850,6 +855,7 @@ class ServerService:
             available_stable_version=latest_versions.stable_version,
             available_unstable_version=latest_versions.unstable_version,
             version_last_checked=latest_versions.last_checked,
+            disk_space=disk_space,
         )
 
     def _get_runtime_state(self) -> ServerState:

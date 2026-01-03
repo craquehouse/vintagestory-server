@@ -42,6 +42,17 @@ export type ServerState =
   | 'error';
 
 /**
+ * Disk space data from /server/status endpoint.
+ */
+export interface DiskSpaceData {
+  totalGb: number;
+  usedGb: number;
+  availableGb: number;
+  usagePercent: number;
+  warning: boolean;
+}
+
+/**
  * Server status response from GET /api/v1alpha1/server/status.
  * Note: API returns snake_case, but apiClient transforms to camelCase.
  */
@@ -50,6 +61,12 @@ export interface ServerStatus {
   version: string | null;
   uptimeSeconds: number | null;
   lastExitCode: number | null;
+  // Story 8.2: Version cache fields
+  availableStableVersion: string | null;
+  availableUnstableVersion: string | null;
+  versionLastChecked: string | null;
+  // API-008: Disk space monitoring
+  diskSpace: DiskSpaceData | null;
 }
 
 /**

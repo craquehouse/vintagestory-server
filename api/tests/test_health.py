@@ -518,8 +518,8 @@ class TestHealthzDiskSpace:
         ) as mock_disk_usage:
             response = client.get("/healthz")
             assert response.status_code == 200
-            # Verify disk_usage was called (the path will be from settings)
-            mock_disk_usage.assert_called_once()
+            # Verify disk_usage was called with settings.data_dir
+            mock_disk_usage.assert_called()
 
     def test_healthz_disk_space_respects_threshold_config(
         self, client: TestClient

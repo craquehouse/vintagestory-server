@@ -28,6 +28,22 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
+// Create a full ServerStatus with defaults for optional fields
+function createServerStatus(
+  overrides: Partial<ServerStatus> & Pick<ServerStatus, 'state'>
+): ServerStatus {
+  return {
+    state: overrides.state,
+    version: overrides.version ?? null,
+    uptimeSeconds: overrides.uptimeSeconds ?? null,
+    lastExitCode: overrides.lastExitCode ?? null,
+    availableStableVersion: overrides.availableStableVersion ?? null,
+    availableUnstableVersion: overrides.availableUnstableVersion ?? null,
+    versionLastChecked: overrides.versionLastChecked ?? null,
+    diskSpace: overrides.diskSpace ?? null,
+  };
+}
+
 // Mock server status responses
 function mockServerStatus(status: ServerStatus) {
   return {
@@ -56,12 +72,7 @@ describe('Dashboard', () => {
   describe('not installed state (AC: 1)', () => {
     it('shows ServerInstallCard when server is not installed', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
-          state: 'not_installed',
-          version: null,
-          uptimeSeconds: null,
-          lastExitCode: null,
-        })
+        mockServerStatus(createServerStatus({ state: 'not_installed' }))
       );
       globalThis.fetch = mockFetch;
 
@@ -78,12 +89,7 @@ describe('Dashboard', () => {
 
     it('hides server control buttons when not installed', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
-          state: 'not_installed',
-          version: null,
-          uptimeSeconds: null,
-          lastExitCode: null,
-        })
+        mockServerStatus(createServerStatus({ state: 'not_installed' }))
       );
       globalThis.fetch = mockFetch;
 
@@ -106,12 +112,7 @@ describe('Dashboard', () => {
       const mockFetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/status') && !url.includes('/install/status')) {
           return Promise.resolve(
-            mockServerStatus({
-              state: 'installing',
-              version: null,
-              uptimeSeconds: null,
-              lastExitCode: null,
-            })
+            mockServerStatus(createServerStatus({ state: 'installing' }))
           );
         }
         if (url.includes('/install/status')) {
@@ -144,12 +145,7 @@ describe('Dashboard', () => {
       const mockFetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/status') && !url.includes('/install/status')) {
           return Promise.resolve(
-            mockServerStatus({
-              state: 'installing',
-              version: null,
-              uptimeSeconds: null,
-              lastExitCode: null,
-            })
+            mockServerStatus(createServerStatus({ state: 'installing' }))
           );
         }
         if (url.includes('/install/status')) {
@@ -185,12 +181,7 @@ describe('Dashboard', () => {
   describe('stopped state (AC: 3)', () => {
     it('shows ServerStatusBadge with Stopped status', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
-          state: 'installed',
-          version: '1.21.3',
-          uptimeSeconds: null,
-          lastExitCode: null,
-        })
+        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
       );
       globalThis.fetch = mockFetch;
 
@@ -204,12 +195,7 @@ describe('Dashboard', () => {
 
     it('displays server version when stopped', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
-          state: 'installed',
-          version: '1.21.3',
-          uptimeSeconds: null,
-          lastExitCode: null,
-        })
+        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
       );
       globalThis.fetch = mockFetch;
 
@@ -223,12 +209,7 @@ describe('Dashboard', () => {
 
     it('enables Start button and disables Stop/Restart when stopped', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
-          state: 'installed',
-          version: '1.21.3',
-          uptimeSeconds: null,
-          lastExitCode: null,
-        })
+        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
       );
       globalThis.fetch = mockFetch;
 
@@ -247,12 +228,11 @@ describe('Dashboard', () => {
   describe('running state (AC: 4)', () => {
     it('shows ServerStatusBadge with Running status', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
+        mockServerStatus(createServerStatus({
           state: 'running',
           version: '1.21.3',
           uptimeSeconds: 3600,
-          lastExitCode: null,
-        })
+        }))
       );
       globalThis.fetch = mockFetch;
 
@@ -266,12 +246,11 @@ describe('Dashboard', () => {
 
     it('displays server version and uptime when running', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
+        mockServerStatus(createServerStatus({
           state: 'running',
           version: '1.21.3',
           uptimeSeconds: 3660, // 1 hour, 1 minute
-          lastExitCode: null,
-        })
+        }))
       );
       globalThis.fetch = mockFetch;
 
@@ -286,12 +265,11 @@ describe('Dashboard', () => {
 
     it('enables Stop/Restart buttons and disables Start when running', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
+        mockServerStatus(createServerStatus({
           state: 'running',
           version: '1.21.3',
           uptimeSeconds: 3600,
-          lastExitCode: null,
-        })
+        }))
       );
       globalThis.fetch = mockFetch;
 
@@ -310,12 +288,11 @@ describe('Dashboard', () => {
   describe('auto-refresh (AC: 6)', () => {
     it('polls server status using TanStack Query', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus({
+        mockServerStatus(createServerStatus({
           state: 'running',
           version: '1.21.3',
           uptimeSeconds: 3600,
-          lastExitCode: null,
-        })
+        }))
       );
       globalThis.fetch = mockFetch;
 
