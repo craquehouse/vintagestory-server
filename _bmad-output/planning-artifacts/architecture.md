@@ -3242,6 +3242,28 @@ def register_default_jobs(scheduler: SchedulerService):
         )
 ```
 
+**Error Handling Strategy (Critical - Story 8.0):**
+
+1. **Never re-raise exceptions** - This would kill the scheduler
+2. **Use structured logging** - Log start, completion, and failure events
+3. **Wrap entire job in try/except** - Catch all exceptions
+4. **Use `safe_job` decorator** - Helper in `api/src/vintagestory_api/jobs/base.py`
+
+```python
+from vintagestory_api.jobs.base import safe_job
+
+@safe_job("my_job")
+async def my_job():
+    # Job logic - exceptions are caught and logged
+    pass
+```
+
+**Job Registration Rules:**
+
+- Jobs with `interval = 0` are NOT registered (disabled)
+- `register_default_jobs()` is called during lifespan after scheduler starts
+- Jobs are registered from `api/src/vintagestory_api/jobs/` module
+
 ### Epic Reordering
 
 **Updated Epic Sequence:**

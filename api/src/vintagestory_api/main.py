@@ -119,6 +119,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     scheduler_service = SchedulerService()
     scheduler_service.start()
 
+    # Register default periodic jobs (Story 8.0)
+    from vintagestory_api.jobs import register_default_jobs
+
+    register_default_jobs(scheduler_service)
+
     yield
 
     # Shutdown scheduler first (before other cleanup)
