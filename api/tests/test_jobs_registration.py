@@ -236,3 +236,113 @@ class TestJobPatternCompliance:
 
         # base.py exists
         assert (jobs_path / "base.py").exists()
+
+
+class TestJobRegistrationLifespan:
+    """Tests for job registration during app lifespan (AC: 2, 3) - Task 2."""
+
+    def test_register_default_jobs_called_during_startup(
+        self, capsys: CaptureFixture[str]
+    ) -> None:
+        """register_default_jobs() is called during app startup."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app
+
+        capsys.readouterr()  # Clear prior output
+
+        # Creating TestClient triggers lifespan startup
+        with TestClient(app):
+            captured = capsys.readouterr()
+            # Should see job registration log event
+            assert "default_jobs_registered" in captured.out
+
+    def test_lifespan_logs_scheduler_then_jobs(
+        self, capsys: CaptureFixture[str]
+    ) -> None:
+        """Scheduler starts before job registration in lifespan order."""
+        from fastapi.testclient import TestClient
+
+        from vintagestory_api.main import app
+
+        capsys.readouterr()  # Clear prior output
+
+        with TestClient(app):
+            captured = capsys.readouterr()
+
+            # Both events should be present
+            assert "scheduler_started" in captured.out
+            assert "default_jobs_registered" in captured.out
+
+            # Verify order: scheduler_started before default_jobs_registered
+            scheduler_pos = captured.out.find("scheduler_started")
+            jobs_pos = captured.out.find("default_jobs_registered")
+            assert scheduler_pos < jobs_pos, "Scheduler should start before job registration"
+
+
+class TestJobIntervalZeroNotRegistered:
+    """Tests for jobs with interval=0 NOT being registered (AC: 3)."""
+
+    @pytest.fixture
+    async def scheduler(self) -> SchedulerService:  # type: ignore[misc]
+        """Create a started scheduler for testing."""
+        svc = SchedulerService()
+        svc.start()
+        yield svc  # type: ignore[misc]
+        svc.shutdown(wait=False)
+
+    @pytest.mark.asyncio
+    async def test_jobs_not_registered_when_interval_zero(
+        self, scheduler: SchedulerService
+    ) -> None:
+        """Jobs are NOT registered when their interval is 0."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        # Create settings with both intervals set to 0
+        settings_with_zero = ApiSettings(
+            mod_list_refresh_interval=0,
+            server_versions_refresh_interval=0,
+        )
+
+        with patch(
+            "vintagestory_api.services.api_settings.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = settings_with_zero
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(scheduler)
+
+            # No jobs should be registered when intervals are 0
+            jobs = scheduler.get_jobs()
+            assert len(jobs) == 0
+
+    @pytest.mark.asyncio
+    async def test_settings_interval_values_checked(
+        self, scheduler: SchedulerService
+    ) -> None:
+        """register_default_jobs checks interval values from settings."""
+        from vintagestory_api.services.api_settings import ApiSettings
+
+        # Use default settings which have non-zero intervals
+        default_settings = ApiSettings()
+        assert default_settings.mod_list_refresh_interval > 0
+        assert default_settings.server_versions_refresh_interval > 0
+
+        with patch(
+            "vintagestory_api.services.api_settings.ApiSettingsService"
+        ) as mock_settings_class:
+            mock_instance = MagicMock()
+            mock_instance.get_settings.return_value = default_settings
+            mock_settings_class.return_value = mock_instance
+
+            register_default_jobs(scheduler)
+
+            # Settings were read
+            mock_instance.get_settings.assert_called_once()
+
+            # In Story 8.0, no actual jobs are registered yet (stub)
+            # But the conditional checks are exercised
+            jobs = scheduler.get_jobs()
+            # Still 0 because the actual registration is commented out in stub
+            assert len(jobs) == 0
