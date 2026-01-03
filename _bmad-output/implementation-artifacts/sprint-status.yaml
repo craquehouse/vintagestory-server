@@ -1,4 +1,4 @@
-# generated: 2026-01-02
+# generated: 2026-01-03
 # project: vintagestory-server
 # project_key: vintagestory-server
 # tracking_system: file-system
@@ -32,6 +32,12 @@
 # - Stories can be worked in parallel if team capacity allows
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-01-03
+project: vintagestory-server
+project_key: vintagestory-server
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: Project Foundation & Health Monitoring
@@ -96,16 +102,41 @@ development_status:
   epic-7: done
   7-0-epic-7-preparation: done
   7-1-scheduler-service: done
-  7-2-job-management-api: done  # Review complete 2026-01-02, all action items resolved
-  7-3-scheduler-health: done  # Story complete 2026-01-02
-  epic-7-retrospective: done  # Retrospective complete 2026-01-02
+  7-2-job-management-api: done
+  7-3-scheduler-health: done
+  epic-7-retrospective: done
 
   # Epic 8: Periodic Task Patterns (New 2025-12-30)
   # COMPLETED 2026-01-02: All 4 stories done + retrospective complete, 1683 tests total (966 API + 717 web)
   # ACHIEVEMENT: First epic with 100% retro follow-through from Epic 7 action items
   epic-8: done
-  8-0-epic-8-preparation: done  # Story complete
-  8-1-mod-cache-refresh-job: done  # Code review complete 2026-01-02, all 5 items resolved (3 already done, 2 won't fix)
-  8-2-server-versions-check-job: done  # Story complete 2026-01-02, 4 tasks with 41 tests
-  8-3-job-configuration-ui: done  # Story complete 2026-01-02, 31 new web tests (717 total), all 4 ACs covered
-  epic-8-retrospective: done  # Retrospective complete 2026-01-02, 4 action items defined
+  8-0-epic-8-preparation: done
+  8-1-mod-cache-refresh-job: done
+  8-2-server-versions-check-job: done
+  8-3-job-configuration-ui: done
+  epic-8-retrospective: done
+
+  # Epic 9: Quality of Life Polish Pass (Added 2026-01-03)
+  # FRs: FR40-FR55 - Security improvements, debugging, UI enhancements
+  epic-9: backlog
+  9-1-secure-websocket-authentication: backlog
+  9-2-directory-auto-creation-on-startup: backlog
+  9-3-mod-cache-eviction-strategy: backlog
+  9-4-debug-logging-infrastructure: backlog
+  9-5-console-command-highlighting: backlog
+  9-6-json-syntax-colorization: backlog
+  9-7-dynamic-file-browser: backlog
+  epic-9-retrospective: optional
+
+  # Epic 10: Advanced Mod Browser (Added 2026-01-03)
+  # FRs: FR56-FR85 - Full mod discovery and browsing experience
+  epic-10: backlog
+  10-1-mod-browse-api: backlog
+  10-2-mods-tab-restructure: backlog
+  10-3-browse-landing-page-and-search: backlog
+  10-4-filter-and-sort-controls: backlog
+  10-5-mod-card-display: backlog
+  10-6-mod-detail-view: backlog
+  10-7-pagination: backlog
+  10-8-browse-install-integration: backlog
+  epic-10-retrospective: optional
