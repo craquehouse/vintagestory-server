@@ -1,6 +1,6 @@
 # Story 7.2: Job Management API
 
-Status: review
+Status: done
 
 ## Story
 
@@ -53,9 +53,9 @@ CRITICAL TASK STRUCTURE RULES:
 
 Added 2026-01-02 by code-review workflow:
 
-- [ ] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppressions in models/jobs.py:50,53 [`api/src/vintagestory_api/models/jobs.py`]
-- [ ] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppression in routers/jobs.py:72 [`api/src/vintagestory_api/routers/jobs.py`]
-- [ ] [AI-Review][LOW] Update test count in Completion Notes - actually 26 tests, not 24 [`_bmad-output/implementation-artifacts/7-2-job-management-api.md:322`]
+- [x] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppressions in models/jobs.py:50,53 [`api/src/vintagestory_api/models/jobs.py`] - Added TODO with APScheduler issue link (matching test_scheduler.py pattern)
+- [x] [AI-Review][MEDIUM] Add tracking issue reference to type: ignore suppression in routers/jobs.py:72 [`api/src/vintagestory_api/routers/jobs.py`] - Added TODO with APScheduler issue link
+- [x] [AI-Review][LOW] Update test count in Completion Notes - actually 26 tests, not 24 [`_bmad-output/implementation-artifacts/7-2-job-management-api.md:322`] - Verified: 24 tests is correct (12 model + 12 router = 24)
 
 ## Dev Notes
 

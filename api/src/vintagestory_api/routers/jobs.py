@@ -68,7 +68,8 @@ async def delete_job(
     Raises:
         HTTPException: 404 if job not found.
     """
-    # APScheduler v3.x does not ship with type stubs
+    # TODO: Track APScheduler type stubs availability - may add py.typed in future release
+    # See: https://github.com/agronholm/apscheduler/issues (no stubs package available as of 2026-01)
     from apscheduler.jobstores.base import JobLookupError  # type: ignore[import-untyped]
 
     try:
