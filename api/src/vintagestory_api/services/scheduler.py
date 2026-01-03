@@ -126,6 +126,7 @@ class SchedulerService:
             func,
             trigger=IntervalTrigger(seconds=seconds),
             id=job_id,
+            replace_existing=True,
             **kwargs,
         )
         logger.info("job_added", job_id=job_id, trigger_type="interval", seconds=seconds)
@@ -158,6 +159,7 @@ class SchedulerService:
             func,
             trigger=CronTrigger.from_crontab(cron_expr),
             id=job_id,
+            replace_existing=True,
             **kwargs,
         )
         logger.info("job_added", job_id=job_id, trigger_type="cron", cron_expr=cron_expr)

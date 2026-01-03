@@ -42,11 +42,11 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 1.4: Write tests for successful cache refresh execution
   - [x] Subtask 1.5: Write tests for error handling (API unreachable - job continues, stale data preserved)
 
-- [ ] Task 2: Register job in register_default_jobs + tests (AC: 1, 3)
-  - [ ] Subtask 2.1: Update `jobs/__init__.py` to register mod_cache_refresh job
-  - [ ] Subtask 2.2: Verify job respects `mod_list_refresh_interval` setting
-  - [ ] Subtask 2.3: Write test verifying job is registered when interval > 0
-  - [ ] Subtask 2.4: Write test verifying job is NOT registered when interval = 0
+- [x] Task 2: Register job in register_default_jobs + tests (AC: 1, 3)
+  - [x] Subtask 2.1: Update `jobs/__init__.py` to register mod_cache_refresh job
+  - [x] Subtask 2.2: Verify job respects `mod_list_refresh_interval` setting
+  - [x] Subtask 2.3: Write test verifying job is registered when interval > 0
+  - [x] Subtask 2.4: Write test verifying job is NOT registered when interval = 0
 
 - [ ] Task 3: Implement cache data structure + tests (AC: 2)
   - [ ] Subtask 3.1: Define what "cache" means for installed mods (update mod metadata from API)
@@ -236,6 +236,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Debug Log References
 
 - All 921 tests passing after Task 1 completion
+- All 925 tests passing after Task 2 completion (4 new registration tests)
 
 ### Completion Notes List
 
@@ -255,3 +256,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `api/tests/jobs/__init__.py` (created)
 - `api/tests/jobs/test_mod_cache_refresh.py` (created)
 - `api/src/vintagestory_api/services/mods.py` (modified - added `api_client` property)
+
+**Task 2:**
+- `api/src/vintagestory_api/jobs/__init__.py` (modified - register mod_cache_refresh job)
+- `api/src/vintagestory_api/services/scheduler.py` (modified - added `replace_existing=True`)
+- `api/tests/test_jobs_registration.py` (modified - added 4 registration tests)
