@@ -74,6 +74,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-022 | Add Prometheus metrics endpoint (/metrics) with CPU, memory, and process stats using psutil and prometheus-fastapi-instrumentator | medium   | M      | backlog | -         | Expose CPU%, memory (RSS/VMS), thread count for APM integration                                  |
 | API-023 | Extend /metrics to include VintageStory game server metrics: concurrent players, game server process CPU/memory, uptime           | high     | M      | backlog | API-022   | Requires process discovery (find VintageStory.exe), game server API integration for player count |
 | API-024 | There is double timestamping visible in console logs. I think the server already timetamps.                                       | high     | M      | backlog | API-022   | Requires process discovery (find VintageStory.exe), game server API integration for player count |
+| API-025 | Investigate DI pattern for service access to reduce deferred imports and avoid circular dependencies                              | low      | M      | backlog | Epic-7    | Current pattern uses global singletons with getter functions; deferred imports work but feel like workaround |
 
 ---
 
