@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 __all__ = [
     "ApiResponse",
+    "DiskSpaceData",
     "GameServerStatus",
     "HealthData",
     "ReadinessData",
@@ -49,6 +50,27 @@ class SchedulerHealthData(BaseModel):
     )
 
 
+class DiskSpaceData(BaseModel):
+    """Disk space information for data volume."""
+
+    total_gb: float = Field(
+        description="Total disk space in gigabytes",
+    )
+    used_gb: float = Field(
+        description="Used disk space in gigabytes",
+    )
+    available_gb: float = Field(
+        description="Available disk space in gigabytes",
+    )
+    usage_percent: float = Field(
+        description="Percentage of disk space used (0-100)",
+    )
+    warning: bool = Field(
+        default=False,
+        description="True if available space is below the configured warning threshold",
+    )
+
+
 class HealthData(BaseModel):
     """Health check response data."""
 
@@ -69,6 +91,10 @@ class HealthData(BaseModel):
     scheduler: SchedulerHealthData | None = Field(
         default=None,
         description="Scheduler service status. None if scheduler not available.",
+    )
+    disk_space: DiskSpaceData | None = Field(
+        default=None,
+        description="Data volume disk space information. None if unavailable.",
     )
 
 

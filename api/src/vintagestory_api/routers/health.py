@@ -1,9 +1,13 @@
 """Health check endpoints for Kubernetes probes and monitoring."""
 
+import shutil
+
 from fastapi import APIRouter
 
+from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.responses import (
     ApiResponse,
+    DiskSpaceData,
     GameServerStatus,
     HealthData,
     ReadinessData,
@@ -14,6 +18,35 @@ from vintagestory_api.services.mods import get_restart_state
 from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(tags=["Health"])
+
+BYTES_PER_GB = 1024 * 1024 * 1024
+
+
+def get_disk_space_data() -> DiskSpaceData | None:
+    """Get disk space information for the data volume.
+
+    Returns:
+        DiskSpaceData with disk usage stats, or None if unavailable.
+    """
+    try:
+        settings = get_settings()
+        usage = shutil.disk_usage(settings.data_dir)
+
+        total_gb = round(usage.total / BYTES_PER_GB, 2)
+        used_gb = round(usage.used / BYTES_PER_GB, 2)
+        available_gb = round(usage.free / BYTES_PER_GB, 2)
+        usage_percent = round((usage.used / usage.total) * 100, 1)
+        warning = available_gb < settings.disk_space_warning_threshold_gb
+
+        return DiskSpaceData(
+            total_gb=total_gb,
+            used_gb=used_gb,
+            available_gb=available_gb,
+            usage_percent=usage_percent,
+            warning=warning,
+        )
+    except Exception:
+        return None
 
 
 def get_scheduler():
@@ -77,6 +110,9 @@ async def health_check() -> ApiResponse:
         # Unexpected error - default to stopped
         scheduler_data = SchedulerHealthData(status="stopped", job_count=0)
 
+    # Get disk space data - don't fail health checks if this errors
+    disk_space_data = get_disk_space_data()
+
     return ApiResponse(
         status="ok",
         data=HealthData(
@@ -86,6 +122,7 @@ async def health_check() -> ApiResponse:
             game_server_uptime=server_status.uptime_seconds,
             game_server_pending_restart=pending_restart,
             scheduler=scheduler_data,
+            disk_space=disk_space_data,
         ).model_dump(),
     )
 

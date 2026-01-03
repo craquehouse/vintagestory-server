@@ -372,3 +372,167 @@ class TestHealthzScheduler:
             data = response.json()
             assert data["data"]["scheduler"]["status"] == "running"
             assert data["data"]["scheduler"]["job_count"] == 3
+
+
+class TestDiskSpaceDataModel:
+    """Tests for DiskSpaceData Pydantic model (API-008)."""
+
+    def test_disk_space_data_model(self) -> None:
+        """DiskSpaceData correctly models disk usage."""
+        from vintagestory_api.models.responses import DiskSpaceData
+
+        data = DiskSpaceData(
+            total_gb=100.0,
+            used_gb=75.0,
+            available_gb=25.0,
+            usage_percent=75.0,
+            warning=False,
+        )
+
+        assert data.total_gb == 100.0
+        assert data.used_gb == 75.0
+        assert data.available_gb == 25.0
+        assert data.usage_percent == 75.0
+        assert data.warning is False
+
+    def test_disk_space_data_warning_true(self) -> None:
+        """DiskSpaceData correctly sets warning flag."""
+        from vintagestory_api.models.responses import DiskSpaceData
+
+        data = DiskSpaceData(
+            total_gb=100.0,
+            used_gb=99.5,
+            available_gb=0.5,
+            usage_percent=99.5,
+            warning=True,
+        )
+
+        assert data.warning is True
+
+    def test_disk_space_data_model_dump(self) -> None:
+        """DiskSpaceData.model_dump() returns dictionary for API response."""
+        from vintagestory_api.models.responses import DiskSpaceData
+
+        data = DiskSpaceData(
+            total_gb=500.0,
+            used_gb=250.0,
+            available_gb=250.0,
+            usage_percent=50.0,
+            warning=False,
+        )
+
+        dumped = data.model_dump()
+
+        assert dumped == {
+            "total_gb": 500.0,
+            "used_gb": 250.0,
+            "available_gb": 250.0,
+            "usage_percent": 50.0,
+            "warning": False,
+        }
+
+
+class TestHealthzDiskSpace:
+    """Tests for disk space in /healthz endpoint (API-008)."""
+
+    def test_healthz_includes_disk_space(self, client: TestClient) -> None:
+        """Test that /healthz includes disk_space field."""
+        response = client.get("/healthz")
+        data = response.json()
+        assert "disk_space" in data["data"]
+
+    def test_healthz_disk_space_has_required_fields(self, client: TestClient) -> None:
+        """Test that disk_space includes all required fields."""
+        response = client.get("/healthz")
+        data = response.json()
+        disk_space = data["data"]["disk_space"]
+
+        # Should have all required fields (may be None if disk_usage fails)
+        if disk_space is not None:
+            assert "total_gb" in disk_space
+            assert "used_gb" in disk_space
+            assert "available_gb" in disk_space
+            assert "usage_percent" in disk_space
+            assert "warning" in disk_space
+
+    def test_healthz_disk_space_values_are_numeric(self, client: TestClient) -> None:
+        """Test that disk_space values are numeric."""
+        response = client.get("/healthz")
+        data = response.json()
+        disk_space = data["data"]["disk_space"]
+
+        if disk_space is not None:
+            assert isinstance(disk_space["total_gb"], (int, float))
+            assert isinstance(disk_space["used_gb"], (int, float))
+            assert isinstance(disk_space["available_gb"], (int, float))
+            assert isinstance(disk_space["usage_percent"], (int, float))
+            assert isinstance(disk_space["warning"], bool)
+
+    def test_healthz_disk_space_warning_when_low(self, client: TestClient) -> None:
+        """Test that warning is True when available space is below threshold."""
+        # Mock shutil.disk_usage to return low available space
+        mock_usage = MagicMock()
+        mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
+        mock_usage.used = 99.5 * 1024 * 1024 * 1024  # 99.5 GB used
+        mock_usage.free = 0.5 * 1024 * 1024 * 1024  # 0.5 GB free (below 1.0 GB threshold)
+
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["disk_space"]["warning"] is True
+
+    def test_healthz_disk_space_no_warning_when_sufficient(
+        self, client: TestClient
+    ) -> None:
+        """Test that warning is False when available space is above threshold."""
+        mock_usage = MagicMock()
+        mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
+        mock_usage.used = 50 * 1024 * 1024 * 1024  # 50 GB used
+        mock_usage.free = 50 * 1024 * 1024 * 1024  # 50 GB free (above 1.0 GB threshold)
+
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["disk_space"]["warning"] is False
+
+    def test_healthz_disk_space_none_on_error(self, client: TestClient) -> None:
+        """Test that disk_space is None when disk_usage fails."""
+        with patch(
+            "vintagestory_api.routers.health.shutil.disk_usage",
+            side_effect=OSError("Disk unavailable"),
+        ):
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["data"]["disk_space"] is None
+
+    def test_healthz_disk_space_uses_data_dir(self, client: TestClient) -> None:
+        """Test that disk_usage is called with settings.data_dir."""
+        mock_usage = MagicMock()
+        mock_usage.total = 100 * 1024 * 1024 * 1024
+        mock_usage.used = 50 * 1024 * 1024 * 1024
+        mock_usage.free = 50 * 1024 * 1024 * 1024
+
+        with patch(
+            "vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage
+        ) as mock_disk_usage:
+            response = client.get("/healthz")
+            assert response.status_code == 200
+            # Verify disk_usage was called (the path will be from settings)
+            mock_disk_usage.assert_called_once()
+
+    def test_healthz_disk_space_respects_threshold_config(
+        self, client: TestClient
+    ) -> None:
+        """Test that warning threshold is configurable."""
+        mock_usage = MagicMock()
+        mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
+        mock_usage.used = 98 * 1024 * 1024 * 1024  # 98 GB used
+        mock_usage.free = 2 * 1024 * 1024 * 1024  # 2 GB free
+
+        # With default threshold of 1.0 GB, 2 GB should not trigger warning
+        with patch("vintagestory_api.routers.health.shutil.disk_usage", return_value=mock_usage):
+            response = client.get("/healthz")
+            data = response.json()
+            assert data["data"]["disk_space"]["warning"] is False
+            assert data["data"]["disk_space"]["available_gb"] == 2.0

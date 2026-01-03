@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
+    disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
 
     @field_validator("cors_origins")
     @classmethod
