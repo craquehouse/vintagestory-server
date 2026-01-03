@@ -104,6 +104,6 @@ development_status:
   epic-8: in-progress
   8-0-epic-8-preparation: review  # Story complete, pending review
   8-1-mod-cache-refresh-job: done  # Code review complete 2026-01-02, all 5 items resolved (3 already done, 2 won't fix)
-  8-2-server-versions-check-job: backlog
+  8-2-server-versions-check-job: done  # Story complete 2026-01-02, 4 tasks with 41 tests
   8-3-job-configuration-ui: backlog
   epic-8-retrospective: optional

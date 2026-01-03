@@ -731,8 +731,11 @@ class TestServerStatusEndpoint:
         assert "status" in data
         assert "data" in data
         assert data["status"] == "ok"
-        # Check expected fields in data - exactly 4 fields, no extras
-        assert set(data["data"].keys()) == {"state", "version", "uptime_seconds", "last_exit_code"}
+        # Check expected fields in data - exactly 7 fields (Story 8.2 added 3 version fields)
+        assert set(data["data"].keys()) == {
+            "state", "version", "uptime_seconds", "last_exit_code",
+            "available_stable_version", "available_unstable_version", "version_last_checked"
+        }
 
     def test_status_returns_starting_state(self, temp_data_dir: Path) -> None:
         """GET /server/status returns starting state during server startup (AC: 1)."""
@@ -947,3 +950,164 @@ class TestServerStatusEndpoint:
             assert 119 <= data["data"]["uptime_seconds"] <= 122
         finally:
             app.dependency_overrides.clear()
+
+
+class TestServerStatusVersionFields:
+    """Tests for server status version fields (Story 8.2, AC: 2).
+
+    Story 8.2: Server Versions Check Job
+    These tests verify the status endpoint exposes cached version data.
+    """
+
+    @pytest.fixture
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    @pytest.fixture(autouse=True)
+    def reset_versions_cache(self) -> Generator[None, None, None]:
+        """Reset versions cache before and after each test."""
+        from vintagestory_api.services.versions_cache import reset_versions_cache
+
+        reset_versions_cache()
+        yield
+        reset_versions_cache()
+
+    def test_status_includes_version_fields_empty_cache(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status includes version fields even when cache is empty."""
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "available_stable_version" in data["data"]
+        assert "available_unstable_version" in data["data"]
+        assert "version_last_checked" in data["data"]
+        # Empty cache should have None values
+        assert data["data"]["available_stable_version"] is None
+        assert data["data"]["available_unstable_version"] is None
+        assert data["data"]["version_last_checked"] is None
+
+    def test_status_includes_cached_stable_version(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status returns cached stable version."""
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        # Pre-populate cache
+        cache = get_versions_cache()
+        cache.set_latest_versions(stable="1.21.3")
+
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["version_last_checked"] is not None
+
+    def test_status_includes_cached_unstable_version(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status returns cached unstable version."""
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        # Pre-populate cache
+        cache = get_versions_cache()
+        cache.set_latest_versions(unstable="1.22.0-pre.1")
+
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
+
+    def test_status_includes_both_cached_versions(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status returns both stable and unstable versions."""
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        # Pre-populate cache with both versions
+        cache = get_versions_cache()
+        cache.set_latest_versions(stable="1.21.3", unstable="1.22.0-pre.1")
+
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
+        assert data["data"]["version_last_checked"] is not None
+
+    def test_status_versions_available_when_not_installed(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status returns version info even when server not installed."""
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        # Pre-populate cache
+        cache = get_versions_cache()
+        cache.set_latest_versions(stable="1.21.3", unstable="1.22.0-pre.1")
+
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        # Should be not_installed but still have version info
+        assert data["data"]["state"] == "not_installed"
+        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
+
+    def test_status_versions_accessible_by_monitor(
+        self, integration_client: TestClient
+    ) -> None:
+        """GET /server/status version fields accessible by Monitor role."""
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        cache = get_versions_cache()
+        cache.set_latest_versions(stable="1.21.3")
+
+        response = integration_client.get(
+            "/api/v1alpha1/server/status",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["available_stable_version"] == "1.21.3"
