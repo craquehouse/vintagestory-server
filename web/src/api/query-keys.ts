@@ -31,4 +31,7 @@ export const queryKeys = {
   console: {
     logs: ['console', 'logs'] as const,
   },
+  jobs: {
+    all: ['jobs'] as const,
+  },
 };
