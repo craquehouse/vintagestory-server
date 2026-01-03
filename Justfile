@@ -199,6 +199,7 @@ docker COMMAND *ARGS:
             ;;
         stop)
             docker compose -f docker-compose.dev.yaml down {{ARGS}}
+            docker rm -f vintagestory-manager-dev
             ;;
         restart)
             just docker stop {{ARGS}}
