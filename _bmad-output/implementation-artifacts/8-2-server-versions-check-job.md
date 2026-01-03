@@ -1,6 +1,6 @@
 # Story 8.2: Server Versions Check Job
 
-Status: complete
+Status: done
 
 ## Story
 

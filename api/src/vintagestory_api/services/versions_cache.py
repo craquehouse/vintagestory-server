@@ -12,7 +12,7 @@ The cache is a singleton to ensure consistent state across the application.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 # Module-level singleton instance
 _versions_cache: LatestVersionsCache | None = None
@@ -77,9 +77,9 @@ class LatestVersionsCache:
             self._versions.stable_version = stable
         if unstable is not None:
             self._versions.unstable_version = unstable
-        # Always update timestamp when set is called with any value
+        # Only update timestamp when at least one value is provided
         if stable is not None or unstable is not None:
-            self._versions.last_checked = datetime.now(UTC)
+            self._versions.last_checked = datetime.now(timezone.utc)
 
     def clear(self) -> None:
         """Clear all cached version data.

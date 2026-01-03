@@ -832,7 +832,7 @@ class ServerService:
                 state=ServerState.NOT_INSTALLED,
                 available_stable_version=latest_versions.stable_version,
                 available_unstable_version=latest_versions.unstable_version,
-                versions_last_checked=latest_versions.last_checked,
+                version_last_checked=latest_versions.last_checked,
             )
 
         # Determine current runtime state
@@ -849,7 +849,7 @@ class ServerService:
             last_exit_code=self._last_exit_code,
             available_stable_version=latest_versions.stable_version,
             available_unstable_version=latest_versions.unstable_version,
-            versions_last_checked=latest_versions.last_checked,
+            version_last_checked=latest_versions.last_checked,
         )
 
     def _get_runtime_state(self) -> ServerState:

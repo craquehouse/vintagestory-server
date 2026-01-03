@@ -734,7 +734,7 @@ class TestServerStatusEndpoint:
         # Check expected fields in data - exactly 7 fields (Story 8.2 added 3 version fields)
         assert set(data["data"].keys()) == {
             "state", "version", "uptime_seconds", "last_exit_code",
-            "available_stable_version", "available_unstable_version", "versions_last_checked"
+            "available_stable_version", "available_unstable_version", "version_last_checked"
         }
 
     def test_status_returns_starting_state(self, temp_data_dir: Path) -> None:
@@ -1006,11 +1006,11 @@ class TestServerStatusVersionFields:
         data = response.json()
         assert "available_stable_version" in data["data"]
         assert "available_unstable_version" in data["data"]
-        assert "versions_last_checked" in data["data"]
+        assert "version_last_checked" in data["data"]
         # Empty cache should have None values
         assert data["data"]["available_stable_version"] is None
         assert data["data"]["available_unstable_version"] is None
-        assert data["data"]["versions_last_checked"] is None
+        assert data["data"]["version_last_checked"] is None
 
     def test_status_includes_cached_stable_version(
         self, integration_client: TestClient
@@ -1030,7 +1030,7 @@ class TestServerStatusVersionFields:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["available_stable_version"] == "1.21.3"
-        assert data["data"]["versions_last_checked"] is not None
+        assert data["data"]["version_last_checked"] is not None
 
     def test_status_includes_cached_unstable_version(
         self, integration_client: TestClient
@@ -1070,7 +1070,7 @@ class TestServerStatusVersionFields:
         data = response.json()
         assert data["data"]["available_stable_version"] == "1.21.3"
         assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
-        assert data["data"]["versions_last_checked"] is not None
+        assert data["data"]["version_last_checked"] is not None
 
     def test_status_versions_available_when_not_installed(
         self, integration_client: TestClient

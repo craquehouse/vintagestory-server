@@ -97,4 +97,4 @@ class ServerStatus(BaseModel):
     # Story 8.2: Latest available versions from cache
     available_stable_version: str | None = None
     available_unstable_version: str | None = None
-    versions_last_checked: datetime | None = None
+    version_last_checked: datetime | None = None
