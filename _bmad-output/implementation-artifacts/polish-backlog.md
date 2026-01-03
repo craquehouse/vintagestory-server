@@ -48,7 +48,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-023 | Implement json colorization in file viewer                                                                                             | low      | s      | backlog | -                       |                                                              |
 | UI-024 | Filebrowser show all the directories in /data/serverdata, including but not limited to ModConfigs, Macros, Playerdata                  | low      | s      | backlog | -                       |                                                              |
 | UI-025 | Implement file editing capability in filebrowser. Require server to be stopped in order to edit file                                   | low      | s      | backlog | -                       |                                                              |
-| UI-026 | Server Status card should display api manager and game server memory and possibly CPU                                                  | low      | s      | backlog | API-026                 |                                                              |
+| UI-027 | Server Status card should display api manager and game server memory and possibly CPU                                                  | low      | s      | backlog | API-026                 |                                                              |
 
 
 ---
