@@ -1,5 +1,6 @@
 """Pydantic models for server installation and lifecycle."""
 
+from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -93,3 +94,7 @@ class ServerStatus(BaseModel):
     version: str | None = None
     uptime_seconds: int | None = None  # If running
     last_exit_code: int | None = None  # If stopped after running
+    # Story 8.2: Latest available versions from cache
+    available_stable_version: str | None = None
+    available_unstable_version: str | None = None
+    versions_last_checked: datetime | None = None

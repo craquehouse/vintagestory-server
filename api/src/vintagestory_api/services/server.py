@@ -816,11 +816,24 @@ class ServerService:
         """Get current server runtime status.
 
         Returns:
-            ServerStatus with current state, version, uptime, and exit code.
+            ServerStatus with current state, version, uptime, exit code,
+            and latest available versions from cache (Story 8.2).
         """
-        # If not installed, return not_installed state
+        # Import here to avoid circular imports
+        from vintagestory_api.services.versions_cache import get_versions_cache
+
+        # Get latest versions from cache (Story 8.2)
+        versions_cache = get_versions_cache()
+        latest_versions = versions_cache.get_latest_versions()
+
+        # If not installed, return not_installed state (still include version info)
         if not self.is_installed():
-            return ServerStatus(state=ServerState.NOT_INSTALLED)
+            return ServerStatus(
+                state=ServerState.NOT_INSTALLED,
+                available_stable_version=latest_versions.stable_version,
+                available_unstable_version=latest_versions.unstable_version,
+                versions_last_checked=latest_versions.last_checked,
+            )
 
         # Determine current runtime state
         current_state = self._get_runtime_state()
@@ -834,6 +847,9 @@ class ServerService:
             version=self.get_installed_version(),
             uptime_seconds=uptime_seconds,
             last_exit_code=self._last_exit_code,
+            available_stable_version=latest_versions.stable_version,
+            available_unstable_version=latest_versions.unstable_version,
+            versions_last_checked=latest_versions.last_checked,
         )
 
     def _get_runtime_state(self) -> ServerState:
