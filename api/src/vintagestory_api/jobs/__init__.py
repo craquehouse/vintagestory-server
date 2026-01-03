@@ -50,28 +50,23 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
     settings = ApiSettingsService().get_settings()
     jobs_registered = 0
 
-    # Story 8.1 will add: mod_cache_refresh job
-    if settings.mod_list_refresh_interval > 0:
-        # TODO(story-8.1): Implement mod_cache_refresh job
-        # from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
-        # scheduler.add_interval_job(
-        #     refresh_mod_cache,
-        #     seconds=settings.mod_list_refresh_interval,
-        #     job_id="mod_cache_refresh"
-        # )
-        # jobs_registered += 1
-        pass
+    # Story 8.1: mod_cache_refresh job
+    # Registered when settings.mod_list_refresh_interval > 0
+    # TODO(story-8.1): Uncomment when job is implemented
+    # if settings.mod_list_refresh_interval > 0:
+    #     from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
+    #     scheduler.add_interval_job(refresh_mod_cache, ...)
+    #     jobs_registered += 1
 
-    # Story 8.2 will add: server_versions_check job
-    if settings.server_versions_refresh_interval > 0:
-        # TODO(story-8.2): Implement server_versions_check job
-        # from vintagestory_api.jobs.server_versions import check_server_versions
-        # scheduler.add_interval_job(
-        #     check_server_versions,
-        #     seconds=settings.server_versions_refresh_interval,
-        #     job_id="server_versions_check"
-        # )
-        # jobs_registered += 1
-        pass
+    # Story 8.2: server_versions_check job
+    # Registered when settings.server_versions_refresh_interval > 0
+    # TODO(story-8.2): Uncomment when job is implemented
+    # if settings.server_versions_refresh_interval > 0:
+    #     from vintagestory_api.jobs.server_versions import check_server_versions
+    #     scheduler.add_interval_job(check_server_versions, ...)
+    #     jobs_registered += 1
+
+    # Suppress unused variable warnings for stub - settings accessed in comments above
+    del settings
 
     logger.info("default_jobs_registered", count=jobs_registered)

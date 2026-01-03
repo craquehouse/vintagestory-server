@@ -1,6 +1,6 @@
 # Story 8.0: Epic 8 Preparation
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -54,6 +54,14 @@ So that **periodic tasks are implemented consistently across the codebase**.
   - [x] Subtask 3.2: Document error handling strategy (log, don't re-raise)
   - [x] Subtask 3.3: Add any Epic 8 preparation notes to architecture
 
+## Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Add sprint-status.yaml to File List - modified but not documented (sprint-status.yaml)
+- [x] [AI-Review][MEDIUM] Correct test filename in Dev Notes - lists `test_jobs.py` but actual file is `test_jobs_registration.py` (line 69)
+- [x] [AI-Review][MEDIUM] Remove unnecessary `pass` statements in stub code (api/src/vintagestory_api/jobs/__init__.py:63,75)
+- [x] [AI-Review][LOW] Remove unused `jobs_registered` counter or uncomment increment logic (api/src/vintagestory_api/jobs/__init__.py:51)
+  - Note: Counter kept for logging output, will be incremented when jobs are added in 8.1/8.2
+
 ## Dev Notes
 
 ### Testing Requirements
@@ -66,7 +74,7 @@ So that **periodic tasks are implemented consistently across the codebase**.
 - Run `just test-api` to verify all tests pass before marking task complete
 
 **Test Files to Create:**
-- `api/tests/test_jobs.py` - Tests for job registration and patterns
+- `api/tests/test_jobs_registration.py` - Tests for job registration and patterns
 
 ### Security Considerations
 
@@ -266,4 +274,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 **Task 3:**
 - `_bmad-output/planning-artifacts/architecture.md` (modified - added error handling strategy and safe_job docs)
+
+**Story Completion:**
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified - updated story status)
+- `_bmad-output/implementation-artifacts/8-0-epic-8-preparation.md` (created - story file)
 
