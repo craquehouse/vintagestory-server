@@ -6,7 +6,10 @@ Tests cover:
 - Invalid/expired token rejection (AC: 3)
 - Monitor role token rejection for console access (AC: 6)
 - Backwards compatibility with legacy api_key (Task 3.4)
+- Token expiry during active connection (AC: 4)
 """
+
+import asyncio
 
 from fastapi.testclient import TestClient
 
@@ -16,6 +19,16 @@ from vintagestory_api.services.ws_token_service import WebSocketTokenService
 from .conftest import TEST_ADMIN_KEY
 
 # pyright: reportPrivateUsage=false
+
+
+def _run_async(coro):  # type: ignore[no-untyped-def]
+    """Helper to run async code in sync test context."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 class TestConsoleWebSocketTokenAuth:
@@ -30,7 +43,7 @@ class TestConsoleWebSocketTokenAuth:
     ) -> None:
         """Given valid admin token, WebSocket connection succeeds (AC: 2)."""
         # Create token
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/ws?token={token.token}"
@@ -49,7 +62,7 @@ class TestConsoleWebSocketTokenAuth:
         test_service.console_buffer._buffer.append("[2024-01-01] Line 1")
         test_service.console_buffer._buffer.append("[2024-01-01] Line 2")
 
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/ws?token={token.token}"
@@ -83,7 +96,7 @@ class TestConsoleWebSocketTokenAuth:
         from datetime import UTC, datetime, timedelta
 
         # Create token then manually expire it
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
         test_token_service._tokens[token.token].expires_at = datetime.now(
             UTC
         ) - timedelta(seconds=1)
@@ -113,7 +126,7 @@ class TestConsoleWebSocketTokenAuth:
         self, ws_client: TestClient, test_token_service: WebSocketTokenService
     ) -> None:
         """Given monitor role token, console WebSocket rejected with 4003 (AC: 6)."""
-        token = test_token_service.create_token("monitor")
+        token = _run_async(test_token_service.create_token("monitor"))
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/ws?token={token.token}"
@@ -132,7 +145,7 @@ class TestConsoleWebSocketTokenAuth:
     ) -> None:
         """When both token and api_key provided, token takes precedence."""
         # Create admin token
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
 
         # Provide both token and invalid api_key - should succeed with token
         with ws_client.websocket_connect(
@@ -185,7 +198,7 @@ class TestLogsWebSocketTokenAuth:
         logs_dir.mkdir(parents=True, exist_ok=True)
         (logs_dir / "test.log").write_text("Test log line")
 
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=test.log&token={token.token}"
@@ -234,7 +247,7 @@ class TestLogsWebSocketTokenAuth:
         (logs_dir / "test.log").write_text("Test log line")
 
         # Create token then manually expire it
-        token = test_token_service.create_token("admin")
+        token = _run_async(test_token_service.create_token("admin"))
         test_token_service._tokens[token.token].expires_at = datetime.now(
             UTC
         ) - timedelta(seconds=1)
@@ -256,7 +269,11 @@ class TestLogsWebSocketTokenAuth:
         test_token_service: WebSocketTokenService,
         temp_data_dir,  # type: ignore[no-untyped-def]
     ) -> None:
-        """Given monitor role token, logs WebSocket rejected with 4003 (AC: 6)."""
+        """Given monitor role token, logs WebSocket rejected with 4003 (AC: 6).
+
+        Note: This test documents current behavior. Whether Monitor should have
+        logs access is a product decision tracked in review follow-ups.
+        """
         from pathlib import Path
 
         # Create log file
@@ -264,7 +281,7 @@ class TestLogsWebSocketTokenAuth:
         logs_dir.mkdir(parents=True, exist_ok=True)
         (logs_dir / "test.log").write_text("Test log line")
 
-        token = test_token_service.create_token("monitor")
+        token = _run_async(test_token_service.create_token("monitor"))
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=test.log&token={token.token}"
@@ -293,3 +310,52 @@ class TestLogsWebSocketTokenAuth:
             f"/api/v1alpha1/console/logs/ws?file=test.log&api_key={TEST_ADMIN_KEY}"
         ) as ws:
             ws.close()
+
+
+class TestTokenExpiryDuringConnection:
+    """Test that token expiry during active connection doesn't affect it (AC: 4)."""
+
+    def test_console_websocket_stays_active_after_token_expires(
+        self,
+        ws_client: TestClient,
+        test_service: ServerService,
+        test_token_service: WebSocketTokenService,
+    ) -> None:
+        """Connection remains active after token expires (AC: 4).
+
+        Tokens are only validated at connection time. Once connected,
+        the connection stays active even if the token expires.
+        """
+        from datetime import UTC, datetime, timedelta
+
+        # Add some lines to buffer
+        test_service.console_buffer._buffer.append("[2024-01-01] Initial line")
+
+        # Create token
+        token = _run_async(test_token_service.create_token("admin"))
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?token={token.token}"
+        ) as ws:
+            # Receive initial history
+            line = ws.receive_text()
+            assert "Initial line" in line
+
+            # Now expire the token (simulating 5 minutes passing)
+            test_token_service._tokens[token.token].expires_at = datetime.now(
+                UTC
+            ) - timedelta(seconds=1)
+
+            # Connection should still work - send a command
+            # (it will return an error because server isn't running, but that's OK)
+            ws.send_json({"type": "command", "content": "/time"})
+
+            # Receive the error response - proves connection is still active
+            response = ws.receive_json()
+            assert response["type"] == "error"
+            assert "not running" in response["content"]
+
+            # Connection should still be active after command - close it cleanly
+            ws.close()
+            # If we got here without 4001 error, the test passes (token expired but
+            # connection stayed active because auth is only checked at connect time)

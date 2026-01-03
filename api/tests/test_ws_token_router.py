@@ -10,6 +10,7 @@ Tests cover:
 - Token response format and expiry
 """
 
+import asyncio
 from datetime import UTC, datetime
 
 import pytest
@@ -24,6 +25,16 @@ from vintagestory_api.services.ws_token_service import (
     get_ws_token_service,
     reset_ws_token_service,
 )
+
+
+def _run_async(coro):  # type: ignore[no-untyped-def]
+    """Helper to run async code in sync test context."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 # Test API keys
 TEST_ADMIN_KEY = "test-admin-key-12345"
@@ -159,7 +170,7 @@ class TestWebSocketTokenEndpointWithAdminKey:
         )
 
         token = response.json()["data"]["token"]
-        role = token_service.validate_token(token)
+        role = _run_async(token_service.validate_token(token))
 
         assert role == "admin"
 
@@ -188,7 +199,7 @@ class TestWebSocketTokenEndpointWithMonitorKey:
         )
 
         token = response.json()["data"]["token"]
-        role = token_service.validate_token(token)
+        role = _run_async(token_service.validate_token(token))
 
         assert role == "monitor"
 

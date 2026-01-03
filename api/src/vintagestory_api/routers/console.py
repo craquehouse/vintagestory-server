@@ -214,7 +214,7 @@ def _verify_api_key_with_settings(
     return None
 
 
-def _verify_ws_auth(
+async def _verify_ws_auth(
     token: str | None,
     api_key: str | None,
     token_service: WebSocketTokenService,
@@ -240,7 +240,7 @@ def _verify_ws_auth(
     """
     # Prefer token auth over api_key
     if token:
-        role = token_service.validate_token(token)
+        role = await token_service.validate_token(token)
         if role:
             logger.debug("ws_auth_via_token", client_ip=client_ip, role=role)
         return role
@@ -297,7 +297,7 @@ async def console_websocket(
     client_ip = _get_websocket_client_ip(websocket)
 
     # Verify authentication (token preferred, api_key as fallback)
-    role = _verify_ws_auth(token, api_key, token_service, settings, client_ip)
+    role = await _verify_ws_auth(token, api_key, token_service, settings, client_ip)
 
     if role is None:
         # Log failed auth attempt
@@ -471,7 +471,7 @@ async def logs_websocket(
     client_ip = _get_websocket_client_ip(websocket)
 
     # Verify authentication (token preferred, api_key as fallback)
-    role = _verify_ws_auth(token, api_key, token_service, settings, client_ip)
+    role = await _verify_ws_auth(token, api_key, token_service, settings, client_ip)
 
     if role is None:
         if token:

@@ -119,7 +119,7 @@ development_status:
   # Epic 9: Quality of Life Polish Pass (Added 2026-01-03)
   # FRs: FR40-FR55 - Security improvements, debugging, UI enhancements
   epic-9: in-progress
-  9-1-secure-websocket-authentication: done
+  9-1-secure-websocket-authentication: in-progress
   9-2-directory-auto-creation-on-startup: backlog
   9-3-mod-cache-eviction-strategy: backlog
   9-4-debug-logging-infrastructure: backlog

@@ -367,6 +367,17 @@ gh pr create --title "Story 9.1: Secure WebSocket Authentication" --body "..."
 - `api/src/vintagestory_api/middleware/auth.py` - API key validation patterns
 - `web/src/hooks/use-console.ts` - Current frontend WebSocket hook
 
+## Review Follow-ups (AI)
+
+- [x] [AI-Review][HIGH] Add asyncio.Lock to WebSocketTokenService for thread-safe dict operations in token validation and cleanup [ws_token_service.py] - **FIXED**: All public methods are now async with asyncio.Lock protection
+- [x] [AI-Review][MEDIUM] Add test explicitly verifying token expiry during active connection (AC: 4) [test_websocket_token_auth.py] - **FIXED**: Added `TestTokenExpiryDuringConnection` class
+- [x] [AI-Review][MEDIUM] Add concurrency test using asyncio.gather to simulate concurrent token creation/validation [test_ws_token_service.py] - **FIXED**: Added `TestConcurrency` class with 3 concurrent tests
+- [x] [AI-Review][MEDIUM] Implement periodic token cleanup or LRU eviction with size limit [ws_token_service.py] - **FIXED**: Added MAX_TOKEN_COUNT=10000 with oldest-first eviction
+- [x] [AI-Review][MEDIUM] Fix Justfile duplicate --run flag in test-web recipe [Justfile:39] - **NOT A BUG**: `--run` is required for vitest to run once (not watch mode)
+- [x] [AI-Review][MEDIUM] Clarify whether Monitor role should access logs WebSocket endpoint [console.py:497] - **DOCUMENTED**: Added note to test that this is current behavior, product decision to be made
+- [x] [AI-Review][LOW] Fix typo in log event name - **NOT A BUG**: "ws_token_validated" is spelled correctly
+- [x] [AI-Review][LOW] Standardize logging event names - **VERIFIED**: All use consistent past tense (created, validated, expired, evicted)
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -382,6 +393,15 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Updated WebSocket endpoints (console/ws and console/logs/ws) to support token authentication. Token takes precedence over legacy api_key. Deprecation warning logged when api_key used. All 112 console tests pass (18 existing + 14 new token auth tests).
 - Task 4: Created frontend WebSocket token integration. Added web/src/api/ws-token.ts with requestWebSocketToken() function, WebSocketTokenError class. Updated use-console-websocket.ts and use-log-stream.ts hooks to request token before connecting. Added 'token_error' connection state for failed token requests. Updated ConnectionStatus component and ConsolePanel to handle token_error state. All 735 web tests pass.
 - Task 5: Verified all lint/type checks pass. Fixed import formatting in main.py, shortened deprecation message, and added pyright directives for test files. Total test count: 1035 API + 735 web = 1770 tests.
+
+### Review Follow-up Fixes
+
+- Made WebSocketTokenService methods async with asyncio.Lock for thread-safety in concurrent environments
+- Added MAX_TOKEN_COUNT (10000) limit with oldest-first eviction to prevent memory exhaustion
+- Added concurrency tests (TestConcurrency class with 3 tests using asyncio.gather)
+- Added token expiry during active connection test (TestTokenExpiryDuringConnection class)
+- Updated all test files to use async token service methods
+- Total test count after review fixes: 1041 API + 735 web = 1776 tests
 
 ### File List
 

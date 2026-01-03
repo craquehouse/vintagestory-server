@@ -65,7 +65,7 @@ async def request_websocket_token(
         ```
     """
     # Create token with user's role embedded
-    stored_token = token_service.create_token(current_user)
+    stored_token = await token_service.create_token(current_user)
 
     # Build response data
     token_data = WebSocketTokenData(
