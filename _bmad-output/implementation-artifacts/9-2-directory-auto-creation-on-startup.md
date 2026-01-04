@@ -1,6 +1,6 @@
 # Story 9.2: Directory Auto-Creation on Startup
 
-Status: in-progress
+Status: complete
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

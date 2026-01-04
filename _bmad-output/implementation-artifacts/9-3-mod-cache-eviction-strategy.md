@@ -6,7 +6,7 @@ As an **administrator**,
 I want **the mod cache to automatically clean up old files**,
 So that **disk space is managed without manual intervention**.
 
-## Status: In Progress
+## Status: complete
 
 ## Acceptance Criteria
 

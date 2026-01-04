@@ -114,8 +114,8 @@ development_status:
   # FRs: FR40-FR55 - Security improvements, debugging, UI enhancements
   epic-9: in-progress
   9-1-secure-websocket-authentication: done
-  9-2-directory-auto-creation-on-startup: in-progress
-  9-3-mod-cache-eviction-strategy: backlog
+  9-2-directory-auto-creation-on-startup: done
+  9-3-mod-cache-eviction-strategy: done
   9-4-debug-logging-infrastructure: backlog
   9-5-console-command-highlighting: backlog
   9-6-json-syntax-colorization: backlog
