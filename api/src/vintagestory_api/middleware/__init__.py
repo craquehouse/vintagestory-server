@@ -14,9 +14,11 @@ from vintagestory_api.middleware.permissions import (
     require_console_access,
     require_role,
 )
+from vintagestory_api.middleware.request_context import RequestContextMiddleware
 
 __all__ = [
     "CurrentUser",
+    "RequestContextMiddleware",
     "RequireAdmin",
     "RequireConsoleAccess",
     "UserRole",

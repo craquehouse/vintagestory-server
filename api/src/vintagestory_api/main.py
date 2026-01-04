@@ -11,12 +11,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
-from vintagestory_api.config import Settings, configure_logging
+from vintagestory_api.config import Settings, initialize_debug_state, is_debug_enabled
 from vintagestory_api.middleware.auth import get_current_user
+from vintagestory_api.middleware.request_context import RequestContextMiddleware
 from vintagestory_api.routers import (
     auth,
     config,
     console,
+    debug,
     health,
     jobs,
     mods,
@@ -88,14 +90,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     global scheduler_service
 
     settings = Settings()
-    configure_logging(debug=settings.debug, log_level=settings.log_level)
+    # Initialize debug state from VS_DEBUG env var (FR48)
+    # This must be called before any logging to ensure correct log levels
+    initialize_debug_state()
 
     # Ensure data directories exist
     settings.ensure_data_directories()
+    debug_enabled = is_debug_enabled()
     logger.info(
         "api_starting",
-        debug_mode=settings.debug,
-        log_level=settings.log_level or ("DEBUG" if settings.debug else "INFO"),
+        debug_mode=debug_enabled,
+        log_level="DEBUG" if debug_enabled else "INFO",
         data_dir=str(settings.data_dir),
     )
 
@@ -161,8 +166,12 @@ app = FastAPI(
 # (2) we don't use cookie-based auth, and (3) API validates all requests.
 settings = Settings()
 
-# Add CORS logging middleware (runs before CORS middleware)
-app.add_middleware(CORSLoggingMiddleware)
+# Middleware registration order note:
+# FastAPI/Starlette processes middleware in reverse registration order.
+# Registered last = runs first. So our order is:
+# 1. CORSMiddleware (registered first, runs last for outgoing)
+# 2. CORSLoggingMiddleware (logs CORS requests)
+# 3. RequestContextMiddleware (registered last, runs FIRST to set up request_id)
 
 app.add_middleware(
     CORSMiddleware,
@@ -173,6 +182,13 @@ app.add_middleware(
     max_age=600,  # Cache preflight requests for 10 minutes
 )
 
+# Add CORS logging middleware
+app.add_middleware(CORSLoggingMiddleware)
+
+# Request context middleware runs FIRST (registered last due to reverse order)
+# Sets up request_id for all log entries within the request
+app.add_middleware(RequestContextMiddleware)
+
 # Health endpoints at root (NOT versioned - K8s convention)
 app.include_router(health.router)
 
@@ -181,6 +197,7 @@ api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_use
 api_v1.include_router(auth.router)
 api_v1.include_router(config.router)
 api_v1.include_router(console.router)
+api_v1.include_router(debug.router)
 api_v1.include_router(jobs.router)
 api_v1.include_router(mods.router)
 api_v1.include_router(server.router)

@@ -1,5 +1,6 @@
 """Server installation and lifecycle API endpoints."""
 
+import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from vintagestory_api.middleware.auth import get_current_user
@@ -11,6 +12,8 @@ from vintagestory_api.models.server import (
     ServerState,
 )
 from vintagestory_api.services.server import ServerService, get_server_service
+
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/server", tags=["Server"])
 
@@ -100,6 +103,7 @@ async def install_server(
         )
 
     # Start installation in background
+    logger.debug("router_install_server_start", version=version)
     background_tasks.add_task(service.install_server, version)
 
     # Return initial progress
@@ -126,7 +130,9 @@ async def get_install_status(
     Returns:
         ApiResponse with InstallProgress data
     """
+    logger.debug("router_install_status_start")
     progress = service.get_install_progress()
+    logger.debug("router_install_status_complete", state=progress.state.value)
 
     return ApiResponse(
         status="ok",
@@ -160,7 +166,9 @@ async def get_server_status(
     Returns:
         ApiResponse with ServerStatus data
     """
+    logger.debug("router_server_status_start")
     status = service.get_server_status()
+    logger.debug("router_server_status_complete", state=status.state.value)
     return ApiResponse(status="ok", data=status.model_dump())
 
 
@@ -186,8 +194,10 @@ async def start_server(
         HTTPException: 400 if server not installed
         HTTPException: 409 if server already running
     """
+    logger.debug("router_start_server_start")
     try:
         response = await service.start_server()
+        logger.debug("router_start_server_complete", new_state=response.new_state.value)
         return ApiResponse(
             status="ok",
             data={
@@ -243,8 +253,10 @@ async def stop_server(
         HTTPException: 400 if server not installed
         HTTPException: 409 if server not running
     """
+    logger.debug("router_stop_server_start")
     try:
         response = await service.stop_server()
+        logger.debug("router_stop_server_complete", new_state=response.new_state.value)
         return ApiResponse(
             status="ok",
             data={
@@ -299,8 +311,10 @@ async def restart_server(
         HTTPException: 400 if server not installed
         HTTPException: 500 if stop or start phase fails
     """
+    logger.debug("router_restart_server_start")
     try:
         response = await service.restart_server()
+        logger.debug("router_restart_server_complete", new_state=response.new_state.value)
         return ApiResponse(
             status="ok",
             data={

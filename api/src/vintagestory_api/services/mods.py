@@ -448,8 +448,10 @@ class ModService:
         Raises:
             ModNotFoundError: If the mod is not found.
         """
+        logger.debug("enable_mod_start", slug=slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
+            logger.debug("enable_mod_not_found", slug=slug)
             raise ModNotFoundError(slug)
 
         # Already enabled - idempotent success
@@ -496,8 +498,10 @@ class ModService:
         Raises:
             ModNotFoundError: If the mod is not found.
         """
+        logger.debug("disable_mod_start", slug=slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
+            logger.debug("disable_mod_not_found", slug=slug)
             raise ModNotFoundError(slug)
 
         # Already disabled - idempotent success
@@ -544,8 +548,10 @@ class ModService:
         Raises:
             ModNotFoundError: If the mod is not installed.
         """
+        logger.debug("remove_mod_start", slug=slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
+            logger.debug("remove_mod_not_found", slug=slug)
             raise ModNotFoundError(slug)
 
         # Delete mod file from disk (handle both enabled and disabled)
@@ -647,10 +653,14 @@ class ModService:
         """
         # Extract slug from URL if needed
         slug = extract_slug(slug_or_url)
+        logger.debug("install_mod_start", slug=slug, input=slug_or_url, version=version)
 
         # Check if already installed
         existing = self._state_manager.get_mod_by_slug(slug)
         if existing is not None:
+            logger.debug(
+                "install_mod_already_installed", slug=slug, current_version=existing.version
+            )
             raise ModAlreadyInstalledError(slug, existing.version)
 
         # Download mod via API client
