@@ -1196,8 +1196,9 @@ class ServerService:
             logger.warning("send_command_failed", reason="stdin_not_available")
             return False
 
-        # Echo command to console buffer for visibility
-        await self._console_buffer.append(f"[CMD] {command}")
+        # Echo command to console buffer with ANSI cyan color for visibility
+        # \x1b[36m = cyan foreground, \x1b[0m = reset (xterm.js interprets these)
+        await self._console_buffer.append(f"\x1b[36m[CMD] {command}\x1b[0m")
 
         # Write to stdin with newline
         self._process.stdin.write(f"{command}\n".encode())
