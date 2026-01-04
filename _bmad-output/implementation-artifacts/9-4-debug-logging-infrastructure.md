@@ -1,6 +1,6 @@
 # Story 9.4: Debug Logging Infrastructure
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
