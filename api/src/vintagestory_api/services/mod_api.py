@@ -4,14 +4,19 @@ This module provides an async client for interacting with the VintageStory
 mod database at mods.vintagestory.at, handling mod lookups and downloads.
 """
 
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlparse
 
 import httpx
 import structlog
+
+if TYPE_CHECKING:
+    from vintagestory_api.services.cache_eviction import CacheEvictionService
 
 logger = structlog.get_logger()
 
@@ -189,16 +194,23 @@ class ModApiClient:
     DEFAULT_TIMEOUT = 30.0
     DOWNLOAD_TIMEOUT = 120.0
 
-    def __init__(self, cache_dir: Path) -> None:
+    def __init__(
+        self,
+        cache_dir: Path,
+        cache_eviction_service: CacheEvictionService | None = None,
+    ) -> None:
         """Initialize the mod API client.
 
         Args:
             cache_dir: Directory for caching downloaded mods.
+            cache_eviction_service: Optional cache eviction service for managing
+                cache size. If provided, eviction is run after each download.
         """
         self._cache_dir = cache_dir
         self._mods_cache = cache_dir / "mods"
         self._mods_cache.mkdir(parents=True, exist_ok=True)
         self._client: httpx.AsyncClient | None = None
+        self._cache_eviction = cache_eviction_service
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
@@ -351,6 +363,16 @@ class ModApiClient:
                 version=release["modversion"],
                 filename=filename,
             )
+
+            # Run cache eviction after successful download
+            if self._cache_eviction is not None:
+                eviction_result = self._cache_eviction.evict_if_needed()
+                if eviction_result.files_evicted > 0:
+                    logger.debug(
+                        "cache_eviction_after_download",
+                        files_evicted=eviction_result.files_evicted,
+                        bytes_freed=eviction_result.bytes_freed,
+                    )
 
             return DownloadResult(
                 path=dest_path,

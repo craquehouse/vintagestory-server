@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
     disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
+    mod_cache_max_size_mb: int = 500  # Maximum size of mod cache in MB (0 to disable)
 
     @field_validator("disk_space_warning_threshold_gb")
     @classmethod
@@ -42,6 +43,27 @@ class Settings(BaseSettings):
             raise ValueError(
                 "VS_DISK_SPACE_WARNING_THRESHOLD_GB must be non-negative. "
                 "Use 0 to disable the fixed GB threshold (percentage-based will still apply)."
+            )
+        return v
+
+    @field_validator("mod_cache_max_size_mb")
+    @classmethod
+    def validate_mod_cache_max_size(cls, v: int) -> int:
+        """Validate that mod cache max size is non-negative.
+
+        Args:
+            v: Maximum cache size in megabytes
+
+        Returns:
+            Validated cache size
+
+        Raises:
+            ValueError: If cache size is negative
+        """
+        if v < 0:
+            raise ValueError(
+                "VS_MOD_CACHE_MAX_SIZE_MB must be non-negative. "
+                "Use 0 to disable cache eviction."
             )
         return v
 
