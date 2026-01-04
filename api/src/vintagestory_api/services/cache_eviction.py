@@ -184,39 +184,39 @@ class CacheEvictionService:
                 bytes_remaining=total_size,
             )
 
-        # Need to evict - files are already sorted oldest first
+        # Need to evict - files are already sorted oldest first (by access time)
         files_evicted = 0
         bytes_freed = 0
-        files_to_keep: list[CacheFileInfo] = []
+        current_size = total_size
 
         for file_info in files:
-            if total_size - bytes_freed <= self._max_size_bytes:
-                # We're under the limit, keep remaining files
-                files_to_keep.append(file_info)
-            else:
-                # Still over limit, evict this file
-                try:
-                    file_info.path.unlink()
-                    logger.info(
-                        "cache_evicted",
-                        file=str(file_info.path.name),
-                        size_bytes=file_info.size_bytes,
-                        reason="size_limit",
-                    )
-                    bytes_freed += file_info.size_bytes
-                    files_evicted += 1
-                except OSError as e:
-                    logger.warning(
-                        "cache_eviction_failed",
-                        file=str(file_info.path),
-                        error=str(e),
-                    )
-                    # Keep the file in the count since we couldn't delete it
-                    files_to_keep.append(file_info)
+            if current_size <= self._max_size_bytes:
+                # We're under the limit, stop evicting
+                break
 
-        # After loop, add any remaining files that we haven't processed yet
-        # This handles the case where we break early
-        bytes_remaining = sum(f.size_bytes for f in files_to_keep)
+            # Still over limit, evict this file (oldest first)
+            try:
+                file_info.path.unlink()
+                logger.info(
+                    "cache_evicted",
+                    file=str(file_info.path.name),
+                    size_bytes=file_info.size_bytes,
+                    reason="size_limit",
+                )
+                bytes_freed += file_info.size_bytes
+                current_size -= file_info.size_bytes
+                files_evicted += 1
+            except OSError as e:
+                logger.warning(
+                    "cache_eviction_failed",
+                    file=str(file_info.path),
+                    error=str(e),
+                )
+                # File couldn't be deleted, it remains in cache
+
+        # Calculate remaining files by re-scanning (accounts for failed deletions)
+        remaining_files = self._get_cache_files()
+        bytes_remaining = sum(f.size_bytes for f in remaining_files)
 
         if files_evicted > 0:
             logger.info(
@@ -229,7 +229,7 @@ class CacheEvictionService:
         return EvictionResult(
             files_evicted=files_evicted,
             bytes_freed=bytes_freed,
-            files_remaining=len(files_to_keep),
+            files_remaining=len(remaining_files),
             bytes_remaining=bytes_remaining,
         )
 

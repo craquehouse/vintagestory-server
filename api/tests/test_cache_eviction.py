@@ -2,6 +2,7 @@
 
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -230,3 +231,85 @@ class TestEdgeCases:
         stats = service.get_cache_stats()
 
         assert stats["file_count"] == 0
+
+
+class TestLogging:
+    """Tests for log event verification (FR46).
+
+    Note: These tests verify log events are emitted correctly by checking
+    the captured stdout output, since structlog logger caching makes
+    processor-based capture unreliable across tests.
+    """
+
+    def test_cache_evicted_event_emitted(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that cache_evicted log events are emitted when files are evicted."""
+        # Create files that will exceed limit
+        create_test_file(cache_dir, "old_mod.zip", 600 * 1024)  # 600KB
+        time.sleep(0.01)
+        create_test_file(cache_dir, "new_mod.zip", 600 * 1024)  # 600KB
+
+        # 1MB limit, cache has 1.2MB - should evict oldest
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=1)
+        service.evict_if_needed()
+
+        # Verify cache_evicted event was logged (check captured output)
+        captured = capsys.readouterr()
+        assert "cache_evicted" in captured.out
+        assert "size_limit" in captured.out
+
+    def test_cache_eviction_complete_event(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that cache_eviction_complete summary event is emitted."""
+        create_test_file(cache_dir, "mod1.zip", 600 * 1024)
+        create_test_file(cache_dir, "mod2.zip", 600 * 1024)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=1)
+        service.evict_if_needed()
+
+        # Verify summary event was logged
+        captured = capsys.readouterr()
+        assert "cache_eviction_complete" in captured.out
+        assert "files_evicted" in captured.out
+        assert "bytes_freed" in captured.out
+
+    def test_evict_all_uses_manual_clear_reason(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that evict_all uses reason='manual_clear'."""
+        create_test_file(cache_dir, "mod1.zip", 1000)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+        service.evict_all()
+
+        # Verify manual_clear reason was used
+        captured = capsys.readouterr()
+        assert "cache_evicted" in captured.out
+        assert "manual_clear" in captured.out
+
+    def test_cache_eviction_failed_on_permission_error(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that cache_eviction_failed is logged when file deletion fails."""
+        create_test_file(cache_dir, "protected_mod.zip", 600 * 1024)
+        create_test_file(cache_dir, "other_mod.zip", 600 * 1024)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=1)
+
+        # Mock unlink to fail for the first file
+        original_unlink = Path.unlink
+
+        def mock_unlink(self: Path, missing_ok: bool = False) -> None:
+            if self.name == "protected_mod.zip":
+                raise OSError("Permission denied")
+            original_unlink(self, missing_ok=missing_ok)
+
+        with patch.object(Path, "unlink", mock_unlink):
+            service.evict_if_needed()
+
+        # Verify failure event was logged
+        captured = capsys.readouterr()
+        assert "cache_eviction_failed" in captured.out
+        assert "Permission denied" in captured.out
