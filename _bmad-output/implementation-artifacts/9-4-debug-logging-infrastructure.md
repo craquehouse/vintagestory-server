@@ -1,6 +1,6 @@
 # Story 9.4: Debug Logging Infrastructure
 
-Status: review
+Status: complete
 
 ## Story
 
@@ -38,7 +38,7 @@ So that **I can troubleshoot issues with detailed request tracing**.
   - [x] Subtask 1.3: Add `structlog.contextvars.clear_contextvars()` at request start
   - [x] Subtask 1.4: Write tests verifying request_id appears in all log entries for a request
 
-- [x] Task 2: Update configure_logging with merge_contextvars + tests (AC: 3)
+ - [x] Task 2: Update configure_logging with merge_contextvars + tests (AC: 3)
   - [x] Subtask 2.1: Add `structlog.contextvars.merge_contextvars` as first processor
   - [x] Subtask 2.2: Update config.py to include merge_contextvars in processor chain
   - [x] Subtask 2.3: Write tests verifying context vars are merged into log output
@@ -54,6 +54,11 @@ So that **I can troubleshoot issues with detailed request tracing**.
   - [x] Subtask 4.2: Implement periodic or per-request check of VS_DEBUG env var
   - [x] Subtask 4.3: Document approach in Technical Notes (hot-reload vs periodic check)
   - [x] Subtask 4.4: Write tests for runtime debug toggle behavior
+
+- [x] Task 5: Review Follow-ups (AI-Review)
+  - [x] [HIGH Priority]: Add debug logs to router layer endpoints
+  - [x] [MEDIUM Priority]: Update File List to include all changed files
+  - [x] [MEDIUM Priority]: Standardize test fixtures in test_config.py to use consistent structlog configuration
 
 ## Dev Notes
 
@@ -188,20 +193,47 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created RequestContextMiddleware that generates UUID4 request_id per request, binds to structlog contextvars, and clears context at request start. Registered middleware in main.py. Added 5 tests verifying request_id generation, consistency across logs, uniqueness per request, and context isolation.
 - Task 2: Added merge_contextvars as first processor in configure_logging() for both debug and production modes. This ensures all context vars (request_id, etc.) appear in every log entry. Added 5 tests for context var merging behavior.
 - Task 3: Added entry-level debug logs to ModService (enable, disable, remove, install), ServerService (start, stop, restart, install), and ConsoleBuffer (append, get_history). Added test suite verifying debug logs are gated by debug mode setting.
-- Task 4: Implemented runtime debug toggle (FR48). Added get_current_debug_setting() and reconfigure_logging_if_changed() functions. Integrated per-request check into RequestContextMiddleware. Changed cache_logger_on_first_use=False to allow runtime reconfiguration. Added autouse test fixture to ensure consistent structlog config. Added 13 tests for runtime toggle behavior.
+- Task 4: Implemented runtime debug toggle (FR48). Initial approach used per-request env check in middleware, but this was refactored to a cleaner internal state design:
+  - Added `_debug_enabled` and `_debug_initialized` internal state variables
+  - `initialize_debug_state()` reads VS_DEBUG once at startup
+  - `is_debug_enabled()` returns current debug state
+  - `set_debug_enabled(bool)` allows runtime toggle via API
+  - Created `/api/v1alpha1/debug` endpoints (GET status, POST enable/disable)
+  - Removed per-request env check from middleware (performance improvement)
+  - Changed `cache_logger_on_first_use=False` to allow runtime reconfiguration
+  - Added 28 tests total: 11 for config state functions, 12 for debug API endpoints, 5 for request context
 
 ### File List
 
-- `api/src/vintagestory_api/middleware/request_context.py` (NEW)
-- `api/src/vintagestory_api/middleware/__init__.py` (MODIFIED)
-- `api/src/vintagestory_api/main.py` (MODIFIED)
-- `api/src/vintagestory_api/config.py` (MODIFIED)
-- `api/tests/test_request_context.py` (NEW)
-- `api/tests/test_config.py` (MODIFIED)
-- `api/src/vintagestory_api/services/mods.py` (MODIFIED)
-- `api/src/vintagestory_api/services/server.py` (MODIFIED)
-- `api/src/vintagestory_api/services/console.py` (MODIFIED)
-- `api/tests/test_debug_logging.py` (NEW)
-- `api/tests/test_runtime_debug_toggle.py` (NEW)
-- `api/tests/conftest.py` (MODIFIED)
-- `api/tests/test_jobs_registration.py` (MODIFIED)
+**Middleware & Configuration:**
+- `api/src/vintagestory_api/middleware/request_context.py` (NEW) - Request ID middleware
+- `api/src/vintagestory_api/middleware/__init__.py` (MODIFIED) - Export middleware
+- `api/src/vintagestory_api/config.py` (MODIFIED) - Debug state management, merge_contextvars
+
+**Routers:**
+- `api/src/vintagestory_api/routers/debug.py` (NEW) - Debug toggle API endpoints
+- `api/src/vintagestory_api/routers/mods.py` (MODIFIED) - Added router-level debug logs
+- `api/src/vintagestory_api/routers/server.py` (MODIFIED) - Added router-level debug logs
+
+**Services:**
+- `api/src/vintagestory_api/services/mods.py` (MODIFIED) - Added service-level debug logs
+- `api/src/vintagestory_api/services/server.py` (MODIFIED) - Added service-level debug logs
+- `api/src/vintagestory_api/services/console.py` (MODIFIED) - Added service-level debug logs
+
+**Main Application:**
+- `api/src/vintagestory_api/main.py` (MODIFIED) - Initialize debug state, register debug router
+
+**Tests:**
+- `api/tests/test_request_context.py` (NEW) - Request context middleware tests
+- `api/tests/test_config.py` (MODIFIED) - Debug state function tests
+- `api/tests/test_debug_api.py` (NEW) - Debug API endpoint tests
+- `api/tests/test_debug_logging.py` (NEW) - Debug log gating tests
+- `api/tests/test_runtime_debug_toggle.py` (NEW) - Runtime toggle tests
+- `api/tests/conftest.py` (MODIFIED) - Test fixtures for debug state
+- `api/tests/test_jobs_registration.py` (MODIFIED) - Updated for debug state
+
+### Change Log
+
+- 2026-01-04: Refactored FR48 runtime debug toggle from per-request env check to internal state variable with API endpoints. Added `initialize_debug_state()`, `is_debug_enabled()`, `set_debug_enabled()` functions. Created `/api/v1alpha1/debug` router with GET/POST endpoints for admin-only debug toggle. Removed env check overhead from middleware. Added UI-028 to polish backlog for UI toggle component.
+- 2026-01-04: Code review follow-up - Added router-level debug logs to mods.py and server.py routers with consistent `router_{action}_start/complete` pattern. Updated File List with organized sections and all changed files.
+- 2026-01-04: Code review follow-up - Standardized test fixtures in test_config.py to use `captured_logs` fixture from conftest.py instead of inline `structlog.configure()` calls. Removed unused `Any` import.

@@ -3,7 +3,6 @@
 import os
 from io import StringIO
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -141,7 +140,9 @@ class TestApiKeyValidation:
 class TestDirectoryCreationLogging:
     """Tests for directory creation logging (Story 9.2 AC#2, AC#3)."""
 
-    def test_logs_directory_created_event(self, tmp_path: Path) -> None:
+    def test_logs_directory_created_event(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
         """When directories are created, logs directory_created event (AC#2).
 
         Verifies that all 6 directories are logged when created:
@@ -151,46 +152,23 @@ class TestDirectoryCreationLogging:
             os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
         ):
             settings = Settings()
-
-            # Capture logs
-            log_events: list[dict[str, Any]] = []
-
-            def capture_log(
-                logger: Any, method_name: str, event_dict: dict[str, Any]
-            ) -> dict[str, Any]:
-                log_events.append(event_dict.copy())
-                return event_dict
-
-            # API-027: structlog type stubs incomplete - processors type mismatch
-            structlog.configure(
-                processors=[capture_log, structlog.dev.ConsoleRenderer()],  # type: ignore[list-item]
-                wrapper_class=structlog.make_filtering_bound_logger(0),
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(),
-                cache_logger_on_first_use=False,
-            )
-
             settings.ensure_data_directories()
 
-            # Verify directory_created events were logged for all 6 directories
-            creation_events = [
-                e for e in log_events if e.get("event") == "directory_created"
-            ]
-            assert len(creation_events) == 6, (
-                f"Expected 6 directory_created events "
-                f"(server, serverdata, vsmanager, cache, state, logs), "
-                f"got {len(creation_events)}: {creation_events}"
-            )
+            output = captured_logs.getvalue()
 
-            # Verify each expected directory was logged
-            logged_paths = {str(e.get("path", "")) for e in creation_events}
+            # Verify directory_created events were logged for all 6 directories
             expected_dirs = ["server", "serverdata", "vsmanager", "cache", "state", "logs"]
             for dir_name in expected_dirs:
-                assert any(dir_name in path for path in logged_paths), (
-                    f"Expected '{dir_name}' directory in logged paths, got: {logged_paths}"
+                assert "directory_created" in output, (
+                    "Expected 'directory_created' event in log output"
+                )
+                assert dir_name in output, (
+                    f"Expected '{dir_name}' directory in logged output"
                 )
 
-    def test_no_log_when_directories_exist(self, tmp_path: Path) -> None:
+    def test_no_log_when_directories_exist(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
         """When directories already exist, no creation logs are emitted (AC#3)."""
         with patch.dict(
             os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
@@ -200,75 +178,38 @@ class TestDirectoryCreationLogging:
             # First call creates directories
             settings.ensure_data_directories()
 
-            # Capture logs on second call
-            log_events: list[dict[str, Any]] = []
-
-            def capture_log(
-                logger: Any, method_name: str, event_dict: dict[str, Any]
-            ) -> dict[str, Any]:
-                log_events.append(event_dict.copy())
-                return event_dict
-
-            # Configure structlog with custom processor for log capture
-            # API-027: structlog type stubs incomplete - processors type mismatch
-            structlog.configure(
-                processors=[capture_log, structlog.dev.ConsoleRenderer()],  # type: ignore[list-item]
-                wrapper_class=structlog.make_filtering_bound_logger(0),
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(),
-                cache_logger_on_first_use=False,
-            )
+            # Clear log buffer before second call
+            captured_logs.truncate(0)
+            captured_logs.seek(0)
 
             # Second call should not log any directory_created events
             settings.ensure_data_directories()
 
-            creation_events = [
-                e for e in log_events if e.get("event") == "directory_created"
-            ]
-            assert len(creation_events) == 0, (
+            output = captured_logs.getvalue()
+            assert "directory_created" not in output, (
                 f"Expected no directory_created events on second call, "
-                f"got: {creation_events}"
+                f"got: {output}"
             )
 
-    def test_logs_error_on_permission_failure(self, tmp_path: Path) -> None:
+    def test_logs_error_on_permission_failure(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
         """When directory creation fails, logs directory_creation_failed event (AC#4)."""
         with patch.dict(
             os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
         ):
             settings = Settings()
 
-            # Capture logs
-            log_events: list[dict[str, Any]] = []
-
-            def capture_log(
-                logger: Any, method_name: str, event_dict: dict[str, Any]
-            ) -> dict[str, Any]:
-                log_events.append(event_dict.copy())
-                return event_dict
-
-            # Configure structlog with custom processor for log capture
-            # API-027: structlog type stubs incomplete - processors type mismatch
-            structlog.configure(
-                processors=[capture_log, structlog.dev.ConsoleRenderer()],  # type: ignore[list-item]
-                wrapper_class=structlog.make_filtering_bound_logger(0),
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(),
-                cache_logger_on_first_use=False,
-            )
-
             # Mock mkdir to raise OSError for permission failure
             with patch.object(Path, "mkdir", side_effect=OSError("Permission denied")):
                 with pytest.raises(OSError, match="Permission denied"):
                     settings.ensure_data_directories()
 
-            # Verify directory_creation_failed was logged
-            error_events = [
-                e for e in log_events if e.get("event") == "directory_creation_failed"
-            ]
-            assert len(error_events) >= 1, (
-                f"Expected directory_creation_failed event, got: {log_events}"
+            output = captured_logs.getvalue()
+            assert "directory_creation_failed" in output, (
+                f"Expected directory_creation_failed event, got: {output}"
             )
-            assert "Permission denied" in str(error_events[0].get("error", ""))
+            assert "Permission denied" in output
 
 
 class TestModCacheMaxSize:

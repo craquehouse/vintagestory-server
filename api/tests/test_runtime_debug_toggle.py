@@ -1,6 +1,6 @@
 """Tests for runtime debug logging toggle (Story 9.4 Task 4 / FR48).
 
-Verifies that VS_DEBUG can be changed at runtime without server restart.
+Verifies that debug logging can be toggled at runtime via API.
 """
 
 import os
@@ -11,112 +11,139 @@ import structlog
 
 import vintagestory_api.config as config_module
 from vintagestory_api.config import (
-    get_current_debug_setting,
-    reconfigure_logging_if_changed,
+    configure_logging,
+    initialize_debug_state,
+    is_debug_enabled,
+    set_debug_enabled,
 )
 
 
-class TestGetCurrentDebugSetting:
-    """Tests for get_current_debug_setting function."""
-
-    def test_returns_true_for_true(self) -> None:
-        """VS_DEBUG=true returns True."""
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            assert get_current_debug_setting() is True
-
-    def test_returns_true_for_1(self) -> None:
-        """VS_DEBUG=1 returns True."""
-        with patch.dict(os.environ, {"VS_DEBUG": "1"}):
-            assert get_current_debug_setting() is True
-
-    def test_returns_true_for_yes(self) -> None:
-        """VS_DEBUG=yes returns True."""
-        with patch.dict(os.environ, {"VS_DEBUG": "yes"}):
-            assert get_current_debug_setting() is True
-
-    def test_returns_true_case_insensitive(self) -> None:
-        """VS_DEBUG=TRUE (uppercase) returns True."""
-        with patch.dict(os.environ, {"VS_DEBUG": "TRUE"}):
-            assert get_current_debug_setting() is True
-
-    def test_returns_false_for_false(self) -> None:
-        """VS_DEBUG=false returns False."""
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            assert get_current_debug_setting() is False
-
-    def test_returns_false_for_empty(self) -> None:
-        """VS_DEBUG='' returns False."""
-        with patch.dict(os.environ, {"VS_DEBUG": ""}):
-            assert get_current_debug_setting() is False
-
-    def test_returns_false_when_unset(self) -> None:
-        """Missing VS_DEBUG returns False."""
-        env = os.environ.copy()
-        env.pop("VS_DEBUG", None)
-        with patch.dict(os.environ, env, clear=True):
-            assert get_current_debug_setting() is False
-
-
-class TestReconfigureLoggingIfChanged:
-    """Tests for reconfigure_logging_if_changed function (FR48)."""
+class TestInitializeDebugState:
+    """Tests for initialize_debug_state function."""
 
     def setup_method(self) -> None:
         """Reset module state before each test."""
-        config_module._last_debug_state = None  # pyright: ignore[reportPrivateUsage]
+        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
+        config_module._debug_initialized = False  # pyright: ignore[reportPrivateUsage]
 
-    def test_reconfigures_on_first_call(self) -> None:
-        """First call always configures logging.
+    def test_reads_true_from_env(self) -> None:
+        """Initialize debug state from VS_DEBUG=true.
+
+        Given VS_DEBUG=true in environment
+        When initialize_debug_state is called
+        Then debug state is set to True
+        """
+        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
+            initialize_debug_state()
+            assert is_debug_enabled() is True
+
+    def test_reads_false_from_env(self) -> None:
+        """Initialize debug state from VS_DEBUG=false.
+
+        Given VS_DEBUG=false in environment
+        When initialize_debug_state is called
+        Then debug state is set to False
+        """
+        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
+            initialize_debug_state()
+            assert is_debug_enabled() is False
+
+    def test_defaults_false_when_unset(self) -> None:
+        """Debug state defaults to False when VS_DEBUG is not set.
 
         Given VS_DEBUG is not set
-        When reconfigure_logging_if_changed is called
-        Then logging is configured
-        And returns True
+        When initialize_debug_state is called
+        Then debug state is False
         """
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            result = reconfigure_logging_if_changed()
-            assert result is True
+        env = os.environ.copy()
+        env.pop("VS_DEBUG", None)
+        with patch.dict(os.environ, env, clear=True):
+            initialize_debug_state()
+            assert is_debug_enabled() is False
 
-    def test_no_reconfigure_when_unchanged(self) -> None:
-        """No reconfiguration when VS_DEBUG unchanged.
+    def test_only_initializes_once(self) -> None:
+        """Initialize debug state only runs once.
 
-        Given VS_DEBUG=false
-        When reconfigure_logging_if_changed is called twice
-        Then second call returns False (no change)
-        """
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            reconfigure_logging_if_changed()  # First call
-            result = reconfigure_logging_if_changed()  # Second call
-            assert result is False
-
-    def test_reconfigures_when_debug_enabled(self) -> None:
-        """Reconfigures when VS_DEBUG changes from false to true (AC: 2).
-
-        Given VS_DEBUG is changed at runtime
-        When the environment variable is updated
-        Then debug logging is enabled without server restart
-        """
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            reconfigure_logging_if_changed()  # Initial: false
-
-        # Change to true
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            result = reconfigure_logging_if_changed()
-            assert result is True  # Should reconfigure
-
-    def test_reconfigures_when_debug_disabled(self) -> None:
-        """Reconfigures when VS_DEBUG changes from true to false (AC: 2).
-
-        Given debug logging is enabled
-        When VS_DEBUG is set to false
-        Then debug logging is disabled without server restart
+        Given initialize_debug_state has been called
+        When called again with different env value
+        Then debug state is not changed
         """
         with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            reconfigure_logging_if_changed()  # Initial: true
+            initialize_debug_state()
+            assert is_debug_enabled() is True
 
-        # Change to false
+        # Second call with different env should be ignored
         with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            result = reconfigure_logging_if_changed()
-            assert result is True  # Should reconfigure
+            initialize_debug_state()
+            assert is_debug_enabled() is True  # Still True from first init
+
+    def test_accepts_various_true_values(self) -> None:
+        """VS_DEBUG accepts 'true', '1', 'yes' (case-insensitive)."""
+        for value in ["true", "TRUE", "True", "1", "yes", "YES"]:
+            config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
+            config_module._debug_initialized = False  # pyright: ignore[reportPrivateUsage]
+            with patch.dict(os.environ, {"VS_DEBUG": value}):
+                initialize_debug_state()
+                assert is_debug_enabled() is True, f"Failed for VS_DEBUG={value}"
+
+
+class TestSetDebugEnabled:
+    """Tests for set_debug_enabled function (FR48 runtime toggle)."""
+
+    def setup_method(self) -> None:
+        """Reset module state before each test."""
+        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
+        config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
+
+    def test_enable_debug(self) -> None:
+        """Enable debug logging at runtime.
+
+        Given debug is disabled
+        When set_debug_enabled(True) is called
+        Then debug is enabled
+        And returns True (changed)
+        """
+        assert is_debug_enabled() is False
+        changed = set_debug_enabled(True)
+        assert changed is True
+        assert is_debug_enabled() is True
+
+    def test_disable_debug(self) -> None:
+        """Disable debug logging at runtime.
+
+        Given debug is enabled
+        When set_debug_enabled(False) is called
+        Then debug is disabled
+        And returns True (changed)
+        """
+        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        assert is_debug_enabled() is True
+        changed = set_debug_enabled(False)
+        assert changed is True
+        assert is_debug_enabled() is False
+
+    def test_no_change_when_already_enabled(self) -> None:
+        """No change when enabling already-enabled debug.
+
+        Given debug is already enabled
+        When set_debug_enabled(True) is called
+        Then returns False (no change)
+        """
+        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        changed = set_debug_enabled(True)
+        assert changed is False
+        assert is_debug_enabled() is True
+
+    def test_no_change_when_already_disabled(self) -> None:
+        """No change when disabling already-disabled debug.
+
+        Given debug is already disabled
+        When set_debug_enabled(False) is called
+        Then returns False (no change)
+        """
+        changed = set_debug_enabled(False)
+        assert changed is False
+        assert is_debug_enabled() is False
 
 
 class TestRuntimeDebugToggleBehavior:
@@ -124,121 +151,117 @@ class TestRuntimeDebugToggleBehavior:
 
     def setup_method(self) -> None:
         """Reset module state before each test."""
-        config_module._last_debug_state = None  # pyright: ignore[reportPrivateUsage]
+        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
+        config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
 
     def test_debug_logs_appear_after_enabling(self) -> None:
-        """Debug logs appear after VS_DEBUG is enabled at runtime.
+        """Debug logs appear after debug is enabled at runtime.
 
-        Given VS_DEBUG=false initially
-        When VS_DEBUG is changed to true
-        And reconfigure_logging_if_changed is called
+        Given debug is disabled initially
+        When set_debug_enabled(True) is called
         Then debug-level logs are now emitted
         """
         log_output = StringIO()
 
         # Start with debug=false
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            reconfigure_logging_if_changed()
+        configure_logging(debug=False)
 
-            # Reconfigure structlog with our output capture
-            structlog.configure(
-                processors=[
-                    structlog.contextvars.merge_contextvars,
-                    structlog.stdlib.add_log_level,
-                    structlog.dev.ConsoleRenderer(),
-                ],
-                wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(file=log_output),
-                cache_logger_on_first_use=False,
-            )
+        # Reconfigure structlog with our output capture (INFO level)
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.stdlib.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO
+            context_class=dict,
+            logger_factory=structlog.PrintLoggerFactory(file=log_output),
+            cache_logger_on_first_use=False,
+        )
 
-            logger = structlog.get_logger()
-            logger.debug("should_not_appear_initial")
+        logger = structlog.get_logger()
+        logger.debug("should_not_appear_initial")
 
         initial_output = log_output.getvalue()
         assert "should_not_appear_initial" not in initial_output
 
-        # Now enable debug
+        # Now enable debug via API
         log_output.truncate(0)
         log_output.seek(0)
 
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            reconfigure_logging_if_changed()
+        set_debug_enabled(True)
 
-            # Reconfigure with DEBUG level
-            structlog.configure(
-                processors=[
-                    structlog.contextvars.merge_contextvars,
-                    structlog.stdlib.add_log_level,
-                    structlog.dev.ConsoleRenderer(),
-                ],
-                wrapper_class=structlog.make_filtering_bound_logger(10),  # DEBUG
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(file=log_output),
-                cache_logger_on_first_use=False,
-            )
+        # Reconfigure with DEBUG level (simulating what set_debug_enabled does internally)
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.stdlib.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(10),  # DEBUG
+            context_class=dict,
+            logger_factory=structlog.PrintLoggerFactory(file=log_output),
+            cache_logger_on_first_use=False,
+        )
 
-            logger = structlog.get_logger()
-            logger.debug("should_appear_now")
+        logger = structlog.get_logger()
+        logger.debug("should_appear_now")
 
         final_output = log_output.getvalue()
         assert "should_appear_now" in final_output
 
     def test_debug_logs_stop_after_disabling(self) -> None:
-        """Debug logs stop appearing after VS_DEBUG is disabled.
+        """Debug logs stop appearing after debug is disabled.
 
-        Given VS_DEBUG=true initially
-        When VS_DEBUG is changed to false
-        And reconfigure_logging_if_changed is called
+        Given debug is enabled initially
+        When set_debug_enabled(False) is called
         Then debug-level logs are no longer emitted
         """
         log_output = StringIO()
 
         # Start with debug=true
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            reconfigure_logging_if_changed()
+        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
 
-            structlog.configure(
-                processors=[
-                    structlog.contextvars.merge_contextvars,
-                    structlog.stdlib.add_log_level,
-                    structlog.dev.ConsoleRenderer(),
-                ],
-                wrapper_class=structlog.make_filtering_bound_logger(10),  # DEBUG
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(file=log_output),
-                cache_logger_on_first_use=False,
-            )
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.stdlib.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(10),  # DEBUG
+            context_class=dict,
+            logger_factory=structlog.PrintLoggerFactory(file=log_output),
+            cache_logger_on_first_use=False,
+        )
 
-            logger = structlog.get_logger()
-            logger.debug("should_appear_initial")
+        logger = structlog.get_logger()
+        logger.debug("should_appear_initial")
 
         initial_output = log_output.getvalue()
         assert "should_appear_initial" in initial_output
 
-        # Now disable debug
+        # Now disable debug via API
         log_output.truncate(0)
         log_output.seek(0)
 
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            reconfigure_logging_if_changed()
+        set_debug_enabled(False)
 
-            structlog.configure(
-                processors=[
-                    structlog.contextvars.merge_contextvars,
-                    structlog.stdlib.add_log_level,
-                    structlog.dev.ConsoleRenderer(),
-                ],
-                wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO
-                context_class=dict,
-                logger_factory=structlog.PrintLoggerFactory(file=log_output),
-                cache_logger_on_first_use=False,
-            )
+        # Reconfigure with INFO level
+        structlog.configure(
+            processors=[
+                structlog.contextvars.merge_contextvars,
+                structlog.stdlib.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            wrapper_class=structlog.make_filtering_bound_logger(20),  # INFO
+            context_class=dict,
+            logger_factory=structlog.PrintLoggerFactory(file=log_output),
+            cache_logger_on_first_use=False,
+        )
 
-            logger = structlog.get_logger()
-            logger.debug("should_not_appear_now")
-            logger.info("info_still_works")
+        logger = structlog.get_logger()
+        logger.debug("should_not_appear_now")
+        logger.info("info_still_works")
 
         final_output = log_output.getvalue()
         assert "should_not_appear_now" not in final_output

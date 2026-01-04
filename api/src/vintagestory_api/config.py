@@ -190,10 +190,14 @@ class Settings(BaseSettings):
                 raise
 
 
-def get_current_debug_setting() -> bool:
-    """Get current VS_DEBUG setting from environment.
+# Internal debug state - this is the source of truth at runtime
+# Initialized from VS_DEBUG env var at startup, can be toggled via API
+_debug_enabled: bool = False
+_debug_initialized: bool = False
 
-    This allows runtime checking of the debug flag without server restart.
+
+def _read_debug_from_env() -> bool:
+    """Read VS_DEBUG setting from environment variable.
 
     Returns:
         True if VS_DEBUG is set to a truthy value (true, 1, yes),
@@ -201,6 +205,65 @@ def get_current_debug_setting() -> bool:
     """
     value = os.environ.get("VS_DEBUG", "").lower()
     return value in ("true", "1", "yes")
+
+
+def initialize_debug_state() -> None:
+    """Initialize debug state from VS_DEBUG environment variable.
+
+    Called once at application startup. Reads VS_DEBUG from environment
+    and configures logging accordingly.
+
+    This is the proper way to set initial debug state - subsequent changes
+    should use set_debug_enabled() for runtime toggling.
+    """
+    global _debug_enabled, _debug_initialized
+    if not _debug_initialized:
+        _debug_enabled = _read_debug_from_env()
+        _debug_initialized = True
+        configure_logging(debug=_debug_enabled)
+
+
+def is_debug_enabled() -> bool:
+    """Get current debug state.
+
+    Returns:
+        True if debug logging is currently enabled.
+    """
+    return _debug_enabled
+
+
+def set_debug_enabled(enabled: bool) -> bool:
+    """Set debug state and reconfigure logging.
+
+    Called by API endpoint to toggle debug logging at runtime (FR48).
+
+    Args:
+        enabled: True to enable debug logging, False to disable.
+
+    Returns:
+        True if state was changed, False if already in requested state.
+    """
+    global _debug_enabled
+    if _debug_enabled != enabled:
+        previous = _debug_enabled
+        _debug_enabled = enabled
+        configure_logging(debug=enabled)
+        log = structlog.get_logger()
+        log.info("debug_logging_toggled", previous=previous, current=enabled)
+        return True
+    return False
+
+
+def get_current_debug_setting() -> bool:
+    """Get current debug state.
+
+    DEPRECATED: Use is_debug_enabled() instead.
+    This function is kept for backwards compatibility with existing tests.
+
+    Returns:
+        True if debug logging is currently enabled.
+    """
+    return _debug_enabled
 
 
 def configure_logging(debug: bool = False, log_level: str | None = None) -> None:

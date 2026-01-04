@@ -56,21 +56,15 @@ def request_context_app(captured_logs: StringIO) -> tuple[TestClient, StringIO]:
     Uses the captured_logs fixture from conftest.py to ensure log capture
     is properly configured AFTER the autouse fixture runs.
 
-    IMPORTANT: Sets _last_debug_state to True to prevent the middleware from
-    calling configure_logging() which would override our test log capture.
-    The middleware's reconfigure_logging_if_changed() only reconfigures when
-    the state changes, so pre-setting it prevents reconfiguration.
-
     Args:
         captured_logs: StringIO buffer from conftest.py fixture
 
     Returns:
         Tuple of (TestClient, log output buffer)
     """
-    # Pre-set the debug state to match VS_DEBUG=true (set in conftest.py)
-    # This prevents middleware from calling configure_logging() which would
-    # override our captured_logs configuration with stdout
-    config_module._last_debug_state = True  # pyright: ignore[reportPrivateUsage]
+    # Set debug state to True and mark as initialized to match test configuration
+    config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+    config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
 
     app = FastAPI()
     app.add_middleware(RequestContextMiddleware)

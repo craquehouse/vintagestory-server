@@ -2,6 +2,7 @@
 
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,8 @@ from vintagestory_api.services.mods import (
     ModService,
     get_mod_service,
 )
+
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/mods", tags=["Mods"])
 
@@ -53,8 +56,10 @@ async def list_mods(
     Raises:
         HTTPException: 401 if not authenticated
     """
+    logger.debug("router_list_mods_start")
     mods = service.list_mods()
     pending_restart = service.restart_state.pending_restart
+    logger.debug("router_list_mods_complete", mod_count=len(mods), pending_restart=pending_restart)
 
     return ApiResponse(
         status="ok",
@@ -104,8 +109,10 @@ async def lookup_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 502 if mod database API is unavailable
     """
+    logger.debug("router_lookup_mod_start", slug=slug)
     try:
         result = await service.lookup_mod(slug)
+        logger.debug("router_lookup_mod_complete", slug=slug, name=result.name)
 
         return ApiResponse(
             status="ok",
@@ -187,8 +194,15 @@ async def install_mod(
         HTTPException: 502 if mod database API is unavailable
         HTTPException: 502 if download fails
     """
+    logger.debug("router_install_mod_start", slug=request.slug, version=request.version)
     try:
         result = await service.install_mod(request.slug, request.version)
+        logger.debug(
+            "router_install_mod_complete",
+            slug=result.slug,
+            version=result.version,
+            compatibility=result.compatibility,
+        )
 
         return ApiResponse(
             status="ok",
@@ -291,8 +305,12 @@ async def enable_mod(
             },
         )
 
+    logger.debug("router_enable_mod_start", slug=slug)
     try:
         result = service.enable_mod(slug)
+        logger.debug(
+            "router_enable_mod_complete", slug=slug, pending_restart=result.pending_restart
+        )
 
         return ApiResponse(
             status="ok",
@@ -353,8 +371,12 @@ async def disable_mod(
             },
         )
 
+    logger.debug("router_disable_mod_start", slug=slug)
     try:
         result = service.disable_mod(slug)
+        logger.debug(
+            "router_disable_mod_complete", slug=slug, pending_restart=result.pending_restart
+        )
 
         return ApiResponse(
             status="ok",
@@ -411,8 +433,12 @@ async def remove_mod(
             },
         )
 
+    logger.debug("router_remove_mod_start", slug=slug)
     try:
         result = service.remove_mod(slug)
+        logger.debug(
+            "router_remove_mod_complete", slug=slug, pending_restart=result.pending_restart
+        )
 
         return ApiResponse(
             status="ok",
