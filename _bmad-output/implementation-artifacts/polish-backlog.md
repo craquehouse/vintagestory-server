@@ -77,6 +77,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-024 | There is double timestamping visible in console logs. I think the server already timetamps.                                            | high     | M      | backlog | API-022   | Requires process discovery (find VintageStory.exe), game server API integration for player count             |
 | API-025 | Investigate DI pattern for service access to reduce deferred imports and avoid circular dependencies                                   | low      | M      | backlog | Epic-7    | Current pattern uses global singletons with getter functions; deferred imports work but feel like workaround |
 | API-026 | ServerStatus should track the memory usage of both the API server and the game server. bonus points if it can track CPU usage as well. | low      | M      | backlog | -         | -                                                                                                            |
+| API-027 | Structlog type stubs incomplete - processors parameter type mismatch requires type: ignore comments                                     | low      | S      | backlog | Story-9.2 | See test_config.py:184,221 - custom processors don't match Processor type; upstream issue                    |
 
 ---
 

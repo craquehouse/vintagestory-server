@@ -118,8 +118,26 @@ class Settings(BaseSettings):
         """Directory for API state files (mods.json, api-settings.json, etc.)."""
         return self.vsmanager_dir / "state"
 
+    @property
+    def logs_dir(self) -> Path:
+        """Directory for application log files (if file logging enabled)."""
+        return self.vsmanager_dir / "logs"
+
     def ensure_data_directories(self) -> None:
-        """Create data directory structure if it doesn't exist."""
+        """Create data directory structure if it doesn't exist.
+
+        Creates the following directories under data_dir:
+        - server/: VintageStory server installation
+        - serverdata/: Game data (Mods, Saves, configs)
+        - vsmanager/: API manager state
+        - vsmanager/cache/: Cached downloads
+        - vsmanager/state/: State files
+        - vsmanager/logs/: Application logs (if file logging enabled)
+
+        Raises:
+            ValueError: If VS_API_KEY_ADMIN is not set
+            OSError: If directory creation fails (e.g., permissions)
+        """
         # Security: Validate that admin API key is set
         if not self.api_key_admin or self.api_key_admin.strip() == "":
             raise ValueError(
@@ -134,13 +152,16 @@ class Settings(BaseSettings):
             self.vsmanager_dir,
             self.cache_dir,
             self.state_dir,
+            self.logs_dir,
         ]:
             try:
-                directory.mkdir(parents=True, exist_ok=True)
+                if not directory.exists():
+                    directory.mkdir(parents=True, exist_ok=True)
+                    logger.info("directory_created", path=str(directory))
             except OSError as e:
                 logger.error(
                     "directory_creation_failed",
-                    directory=str(directory),
+                    path=str(directory),
                     error=str(e),
                 )
                 raise
