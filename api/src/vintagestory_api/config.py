@@ -1,6 +1,7 @@
 """Application configuration using pydantic-settings."""
 
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -189,6 +190,19 @@ class Settings(BaseSettings):
                 raise
 
 
+def get_current_debug_setting() -> bool:
+    """Get current VS_DEBUG setting from environment.
+
+    This allows runtime checking of the debug flag without server restart.
+
+    Returns:
+        True if VS_DEBUG is set to a truthy value (true, 1, yes),
+        False otherwise.
+    """
+    value = os.environ.get("VS_DEBUG", "").lower()
+    return value in ("true", "1", "yes")
+
+
 def configure_logging(debug: bool = False, log_level: str | None = None) -> None:
     """Configure structlog for dev (colorful) or prod (JSON) output.
 
@@ -203,6 +217,11 @@ def configure_logging(debug: bool = False, log_level: str | None = None) -> None
         - Prod mode: JSONRenderer for machine parsing
         - Use structured key=value pairs, not string interpolation
         - Never log sensitive data (API keys, passwords)
+
+    Runtime Debug Toggle (FR48):
+        To enable runtime log level changes without restart, use the
+        reconfigure_logging_if_changed() function which checks VS_DEBUG
+        environment variable and reconfigures when changed.
     """
     # Determine log level
     if log_level:
@@ -230,7 +249,8 @@ def configure_logging(debug: bool = False, log_level: str | None = None) -> None
             wrapper_class=structlog.make_filtering_bound_logger(level),
             context_class=dict,
             logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
+            # cache_logger_on_first_use=False allows runtime reconfiguration
+            cache_logger_on_first_use=False,
         )
     else:
         # Production: JSON, machine-parseable output
@@ -242,5 +262,49 @@ def configure_logging(debug: bool = False, log_level: str | None = None) -> None
             wrapper_class=structlog.make_filtering_bound_logger(level),
             context_class=dict,
             logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
+            # cache_logger_on_first_use=False allows runtime reconfiguration
+            cache_logger_on_first_use=False,
         )
+
+
+# Track last known debug state for change detection
+_last_debug_state: bool | None = None
+
+
+def reconfigure_logging_if_changed() -> bool:
+    """Check VS_DEBUG environment and reconfigure logging if changed.
+
+    This function enables runtime toggling of debug logging (FR48) by:
+    1. Reading current VS_DEBUG from environment
+    2. Comparing to last known state
+    3. Reconfiguring structlog if state changed
+
+    Should be called periodically or per-request (e.g., in middleware).
+
+    Returns:
+        True if logging was reconfigured, False if unchanged.
+    """
+    global _last_debug_state
+
+    current_debug = get_current_debug_setting()
+
+    # First call or state changed
+    if _last_debug_state is None or current_debug != _last_debug_state:
+        previous = _last_debug_state
+        _last_debug_state = current_debug
+
+        # Reconfigure logging with new debug state
+        configure_logging(debug=current_debug)
+
+        # Log the change (only if this isn't the first initialization)
+        if previous is not None:
+            logger = structlog.get_logger()
+            logger.info(
+                "debug_logging_toggled",
+                previous=previous,
+                current=current_debug,
+            )
+
+        return True
+
+    return False

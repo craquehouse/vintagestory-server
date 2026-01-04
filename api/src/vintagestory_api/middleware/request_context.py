@@ -4,6 +4,7 @@ This middleware:
 - Generates a unique UUID for each request
 - Binds the request_id to structlog context vars
 - Ensures all logs for a request include the same request_id
+- Checks for VS_DEBUG changes and reconfigures logging at runtime (FR48)
 
 Security Note:
 - Never log sensitive data (API keys, passwords) in request context
@@ -17,17 +18,25 @@ from starlette.requests import Request
 from starlette.responses import Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+from vintagestory_api.config import reconfigure_logging_if_changed
+
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
     """Middleware that adds request correlation ID to all logs.
 
     For each incoming request:
-    1. Clears any stale context vars from previous requests
-    2. Generates a new UUID4 request_id
-    3. Binds request_id to structlog context vars
+    1. Checks if VS_DEBUG changed and reconfigures logging (FR48)
+    2. Clears any stale context vars from previous requests
+    3. Generates a new UUID4 request_id
+    4. Binds request_id to structlog context vars
 
     This ensures all logs within a request share the same request_id,
     making request tracing straightforward.
+
+    Runtime Debug Toggle (FR48):
+        On each request, this middleware checks if VS_DEBUG environment
+        variable has changed. If so, it reconfigures structlog to enable
+        or disable debug logging without requiring a server restart.
 
     Example log output:
         2024-01-15T10:30:00Z [info] server_starting request_id=abc-123-def
@@ -46,6 +55,10 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         Returns:
             The response from downstream handlers
         """
+        # Check for VS_DEBUG changes and reconfigure logging if needed (FR48)
+        # This enables runtime debug toggling without server restart
+        reconfigure_logging_if_changed()
+
         # Clear any stale context from previous requests
         clear_contextvars()
 
