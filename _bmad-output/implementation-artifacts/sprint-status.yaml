@@ -116,7 +116,7 @@ development_status:
   9-1-secure-websocket-authentication: done
   9-2-directory-auto-creation-on-startup: done
   9-3-mod-cache-eviction-strategy: done
-  9-4-debug-logging-infrastructure: ready-for-dev
+  9-4-debug-logging-infrastructure: in-progress
   9-5-console-command-highlighting: backlog
   9-6-json-syntax-colorization: backlog
   9-7-dynamic-file-browser: backlog

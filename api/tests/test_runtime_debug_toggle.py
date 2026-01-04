@@ -62,7 +62,7 @@ class TestReconfigureLoggingIfChanged:
 
     def setup_method(self) -> None:
         """Reset module state before each test."""
-        config_module._last_debug_state = None
+        config_module._last_debug_state = None  # pyright: ignore[reportPrivateUsage]
 
     def test_reconfigures_on_first_call(self) -> None:
         """First call always configures logging.
@@ -124,7 +124,7 @@ class TestRuntimeDebugToggleBehavior:
 
     def setup_method(self) -> None:
         """Reset module state before each test."""
-        config_module._last_debug_state = None
+        config_module._last_debug_state = None  # pyright: ignore[reportPrivateUsage]
 
     def test_debug_logs_appear_after_enabling(self) -> None:
         """Debug logs appear after VS_DEBUG is enabled at runtime.

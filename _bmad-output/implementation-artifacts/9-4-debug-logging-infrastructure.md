@@ -32,28 +32,28 @@ So that **I can troubleshoot issues with detailed request tracing**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement request ID middleware + tests (AC: 3)
-  - [ ] Subtask 1.1: Create `middleware/request_context.py` with middleware that generates UUID request_id
-  - [ ] Subtask 1.2: Use `structlog.contextvars.bind_contextvars()` to bind request_id per-request
-  - [ ] Subtask 1.3: Add `structlog.contextvars.clear_contextvars()` at request start
-  - [ ] Subtask 1.4: Write tests verifying request_id appears in all log entries for a request
+- [x] Task 1: Implement request ID middleware + tests (AC: 3)
+  - [x] Subtask 1.1: Create `middleware/request_context.py` with middleware that generates UUID request_id
+  - [x] Subtask 1.2: Use `structlog.contextvars.bind_contextvars()` to bind request_id per-request
+  - [x] Subtask 1.3: Add `structlog.contextvars.clear_contextvars()` at request start
+  - [x] Subtask 1.4: Write tests verifying request_id appears in all log entries for a request
 
-- [ ] Task 2: Update configure_logging with merge_contextvars + tests (AC: 3)
-  - [ ] Subtask 2.1: Add `structlog.contextvars.merge_contextvars` as first processor
-  - [ ] Subtask 2.2: Update config.py to include merge_contextvars in processor chain
-  - [ ] Subtask 2.3: Write tests verifying context vars are merged into log output
+- [x] Task 2: Update configure_logging with merge_contextvars + tests (AC: 3)
+  - [x] Subtask 2.1: Add `structlog.contextvars.merge_contextvars` as first processor
+  - [x] Subtask 2.2: Update config.py to include merge_contextvars in processor chain
+  - [x] Subtask 2.3: Write tests verifying context vars are merged into log output
 
-- [ ] Task 3: Add debug logging to key services + tests (AC: 1, 4)
-  - [ ] Subtask 3.1: Add debug logs to `ModService` methods (install, enable, disable, remove)
-  - [ ] Subtask 3.2: Add debug logs to `ServerService` methods (start, stop, restart, install)
-  - [ ] Subtask 3.3: Add debug logs to `ConsoleService` methods (command execution, buffer operations)
-  - [ ] Subtask 3.4: Verify DEBUG level logs only appear when VS_DEBUG=true
+- [x] Task 3: Add debug logging to key services + tests (AC: 1, 4)
+  - [x] Subtask 3.1: Add debug logs to `ModService` methods (install, enable, disable, remove)
+  - [x] Subtask 3.2: Add debug logs to `ServerService` methods (start, stop, restart, install)
+  - [x] Subtask 3.3: Add debug logs to `ConsoleService` methods (command execution, buffer operations)
+  - [x] Subtask 3.4: Verify DEBUG level logs only appear when VS_DEBUG=true
 
-- [ ] Task 4: Implement runtime log level check + tests (AC: 2)
-  - [ ] Subtask 4.1: Research structlog runtime reconfiguration options
-  - [ ] Subtask 4.2: Implement periodic or per-request check of VS_DEBUG env var
-  - [ ] Subtask 4.3: Document approach in Technical Notes (hot-reload vs periodic check)
-  - [ ] Subtask 4.4: Write tests for runtime debug toggle behavior
+- [x] Task 4: Implement runtime log level check + tests (AC: 2)
+  - [x] Subtask 4.1: Research structlog runtime reconfiguration options
+  - [x] Subtask 4.2: Implement periodic or per-request check of VS_DEBUG env var
+  - [x] Subtask 4.3: Document approach in Technical Notes (hot-reload vs periodic check)
+  - [x] Subtask 4.4: Write tests for runtime debug toggle behavior
 
 ## Dev Notes
 
@@ -179,10 +179,29 @@ Document the chosen approach in completion notes.
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Created RequestContextMiddleware that generates UUID4 request_id per request, binds to structlog contextvars, and clears context at request start. Registered middleware in main.py. Added 5 tests verifying request_id generation, consistency across logs, uniqueness per request, and context isolation.
+- Task 2: Added merge_contextvars as first processor in configure_logging() for both debug and production modes. This ensures all context vars (request_id, etc.) appear in every log entry. Added 5 tests for context var merging behavior.
+- Task 3: Added entry-level debug logs to ModService (enable, disable, remove, install), ServerService (start, stop, restart, install), and ConsoleBuffer (append, get_history). Added test suite verifying debug logs are gated by debug mode setting.
+- Task 4: Implemented runtime debug toggle (FR48). Added get_current_debug_setting() and reconfigure_logging_if_changed() functions. Integrated per-request check into RequestContextMiddleware. Changed cache_logger_on_first_use=False to allow runtime reconfiguration. Added autouse test fixture to ensure consistent structlog config. Added 13 tests for runtime toggle behavior.
+
 ### File List
+
+- `api/src/vintagestory_api/middleware/request_context.py` (NEW)
+- `api/src/vintagestory_api/middleware/__init__.py` (MODIFIED)
+- `api/src/vintagestory_api/main.py` (MODIFIED)
+- `api/src/vintagestory_api/config.py` (MODIFIED)
+- `api/tests/test_request_context.py` (NEW)
+- `api/tests/test_config.py` (MODIFIED)
+- `api/src/vintagestory_api/services/mods.py` (MODIFIED)
+- `api/src/vintagestory_api/services/server.py` (MODIFIED)
+- `api/src/vintagestory_api/services/console.py` (MODIFIED)
+- `api/tests/test_debug_logging.py` (NEW)
+- `api/tests/test_runtime_debug_toggle.py` (NEW)
+- `api/tests/conftest.py` (MODIFIED)
+- `api/tests/test_jobs_registration.py` (MODIFIED)
