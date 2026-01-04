@@ -212,8 +212,10 @@ def configure_logging(debug: bool = False, log_level: str | None = None) -> None
     else:
         level = logging.DEBUG if debug else logging.INFO
 
-    # Common processors for both modes - always include ISO 8601 timestamps
+    # Common processors for both modes
+    # IMPORTANT: merge_contextvars MUST be first to include request context (request_id)
     common_processors = [
+        structlog.contextvars.merge_contextvars,  # Merge request context (request_id, etc.)
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.add_log_level,
     ]
