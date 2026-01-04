@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from vintagestory_api.config import Settings, configure_logging
 from vintagestory_api.middleware.auth import get_current_user
+from vintagestory_api.middleware.request_context import RequestContextMiddleware
 from vintagestory_api.routers import (
     auth,
     config,
@@ -161,8 +162,12 @@ app = FastAPI(
 # (2) we don't use cookie-based auth, and (3) API validates all requests.
 settings = Settings()
 
-# Add CORS logging middleware (runs before CORS middleware)
-app.add_middleware(CORSLoggingMiddleware)
+# Middleware registration order note:
+# FastAPI/Starlette processes middleware in reverse registration order.
+# Registered last = runs first. So our order is:
+# 1. CORSMiddleware (registered first, runs last for outgoing)
+# 2. CORSLoggingMiddleware (logs CORS requests)
+# 3. RequestContextMiddleware (registered last, runs FIRST to set up request_id)
 
 app.add_middleware(
     CORSMiddleware,
@@ -172,6 +177,13 @@ app.add_middleware(
     allow_headers=["X-API-Key", "Content-Type", "Authorization"],
     max_age=600,  # Cache preflight requests for 10 minutes
 )
+
+# Add CORS logging middleware
+app.add_middleware(CORSLoggingMiddleware)
+
+# Request context middleware runs FIRST (registered last due to reverse order)
+# Sets up request_id for all log entries within the request
+app.add_middleware(RequestContextMiddleware)
 
 # Health endpoints at root (NOT versioned - K8s convention)
 app.include_router(health.router)
