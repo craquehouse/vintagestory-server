@@ -1,0 +1,188 @@
+# Story 9.4: Debug Logging Infrastructure
+
+Status: ready-for-dev
+
+## Story
+
+As a **developer or operator**,
+I want **comprehensive debug logging throughout the API**,
+So that **I can troubleshoot issues with detailed request tracing**.
+
+## Acceptance Criteria
+
+1. **Given** `VS_DEBUG=true` is set
+   **When** API requests are processed
+   **Then** debug-level logs are emitted for each service layer (router → service → repository)
+   *(Covers FR47)*
+
+2. **Given** `VS_DEBUG` is changed at runtime
+   **When** the environment variable is updated
+   **Then** debug logging is enabled/disabled without server restart
+   *(Covers FR48)*
+
+3. **Given** debug logging is enabled
+   **When** a request is processed
+   **Then** all log entries include a correlation ID (`request_id`) for tracing
+   **And** the correlation ID is consistent across all logs for that request
+   *(Covers FR49)*
+
+4. **Given** debug logging is disabled (default)
+   **When** requests are processed
+   **Then** only info, warning, and error logs are emitted
+
+## Tasks / Subtasks
+
+- [ ] Task 1: Implement request ID middleware + tests (AC: 3)
+  - [ ] Subtask 1.1: Create `middleware/request_context.py` with middleware that generates UUID request_id
+  - [ ] Subtask 1.2: Use `structlog.contextvars.bind_contextvars()` to bind request_id per-request
+  - [ ] Subtask 1.3: Add `structlog.contextvars.clear_contextvars()` at request start
+  - [ ] Subtask 1.4: Write tests verifying request_id appears in all log entries for a request
+
+- [ ] Task 2: Update configure_logging with merge_contextvars + tests (AC: 3)
+  - [ ] Subtask 2.1: Add `structlog.contextvars.merge_contextvars` as first processor
+  - [ ] Subtask 2.2: Update config.py to include merge_contextvars in processor chain
+  - [ ] Subtask 2.3: Write tests verifying context vars are merged into log output
+
+- [ ] Task 3: Add debug logging to key services + tests (AC: 1, 4)
+  - [ ] Subtask 3.1: Add debug logs to `ModService` methods (install, enable, disable, remove)
+  - [ ] Subtask 3.2: Add debug logs to `ServerService` methods (start, stop, restart, install)
+  - [ ] Subtask 3.3: Add debug logs to `ConsoleService` methods (command execution, buffer operations)
+  - [ ] Subtask 3.4: Verify DEBUG level logs only appear when VS_DEBUG=true
+
+- [ ] Task 4: Implement runtime log level check + tests (AC: 2)
+  - [ ] Subtask 4.1: Research structlog runtime reconfiguration options
+  - [ ] Subtask 4.2: Implement periodic or per-request check of VS_DEBUG env var
+  - [ ] Subtask 4.3: Document approach in Technical Notes (hot-reload vs periodic check)
+  - [ ] Subtask 4.4: Write tests for runtime debug toggle behavior
+
+## Dev Notes
+
+### Testing Requirements
+
+**CRITICAL:** Tests must be written alongside implementation, not as a separate phase.
+
+- Each task that adds functionality must include its tests before marking complete
+- A task is NOT complete until tests pass
+- Do not batch tests into a separate "Write tests" task at the end
+- Run `just test` to verify all tests pass before marking task complete
+
+### Security Requirements
+
+**Follow patterns in `project-context.md` → Security Patterns section:**
+
+- Never log sensitive data (API keys, passwords, tokens) in debug logs
+- Mask or truncate sensitive fields when logging request context
+- Log key prefixes only: `api_key[:8] + "..."`
+
+### Development Commands
+
+Use `just` for all development tasks:
+- `just test` - Run all tests
+- `just test-api` - Run API tests only
+- `just check` - Full validation (lint + typecheck + test)
+- `just lint-api` - Run linter on API code
+
+### Architecture & Patterns
+
+**Existing Logging Configuration (from config.py:192-244):**
+- `configure_logging(debug, log_level)` - Configures structlog processors
+- Dev mode: `ConsoleRenderer()` - colorful, human-readable
+- Prod mode: `JSONRenderer()` - machine-parseable JSON
+- Common processors: `TimeStamper(fmt="iso")`, `add_log_level`
+
+**Adding Request Context (structlog.contextvars pattern):**
+```python
+# In middleware (runs first for each request)
+import structlog
+from structlog.contextvars import clear_contextvars, bind_contextvars
+
+async def request_context_middleware(request, call_next):
+    clear_contextvars()  # Clear any stale context
+    request_id = str(uuid.uuid4())
+    bind_contextvars(request_id=request_id)  # Available to all loggers in this request
+    return await call_next(request)
+
+# In configure_logging - add merge_contextvars as FIRST processor
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,  # MUST be first
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_log_level,
+        # ... rest of processors
+    ],
+)
+```
+
+**Debug Log Placement Guidelines:**
+- Router layer: Log request entry/exit with request_id
+- Service layer: Log method entry with parameters, exit with result summary
+- Error handling: Log exception type and message (not full stack trace in debug)
+- External calls: Log before/after httpx calls with timing
+
+**Runtime Debug Toggle Options:**
+1. **Per-request check** - Check `os.environ.get("VS_DEBUG")` in middleware (simple, slight overhead)
+2. **Periodic reconfigure** - Background task reconfigures structlog every N seconds (complex)
+3. **Signal handler** - SIGUSR1 triggers reconfiguration (Linux only)
+4. **Endpoint** - `POST /api/v1alpha1/debug` to toggle (requires auth, most flexible)
+
+Recommendation: Per-request check in middleware is simplest and sufficient for dev/debug use cases.
+
+### Previous Story Intelligence (9-3)
+
+**Code Review Findings Applied:**
+- [x] Ensure log event tests verify actual log content (add TestLogging pattern)
+- [x] Don't defer APScheduler type suppressions - document inline if adding new ones
+
+**Pattern Established:**
+- Use `logger = structlog.get_logger()` at module level
+- Log events with snake_case names: `cache_evicted`, `request_started`
+- Include relevant context as key=value pairs
+
+### Project Structure Notes
+
+**Files to Create/Modify:**
+- **NEW:** `api/src/vintagestory_api/middleware/request_context.py` - Request ID middleware
+- **MODIFY:** `api/src/vintagestory_api/config.py` - Add merge_contextvars processor
+- **MODIFY:** `api/src/vintagestory_api/main.py` - Register middleware
+- **MODIFY:** `api/src/vintagestory_api/services/mods.py` - Add debug logs
+- **MODIFY:** `api/src/vintagestory_api/services/server.py` - Add debug logs
+- **MODIFY:** `api/src/vintagestory_api/services/console.py` - Add debug logs
+- **NEW:** `api/tests/test_request_context.py` - Middleware tests
+- **MODIFY:** `api/tests/test_config.py` - Logging configuration tests
+
+**Alignment with Existing Patterns:**
+- Middleware goes in `middleware/` directory (existing: `auth.py`, `permissions.py`)
+- Service logging pattern established in `cache_eviction.py`
+- Test files in `api/tests/` with `test_` prefix
+
+### References
+
+- `project-context.md` - Critical implementation rules and patterns
+- `_bmad-output/planning-artifacts/architecture.md` - Logging framework decision (structlog)
+- `api/src/vintagestory_api/config.py:192-244` - Current configure_logging implementation
+- `api/src/vintagestory_api/services/cache_eviction.py` - Example of structured logging
+- [Source: epics.md#Story-9.4] - Story requirements (FR47, FR48, FR49)
+
+### Technical Constraints
+
+**FR48 Implementation Note:**
+"Debug logging enabled/disabled without server restart" requires runtime environment checking.
+Structlog's `cache_logger_on_first_use=True` (current setting) caches logger configuration.
+For true runtime toggle:
+- Either set `cache_logger_on_first_use=False` (slight performance impact)
+- Or implement periodic reconfiguration
+- Or check env var in a custom processor
+
+Document the chosen approach in completion notes.
+
+## Dev Agent Record
+
+### Agent Model Used
+
+{{agent_model_name_version}}
+
+### Debug Log References
+
+### Completion Notes List
+
+### File List
