@@ -117,7 +117,7 @@ development_status:
   9-2-directory-auto-creation-on-startup: done
   9-3-mod-cache-eviction-strategy: done
   9-4-debug-logging-infrastructure: done
-  9-5-console-command-highlighting: ready-for-dev
+  9-5-console-command-highlighting: review
   9-6-json-syntax-colorization: backlog
   9-7-dynamic-file-browser: backlog
   epic-9-retrospective: optional
