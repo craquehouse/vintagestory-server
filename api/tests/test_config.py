@@ -267,3 +267,30 @@ class TestDirectoryCreationLogging:
                 f"Expected directory_creation_failed event, got: {log_events}"
             )
             assert "Permission denied" in str(error_events[0].get("error", ""))
+
+
+class TestModCacheMaxSize:
+    """Tests for mod cache max size configuration (Story 9.3)."""
+
+    def test_default_mod_cache_max_size(self) -> None:
+        """Default mod cache max size is 500MB."""
+        settings = Settings()
+        assert settings.mod_cache_max_size_mb == 500
+
+    def test_mod_cache_max_size_from_env(self) -> None:
+        """Mod cache max size can be configured via environment variable."""
+        with patch.dict(os.environ, {"VS_MOD_CACHE_MAX_SIZE_MB": "1000"}):
+            settings = Settings()
+            assert settings.mod_cache_max_size_mb == 1000
+
+    def test_mod_cache_max_size_zero_disables(self) -> None:
+        """Setting mod cache max size to 0 disables eviction."""
+        with patch.dict(os.environ, {"VS_MOD_CACHE_MAX_SIZE_MB": "0"}):
+            settings = Settings()
+            assert settings.mod_cache_max_size_mb == 0
+
+    def test_mod_cache_max_size_negative_rejected(self) -> None:
+        """Negative mod cache max size is rejected."""
+        with patch.dict(os.environ, {"VS_MOD_CACHE_MAX_SIZE_MB": "-100"}):
+            with pytest.raises(ValueError, match="VS_MOD_CACHE_MAX_SIZE_MB must be non-negative"):
+                Settings()

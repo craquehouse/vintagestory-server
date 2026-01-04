@@ -23,6 +23,7 @@ from vintagestory_api.models.mods import (
     ModState,
     RemoveResult,
 )
+from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ModApiClient,
@@ -80,6 +81,7 @@ def get_mod_service() -> "ModService":
             cache_dir=cache_dir,
             restart_state=get_restart_state(),
             game_version=settings.game_version,
+            mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
         # Load existing state
@@ -90,6 +92,7 @@ def get_mod_service() -> "ModService":
             state_dir=str(state_dir),
             mods_dir=str(mods_dir),
             cache_dir=str(cache_dir),
+            mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
     return _mod_service
@@ -175,6 +178,7 @@ class ModService:
         restart_state: PendingRestartState,
         cache_dir: Path | None = None,
         game_version: str = "stable",
+        mod_cache_max_size_mb: int = 500,
     ) -> None:
         """Initialize the mod service.
 
@@ -185,6 +189,7 @@ class ModService:
             cache_dir: Directory for caching downloaded mods. Defaults to
                        state_dir.parent / "cache" if not provided.
             game_version: Game version for compatibility checking (e.g., "1.21.3").
+            mod_cache_max_size_mb: Maximum cache size in MB (0 to disable eviction).
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
@@ -195,6 +200,12 @@ class ModService:
             cache_dir = state_dir.parent / "cache"
         self._cache_dir = cache_dir
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+
+        # Set up cache eviction service
+        self._cache_eviction = CacheEvictionService(
+            cache_dir=cache_dir,
+            max_size_mb=mod_cache_max_size_mb,
+        )
 
         self._game_version = game_version
         self._mod_api_client: ModApiClient | None = None
@@ -574,8 +585,23 @@ class ModService:
             ModApiClient instance configured for this service.
         """
         if self._mod_api_client is None:
-            self._mod_api_client = ModApiClient(cache_dir=self._cache_dir)
+            self._mod_api_client = ModApiClient(
+                cache_dir=self._cache_dir,
+                cache_eviction_service=self._cache_eviction,
+            )
         return self._mod_api_client
+
+    @property
+    def cache_eviction(self) -> CacheEvictionService:
+        """Get the CacheEvictionService instance.
+
+        Provides access to the cache eviction service for external use
+        (e.g., for status queries or manual eviction).
+
+        Returns:
+            CacheEvictionService instance configured for this service.
+        """
+        return self._cache_eviction
 
     def _get_mod_api_client(self) -> ModApiClient:
         """Get or create the ModApiClient instance (lazy initialization).
