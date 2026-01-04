@@ -49,6 +49,9 @@ class ConsoleBuffer:
         Args:
             line: The console output line to add.
         """
+        logger.debug(
+            "console_append", line_length=len(line), subscriber_count=len(self._subscribers)
+        )
         self._buffer.append(line)
 
         # Notify all subscribers
@@ -75,6 +78,7 @@ class ConsoleBuffer:
         Returns:
             List of timestamped console lines, oldest first.
         """
+        logger.debug("console_get_history", limit=limit, buffer_size=len(self._buffer))
         if limit is None:
             return list(self._buffer)
         return list(self._buffer)[-limit:]

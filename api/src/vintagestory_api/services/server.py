@@ -687,8 +687,11 @@ class ServerService:
 
     async def _install_server_locked(self, version: str) -> InstallProgress:
         """Internal installation logic (must be called with lock held)."""
+        logger.debug("install_server_begin", version=version)
+
         # Clear any previous error state to allow retry (AC3: return to not_installed)
         if self._install_state == ServerState.ERROR:
+            logger.debug("install_server_clearing_error_state")
             self._reset_install_state()
 
         # Resolve version aliases (stable/unstable) to actual version numbers
@@ -889,7 +892,9 @@ class ServerService:
 
     async def _start_server_locked(self) -> LifecycleResponse:
         """Internal start logic (must be called with lock held)."""
+        logger.debug("start_server_begin")
         previous_state = self._get_runtime_state()
+        logger.debug("start_server_previous_state", state=previous_state.value)
 
         # Validate preconditions
         if not self.is_installed():
@@ -997,7 +1002,9 @@ class ServerService:
 
     async def _stop_server_locked(self, timeout: float) -> LifecycleResponse:
         """Internal stop logic (must be called with lock held)."""
+        logger.debug("stop_server_begin", timeout=timeout)
         previous_state = self._get_runtime_state()
+        logger.debug("stop_server_previous_state", state=previous_state.value)
 
         # Validate preconditions
         if not self.is_installed():
@@ -1076,7 +1083,9 @@ class ServerService:
 
     async def _restart_server_locked(self, timeout: float) -> LifecycleResponse:
         """Internal restart logic (must be called with lock held)."""
+        logger.debug("restart_server_begin", timeout=timeout)
         previous_state = self._get_runtime_state()
+        logger.debug("restart_server_previous_state", state=previous_state.value)
 
         # Validate preconditions
         if not self.is_installed():
