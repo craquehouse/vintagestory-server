@@ -77,7 +77,7 @@ class TestServerServiceSendCommand:
     async def test_send_command_echoes_to_console_buffer(
         self, test_service: ServerService
     ) -> None:
-        """Test that send_command echoes command to console buffer with [CMD] prefix and ANSI color."""
+        """Test that send_command echoes command to console buffer with [CMD] prefix."""
         # Set up a mock running process with stdin
         mock_process = AsyncMock()
         mock_process.returncode = None  # Process is running

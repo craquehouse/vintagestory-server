@@ -130,6 +130,45 @@ describe('terminal-themes', () => {
     });
   });
 
+  describe('ANSI command highlighting (Story 9.5)', () => {
+    /**
+     * Commands sent via console are echoed with ANSI cyan color codes:
+     *   \x1b[36m[CMD] /command\x1b[0m
+     *
+     * Where:
+     *   \x1b[36m = Set foreground to cyan (ANSI color index 6)
+     *   \x1b[0m  = Reset all attributes
+     *
+     * xterm.js uses the theme's 'cyan' property for ANSI color index 6.
+     * Server output arrives without ANSI codes, using default foreground.
+     */
+    it('dark theme defines cyan for command highlighting', () => {
+      // Cyan should be defined for ANSI escape code rendering
+      expect(catppuccinMocha.cyan).toBe('#89dceb');
+    });
+
+    it('light theme defines cyan for command highlighting', () => {
+      // Cyan should be defined for ANSI escape code rendering
+      expect(catppuccinLatte.cyan).toBe('#04a5e5');
+    });
+
+    it('dark theme cyan is distinct from default foreground', () => {
+      // Commands should be visually distinct from server output
+      expect(catppuccinMocha.cyan).not.toBe(catppuccinMocha.foreground);
+    });
+
+    it('light theme cyan is distinct from default foreground', () => {
+      // Commands should be visually distinct from server output
+      expect(catppuccinLatte.cyan).not.toBe(catppuccinLatte.foreground);
+    });
+
+    it('server output uses default foreground (no ANSI codes)', () => {
+      // Verify foreground is defined for uncolored server output
+      expect(catppuccinMocha.foreground).toBeDefined();
+      expect(catppuccinLatte.foreground).toBeDefined();
+    });
+  });
+
   describe('theme contrast', () => {
     it('has sufficient contrast between background and foreground in dark theme', () => {
       // Simple contrast check - foreground should be significantly lighter than background
