@@ -521,4 +521,84 @@ describe('json-highlighter', () => {
       expect(new Set(types).size).toBe(4);
     });
   });
+
+  describe('edge cases from code review (AI-Review)', () => {
+    it('tokenizes deeply nested arrays with string elements at line starts', () => {
+      // String elements in arrays appear at line start after indentation
+      const content = {
+        data: [
+          ['a', 'b'],
+          ['c', 'd'],
+        ],
+      };
+
+      const result = highlightJson(content);
+      const { container } = render(createElement('pre', null, result));
+
+      // Should have string tokens for array elements
+      const stringElements = container.querySelectorAll('.json-string');
+      expect(stringElements.length).toBeGreaterThanOrEqual(4); // a, b, c, d
+
+      // Verify text content matches original
+      const expectedText = JSON.stringify(content, null, 2);
+      expect(container.textContent).toBe(expectedText);
+    });
+
+    it('handles arrays of strings at various nesting levels', () => {
+      const content = {
+        level1: ['str1'],
+        nested: {
+          level2: ['str2', 'str3'],
+          deeper: {
+            level3: ['str4'],
+          },
+        },
+      };
+
+      const result = highlightJson(content);
+      const { container } = render(createElement('pre', null, result));
+
+      // All strings should be highlighted
+      const stringElements = container.querySelectorAll('.json-string');
+      expect(stringElements.length).toBeGreaterThanOrEqual(4);
+
+      // Keys should be separate from string values
+      const keyElements = container.querySelectorAll('.json-key');
+      expect(keyElements.length).toBe(5); // level1, nested, level2, deeper, level3
+    });
+
+    it('tokenizes lines with only whitespace followed by closing bracket and comma', () => {
+      // After nested structures, we get lines like "    ]," or "  },"
+      const content = {
+        items: [1, 2, 3],
+        more: { a: 1 },
+      };
+
+      const formatted = JSON.stringify(content, null, 2);
+      const lines = tokenizeJson(formatted);
+
+      // Find lines that are just indentation + punctuation
+      const closingLines = lines.filter((tokens) => {
+        const nonWhitespace = tokens.filter((t) => t.value.trim() !== '');
+        return (
+          nonWhitespace.length <= 2 &&
+          nonWhitespace.every(
+            (t) => t.type === 'punctuation' && /^[\[\]{}],?$/.test(t.value)
+          )
+        );
+      });
+
+      // Should have closing lines for array and object
+      expect(closingLines.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('correctly tokenizes array with mixed indented content', () => {
+      const line = '    "value",';
+      const tokens = tokenizeLine(line);
+
+      expect(tokens).toContainEqual({ type: 'punctuation', value: '    ' });
+      expect(tokens).toContainEqual({ type: 'string', value: '"value"' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: ',' });
+    });
+  });
 });

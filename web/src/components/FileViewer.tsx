@@ -11,6 +11,7 @@
  * Polish UI-022: Word wrap support
  */
 
+import type { ReactNode } from 'react';
 import { AlertCircle, FileText, WrapText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -119,9 +120,17 @@ export function FileViewer({
   // Content display
   // Apply JSON syntax highlighting for .json files, plain text otherwise
   const isJson = isJsonFile(filename);
-  const renderedContent = isJson
-    ? highlightJson(content)
-    : JSON.stringify(content, null, 2);
+
+  // Safely serialize content - handles non-serializable data gracefully
+  let renderedContent: ReactNode;
+  try {
+    renderedContent = isJson
+      ? highlightJson(content)
+      : JSON.stringify(content, null, 2);
+  } catch {
+    // Fallback for non-serializable content (circular refs, functions, etc.)
+    renderedContent = String(content);
+  }
 
   return (
     <div className={cn('flex flex-col', className)} data-testid="file-viewer">

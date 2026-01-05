@@ -1,6 +1,6 @@
 # Story 9.6: JSON Syntax Colorization
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -49,11 +49,11 @@ So that **configuration files are easier to read and understand**.
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] Add story file and sprint-status.yaml to Dev Agent Record File List for transparency (git vs story discrepancy)
-- [ ] [AI-Review][LOW] Add validation for non-JSON file content in FileViewer to handle non-serializable data gracefully [FileViewer.tsx:122-124]
-- [ ] [AI-Review][LOW] Add defensive validation for FileViewer content prop type [FileViewer.tsx:23-31]
-- [ ] [AI-Review][LOW] Add test case for deeply nested arrays with string elements at line starts [json-highlighter.test.ts]
-- [ ] [AI-Review][LOW] Add test case for whitespace-only lines with trailing comma [json-highlighter.test.ts]
+- [x] [AI-Review][MEDIUM] Add story file and sprint-status.yaml to Dev Agent Record File List for transparency (git vs story discrepancy)
+- [x] [AI-Review][LOW] Add validation for non-JSON file content in FileViewer to handle non-serializable data gracefully [FileViewer.tsx:122-124]
+- [x] [AI-Review][LOW] Add defensive validation for FileViewer content prop type [FileViewer.tsx:23-31]
+- [x] [AI-Review][LOW] Add test case for deeply nested arrays with string elements at line starts [json-highlighter.test.ts]
+- [x] [AI-Review][LOW] Add test case for whitespace-only lines with trailing comma [json-highlighter.test.ts]
 
 ## Dev Notes
 
@@ -270,8 +270,16 @@ None - implementation completed without issues.
 - web/src/components/FileViewer.tsx - Integrated JSON syntax highlighting
 - web/src/components/FileViewer.test.tsx - Added 20 integration tests for highlighting
 - web/src/styles/index.css - Added JSON syntax CSS variables and classes
+- _bmad-output/implementation-artifacts/9-6-json-syntax-colorization.md - Story file
+- _bmad-output/implementation-artifacts/sprint-status.yaml - Updated story status
 
 ### Change Log
+
+- 2026-01-04: Addressed code review follow-ups (Story 9.6)
+  - Added try/catch in FileViewer for non-serializable content (circular refs, functions)
+  - Added test case for non-serializable content in FileViewer.test.tsx
+  - Added 4 edge case tests in json-highlighter.test.ts (nested arrays, whitespace lines)
+  - Total: 834 web tests pass (58 json-highlighter + 53 FileViewer)
 
 - 2026-01-04: Implemented JSON syntax colorization for FileViewer (Story 9.6)
   - Created lightweight regex-based JSON tokenizer

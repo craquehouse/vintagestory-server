@@ -777,6 +777,23 @@ describe('FileViewer', () => {
         // Text content should match original formatted JSON
         expect(contentElement.textContent).toBe(expectedText);
       });
+
+      it('handles non-serializable content gracefully for non-JSON files', () => {
+        // Create circular reference that would throw on JSON.stringify
+        const circular: Record<string, unknown> = { name: 'test' };
+        circular.self = circular;
+
+        render(
+          <FileViewer
+            filename="config.dat"
+            content={circular}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        // Should render something without crashing (falls back to String())
+        expect(contentElement.textContent).toBe('[object Object]');
+      });
     });
   });
 });
