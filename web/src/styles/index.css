@@ -6,6 +6,12 @@
 :root {
   --background: #eff1f5;
   --foreground: #4c4f69;
+  /* JSON syntax highlighting - Catppuccin Latte (light mode) */
+  --json-key: #1e66f5;     /* blue */
+  --json-string: #40a02b;  /* green */
+  --json-number: #df8e1d;  /* yellow */
+  --json-boolean: #8839ef; /* magenta */
+  --json-null: #d20f39;    /* red */
   --card: #ffffff;
   --card-foreground: #4c4f69;
   --popover: #ccd0da;
@@ -61,6 +67,12 @@
 .dark {
   --background: #181825;
   --foreground: #cdd6f4;
+  /* JSON syntax highlighting - Catppuccin Mocha (dark mode) */
+  --json-key: #89b4fa;     /* blue */
+  --json-string: #a6e3a1;  /* green */
+  --json-number: #f9e2af;  /* yellow */
+  --json-boolean: #cba6f7; /* magenta */
+  --json-null: #f38ba8;    /* red */
   --card: #1e1e2e;
   --card-foreground: #cdd6f4;
   --popover: #45475a;
@@ -173,3 +185,10 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* JSON syntax highlighting classes - Story 9.6 */
+.json-key { color: var(--json-key); }
+.json-string { color: var(--json-string); }
+.json-number { color: var(--json-number); }
+.json-boolean { color: var(--json-boolean); }
+.json-null { color: var(--json-null); }
