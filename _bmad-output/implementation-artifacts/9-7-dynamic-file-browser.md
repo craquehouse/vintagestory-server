@@ -137,6 +137,9 @@ def list_directories(self) -> list[str]:
     Returns:
         List of subdirectory names (not full paths) found in serverdata_dir.
         Empty list if directory doesn't exist.
+
+    Note: Returns ALL directories including hidden ones (starting with '.').
+    Frontend handles visibility filtering to enable a future toggle feature.
     """
     serverdata_dir = self.settings.serverdata_dir
 
@@ -145,7 +148,7 @@ def list_directories(self) -> list[str]:
 
     return sorted(
         d.name for d in serverdata_dir.iterdir()
-        if d.is_dir() and not d.name.startswith('.')
+        if d.is_dir()
     )
 ```
 
