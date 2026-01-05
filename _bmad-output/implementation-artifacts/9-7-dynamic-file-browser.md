@@ -251,6 +251,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - **Task 4 (2026-01-04):** Added frontend directory browsing support. Added `ConfigDirectoryListData` type, `fetchConfigDirectories` API function, `useConfigDirectories` hook. Updated `useConfigFiles` to accept directory parameter. Updated `FileList` component with folder icons for directories. Updated `FileManagerPanel` with directory navigation and back button. Added 4 hook tests for directory and subdirectory support.
 
+- **Post-Task Enhancement (2026-01-05):** Extended implementation to support nested directory browsing. Backend `list_directories()` now accepts optional `directory` parameter for navigating into subdirectories. API endpoint `GET /config/directories` accepts `?directory=` query param. Frontend `useConfigDirectories()` hook accepts directory param. FileManagerPanel tracks full directory path and supports multi-level navigation with back button going up one level at a time. Added 5 backend tests and 2 frontend tests for nested directory support.
+
 ### File List
 
 **Task 1:**
@@ -275,4 +277,15 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `web/src/hooks/use-config-files.test.tsx` - Added 4 tests for new hooks
 - `web/src/components/FileList.tsx` - Added directory support with folder icons
 - `web/src/features/settings/FileManagerPanel.tsx` - Added directory navigation
+
+**Post-Task Enhancement (Nested Directory Support):**
+- `api/src/vintagestory_api/services/config_files.py` - Extended list_directories() with directory param
+- `api/src/vintagestory_api/routers/config.py` - Added directory query param to directories endpoint
+- `api/tests/test_config_files.py` - Added 5 tests for nested directory listing
+- `api/tests/test_routers_config.py` - Added 2 tests for directory param on directories endpoint
+- `web/src/api/config.ts` - Updated fetchConfigDirectories with directory param
+- `web/src/api/query-keys.ts` - Changed directories key to function for cache scoping
+- `web/src/hooks/use-config-files.ts` - Updated useConfigDirectories with directory param
+- `web/src/hooks/use-config-files.test.tsx` - Added 2 tests for nested directory hook
+- `web/src/features/settings/FileManagerPanel.tsx` - Full path tracking, multi-level navigation
 
