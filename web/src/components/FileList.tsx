@@ -143,6 +143,11 @@ export function FileList({
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                aria-label={
+                  isDirectory
+                    ? `${item.name} folder, press Enter to open`
+                    : `${item.name} file, press Enter to view`
+                }
                 data-testid={`file-item-${item.name}`}
                 className={cn(
                   'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors',

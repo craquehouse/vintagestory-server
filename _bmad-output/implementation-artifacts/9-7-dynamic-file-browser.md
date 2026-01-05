@@ -51,10 +51,14 @@ So that **I can access ModConfigs, Macros, Playerdata, and other directories**.
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][HIGH] Story marked "done" before nested directory support was added. Commit 993318e marked done, but commit 6c66c11 added nested directory browsing afterward. This violates project-context.md requirement that tasks cannot be marked complete until implementation is finished. Consider reordering commits or adding note about post-story enhancement. [9-7-dynamic-file-browser.md:3]
-- [ ] [AI-Review][MEDIUM] Breadcrumb navigation missing. Dev Notes line 209 specify "Show path like: `serverdata / ModConfigs / modname.json`. Root label: 'serverdata' (clickable to go back). Each path segment clickable for navigation." Actual implementation (FileManagerPanel.tsx:55-67) shows simple back button with current directory name as text, NOT clickable breadcrumbs. Either implement breadcrumbs or update Dev Notes to match actual UI. [9-7-dynamic-file-browser.md:209]
-- [ ] [AI-Review][MEDIUM] Accessibility gap in directory vs file distinction. Dev Notes line 110 mentions "Handle directory selection vs file selection." FileList.tsx:52 uses `text-primary` color for directories vs default color for files. Color-only distinction may not be sufficient for screen readers. Consider adding `aria-label` or keyboard navigation documentation for directories. [web/src/components/FileList.tsx:52]
-- [ ] [AI-Review][LOW] No E2E tests for directory navigation flow. AC3 requires "Given a new directory is created... When I refresh... Then new directory appears." Only unit/integration tests exist (311 API tests, 18 hook tests). Consider adding Playwright E2E test for directory creation + refresh flow to validate AC3. [9-7-dynamic-file-browser.md:24]
+- [x] [AI-Review][HIGH] Story marked "done" before nested directory support was added. Commit 993318e marked done, but commit 6c66c11 added nested directory browsing afterward. This violates project-context.md requirement that tasks cannot be marked complete until implementation is finished. Consider reordering commits or adding note about post-story enhancement. [9-7-dynamic-file-browser.md:3]
+  - **Resolution:** The "Post-Task Enhancement" section in Dev Agent Record documents this. The initial story was complete per AC requirements; nested directory support was an enhancement discovered during user testing. This is acceptable as the core story functionality was implemented.
+- [x] [AI-Review][MEDIUM] Breadcrumb navigation missing. Dev Notes line 209 specify "Show path like: `serverdata / ModConfigs / modname.json`. Root label: 'serverdata' (clickable to go back). Each path segment clickable for navigation." Actual implementation (FileManagerPanel.tsx:55-67) shows simple back button with current directory name as text, NOT clickable breadcrumbs. Either implement breadcrumbs or update Dev Notes to match actual UI. [9-7-dynamic-file-browser.md:209]
+  - **Resolution:** Updated Dev Notes to document actual implementation (back button navigation). Breadcrumb navigation deferred to polish backlog.
+- [x] [AI-Review][MEDIUM] Accessibility gap in directory vs file distinction. Dev Notes line 110 mentions "Handle directory selection vs file selection." FileList.tsx:52 uses `text-primary` color for directories vs default color for files. Color-only distinction may not be sufficient for screen readers. Consider adding `aria-label` or keyboard navigation documentation for directories. [web/src/components/FileList.tsx:52]
+  - **Resolution:** Added `aria-label` to FileList buttons with descriptive text ("folder, press Enter to open" vs "file, press Enter to view").
+- [x] [AI-Review][LOW] No E2E tests for directory navigation flow. AC3 requires "Given a new directory is created... When I refresh... Then new directory appears." Only unit/integration tests exist (311 API tests, 18 hook tests). Consider adding Playwright E2E test for directory creation + refresh flow to validate AC3. [9-7-dynamic-file-browser.md:24]
+  - **Resolution:** Added UI-030 to polish backlog for E2E test coverage.
 
 ## Dev Notes
 
@@ -213,10 +217,16 @@ const { data: filesData } = useConfigFiles(currentDirectory);
 - Clicking a directory navigates into it
 - Clicking a file selects it for viewing
 
-**Breadcrumb Navigation:**
-- Show path like: `serverdata / ModConfigs / modname.json`
-- Root label: "serverdata" (clickable to go back)
-- Each path segment clickable for navigation
+**Back Navigation (Implemented):**
+- Back button with ChevronLeft icon shows current directory path
+- Clicking navigates up one level at a time
+- Returns to root when at first-level directory
+
+**Breadcrumb Navigation (Deferred):**
+- ~~Show path like: `serverdata / ModConfigs / modname.json`~~
+- ~~Root label: "serverdata" (clickable to go back)~~
+- ~~Each path segment clickable for navigation~~
+- *Deferred to polish backlog - current back button approach is functional*
 
 ### Previous Story Intelligence (9-6)
 
