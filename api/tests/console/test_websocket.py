@@ -217,11 +217,11 @@ class TestConsoleWebSocketCommands:
             # The echo is the first message we receive after sending
             response = ws.receive_text()
 
-            # Verify echo format and content
+            # Verify echo format and content (includes ANSI color codes)
             assert "[CMD] /time set day" in response
-            # Verify it has a timestamp prefix (ISO 8601 format)
-            assert response.startswith("[")
-            assert "]" in response
+            # Verify ANSI cyan color code is present (Story 9.5)
+            assert "\x1b[36m" in response, "Echo should include ANSI cyan code"
+            assert "\x1b[0m" in response, "Echo should include ANSI reset code"
 
             ws.close()
 

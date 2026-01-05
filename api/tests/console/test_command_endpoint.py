@@ -88,10 +88,36 @@ class TestServerServiceSendCommand:
 
         await test_service.send_command("/time set day")
 
-        # Check that command was echoed to buffer
+        # Check that command was echoed to buffer with [CMD] prefix
         history = test_service.console_buffer.get_history()
         assert len(history) == 1
         assert "[CMD] /time set day" in history[0]
+
+    @pytest.mark.asyncio
+    async def test_send_command_echo_has_ansi_cyan_color(
+        self, test_service: ServerService
+    ) -> None:
+        """Test that command echo includes ANSI cyan color codes (Story 9.5, AC: 1)."""
+        # Set up a mock running process with stdin
+        mock_process = AsyncMock()
+        mock_process.returncode = None
+        mock_process.stdin = AsyncMock()
+        mock_process.stdin.write = Mock()
+        mock_process.stdin.drain = AsyncMock()
+        test_service._process = mock_process
+
+        await test_service.send_command("/help")
+
+        # Check that ANSI codes are present: \x1b[36m (cyan) and \x1b[0m (reset)
+        history = test_service.console_buffer.get_history()
+        assert len(history) == 1
+        echo_line = history[0]
+        # Verify cyan color code at start
+        assert echo_line.startswith("\x1b[36m"), "Echo should start with ANSI cyan code"
+        # Verify reset code at end
+        assert echo_line.endswith("\x1b[0m"), "Echo should end with ANSI reset code"
+        # Verify full format: \x1b[36m[CMD] /help\x1b[0m
+        assert echo_line == "\x1b[36m[CMD] /help\x1b[0m"
 
     @pytest.mark.asyncio
     async def test_send_command_handles_empty_command(
