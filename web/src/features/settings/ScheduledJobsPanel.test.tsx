@@ -192,20 +192,19 @@ describe('ScheduledJobsPanel', () => {
       globalThis.fetch = fetchMock;
 
       const queryClient = createTestQueryClient();
-      render(<ScheduledJobsPanel />, {
+      const { container } = render(<ScheduledJobsPanel />, {
         wrapper: createWrapper(queryClient),
       });
 
-      // Wait for auth to complete
+      // Wait for auth to complete and component to render null for Monitor
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith(
           expect.stringContaining('/auth/me'),
           expect.any(Object)
         );
+        // Component should render nothing for Monitor users
+        expect(container.firstChild).toBeNull();
       });
-
-      // Give some time for any potential jobs fetch
-      await new Promise((r) => setTimeout(r, 100));
 
       // Jobs endpoint should not be called for Monitor users
       // Note: The component does call useJobs, but since it returns null early,

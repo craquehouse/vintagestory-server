@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FileViewer } from './FileViewer';
+import '@testing-library/jest-dom';
 
 describe('FileViewer', () => {
   const mockContent = {
@@ -486,6 +487,313 @@ describe('FileViewer', () => {
 
       const toggleButton = screen.getByTestId('file-viewer-wrap-toggle');
       expect(toggleButton).toHaveAttribute('title', 'Disable word wrap');
+    });
+  });
+
+  describe('JSON syntax highlighting (Story 9.6)', () => {
+    describe('AC 1: syntax colorization applied to .json files', () => {
+      it('applies syntax highlighting to .json file content', () => {
+        render(
+          <FileViewer
+            filename="serverconfig.json"
+            content={mockContent}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        // Should have JSON key spans with the correct class
+        expect(contentElement.querySelector('.json-key')).toBeInTheDocument();
+      });
+
+      it('applies highlighting for various JSON file extensions', () => {
+        render(
+          <FileViewer
+            filename="CONFIG.JSON"
+            content={{ key: 'value' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.querySelector('.json-key')).toBeInTheDocument();
+      });
+    });
+
+    describe('AC 2: distinct colors for different token types', () => {
+      it('highlights keys with json-key class', () => {
+        render(
+          <FileViewer
+            filename="config.json"
+            content={{ myKey: 'value' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const keyElement = contentElement.querySelector('.json-key');
+
+        expect(keyElement).toBeInTheDocument();
+        expect(keyElement?.textContent).toBe('"myKey"');
+      });
+
+      it('highlights string values with json-string class', () => {
+        render(
+          <FileViewer
+            filename="config.json"
+            content={{ name: 'testValue' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const stringElement = contentElement.querySelector('.json-string');
+
+        expect(stringElement).toBeInTheDocument();
+        expect(stringElement?.textContent).toBe('"testValue"');
+      });
+
+      it('highlights numbers with json-number class', () => {
+        render(
+          <FileViewer
+            filename="config.json"
+            content={{ port: 42420 }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const numberElement = contentElement.querySelector('.json-number');
+
+        expect(numberElement).toBeInTheDocument();
+        expect(numberElement?.textContent).toBe('42420');
+      });
+
+      it('highlights booleans with json-boolean class', () => {
+        render(
+          <FileViewer
+            filename="config.json"
+            content={{ enabled: true }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const booleanElement = contentElement.querySelector('.json-boolean');
+
+        expect(booleanElement).toBeInTheDocument();
+        expect(booleanElement?.textContent).toBe('true');
+      });
+
+      it('highlights null with json-null class', () => {
+        render(
+          <FileViewer
+            filename="config.json"
+            content={{ password: null }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const nullElement = contentElement.querySelector('.json-null');
+
+        expect(nullElement).toBeInTheDocument();
+        expect(nullElement?.textContent).toBe('null');
+      });
+
+      it('highlights all token types in complex object', () => {
+        const complexContent = {
+          name: 'Test Server',
+          port: 8080,
+          enabled: true,
+          password: null,
+        };
+
+        render(
+          <FileViewer
+            filename="config.json"
+            content={complexContent}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+
+        // All distinct token types should be highlighted
+        expect(contentElement.querySelectorAll('.json-key').length).toBeGreaterThanOrEqual(4);
+        expect(contentElement.querySelector('.json-string')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-number')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-boolean')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-null')).toBeInTheDocument();
+      });
+    });
+
+    describe('AC 3: no colorization for non-JSON files', () => {
+      it('does not apply syntax highlighting to .txt files', () => {
+        render(
+          <FileViewer
+            filename="readme.txt"
+            content={{ key: 'value' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+
+        // Should NOT have JSON highlighting classes
+        expect(contentElement.querySelector('.json-key')).not.toBeInTheDocument();
+        expect(contentElement.querySelector('.json-string')).not.toBeInTheDocument();
+      });
+
+      it('does not apply syntax highlighting to .xml files', () => {
+        render(
+          <FileViewer
+            filename="config.xml"
+            content={{ setting: 'value' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.querySelector('.json-key')).not.toBeInTheDocument();
+      });
+
+      it('does not apply syntax highlighting to files without extension', () => {
+        render(
+          <FileViewer
+            filename="Makefile"
+            content={{ target: 'all' }}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.querySelector('.json-key')).not.toBeInTheDocument();
+      });
+
+      it('renders plain JSON text for non-JSON files', () => {
+        const content = { key: 'value' };
+        render(
+          <FileViewer
+            filename="config.dat"
+            content={content}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const expectedText = JSON.stringify(content, null, 2);
+        expect(contentElement.textContent).toBe(expectedText);
+      });
+    });
+
+    describe('AC 4: graceful handling of edge cases', () => {
+      it('handles empty object gracefully', () => {
+        render(
+          <FileViewer
+            filename="empty.json"
+            content={{}}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.textContent).toBe('{}');
+      });
+
+      it('handles empty array gracefully', () => {
+        render(
+          <FileViewer
+            filename="list.json"
+            content={[]}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.textContent).toBe('[]');
+      });
+
+      it('handles null content gracefully', () => {
+        render(
+          <FileViewer
+            filename="null.json"
+            content={null}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        expect(contentElement.textContent).toBe('null');
+        expect(contentElement.querySelector('.json-null')).toBeInTheDocument();
+      });
+
+      it('handles deeply nested objects', () => {
+        const nestedContent = {
+          level1: {
+            level2: {
+              level3: {
+                value: 'deep',
+              },
+            },
+          },
+        };
+
+        render(
+          <FileViewer
+            filename="nested.json"
+            content={nestedContent}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+
+        // Should have multiple key highlights for nested structure
+        expect(contentElement.querySelectorAll('.json-key').length).toBe(4);
+        expect(contentElement.querySelector('.json-string')).toBeInTheDocument();
+      });
+
+      it('handles arrays with mixed content types', () => {
+        const arrayContent = {
+          items: ['string', 42, true, null],
+        };
+
+        render(
+          <FileViewer
+            filename="mixed.json"
+            content={arrayContent}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+
+        expect(contentElement.querySelector('.json-string')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-number')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-boolean')).toBeInTheDocument();
+        expect(contentElement.querySelector('.json-null')).toBeInTheDocument();
+      });
+
+      it('preserves JSON structure after highlighting', () => {
+        const content = {
+          name: 'Test',
+          count: 42,
+        };
+
+        render(
+          <FileViewer
+            filename="test.json"
+            content={content}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        const expectedText = JSON.stringify(content, null, 2);
+
+        // Text content should match original formatted JSON
+        expect(contentElement.textContent).toBe(expectedText);
+      });
+
+      it('handles non-serializable content gracefully for non-JSON files', () => {
+        // Create circular reference that would throw on JSON.stringify
+        const circular: Record<string, unknown> = { name: 'test' };
+        circular.self = circular;
+
+        render(
+          <FileViewer
+            filename="config.dat"
+            content={circular}
+          />
+        );
+
+        const contentElement = screen.getByTestId('file-viewer-content');
+        // Should render something without crashing (falls back to String())
+        expect(contentElement.textContent).toBe('[object Object]');
+      });
     });
   });
 });
