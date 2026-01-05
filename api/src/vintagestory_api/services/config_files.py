@@ -98,7 +98,7 @@ class ConfigFilesService:
 
         Returns:
             List of subdirectory names (not full paths) found in serverdata_dir.
-            Hidden directories (starting with .) are excluded.
+            Includes hidden directories - filtering is left to the frontend.
             Empty list if directory doesn't exist.
         """
         serverdata_dir = self.settings.serverdata_dir
@@ -107,12 +107,8 @@ class ConfigFilesService:
             logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return []
 
-        # Find all subdirectories (exclude hidden directories)
-        directories = sorted(
-            d.name
-            for d in serverdata_dir.iterdir()
-            if d.is_dir() and not d.name.startswith(".")
-        )
+        # Find all subdirectories (including hidden - let frontend handle visibility)
+        directories = sorted(d.name for d in serverdata_dir.iterdir() if d.is_dir())
 
         logger.debug("config_directories_listed", count=len(directories))
         return directories

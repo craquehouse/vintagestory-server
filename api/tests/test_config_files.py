@@ -69,17 +69,17 @@ class TestListDirectories:
 
         assert result == []
 
-    def test_list_directories_excludes_hidden_directories(
+    def test_list_directories_includes_hidden_directories(
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
-        """Should not include hidden directories (starting with dot)."""
+        """Should include hidden directories (frontend handles filtering)."""
         serverdata = mock_settings.serverdata_dir
         (serverdata / "ModConfigs").mkdir()
         (serverdata / ".hidden").mkdir()
 
         result = service.list_directories()
 
-        assert result == ["ModConfigs"]
+        assert result == [".hidden", "ModConfigs"]
 
     def test_list_directories_excludes_files(
         self, service: ConfigFilesService, mock_settings: MagicMock
