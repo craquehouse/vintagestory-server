@@ -13,7 +13,6 @@ import {
   highlightJson,
   isJsonFile,
   JSON_CSS_CLASSES,
-  type JsonToken,
 } from './json-highlighter';
 
 describe('json-highlighter', () => {

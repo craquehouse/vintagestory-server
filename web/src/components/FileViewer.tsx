@@ -4,8 +4,10 @@
  * Displays formatted JSON content in a read-only viewer.
  * Handles loading, empty, and error states.
  * Supports optional word wrap toggle for long lines.
+ * Applies syntax highlighting for JSON files.
  *
  * Story 6.6: File Manager UI - AC: 2, 3, 4
+ * Story 9.6: JSON Syntax Colorization - AC: 1, 2, 3, 4
  * Polish UI-022: Word wrap support
  */
 
@@ -13,6 +15,7 @@ import { AlertCircle, FileText, WrapText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { highlightJson, isJsonFile } from '@/lib/json-highlighter';
 
 /**
  * Props for the FileViewer component.
@@ -114,7 +117,11 @@ export function FileViewer({
   }
 
   // Content display
-  const formattedContent = JSON.stringify(content, null, 2);
+  // Apply JSON syntax highlighting for .json files, plain text otherwise
+  const isJson = isJsonFile(filename);
+  const renderedContent = isJson
+    ? highlightJson(content)
+    : JSON.stringify(content, null, 2);
 
   return (
     <div className={cn('flex flex-col', className)} data-testid="file-viewer">
@@ -148,7 +155,7 @@ export function FileViewer({
           )}
           data-testid="file-viewer-content"
         >
-          {formattedContent}
+          {renderedContent}
         </pre>
       </div>
     </div>
