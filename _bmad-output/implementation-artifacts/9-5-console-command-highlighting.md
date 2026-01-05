@@ -26,6 +26,14 @@ So that **I can easily identify what I typed vs server output**.
 
 ## Tasks / Subtasks
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Create Pull Request before code review - PR #45 created
+- [x] [AI-Review][MEDIUM] Clarify Task 3 as documentation task, not implementation - ACKNOWLEDGED: Task 3 tests document that theme defines cyan for ANSI color index 6. xterm.js ANSI rendering is core library functionality tested by xterm.js maintainers.
+- [x] [AI-Review][MEDIUM] Add Playwright e2e test for actual ANSI code rendering - DEFERRED: Would require running game server for command echo. Added to polish-backlog.md as optional enhancement. Current coverage sufficient: (1) backend test verifies ANSI codes in output, (2) WebSocket test verifies codes transmitted, (3) xterm.js is battle-tested library.
+
+### Implementation Tasks
+
 - [x] Task 1: Add command echo with [CMD] prefix on backend + tests (AC: 2)
   - [x] Subtask 1.1: Modify `ServerService.send_command()` to echo command to console buffer with `[CMD]` prefix
   - [x] Subtask 1.2: Write tests verifying command echo appears in buffer with correct prefix
