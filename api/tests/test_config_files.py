@@ -112,6 +112,43 @@ class TestListFiles:
 
         assert result == ["other-config.json", "serverconfig.json"]
 
+    def test_list_files_in_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return JSON files from specified subdirectory."""
+        serverdata = mock_settings.serverdata_dir
+        subdir = serverdata / "ModConfigs"
+        subdir.mkdir()
+        (subdir / "mod1.json").write_text('{"enabled": true}')
+        (subdir / "mod2.json").write_text('{"enabled": false}')
+        (subdir / "readme.txt").write_text("not json")
+        # Root level file should not be included
+        (serverdata / "serverconfig.json").write_text('{}')
+
+        result = service.list_files(directory="ModConfigs")
+
+        assert result == ["mod1.json", "mod2.json"]
+
+    def test_list_files_subdirectory_not_exists(
+        self, service: ConfigFilesService
+    ) -> None:
+        """Should return empty list when subdirectory doesn't exist."""
+        result = service.list_files(directory="NonExistent")
+
+        assert result == []
+
+    def test_list_files_subdirectory_path_traversal(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should reject path traversal in directory parameter."""
+        # Create a file outside serverdata that we shouldn't be able to access
+        outside_dir = mock_settings.serverdata_dir.parent / "secret"
+        outside_dir.mkdir()
+        (outside_dir / "passwords.json").write_text('{"admin": "secret"}')
+
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_files(directory="../secret")
+
     def test_list_files_empty_directory(self, service: ConfigFilesService) -> None:
         """Should return empty list when no JSON files exist."""
         result = service.list_files()

@@ -113,12 +113,19 @@ class ConfigFilesService:
         logger.debug("config_directories_listed", count=len(directories))
         return directories
 
-    def list_files(self) -> list[str]:
-        """List all JSON configuration files in serverdata directory.
+    def list_files(self, directory: str | None = None) -> list[str]:
+        """List JSON configuration files in serverdata directory or subdirectory.
+
+        Args:
+            directory: Optional subdirectory name within serverdata_dir.
+                       If None, lists files in the root serverdata directory.
 
         Returns:
-            List of JSON filenames (not full paths) found in serverdata_dir.
+            List of JSON filenames (not full paths) found in the target directory.
             Empty list if directory doesn't exist or contains no JSON files.
+
+        Raises:
+            ConfigPathInvalidError: If directory contains path traversal.
         """
         serverdata_dir = self.settings.serverdata_dir
 
@@ -126,12 +133,22 @@ class ConfigFilesService:
             logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return []
 
-        # Find all JSON files in the serverdata directory (not recursive)
+        # Determine target directory
+        if directory:
+            # Validate path traversal
+            target_dir = self._safe_path(serverdata_dir, directory)
+            if not target_dir.is_dir():
+                logger.debug("config_subdir_not_found", directory=directory)
+                return []
+        else:
+            target_dir = serverdata_dir
+
+        # Find all JSON files in the target directory (not recursive)
         json_files = sorted(
-            f.name for f in serverdata_dir.iterdir() if f.is_file() and f.suffix == ".json"
+            f.name for f in target_dir.iterdir() if f.is_file() and f.suffix == ".json"
         )
 
-        logger.debug("config_files_listed", count=len(json_files))
+        logger.debug("config_files_listed", count=len(json_files), directory=directory)
         return json_files
 
     def read_file(self, filename: str) -> dict[str, object]:
