@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { useConfigFiles, useConfigFileContent } from './use-config-files';
+import {
+  useConfigFiles,
+  useConfigFileContent,
+  useConfigDirectories,
+} from './use-config-files';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -163,6 +167,140 @@ describe('useConfigFiles', () => {
       await waitFor(() => expect(result.current.isError).toBe(true));
 
       expect(result.current.error).toBeDefined();
+    });
+  });
+});
+
+describe('useConfigDirectories', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('query behavior', () => {
+    it('fetches directories from the correct endpoint', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { directories: ['ModConfigs', 'Playerdata', 'Macros'] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useConfigDirectories(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/config/directories',
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
+    });
+
+    it('returns list of directories', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { directories: ['ModConfigs', 'Playerdata'] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useConfigDirectories(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.data?.data.directories).toEqual([
+        'ModConfigs',
+        'Playerdata',
+      ]);
+    });
+  });
+});
+
+describe('useConfigFiles with directory parameter', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('query behavior', () => {
+    it('fetches files from subdirectory when directory param provided', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { files: ['mod1.json', 'mod2.json'] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useConfigFiles('ModConfigs'), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/config/files?directory=ModConfigs',
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
+    });
+
+    it('encodes special characters in directory param', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { files: [] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useConfigFiles('My Folder'), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/config/files?directory=My%20Folder',
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
     });
   });
 });

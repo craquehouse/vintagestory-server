@@ -15,6 +15,7 @@ import type {
   GameSettingUpdateData,
   ApiSettingsData,
   ApiSettingUpdateData,
+  ConfigDirectoryListData,
   ConfigFileListData,
   ConfigFileContentData,
 } from './types';
@@ -87,15 +88,38 @@ export async function updateApiSetting(
   );
 }
 
-// ===== Config Files API (Story 6.6) =====
+// ===== Config Files API (Story 6.6, Story 9.7) =====
+
+/**
+ * Fetch list of directories in serverdata.
+ *
+ * Story 9.7: Dynamic File Browser
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchConfigDirectories(): Promise<
+  ApiResponse<ConfigDirectoryListData>
+> {
+  return apiClient<ApiResponse<ConfigDirectoryListData>>(
+    `${API_PREFIX}/directories`
+  );
+}
 
 /**
  * Fetch list of available configuration files.
  *
+ * @param directory - Optional subdirectory to list files from (Story 9.7)
+ *
  * Accessible to both Admin and Monitor roles.
  */
-export async function fetchConfigFiles(): Promise<ApiResponse<ConfigFileListData>> {
-  return apiClient<ApiResponse<ConfigFileListData>>(`${API_PREFIX}/files`);
+export async function fetchConfigFiles(
+  directory?: string
+): Promise<ApiResponse<ConfigFileListData>> {
+  const params = directory
+    ? `?directory=${encodeURIComponent(directory)}`
+    : '';
+  return apiClient<ApiResponse<ConfigFileListData>>(
+    `${API_PREFIX}/files${params}`
+  );
 }
 
 /**
