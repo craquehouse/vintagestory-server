@@ -10,7 +10,10 @@ Tests cover:
 """
 
 import asyncio
+from collections.abc import Coroutine
+from typing import Any
 
+# pyright: reportPrivateUsage=false
 from fastapi.testclient import TestClient
 
 from vintagestory_api.services.server import ServerService
@@ -18,10 +21,8 @@ from vintagestory_api.services.ws_token_service import WebSocketTokenService
 
 from .conftest import TEST_ADMIN_KEY
 
-# pyright: reportPrivateUsage=false
 
-
-def _run_async(coro):  # type: ignore[no-untyped-def]
+def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:
     """Helper to run async code in sync test context."""
     try:
         loop = asyncio.get_running_loop()
@@ -188,7 +189,7 @@ class TestLogsWebSocketTokenAuth:
         self,
         ws_client: TestClient,
         test_token_service: WebSocketTokenService,
-        temp_data_dir,  # type: ignore[no-untyped-def]
+        temp_data_dir: str,
     ) -> None:
         """Given valid admin token, logs WebSocket connection succeeds (AC: 2)."""
         from pathlib import Path
@@ -213,7 +214,7 @@ class TestLogsWebSocketTokenAuth:
     # ======================================
 
     def test_logs_websocket_rejects_invalid_token(
-        self, ws_client: TestClient, temp_data_dir  # type: ignore[no-untyped-def]
+        self, ws_client: TestClient, temp_data_dir: str
     ) -> None:
         """Given invalid token, logs WebSocket rejected with code 4001 (AC: 3)."""
         from pathlib import Path
@@ -235,7 +236,7 @@ class TestLogsWebSocketTokenAuth:
         self,
         ws_client: TestClient,
         test_token_service: WebSocketTokenService,
-        temp_data_dir,  # type: ignore[no-untyped-def]
+        temp_data_dir: str,
     ) -> None:
         """Given expired token, logs WebSocket rejected with code 4001 (AC: 3)."""
         from datetime import UTC, datetime, timedelta
@@ -267,7 +268,7 @@ class TestLogsWebSocketTokenAuth:
         self,
         ws_client: TestClient,
         test_token_service: WebSocketTokenService,
-        temp_data_dir,  # type: ignore[no-untyped-def]
+        temp_data_dir: str,
     ) -> None:
         """Given monitor role token, logs WebSocket rejected with 4003 (AC: 6).
 
@@ -296,7 +297,7 @@ class TestLogsWebSocketTokenAuth:
     # ======================================
 
     def test_logs_websocket_legacy_api_key_still_works(
-        self, ws_client: TestClient, temp_data_dir  # type: ignore[no-untyped-def]
+        self, ws_client: TestClient, temp_data_dir: str
     ) -> None:
         """Legacy api_key authentication still works for backwards compatibility."""
         from pathlib import Path

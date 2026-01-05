@@ -11,7 +11,9 @@ Tests cover:
 """
 
 import asyncio
+from collections.abc import Coroutine
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -27,7 +29,7 @@ from vintagestory_api.services.ws_token_service import (
 )
 
 
-def _run_async(coro):  # type: ignore[no-untyped-def]
+def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:
     """Helper to run async code in sync test context."""
     try:
         loop = asyncio.get_running_loop()
@@ -260,14 +262,14 @@ class TestWebSocketTokenUniqueness:
 
     def test_multiple_requests_return_unique_tokens(self, client: TestClient) -> None:
         """Each token request returns a unique token."""
-        tokens = set()
+        tokens: set[str] = set()
 
         for _ in range(5):
             response = client.post(
                 "/api/v1alpha1/auth/ws-token",
                 headers={"X-API-Key": TEST_ADMIN_KEY},
             )
-            token = response.json()["data"]["token"]
+            token: str = response.json()["data"]["token"]
             tokens.add(token)
 
         assert len(tokens) == 5

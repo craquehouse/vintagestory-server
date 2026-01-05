@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from apscheduler.job import Job
+    from apscheduler.job import Job  # type: ignore[import-untyped]
 
 
 class JobInfo(BaseModel):
@@ -55,23 +55,23 @@ def job_to_info(job: Job) -> JobInfo:
         IntervalTrigger,
     )
 
-    trigger = job.trigger
+    trigger = job.trigger  # type: ignore[reportUnknownMemberType]
 
     if isinstance(trigger, IntervalTrigger):
         trigger_type = "interval"
         # IntervalTrigger stores interval as timedelta
-        trigger_details = f"every {int(trigger.interval.total_seconds())} seconds"
+        trigger_details = f"every {int(trigger.interval.total_seconds())} seconds"  # type: ignore[reportUnknownMemberType]
     elif isinstance(trigger, CronTrigger):
         trigger_type = "cron"
         # CronTrigger __str__ returns cron expression representation
-        trigger_details = str(trigger)
+        trigger_details = str(trigger)  # type: ignore[reportUnknownArgumentType]
     else:
         trigger_type = "unknown"
-        trigger_details = str(trigger)
+        trigger_details = str(trigger)  # type: ignore[reportUnknownArgumentType]
 
     return JobInfo(
-        id=job.id,
-        next_run_time=job.next_run_time,
+        id=str(job.id),  # type: ignore[reportUnknownMemberType]
+        next_run_time=job.next_run_time,  # type: ignore[reportUnknownMemberType]
         trigger_type=trigger_type,
         trigger_details=trigger_details,
     )

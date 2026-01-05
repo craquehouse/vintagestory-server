@@ -122,7 +122,7 @@ class SchedulerService:
             ...     pass
             >>> scheduler.add_interval_job(refresh_cache, seconds=3600, job_id="cache_refresh")
         """
-        job = self.scheduler.add_job(
+        job: Job = self.scheduler.add_job(  # type: ignore[reportUnknownMemberType]
             func,
             trigger=IntervalTrigger(seconds=seconds),
             id=job_id,
@@ -155,9 +155,9 @@ class SchedulerService:
             ...     pass
             >>> scheduler.add_cron_job(daily_cleanup, "0 2 * * *", job_id="daily_cleanup")
         """
-        job = self.scheduler.add_job(
+        job: Job = self.scheduler.add_job(  # type: ignore[reportUnknownMemberType]
             func,
-            trigger=CronTrigger.from_crontab(cron_expr),
+            trigger=CronTrigger.from_crontab(cron_expr),  # type: ignore[reportUnknownMemberType]
             id=job_id,
             replace_existing=True,
             **kwargs,
@@ -174,7 +174,7 @@ class SchedulerService:
         Raises:
             JobLookupError: If no job with the given ID exists.
         """
-        self.scheduler.remove_job(job_id)
+        self.scheduler.remove_job(job_id)  # type: ignore[reportUnknownMemberType]
         logger.info("job_removed", job_id=job_id)
 
     def get_jobs(self) -> list[Job]:  # type: ignore[type-arg]

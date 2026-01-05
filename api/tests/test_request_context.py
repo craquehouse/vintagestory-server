@@ -72,12 +72,12 @@ def request_context_app(captured_logs: StringIO) -> tuple[TestClient, StringIO]:
     logger = structlog.get_logger()
 
     @app.get("/test")
-    async def test_endpoint(request: Request) -> dict[str, str]:
+    async def test_endpoint(request: Request) -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
         logger.info("endpoint_called", endpoint="/test")
         return {"message": "ok"}
 
     @app.get("/multi-log")
-    async def multi_log_endpoint(request: Request) -> dict[str, str]:
+    async def multi_log_endpoint(request: Request) -> dict[str, str]:  # pyright: ignore[reportUnusedFunction]
         logger.info("first_log", step=1)
         logger.info("second_log", step=2)
         logger.info("third_log", step=3)

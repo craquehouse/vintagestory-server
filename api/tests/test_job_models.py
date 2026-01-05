@@ -120,7 +120,7 @@ class TestJobToInfo:
         mock_job = MagicMock()
         mock_job.id = "daily_cleanup"
         mock_job.next_run_time = datetime(2026, 1, 3, 2, 0, 0, tzinfo=UTC)
-        mock_job.trigger = CronTrigger.from_crontab("0 2 * * *")
+        mock_job.trigger = CronTrigger.from_crontab("0 2 * * *")  # type: ignore[reportUnknownMemberType]
 
         result = job_to_info(mock_job)
 
@@ -138,7 +138,7 @@ class TestJobToInfo:
         mock_job = MagicMock()
         mock_job.id = "periodic_sync"
         mock_job.next_run_time = datetime(2026, 1, 2, 18, 0, 0, tzinfo=UTC)
-        mock_job.trigger = CronTrigger.from_crontab("0 */6 * * *")
+        mock_job.trigger = CronTrigger.from_crontab("0 */6 * * *")  # type: ignore[reportUnknownMemberType]
 
         result = job_to_info(mock_job)
 

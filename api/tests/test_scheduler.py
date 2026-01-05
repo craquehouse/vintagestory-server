@@ -138,7 +138,7 @@ class TestSchedulerServiceJobManagement:
         job = scheduler.add_interval_job(dummy_job, seconds=60, job_id="test_interval")
 
         assert job is not None
-        assert job.id == "test_interval"
+        assert job.id == "test_interval"  # type: ignore[reportUnknownMemberType]
         assert scheduler.get_job("test_interval") is not None
 
     @pytest.mark.asyncio
@@ -169,7 +169,7 @@ class TestSchedulerServiceJobManagement:
         job = scheduler.add_cron_job(dummy_job, "0 */6 * * *", job_id="test_cron")
 
         assert job is not None
-        assert job.id == "test_cron"
+        assert job.id == "test_cron"  # type: ignore[reportUnknownMemberType]
         assert scheduler.get_job("test_cron") is not None
 
     @pytest.mark.asyncio
@@ -275,7 +275,7 @@ class TestSchedulerServiceJobManagement:
         job = scheduler.get_job("specific_job")
 
         assert job is not None
-        assert job.id == "specific_job"
+        assert job.id == "specific_job"  # type: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
     async def test_get_job_returns_none_for_unknown_job(

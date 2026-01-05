@@ -130,7 +130,7 @@ class TestEviction:
     def test_eviction_lru_order(self, cache_dir: Path) -> None:
         """Test that files are evicted in LRU order (oldest first)."""
         # Create files and set access times
-        files = []
+        files: list[Path] = []
         for i in range(4):
             f = create_test_file(cache_dir, f"mod{i}.zip", 300 * 1024)  # 300KB each
             files.append(f)

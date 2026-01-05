@@ -148,7 +148,7 @@ class TestListJobsEndpoint:
         # Remove all existing jobs for clean test
         existing_jobs = scheduler.get_jobs()
         for job in existing_jobs:
-            scheduler.remove_job(job.id)
+            scheduler.remove_job(str(job.id))  # type: ignore[reportUnknownMemberType]
 
         try:
             response = lifespan_client.get(

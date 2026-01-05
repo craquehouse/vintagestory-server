@@ -49,7 +49,7 @@ class TestRegisterDefaultJobs:
         # (mod_list_refresh_interval=3600 by default)
         jobs = scheduler.get_jobs()
         assert len(jobs) >= 1
-        job_ids = [job.id for job in jobs]
+        job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
         assert "mod_cache_refresh" in job_ids
 
     @pytest.mark.asyncio
@@ -344,7 +344,7 @@ class TestJobIntervalZeroNotRegistered:
             # Story 8.1: mod_cache_refresh job should be registered
             # when mod_list_refresh_interval > 0
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "mod_cache_refresh" in job_ids
 
 
@@ -378,7 +378,7 @@ class TestModCacheRefreshJobRegistration:
             register_default_jobs(scheduler)
 
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "mod_cache_refresh" in job_ids
 
     @pytest.mark.asyncio
@@ -400,7 +400,7 @@ class TestModCacheRefreshJobRegistration:
             register_default_jobs(scheduler)
 
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "mod_cache_refresh" not in job_ids
 
     @pytest.mark.asyncio
@@ -425,14 +425,15 @@ class TestModCacheRefreshJobRegistration:
 
             jobs = scheduler.get_jobs()
             mod_cache_job = next(
-                (job for job in jobs if job.id == "mod_cache_refresh"), None
+                (job for job in jobs if job.id == "mod_cache_refresh"),  # type: ignore[reportUnknownMemberType]
+                None,
             )
             assert mod_cache_job is not None
 
             # APScheduler stores interval in trigger
-            trigger = mod_cache_job.trigger
+            trigger = mod_cache_job.trigger  # type: ignore[reportUnknownMemberType]
             # IntervalTrigger has interval as timedelta
-            assert trigger.interval.total_seconds() == expected_interval
+            assert trigger.interval.total_seconds() == expected_interval  # type: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
     async def test_mod_cache_refresh_logs_registration(
@@ -488,7 +489,7 @@ class TestServerVersionsCheckJobRegistration:
             register_default_jobs(scheduler)
 
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "server_versions_check" in job_ids
 
     @pytest.mark.asyncio
@@ -510,7 +511,7 @@ class TestServerVersionsCheckJobRegistration:
             register_default_jobs(scheduler)
 
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "server_versions_check" not in job_ids
 
     @pytest.mark.asyncio
@@ -535,14 +536,15 @@ class TestServerVersionsCheckJobRegistration:
 
             jobs = scheduler.get_jobs()
             versions_job = next(
-                (job for job in jobs if job.id == "server_versions_check"), None
+                (job for job in jobs if job.id == "server_versions_check"),  # type: ignore[reportUnknownMemberType]
+                None,
             )
             assert versions_job is not None
 
             # APScheduler stores interval in trigger
-            trigger = versions_job.trigger
+            trigger = versions_job.trigger  # type: ignore[reportUnknownMemberType]
             # IntervalTrigger has interval as timedelta
-            assert trigger.interval.total_seconds() == expected_interval
+            assert trigger.interval.total_seconds() == expected_interval  # type: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
     async def test_server_versions_check_logs_registration(
@@ -587,6 +589,6 @@ class TestServerVersionsCheckJobRegistration:
             register_default_jobs(scheduler)
 
             jobs = scheduler.get_jobs()
-            job_ids = [job.id for job in jobs]
+            job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]
             assert "mod_cache_refresh" in job_ids
             assert "server_versions_check" in job_ids

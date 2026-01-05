@@ -79,7 +79,7 @@ class TestWebSocketTokenService:
     ) -> None:
         """Token generation uses cryptographically secure random bytes."""
         # Create multiple tokens and verify they're unique
-        tokens = set()
+        tokens: set[str] = set()
         for _ in range(10):
             t = await service.create_token("admin")
             tokens.add(t.token)
