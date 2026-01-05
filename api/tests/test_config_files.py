@@ -34,6 +34,67 @@ def service(mock_settings: MagicMock) -> ConfigFilesService:
     return ConfigFilesService(settings=mock_settings)
 
 
+class TestListDirectories:
+    """Tests for ConfigFilesService.list_directories()."""
+
+    def test_list_directories_returns_subdirectory_names(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return list of subdirectory names in serverdata_dir."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "Playerdata").mkdir()
+        (serverdata / "Macros").mkdir()
+        # Also create a file to verify it's not included
+        (serverdata / "serverconfig.json").write_text('{}')
+
+        result = service.list_directories()
+
+        assert result == ["Macros", "ModConfigs", "Playerdata"]
+
+    def test_list_directories_empty_directory(
+        self, service: ConfigFilesService
+    ) -> None:
+        """Should return empty list when no subdirectories exist."""
+        result = service.list_directories()
+        assert result == []
+
+    def test_list_directories_directory_not_exists(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return empty list when serverdata_dir doesn't exist."""
+        mock_settings.serverdata_dir.rmdir()
+
+        result = service.list_directories()
+
+        assert result == []
+
+    def test_list_directories_excludes_hidden_directories(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should not include hidden directories (starting with dot)."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / ".hidden").mkdir()
+
+        result = service.list_directories()
+
+        assert result == ["ModConfigs"]
+
+    def test_list_directories_excludes_files(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should only return directories, not files."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "serverconfig.json").write_text('{}')
+        (serverdata / "not-a-dir.txt").write_text('text')
+
+        result = service.list_directories()
+
+        assert result == ["ModConfigs"]
+
+
 class TestListFiles:
     """Tests for ConfigFilesService.list_files()."""
 

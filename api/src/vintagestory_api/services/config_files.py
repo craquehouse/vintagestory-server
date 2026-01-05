@@ -93,6 +93,30 @@ class ConfigFilesService:
 
         return target
 
+    def list_directories(self) -> list[str]:
+        """List all subdirectories in serverdata directory.
+
+        Returns:
+            List of subdirectory names (not full paths) found in serverdata_dir.
+            Hidden directories (starting with .) are excluded.
+            Empty list if directory doesn't exist.
+        """
+        serverdata_dir = self.settings.serverdata_dir
+
+        if not serverdata_dir.exists():
+            logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
+            return []
+
+        # Find all subdirectories (exclude hidden directories)
+        directories = sorted(
+            d.name
+            for d in serverdata_dir.iterdir()
+            if d.is_dir() and not d.name.startswith(".")
+        )
+
+        logger.debug("config_directories_listed", count=len(directories))
+        return directories
+
     def list_files(self) -> list[str]:
         """List all JSON configuration files in serverdata directory.
 
