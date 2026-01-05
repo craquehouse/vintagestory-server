@@ -839,6 +839,82 @@ def config_files_client(config_files_app: FastAPI) -> TestClient:
     return TestClient(config_files_app)
 
 
+class TestListConfigDirectories:
+    """Tests for GET /config/directories endpoint - Story 9.7."""
+
+    def test_list_directories_returns_subdirectories(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Returns list of subdirectory names in serverdata."""
+        # Create directories
+        serverdata = temp_settings.serverdata_dir
+        serverdata.mkdir(parents=True, exist_ok=True)
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "Playerdata").mkdir()
+        (serverdata / "serverconfig.json").write_text("{}")
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/directories",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert "directories" in data["data"]
+            assert "ModConfigs" in data["data"]["directories"]
+            assert "Playerdata" in data["data"]["directories"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_directories_empty_when_no_subdirs(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Returns empty list when no subdirectories exist."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["directories"] == []
+
+    def test_list_directories_monitor_can_access(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Monitor role can access GET endpoint (read-only)."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_list_directories_unauthenticated_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = config_files_client.get("/api/v1alpha1/config/directories")
+
+        assert response.status_code == 401
+
+
 class TestListConfigFiles:
     """Tests for GET /config/files endpoint - Story 6.5 AC 1."""
 

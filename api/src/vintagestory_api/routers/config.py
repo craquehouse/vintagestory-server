@@ -360,6 +360,33 @@ def get_config_files_service(
     return ConfigFilesService(settings=server_service.settings)
 
 
+@router.get("/directories", response_model=ApiResponse, summary="List directories")
+async def list_config_directories(
+    _: RequireAuth,
+    service: ConfigFilesService = Depends(get_config_files_service),
+) -> ApiResponse:
+    """List all subdirectories in serverdata directory.
+
+    Returns a list of directory names available for browsing.
+    Directories are from the serverdata directory (where VintageStory stores
+    ModConfigs, Playerdata, Macros, and other subdirectories).
+
+    Note: Hidden directories (starting with .) are included in the response.
+    Frontend may choose to filter these for display purposes.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Returns:
+        ApiResponse with data containing:
+        - directories: Array of subdirectory names in serverdata directory
+
+    Raises:
+        HTTPException: 401 if not authenticated
+    """
+    directories = service.list_directories()
+    return ApiResponse(status="ok", data={"directories": directories})
+
+
 @router.get("/files", response_model=ApiResponse, summary="List config files")
 async def list_config_files(
     _: RequireAuth,
