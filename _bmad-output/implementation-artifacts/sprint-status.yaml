@@ -118,7 +118,7 @@ development_status:
   9-3-mod-cache-eviction-strategy: done
   9-4-debug-logging-infrastructure: done
   9-5-console-command-highlighting: done
-  9-6-json-syntax-colorization: review
+  9-6-json-syntax-colorization: in-progress
   9-7-dynamic-file-browser: backlog
   epic-9-retrospective: optional
 

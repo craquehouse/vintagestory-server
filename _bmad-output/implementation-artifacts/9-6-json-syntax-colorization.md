@@ -1,6 +1,6 @@
 # Story 9.6: JSON Syntax Colorization
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -46,6 +46,14 @@ So that **configuration files are easier to read and understand**.
   - [x] Subtask 3.2: Apply syntax highlighting for `.json` files, plain text for others
   - [x] Subtask 3.3: Handle invalid JSON gracefully - fall back to plain text display
   - [x] Subtask 3.4: Write integration tests for FileViewer with JSON highlighting
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] Add story file and sprint-status.yaml to Dev Agent Record File List for transparency (git vs story discrepancy)
+- [ ] [AI-Review][LOW] Add validation for non-JSON file content in FileViewer to handle non-serializable data gracefully [FileViewer.tsx:122-124]
+- [ ] [AI-Review][LOW] Add defensive validation for FileViewer content prop type [FileViewer.tsx:23-31]
+- [ ] [AI-Review][LOW] Add test case for deeply nested arrays with string elements at line starts [json-highlighter.test.ts]
+- [ ] [AI-Review][LOW] Add test case for whitespace-only lines with trailing comma [json-highlighter.test.ts]
 
 ## Dev Notes
 
