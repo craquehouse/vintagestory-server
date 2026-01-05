@@ -1,6 +1,6 @@
 # Story 9.6: JSON Syntax Colorization
 
-Status: review
+Status: done
 
 ## Story
 
