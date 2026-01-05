@@ -1,6 +1,6 @@
 # Story 9.7: Dynamic File Browser
 
-Status: done
+Status: in-progress
 
 ## Story
 
@@ -48,6 +48,13 @@ So that **I can access ModConfigs, Macros, Playerdata, and other directories**.
   - [x] Subtask 4.3: Update `FileList` component to show directories with folder icons
   - [x] Subtask 4.4: Update `FileManagerPanel` to handle directory navigation
   - [x] Subtask 4.5: Write component tests for directory browsing UI
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Story marked "done" before nested directory support was added. Commit 993318e marked done, but commit 6c66c11 added nested directory browsing afterward. This violates project-context.md requirement that tasks cannot be marked complete until implementation is finished. Consider reordering commits or adding note about post-story enhancement. [9-7-dynamic-file-browser.md:3]
+- [ ] [AI-Review][MEDIUM] Breadcrumb navigation missing. Dev Notes line 209 specify "Show path like: `serverdata / ModConfigs / modname.json`. Root label: 'serverdata' (clickable to go back). Each path segment clickable for navigation." Actual implementation (FileManagerPanel.tsx:55-67) shows simple back button with current directory name as text, NOT clickable breadcrumbs. Either implement breadcrumbs or update Dev Notes to match actual UI. [9-7-dynamic-file-browser.md:209]
+- [ ] [AI-Review][MEDIUM] Accessibility gap in directory vs file distinction. Dev Notes line 110 mentions "Handle directory selection vs file selection." FileList.tsx:52 uses `text-primary` color for directories vs default color for files. Color-only distinction may not be sufficient for screen readers. Consider adding `aria-label` or keyboard navigation documentation for directories. [web/src/components/FileList.tsx:52]
+- [ ] [AI-Review][LOW] No E2E tests for directory navigation flow. AC3 requires "Given a new directory is created... When I refresh... Then new directory appears." Only unit/integration tests exist (311 API tests, 18 hook tests). Consider adding Playwright E2E test for directory creation + refresh flow to validate AC3. [9-7-dynamic-file-browser.md:24]
 
 ## Dev Notes
 
