@@ -16,7 +16,9 @@ import {
 } from '@/api/config';
 
 /**
- * Hook to fetch the list of directories in serverdata.
+ * Hook to fetch the list of directories in serverdata or a subdirectory.
+ *
+ * @param directory - Optional subdirectory to list directories from (Story 9.7)
  *
  * Story 9.7: Dynamic File Browser
  *
@@ -36,10 +38,10 @@ import {
  *   );
  * }
  */
-export function useConfigDirectories() {
+export function useConfigDirectories(directory?: string) {
   return useQuery({
-    queryKey: queryKeys.config.directories,
-    queryFn: fetchConfigDirectories,
+    queryKey: queryKeys.config.directories(directory),
+    queryFn: () => fetchConfigDirectories(directory),
   });
 }
 

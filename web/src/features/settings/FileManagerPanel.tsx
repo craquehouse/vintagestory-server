@@ -46,9 +46,9 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   // Story 9.7: Current directory path (null = root)
   const [currentDirectory, setCurrentDirectory] = useState<string | null>(null);
 
-  // Fetch directories (Story 9.7)
+  // Fetch directories for the current path (Story 9.7 - nested directory support)
   const { data: directoriesData, isLoading: isLoadingDirectories } =
-    useConfigDirectories();
+    useConfigDirectories(currentDirectory ?? undefined);
 
   // Fetch file list (with directory support - Story 9.7)
   const {
@@ -68,8 +68,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const items = useMemo<FileListItem[]>(() => {
     const result: FileListItem[] = [];
 
-    // Only show directories at root level
-    if (!currentDirectory && directoriesData?.data?.directories) {
+    // Show directories at any level (Story 9.7 - nested directory support)
+    if (directoriesData?.data?.directories) {
       // Filter hidden directories by default
       const visibleDirs = directoriesData.data.directories.filter(
         (d) => !d.startsWith('.')
@@ -87,7 +87,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     }
 
     return result;
-  }, [currentDirectory, directoriesData, filesData]);
+  }, [directoriesData, filesData]);
 
   // Handle file selection
   const handleSelectFile = (filename: string) => {
@@ -98,21 +98,34 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     setSelectedFile(fullPath);
   };
 
-  // Handle directory navigation (Story 9.7)
+  // Handle directory navigation (Story 9.7 - nested directory support)
   const handleSelectDirectory = (dirname: string) => {
-    setCurrentDirectory(dirname);
+    // Build full path by appending to current directory
+    const newPath = currentDirectory
+      ? `${currentDirectory}/${dirname}`
+      : dirname;
+    setCurrentDirectory(newPath);
     setSelectedFile(null); // Clear selection when changing directories
   };
 
-  // Handle back navigation (Story 9.7)
+  // Handle back navigation (Story 9.7 - nested directory support)
   const handleNavigateBack = () => {
-    setCurrentDirectory(null);
+    if (!currentDirectory) return;
+
+    // Navigate to parent directory or root
+    const lastSlash = currentDirectory.lastIndexOf('/');
+    if (lastSlash === -1) {
+      // At first level, go back to root
+      setCurrentDirectory(null);
+    } else {
+      // Go up one level
+      setCurrentDirectory(currentDirectory.substring(0, lastSlash));
+    }
     setSelectedFile(null);
   };
 
   // Combined loading state
-  const isLoading =
-    isLoadingFiles || (!currentDirectory && isLoadingDirectories);
+  const isLoading = isLoadingFiles || isLoadingDirectories;
 
   // Error state for file list
   if (filesError) {

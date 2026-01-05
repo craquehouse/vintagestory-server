@@ -91,16 +91,21 @@ export async function updateApiSetting(
 // ===== Config Files API (Story 6.6, Story 9.7) =====
 
 /**
- * Fetch list of directories in serverdata.
+ * Fetch list of directories in serverdata or a subdirectory.
+ *
+ * @param directory - Optional subdirectory to list directories from (Story 9.7)
  *
  * Story 9.7: Dynamic File Browser
  * Accessible to both Admin and Monitor roles.
  */
-export async function fetchConfigDirectories(): Promise<
-  ApiResponse<ConfigDirectoryListData>
-> {
+export async function fetchConfigDirectories(
+  directory?: string
+): Promise<ApiResponse<ConfigDirectoryListData>> {
+  const params = directory
+    ? `?directory=${encodeURIComponent(directory)}`
+    : '';
   return apiClient<ApiResponse<ConfigDirectoryListData>>(
-    `${API_PREFIX}/directories`
+    `${API_PREFIX}/directories${params}`
   );
 }
 

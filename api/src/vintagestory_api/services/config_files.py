@@ -93,13 +93,20 @@ class ConfigFilesService:
 
         return target
 
-    def list_directories(self) -> list[str]:
-        """List all subdirectories in serverdata directory.
+    def list_directories(self, directory: str | None = None) -> list[str]:
+        """List subdirectories in serverdata directory or a subdirectory.
+
+        Args:
+            directory: Optional subdirectory path within serverdata_dir.
+                       If None, lists directories in the root serverdata directory.
 
         Returns:
-            List of subdirectory names (not full paths) found in serverdata_dir.
+            List of subdirectory names (not full paths) found in the target directory.
             Includes hidden directories - filtering is left to the frontend.
             Empty list if directory doesn't exist.
+
+        Raises:
+            ConfigPathInvalidError: If directory contains path traversal.
         """
         serverdata_dir = self.settings.serverdata_dir
 
@@ -107,10 +114,20 @@ class ConfigFilesService:
             logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return []
 
-        # Find all subdirectories (including hidden - let frontend handle visibility)
-        directories = sorted(d.name for d in serverdata_dir.iterdir() if d.is_dir())
+        # Determine target directory
+        if directory:
+            # Validate path traversal
+            target_dir = self._safe_path(serverdata_dir, directory)
+            if not target_dir.is_dir():
+                logger.debug("config_subdir_not_found", directory=directory)
+                return []
+        else:
+            target_dir = serverdata_dir
 
-        logger.debug("config_directories_listed", count=len(directories))
+        # Find all subdirectories (including hidden - let frontend handle visibility)
+        directories = sorted(d.name for d in target_dir.iterdir() if d.is_dir())
+
+        logger.debug("config_directories_listed", count=len(directories), directory=directory)
         return directories
 
     def list_files(self, directory: str | None = None) -> list[str]:

@@ -94,6 +94,53 @@ class TestListDirectories:
 
         assert result == ["ModConfigs"]
 
+    def test_list_directories_with_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should list directories within a subdirectory (nested browsing)."""
+        serverdata = mock_settings.serverdata_dir
+        cache_dir = serverdata / "Cache"
+        cache_dir.mkdir()
+        (cache_dir / "unpack").mkdir()
+        (cache_dir / "downloads").mkdir()
+        (cache_dir / "temp.json").write_text('{}')
+
+        result = service.list_directories("Cache")
+
+        assert result == ["downloads", "unpack"]
+
+    def test_list_directories_nested_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should list directories at any nesting level."""
+        serverdata = mock_settings.serverdata_dir
+        deep_dir = serverdata / "Cache" / "unpack" / "modname"
+        deep_dir.mkdir(parents=True)
+        (deep_dir / "assets").mkdir()
+        (deep_dir / "lang").mkdir()
+
+        result = service.list_directories("Cache/unpack/modname")
+
+        assert result == ["assets", "lang"]
+
+    def test_list_directories_path_traversal_blocked(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should reject path traversal attempts in directory parameter."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_directories("../")
+
+    def test_list_directories_nonexistent_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return empty list for nonexistent subdirectory."""
+        result = service.list_directories("NonexistentDir")
+
+        assert result == []
+
 
 class TestListFiles:
     """Tests for ConfigFilesService.list_files()."""

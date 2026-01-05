@@ -914,6 +914,59 @@ class TestListConfigDirectories:
 
         assert response.status_code == 401
 
+    def test_list_directories_with_directory_param(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Story 9.7: Returns subdirectories within a specified directory."""
+        # Create nested directories
+        serverdata = temp_settings.serverdata_dir
+        serverdata.mkdir(parents=True, exist_ok=True)
+        cache_dir = serverdata / "Cache"
+        cache_dir.mkdir()
+        (cache_dir / "unpack").mkdir()
+        (cache_dir / "downloads").mkdir()
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/directories?directory=Cache",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert "unpack" in data["data"]["directories"]
+            assert "downloads" in data["data"]["directories"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_directories_path_traversal_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Story 9.7: Rejects path traversal in directory param with 400."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories?directory=../secret",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_PATH_INVALID
+
 
 class TestListConfigFiles:
     """Tests for GET /config/files endpoint - Story 6.5 AC 1, Story 9.7."""

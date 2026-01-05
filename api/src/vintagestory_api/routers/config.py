@@ -364,8 +364,9 @@ def get_config_files_service(
 async def list_config_directories(
     _: RequireAuth,
     service: ConfigFilesService = Depends(get_config_files_service),
+    directory: str | None = None,
 ) -> ApiResponse:
-    """List all subdirectories in serverdata directory.
+    """List subdirectories in serverdata directory or a subdirectory.
 
     Returns a list of directory names available for browsing.
     Directories are from the serverdata directory (where VintageStory stores
@@ -376,14 +377,25 @@ async def list_config_directories(
 
     Both Admin and Monitor roles can access this read-only endpoint.
 
+    Args:
+        directory: Optional subdirectory path to list directories from.
+                   If not provided, lists directories in the root serverdata directory.
+
     Returns:
         ApiResponse with data containing:
-        - directories: Array of subdirectory names in serverdata directory
+        - directories: Array of subdirectory names in the target directory
 
     Raises:
         HTTPException: 401 if not authenticated
+        HTTPException: 400 if directory contains path traversal
     """
-    directories = service.list_directories()
+    try:
+        directories = service.list_directories(directory)
+    except ConfigPathInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": ErrorCode.CONFIG_PATH_INVALID, "message": e.message},
+        )
     return ApiResponse(status="ok", data={"directories": directories})
 
 

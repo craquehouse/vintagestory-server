@@ -234,6 +234,61 @@ describe('useConfigDirectories', () => {
         'Playerdata',
       ]);
     });
+
+    it('fetches directories from subdirectory when directory param provided', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { directories: ['unpack', 'downloads'] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useConfigDirectories('Cache'), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/config/directories?directory=Cache',
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
+    });
+
+    it('encodes special characters in directory param', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { directories: [] },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(
+        () => useConfigDirectories('Cache/My Folder'),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/config/directories?directory=Cache%2FMy%20Folder',
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        })
+      );
+    });
   });
 });
 
