@@ -21,8 +21,17 @@ export const queryKeys = {
     installStatus: ['server', 'install', 'status'] as const,
   },
   config: {
-    files: ['config', 'files'] as const,
-    file: (name: string) => ['config', 'files', name] as const,
+    // Directory listing - supports optional directory param for nested browsing (Story 9.7)
+    directories: (directory?: string) =>
+      directory
+        ? (['config', 'directories', directory] as const)
+        : (['config', 'directories'] as const),
+    // File listing - supports optional directory param (Story 9.7)
+    files: (directory?: string) =>
+      directory
+        ? (['config', 'files', directory] as const)
+        : (['config', 'files'] as const),
+    file: (name: string) => ['config', 'files', 'content', name] as const,
     // Game settings (Story 6.4)
     game: ['config', 'game'] as const,
     // API settings (Story 6.4)

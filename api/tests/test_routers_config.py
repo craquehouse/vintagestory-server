@@ -839,8 +839,137 @@ def config_files_client(config_files_app: FastAPI) -> TestClient:
     return TestClient(config_files_app)
 
 
+class TestListConfigDirectories:
+    """Tests for GET /config/directories endpoint - Story 9.7."""
+
+    def test_list_directories_returns_subdirectories(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Returns list of subdirectory names in serverdata."""
+        # Create directories
+        serverdata = temp_settings.serverdata_dir
+        serverdata.mkdir(parents=True, exist_ok=True)
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "Playerdata").mkdir()
+        (serverdata / "serverconfig.json").write_text("{}")
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/directories",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert "directories" in data["data"]
+            assert "ModConfigs" in data["data"]["directories"]
+            assert "Playerdata" in data["data"]["directories"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_directories_empty_when_no_subdirs(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Returns empty list when no subdirectories exist."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["directories"] == []
+
+    def test_list_directories_monitor_can_access(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Monitor role can access GET endpoint (read-only)."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 200
+
+    def test_list_directories_unauthenticated_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Unauthenticated request returns 401."""
+        response = config_files_client.get("/api/v1alpha1/config/directories")
+
+        assert response.status_code == 401
+
+    def test_list_directories_with_directory_param(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Story 9.7: Returns subdirectories within a specified directory."""
+        # Create nested directories
+        serverdata = temp_settings.serverdata_dir
+        serverdata.mkdir(parents=True, exist_ok=True)
+        cache_dir = serverdata / "Cache"
+        cache_dir.mkdir()
+        (cache_dir / "unpack").mkdir()
+        (cache_dir / "downloads").mkdir()
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/directories?directory=Cache",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert "unpack" in data["data"]["directories"]
+            assert "downloads" in data["data"]["directories"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_directories_path_traversal_blocked(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Story 9.7: Rejects path traversal in directory param with 400."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/directories?directory=../secret",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_PATH_INVALID
+
+
 class TestListConfigFiles:
-    """Tests for GET /config/files endpoint - Story 6.5 AC 1."""
+    """Tests for GET /config/files endpoint - Story 6.5 AC 1, Story 9.7."""
 
     def test_list_config_files_returns_json_files(
         self, config_files_client: TestClient
@@ -856,6 +985,59 @@ class TestListConfigFiles:
         assert data["status"] == "ok"
         assert "files" in data["data"]
         assert "serverconfig.json" in data["data"]["files"]
+
+    def test_list_config_files_with_directory_param(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Story 9.7: Returns files from specified subdirectory."""
+        # Create subdirectory with files
+        serverdata = temp_settings.serverdata_dir
+        serverdata.mkdir(parents=True, exist_ok=True)
+        subdir = serverdata / "ModConfigs"
+        subdir.mkdir()
+        (subdir / "mod1.json").write_text('{"enabled": true}')
+        (subdir / "mod2.json").write_text('{"enabled": false}')
+
+        def get_test_settings() -> Settings:
+            return temp_settings
+
+        def get_test_server_service() -> MagicMock:
+            return mock_server_service
+
+        def get_test_config_files_service() -> ConfigFilesService:
+            return ConfigFilesService(settings=temp_settings)
+
+        app.dependency_overrides[get_settings] = get_test_settings
+        app.dependency_overrides[get_server_service] = get_test_server_service
+        app.dependency_overrides[get_config_files_service] = get_test_config_files_service
+
+        try:
+            client = TestClient(app)
+            response = client.get(
+                "/api/v1alpha1/config/files?directory=ModConfigs",
+                headers={"X-API-Key": TEST_ADMIN_KEY},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert "mod1.json" in data["data"]["files"]
+            assert "mod2.json" in data["data"]["files"]
+        finally:
+            app.dependency_overrides.clear()
+
+    def test_list_config_files_directory_path_traversal(
+        self, config_files_client: TestClient
+    ) -> None:
+        """Story 9.7: Rejects path traversal in directory param with 400."""
+        response = config_files_client.get(
+            "/api/v1alpha1/config/files?directory=../secret",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.CONFIG_PATH_INVALID
 
     def test_list_config_files_empty_when_no_files(
         self, temp_settings: Settings, mock_server_service: MagicMock

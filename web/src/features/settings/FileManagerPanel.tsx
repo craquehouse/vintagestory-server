@@ -5,14 +5,20 @@
  * Uses hooks to fetch file list and content from the API.
  *
  * Story 6.6: File Manager UI - AC: 1, 2, 3, 4, 5
+ * Story 9.7: Dynamic File Browser - Directory navigation
  */
 
-import { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { AlertCircle, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { FileList } from '@/components/FileList';
+import { FileList, type FileListItem } from '@/components/FileList';
 import { FileViewer } from '@/components/FileViewer';
-import { useConfigFiles, useConfigFileContent } from '@/hooks/use-config-files';
+import {
+  useConfigFiles,
+  useConfigFileContent,
+  useConfigDirectories,
+} from '@/hooks/use-config-files';
+import { Button } from '@/components/ui/button';
 
 /**
  * Props for the FileManagerPanel component.
@@ -29,6 +35,7 @@ export interface FileManagerPanelProps {
  *
  * Displays a file list on the left and file viewer on the right.
  * Manages file selection state and data fetching.
+ * Supports directory navigation (Story 9.7).
  *
  * @example
  * <FileManagerPanel />
@@ -36,13 +43,19 @@ export interface FileManagerPanelProps {
 export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [wordWrap, setWordWrap] = useState(false);
+  // Story 9.7: Current directory path (null = root)
+  const [currentDirectory, setCurrentDirectory] = useState<string | null>(null);
 
-  // Fetch file list
+  // Fetch directories for the current path (Story 9.7 - nested directory support)
+  const { data: directoriesData, isLoading: isLoadingDirectories } =
+    useConfigDirectories(currentDirectory ?? undefined);
+
+  // Fetch file list (with directory support - Story 9.7)
   const {
     data: filesData,
     isLoading: isLoadingFiles,
     error: filesError,
-  } = useConfigFiles();
+  } = useConfigFiles(currentDirectory ?? undefined);
 
   // Fetch selected file content
   const {
@@ -51,10 +64,68 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     error: contentError,
   } = useConfigFileContent(selectedFile);
 
+  // Combine directories and files into items list
+  const items = useMemo<FileListItem[]>(() => {
+    const result: FileListItem[] = [];
+
+    // Show directories at any level (Story 9.7 - nested directory support)
+    if (directoriesData?.data?.directories) {
+      // Filter hidden directories by default
+      const visibleDirs = directoriesData.data.directories.filter(
+        (d) => !d.startsWith('.')
+      );
+      for (const dir of visibleDirs) {
+        result.push({ name: dir, type: 'directory' });
+      }
+    }
+
+    // Add files
+    if (filesData?.data?.files) {
+      for (const file of filesData.data.files) {
+        result.push({ name: file, type: 'file' });
+      }
+    }
+
+    return result;
+  }, [directoriesData, filesData]);
+
   // Handle file selection
   const handleSelectFile = (filename: string) => {
-    setSelectedFile(filename);
+    // If in a subdirectory, prepend the directory path
+    const fullPath = currentDirectory
+      ? `${currentDirectory}/${filename}`
+      : filename;
+    setSelectedFile(fullPath);
   };
+
+  // Handle directory navigation (Story 9.7 - nested directory support)
+  const handleSelectDirectory = (dirname: string) => {
+    // Build full path by appending to current directory
+    const newPath = currentDirectory
+      ? `${currentDirectory}/${dirname}`
+      : dirname;
+    setCurrentDirectory(newPath);
+    setSelectedFile(null); // Clear selection when changing directories
+  };
+
+  // Handle back navigation (Story 9.7 - nested directory support)
+  const handleNavigateBack = () => {
+    if (!currentDirectory) return;
+
+    // Navigate to parent directory or root
+    const lastSlash = currentDirectory.lastIndexOf('/');
+    if (lastSlash === -1) {
+      // At first level, go back to root
+      setCurrentDirectory(null);
+    } else {
+      // Go up one level
+      setCurrentDirectory(currentDirectory.substring(0, lastSlash));
+    }
+    setSelectedFile(null);
+  };
+
+  // Combined loading state
+  const isLoading = isLoadingFiles || isLoadingDirectories;
 
   // Error state for file list
   if (filesError) {
@@ -73,21 +144,35 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     );
   }
 
-  const files = filesData?.data?.files ?? [];
-
   return (
     <div
       className={cn('flex h-[500px] rounded-lg border bg-card', className)}
       data-testid="file-manager-panel"
     >
       {/* File List - Left Side */}
-      <div className="w-56 shrink-0 border-r">
+      <div className="w-56 shrink-0 border-r flex flex-col">
+        {/* Back button when in subdirectory (Story 9.7) */}
+        {currentDirectory && (
+          <div className="border-b p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNavigateBack}
+              className="w-full justify-start gap-2"
+              data-testid="file-manager-back"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="truncate">{currentDirectory}</span>
+            </Button>
+          </div>
+        )}
         <FileList
-          files={files}
+          items={items}
           selectedFile={selectedFile}
-          isLoading={isLoadingFiles}
+          isLoading={isLoading}
           onSelectFile={handleSelectFile}
-          className="h-full"
+          onSelectDirectory={handleSelectDirectory}
+          className="flex-1 overflow-auto"
         />
       </div>
 

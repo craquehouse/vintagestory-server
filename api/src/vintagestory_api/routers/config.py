@@ -360,12 +360,52 @@ def get_config_files_service(
     return ConfigFilesService(settings=server_service.settings)
 
 
+@router.get("/directories", response_model=ApiResponse, summary="List directories")
+async def list_config_directories(
+    _: RequireAuth,
+    service: ConfigFilesService = Depends(get_config_files_service),
+    directory: str | None = None,
+) -> ApiResponse:
+    """List subdirectories in serverdata directory or a subdirectory.
+
+    Returns a list of directory names available for browsing.
+    Directories are from the serverdata directory (where VintageStory stores
+    ModConfigs, Playerdata, Macros, and other subdirectories).
+
+    Note: Hidden directories (starting with .) are included in the response.
+    Frontend may choose to filter these for display purposes.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Args:
+        directory: Optional subdirectory path to list directories from.
+                   If not provided, lists directories in the root serverdata directory.
+
+    Returns:
+        ApiResponse with data containing:
+        - directories: Array of subdirectory names in the target directory
+
+    Raises:
+        HTTPException: 401 if not authenticated
+        HTTPException: 400 if directory contains path traversal
+    """
+    try:
+        directories = service.list_directories(directory)
+    except ConfigPathInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": ErrorCode.CONFIG_PATH_INVALID, "message": e.message},
+        )
+    return ApiResponse(status="ok", data={"directories": directories})
+
+
 @router.get("/files", response_model=ApiResponse, summary="List config files")
 async def list_config_files(
     _: RequireAuth,
     service: ConfigFilesService = Depends(get_config_files_service),
+    directory: str | None = None,
 ) -> ApiResponse:
-    """List all JSON configuration files in serverdata directory.
+    """List JSON configuration files in serverdata directory or subdirectory.
 
     Returns a list of configuration file names available for viewing.
     Files are from the serverdata directory (where VintageStory stores
@@ -373,15 +413,29 @@ async def list_config_files(
 
     Both Admin and Monitor roles can access this read-only endpoint.
 
+    Args:
+        directory: Optional subdirectory name to list files from.
+                   If not provided, lists files in the root serverdata directory.
+
     Returns:
         ApiResponse with data containing:
-        - files: Array of JSON filenames in serverdata directory
+        - files: Array of JSON filenames in the target directory
 
     Raises:
+        HTTPException: 400 if directory contains path traversal
         HTTPException: 401 if not authenticated
     """
-    files = service.list_files()
-    return ApiResponse(status="ok", data={"files": files})
+    try:
+        files = service.list_files(directory=directory)
+        return ApiResponse(status="ok", data={"files": files})
+    except ConfigPathInvalidError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.CONFIG_PATH_INVALID,
+                "message": e.message,
+            },
+        )
 
 
 @router.get(

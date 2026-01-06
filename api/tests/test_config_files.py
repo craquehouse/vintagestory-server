@@ -34,6 +34,114 @@ def service(mock_settings: MagicMock) -> ConfigFilesService:
     return ConfigFilesService(settings=mock_settings)
 
 
+class TestListDirectories:
+    """Tests for ConfigFilesService.list_directories()."""
+
+    def test_list_directories_returns_subdirectory_names(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return list of subdirectory names in serverdata_dir."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "Playerdata").mkdir()
+        (serverdata / "Macros").mkdir()
+        # Also create a file to verify it's not included
+        (serverdata / "serverconfig.json").write_text('{}')
+
+        result = service.list_directories()
+
+        assert result == ["Macros", "ModConfigs", "Playerdata"]
+
+    def test_list_directories_empty_directory(
+        self, service: ConfigFilesService
+    ) -> None:
+        """Should return empty list when no subdirectories exist."""
+        result = service.list_directories()
+        assert result == []
+
+    def test_list_directories_directory_not_exists(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return empty list when serverdata_dir doesn't exist."""
+        mock_settings.serverdata_dir.rmdir()
+
+        result = service.list_directories()
+
+        assert result == []
+
+    def test_list_directories_includes_hidden_directories(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should include hidden directories (frontend handles filtering)."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / ".hidden").mkdir()
+
+        result = service.list_directories()
+
+        assert result == [".hidden", "ModConfigs"]
+
+    def test_list_directories_excludes_files(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should only return directories, not files."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+        (serverdata / "serverconfig.json").write_text('{}')
+        (serverdata / "not-a-dir.txt").write_text('text')
+
+        result = service.list_directories()
+
+        assert result == ["ModConfigs"]
+
+    def test_list_directories_with_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should list directories within a subdirectory (nested browsing)."""
+        serverdata = mock_settings.serverdata_dir
+        cache_dir = serverdata / "Cache"
+        cache_dir.mkdir()
+        (cache_dir / "unpack").mkdir()
+        (cache_dir / "downloads").mkdir()
+        (cache_dir / "temp.json").write_text('{}')
+
+        result = service.list_directories("Cache")
+
+        assert result == ["downloads", "unpack"]
+
+    def test_list_directories_nested_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should list directories at any nesting level."""
+        serverdata = mock_settings.serverdata_dir
+        deep_dir = serverdata / "Cache" / "unpack" / "modname"
+        deep_dir.mkdir(parents=True)
+        (deep_dir / "assets").mkdir()
+        (deep_dir / "lang").mkdir()
+
+        result = service.list_directories("Cache/unpack/modname")
+
+        assert result == ["assets", "lang"]
+
+    def test_list_directories_path_traversal_blocked(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should reject path traversal attempts in directory parameter."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "ModConfigs").mkdir()
+
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_directories("../")
+
+    def test_list_directories_nonexistent_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return empty list for nonexistent subdirectory."""
+        result = service.list_directories("NonexistentDir")
+
+        assert result == []
+
+
 class TestListFiles:
     """Tests for ConfigFilesService.list_files()."""
 
@@ -50,6 +158,43 @@ class TestListFiles:
         result = service.list_files()
 
         assert result == ["other-config.json", "serverconfig.json"]
+
+    def test_list_files_in_subdirectory(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should return JSON files from specified subdirectory."""
+        serverdata = mock_settings.serverdata_dir
+        subdir = serverdata / "ModConfigs"
+        subdir.mkdir()
+        (subdir / "mod1.json").write_text('{"enabled": true}')
+        (subdir / "mod2.json").write_text('{"enabled": false}')
+        (subdir / "readme.txt").write_text("not json")
+        # Root level file should not be included
+        (serverdata / "serverconfig.json").write_text('{}')
+
+        result = service.list_files(directory="ModConfigs")
+
+        assert result == ["mod1.json", "mod2.json"]
+
+    def test_list_files_subdirectory_not_exists(
+        self, service: ConfigFilesService
+    ) -> None:
+        """Should return empty list when subdirectory doesn't exist."""
+        result = service.list_files(directory="NonExistent")
+
+        assert result == []
+
+    def test_list_files_subdirectory_path_traversal(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Should reject path traversal in directory parameter."""
+        # Create a file outside serverdata that we shouldn't be able to access
+        outside_dir = mock_settings.serverdata_dir.parent / "secret"
+        outside_dir.mkdir()
+        (outside_dir / "passwords.json").write_text('{"admin": "secret"}')
+
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_files(directory="../secret")
 
     def test_list_files_empty_directory(self, service: ConfigFilesService) -> None:
         """Should return empty list when no JSON files exist."""

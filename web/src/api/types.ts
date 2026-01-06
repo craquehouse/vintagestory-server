@@ -241,7 +241,15 @@ export interface ApiSettingUpdateData {
   value: string | number | boolean;
 }
 
-// ===== Config File Types (Story 6.6) =====
+// ===== Config File Types (Story 6.6, Story 9.7) =====
+
+/**
+ * Response from GET /api/v1alpha1/config/directories (list directories).
+ * Story 9.7: Dynamic File Browser
+ */
+export interface ConfigDirectoryListData {
+  directories: string[];
+}
 
 /**
  * Response from GET /api/v1alpha1/config/files (list config files).
