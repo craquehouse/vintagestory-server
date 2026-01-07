@@ -8,6 +8,8 @@
 import { apiClient } from './client';
 import type {
   ApiResponse,
+  BrowseParams,
+  ModBrowseData,
   ModsListData,
   ModLookupData,
   ModInstallData,
@@ -110,4 +112,37 @@ export async function removeMod(
     `${API_PREFIX}/${encodeURIComponent(slug)}`,
     { method: 'DELETE' }
   );
+}
+
+/**
+ * Fetch paginated list of mods from the browse API.
+ *
+ * Returns mods from the VintageStory mod database with pagination.
+ * The API caches results for 5 minutes.
+ *
+ * @param params - Pagination and sort parameters
+ * @returns Paginated mod list with metadata
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchBrowseMods(
+  params: BrowseParams = {}
+): Promise<ApiResponse<ModBrowseData>> {
+  const searchParams = new URLSearchParams();
+
+  if (params.page !== undefined) {
+    searchParams.set('page', String(params.page));
+  }
+  if (params.pageSize !== undefined) {
+    searchParams.set('page_size', String(params.pageSize));
+  }
+  if (params.sort !== undefined) {
+    searchParams.set('sort', params.sort);
+  }
+  // Note: search param is not sent to API - it's handled client-side in the hook
+
+  const query = searchParams.toString();
+  const url = query ? `${API_PREFIX}/browse?${query}` : `${API_PREFIX}/browse`;
+
+  return apiClient<ApiResponse<ModBrowseData>>(url);
 }

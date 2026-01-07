@@ -15,6 +15,8 @@ export const queryKeys = {
     all: ['mods'] as const,
     detail: (slug: string) => ['mods', slug] as const,
     lookup: (slug: string) => ['mods', 'lookup', slug] as const,
+    browse: (params: { page?: number; pageSize?: number; sort?: string }) =>
+      ['mods', 'browse', params] as const,
   },
   server: {
     status: ['server', 'status'] as const,
