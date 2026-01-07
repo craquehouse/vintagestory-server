@@ -1,6 +1,6 @@
 # Story 10.3: Browse Landing Page & Search
 
-Status: in-progress
+Status: done
 
 ## Story
 
