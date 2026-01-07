@@ -1,6 +1,6 @@
 # Story 10.3: Browse Landing Page & Search
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -44,22 +44,22 @@ So that **I can discover mods without having to search first**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add browse API function and types + tests (AC: 1, 6, 7)
-  - [ ] Subtask 1.1: Add `ModBrowseItem` and `ModBrowseResponse` types to `web/src/api/types.ts`
-  - [ ] Subtask 1.2: Add `fetchBrowseMods()` function to `web/src/api/mods.ts`
-  - [ ] Subtask 1.3: Add `browse` query key to `web/src/api/query-keys.ts`
-  - [ ] Subtask 1.4: Write unit tests for the API function
+- [x] Task 1: Add browse API function and types + tests (AC: 1, 6, 7)
+  - [x] Subtask 1.1: Add `ModBrowseItem` and `ModBrowseResponse` types to `web/src/api/types.ts`
+  - [x] Subtask 1.2: Add `fetchBrowseMods()` function to `web/src/api/mods.ts`
+  - [x] Subtask 1.3: Add `browse` query key to `web/src/api/query-keys.ts`
+  - [x] Subtask 1.4: Write unit tests for the API function
 
-- [ ] Task 2: Create useBrowseMods hook + tests (AC: 1, 3, 4, 6, 7)
-  - [ ] Subtask 2.1: Create `web/src/hooks/use-browse-mods.ts` with TanStack Query
-  - [ ] Subtask 2.2: Support query parameters (page, pageSize, sort, search)
-  - [ ] Subtask 2.3: Write hook tests verifying parameter handling and caching
+- [x] Task 2: Create useBrowseMods hook + tests (AC: 1, 3, 4, 6, 7)
+  - [x] Subtask 2.1: Create `web/src/hooks/use-browse-mods.ts` with TanStack Query
+  - [x] Subtask 2.2: Support query parameters (page, pageSize, sort, search)
+  - [x] Subtask 2.3: Write hook tests verifying parameter handling and caching
 
-- [ ] Task 3: Create ModBrowseGrid component + tests (AC: 1, 7)
-  - [ ] Subtask 3.1: Create `web/src/components/ModBrowseGrid.tsx` for displaying mod cards
-  - [ ] Subtask 3.2: Create basic `ModCard.tsx` placeholder (full card in Story 10.5)
-  - [ ] Subtask 3.3: Add loading skeleton component
-  - [ ] Subtask 3.4: Write component tests for grid rendering and loading states
+- [x] Task 3: Create ModBrowseGrid component + tests (AC: 1, 7)
+  - [x] Subtask 3.1: Create `web/src/components/ModBrowseGrid.tsx` for displaying mod cards
+  - [x] Subtask 3.2: Create basic `ModCard.tsx` placeholder (full card in Story 10.5)
+  - [x] Subtask 3.3: Add loading skeleton component
+  - [x] Subtask 3.4: Write component tests for grid rendering and loading states
 
 - [ ] Task 4: Implement BrowseTab with search + tests (AC: 1, 2, 3, 4, 5, 6)
   - [ ] Subtask 4.1: Replace BrowseTab placeholder with full implementation
@@ -455,16 +455,34 @@ git commit -m "feat(story-10.3/task-4): implement BrowseTab with search"
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Added ModBrowseItem, BrowsePaginationMeta, ModBrowseData, BrowseParams types; fetchBrowseMods() function; browse query key; 8 unit tests passing
+- Task 2: Created useBrowseMods hook with TanStack Query; client-side search filtering by name, author, summary, tags; 20 unit tests passing
+- Task 3: Created ModBrowseGrid with responsive grid layout, loading skeleton, empty state; ModCard with stats display; 22 unit tests passing
+
 ### File List
+
+- web/src/api/types.ts (modified) - Added browse-related types
+- web/src/api/mods.ts (modified) - Added fetchBrowseMods function
+- web/src/api/query-keys.ts (modified) - Added browse query key
+- web/src/api/mods.test.ts (created) - Unit tests for mods API
+- web/src/hooks/use-browse-mods.ts (created) - Browse hook with search filtering
+- web/src/hooks/use-browse-mods.test.tsx (created) - Hook tests
+- web/src/components/ModCard.tsx (created) - Mod card component
+- web/src/components/ModCard.test.tsx (created) - ModCard tests
+- web/src/components/ModBrowseGrid.tsx (created) - Grid layout component
+- web/src/components/ModBrowseGrid.test.tsx (created) - Grid tests
 
 ## Change Log
 
 | Date | Change |
 |------|--------|
 | 2026-01-07 | Story created with ready-for-dev status |
+| 2026-01-07 | Task 1 complete: Browse API types and function with tests |
+| 2026-01-07 | Task 2 complete: useBrowseMods hook with client-side search filtering |
+| 2026-01-07 | Task 3 complete: ModBrowseGrid and ModCard components |
