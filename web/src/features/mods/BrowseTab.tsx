@@ -55,7 +55,7 @@ export function BrowseTab() {
         data-testid="browse-tab-error"
       >
         <p className="text-destructive mb-4" data-testid="browse-error-message">
-          Failed to load mods: {error instanceof Error ? error.message : 'Unknown error'}
+          Failed to load mods: {error?.message ?? 'Unknown error'}
         </p>
         <Button
           onClick={() => refetch()}
@@ -82,6 +82,7 @@ export function BrowseTab() {
           onKeyDown={handleKeyDown}
           className="pl-9 pr-9"
           data-testid="browse-search-input"
+          aria-label="Search mods"
         />
         {searchInput && (
           <Button
