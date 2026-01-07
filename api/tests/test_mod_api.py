@@ -1,6 +1,7 @@
 """Tests for ModApiClient - VintageStory mod database API client."""
 
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
@@ -16,6 +17,7 @@ from vintagestory_api.services.mod_api import (
     ModVersionNotFoundError,
     check_compatibility,
     extract_slug,
+    sort_mods,
     validate_slug,
 )
 
@@ -528,3 +530,339 @@ class TestModApiClientLifecycle:
 
         await mod_api_client.close()
         assert mod_api_client._client is None  # pyright: ignore[reportPrivateUsage]
+
+
+# --- Sample data for browse tests ---
+
+
+# Sample mod list from /api/mods endpoint
+BROWSE_MODS_LIST: list[dict[str, Any]] = [
+    {
+        "modid": 2655,
+        "name": "Smithing Plus",
+        "summary": "Expanded smithing mechanics",
+        "author": "jayu",
+        "downloads": 204656,
+        "follows": 2348,
+        "trendingpoints": 1853,
+        "side": "both",
+        "type": "mod",
+        "logo": "https://moddbcdn.vintagestory.at/smithingplus/logo.png",
+        "tags": ["Crafting", "QoL"],
+        "lastreleased": "2025-10-09 21:28:57",
+        "urlalias": "smithingplus",
+    },
+    {
+        "modid": 1234,
+        "name": "Old Popular Mod",
+        "summary": "A very popular mod",
+        "author": "author1",
+        "downloads": 500000,
+        "follows": 5000,
+        "trendingpoints": 100,
+        "side": "server",
+        "type": "mod",
+        "logo": None,
+        "tags": ["Gameplay"],
+        "lastreleased": "2024-01-15 10:00:00",
+        "urlalias": "oldpopular",
+    },
+    {
+        "modid": 5678,
+        "name": "Trending New Mod",
+        "summary": "Trending right now",
+        "author": "author2",
+        "downloads": 1000,
+        "follows": 500,
+        "trendingpoints": 5000,
+        "side": "client",
+        "type": "mod",
+        "logo": "https://moddbcdn.vintagestory.at/trending/logo.png",
+        "tags": ["UI"],
+        "lastreleased": "2025-12-01 15:30:00",
+        "urlalias": "trendingnew",
+    },
+]
+
+BROWSE_MODS_RESPONSE: dict[str, Any] = {
+    "statuscode": "200",
+    "mods": [
+        {
+            "modid": 2655,
+            "name": "Smithing Plus",
+            "summary": "Expanded smithing mechanics",
+            "author": "jayu",
+            "downloads": 204656,
+            "follows": 2348,
+            "trendingpoints": 1853,
+            "side": "both",
+            "type": "mod",
+            "logo": "https://moddbcdn.vintagestory.at/smithingplus/logo.png",
+            "tags": ["Crafting", "QoL"],
+            "lastreleased": "2025-10-09 21:28:57",
+            "urlalias": "smithingplus",
+        },
+        {
+            "modid": 1234,
+            "name": "Old Popular Mod",
+            "summary": "A very popular mod",
+            "author": "author1",
+            "downloads": 500000,
+            "follows": 5000,
+            "trendingpoints": 100,
+            "side": "server",
+            "type": "mod",
+            "logo": None,
+            "tags": ["Gameplay"],
+            "lastreleased": "2024-01-15 10:00:00",
+            "urlalias": "oldpopular",
+        },
+        {
+            "modid": 5678,
+            "name": "Trending New Mod",
+            "summary": "Trending right now",
+            "author": "author2",
+            "downloads": 1000,
+            "follows": 500,
+            "trendingpoints": 5000,
+            "side": "client",
+            "type": "mod",
+            "logo": "https://moddbcdn.vintagestory.at/trending/logo.png",
+            "tags": ["UI"],
+            "lastreleased": "2025-12-01 15:30:00",
+            "urlalias": "trendingnew",
+        },
+    ],
+}
+
+
+# --- Tests for sort_mods ---
+
+
+class TestSortMods:
+    """Tests for sort_mods function."""
+
+    def test_sort_by_downloads(self) -> None:
+        """Sorts mods by downloads descending."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = sort_mods(mods, sort_by="downloads")
+
+        assert result[0]["urlalias"] == "oldpopular"  # 500000 downloads
+        assert result[1]["urlalias"] == "smithingplus"  # 204656 downloads
+        assert result[2]["urlalias"] == "trendingnew"  # 1000 downloads
+
+    def test_sort_by_trending(self) -> None:
+        """Sorts mods by trending points descending."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = sort_mods(mods, sort_by="trending")
+
+        assert result[0]["urlalias"] == "trendingnew"  # 5000 trending
+        assert result[1]["urlalias"] == "smithingplus"  # 1853 trending
+        assert result[2]["urlalias"] == "oldpopular"  # 100 trending
+
+    def test_sort_by_recent(self) -> None:
+        """Sorts mods by last released descending."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = sort_mods(mods, sort_by="recent")
+
+        assert result[0]["urlalias"] == "trendingnew"  # 2025-12-01
+        assert result[1]["urlalias"] == "smithingplus"  # 2025-10-09
+        assert result[2]["urlalias"] == "oldpopular"  # 2024-01-15
+
+    def test_sort_default_is_recent(self) -> None:
+        """Default sort is by recent."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = sort_mods(mods)
+
+        # Same as sort_by="recent"
+        assert result[0]["urlalias"] == "trendingnew"
+
+    def test_sort_handles_missing_values(self) -> None:
+        """Handles mods with missing sort fields."""
+        mods = [
+            {"urlalias": "mod1", "downloads": 100},
+            {"urlalias": "mod2"},  # No downloads field
+            {"urlalias": "mod3", "downloads": 200},
+        ]
+        result = sort_mods(mods, sort_by="downloads")
+
+        assert result[0]["urlalias"] == "mod3"  # 200
+        assert result[1]["urlalias"] == "mod1"  # 100
+        assert result[2]["urlalias"] == "mod2"  # 0 (default)
+
+    def test_sort_empty_list(self) -> None:
+        """Handles empty mod list."""
+        result = sort_mods([], sort_by="downloads")
+        assert result == []
+
+    def test_sort_single_mod(self) -> None:
+        """Handles single mod list."""
+        mods = [{"urlalias": "single", "downloads": 100}]
+        result = sort_mods(mods, sort_by="downloads")
+        assert result == [{"urlalias": "single", "downloads": 100}]
+
+
+# --- Tests for ModApiClient.get_all_mods ---
+
+
+class TestModApiClientGetAllMods:
+    """Tests for ModApiClient.get_all_mods()."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_success(self, mod_api_client: ModApiClient) -> None:
+        """get_all_mods() returns list of mods on success."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
+
+        result = await mod_api_client.get_all_mods()
+
+        assert len(result) == 3
+        assert result[0]["name"] == "Smithing Plus"
+        assert result[1]["name"] == "Old Popular Mod"
+        assert result[2]["name"] == "Trending New Mod"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_caches_result(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_all_mods() caches result and returns cached data on subsequent calls."""
+        route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
+
+        # First call - fetches from API
+        result1 = await mod_api_client.get_all_mods()
+        assert route.call_count == 1
+
+        # Second call - returns cached data
+        result2 = await mod_api_client.get_all_mods()
+        assert route.call_count == 1  # No additional API call
+
+        # Results are the same
+        assert result1 == result2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_force_refresh(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_all_mods(force_refresh=True) bypasses cache."""
+        route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
+
+        # First call - fetches from API
+        await mod_api_client.get_all_mods()
+        assert route.call_count == 1
+
+        # Second call with force_refresh - fetches again
+        await mod_api_client.get_all_mods(force_refresh=True)
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_timeout(self, mod_api_client: ModApiClient) -> None:
+        """get_all_mods() raises ExternalApiError on timeout."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=httpx.TimeoutException("timeout")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_all_mods()
+
+        assert "timed out" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_connection_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_all_mods() raises ExternalApiError on connection error."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_all_mods()
+
+        assert "Could not connect" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_unexpected_status(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_all_mods() raises ExternalApiError on unexpected status."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "500", "error": "Server error"})
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_all_mods()
+
+        assert "unexpected status" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_empty_list(self, mod_api_client: ModApiClient) -> None:
+        """get_all_mods() handles empty mod list."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": []})
+        )
+
+        result = await mod_api_client.get_all_mods()
+
+        assert result == []
+
+
+# --- Tests for ModApiClient browse cache ---
+
+
+class TestModApiClientBrowseCache:
+    """Tests for ModApiClient browse cache methods."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_clear_browse_cache(self, mod_api_client: ModApiClient) -> None:
+        """clear_browse_cache() clears the cache."""
+        route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
+
+        # Populate cache
+        await mod_api_client.get_all_mods()
+        assert route.call_count == 1
+
+        # Clear cache
+        mod_api_client.clear_browse_cache()
+
+        # Next call should fetch from API again
+        await mod_api_client.get_all_mods()
+        assert route.call_count == 2
+
+    def test_is_browse_cache_valid_when_empty(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """_is_browse_cache_valid() returns False when cache is empty."""
+        # Access protected member for testing
+        result = mod_api_client._is_browse_cache_valid()  # pyright: ignore[reportPrivateUsage]
+        assert result is False
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_is_browse_cache_valid_when_populated(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """_is_browse_cache_valid() returns True after cache is populated."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
+
+        await mod_api_client.get_all_mods()
+
+        # Access protected member for testing
+        result = mod_api_client._is_browse_cache_valid()  # pyright: ignore[reportPrivateUsage]
+        assert result is True

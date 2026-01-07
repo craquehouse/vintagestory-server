@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlparse
@@ -26,6 +27,9 @@ CompatibilityStatus = Literal["compatible", "not_verified", "incompatible"]
 # Type aliases for API response objects
 ModDict = dict[str, Any]
 ReleaseDict = dict[str, Any]
+
+# Sort options for browse endpoint
+SortOption = Literal["downloads", "trending", "recent"]
 
 
 @dataclass
@@ -187,12 +191,14 @@ class ModApiClient:
         DOWNLOAD_URL: URL for file downloads.
         DEFAULT_TIMEOUT: Default timeout for API calls (30s).
         DOWNLOAD_TIMEOUT: Timeout for file downloads (120s).
+        BROWSE_CACHE_TTL: Cache TTL for browse mod list (5 minutes).
     """
 
     BASE_URL = "https://mods.vintagestory.at/api"
     DOWNLOAD_URL = "https://mods.vintagestory.at/download"
     DEFAULT_TIMEOUT = 30.0
     DOWNLOAD_TIMEOUT = 120.0
+    BROWSE_CACHE_TTL = timedelta(minutes=5)
 
     def __init__(
         self,
@@ -211,6 +217,10 @@ class ModApiClient:
         self._mods_cache.mkdir(parents=True, exist_ok=True)
         self._client: httpx.AsyncClient | None = None
         self._cache_eviction = cache_eviction_service
+
+        # In-memory cache for browse mod list
+        self._browse_cache: list[ModDict] | None = None
+        self._browse_cache_time: datetime | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
@@ -401,3 +411,116 @@ class ModApiClient:
                 temp_path.unlink()
             logger.error("mod_download_io_error", slug=slug, error=str(e))
             raise DownloadError(slug, f"IO error: {e}")
+
+    def _is_browse_cache_valid(self) -> bool:
+        """Check if the browse cache is still valid.
+
+        Returns:
+            True if cache exists and hasn't expired, False otherwise.
+        """
+        if self._browse_cache is None or self._browse_cache_time is None:
+            return False
+        return datetime.now() - self._browse_cache_time < self.BROWSE_CACHE_TTL
+
+    async def get_all_mods(self, force_refresh: bool = False) -> list[ModDict]:
+        """Get all mods from the VintageStory mod database.
+
+        This method fetches the complete mod list from the API and caches
+        it in memory for 5 minutes to avoid hammering the external API.
+
+        Args:
+            force_refresh: If True, bypass the cache and fetch fresh data.
+
+        Returns:
+            List of mod dictionaries from the API.
+
+        Raises:
+            ExternalApiError: If the mod API is unavailable.
+        """
+        # Return cached data if valid and not forcing refresh
+        if not force_refresh and self._is_browse_cache_valid():
+            logger.debug("browse_cache_hit", count=len(self._browse_cache or []))
+            return self._browse_cache or []
+
+        client = await self._get_client()
+        try:
+            response = await client.get(f"{self.BASE_URL}/mods")
+            data = response.json()
+
+            # CRITICAL: statuscode is STRING, not int!
+            if data.get("statuscode") == "200":
+                mods = data.get("mods", [])
+                self._browse_cache = mods
+                self._browse_cache_time = datetime.now()
+                logger.debug("browse_cache_refreshed", count=len(mods))
+                return mods
+
+            # Unexpected status - log and raise
+            logger.warning(
+                "unexpected_api_status_browse",
+                statuscode=data.get("statuscode"),
+            )
+            raise ExternalApiError(
+                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+            )
+
+        except httpx.TimeoutException as e:
+            logger.error("mod_api_timeout_browse")
+            raise ExternalApiError("VintageStory mod API request timed out") from e
+
+        except httpx.ConnectError as e:
+            logger.error("mod_api_connection_error_browse")
+            raise ExternalApiError(
+                "Could not connect to VintageStory mod API"
+            ) from e
+
+        except httpx.HTTPError as e:
+            logger.error("mod_api_error_browse", error=str(e))
+            raise ExternalApiError(
+                f"VintageStory mod API error: {e}"
+            ) from e
+
+    def clear_browse_cache(self) -> None:
+        """Clear the browse mod list cache.
+
+        This forces the next call to get_all_mods() to fetch fresh data.
+        """
+        self._browse_cache = None
+        self._browse_cache_time = None
+        logger.debug("browse_cache_cleared")
+
+
+def _get_downloads(m: ModDict) -> int:
+    """Get downloads count from mod dict."""
+    return int(m.get("downloads", 0))
+
+
+def _get_trending(m: ModDict) -> int:
+    """Get trending points from mod dict."""
+    return int(m.get("trendingpoints", 0))
+
+
+def _get_recent(m: ModDict) -> str:
+    """Get last released date from mod dict."""
+    return str(m.get("lastreleased", ""))
+
+
+def sort_mods(
+    mods: list[ModDict],
+    sort_by: SortOption = "recent",
+) -> list[ModDict]:
+    """Sort a list of mods by the specified criteria.
+
+    Args:
+        mods: List of mod dictionaries from the API.
+        sort_by: Sort criteria - "downloads", "trending", or "recent".
+
+    Returns:
+        Sorted list of mods (descending order).
+    """
+    if sort_by == "downloads":
+        return sorted(mods, key=_get_downloads, reverse=True)
+    elif sort_by == "trending":
+        return sorted(mods, key=_get_trending, reverse=True)
+    else:  # recent
+        return sorted(mods, key=_get_recent, reverse=True)

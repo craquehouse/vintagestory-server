@@ -185,3 +185,87 @@ class RemoveResult(BaseModel):
 
     pending_restart: bool
     """Whether a server restart is required for changes to take effect."""
+
+
+class ModBrowseItem(BaseModel):
+    """Single mod item in the browse list.
+
+    Represents a mod from the VintageStory mod database, containing
+    summary information suitable for displaying in a browse/search view.
+    """
+
+    slug: str
+    """URL-friendly mod identifier (urlalias or modidstrs[0] fallback)."""
+
+    name: str
+    """Display name of the mod."""
+
+    author: str
+    """Primary author of the mod."""
+
+    summary: str | None = None
+    """Brief description of the mod."""
+
+    downloads: int
+    """Total download count."""
+
+    follows: int
+    """Number of users following the mod."""
+
+    trending_points: int
+    """Trending score for the mod."""
+
+    side: Literal["client", "server", "both"]
+    """Which side the mod runs on: 'client', 'server', or 'both'."""
+
+    mod_type: Literal["mod", "externaltool", "other"]
+    """Type of the mod: 'mod', 'externaltool', or 'other'."""
+
+    logo_url: str | None = None
+    """URL to the mod's logo image, or None if no logo."""
+
+    tags: list[str] = []
+    """List of category tags for the mod."""
+
+    last_released: str | None = None
+    """ISO timestamp of the last release, or None if not available."""
+
+
+class PaginationMeta(BaseModel):
+    """Pagination metadata for paginated API responses.
+
+    Provides information about the current page and total results
+    to support client-side pagination controls.
+    """
+
+    page: int
+    """Current page number (1-indexed)."""
+
+    page_size: int
+    """Number of items per page."""
+
+    total_items: int
+    """Total number of items across all pages."""
+
+    total_pages: int
+    """Total number of pages available."""
+
+    has_next: bool
+    """Whether there is a next page."""
+
+    has_prev: bool
+    """Whether there is a previous page."""
+
+
+class ModBrowseResponse(BaseModel):
+    """Response model for the mod browse endpoint.
+
+    Contains a paginated list of mods from the VintageStory mod database
+    along with pagination metadata.
+    """
+
+    mods: list[ModBrowseItem]
+    """List of mods for the current page."""
+
+    pagination: PaginationMeta
+    """Pagination metadata."""
