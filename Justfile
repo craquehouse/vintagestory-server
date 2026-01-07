@@ -89,6 +89,21 @@ test-e2e-web *ARGS:
 test-e2e *ARGS: test-e2e-api
 
 # =============================================================================
+# COVERAGE
+# =============================================================================
+
+# Run all tests with coverage summary
+coverage: coverage-api coverage-web
+
+# Run API tests with coverage report
+coverage-api *ARGS:
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e --cov --cov-report=term-missing {{ARGS}}
+
+# Run web tests with coverage report
+coverage-web *ARGS:
+    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run --coverage {{ARGS}}
+
+# =============================================================================
 # BUILDING
 # =============================================================================
 
