@@ -88,29 +88,29 @@ All agents have access to three Model Context Protocol (MCP) tools for enhanced 
 - **And many more** - resolve library IDs dynamically
 
 **Best practices:**
-- Use `mode='code'` for API references and examples (default)
-- Use `mode='info'` for conceptual guides and architecture
-- Use `topic` parameter to focus documentation on specific areas
-- Adjust `tokensNum` based on how much context you need (1000-50000)
+- Be specific in your query - include what you're trying to accomplish
+- Resolve library ID first, then query with detailed questions
+- Use the same query for both resolve and query calls for best relevance
 
 **Example workflow:**
 ```python
 # Step 1: Resolve the library ID
-context7_resolve-library-id(libraryName="fastapi")
+mcp__context7__resolve-library-id(
+    libraryName="fastapi",
+    query="How to add middleware to FastAPI"
+)
 
-# Step 2: Get documentation (if not using a known library ID)
-context7_get-library-docs(
-    context7CompatibleLibraryID="/tiangolo/fastapi",
-    topic="middleware",  # optional: focus on a specific topic
-    mode="code"  # optional: "code" (default) or "info"
+# Step 2: Query documentation
+mcp__context7__query-docs(
+    libraryId="/tiangolo/fastapi",
+    query="How to add middleware to FastAPI"
 )
 ```
 
 **Key advantages:**
 - Always up-to-date documentation (unlike cached search results)
 - Optimized for LLM consumption with clean context
-- Code-focused by default, perfect for implementation questions
-- Supports pagination for comprehensive research
+- Requires resolving library ID first, then querying with specific questions
 
 ---
 
@@ -457,7 +457,7 @@ const queryKeys = {
 |-------|------------|
 | Writing tests after all features complete | Write tests with each feature |
 | Storing API data in React Context | Use TanStack Query |
-| `tests/` folder in `web/` | Co-locate tests with components |
+| Separate `tests/` folder for component tests | Co-locate tests with components (`*.test.tsx`) |
 | Generic error messages | Use error codes + descriptive messages |
 | Exact version pins without rationale | Use minimum versions with ranges |
 | Mixing snake_case in frontend | Transform at API boundary |
@@ -669,40 +669,6 @@ When beginning a code review for a story:
 
 6. **Delete story branch after merge**
 
-### Code Review Process
-
-**CRITICAL: Code review MUST start with checking for an existing Pull Request.**
-
-When beginning a code review for a story:
-
-1. **Check for existing PR first:**
-   ```bash
-   gh pr list --head story/<epic>-<story>-<slug>
-   ```
-
-2. **If PR exists:**
-   - Review code directly on the PR (GitHub web UI or via `gh pr view/diff`)
-   - Use PR commits, not uncommitted changes
-   - Review changes against `main` branch
-
-3. **If PR does NOT exist:**
-   - Create the PR first using the PR template below
-   - Then proceed with code review
-   - **NEVER review code on branch without PR**
-
-4. **Review on PR, not local files:**
-   - Use `gh pr diff` to see cumulative changes vs main
-   - Use `gh pr view` to see PR details and commits
-   - Review test results from CI/CD if available
-   - Verify PR body matches story acceptance criteria
-
-**Why PR-First Review:**
-- PR provides full commit history context
-- PR shows all changes vs main in one place
-- PR comments become permanent review record
-- CI/CD results are tied to PR
-- Review on uncommitted files misses context
-
 ### PR Template
 
 ```markdown
@@ -751,4 +717,4 @@ When beginning a code review for a story:
 
 ---
 
-_Last updated: 2025-12-30 (Added Code Review Process section - PR-first workflow)_
+_Last updated: 2026-01-06 (Fixed Context7 MCP API, removed duplicate section)_
