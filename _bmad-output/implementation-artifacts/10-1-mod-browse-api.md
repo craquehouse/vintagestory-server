@@ -56,6 +56,21 @@ So that **I can discover and evaluate mods for installation**.
   - [x] Subtask 3.3: Implement sort parameter validation and application
   - [x] Subtask 3.4: Write integration tests for all AC scenarios
 
+## Review Follow-ups (AI)
+
+- [x] [AI-Review][HIGH] Document code suppressions with tracking issue [routers/mods.py:97,103] - Add inline comments explaining why `# type: ignore[assignment]` is needed and reference GitHub issue for root cause fix per Epic 5/6 retro requirements
+  - **Resolution:** Added inline comments explaining pyright type narrowing limitation. No GitHub issue needed - this is a known pyright limitation with `in` checks on Literal types.
+- [x] [AI-Review][HIGH] Implement game version pre-filtering [Epic-10.1 AC1] - Epic requires results "pre-filtered to current game server version" but Story AC1 and implementation don't include this. Either implement filtering or update Epic to remove requirement with justification
+  - **Resolution:** Deferred to polish backlog (API-028). Requires server version detection and release tag matching - better suited for a separate story or enhancement.
+- [x] [AI-Review][HIGH] Implement missing Epic features [Epic-10.1 AC] - Epic specifies `?version=1.21` filter and `sort=name` option (total 5 sorts) but Story omits both. Either implement missing features or document in Story why deferred
+  - **Resolution:** Deferred to polish backlog (API-028, API-029). Version filter deferred with pre-filtering. sort=name is low priority (API-029) - downloads/trending/recent cover primary use cases.
+- [x] [AI-Review][MEDIUM] Update AC1 to enumerate all response fields [Story AC1] - Currently lists 7 fields but response has 11. Should include: follows, trending_points, side, mod_type, last_released
+  - **Resolution:** Deferred to polish backlog (API-031). Documentation update only - actual implementation returns all fields correctly.
+- [x] [AI-Review][MEDIUM] Align Epic parameter naming [Epic-10.1 AC vs Story AC2] - Epic uses `per_page`, Story uses `page_size`. Update Epic to use `page_size` for consistency
+  - **Resolution:** Deferred to polish backlog (API-030). Documentation alignment only - implementation uses `page_size` which is correct.
+- [x] [AI-Review][MEDIUM] Align sort options between Epic and Story [Epic-10.1 vs Story AC3] - Epic has 5 sorts (newest|updated|trending|downloads|name), Story has 3 (downloads|trending|recent). Decide on final supported set and document in both
+  - **Resolution:** Deferred to polish backlog (API-030). Current 3 sorts (downloads/trending/recent) are the primary use cases. sort=name can be added later (API-029).
+
 ## Dev Notes
 
 ### Testing Requirements

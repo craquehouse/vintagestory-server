@@ -91,16 +91,20 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
         slug = modidstrs[0] if modidstrs else str(mod.get("modid", "unknown"))
 
     # Normalize side value to lowercase
+    # Type narrowing: pyright can't infer that the `in` check guarantees side_raw
+    # is one of the literal values. We've validated it's in the allowed set.
     side_raw = str(mod.get("side", "both")).lower()
     side: Literal["client", "server", "both"] = "both"
     if side_raw in ("client", "server", "both"):
-        side = side_raw  # type: ignore[assignment]
+        side = side_raw  # type: ignore[assignment]  # validated by `in` check above
 
     # Normalize type value
+    # Type narrowing: pyright can't infer that the `in` check guarantees type_raw
+    # is one of the literal values. We've validated it's in the allowed set.
     type_raw = str(mod.get("type", "mod")).lower()
     mod_type: Literal["mod", "externaltool", "other"] = "mod"
     if type_raw in ("mod", "externaltool", "other"):
-        mod_type = type_raw  # type: ignore[assignment]
+        mod_type = type_raw  # type: ignore[assignment]  # validated by `in` check above
 
     return ModBrowseItem(
         slug=slug,
