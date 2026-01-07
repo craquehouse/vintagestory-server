@@ -1,6 +1,6 @@
 # Story 10.1: Mod Browse API
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -39,22 +39,22 @@ So that **I can discover and evaluate mods for installation**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add Pydantic models for browse response + tests (AC: 1, 2)
-  - [ ] Subtask 1.1: Create `ModBrowseItem` model in `api/src/vintagestory_api/models/mods.py`
-  - [ ] Subtask 1.2: Create `ModBrowseResponse` model with pagination metadata
-  - [ ] Subtask 1.3: Write unit tests for model serialization and validation
+- [x] Task 1: Add Pydantic models for browse response + tests (AC: 1, 2)
+  - [x] Subtask 1.1: Create `ModBrowseItem` model in `api/src/vintagestory_api/models/mods.py`
+  - [x] Subtask 1.2: Create `ModBrowseResponse` model with pagination metadata
+  - [x] Subtask 1.3: Write unit tests for model serialization and validation
 
-- [ ] Task 2: Extend ModApiClient with browse method + tests (AC: 1, 3)
-  - [ ] Subtask 2.1: Add `get_all_mods()` method to `ModApiClient` in `mod_api.py`
-  - [ ] Subtask 2.2: Implement in-memory caching with TTL (5 minutes) for mod list
-  - [ ] Subtask 2.3: Add sorting logic (downloads, trending, recent)
-  - [ ] Subtask 2.4: Write unit tests for API call, caching, and sorting
+- [x] Task 2: Extend ModApiClient with browse method + tests (AC: 1, 3)
+  - [x] Subtask 2.1: Add `get_all_mods()` method to `ModApiClient` in `mod_api.py`
+  - [x] Subtask 2.2: Implement in-memory caching with TTL (5 minutes) for mod list
+  - [x] Subtask 2.3: Add sorting logic (downloads, trending, recent)
+  - [x] Subtask 2.4: Write unit tests for API call, caching, and sorting
 
-- [ ] Task 3: Add browse API endpoint + tests (AC: 1-5)
-  - [ ] Subtask 3.1: Add `GET /mods/browse` endpoint to `routers/mods.py`
-  - [ ] Subtask 3.2: Implement pagination (page, page_size with defaults and limits)
-  - [ ] Subtask 3.3: Implement sort parameter validation and application
-  - [ ] Subtask 3.4: Write integration tests for all AC scenarios
+- [x] Task 3: Add browse API endpoint + tests (AC: 1-5)
+  - [x] Subtask 3.1: Add `GET /mods/browse` endpoint to `routers/mods.py`
+  - [x] Subtask 3.2: Implement pagination (page, page_size with defaults and limits)
+  - [x] Subtask 3.3: Implement sort parameter validation and application
+  - [x] Subtask 3.4: Write integration tests for all AC scenarios
 
 ## Dev Notes
 
@@ -271,3 +271,15 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 ### File List
+
+**Task 1:**
+- `api/src/vintagestory_api/models/mods.py` - Added ModBrowseItem, PaginationMeta, ModBrowseResponse models
+- `api/tests/test_mod_models.py` - Added tests for new models (20 new tests)
+
+**Task 2:**
+- `api/src/vintagestory_api/services/mod_api.py` - Added get_all_mods(), browse cache, sort_mods() helper
+- `api/tests/test_mod_api.py` - Added tests for browse/cache/sort functionality (18 new tests)
+
+**Task 3:**
+- `api/src/vintagestory_api/routers/mods.py` - Added browse endpoint with pagination and sorting
+- `api/tests/test_mods_router.py` - Added browse endpoint integration tests (16 new tests)
