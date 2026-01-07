@@ -1,6 +1,6 @@
 # Story 10.3: Browse Landing Page & Search
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -61,13 +61,13 @@ So that **I can discover mods without having to search first**.
   - [x] Subtask 3.3: Add loading skeleton component
   - [x] Subtask 3.4: Write component tests for grid rendering and loading states
 
-- [ ] Task 4: Implement BrowseTab with search + tests (AC: 1, 2, 3, 4, 5, 6)
-  - [ ] Subtask 4.1: Replace BrowseTab placeholder with full implementation
-  - [ ] Subtask 4.2: Add search input with debounce using existing `useDebounce` hook
-  - [ ] Subtask 4.3: Add clear button and Escape key handler
-  - [ ] Subtask 4.4: Integrate useBrowseMods hook with search state
-  - [ ] Subtask 4.5: Add error state with retry button
-  - [ ] Subtask 4.6: Write component tests for search, clear, and error states
+- [x] Task 4: Implement BrowseTab with search + tests (AC: 1, 2, 3, 4, 5, 6)
+  - [x] Subtask 4.1: Replace BrowseTab placeholder with full implementation
+  - [x] Subtask 4.2: Add search input with debounce using existing `useDebounce` hook
+  - [x] Subtask 4.3: Add clear button and Escape key handler
+  - [x] Subtask 4.4: Integrate useBrowseMods hook with search state
+  - [x] Subtask 4.5: Add error state with retry button
+  - [x] Subtask 4.6: Write component tests for search, clear, and error states
 
 ## Dev Notes
 
@@ -464,6 +464,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Added ModBrowseItem, BrowsePaginationMeta, ModBrowseData, BrowseParams types; fetchBrowseMods() function; browse query key; 8 unit tests passing
 - Task 2: Created useBrowseMods hook with TanStack Query; client-side search filtering by name, author, summary, tags; 20 unit tests passing
 - Task 3: Created ModBrowseGrid with responsive grid layout, loading skeleton, empty state; ModCard with stats display; 22 unit tests passing
+- Task 4: Replaced BrowseTab placeholder with full search UI; debounced search input; clear button and Escape key; error state with retry; 17 unit tests passing
 
 ### File List
 
@@ -477,6 +478,9 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - web/src/components/ModCard.test.tsx (created) - ModCard tests
 - web/src/components/ModBrowseGrid.tsx (created) - Grid layout component
 - web/src/components/ModBrowseGrid.test.tsx (created) - Grid tests
+- web/src/features/mods/BrowseTab.tsx (modified) - Full browse implementation
+- web/src/features/mods/BrowseTab.test.tsx (modified) - Comprehensive tests
+- web/src/features/mods/ModsPage.test.tsx (modified) - Updated for new BrowseTab
 
 ## Change Log
 
@@ -486,3 +490,5 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 | 2026-01-07 | Task 1 complete: Browse API types and function with tests |
 | 2026-01-07 | Task 2 complete: useBrowseMods hook with client-side search filtering |
 | 2026-01-07 | Task 3 complete: ModBrowseGrid and ModCard components |
+| 2026-01-07 | Task 4 complete: BrowseTab with search, clear, error handling |
+| 2026-01-07 | All tasks complete - Story ready for review |
