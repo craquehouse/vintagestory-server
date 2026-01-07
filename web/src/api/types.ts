@@ -284,3 +284,70 @@ export interface LogFilesData {
   files: LogFileInfo[];
   logsDir: string;
 }
+
+// ===== Mod Browse Types (Story 10.3) =====
+
+/**
+ * Sort options for the mod browse API.
+ */
+export type BrowseSortOption = 'downloads' | 'trending' | 'recent';
+
+/**
+ * Mod type from the browse API.
+ */
+export type ModType = 'mod' | 'externaltool' | 'other';
+
+/**
+ * Mod side values from the browse API (lowercase version).
+ * Note: Different from ModSide used for installed mods which uses capitalized values.
+ */
+export type BrowseModSide = 'client' | 'server' | 'both';
+
+/**
+ * Single mod from the browse API.
+ * Note: API returns snake_case, apiClient transforms to camelCase.
+ */
+export interface ModBrowseItem {
+  slug: string;
+  name: string;
+  author: string;
+  summary: string | null;
+  downloads: number;
+  follows: number;
+  trendingPoints: number;
+  side: BrowseModSide;
+  modType: ModType;
+  logoUrl: string | null;
+  tags: string[];
+  lastReleased: string | null;
+}
+
+/**
+ * Pagination metadata from browse API.
+ */
+export interface BrowsePaginationMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+/**
+ * Response data from GET /api/v1alpha1/mods/browse.
+ */
+export interface ModBrowseData {
+  mods: ModBrowseItem[];
+  pagination: BrowsePaginationMeta;
+}
+
+/**
+ * Parameters for browse API request.
+ */
+export interface BrowseParams {
+  page?: number;
+  pageSize?: number;
+  sort?: BrowseSortOption;
+  search?: string; // For client-side filtering (API doesn't support search yet)
+}

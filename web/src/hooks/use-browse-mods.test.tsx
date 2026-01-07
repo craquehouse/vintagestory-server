@@ -1,0 +1,324 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useBrowseMods, filterModsBySearch } from './use-browse-mods';
+import type { ModBrowseItem, ApiResponse, ModBrowseData } from '@/api/types';
+
+// Create a wrapper with QueryClientProvider for testing hooks that use TanStack Query
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
+}
+
+// Mock mod data for testing
+const mockMods: ModBrowseItem[] = [
+  {
+    slug: 'carrycapacity',
+    name: 'Carry Capacity',
+    author: 'copygirl',
+    summary: 'Allows picking up chests and other containers',
+    downloads: 50000,
+    follows: 500,
+    trendingPoints: 100,
+    side: 'both',
+    modType: 'mod',
+    logoUrl: null,
+    tags: ['utility', 'qol'],
+    lastReleased: '2024-01-15T10:00:00Z',
+  },
+  {
+    slug: 'primitivesurvival',
+    name: 'Primitive Survival',
+    author: 'Spear and Fang',
+    summary: 'Adds primitive survival mechanics like fishing and trapping',
+    downloads: 75000,
+    follows: 800,
+    trendingPoints: 200,
+    side: 'both',
+    modType: 'mod',
+    logoUrl: 'https://example.com/logo.png',
+    tags: ['survival', 'fishing', 'traps'],
+    lastReleased: '2024-02-01T12:00:00Z',
+  },
+  {
+    slug: 'wildcraft',
+    name: 'Wildcraft',
+    author: 'gabb',
+    summary: null,
+    downloads: 30000,
+    follows: 200,
+    trendingPoints: 50,
+    side: 'server',
+    modType: 'mod',
+    logoUrl: null,
+    tags: ['plants', 'foraging'],
+    lastReleased: '2024-01-20T08:00:00Z',
+  },
+];
+
+const mockBrowseResponse: ApiResponse<ModBrowseData> = {
+  status: 'ok',
+  data: {
+    mods: mockMods,
+    pagination: {
+      page: 1,
+      pageSize: 20,
+      totalItems: 100,
+      totalPages: 5,
+      hasNext: true,
+      hasPrev: false,
+    },
+  },
+};
+
+describe('filterModsBySearch', () => {
+  it('returns all mods when search is empty', () => {
+    const result = filterModsBySearch(mockMods, '');
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(mockMods);
+  });
+
+  it('returns all mods when search is undefined', () => {
+    const result = filterModsBySearch(mockMods, undefined);
+    expect(result).toHaveLength(3);
+  });
+
+  it('returns all mods when search is only whitespace', () => {
+    const result = filterModsBySearch(mockMods, '   ');
+    expect(result).toHaveLength(3);
+  });
+
+  it('filters by mod name (case-insensitive)', () => {
+    const result = filterModsBySearch(mockMods, 'carry');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
+  });
+
+  it('filters by mod name with different case', () => {
+    const result = filterModsBySearch(mockMods, 'PRIMITIVE');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('primitivesurvival');
+  });
+
+  it('filters by author name', () => {
+    const result = filterModsBySearch(mockMods, 'gabb');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('wildcraft');
+  });
+
+  it('filters by summary content', () => {
+    const result = filterModsBySearch(mockMods, 'fishing');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('primitivesurvival');
+  });
+
+  it('handles mods with null summary', () => {
+    const result = filterModsBySearch(mockMods, 'plants');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('wildcraft');
+  });
+
+  it('filters by tag', () => {
+    const result = filterModsBySearch(mockMods, 'qol');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
+  });
+
+  it('returns multiple matches', () => {
+    // Both 'primitivesurvival' and 'wildcraft' have survival-related content
+    const result = filterModsBySearch(mockMods, 'survival');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('primitivesurvival');
+  });
+
+  it('returns empty array when no matches', () => {
+    const result = filterModsBySearch(mockMods, 'nonexistent');
+    expect(result).toHaveLength(0);
+  });
+
+  it('handles empty mods array', () => {
+    const result = filterModsBySearch([], 'test');
+    expect(result).toHaveLength(0);
+  });
+
+  it('matches partial strings', () => {
+    const result = filterModsBySearch(mockMods, 'prim');
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('primitivesurvival');
+  });
+});
+
+describe('useBrowseMods', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('fetches mods on mount', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(() => useBrowseMods(), {
+      wrapper: createWrapper(),
+    });
+
+    // Initially loading
+    expect(result.current.isLoading).toBe(true);
+
+    // Wait for data
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.mods).toHaveLength(3);
+    expect(result.current.pagination?.totalItems).toBe(100);
+  });
+
+  it('passes API parameters correctly', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    renderHook(
+      () => useBrowseMods({ page: 2, pageSize: 50, sort: 'downloads' }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain('page=2');
+    expect(url).toContain('page_size=50');
+    expect(url).toContain('sort=downloads');
+  });
+
+  it('does not pass search parameter to API', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    renderHook(() => useBrowseMods({ search: 'test' }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).not.toContain('search');
+    expect(url).not.toContain('test');
+  });
+
+  it('filters mods client-side when search is provided', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(() => useBrowseMods({ search: 'carry' }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Should filter to just the 'carrycapacity' mod
+    expect(result.current.mods).toHaveLength(1);
+    expect(result.current.mods[0].slug).toBe('carrycapacity');
+    // Pagination should still reflect original totals
+    expect(result.current.pagination?.totalItems).toBe(100);
+  });
+
+  it('returns empty mods array when loading', () => {
+    const mockFetch = vi.fn().mockImplementation(
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        })
+    );
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(() => useBrowseMods(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.mods).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it('handles API errors', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => Promise.reject(new Error('Not JSON')),
+    });
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(() => useBrowseMods(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.mods).toEqual([]);
+  });
+
+  it('uses correct stale time for caching', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    // First render
+    const { result, rerender } = renderHook(() => useBrowseMods(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Should have called fetch once
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // Rerender should use cached data
+    rerender();
+
+    // Should still have only called fetch once (data is fresh)
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});

@@ -42,6 +42,37 @@ const mockEmptyModsResponse = {
   },
 };
 
+// Mock browse mods response
+const mockBrowseModsResponse = {
+  status: 'ok',
+  data: {
+    mods: [
+      {
+        slug: 'testmod',
+        name: 'Test Mod',
+        author: 'Test Author',
+        summary: 'A test mod',
+        downloads: 1000,
+        follows: 100,
+        trendingPoints: 50,
+        side: 'both',
+        modType: 'mod',
+        logoUrl: null,
+        tags: ['test'],
+        lastReleased: '2024-01-01T00:00:00Z',
+      },
+    ],
+    pagination: {
+      page: 1,
+      pageSize: 20,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    },
+  },
+};
+
 // Mock server status response
 const mockServerStatusResponse = {
   status: 'ok',
@@ -80,6 +111,12 @@ describe('ModsPage routing', () => {
 
     // Mock all fetch calls
     globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/mods/browse')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockBrowseModsResponse),
+        });
+      }
       if (url.includes('/mods')) {
         return Promise.resolve({
           ok: true,
@@ -133,11 +170,10 @@ describe('ModsPage routing', () => {
         expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
       });
 
-      // Should show the placeholder message
-      expect(screen.getByText('Browse Mods')).toBeInTheDocument();
-      expect(
-        screen.getByText('Mod discovery coming soon in Stories 10.3-10.8')
-      ).toBeInTheDocument();
+      // Should show the search input (Story 10.3 implementation)
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-search-input')).toBeInTheDocument();
+      });
     });
 
     it('shows Installed tab when navigating directly to /mods/installed', async () => {
