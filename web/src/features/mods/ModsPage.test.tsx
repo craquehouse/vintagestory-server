@@ -1,0 +1,246 @@
+/**
+ * ModsPage routing and tab navigation tests.
+ *
+ * Story 10.2: Mods Tab Restructure - AC4, AC5, AC6
+ *
+ * Tests cover:
+ * - AC4: URL updates when switching tabs, browser history works
+ * - AC5: Direct navigation to /mods/browse works
+ * - AC6: Redirect from /mods to /mods/installed
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode } from 'react';
+import { ModsPage } from './ModsPage';
+import { InstalledTab } from './InstalledTab';
+import { BrowseTab } from './BrowseTab';
+
+// Create a fresh QueryClient for each test
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  });
+}
+
+// Mock mods response for API calls
+const mockEmptyModsResponse = {
+  status: 'ok',
+  data: {
+    mods: [],
+    pendingRestart: false,
+  },
+};
+
+// Mock server status response
+const mockServerStatusResponse = {
+  status: 'ok',
+  data: {
+    state: 'stopped',
+  },
+};
+
+// Wrapper for tests that need routing
+function createTestRouter(initialEntries: string[], queryClient: QueryClient) {
+  return function TestRouter({ children }: { children?: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/mods" element={<ModsPage />}>
+              <Route index element={<Navigate to="installed" replace />} />
+              <Route path="installed" element={<InstalledTab />} />
+              <Route path="browse" element={<BrowseTab />} />
+            </Route>
+          </Routes>
+          {children}
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+  };
+}
+
+describe('ModsPage routing', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+
+    // Mock all fetch calls
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/mods')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockEmptyModsResponse),
+        });
+      }
+      if (url.includes('/server/status')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: {} }),
+      });
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('AC6: redirect from /mods to /mods/installed', () => {
+    it('redirects /mods to /mods/installed', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods'], queryClient);
+
+      render(<Router />);
+
+      // Should show the Installed tab content (via redirect)
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+
+      // Installed tab trigger should be active
+      const installedTabTrigger = screen.getByRole('tab', { name: /installed/i });
+      expect(installedTabTrigger).toHaveAttribute('data-state', 'active');
+    });
+  });
+
+  describe('AC5: direct navigation to /mods/browse', () => {
+    it('shows Browse tab when navigating directly to /mods/browse', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/browse'], queryClient);
+
+      render(<Router />);
+
+      // Should show the Browse tab content
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+
+      // Should show the placeholder message
+      expect(screen.getByText('Browse Mods')).toBeInTheDocument();
+      expect(
+        screen.getByText('Mod discovery coming soon in Stories 10.3-10.8')
+      ).toBeInTheDocument();
+    });
+
+    it('shows Installed tab when navigating directly to /mods/installed', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      // Should show the Installed tab content
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+
+      // Should show the mod lookup input
+      expect(
+        screen.getByPlaceholderText('Enter mod slug or paste URL')
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('AC4: tab switching updates URL', () => {
+    it('switches to Browse tab when clicked', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+
+      // Click the Browse tab trigger
+      const browseTabTrigger = screen.getByRole('tab', { name: /browse/i });
+      await user.click(browseTabTrigger);
+
+      // Should now show Browse tab content
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('switches to Installed tab when clicked', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/browse'], queryClient);
+
+      render(<Router />);
+
+      // Wait for initial render with Browse tab
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+
+      // Click the Installed tab trigger
+      const installedTabTrigger = screen.getByRole('tab', { name: /installed/i });
+      await user.click(installedTabTrigger);
+
+      // Should now show Installed tab content
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('AC1: page structure', () => {
+    it('renders page with correct heading', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      expect(screen.getByTestId('mods-page')).toBeInTheDocument();
+      expect(screen.getByText('Mods')).toBeInTheDocument();
+      expect(
+        screen.getByText('Manage installed mods or discover new ones')
+      ).toBeInTheDocument();
+    });
+
+    it('renders both tab triggers', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      expect(screen.getByRole('tab', { name: /installed/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /browse/i })).toBeInTheDocument();
+    });
+
+    it('defaults to Installed tab being active', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouter(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+
+      // Installed tab trigger should be selected
+      const installedTabTrigger = screen.getByRole('tab', { name: /installed/i });
+      expect(installedTabTrigger).toHaveAttribute('data-state', 'active');
+    });
+  });
+});

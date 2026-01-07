@@ -1,8 +1,17 @@
+/**
+ * InstalledTab component tests.
+ *
+ * Story 10.2: Mods Tab Restructure - AC2
+ *
+ * Tests the Installed tab which contains the existing mod management UI
+ * (extracted from ModList.tsx).
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { ModList } from './ModList';
+import { InstalledTab } from './InstalledTab';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -55,7 +64,14 @@ const mockEmptyModsResponse = {
   },
 };
 
-describe('ModList', () => {
+const mockServerStatusResponse = {
+  status: 'ok',
+  data: {
+    state: 'stopped',
+  },
+};
+
+describe('InstalledTab', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
@@ -68,31 +84,43 @@ describe('ModList', () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe('page structure (AC: 1)', () => {
-    it('renders page with heading', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockEmptyModsResponse),
+  describe('AC2: Installed tab contains existing mod management UI', () => {
+    it('renders the tab container', async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockEmptyModsResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
-      expect(screen.getByTestId('mod-list-page')).toBeInTheDocument();
-      expect(screen.getByText('Mods')).toBeInTheDocument();
-      expect(
-        screen.getByText('Search, install, and manage server mods')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
     });
 
     it('renders ModLookupInput component', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockEmptyModsResponse),
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockEmptyModsResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       expect(
         screen.getByPlaceholderText('Enter mod slug or paste URL')
@@ -100,27 +128,41 @@ describe('ModList', () => {
     });
 
     it('renders Installed Mods section heading', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockEmptyModsResponse),
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockEmptyModsResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       expect(screen.getByText('Installed Mods')).toBeInTheDocument();
     });
-  });
 
-  describe('mods table integration', () => {
     it('displays installed mods in table', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockModsResponse),
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockModsResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
         expect(screen.getByText('Smithing Plus')).toBeInTheDocument();
@@ -128,13 +170,21 @@ describe('ModList', () => {
     });
 
     it('shows empty state when no mods installed', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockEmptyModsResponse),
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockEmptyModsResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockServerStatusResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
         expect(screen.getByText('No mods installed yet')).toBeInTheDocument();
@@ -149,16 +199,22 @@ describe('ModList', () => {
         resolvePromise = resolve;
       });
 
-      globalThis.fetch = vi.fn().mockImplementation(async () => {
-        await pendingPromise;
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/mods')) {
+          await pendingPromise;
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockEmptyModsResponse),
+          };
+        }
         return {
           ok: true,
-          json: () => Promise.resolve(mockEmptyModsResponse),
+          json: () => Promise.resolve(mockServerStatusResponse),
         };
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModList />, { wrapper: createWrapper(queryClient) });
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       // Table should show loading
       expect(screen.getByTestId('mod-table-loading')).toBeInTheDocument();

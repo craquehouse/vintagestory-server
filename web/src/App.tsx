@@ -1,11 +1,11 @@
-import { BrowserRouter, Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
-import { ModList } from "@/features/mods/ModList";
+import { ModsPage, InstalledTab, BrowseTab } from "@/features/mods";
 import { GameServerPage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
 
@@ -19,7 +19,11 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/game-server" element={<GameServerPage />} />
-              <Route path="/mods" element={<ModList />} />
+              <Route path="/mods" element={<ModsPage />}>
+                <Route index element={<Navigate to="installed" replace />} />
+                <Route path="installed" element={<InstalledTab />} />
+                <Route path="browse" element={<BrowseTab />} />
+              </Route>
               <Route path="/config" element={<SettingsPage />} />
             </Routes>
           </Layout>

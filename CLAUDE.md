@@ -14,7 +14,7 @@ Custom VintageStory game server infrastructure with three components:
 
 This project uses the BMad method for structured AI-assisted development:
 
-1. **Stories** live in `docs/stories/` - Each feature is a standalone story file
+1. **Stories** live in `_bmad-output/implementation-artifacts/` - Each feature is a standalone story file
 2. **Tasks** break down stories into implementation steps
 3. **Checklist-driven** - Stories contain acceptance criteria that must be verified
 4. **Incremental commits** - Commit after each task completion
@@ -42,15 +42,31 @@ See the skill at `.claude/skills/sprint-status-yaml/SKILL.md` for complete docum
 
 `_bmad-output/implementation-artifacts/polish-backlog.md` tracks small-to-medium improvements discovered during development that don't belong to a specific epic. Items are categorized (UI, API, Infrastructure, Tools, CI/CD) with priority, effort estimates, and status tracking. When you encounter minor issues or improvements while working on features, add them to this backlog rather than addressing them immediately.
 
+**NEVER edit `polish-backlog.md` directly.** Use the `just polish` commands instead:
+
+```bash
+just polish list                          # List all items
+just polish list API backlog              # Filter by category and status
+just polish get UI-029                    # Get item details
+just polish add UI "Description" medium S # Add new item (auto-generates ID)
+just polish set UI-029 in-progress        # Update status
+just polish done UI-029 https://...       # Mark done and archive with PR link
+```
+
+See the skill at `.claude/skills/polish-backlog/SKILL.md` for complete documentation.
+
 ## Architecture
 
 ```
 vintagestory-server/
-├── docker/              # Dockerfile and container configs
+├── Dockerfile           # VintageStory server container
 ├── api/                 # FastAPI backend
-│   ├── routers/         # API route handlers
-│   ├── services/        # Business logic
-│   └── models/          # Pydantic models
+│   └── src/vintagestory_api/
+│       ├── routers/     # API route handlers
+│       ├── services/    # Business logic
+│       ├── models/      # Pydantic models
+│       ├── jobs/        # Background job definitions
+│       └── middleware/  # Request middleware
 ├── web/                 # Node.js frontend
 └── agentdocs/           # Reference documentation for AI agents
 ```
@@ -66,7 +82,7 @@ vintagestory-server/
 
 ### External APIs
 
-The VintageStory mod database API is documented in `agentdocs/modstoryapi.md`. Key endpoints:
+The VintageStory mod database API is documented in `agentdocs/vintagestory-modapi.md`. Key endpoints:
 - `GET https://mods.vintagestory.at/api/mod/{slug}` - Mod details and releases
 - `GET https://mods.vintagestory.at/download?fileid={id}` - Download mod files
 - Releases are ordered newest-first; `releases[0]` is always latest

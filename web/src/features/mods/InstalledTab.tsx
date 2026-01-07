@@ -1,10 +1,13 @@
 /**
- * ModList - Main page for mod management.
+ * InstalledTab - Tab content for managing installed mods.
  *
- * Features:
+ * This component was extracted from ModList as part of Story 10.2.
+ * It contains the existing mod management functionality:
  * - ModLookupInput for searching and installing new mods
  * - ModTable displaying installed mods with management actions
  * - Toast notifications for install/enable/disable/remove results
+ *
+ * Story 10.2: Mods Tab Restructure - AC2
  */
 
 import { toast } from 'sonner';
@@ -13,7 +16,7 @@ import { ModTable } from '@/components/ModTable';
 import { useServerStatus } from '@/hooks/use-server-status';
 
 /**
- * Mod management page component.
+ * Installed mods tab content.
  *
  * Provides a complete interface for managing VintageStory mods:
  * - Search for mods by slug or URL
@@ -21,11 +24,8 @@ import { useServerStatus } from '@/hooks/use-server-status';
  * - Install new mods
  * - Enable/disable installed mods
  * - Remove installed mods
- *
- * @example
- * <ModList />
  */
-export function ModList() {
+export function InstalledTab() {
   const { data: statusData } = useServerStatus();
   const isServerRunning = statusData?.data?.state === 'running';
 
@@ -54,15 +54,7 @@ export function ModList() {
   };
 
   return (
-    <div className="space-y-6" data-testid="mod-list-page">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold">Mods</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Search, install, and manage server mods
-        </p>
-      </div>
-
+    <div className="space-y-6" data-testid="installed-tab-content">
       {/* Mod lookup and install */}
       <div className="max-w-xl">
         <ModLookupInput onInstalled={handleInstalled} />

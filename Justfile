@@ -257,3 +257,19 @@ clean-data:
 #   just sprint add-story 10 10-9-new-feature
 sprint *ARGS:
     ./scripts/sprint-status.sh {{ARGS}}
+
+# =============================================================================
+# POLISH BACKLOG MANAGEMENT
+# =============================================================================
+
+# Polish backlog commands: list, get, add, set, done
+# Usage: just polish <command> [args]
+# Examples:
+#   just polish list
+#   just polish list API backlog
+#   just polish get UI-029
+#   just polish add UI "Add dark mode toggle" medium S
+#   just polish set UI-029 in-progress
+#   just polish done UI-029 https://github.com/org/repo/pull/99
+polish *ARGS:
+    ./scripts/polish-backlog.sh {{ARGS}}
