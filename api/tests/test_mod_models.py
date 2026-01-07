@@ -2,12 +2,18 @@
 
 from datetime import UTC, datetime
 
+import pytest
+from pydantic import ValidationError
+
 from vintagestory_api.models.mods import (
     CompatibilityInfo,
+    ModBrowseItem,
+    ModBrowseResponse,
     ModInfo,
     ModLookupResponse,
     ModMetadata,
     ModState,
+    PaginationMeta,
 )
 
 
@@ -424,3 +430,466 @@ class TestModLookupResponse:
             data["compatibility"]["message"]
             == "Mod version 1.5.0 is only compatible with 1.19.x"
         )
+
+
+class TestModBrowseItem:
+    """Tests for ModBrowseItem model (mod in browse list)."""
+
+    def test_create_with_required_fields(self) -> None:
+        """ModBrowseItem can be created with required fields and defaults."""
+        item = ModBrowseItem(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            downloads=204656,
+            follows=2348,
+            trending_points=1853,
+            side="both",
+            mod_type="mod",
+        )
+        assert item.slug == "smithingplus"
+        assert item.name == "Smithing Plus"
+        assert item.author == "jayu"
+        assert item.downloads == 204656
+        assert item.follows == 2348
+        assert item.trending_points == 1853
+        assert item.side == "both"
+        assert item.mod_type == "mod"
+        assert item.summary is None
+        assert item.logo_url is None
+        assert item.tags == []
+        assert item.last_released is None
+
+    def test_create_with_all_fields(self) -> None:
+        """ModBrowseItem can be created with all fields populated."""
+        item = ModBrowseItem(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            summary="Expanded smithing mechanics",
+            downloads=204656,
+            follows=2348,
+            trending_points=1853,
+            side="both",
+            mod_type="mod",
+            logo_url="https://moddbcdn.vintagestory.at/logo.png",
+            tags=["Crafting", "QoL"],
+            last_released="2025-10-09 21:28:57",
+        )
+        assert item.summary == "Expanded smithing mechanics"
+        assert item.logo_url == "https://moddbcdn.vintagestory.at/logo.png"
+        assert item.tags == ["Crafting", "QoL"]
+        assert item.last_released == "2025-10-09 21:28:57"
+
+    def test_side_literal_values(self) -> None:
+        """ModBrowseItem validates side literal values."""
+        # Valid values
+        for side in ["client", "server", "both"]:
+            item = ModBrowseItem(
+                slug="test",
+                name="Test",
+                author="Test",
+                downloads=0,
+                follows=0,
+                trending_points=0,
+                side=side,  # type: ignore[arg-type]
+                mod_type="mod",
+            )
+            assert item.side == side
+
+    def test_side_invalid_value_raises(self) -> None:
+        """ModBrowseItem raises on invalid side value."""
+        with pytest.raises(ValidationError):
+            ModBrowseItem(
+                slug="test",
+                name="Test",
+                author="Test",
+                downloads=0,
+                follows=0,
+                trending_points=0,
+                side="invalid",  # type: ignore[arg-type]
+                mod_type="mod",
+            )
+
+    def test_mod_type_literal_values(self) -> None:
+        """ModBrowseItem validates mod_type literal values."""
+        # Valid values
+        for mod_type in ["mod", "externaltool", "other"]:
+            item = ModBrowseItem(
+                slug="test",
+                name="Test",
+                author="Test",
+                downloads=0,
+                follows=0,
+                trending_points=0,
+                side="both",
+                mod_type=mod_type,  # type: ignore[arg-type]
+            )
+            assert item.mod_type == mod_type
+
+    def test_from_api_response_data(self) -> None:
+        """ModBrowseItem can be parsed from typical VintageStory API data."""
+        # Simulates transforming API data to our model format
+        # (The actual transformation happens in ModApiClient)
+        item = ModBrowseItem(
+            slug="smithingplus",  # from urlalias
+            name="Smithing Plus",
+            author="jayu",
+            summary="Expanded smithing",
+            downloads=204656,
+            follows=2348,
+            trending_points=1853,  # from trendingpoints
+            side="both",
+            mod_type="mod",  # from type
+            logo_url="https://moddbcdn.vintagestory.at/logo.png",  # from logo
+            tags=["Crafting", "QoL"],
+            last_released="2025-10-09 21:28:57",  # from lastreleased
+        )
+
+        assert item.slug == "smithingplus"
+        assert item.name == "Smithing Plus"
+        assert item.trending_points == 1853
+        assert item.mod_type == "mod"
+
+    def test_serialization_roundtrip(self) -> None:
+        """ModBrowseItem serializes to JSON and deserializes correctly."""
+        original = ModBrowseItem(
+            slug="testmod",
+            name="Test Mod",
+            author="TestAuthor",
+            summary="A test mod",
+            downloads=12345,
+            follows=100,
+            trending_points=50,
+            side="server",
+            mod_type="mod",
+            logo_url="https://example.com/logo.png",
+            tags=["Category1", "Category2"],
+            last_released="2025-12-29 10:30:00",
+        )
+        json_str = original.model_dump_json()
+        restored = ModBrowseItem.model_validate_json(json_str)
+
+        assert restored.slug == original.slug
+        assert restored.name == original.name
+        assert restored.author == original.author
+        assert restored.summary == original.summary
+        assert restored.downloads == original.downloads
+        assert restored.follows == original.follows
+        assert restored.trending_points == original.trending_points
+        assert restored.side == original.side
+        assert restored.mod_type == original.mod_type
+        assert restored.logo_url == original.logo_url
+        assert restored.tags == original.tags
+        assert restored.last_released == original.last_released
+
+    def test_serialization_for_api_response(self) -> None:
+        """ModBrowseItem serializes correctly for API responses."""
+        item = ModBrowseItem(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            summary="Expanded smithing",
+            downloads=204656,
+            follows=2348,
+            trending_points=1853,
+            side="both",
+            mod_type="mod",
+            logo_url="https://moddbcdn.vintagestory.at/logo.png",
+            tags=["Crafting", "QoL"],
+            last_released="2025-10-09 21:28:57",
+        )
+        data = item.model_dump(mode="json")
+
+        assert data == {
+            "slug": "smithingplus",
+            "name": "Smithing Plus",
+            "author": "jayu",
+            "summary": "Expanded smithing",
+            "downloads": 204656,
+            "follows": 2348,
+            "trending_points": 1853,
+            "side": "both",
+            "mod_type": "mod",
+            "logo_url": "https://moddbcdn.vintagestory.at/logo.png",
+            "tags": ["Crafting", "QoL"],
+            "last_released": "2025-10-09 21:28:57",
+        }
+
+
+class TestPaginationMeta:
+    """Tests for PaginationMeta model (pagination metadata)."""
+
+    def test_create_first_page(self) -> None:
+        """PaginationMeta for first page of multi-page results."""
+        meta = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=False,
+        )
+        assert meta.page == 1
+        assert meta.page_size == 20
+        assert meta.total_items == 550
+        assert meta.total_pages == 28
+        assert meta.has_next is True
+        assert meta.has_prev is False
+
+    def test_create_middle_page(self) -> None:
+        """PaginationMeta for middle page with both prev and next."""
+        meta = PaginationMeta(
+            page=5,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=True,
+        )
+        assert meta.page == 5
+        assert meta.has_next is True
+        assert meta.has_prev is True
+
+    def test_create_last_page(self) -> None:
+        """PaginationMeta for last page of results."""
+        meta = PaginationMeta(
+            page=28,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=False,
+            has_prev=True,
+        )
+        assert meta.page == 28
+        assert meta.has_next is False
+        assert meta.has_prev is True
+
+    def test_create_single_page(self) -> None:
+        """PaginationMeta for results that fit on one page."""
+        meta = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=10,
+            total_pages=1,
+            has_next=False,
+            has_prev=False,
+        )
+        assert meta.total_pages == 1
+        assert meta.has_next is False
+        assert meta.has_prev is False
+
+    def test_create_empty_results(self) -> None:
+        """PaginationMeta for empty results."""
+        meta = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=0,
+            total_pages=0,
+            has_next=False,
+            has_prev=False,
+        )
+        assert meta.total_items == 0
+        assert meta.total_pages == 0
+
+    def test_serialization_roundtrip(self) -> None:
+        """PaginationMeta serializes to JSON and deserializes correctly."""
+        original = PaginationMeta(
+            page=3,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=True,
+        )
+        json_str = original.model_dump_json()
+        restored = PaginationMeta.model_validate_json(json_str)
+
+        assert restored.page == original.page
+        assert restored.page_size == original.page_size
+        assert restored.total_items == original.total_items
+        assert restored.total_pages == original.total_pages
+        assert restored.has_next == original.has_next
+        assert restored.has_prev == original.has_prev
+
+    def test_serialization_for_api_response(self) -> None:
+        """PaginationMeta serializes correctly for API responses."""
+        meta = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=False,
+        )
+        data = meta.model_dump(mode="json")
+
+        assert data == {
+            "page": 1,
+            "page_size": 20,
+            "total_items": 550,
+            "total_pages": 28,
+            "has_next": True,
+            "has_prev": False,
+        }
+
+
+class TestModBrowseResponse:
+    """Tests for ModBrowseResponse model (browse endpoint response)."""
+
+    def test_create_with_mods(self) -> None:
+        """ModBrowseResponse can be created with mod list and pagination."""
+        mods = [
+            ModBrowseItem(
+                slug="mod1",
+                name="Mod 1",
+                author="Author1",
+                downloads=1000,
+                follows=100,
+                trending_points=50,
+                side="both",
+                mod_type="mod",
+            ),
+            ModBrowseItem(
+                slug="mod2",
+                name="Mod 2",
+                author="Author2",
+                downloads=2000,
+                follows=200,
+                trending_points=100,
+                side="server",
+                mod_type="mod",
+            ),
+        ]
+        pagination = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=False,
+        )
+        response = ModBrowseResponse(mods=mods, pagination=pagination)
+
+        assert len(response.mods) == 2
+        assert response.mods[0].slug == "mod1"
+        assert response.mods[1].slug == "mod2"
+        assert response.pagination.page == 1
+        assert response.pagination.total_items == 550
+
+    def test_create_empty_results(self) -> None:
+        """ModBrowseResponse can be created with empty results."""
+        pagination = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=0,
+            total_pages=0,
+            has_next=False,
+            has_prev=False,
+        )
+        response = ModBrowseResponse(mods=[], pagination=pagination)
+
+        assert len(response.mods) == 0
+        assert response.pagination.total_items == 0
+
+    def test_serialization_roundtrip(self) -> None:
+        """ModBrowseResponse serializes to JSON and deserializes correctly."""
+        mods = [
+            ModBrowseItem(
+                slug="testmod",
+                name="Test Mod",
+                author="TestAuthor",
+                downloads=1000,
+                follows=100,
+                trending_points=50,
+                side="both",
+                mod_type="mod",
+                tags=["Category1"],
+            )
+        ]
+        pagination = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=1,
+            total_pages=1,
+            has_next=False,
+            has_prev=False,
+        )
+        original = ModBrowseResponse(mods=mods, pagination=pagination)
+
+        json_str = original.model_dump_json()
+        restored = ModBrowseResponse.model_validate_json(json_str)
+
+        assert len(restored.mods) == 1
+        assert restored.mods[0].slug == "testmod"
+        assert restored.mods[0].tags == ["Category1"]
+        assert restored.pagination.total_items == 1
+
+    def test_serialization_for_api_response(self) -> None:
+        """ModBrowseResponse serializes correctly for API responses."""
+        mods = [
+            ModBrowseItem(
+                slug="smithingplus",
+                name="Smithing Plus",
+                author="jayu",
+                summary="Expanded smithing",
+                downloads=204656,
+                follows=2348,
+                trending_points=1853,
+                side="both",
+                mod_type="mod",
+                logo_url="https://example.com/logo.png",
+                tags=["Crafting"],
+                last_released="2025-10-09 21:28:57",
+            )
+        ]
+        pagination = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=550,
+            total_pages=28,
+            has_next=True,
+            has_prev=False,
+        )
+        response = ModBrowseResponse(mods=mods, pagination=pagination)
+
+        data = response.model_dump(mode="json")
+
+        assert "mods" in data
+        assert "pagination" in data
+        assert len(data["mods"]) == 1
+        assert data["mods"][0]["slug"] == "smithingplus"
+        assert data["pagination"]["page"] == 1
+        assert data["pagination"]["total_items"] == 550
+
+    def test_nested_models_serialization(self) -> None:
+        """ModBrowseResponse properly nests ModBrowseItem and PaginationMeta."""
+        mod = ModBrowseItem(
+            slug="testmod",
+            name="Test Mod",
+            author="Author",
+            downloads=1000,
+            follows=100,
+            trending_points=50,
+            side="client",
+            mod_type="externaltool",
+            tags=["Tools"],
+        )
+        pagination = PaginationMeta(
+            page=2,
+            page_size=10,
+            total_items=25,
+            total_pages=3,
+            has_next=True,
+            has_prev=True,
+        )
+        response = ModBrowseResponse(mods=[mod], pagination=pagination)
+
+        data = response.model_dump(mode="json")
+
+        # Verify nested structures
+        assert data["mods"][0]["side"] == "client"
+        assert data["mods"][0]["mod_type"] == "externaltool"
+        assert data["mods"][0]["tags"] == ["Tools"]
+        assert data["pagination"]["page"] == 2
+        assert data["pagination"]["has_prev"] is True
