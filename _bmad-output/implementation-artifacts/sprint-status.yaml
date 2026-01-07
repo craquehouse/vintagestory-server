@@ -125,8 +125,8 @@ development_status:
 
   # Epic 10: Advanced Mod Browser (Added 2026-01-03)
   # FRs: FR56-FR85 - Full mod discovery and browsing experience
-  epic-10: backlog
-  10-1-mod-browse-api: backlog
+  epic-10: in-progress
+  10-1-mod-browse-api: ready-for-dev
   10-2-mods-tab-restructure: backlog
   10-3-browse-landing-page-and-search: backlog
   10-4-filter-and-sort-controls: backlog
