@@ -1,6 +1,6 @@
 # Story 10.2: Mods Tab Restructure
 
-Status: in-progress
+Status: review
 
 ## Story
 
