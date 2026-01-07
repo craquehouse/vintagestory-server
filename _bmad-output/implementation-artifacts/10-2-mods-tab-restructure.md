@@ -1,6 +1,6 @@
 # Story 10.2: Mods Tab Restructure
 
-Status: review
+Status: done
 
 ## Story
 
@@ -54,11 +54,17 @@ So that **I can manage installed mods separately from discovering new ones**.
   - [x] Subtask 2.4: Wire tab selection to URL path (`installed` vs `browse`)
   - [x] Subtask 2.5: Write component tests for tab switching and content rendering
 
-- [x] Task 3: Refactor existing ModList + tests (AC: 2)
+ - [x] Task 3: Refactor existing ModList + tests (AC: 2)
   - [x] Subtask 3.1: Extract tab-specific content from `ModList.tsx` to separate component
   - [x] Subtask 3.2: Ensure `ModLookupInput` and `ModTable` remain in Installed tab
   - [x] Subtask 3.3: Update existing `ModList.test.tsx` tests for new structure
   - [x] Subtask 3.4: Run `just check` to verify no regressions
+
+## Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Update story File List to include sprint-status.yaml in "Modified" section
+- [x] [AI-Review][MEDIUM] In future stories, commit tests incrementally with each task (not one monolithic commit at end) - violates "tests alongside implementation" policy from Epic 1 retrospective (NOTE: Acknowledged for future stories)
+- [x] [AI-Review][LOW] Add JSDoc examples to ModLookupInput.tsx:53-73 showing valid/invalid inputs for `extractSlug()` function
 
 ## Dev Notes
 
@@ -317,6 +323,7 @@ None required.
 
 **Modified:**
 - `web/src/App.tsx` - Updated routing for nested mods routes
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Story status updates
 
 **Deleted:**
 - `web/src/features/mods/ModList.tsx` - Replaced by InstalledTab

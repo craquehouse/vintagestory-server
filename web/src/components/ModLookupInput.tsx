@@ -48,7 +48,18 @@ interface ModLookupInputProps {
  * - Plain slugs: smithingplus
  *
  * @param input - User input (slug or URL)
- * @returns Extracted slug
+ * @returns Extracted slug (lowercase)
+ *
+ * @example Valid inputs:
+ * extractSlug('smithingplus') // => 'smithingplus'
+ * extractSlug('SmithingPlus') // => 'smithingplus'
+ * extractSlug('https://mods.vintagestory.at/smithingplus') // => 'smithingplus'
+ * extractSlug('mods.vintagestory.at/smithingplus') // => 'smithingplus'
+ * extractSlug('https://mods.vintagestory.at/expanded_foods') // => 'expanded_foods'
+ *
+ * @example Edge cases:
+ * extractSlug('  smithingplus  ') // => 'smithingplus' (trimmed)
+ * extractSlug('/smithingplus') // => 'smithingplus' (path prefix stripped)
  */
 export function extractSlug(input: string): string {
   const trimmed = input.trim();
