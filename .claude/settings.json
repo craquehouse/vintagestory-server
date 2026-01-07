@@ -25,7 +25,10 @@
       "Bash(just lint-api:*)",
       "Bash(just typecheck-api:*)",
       "Bash(just build-api:*)",
-      "Bash(just check:*)"
+      "Bash(just check:*)",
+      "Bash(./scripts/sprint-status.sh:*)",
+      "Bash(yq:*)",
+      "Bash(just sprint:*)"
     ]
   },
   "enabledPlugins": {

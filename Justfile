@@ -228,3 +228,17 @@ clean-data:
     rm -rf data/*/.gitkeep
     find data -mindepth 1 -delete 2>/dev/null || true
     @echo "Data directory cleaned"
+
+# =============================================================================
+# SPRINT STATUS MANAGEMENT
+# =============================================================================
+
+# Sprint status commands: get, set, list, add-story, add-epic
+# Usage: just sprint <command> [args]
+# Examples:
+#   just sprint get 10-1-mod-browse-api
+#   just sprint set 10-1-mod-browse-api review
+#   just sprint list in-progress
+#   just sprint add-story 10 10-9-new-feature
+sprint *ARGS:
+    ./scripts/sprint-status.sh {{ARGS}}

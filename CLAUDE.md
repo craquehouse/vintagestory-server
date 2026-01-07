@@ -25,6 +25,19 @@ When implementing features:
 - Mark checklist items as complete in the story file
 - Create checkpoint commits at logical boundaries
 
+### Sprint Status
+
+**NEVER edit `_bmad-output/implementation-artifacts/sprint-status.yaml` directly.** Use the `just sprint` commands instead:
+
+```bash
+just sprint get 10-1-mod-browse-api       # Get status of a story
+just sprint set 10-1-mod-browse-api done  # Update story status
+just sprint list in-progress              # List items by status
+just sprint add-story 10 10-9-new-feature # Add a new story
+```
+
+See the skill at `.claude/skills/sprint-status-yaml/SKILL.md` for complete documentation.
+
 ### Polish Backlog
 
 `_bmad-output/implementation-artifacts/polish-backlog.md` tracks small-to-medium improvements discovered during development that don't belong to a specific epic. Items are categorized (UI, API, Infrastructure, Tools, CI/CD) with priority, effort estimates, and status tracking. When you encounter minor issues or improvements while working on features, add them to this backlog rather than addressing them immediately.
