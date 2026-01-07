@@ -1,19 +1,24 @@
 """Mod management API endpoints."""
 
-from typing import Annotated
+import math
+from typing import Annotated, Literal
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.mods import ModBrowseItem, ModBrowseResponse, PaginationMeta
 from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.services.mod_api import (
     DownloadError,
     ExternalApiError,
+    ModDict,
     ModVersionNotFoundError,
+    SortOption,
+    sort_mods,
     validate_slug,
 )
 from vintagestory_api.services.mod_api import (
@@ -68,6 +73,147 @@ async def list_mods(
             "pending_restart": pending_restart,
         },
     )
+
+
+def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
+    """Convert a mod dict from the API to a ModBrowseItem.
+
+    Args:
+        mod: Raw mod dictionary from VintageStory mod database API.
+
+    Returns:
+        ModBrowseItem with normalized field names.
+    """
+    # Get slug - prefer urlalias, fallback to first modidstrs
+    slug = mod.get("urlalias")
+    if not slug:
+        modidstrs = mod.get("modidstrs", [])
+        slug = modidstrs[0] if modidstrs else str(mod.get("modid", "unknown"))
+
+    # Normalize side value to lowercase
+    side_raw = str(mod.get("side", "both")).lower()
+    side: Literal["client", "server", "both"] = "both"
+    if side_raw in ("client", "server", "both"):
+        side = side_raw  # type: ignore[assignment]
+
+    # Normalize type value
+    type_raw = str(mod.get("type", "mod")).lower()
+    mod_type: Literal["mod", "externaltool", "other"] = "mod"
+    if type_raw in ("mod", "externaltool", "other"):
+        mod_type = type_raw  # type: ignore[assignment]
+
+    return ModBrowseItem(
+        slug=slug,
+        name=str(mod.get("name", "")),
+        author=str(mod.get("author", "")),
+        summary=mod.get("summary"),
+        downloads=int(mod.get("downloads", 0)),
+        follows=int(mod.get("follows", 0)),
+        trending_points=int(mod.get("trendingpoints", 0)),
+        side=side,
+        mod_type=mod_type,
+        logo_url=mod.get("logo"),
+        tags=mod.get("tags", []),
+        last_released=mod.get("lastreleased"),
+    )
+
+
+@router.get("/browse", response_model=ApiResponse, summary="Browse available mods")
+async def browse_mods(
+    _: RequireAuth,
+    service: ModService = Depends(get_mod_service),
+    page: Annotated[
+        int,
+        Query(ge=1, description="Page number (1-indexed)"),
+    ] = 1,
+    page_size: Annotated[
+        int,
+        Query(ge=1, le=100, description="Items per page (max 100)"),
+    ] = 20,
+    sort: Annotated[
+        SortOption,
+        Query(description="Sort order: downloads, trending, or recent"),
+    ] = "recent",
+) -> ApiResponse:
+    """Browse available mods from the VintageStory mod database.
+
+    Returns a paginated list of all mods available for installation,
+    sorted by the specified criteria.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Args:
+        page: Page number (1-indexed, default 1).
+        page_size: Number of items per page (1-100, default 20).
+        sort: Sort order - "downloads", "trending", or "recent" (default).
+
+    Returns:
+        ApiResponse with ModBrowseResponse containing:
+        - mods: List of mod items for the current page
+        - pagination: Pagination metadata with total counts
+
+    Raises:
+        HTTPException: 400 if pagination parameters are invalid
+        HTTPException: 401 if not authenticated
+        HTTPException: 502 if mod database API is unavailable
+    """
+    logger.debug("router_browse_mods_start", page=page, page_size=page_size, sort=sort)
+
+    try:
+        # Get all mods from API (cached)
+        all_mods = await service.api_client.get_all_mods()
+
+        # Sort mods
+        sorted_mods = sort_mods(all_mods, sort_by=sort)
+
+        # Calculate pagination
+        total_items = len(sorted_mods)
+        total_pages = max(1, math.ceil(total_items / page_size))
+
+        # Clamp page to valid range
+        actual_page = min(page, total_pages) if total_pages > 0 else 1
+
+        # Calculate slice indices
+        start_idx = (actual_page - 1) * page_size
+        end_idx = start_idx + page_size
+
+        # Get page slice and convert to models
+        page_mods = sorted_mods[start_idx:end_idx]
+        browse_items = [_api_mod_to_browse_item(mod) for mod in page_mods]
+
+        # Build pagination metadata
+        pagination = PaginationMeta(
+            page=actual_page,
+            page_size=page_size,
+            total_items=total_items,
+            total_pages=total_pages,
+            has_next=actual_page < total_pages,
+            has_prev=actual_page > 1,
+        )
+
+        response = ModBrowseResponse(mods=browse_items, pagination=pagination)
+
+        logger.debug(
+            "router_browse_mods_complete",
+            page=actual_page,
+            page_size=page_size,
+            total_items=total_items,
+            items_returned=len(browse_items),
+        )
+
+        return ApiResponse(
+            status="ok",
+            data=response.model_dump(mode="json"),
+        )
+
+    except ExternalApiError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": ErrorCode.EXTERNAL_API_ERROR,
+                "message": str(e),
+            },
+        )
 
 
 @router.get("/lookup/{slug:path}", response_model=ApiResponse)

@@ -5,7 +5,9 @@ import json
 import zipfile
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
+import httpx
 import pytest
 import respx
 from fastapi import FastAPI
@@ -1279,3 +1281,439 @@ class TestListModsEndpoint:
         assert len(data["data"]["mods"]) == 1
         assert data["data"]["mods"][0]["slug"] == "disabledmod"
         assert data["data"]["mods"][0]["enabled"] is False
+
+
+# --- Sample data for browse endpoint tests ---
+
+BROWSE_MODS_API_RESPONSE: dict[str, Any] = {
+    "statuscode": "200",
+    "mods": [
+        {
+            "modid": 2655,
+            "name": "Smithing Plus",
+            "summary": "Expanded smithing mechanics",
+            "author": "jayu",
+            "downloads": 204656,
+            "follows": 2348,
+            "trendingpoints": 1853,
+            "side": "both",
+            "type": "mod",
+            "logo": "https://moddbcdn.vintagestory.at/smithingplus/logo.png",
+            "tags": ["Crafting", "QoL"],
+            "lastreleased": "2025-10-09 21:28:57",
+            "urlalias": "smithingplus",
+        },
+        {
+            "modid": 1234,
+            "name": "Old Popular Mod",
+            "summary": "A very popular mod",
+            "author": "author1",
+            "downloads": 500000,
+            "follows": 5000,
+            "trendingpoints": 100,
+            "side": "server",
+            "type": "mod",
+            "logo": None,
+            "tags": ["Gameplay"],
+            "lastreleased": "2024-01-15 10:00:00",
+            "urlalias": "oldpopular",
+        },
+        {
+            "modid": 5678,
+            "name": "Trending New Mod",
+            "summary": "Trending right now",
+            "author": "author2",
+            "downloads": 1000,
+            "follows": 500,
+            "trendingpoints": 5000,
+            "side": "client",
+            "type": "mod",
+            "logo": "https://moddbcdn.vintagestory.at/trending/logo.png",
+            "tags": ["UI"],
+            "lastreleased": "2025-12-01 15:30:00",
+            "urlalias": "trendingnew",
+        },
+    ],
+}
+
+
+class TestBrowseModsEndpoint:
+    """Tests for GET /api/v1alpha1/mods/browse endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    @respx.mock
+    def test_browse_mods_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns paginated list of mods (AC: 1)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "mods" in data["data"]
+        assert "pagination" in data["data"]
+
+        # Verify mod structure
+        mods = data["data"]["mods"]
+        assert len(mods) == 3
+        mod = mods[0]  # First mod (sorted by recent, trendingnew is newest)
+        assert "slug" in mod
+        assert "name" in mod
+        assert "author" in mod
+        assert "downloads" in mod
+        assert "tags" in mod
+        assert "logo_url" in mod
+        assert "side" in mod
+        assert "mod_type" in mod
+
+    @respx.mock
+    def test_browse_mods_pagination_metadata(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns proper pagination metadata (AC: 2)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?page=1&page_size=2", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        pagination = data["data"]["pagination"]
+        assert pagination["page"] == 1
+        assert pagination["page_size"] == 2
+        assert pagination["total_items"] == 3
+        assert pagination["total_pages"] == 2
+        assert pagination["has_next"] is True
+        assert pagination["has_prev"] is False
+
+    @respx.mock
+    def test_browse_mods_page_size_default(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse uses default page_size=20 (AC: 2)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["pagination"]["page_size"] == 20
+
+    @respx.mock
+    def test_browse_mods_sort_by_downloads(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?sort=downloads sorts by downloads desc (AC: 3)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+
+        # Verify sort order: oldpopular (500000) > smithingplus (204656) > trendingnew (1000)
+        assert mods[0]["slug"] == "oldpopular"
+        assert mods[1]["slug"] == "smithingplus"
+        assert mods[2]["slug"] == "trendingnew"
+
+    @respx.mock
+    def test_browse_mods_sort_by_trending(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?sort=trending sorts by trending points desc (AC: 3)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=trending", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+
+        # Verify sort order: trendingnew (5000) > smithingplus (1853) > oldpopular (100)
+        assert mods[0]["slug"] == "trendingnew"
+        assert mods[1]["slug"] == "smithingplus"
+        assert mods[2]["slug"] == "oldpopular"
+
+    @respx.mock
+    def test_browse_mods_sort_by_recent(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?sort=recent sorts by last released desc (AC: 3)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=recent", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+
+        # Verify sort order by lastreleased:
+        # trendingnew (2025-12-01) > smithingplus (2025-10-09) > oldpopular (2024-01-15)
+        assert mods[0]["slug"] == "trendingnew"
+        assert mods[1]["slug"] == "smithingplus"
+        assert mods[2]["slug"] == "oldpopular"
+
+    @respx.mock
+    def test_browse_mods_api_unavailable(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns 502 when external API is unavailable (AC: 4)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+    def test_browse_mods_invalid_page(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns 422 for page=0 (AC: 5)."""
+        response = client.get(
+            "/api/v1alpha1/mods/browse?page=0", headers=admin_headers
+        )
+
+        assert response.status_code == 422
+
+    def test_browse_mods_invalid_page_size(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns 422 for page_size > 100 (AC: 5)."""
+        response = client.get(
+            "/api/v1alpha1/mods/browse?page_size=500", headers=admin_headers
+        )
+
+        assert response.status_code == 422
+
+    def test_browse_mods_requires_auth(self, client: TestClient) -> None:
+        """GET /mods/browse requires authentication."""
+        response = client.get("/api/v1alpha1/mods/browse")
+
+        assert response.status_code == 401
+
+    @respx.mock
+    def test_browse_mods_monitor_access(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse is accessible by Monitor role."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=monitor_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+
+    @respx.mock
+    def test_browse_mods_second_page(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?page=2 returns correct second page."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?page=2&page_size=2", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Page 2 with page_size=2 should have 1 mod (total 3 mods)
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+
+        pagination = data["data"]["pagination"]
+        assert pagination["page"] == 2
+        assert pagination["has_next"] is False
+        assert pagination["has_prev"] is True
+
+    @respx.mock
+    def test_browse_mods_empty_results(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse handles empty mod list."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": []})
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["mods"] == []
+        assert data["data"]["pagination"]["total_items"] == 0
+        assert data["data"]["pagination"]["total_pages"] == 1
+
+    @respx.mock
+    def test_browse_mods_invalid_sort_value(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse returns 422 for invalid sort value."""
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=invalid", headers=admin_headers
+        )
+
+        assert response.status_code == 422
+
+    @respx.mock
+    def test_browse_mods_page_beyond_total(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse clamps page number to valid range."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?page=100", headers=admin_headers
+        )
+
+        # Should not error, but clamp to last valid page
+        assert response.status_code == 200
+        data = response.json()
+        # With 3 mods and page_size=20, there's only 1 page
+        assert data["data"]["pagination"]["page"] == 1
+
+    @respx.mock
+    def test_browse_mods_mod_fields_transform(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse transforms API field names correctly."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mod = data["data"]["mods"][0]  # oldpopular (highest downloads)
+
+        # Verify field transformations:
+        # urlalias -> slug
+        assert mod["slug"] == "oldpopular"
+        # trendingpoints -> trending_points
+        assert mod["trending_points"] == 100
+        # type -> mod_type
+        assert mod["mod_type"] == "mod"
+        # logo -> logo_url (can be null)
+        assert mod["logo_url"] is None
+        # lastreleased -> last_released
+        assert mod["last_released"] == "2024-01-15 10:00:00"
