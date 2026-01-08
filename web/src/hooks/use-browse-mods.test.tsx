@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useBrowseMods, filterModsBySearch } from './use-browse-mods';
+import {
+  useBrowseMods,
+  filterModsBySearch,
+  filterModsByFilters,
+} from './use-browse-mods';
 import type { ModBrowseItem, ApiResponse, ModBrowseData } from '@/api/types';
 
 // Create a wrapper with QueryClientProvider for testing hooks that use TanStack Query
@@ -156,6 +160,128 @@ describe('filterModsBySearch', () => {
     const result = filterModsBySearch(mockMods, 'prim');
     expect(result).toHaveLength(1);
     expect(result[0].slug).toBe('primitivesurvival');
+  });
+});
+
+describe('filterModsByFilters', () => {
+  it('returns all mods when filters are undefined', () => {
+    const result = filterModsByFilters(mockMods, undefined);
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(mockMods);
+  });
+
+  it('returns all mods when filters are empty object', () => {
+    const result = filterModsByFilters(mockMods, {});
+    expect(result).toHaveLength(3);
+  });
+
+  it('filters by side (exact match)', () => {
+    const result = filterModsByFilters(mockMods, { side: 'server' });
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('wildcraft');
+  });
+
+  it('filters by side "both"', () => {
+    const result = filterModsByFilters(mockMods, { side: 'both' });
+    expect(result).toHaveLength(2);
+    expect(result.map((m) => m.slug)).toEqual([
+      'carrycapacity',
+      'primitivesurvival',
+    ]);
+  });
+
+  it('filters by single tag (OR logic within tags)', () => {
+    const result = filterModsByFilters(mockMods, { tags: ['qol'] });
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
+  });
+
+  it('filters by multiple tags (OR logic)', () => {
+    const result = filterModsByFilters(mockMods, { tags: ['qol', 'survival'] });
+    expect(result).toHaveLength(2);
+    expect(result.map((m) => m.slug)).toContain('carrycapacity');
+    expect(result.map((m) => m.slug)).toContain('primitivesurvival');
+  });
+
+  it('filters tags case-insensitively', () => {
+    const result = filterModsByFilters(mockMods, { tags: ['QOL'] });
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
+  });
+
+  it('filters by modType', () => {
+    const result = filterModsByFilters(mockMods, { modType: 'mod' });
+    expect(result).toHaveLength(3);
+  });
+
+  it('filters by gameVersion (prefix matching)', () => {
+    // Mock mods have lastReleased starting with '2024-'
+    // Let's test version filtering assuming we'd check semver prefix
+    const modsWithVersions: ModBrowseItem[] = [
+      { ...mockMods[0], lastReleased: '1.21.3' },
+      { ...mockMods[1], lastReleased: '1.20.5' },
+      { ...mockMods[2], lastReleased: '1.21.0' },
+    ];
+
+    const result = filterModsByFilters(modsWithVersions, {
+      gameVersion: '1.21.3',
+    });
+    expect(result).toHaveLength(2);
+    expect(result.map((m) => m.slug)).toContain('carrycapacity');
+    expect(result.map((m) => m.slug)).toContain('wildcraft');
+  });
+
+  it('handles mods with null lastReleased when filtering by gameVersion', () => {
+    const modsWithNullVersion: ModBrowseItem[] = [
+      { ...mockMods[0], lastReleased: null },
+      { ...mockMods[1], lastReleased: '1.21.0' },
+    ];
+
+    const result = filterModsByFilters(modsWithNullVersion, {
+      gameVersion: '1.21.3',
+    });
+    // Only mods with matching version should be included
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('primitivesurvival');
+  });
+
+  it('combines multiple filters with AND logic', () => {
+    const result = filterModsByFilters(mockMods, {
+      side: 'both',
+      tags: ['utility'],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
+  });
+
+  it('returns empty array when no mods match filters', () => {
+    const result = filterModsByFilters(mockMods, {
+      side: 'client',
+      tags: ['nonexistent'],
+    });
+    expect(result).toHaveLength(0);
+  });
+
+  it('handles empty mods array', () => {
+    const result = filterModsByFilters([], { side: 'server' });
+    expect(result).toHaveLength(0);
+  });
+
+  it('filters with all filter types combined', () => {
+    const modsWithVersions: ModBrowseItem[] = [
+      { ...mockMods[0], lastReleased: '1.21.0' }, // both, utility/qol
+      { ...mockMods[1], lastReleased: '1.21.2' }, // both, survival
+      { ...mockMods[2], lastReleased: '1.21.1' }, // server, plants/foraging
+    ];
+
+    const result = filterModsByFilters(modsWithVersions, {
+      side: 'both',
+      tags: ['utility'],
+      modType: 'mod',
+      gameVersion: '1.21.0',
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe('carrycapacity');
   });
 });
 
@@ -320,5 +446,74 @@ describe('useBrowseMods', () => {
 
     // Should still have only called fetch once (data is fresh)
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters mods client-side when filters are provided', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(
+      () => useBrowseMods({ filters: { side: 'server' } }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Should filter to just the server-side mod
+    expect(result.current.mods).toHaveLength(1);
+    expect(result.current.mods[0].slug).toBe('wildcraft');
+    // Pagination should still reflect original totals
+    expect(result.current.pagination?.totalItems).toBe(100);
+  });
+
+  it('does not pass filters to API (client-side only)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    renderHook(() => useBrowseMods({ filters: { side: 'server' } }), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).not.toContain('side');
+    expect(url).not.toContain('filter');
+  });
+
+  it('combines search and filters', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    const { result } = renderHook(
+      () =>
+        useBrowseMods({
+          search: 'survival',
+          filters: { side: 'both' },
+        }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Should first filter by search (1 result: primitivesurvival)
+    // Then filter by side 'both' (primitivesurvival is 'both', so it passes)
+    expect(result.current.mods).toHaveLength(1);
+    expect(result.current.mods[0].slug).toBe('primitivesurvival');
   });
 });

@@ -343,6 +343,16 @@ export interface ModBrowseData {
 }
 
 /**
+ * Filter criteria for client-side filtering.
+ */
+export interface ModFilters {
+  side?: BrowseModSide;
+  tags?: string[]; // Filter by any of these tags (OR logic)
+  modType?: ModType;
+  gameVersion?: string; // Filter by compatibility
+}
+
+/**
  * Parameters for browse API request.
  */
 export interface BrowseParams {
@@ -350,4 +360,5 @@ export interface BrowseParams {
   pageSize?: number;
   sort?: BrowseSortOption;
   search?: string; // For client-side filtering (API doesn't support search yet)
+  filters?: ModFilters; // For client-side filtering
 }

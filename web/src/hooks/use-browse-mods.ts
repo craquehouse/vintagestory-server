@@ -8,7 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
-import type { BrowseParams, ModBrowseItem } from '@/api/types';
+import type { BrowseParams, ModBrowseItem, ModFilters } from '@/api/types';
 
 /**
  * Cache time matches the API's 5-minute TTL for mod data.
@@ -44,8 +44,8 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  * }
  */
 export function useBrowseMods(params: BrowseParams = {}) {
-  // Separate search from API params (search is client-side)
-  const { search, ...apiParams } = params;
+  // Separate search and filters from API params (both are client-side)
+  const { search, filters, ...apiParams } = params;
 
   const query = useQuery({
     queryKey: queryKeys.mods.browse(apiParams),
@@ -53,13 +53,14 @@ export function useBrowseMods(params: BrowseParams = {}) {
     staleTime: BROWSE_STALE_TIME,
   });
 
-  // Client-side search filtering
+  // Client-side filtering pipeline
   const allMods = query.data?.data?.mods ?? [];
-  const filteredMods = filterModsBySearch(allMods, search);
+  const searchFiltered = filterModsBySearch(allMods, search);
+  const fullyFiltered = filterModsByFilters(searchFiltered, filters);
 
   return {
     ...query,
-    mods: filteredMods,
+    mods: fullyFiltered,
     pagination: query.data?.data?.pagination,
   };
 }
@@ -106,5 +107,63 @@ export function filterModsBySearch(
     }
 
     return false;
+  });
+}
+
+/**
+ * Filter mods by filter criteria.
+ *
+ * Applies AND logic across different filter types:
+ * - Must match side if specified
+ * - Must match at least one tag if tags specified (OR logic within tags)
+ * - Must match modType if specified
+ * - Must be compatible with gameVersion if specified
+ *
+ * @param mods - Array of mods to filter
+ * @param filters - Filter criteria
+ * @returns Filtered array of mods
+ */
+export function filterModsByFilters(
+  mods: ModBrowseItem[],
+  filters?: ModFilters
+): ModBrowseItem[] {
+  if (!filters) return mods;
+
+  return mods.filter((mod) => {
+    // Side filter (exact match)
+    if (filters.side && mod.side !== filters.side) {
+      return false;
+    }
+
+    // Tags filter (OR logic - mod must have at least one selected tag)
+    if (filters.tags && filters.tags.length > 0) {
+      const hasMatchingTag = filters.tags.some((filterTag) =>
+        mod.tags.some((modTag) => modTag.toLowerCase() === filterTag.toLowerCase())
+      );
+      if (!hasMatchingTag) {
+        return false;
+      }
+    }
+
+    // ModType filter (exact match)
+    if (filters.modType && mod.modType !== filters.modType) {
+      return false;
+    }
+
+    // Game version filter (compatibility check)
+    // Check if lastReleased matches version prefix (major.minor)
+    if (filters.gameVersion && mod.lastReleased) {
+      const majorMinor = filters.gameVersion.split('.').slice(0, 2).join('.');
+      if (!mod.lastReleased.startsWith(majorMinor)) {
+        return false;
+      }
+    }
+
+    // If gameVersion filter is set but mod has no lastReleased, exclude it
+    if (filters.gameVersion && !mod.lastReleased) {
+      return false;
+    }
+
+    return true;
   });
 }
