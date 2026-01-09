@@ -21,12 +21,12 @@ import {
 import type { BrowseSortOption } from '@/api/types';
 
 interface SortControlProps {
-  value: BrowseSortOption | 'name';
+  value: BrowseSortOption;
   onChange: (value: BrowseSortOption) => void;
 }
 
 const SORT_OPTIONS: Array<{
-  value: BrowseSortOption | 'name';
+  value: BrowseSortOption;
   label: string;
 }> = [
   { value: 'recent', label: 'Newest' },
@@ -40,8 +40,10 @@ export function SortControl({ value, onChange }: SortControlProps) {
     SORT_OPTIONS.find((opt) => opt.value === value)?.label || 'Newest';
 
   const handleSelect = (sortValue: string) => {
-    // Type assertion safe because we control the options
-    onChange(sortValue as BrowseSortOption);
+    // Validate before calling onChange
+    if (sortValue === 'downloads' || sortValue === 'trending' || sortValue === 'recent' || sortValue === 'name') {
+      onChange(sortValue);
+    }
   };
 
   return (

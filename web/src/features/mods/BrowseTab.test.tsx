@@ -532,8 +532,9 @@ describe('BrowseTab', () => {
       });
 
       expect(screen.getByText(/tags/i)).toBeInTheDocument();
-      expect(screen.getByText(/version/i)).toBeInTheDocument();
       expect(screen.getByText(/type/i)).toBeInTheDocument();
+      // Version filter disabled - API doesn't provide compatibility data
+      expect(screen.queryByText(/version/i)).not.toBeInTheDocument();
     });
 
     it('renders sort control', async () => {

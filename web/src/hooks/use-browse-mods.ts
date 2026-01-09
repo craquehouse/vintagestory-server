@@ -45,22 +45,31 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  */
 export function useBrowseMods(params: BrowseParams = {}) {
   // Separate search and filters from API params (both are client-side)
-  const { search, filters, ...apiParams } = params;
+  // Also separate 'name' sort since it's client-side only
+  const { search, filters, sort, ...apiParams } = params;
+
+  // Only pass sort to API if it's a server-side option
+  const apiSort = sort === 'name' ? undefined : sort;
 
   const query = useQuery({
-    queryKey: queryKeys.mods.browse(apiParams),
-    queryFn: () => fetchBrowseMods(apiParams),
+    queryKey: queryKeys.mods.browse({ ...apiParams, sort: apiSort }),
+    queryFn: () => fetchBrowseMods({ ...apiParams, sort: apiSort }),
     staleTime: BROWSE_STALE_TIME,
   });
 
   // Client-side filtering pipeline
-  const allMods = query.data?.data?.mods ?? [];
+  let allMods = query.data?.data?.mods ?? [];
   const searchFiltered = filterModsBySearch(allMods, search);
   const fullyFiltered = filterModsByFilters(searchFiltered, filters);
 
+  // Client-side sorting for 'name' option
+  const sorted = sort === 'name'
+    ? sortModsByName(fullyFiltered)
+    : fullyFiltered;
+
   return {
     ...query,
-    mods: fullyFiltered,
+    mods: sorted,
     pagination: query.data?.data?.pagination,
   };
 }
@@ -111,6 +120,18 @@ export function filterModsBySearch(
 }
 
 /**
+ * Sort mods alphabetically by name (A-Z).
+ *
+ * Client-side only - API doesn't support name sorting yet.
+ *
+ * @param mods - Array of mods to sort
+ * @returns Sorted array of mods (new array, doesn't mutate input)
+ */
+export function sortModsByName(mods: ModBrowseItem[]): ModBrowseItem[] {
+  return [...mods].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
  * Filter mods by filter criteria.
  *
  * Applies AND logic across different filter types:
@@ -150,19 +171,12 @@ export function filterModsByFilters(
       return false;
     }
 
-    // Game version filter (compatibility check)
-    // Check if lastReleased matches version prefix (major.minor)
-    if (filters.gameVersion && mod.lastReleased) {
-      const majorMinor = filters.gameVersion.split('.').slice(0, 2).join('.');
-      if (!mod.lastReleased.startsWith(majorMinor)) {
-        return false;
-      }
-    }
-
-    // If gameVersion filter is set but mod has no lastReleased, exclude it
-    if (filters.gameVersion && !mod.lastReleased) {
-      return false;
-    }
+    // Game version filter disabled - API doesn't provide version compatibility in browse endpoint
+    // The lastReleased field is a timestamp, not a game version
+    // TODO: Add to polish backlog - requires API enhancement
+    // if (filters.gameVersion) {
+    //   return false; // Would need version compatibility data from API
+    // }
 
     return true;
   });

@@ -289,8 +289,9 @@ export interface LogFilesData {
 
 /**
  * Sort options for the mod browse API.
+ * Note: 'name' is client-side only (API doesn't support it yet - see polish backlog API-029)
  */
-export type BrowseSortOption = 'downloads' | 'trending' | 'recent';
+export type BrowseSortOption = 'downloads' | 'trending' | 'recent' | 'name';
 
 /**
  * Mod type from the browse API.

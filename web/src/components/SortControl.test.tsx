@@ -73,8 +73,7 @@ describe('SortControl', () => {
     expect(screen.getByRole('button', { name: /most downloaded/i })).toBeInTheDocument();
   });
 
-  it('supports all sort options', async () => {
-    const user = userEvent.setup();
+  it('supports all sort options', () => {
     const sortOptions: Array<{ value: BrowseSortOption; label: RegExp }> = [
       { value: 'recent', label: /newest/i },
       { value: 'downloads', label: /most downloaded/i },
@@ -82,7 +81,7 @@ describe('SortControl', () => {
     ];
 
     for (const { value, label } of sortOptions) {
-      const { rerender, unmount } = render(
+      const { unmount } = render(
         <SortControl value={value} onChange={mockOnChange} />
       );
 

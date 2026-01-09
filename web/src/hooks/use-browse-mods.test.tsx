@@ -214,35 +214,15 @@ describe('filterModsByFilters', () => {
     expect(result).toHaveLength(3);
   });
 
-  it('filters by gameVersion (prefix matching)', () => {
-    // Mock mods have lastReleased starting with '2024-'
-    // Let's test version filtering assuming we'd check semver prefix
-    const modsWithVersions: ModBrowseItem[] = [
-      { ...mockMods[0], lastReleased: '1.21.3' },
-      { ...mockMods[1], lastReleased: '1.20.5' },
-      { ...mockMods[2], lastReleased: '1.21.0' },
-    ];
-
-    const result = filterModsByFilters(modsWithVersions, {
-      gameVersion: '1.21.3',
-    });
-    expect(result).toHaveLength(2);
-    expect(result.map((m) => m.slug)).toContain('carrycapacity');
-    expect(result.map((m) => m.slug)).toContain('wildcraft');
+  // Game version filter disabled - API doesn't provide version compatibility data
+  it.skip('filters by gameVersion - DISABLED (requires API enhancement)', () => {
+    // lastReleased is a timestamp, not a version string
+    // Game version compatibility would need to come from releases array
+    // which isn't included in browse endpoint
   });
 
-  it('handles mods with null lastReleased when filtering by gameVersion', () => {
-    const modsWithNullVersion: ModBrowseItem[] = [
-      { ...mockMods[0], lastReleased: null },
-      { ...mockMods[1], lastReleased: '1.21.0' },
-    ];
-
-    const result = filterModsByFilters(modsWithNullVersion, {
-      gameVersion: '1.21.3',
-    });
-    // Only mods with matching version should be included
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('primitivesurvival');
+  it.skip('handles mods with null lastReleased - DISABLED (requires API enhancement)', () => {
+    // Game version filtering disabled until API provides compatibility data
   });
 
   it('combines multiple filters with AND logic', () => {
@@ -267,18 +247,11 @@ describe('filterModsByFilters', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('filters with all filter types combined', () => {
-    const modsWithVersions: ModBrowseItem[] = [
-      { ...mockMods[0], lastReleased: '1.21.0' }, // both, utility/qol
-      { ...mockMods[1], lastReleased: '1.21.2' }, // both, survival
-      { ...mockMods[2], lastReleased: '1.21.1' }, // server, plants/foraging
-    ];
-
-    const result = filterModsByFilters(modsWithVersions, {
+  it('filters with multiple filter types combined', () => {
+    const result = filterModsByFilters(mockMods, {
       side: 'both',
       tags: ['utility'],
       modType: 'mod',
-      gameVersion: '1.21.0',
     });
     expect(result).toHaveLength(1);
     expect(result[0].slug).toBe('carrycapacity');

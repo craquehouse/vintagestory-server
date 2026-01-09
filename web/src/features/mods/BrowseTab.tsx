@@ -39,7 +39,15 @@ export function BrowseTab() {
 
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  const { mods, pagination, isLoading, isError, error, refetch } = useBrowseMods({
+  const {
+    mods,
+    pagination,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    data: queryData,
+  } = useBrowseMods({
     search: debouncedSearch,
     filters,
     sort,
@@ -117,7 +125,11 @@ export function BrowseTab() {
       </div>
 
       {/* Filter Controls */}
-      <FilterControls filters={filters} onChange={setFilters} />
+      <FilterControls
+        filters={filters}
+        onChange={setFilters}
+        availableMods={queryData?.data?.mods ?? []}
+      />
 
       {/* Results Grid */}
       <ModBrowseGrid mods={mods} isLoading={isLoading} />

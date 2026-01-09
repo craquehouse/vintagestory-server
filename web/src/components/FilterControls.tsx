@@ -5,6 +5,7 @@
  * Displays active filters as removable badges.
  */
 
+import { useMemo } from 'react';
 import { Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,31 +18,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import type { ModFilters, BrowseModSide, ModType } from '@/api/types';
+import type { ModFilters, BrowseModSide, ModType, ModBrowseItem } from '@/api/types';
 
 interface FilterControlsProps {
   filters: ModFilters;
   onChange: (filters: ModFilters) => void;
+  availableMods?: ModBrowseItem[]; // For extracting available tags dynamically
 }
 
-// Common tags from VintageStory mod database
-const COMMON_TAGS = [
-  'qol',
-  'utility',
-  'survival',
-  'decoration',
-  'farming',
-  'crafting',
-  'tools',
-  'combat',
-  'magic',
-  'technology',
+// Game version filtering requires API enhancement - browse endpoint doesn't include
+// game version compatibility data (only in detailed mod endpoint's releases array)
+// TODO: Add to polish backlog - requires API to include compatibility in browse response
+const GAME_VERSIONS: string[] = []; // Disabled until API supports it
+
+// Side options derived from type system
+const SIDE_OPTIONS: Array<{ value: BrowseModSide; label: string }> = [
+  { value: 'both', label: 'Both' },
+  { value: 'client', label: 'Client' },
+  { value: 'server', label: 'Server' },
 ];
 
-// Common game versions (placeholder - could be fetched from API)
-const GAME_VERSIONS = ['1.21', '1.20', '1.19', '1.18'];
+// Mod type options derived from type system
+const MOD_TYPE_OPTIONS: Array<{ value: ModType; label: string }> = [
+  { value: 'mod', label: 'Code Mod' },
+  { value: 'externaltool', label: 'External Tool' },
+  { value: 'other', label: 'Other' },
+];
 
-export function FilterControls({ filters, onChange }: FilterControlsProps) {
+export function FilterControls({ filters, onChange, availableMods = [] }: FilterControlsProps) {
+  // Extract unique tags from available mods
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    availableMods.forEach((mod) => {
+      mod.tags.forEach((tag) => tagSet.add(tag.toLowerCase()));
+    });
+    return Array.from(tagSet).sort();
+  }, [availableMods]);
   const handleSideChange = (side: BrowseModSide) => {
     onChange({ ...filters, side });
   };
@@ -105,15 +117,14 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Mod Side</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleSideChange('both')}>
-              Both
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleSideChange('client')}>
-              Client
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleSideChange('server')}>
-              Server
-            </DropdownMenuItem>
+            {SIDE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => handleSideChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -128,41 +139,49 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuLabel>Filter by Tags</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <div className="max-h-[300px] overflow-y-auto">
-              {COMMON_TAGS.map((tag) => (
-                <DropdownMenuCheckboxItem
-                  key={tag}
-                  checked={filters.tags?.includes(tag) || false}
-                  onCheckedChange={() => handleTagToggle(tag)}
-                >
-                  {tag}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </div>
+            {availableTags.length > 0 ? (
+              <div className="max-h-[300px] overflow-y-auto">
+                {availableTags.map((tag) => (
+                  <DropdownMenuCheckboxItem
+                    key={tag}
+                    checked={filters.tags?.includes(tag) || false}
+                    onCheckedChange={() => handleTagToggle(tag)}
+                  >
+                    {tag}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </div>
+            ) : (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                No tags available
+              </div>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Game Version Filter */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Filter className="mr-2 h-4 w-4" />
-              Version
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Game Version</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {GAME_VERSIONS.map((version) => (
-              <DropdownMenuItem
-                key={version}
-                onClick={() => handleVersionChange(version)}
-              >
-                {version}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Game Version Filter - Disabled: API doesn't provide version compatibility in browse endpoint */}
+        {GAME_VERSIONS.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                Version
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Game Version</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {GAME_VERSIONS.map((version) => (
+                <DropdownMenuItem
+                  key={version}
+                  onClick={() => handleVersionChange(version)}
+                >
+                  {version}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {/* Mod Type Filter */}
         <DropdownMenu>
@@ -175,15 +194,14 @@ export function FilterControls({ filters, onChange }: FilterControlsProps) {
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Mod Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleTypeChange('mod')}>
-              Code Mod
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleTypeChange('externaltool')}>
-              External Tool
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleTypeChange('other')}>
-              Other
-            </DropdownMenuItem>
+            {MOD_TYPE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => handleTypeChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
