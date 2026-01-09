@@ -2,6 +2,7 @@
  * BrowseTab component tests.
  *
  * Story 10.3: Browse Landing Page & Search
+ * Story 10.4: Filter & Sort Controls
  *
  * Tests cover:
  * - AC1: Loads mods immediately on page load
@@ -10,6 +11,7 @@
  * - AC5: Clear button and Escape key
  * - AC6: Error state with retry
  * - AC7: Loading state
+ * - AC8-11: Filter and sort integration
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -511,6 +513,73 @@ describe('BrowseTab', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('mod-browse-grid-empty')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Story 10.4: Filter and Sort Integration', () => {
+    it('renders filter controls', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByText(/side/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/tags/i)).toBeInTheDocument();
+      expect(screen.getByText(/version/i)).toBeInTheDocument();
+      expect(screen.getByText(/type/i)).toBeInTheDocument();
+    });
+
+    it('renders sort control', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByText('Sort by:')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /newest/i })).toBeInTheDocument();
+    });
+
+    it('combines search and filters correctly', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Both mods should be visible initially
+      expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(screen.getByTestId('mod-card-primitivesurvival')).toBeInTheDocument();
+
+      // Apply search
+      const searchInput = screen.getByTestId('browse-search-input');
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'carry' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Only carrycapacity should be visible
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-card-primitivesurvival')).not.toBeInTheDocument();
       });
     });
   });

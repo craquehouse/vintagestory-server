@@ -105,11 +105,11 @@ So that **I can find specific types of mods quickly**.
   - [x] Subtask 3.3: Implement sort persistence (URL params or state)
   - [x] Subtask 3.4: Write tests for sort selection and persistence
 
-- [ ] Task 4: Update BrowseTab with filter and sort UI + tests (AC: 1, 7, 11)
-  - [ ] Subtask 4.1: Integrate FilterControls and SortControl components
-  - [ ] Subtask 4.2: Wire filter/sort state to useBrowseMods hook
-  - [ ] Subtask 4.3: Ensure filters work with existing search functionality
-  - [ ] Subtask 4.4: Write integration tests for combined filter/search/sort
+- [x] Task 4: Update BrowseTab with filter and sort UI + tests (AC: 1, 7, 11)
+  - [x] Subtask 4.1: Integrate FilterControls and SortControl components
+  - [x] Subtask 4.2: Wire filter/sort state to useBrowseMods hook
+  - [x] Subtask 4.3: Ensure filters work with existing search functionality
+  - [x] Subtask 4.4: Write integration tests for combined filter/search/sort
 
 ## Dev Notes
 
@@ -504,6 +504,14 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - Wrote 7 comprehensive component tests for sort selection scenarios
 - All 949 web tests passing (7 new tests)
 
+**Task 4 Complete (2026-01-08):**
+- Integrated FilterControls and SortControl into BrowseTab layout
+- Positioned sort control next to search input with responsive flex layout
+- Wired filter and sort state to useBrowseMods hook
+- Verified filters work correctly with existing search functionality
+- Added 3 integration tests for filter/sort/search combination scenarios
+- All 952 web tests passing (3 new integration tests)
+
 ### File List
 
 - `web/src/api/types.ts` - Added ModFilters interface, extended BrowseParams
@@ -513,3 +521,5 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - `web/src/components/FilterControls.test.tsx` - 10 component tests for filter interaction
 - `web/src/components/SortControl.tsx` - New sort UI component with dropdown
 - `web/src/components/SortControl.test.tsx` - 7 component tests for sort selection
+- `web/src/features/mods/BrowseTab.tsx` - Integrated FilterControls and SortControl
+- `web/src/features/mods/BrowseTab.test.tsx` - Added 3 integration tests
