@@ -111,6 +111,48 @@ So that **I can find specific types of mods quickly**.
   - [x] Subtask 4.3: Ensure filters work with existing search functionality
   - [x] Subtask 4.4: Write integration tests for combined filter/search/sort
 
+## Review Follow-ups (AI)
+
+**Code Review Date:** 2026-01-09
+**Total Issues Found:** 11 (7 HIGH, 2 MEDIUM, 2 LOW)
+
+### HIGH Severity Issues
+
+- [ ] [AI-Review][HIGH] Fix type mismatch - SortControl accepts 'name' but BrowseSortOption doesn't include it [web/src/components/SortControl.tsx:24]
+- [ ] [AI-Review][HIGH] Fix game version filter - broken because lastReleased is ISO timestamp not version string [web/src/hooks/use-browse-mods.ts:156-164]
+- [ ] [AI-Review][HIGH] Implement client-side "Name" sorting - UI shows option but doesn't work [web/src/hooks/use-browse-mods.ts]
+- [ ] [AI-Review][HIGH] Fix unused test variables - TypeScript compilation errors (user, rerender) [web/src/components/SortControl.test.tsx:77,85]
+- [ ] [AI-Review][HIGH] Remove hardcoded game versions - dynamic fetching needed [web/src/components/FilterControls.tsx:42]
+- [ ] [AI-Review][HIGH] Fix mock data inconsistency - tests use version strings but API returns timestamps [web/src/hooks/use-browse-mods.test.tsx:217-224]
+- [ ] [AI-Review][HIGH] Fix tag filter data inconsistency - hardcoded list limits tag selection [web/src/components/FilterControls.tsx:28-39]
+
+### MEDIUM Severity Issues
+
+- [ ] [AI-Review][MEDIUM] Remove hardcoded filter options - use type system for dynamic generation [web/src/components/FilterControls.tsx:108-116]
+- [ ] [AI-Review][MEDIUM] Add error handling for invalid sort values - unsafe type cast needs validation [web/src/components/SortControl.tsx:42-45]
+
+### Notes on Issues
+
+**Critical Functional Breakage:**
+- Issue #2 (game version filter) completely broken with real API data
+- Issue #3 ("Name" sort) appears to work but does nothing
+- Issue #6 (mock data inconsistency) gives false confidence - tests pass with fake data but implementation fails with real data
+
+**AC Status After Review:**
+- AC1: ✅ Filter controls visible
+- AC2: ✅ Side filter working
+- AC3: ⚠️ Partial - tags work but hardcoded list limits selection
+- AC4: ❌ BROKEN - game version filter broken (timestamp vs string mismatch)
+- AC5: ✅ Mod type filtering
+- AC6: ✅ Multiple filters with AND logic
+- AC7: ✅ Active filter badges with removal
+- AC8: ⚠️ Partial - UI has 4 options but "Name" doesn't work
+- AC9: ✅ Default sort = "Newest"
+- AC10: ✅ Sort selection persists
+- AC11: ✅ Search respects filters and sort
+
+**Overall AC Implementation:** 8.5/11 (1 broken, 2.5 partial)
+
 ## Dev Notes
 
 ### Testing Requirements
