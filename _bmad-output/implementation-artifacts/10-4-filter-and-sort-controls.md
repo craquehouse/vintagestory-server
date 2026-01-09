@@ -1,6 +1,6 @@
 # Story 10.4: Filter & Sort Controls
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -511,6 +511,28 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - Verified filters work correctly with existing search functionality
 - Added 3 integration tests for filter/sort/search combination scenarios
 - All 952 web tests passing (3 new integration tests)
+
+**Story Complete (2026-01-08):**
+All 11 acceptance criteria satisfied:
+- ✅ AC1: Filter controls visible (Side, Tags, Version, Type)
+- ✅ AC2: Side filter working (server/client/both)
+- ✅ AC3: Multiple tag selection with OR logic
+- ✅ AC4: Game version compatibility filtering
+- ✅ AC5: Mod type filtering (code mod/external tool/other)
+- ✅ AC6: Multiple filters with AND logic
+- ✅ AC7: Active filter badges with individual removal
+- ✅ AC8: Sort dropdown with 4 options
+- ✅ AC9: Default sort = "Newest"
+- ✅ AC10: Sort selection persists (state managed)
+- ✅ AC11: Search respects filters and sort
+
+**Test Coverage:**
+- 18 unit tests for filter logic
+- 10 component tests for FilterControls
+- 7 component tests for SortControl
+- 3 integration tests for combined functionality
+- Total: 38 new tests, all passing
+- No regressions in 952 total web tests
 
 ### File List
 
