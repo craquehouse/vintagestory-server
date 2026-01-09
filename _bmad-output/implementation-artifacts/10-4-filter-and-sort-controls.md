@@ -93,11 +93,11 @@ So that **I can find specific types of mods quickly**.
   - [x] Subtask 1.3: Update hook to apply filters after search
   - [x] Subtask 1.4: Write comprehensive tests for filter combinations
 
-- [ ] Task 2: Create FilterControls component + tests (AC: 1, 2, 3, 4, 5, 6, 7)
-  - [ ] Subtask 2.1: Create FilterControls.tsx with filter UI
-  - [ ] Subtask 2.2: Add SideFilter, TagsFilter, VersionFilter, TypeFilter components
-  - [ ] Subtask 2.3: Implement active filter badges with remove functionality
-  - [ ] Subtask 2.4: Write component tests for filter selection and removal
+- [x] Task 2: Create FilterControls component + tests (AC: 1, 2, 3, 4, 5, 6, 7)
+  - [x] Subtask 2.1: Create FilterControls.tsx with filter UI
+  - [x] Subtask 2.2: Add SideFilter, TagsFilter, VersionFilter, TypeFilter components
+  - [x] Subtask 2.3: Implement active filter badges with remove functionality
+  - [x] Subtask 2.4: Write component tests for filter selection and removal
 
 - [ ] Task 3: Create SortControl component + tests (AC: 8, 9, 10)
   - [ ] Subtask 3.1: Create SortControl.tsx with sort dropdown
@@ -488,8 +488,18 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - Wrote 18 comprehensive tests covering all filter combinations and edge cases
 - All 932 web tests passing, no regressions
 
+**Task 2 Complete (2026-01-08):**
+- Created FilterControls component with dropdowns for Side, Tags, Version, and Type
+- Implemented inline filter selection using DropdownMenu components
+- Added active filter badges with individual remove buttons
+- Integrated lucide-react icons (Filter, X) for UI
+- Wrote 10 comprehensive component tests covering all interaction scenarios
+- All 942 web tests passing (10 new tests)
+
 ### File List
 
 - `web/src/api/types.ts` - Added ModFilters interface, extended BrowseParams
 - `web/src/hooks/use-browse-mods.ts` - Added filterModsByFilters(), updated hook to apply filters
 - `web/src/hooks/use-browse-mods.test.tsx` - Added 18 tests for filter functionality
+- `web/src/components/FilterControls.tsx` - New filter UI component with all filter types
+- `web/src/components/FilterControls.test.tsx` - 10 component tests for filter interaction
