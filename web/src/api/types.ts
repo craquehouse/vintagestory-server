@@ -289,8 +289,9 @@ export interface LogFilesData {
 
 /**
  * Sort options for the mod browse API.
+ * Note: 'name' is client-side only (API doesn't support it yet - see polish backlog API-029)
  */
-export type BrowseSortOption = 'downloads' | 'trending' | 'recent';
+export type BrowseSortOption = 'downloads' | 'trending' | 'recent' | 'name';
 
 /**
  * Mod type from the browse API.
@@ -343,6 +344,16 @@ export interface ModBrowseData {
 }
 
 /**
+ * Filter criteria for client-side filtering.
+ */
+export interface ModFilters {
+  side?: BrowseModSide;
+  tags?: string[]; // Filter by any of these tags (OR logic)
+  modType?: ModType;
+  gameVersion?: string; // Filter by compatibility
+}
+
+/**
  * Parameters for browse API request.
  */
 export interface BrowseParams {
@@ -350,4 +361,5 @@ export interface BrowseParams {
   pageSize?: number;
   sort?: BrowseSortOption;
   search?: string; // For client-side filtering (API doesn't support search yet)
+  filters?: ModFilters; // For client-side filtering
 }

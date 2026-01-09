@@ -5,9 +5,12 @@
  * - Displays newest mods immediately on load
  * - Search with 300ms debounce
  * - Clear search with button or Escape key
+ * - Filter by Side, Tags, Version, and Type
+ * - Sort by Newest, Downloads, Trending, Name
  * - Loading and error states
  *
  * Story 10.3: Browse Landing Page & Search
+ * Story 10.4: Filter & Sort Controls
  */
 
 import { useState, useCallback } from 'react';
@@ -17,6 +20,9 @@ import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { ModBrowseGrid } from '@/components/ModBrowseGrid';
+import { FilterControls } from '@/components/FilterControls';
+import { SortControl } from '@/components/SortControl';
+import type { ModFilters, BrowseSortOption } from '@/api/types';
 
 /**
  * Browse mods tab with search functionality.
@@ -28,11 +34,23 @@ import { ModBrowseGrid } from '@/components/ModBrowseGrid';
  */
 export function BrowseTab() {
   const [searchInput, setSearchInput] = useState('');
+  const [filters, setFilters] = useState<ModFilters>({});
+  const [sort, setSort] = useState<BrowseSortOption>('recent');
+
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  const { mods, pagination, isLoading, isError, error, refetch } = useBrowseMods({
+  const {
+    mods,
+    pagination,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    data: queryData,
+  } = useBrowseMods({
     search: debouncedSearch,
-    sort: 'recent',
+    filters,
+    sort,
   });
 
   const handleClearSearch = useCallback(() => {
@@ -71,32 +89,47 @@ export function BrowseTab() {
 
   return (
     <div className="space-y-4" data-testid="browse-tab-content">
-      {/* Search Input */}
-      <div className="relative" data-testid="browse-search-container">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search mods by name, author, or tag..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="pl-9 pr-9"
-          data-testid="browse-search-input"
-          aria-label="Search mods"
-        />
-        {searchInput && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
-            onClick={handleClearSearch}
-            data-testid="browse-search-clear"
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+      {/* Search and Sort */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* Search Input */}
+        <div className="relative flex-1" data-testid="browse-search-container">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search mods by name, author, or tag..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="pl-9 pr-9"
+            data-testid="browse-search-input"
+            aria-label="Search mods"
+          />
+          {searchInput && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
+              onClick={handleClearSearch}
+              data-testid="browse-search-clear"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Sort Control */}
+        <div className="sm:ml-auto">
+          <SortControl value={sort} onChange={setSort} />
+        </div>
       </div>
+
+      {/* Filter Controls */}
+      <FilterControls
+        filters={filters}
+        onChange={setFilters}
+        availableMods={queryData?.data?.mods ?? []}
+      />
 
       {/* Results Grid */}
       <ModBrowseGrid mods={mods} isLoading={isLoading} />
