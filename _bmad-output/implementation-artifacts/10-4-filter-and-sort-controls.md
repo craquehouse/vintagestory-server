@@ -99,11 +99,11 @@ So that **I can find specific types of mods quickly**.
   - [x] Subtask 2.3: Implement active filter badges with remove functionality
   - [x] Subtask 2.4: Write component tests for filter selection and removal
 
-- [ ] Task 3: Create SortControl component + tests (AC: 8, 9, 10)
-  - [ ] Subtask 3.1: Create SortControl.tsx with sort dropdown
-  - [ ] Subtask 3.2: Add sort options (newest, downloads, updated, trending, name)
-  - [ ] Subtask 3.3: Implement sort persistence (URL params or state)
-  - [ ] Subtask 3.4: Write tests for sort selection and persistence
+- [x] Task 3: Create SortControl component + tests (AC: 8, 9, 10)
+  - [x] Subtask 3.1: Create SortControl.tsx with sort dropdown
+  - [x] Subtask 3.2: Add sort options (newest, downloads, updated, trending, name)
+  - [x] Subtask 3.3: Implement sort persistence (URL params or state)
+  - [x] Subtask 3.4: Write tests for sort selection and persistence
 
 - [ ] Task 4: Update BrowseTab with filter and sort UI + tests (AC: 1, 7, 11)
   - [ ] Subtask 4.1: Integrate FilterControls and SortControl components
@@ -496,6 +496,14 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - Wrote 10 comprehensive component tests covering all interaction scenarios
 - All 942 web tests passing (10 new tests)
 
+**Task 3 Complete (2026-01-08):**
+- Created SortControl component with dropdown for sort order selection
+- Implemented sort options: Newest, Most Downloaded, Trending, Name (A-Z)
+- Used DropdownMenu pattern consistent with FilterControls
+- Integrated lucide-react ArrowUpDown icon
+- Wrote 7 comprehensive component tests for sort selection scenarios
+- All 949 web tests passing (7 new tests)
+
 ### File List
 
 - `web/src/api/types.ts` - Added ModFilters interface, extended BrowseParams
@@ -503,3 +511,5 @@ Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 - `web/src/hooks/use-browse-mods.test.tsx` - Added 18 tests for filter functionality
 - `web/src/components/FilterControls.tsx` - New filter UI component with all filter types
 - `web/src/components/FilterControls.test.tsx` - 10 component tests for filter interaction
+- `web/src/components/SortControl.tsx` - New sort UI component with dropdown
+- `web/src/components/SortControl.test.tsx` - 7 component tests for sort selection
