@@ -98,7 +98,7 @@ export function ExpandableNavItem({
               className={cn(
                 "w-full justify-center",
                 "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                isAnySubItemActive && "bg-sidebar-accent text-sidebar-primary"
+                isAnySubItemActive && "bg-sidebar-accent/50"
               )}
               onClick={handleToggle}
               aria-expanded={isOpen}

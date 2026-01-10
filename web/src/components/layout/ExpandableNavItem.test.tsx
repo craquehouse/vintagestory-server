@@ -271,7 +271,7 @@ describe("ExpandableNavItem", () => {
       });
 
       const button = screen.getByTestId("collapsed-nav-trigger");
-      expect(button).toHaveClass("bg-sidebar-accent", "text-sidebar-primary");
+      expect(button).toHaveClass("bg-sidebar-accent/50");
     });
 
     it("toggles expansion when clicked in collapsed mode", async () => {
