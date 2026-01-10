@@ -10,7 +10,8 @@
 import { Download, Users, TrendingUp, ExternalLink, Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
-import type { ModBrowseItem, CompatibilityStatus } from '@/api/types';
+import { getBrowseCardCompatibility } from '@/lib/mod-compatibility';
+import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
   /** Mod data to display */
@@ -47,7 +48,7 @@ function formatNumber(num: number): string {
 export function ModCard({ mod, onClick }: ModCardProps) {
   // For browse grid, use 'not_verified' as conservative default
   // Full compatibility check deferred to mod detail view (Story 10.6)
-  const compatibilityStatus: CompatibilityStatus = 'not_verified';
+  const compatibilityStatus = getBrowseCardCompatibility();
 
   // Only apply clickable styles when onClick handler is provided
   const clickableStyles = onClick
