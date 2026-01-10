@@ -8,12 +8,14 @@
  * - Filter by Side, Tags, Version, and Type
  * - Sort by Newest, Downloads, Trending, Name
  * - Loading and error states
+ * - Pagination for large result sets (Story 10.7)
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
+ * Story 10.7: Pagination
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -23,6 +25,7 @@ import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
+import { Pagination } from '@/components/Pagination';
 import type { ModFilters, BrowseSortOption } from '@/api/types';
 
 /**
@@ -53,15 +56,40 @@ export function BrowseTab() {
     mods,
     pagination,
     isLoading,
+    isFetching,
     isError,
     error,
     refetch,
     data: queryData,
+    // Story 10.7: Pagination state and controls
+    currentPage,
+    setPage,
   } = useBrowseMods({
     search: debouncedSearch,
     filters,
     sort,
   });
+
+  // Story 10.7: Reset to page 1 when search/filters/sort change
+  const prevSearchRef = useRef(debouncedSearch);
+  const prevFiltersRef = useRef(filters);
+  const prevSortRef = useRef(sort);
+
+  useEffect(() => {
+    const searchChanged = prevSearchRef.current !== debouncedSearch;
+    const filtersChanged = prevFiltersRef.current !== filters;
+    const sortChanged = prevSortRef.current !== sort;
+
+    if (searchChanged || filtersChanged || sortChanged) {
+      // Reset to page 1 when criteria change
+      if (currentPage !== 1) {
+        setPage(1);
+      }
+      prevSearchRef.current = debouncedSearch;
+      prevFiltersRef.current = filters;
+      prevSortRef.current = sort;
+    }
+  }, [debouncedSearch, filters, sort, currentPage, setPage]);
 
   function handleClearSearch(): void {
     setSearchInput('');
@@ -140,6 +168,17 @@ export function BrowseTab() {
 
       {/* Results Grid */}
       <ModBrowseGrid mods={mods} isLoading={isLoading} onModClick={handleModClick} />
+
+      {/* Story 10.7: Pagination controls */}
+      {!isLoading && pagination && pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          isLoading={isFetching}
+          onPageChange={setPage}
+        />
+      )}
 
       {/* Results count */}
       {!isLoading && pagination && (
