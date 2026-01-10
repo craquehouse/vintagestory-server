@@ -53,6 +53,23 @@ so that {{benefit}}.
 - Do not batch tests into a separate "Write tests" task at the end
 - Run `just test` to verify all tests pass before marking task complete
 
+**UI Stories - Manual Browser Verification:**
+
+For stories with UI components, include a manual browser verification task. Automated tests verify function; manual verification verifies UX and "feel." Both are needed because:
+
+- Tests can pass while the UI looks broken, has awkward spacing, or feels sluggish
+- Manual verification catches visual/UX issues that automated tests cannot detect
+
+Add this task pattern for UI stories:
+```
+- [ ] Task N: Manual browser verification (AC: all)
+  - [ ] Start dev servers (`just dev-api` and `just dev-web`)
+  - [ ] Navigate to the feature in browser
+  - [ ] Verify visual appearance matches expectations
+  - [ ] Test user interactions feel responsive and intuitive
+  - [ ] Check for console errors or warnings
+```
+
 ### Security Requirements
 
 **Follow patterns in `project-context.md` → Security Patterns section:**

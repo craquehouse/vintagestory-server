@@ -761,6 +761,34 @@ web/
 - Python: `test_<module>.py` with `test_<function>` methods
 - TypeScript: `<Component>.test.tsx` with `describe/it` blocks
 
+### UI Testing Philosophy
+
+**Dual Verification Approach:**
+
+UI stories require both automated tests AND manual browser verification. These are complementary, not redundant:
+
+| Verification Type | Purpose | What It Catches |
+|---|---|---|
+| **Automated Tests** | Verify function | Logic errors, API integration, state management, edge cases |
+| **Manual Browser Testing** | Verify UX and "feel" | Visual layout issues, interaction quirks, animation problems, accessibility gaps |
+
+**Why Both Are Needed:**
+
+- Automated tests verify that code _works correctly_ (functional correctness)
+- Manual verification verifies that the UI _feels right_ (user experience quality)
+- Tests can pass while the UI looks broken, has awkward spacing, or feels sluggish
+- Manual verification catches visual/UX issues that automated tests fundamentally cannot detect
+
+**Example from Story 8.3:**
+
+Story 8.3 (Job Configuration UI) had 31 comprehensive web tests covering all acceptance criteria. Manual browser verification was still required because:
+- Tests verified the JobsTable rendered correct data
+- Manual verification confirmed the table looked good, columns aligned properly, and status badges were visually clear
+
+**Standard Practice:**
+
+All UI-focused stories MUST include a manual browser verification task as part of acceptance criteria validation. This is not "belt-and-suspenders" overhead—it's defense in depth that catches different categories of issues.
+
 ### Format Patterns
 
 **API Response Envelope:**
@@ -925,6 +953,32 @@ raise HTTPException(
 | `tests/` folder in web/                    | Co-locate tests with components         |
 | Custom loading state variables             | Use TanStack Query's isLoading          |
 | Generic error messages                     | Use error codes + descriptive messages  |
+
+### Code Comment Patterns
+
+**Placeholder Code for Future Stories:**
+
+When writing placeholder code that will be implemented in a future story, use TODO comments with the story number to make the forward reference explicit and discoverable:
+
+```python
+# ✅ CORRECT - Explicit story reference
+# TODO: Story 8.3 - Register server_versions_check job
+pass
+
+# ❌ INCORRECT - Ambiguous placeholder
+# Placeholder for server versions job
+pass
+```
+
+**Benefits:**
+- Future story work is discoverable via TODO search
+- Code reviewers understand the placeholder is intentional, not dead code
+- Clear traceability between placeholder and planned implementation
+
+**TODO Format:**
+```
+# TODO: Story X.Y - Brief description of what will be implemented
+```
 
 ## Project Structure & Boundaries
 
@@ -3277,3 +3331,38 @@ async def my_job():
 | **9** | Server Settings & Whitelist | (Former Epic 7) |
 
 **Note:** Original Epic 7 (Server Settings & Whitelist) becomes Epic 9.
+
+### Epic Patterns
+
+**Research-Driven Preparation:**
+
+Preparation epics reduce implementation risk. When facing complex integrations, investing upfront in infrastructure work pays off in faster, smoother implementation.
+
+**Case Study: Epic 7 → Epic 8**
+
+| Epic | Focus | Outcome |
+|------|-------|---------|
+| **Epic 7** (Preparation) | APScheduler integration, scheduler service, health endpoints | Established patterns for job registration and scheduler integration |
+| **Epic 8** (Implementation) | Periodic task implementation using Epic 7's infrastructure | 4 stories completed in 1 day with zero blockers |
+
+Epic 7's research-driven approach meant that when Epic 8 began, the patterns for `@safe_job` decorator, job registration, and settings-based configuration were already established. This eliminated design decisions during implementation, allowing the team to focus purely on building features.
+
+**When to Use Preparation Epics:**
+
+- Complex external library integration (e.g., APScheduler, authentication providers)
+- New architectural patterns that will be reused across multiple features
+- Integration points with unclear requirements or multiple valid approaches
+- Infrastructure work that multiple future features will depend on
+
+**Preparation Epic Characteristics:**
+
+- Focused on establishing patterns, not delivering user-facing features
+- Creates reusable infrastructure (services, decorators, base classes)
+- Includes comprehensive testing of the new infrastructure
+- Documents patterns for future implementation stories to follow
+
+**Planning Consideration:**
+
+When planning sprints, consider whether a complex feature would benefit from being split into:
+1. A preparation epic that establishes infrastructure and patterns
+2. An implementation epic that uses those patterns to build features

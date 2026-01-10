@@ -173,6 +173,6 @@ retro_action_items:
   E9-A3-document-enhancement-story-process: pending # Owner: Charlie - add to project-context.md
   E9-A4-pre-epic-checklist-verify-previous-retro: pending # Owner: Bob
   # Outstanding Epic 8 Action Items (carried forward - need audit per E10-A5)
-  E8-A1-add-ui-testing-philosophy-to-architecture: pending # From Epic 8 retro
-  E8-A2-improve-placeholder-code-documentation: pending # From Epic 8 retro
-  E8-A3-document-research-driven-preparation-pattern: pending # From Epic 8 retro
+  E8-A1-add-ui-testing-philosophy-to-architecture: done # From Epic 8 retro
+  E8-A2-improve-placeholder-code-documentation: done # From Epic 8 retro
+  E8-A3-document-research-driven-preparation-pattern: done # From Epic 8 retro
