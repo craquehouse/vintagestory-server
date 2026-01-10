@@ -15,6 +15,8 @@ import type { ModBrowseItem, CompatibilityStatus } from '@/api/types';
 interface ModCardProps {
   /** Mod data to display */
   mod: ModBrowseItem;
+  /** Click handler for card navigation (optional) */
+  onClick?: () => void;
 }
 
 /**
@@ -42,13 +44,22 @@ function formatNumber(num: number): string {
  * @example
  * <ModCard mod={modBrowseItem} />
  */
-export function ModCard({ mod }: ModCardProps) {
+export function ModCard({ mod, onClick }: ModCardProps) {
   // For browse grid, use 'not_verified' as conservative default
   // Full compatibility check deferred to mod detail view (Story 10.6)
   const compatibilityStatus: CompatibilityStatus = 'not_verified';
 
+  // Only apply clickable styles when onClick handler is provided
+  const clickableStyles = onClick
+    ? 'cursor-pointer hover:shadow-lg transition-shadow'
+    : '';
+
   return (
-    <Card className="h-full" data-testid={`mod-card-${mod.slug}`}>
+    <Card
+      className={`h-full ${clickableStyles}`}
+      data-testid={`mod-card-${mod.slug}`}
+      onClick={onClick}
+    >
       {/* Thumbnail */}
       <div
         className="relative aspect-video overflow-hidden rounded-t-lg bg-muted"
@@ -80,6 +91,7 @@ export function ModCard({ mod }: ModCardProps) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:underline"
               data-testid={`mod-card-link-${mod.slug}`}
+              onClick={(e) => e.stopPropagation()}
             >
               {mod.name}
               <ExternalLink className="h-3 w-3 text-muted-foreground" />

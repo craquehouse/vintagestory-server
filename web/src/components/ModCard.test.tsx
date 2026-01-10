@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ModCard, formatNumber } from './ModCard';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -214,6 +215,56 @@ describe('ModCard', () => {
 
       const badge = screen.getByTestId('compatibility-badge');
       expect(badge).toBeInTheDocument();
+    });
+  });
+
+  describe('click navigation (AC 3)', () => {
+    it('calls onClick handler when card is clicked', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('has cursor-pointer styling when onClick is provided', () => {
+      const handleClick = vi.fn();
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('cursor-pointer');
+    });
+
+    it('has hover shadow transition when onClick is provided', () => {
+      const handleClick = vi.fn();
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('transition-shadow');
+    });
+
+    it('does NOT call onClick when external link is clicked (event bubbling)', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const externalLink = screen.getByTestId('mod-card-link-carrycapacity');
+      await user.click(externalLink);
+
+      // External link click should NOT trigger card onClick
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+
+    it('does not have cursor-pointer when onClick is not provided', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).not.toContain('cursor-pointer');
     });
   });
 });
