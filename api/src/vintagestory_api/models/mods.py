@@ -116,6 +116,35 @@ class CompatibilityInfo(BaseModel):
     """Warning message if not compatible. None for compatible status."""
 
 
+class ModRelease(BaseModel):
+    """Single release/version of a mod.
+
+    Contains information about a specific mod release including
+    version, download info, and compatible game versions.
+    """
+
+    version: str
+    """Semantic version string (e.g., '1.8.3')."""
+
+    filename: str
+    """Original filename of the release zip."""
+
+    file_id: int
+    """Unique file identifier for download endpoint."""
+
+    downloads: int
+    """Download count for this specific release."""
+
+    game_versions: list[str]
+    """List of compatible game versions (e.g., ['1.21.0', '1.21.1'])."""
+
+    created: str
+    """ISO timestamp when this release was created."""
+
+    changelog: str | None = None
+    """HTML-formatted changelog for this release."""
+
+
 class ModLookupResponse(BaseModel):
     """Response from mod lookup endpoint.
 
@@ -133,13 +162,16 @@ class ModLookupResponse(BaseModel):
     """Mod author name."""
 
     description: str | None = None
-    """Mod description text."""
+    """HTML-formatted full description text."""
 
     latest_version: str
     """Latest release version string."""
 
     downloads: int
     """Total download count."""
+
+    follows: int = 0
+    """Number of users following the mod."""
 
     side: Literal["Both", "Client", "Server", "Universal"]
     """Mod side: 'Both', 'Client', 'Server', or 'Universal'."""
@@ -149,6 +181,24 @@ class ModLookupResponse(BaseModel):
 
     logo_url: str | None = None
     """URL to the mod's logo image from the mod database CDN."""
+
+    releases: list[ModRelease] = []
+    """All available releases, newest first."""
+
+    tags: list[str] = []
+    """Category tags for the mod."""
+
+    homepage_url: str | None = None
+    """External homepage URL if available."""
+
+    source_url: str | None = None
+    """Source code repository URL if available."""
+
+    created: str | None = None
+    """ISO timestamp when the mod was first created."""
+
+    last_released: str | None = None
+    """ISO timestamp of the most recent release."""
 
 
 class EnableResult(BaseModel):

@@ -138,7 +138,22 @@ export interface ModCompatibility {
 }
 
 /**
+ * Individual release/version of a mod.
+ * Story 10.6: Added for mod detail view.
+ */
+export interface ModRelease {
+  version: string;
+  filename: string;
+  fileId: number;
+  downloads: number;
+  gameVersions: string[];
+  created: string;
+  changelog: string | null;
+}
+
+/**
  * Mod lookup response from GET /api/v1alpha1/mods/lookup/{slug}.
+ * Story 10.6: Extended to include full release data for detail views.
  */
 export interface ModLookupData {
   slug: string;
@@ -147,9 +162,16 @@ export interface ModLookupData {
   description: string | null;
   latestVersion: string;
   downloads: number;
+  follows: number;
   side: ModSide;
   compatibility: ModCompatibility;
   logoUrl: string | null;
+  releases: ModRelease[];
+  tags: string[];
+  homepageUrl: string | null;
+  sourceUrl: string | null;
+  created: string | null;
+  lastReleased: string | null;
 }
 
 /**

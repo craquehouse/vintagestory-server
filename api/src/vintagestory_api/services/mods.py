@@ -20,6 +20,7 @@ from vintagestory_api.models.mods import (
     EnableResult,
     ModInfo,
     ModLookupResponse,
+    ModRelease,
     ModState,
     RemoveResult,
 )
@@ -412,6 +413,20 @@ class ModService:
         raw_side = mod.get("side", "Both")
         side = raw_side.title() if raw_side else "Both"
 
+        # Build release list from API data
+        mod_releases = [
+            ModRelease(
+                version=r.get("modversion", "unknown"),
+                filename=r.get("filename", ""),
+                file_id=r.get("fileid", 0),
+                downloads=r.get("downloads", 0),
+                game_versions=r.get("tags", []),
+                created=r.get("created", ""),
+                changelog=r.get("changelog"),
+            )
+            for r in releases
+        ]
+
         result = ModLookupResponse(
             slug=mod.get("urlalias", slug),
             name=mod.get("name", slug),
@@ -419,9 +434,16 @@ class ModService:
             description=mod.get("text"),
             latest_version=mod_version,
             downloads=total_downloads,
+            follows=mod.get("follows", 0),
             side=side,
             compatibility=compatibility,
             logo_url=mod.get("logofilename"),
+            releases=mod_releases,
+            tags=mod.get("tags", []),
+            homepage_url=mod.get("homepageurl"),
+            source_url=mod.get("sourcecodeurl"),
+            created=mod.get("created"),
+            last_released=mod.get("lastreleased"),
         )
 
         logger.info(
