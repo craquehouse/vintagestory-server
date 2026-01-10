@@ -708,6 +708,74 @@ When beginning a code review for a story:
 
 ---
 
+## Story Lifecycle
+
+### Enhancement Story Process
+
+**Discoveries during testing become new backlog items, not post-done commits.** (Epic 9 Retrospective Enforcement)
+
+When testing reveals useful enhancements or edge cases:
+
+1. **Do NOT add commits to completed stories** - Once a story is marked "done", its PR should be mergeable as-is
+2. **Create a backlog item** - Add the enhancement to `polish-backlog.md` with appropriate category, priority, and effort
+3. **If significant, create a new story** - Valuable enhancements that warrant their own PR should become a new story in the next epic
+
+**Why This Matters:**
+- Keeps PRs focused and reviewable
+- Prevents scope creep that blurs definition of done
+- Maintains clean git history with clear story boundaries
+- Ensures proper testing and review for all changes
+
+**Pattern from Violations:**
+- ❌ Story 9.7 marked "done" before nested directory support added → Post-story commits after "done" status
+- ✅ Expected: Nested directory support becomes polish backlog item or new story
+
+**Workflow:**
+```
+During testing, discover enhancement opportunity
+    │
+    ├── Is it a bug fix for the current story?
+    │   └── YES → Fix it now, before marking done
+    │
+    ├── Is it a small polish item?
+    │   └── YES → Add to polish-backlog.md
+    │
+    └── Is it a significant new feature?
+        └── YES → Create new story for next epic
+```
+
+---
+
+## Pre-Epic Checklist
+
+Before starting a new epic, verify the following:
+
+### 1. Previous Retro Action Items (Required)
+- [ ] Review `sprint-status.yaml` `retro_action_items` section
+- [ ] Verify all action items from previous epic are either:
+  - Completed and marked `done`
+  - Explicitly deferred with documented reasoning
+- [ ] Address any outstanding items before starting new work
+
+### 2. Polish Backlog Review (Required)
+- [ ] Review `polish-backlog.md` for items relevant to the new epic
+- [ ] Decide for each relevant item: include in epic or explicitly defer
+- [ ] Document decisions in epic kickoff notes or first story
+
+### 3. Epic Kickoff Tasks
+- [ ] Read epic definition and understand all stories
+- [ ] Identify dependencies between stories
+- [ ] Note any technical preparation needed (API research, architecture spikes)
+- [ ] Update sprint-status.yaml to move epic to `in-progress` when first story starts
+
+**Why This Matters:**
+- Prevents action item accumulation across epics
+- Ensures polish items don't get lost indefinitely
+- Creates accountability for retrospective commitments
+- Epic 9 retro found only 1/4 Epic 8 action items completed due to no visibility
+
+---
+
 ## References
 
 - Full architecture: `_bmad-output/planning-artifacts/architecture.md`
@@ -717,4 +785,4 @@ When beginning a code review for a story:
 
 ---
 
-_Last updated: 2026-01-06 (Fixed Context7 MCP API, removed duplicate section)_
+_Last updated: 2026-01-10 (Added Story Lifecycle and Pre-Epic Checklist sections per Epic 9 retro action items)_

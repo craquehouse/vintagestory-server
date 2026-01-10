@@ -170,8 +170,8 @@ retro_action_items:
   # Epic 9 Action Items (from 2026-01-05)
   E9-A1-add-retro-section-to-sprint-status: done # This section exists
   E9-A2-review-polish-backlog-at-epic-10-kickoff: done # 4 items added to backlog during Epic 10
-  E9-A3-document-enhancement-story-process: pending # Owner: Charlie - add to project-context.md
-  E9-A4-pre-epic-checklist-verify-previous-retro: pending # Owner: Bob
+  E9-A3-document-enhancement-story-process: done # Owner: Charlie - add to project-context.md
+  E9-A4-pre-epic-checklist-verify-previous-retro: done # Owner: Bob
   # Outstanding Epic 8 Action Items (carried forward - need audit per E10-A5)
   E8-A1-add-ui-testing-philosophy-to-architecture: done # From Epic 8 retro
   E8-A2-improve-placeholder-code-documentation: done # From Epic 8 retro
