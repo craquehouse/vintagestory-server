@@ -22,6 +22,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
+import {
+  useBrowseScrollRestoration,
+  getSavedScrollState,
+} from '@/hooks/use-browse-scroll-restoration';
 import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
@@ -42,15 +46,27 @@ export function BrowseTab() {
   const [filters, setFilters] = useState<ModFilters>({});
   const [sort, setSort] = useState<BrowseSortOption>('recent');
 
-  const debouncedSearch = useDebounce(searchInput, 300);
+  // Story 10.7: Scroll position restoration
+  // Read saved state synchronously for initial page (before first render)
+  const [savedState] = useState(() => getSavedScrollState());
+  const { savePosition, restorePosition, clearPosition, scrollToPosition } =
+    useBrowseScrollRestoration();
+  const hasRestoredScrollRef = useRef(false);
 
-  // Navigate to mod detail view (Story 10.6)
-  const handleModClick = useCallback(
-    (slug: string) => {
-      navigate(`/mods/browse/${slug}`);
-    },
-    [navigate]
-  );
+  // Restore scroll position on mount (after content renders)
+  useEffect(() => {
+    if (hasRestoredScrollRef.current) return;
+    hasRestoredScrollRef.current = true;
+
+    if (savedState) {
+      // Consume the saved state (clears from sessionStorage)
+      restorePosition();
+      // Scroll after a short delay to allow content to render
+      setTimeout(() => scrollToPosition(savedState.scrollY), 100);
+    }
+  }, [savedState, restorePosition, scrollToPosition]);
+
+  const debouncedSearch = useDebounce(searchInput, 300);
 
   const {
     mods,
@@ -68,7 +84,19 @@ export function BrowseTab() {
     search: debouncedSearch,
     filters,
     sort,
+    // Story 10.7: Start on restored page if available
+    page: savedState?.page,
   });
+
+  // Navigate to mod detail view (Story 10.6)
+  // Story 10.7: Save scroll position before navigating
+  const handleModClick = useCallback(
+    (slug: string) => {
+      savePosition(currentPage);
+      navigate(`/mods/browse/${slug}`);
+    },
+    [navigate, savePosition, currentPage]
+  );
 
   // Story 10.7: Reset to page 1 when search/filters/sort change
   const prevSearchRef = useRef(debouncedSearch);
@@ -85,11 +113,13 @@ export function BrowseTab() {
       if (currentPage !== 1) {
         setPage(1);
       }
+      // Story 10.7: Clear saved scroll position when criteria change
+      clearPosition();
       prevSearchRef.current = debouncedSearch;
       prevFiltersRef.current = filters;
       prevSortRef.current = sort;
     }
-  }, [debouncedSearch, filters, sort, currentPage, setPage]);
+  }, [debouncedSearch, filters, sort, currentPage, setPage, clearPosition]);
 
   function handleClearSearch(): void {
     setSearchInput('');

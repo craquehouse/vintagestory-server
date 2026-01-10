@@ -758,6 +758,130 @@ describe('BrowseTab', () => {
     });
   });
 
+  describe('Story 10.7: Scroll Position Restoration (AC3)', () => {
+    // Mock sessionStorage
+    const mockSessionStorage = {
+      store: {} as Record<string, string>,
+      getItem: vi.fn((key: string) => mockSessionStorage.store[key] ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        mockSessionStorage.store[key] = value;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete mockSessionStorage.store[key];
+      }),
+    };
+
+    beforeEach(() => {
+      mockSessionStorage.store = {};
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+      });
+      Object.defineProperty(window, 'scrollY', {
+        value: 500,
+        configurable: true,
+      });
+      window.scrollTo = vi.fn();
+    });
+
+    it('saves scroll position when clicking a mod card', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Click on a mod card
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      // Should have saved position to sessionStorage
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'browse-scroll-position',
+        expect.any(String)
+      );
+    });
+
+    it('restores page from saved position on mount', async () => {
+      // Pre-populate sessionStorage with saved position
+      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
+        scrollY: 750,
+        page: 3,
+      });
+
+      const page3Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockBrowseResponse.data.mods,
+          pagination: {
+            page: 3,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: true,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(page3Response),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Should display page 3 (restored from sessionStorage)
+      await waitFor(() => {
+        expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
+      });
+    });
+
+    it('clears saved position when search changes', async () => {
+      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
+        scrollY: 500,
+        page: 2,
+      });
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      // Type in search
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should have cleared saved position
+      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(
+        'browse-scroll-position'
+      );
+    });
+  });
+
   describe('Story 10.5: Card Navigation (AC 3)', () => {
     it('navigates to mod detail when card is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
