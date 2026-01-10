@@ -19,6 +19,13 @@ const mockMod: ModBrowseItem = {
   lastReleased: '2024-01-15T10:00:00Z',
 };
 
+const mockModWithLogo: ModBrowseItem = {
+  ...mockMod,
+  slug: 'modwithlogo',
+  name: 'Mod With Logo',
+  logoUrl: 'https://mods.vintagestory.at/assets/modlogo.png',
+};
+
 const mockModNoSummary: ModBrowseItem = {
   ...mockMod,
   slug: 'testmod',
@@ -160,6 +167,53 @@ describe('ModCard', () => {
       expect(screen.getByTestId('mod-card-downloads-empty')).toHaveTextContent('0');
       expect(screen.getByTestId('mod-card-follows-empty')).toHaveTextContent('0');
       expect(screen.getByTestId('mod-card-trending-empty')).toHaveTextContent('0');
+    });
+  });
+
+  describe('thumbnail display (AC 1, 4)', () => {
+    it('displays logo image when logoUrl is provided', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const image = screen.getByTestId('mod-card-logo-modwithlogo');
+      expect(image).toBeInTheDocument();
+      expect(image).toHaveAttribute('src', 'https://mods.vintagestory.at/assets/modlogo.png');
+      expect(image).toHaveAttribute('alt', 'Mod With Logo thumbnail');
+    });
+
+    it('displays placeholder icon when logoUrl is null', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const placeholder = screen.getByTestId('mod-card-placeholder-carrycapacity');
+      expect(placeholder).toBeInTheDocument();
+      // Logo image should not exist
+      expect(screen.queryByTestId('mod-card-logo-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('displays thumbnail in correct aspect ratio container', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const thumbnail = screen.getByTestId('mod-card-thumbnail-modwithlogo');
+      expect(thumbnail).toBeInTheDocument();
+      // Check for aspect ratio styling (CSS class)
+      expect(thumbnail.className).toContain('aspect-');
+    });
+  });
+
+  describe('compatibility badge display (AC 2)', () => {
+    it('displays compatibility badge with not_verified status by default', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const badge = screen.getByTestId('compatibility-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveAttribute('data-status', 'not_verified');
+      expect(badge).toHaveTextContent('Not verified');
+    });
+
+    it('displays compatibility badge for mod with logo', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const badge = screen.getByTestId('compatibility-badge');
+      expect(badge).toBeInTheDocument();
     });
   });
 });
