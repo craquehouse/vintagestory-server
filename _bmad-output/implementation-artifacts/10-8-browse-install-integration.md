@@ -59,11 +59,11 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 2.4: Handle install success/error with toast notifications
   - [x] Subtask 2.5: Write tests for card install button states and interactions
 
-- [ ] Task 3: Enhance ModDetailPage install section + tests (AC: 1, 3, 4)
-  - [ ] Subtask 3.1: Replace direct install with InstallConfirmDialog
-  - [ ] Subtask 3.2: Show confirmation before install/update actions
-  - [ ] Subtask 3.3: Update UI state after successful install
-  - [ ] Subtask 3.4: Write tests for detail page install flow
+- [x] Task 3: Enhance ModDetailPage install section + tests (AC: 1, 3, 4)
+  - [x] Subtask 3.1: Replace direct install with InstallConfirmDialog
+  - [x] Subtask 3.2: Show confirmation before install/update actions
+  - [x] Subtask 3.3: Update UI state after successful install
+  - [x] Subtask 3.4: Write tests for detail page install flow
 
 - [ ] Task 4: Implement cross-tab state synchronization + tests (AC: 3)
   - [ ] Subtask 4.1: Verify TanStack Query cache invalidation propagates to Installed tab
@@ -349,6 +349,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Created InstallConfirmDialog component with comprehensive test coverage (15 tests). Component displays mod info, CompatibilityBadge, warnings for not_verified/incompatible mods, and handles install mutation with success/error callbacks.
 - Task 2: Added Install button to ModCard with dialog integration. Shows "Installed" indicator for already-installed mods. Updated ModBrowseGrid and BrowseTab to pass installed slugs from useMods(). Added 6 new tests for install button functionality.
+- Task 3: Replaced direct install in ModDetailPage InstallSection with InstallConfirmDialog integration. Install/Update buttons now open dialog with mod info and compatibility status. Added 4 new tests for dialog integration.
 
 ### File List
 
@@ -360,3 +361,5 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `web/src/components/ModBrowseGrid.test.tsx` (modified)
 - `web/src/features/mods/BrowseTab.tsx` (modified)
 - `web/src/features/mods/BrowseTab.test.tsx` (modified)
+- `web/src/features/mods/ModDetailPage.tsx` (modified)
+- `web/src/features/mods/ModDetailPage.test.tsx` (modified)
