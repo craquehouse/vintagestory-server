@@ -27,6 +27,11 @@ interface ModBrowseGridProps {
 const SKELETON_COUNT = 8;
 
 /**
+ * Responsive grid layout classes.
+ */
+const GRID_CLASSES = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
+
+/**
  * Skeleton card component for loading state.
  */
 function ModCardSkeleton() {
@@ -63,7 +68,7 @@ export function ModBrowseGrid({
   if (isLoading) {
     return (
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        className={GRID_CLASSES}
         data-testid="mod-browse-grid-loading"
       >
         {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
@@ -86,7 +91,7 @@ export function ModBrowseGrid({
 
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      className={GRID_CLASSES}
       data-testid="mod-browse-grid"
     >
       {mods.map((mod) => (

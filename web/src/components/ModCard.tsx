@@ -144,7 +144,4 @@ export function ModCard({ mod, onClick }: ModCardProps) {
   );
 }
 
-/**
- * Export formatNumber for testing.
- */
 export { formatNumber };

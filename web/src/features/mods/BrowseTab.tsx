@@ -63,18 +63,15 @@ export function BrowseTab() {
     sort,
   });
 
-  const handleClearSearch = useCallback(() => {
+  function handleClearSearch(): void {
     setSearchInput('');
-  }, []);
+  }
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Escape') {
-        handleClearSearch();
-      }
-    },
-    [handleClearSearch]
-  );
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Escape') {
+      handleClearSearch();
+    }
+  }
 
   if (isError) {
     return (
