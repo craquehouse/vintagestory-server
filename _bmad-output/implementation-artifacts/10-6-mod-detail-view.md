@@ -58,12 +58,12 @@ So that **I can read full information before installing**.
   - [x] Subtask 1.3: Add useModDetail hook with TanStack Query
   - [x] Subtask 1.4: Write tests for API function and hook
 
-- [ ] Task 2: Create ModDetailPage component with description and releases + tests (AC: 1)
-  - [ ] Subtask 2.1: Create ModDetailPage.tsx with route params extraction
-  - [ ] Subtask 2.2: Render mod header (logo, name, author, stats)
-  - [ ] Subtask 2.3: Render description with HTML sanitization (DOMPurify or similar)
-  - [ ] Subtask 2.4: Display releases list with version, date, and compatibility tags
-  - [ ] Subtask 2.5: Write tests for description rendering and releases display
+- [x] Task 2: Create ModDetailPage component with description and releases + tests (AC: 1)
+  - [x] Subtask 2.1: Create ModDetailPage.tsx with route params extraction
+  - [x] Subtask 2.2: Render mod header (logo, name, author, stats)
+  - [x] Subtask 2.3: Render description with HTML sanitization (DOMPurify)
+  - [x] Subtask 2.4: Display releases list with version, date, and compatibility tags
+  - [x] Subtask 2.5: Write tests for description rendering and releases display
 
 - [ ] Task 3: Implement install/update section with version selection + tests (AC: 2, 3)
   - [ ] Subtask 3.1: Create version dropdown using shadcn Select component
