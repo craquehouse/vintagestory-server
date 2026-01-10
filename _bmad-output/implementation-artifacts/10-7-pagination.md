@@ -349,3 +349,9 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Modified: `web/src/features/mods/BrowseTab.tsx` - Integrated scroll restoration
 - Modified: `web/src/features/mods/BrowseTab.test.tsx` - Added scroll restoration integration tests (3 tests)
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Add page number validation to setPage function - prevent 0, negative, or out-of-bounds page numbers [web/src/hooks/use-browse-mods.ts:85-87]
+- [x] [AI-Review][MEDIUM] Fix stale closure in goToNextPage/goToPrevPage - pagination dependency causes unnecessary callback recreation [web/src/hooks/use-browse-mods.ts:89-99]
+- [ ] [AI-Review][LOW] Consider using CSS hidden instead of null return for single-page pagination to avoid layout shifts [web/src/components/Pagination.tsx:105-107]
+- [ ] [AI-Review][LOW] Document or enhance scroll position to handle scrollable containers (not just window) [web/src/hooks/use-browse-scroll-restoration.ts:68-69]

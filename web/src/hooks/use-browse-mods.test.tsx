@@ -821,5 +821,93 @@ describe('useBrowseMods', () => {
 
       expect(result.current.currentPage).toBe(1);
     });
+
+    it('setPage rejects page numbers less than 1', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 2,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: true,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(2);
+
+      // Try to set page to 0
+      act(() => {
+        result.current.setPage(0);
+      });
+
+      // Should remain on page 2
+      expect(result.current.currentPage).toBe(2);
+
+      // Try to set page to -1
+      act(() => {
+        result.current.setPage(-1);
+      });
+
+      // Should remain on page 2
+      expect(result.current.currentPage).toBe(2);
+    });
+
+    it('setPage rejects page numbers greater than totalPages', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 2,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: true,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(2);
+
+      // Try to set page to 10 (totalPages is 5)
+      act(() => {
+        result.current.setPage(10);
+      });
+
+      // Should remain on page 2
+      expect(result.current.currentPage).toBe(2);
+    });
   });
 });

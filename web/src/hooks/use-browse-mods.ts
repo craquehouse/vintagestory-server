@@ -82,20 +82,32 @@ export function useBrowseMods(params: BrowseParams = {}) {
   const pagination = query.data?.data?.pagination;
 
   // Story 10.7: Page navigation functions
-  const setPage = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
+  const setPage = useCallback(
+    (page: number) => {
+      // Validate page number: must be positive integer within bounds
+      if (page < 1) return;
+      if (pagination?.totalPages && page > pagination.totalPages) return;
+      setCurrentPage(page);
+    },
+    [pagination?.totalPages]
+  );
 
   const goToNextPage = useCallback(() => {
-    if (pagination?.hasNext) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    setCurrentPage((prev) => {
+      if (pagination?.hasNext) {
+        return prev + 1;
+      }
+      return prev;
+    });
   }, [pagination?.hasNext]);
 
   const goToPrevPage = useCallback(() => {
-    if (pagination?.hasPrev) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    setCurrentPage((prev) => {
+      if (pagination?.hasPrev && prev > 1) {
+        return prev - 1;
+      }
+      return prev;
+    });
   }, [pagination?.hasPrev]);
 
   // Client-side filtering pipeline
