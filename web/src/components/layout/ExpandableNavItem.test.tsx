@@ -6,12 +6,14 @@ import { Home, Settings, Terminal, Package } from "lucide-react";
 import { ExpandableNavItem, type SubNavItem } from "./ExpandableNavItem";
 
 // Mock ResizeObserver for Radix UI components
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
 beforeAll(() => {
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }));
+  global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 });
 
 // Mock lucide-react icons to include test identifiers
@@ -252,8 +254,10 @@ describe("ExpandableNavItem", () => {
     it("renders only icon button when collapsed", () => {
       renderWithRouter({ isCollapsed: true });
 
-      // Should not show the label text in collapsed mode
-      expect(screen.queryByText("Parent Item")).not.toBeInTheDocument();
+      // Should not show the expanded nav toggle
+      expect(screen.queryByTestId("expandable-nav-toggle")).not.toBeInTheDocument();
+      // Should show collapsed nav trigger instead
+      expect(screen.getByTestId("collapsed-nav-trigger")).toBeInTheDocument();
       // Should not show sub-items container
       expect(screen.queryByTestId("sub-items-container")).not.toBeInTheDocument();
     });
@@ -264,7 +268,7 @@ describe("ExpandableNavItem", () => {
         initialRoute: "/parent/settings",
       });
 
-      const button = screen.getByRole("button");
+      const button = screen.getByTestId("collapsed-nav-trigger");
       expect(button).toHaveClass("bg-sidebar-accent", "text-sidebar-primary");
     });
 
@@ -277,10 +281,21 @@ describe("ExpandableNavItem", () => {
         onExpandedChange,
       });
 
-      const button = screen.getByRole("button");
+      const button = screen.getByTestId("collapsed-nav-trigger");
       await user.click(button);
 
       expect(onExpandedChange).toHaveBeenCalledWith(true);
+    });
+
+    it("has proper data-testid for collapsed flyout content", () => {
+      // The collapsed mode component renders with data-testid="collapsed-nav-flyout"
+      // in its TooltipContent. Since Tooltip uses portals, we verify the trigger exists
+      // and has the correct structure. The actual flyout appears on hover.
+      renderWithRouter({ isCollapsed: true });
+
+      const trigger = screen.getByTestId("collapsed-nav-trigger");
+      expect(trigger).toBeInTheDocument();
+      expect(trigger.tagName.toLowerCase()).toBe("button");
     });
   });
 

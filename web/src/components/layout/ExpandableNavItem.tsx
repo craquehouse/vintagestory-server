@@ -87,7 +87,7 @@ export function ExpandableNavItem({
       location.pathname.startsWith(item.to + "/")
   );
 
-  // Collapsed sidebar mode - render just icon with tooltip (flyout handled separately)
+  // Collapsed sidebar mode - render icon with flyout menu showing sub-items
   if (isCollapsed) {
     return (
       <Tooltip>
@@ -101,11 +101,39 @@ export function ExpandableNavItem({
               isAnySubItemActive && "bg-sidebar-accent text-sidebar-primary"
             )}
             onClick={handleToggle}
+            data-testid="collapsed-nav-trigger"
           >
             <Icon className="h-5 w-5 shrink-0" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="right">{label}</TooltipContent>
+        <TooltipContent
+          side="right"
+          className="p-0 w-40"
+          data-testid="collapsed-nav-flyout"
+        >
+          <div className="py-1">
+            <div className="px-3 py-1.5 text-sm font-semibold border-b">
+              {label}
+            </div>
+            <div className="py-1">
+              {subItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent",
+                      isActive && "bg-accent font-medium"
+                    )
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </TooltipContent>
       </Tooltip>
     );
   }
