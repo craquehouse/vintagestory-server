@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
@@ -6,8 +6,74 @@ import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
-import { GameServerPage } from "@/features/game-server";
+import { GameConfigPanel } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
+import { ConsolePanel } from "@/components/ConsolePanel";
+
+/**
+ * Placeholder component for Game Server sub-pages.
+ * Will be replaced with actual implementations in future stories.
+ */
+function GameServerLayout() {
+  return (
+    <div className="h-full" data-testid="game-server-layout">
+      <Outlet />
+    </div>
+  );
+}
+
+/**
+ * Placeholder for Version/Installation page.
+ * Story 11.2 will implement the actual content.
+ */
+function GameServerVersionPage() {
+  return (
+    <div className="p-4" data-testid="game-server-version-page">
+      <h1 className="text-2xl font-bold mb-4">Version & Installation</h1>
+      <p className="text-muted-foreground">
+        Server version management will be implemented in Story 11.2.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Placeholder for Game Server Settings page.
+ * Story 11.3 will implement the actual content.
+ */
+function GameServerSettingsPage() {
+  return (
+    <div className="p-4 h-full overflow-auto" data-testid="game-server-settings-page">
+      <GameConfigPanel />
+    </div>
+  );
+}
+
+/**
+ * Placeholder for Game Server Mods page.
+ * Story 11.4 will implement the actual content.
+ */
+function GameServerModsPage() {
+  return (
+    <div className="p-4" data-testid="game-server-mods-page">
+      <h1 className="text-2xl font-bold mb-4">Server Mods</h1>
+      <p className="text-muted-foreground">
+        Server mod management will be implemented in Story 11.4.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Console page showing full-width console panel.
+ */
+function GameServerConsolePage() {
+  return (
+    <div className="h-full p-4" data-testid="game-server-console-page">
+      <ConsolePanel className="h-full" />
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -18,7 +84,14 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/game-server" element={<GameServerPage />} />
+              {/* Game Server nested routes */}
+              <Route path="/game-server" element={<GameServerLayout />}>
+                <Route index element={<Navigate to="console" replace />} />
+                <Route path="version" element={<GameServerVersionPage />} />
+                <Route path="settings" element={<GameServerSettingsPage />} />
+                <Route path="mods" element={<GameServerModsPage />} />
+                <Route path="console" element={<GameServerConsolePage />} />
+              </Route>
               <Route path="/mods" element={<ModsPage />}>
                 <Route index element={<Navigate to="installed" replace />} />
                 <Route path="installed" element={<InstalledTab />} />
