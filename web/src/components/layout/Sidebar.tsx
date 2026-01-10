@@ -7,6 +7,9 @@ import {
   PanelLeftClose,
   PanelLeft,
   Github,
+  Server,
+  HardDrive,
+  Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,12 +21,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { usePreferences } from "@/contexts/PreferencesContext";
+import { useServerStatus } from "@/hooks/use-server-status";
+import { ExpandableNavItem, type SubNavItem } from "./ExpandableNavItem";
 
-const navItems = [
+/** Top-level navigation items (non-expandable) */
+const topNavItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/game-server", icon: Terminal, label: "Game Server" },
+];
+
+/** Bottom navigation items (non-expandable) */
+const bottomNavItems = [
   { to: "/mods", icon: Package, label: "Mods" },
-  { to: "/config", icon: Settings, label: "Settings" },
+  { to: "/config", icon: Settings, label: "VSManager" },
 ];
 
 interface SidebarProps {
@@ -32,6 +42,61 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const { isCollapsed, toggleCollapse } = useSidebar();
+  const { preferences, setGameServerNavExpanded } = usePreferences();
+  const { data: statusResponse } = useServerStatus();
+
+  // Derive dynamic label for Version/Installation based on server state
+  const serverState = statusResponse?.data?.state;
+  const versionLabel = serverState === "not_installed" ? "Installation" : "Version";
+
+  // Build game server sub-items with dynamic label
+  const gameServerSubItems: SubNavItem[] = [
+    { to: "/game-server/version", icon: HardDrive, label: versionLabel },
+    { to: "/game-server/settings", icon: Settings2, label: "Settings" },
+    { to: "/game-server/mods", icon: Package, label: "Mods" },
+    { to: "/game-server/console", icon: Terminal, label: "Console" },
+  ];
+
+  // Render a standard nav item (non-expandable)
+  const renderNavItem = (item: { to: string; icon: typeof LayoutDashboard; label: string }) => {
+    const navButton = (
+      <Button
+        key={item.to}
+        variant="ghost"
+        size={isCollapsed ? "icon-sm" : "sm"}
+        asChild
+        className={cn(
+          "w-full",
+          isCollapsed ? "justify-center" : "justify-start"
+        )}
+      >
+        <NavLink
+          to={item.to}
+          end={item.to === "/"}
+          className={({ isActive }) =>
+            cn(
+              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              isActive && "bg-sidebar-accent text-sidebar-primary"
+            )
+          }
+        >
+          <item.icon className="h-5 w-5 shrink-0" />
+          {!isCollapsed && <span>{item.label}</span>}
+        </NavLink>
+      </Button>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip key={item.to}>
+          <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+          <TooltipContent side="right">{item.label}</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return navButton;
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -67,44 +132,22 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-2">
-          {navItems.map((item) => {
-            const navButton = (
-              <Button
-                key={item.to}
-                variant="ghost"
-                size={isCollapsed ? "icon-sm" : "sm"}
-                asChild
-                className={cn(
-                  "w-full",
-                  isCollapsed ? "justify-center" : "justify-start"
-                )}
-              >
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      isActive && "bg-sidebar-accent text-sidebar-primary"
-                    )
-                  }
-                >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!isCollapsed && <span>{item.label}</span>}
-                </NavLink>
-              </Button>
-            );
+          {/* Dashboard */}
+          {topNavItems.map(renderNavItem)}
 
-            if (isCollapsed) {
-              return (
-                <Tooltip key={item.to}>
-                  <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              );
-            }
+          {/* Game Server (expandable) */}
+          <ExpandableNavItem
+            icon={Server}
+            label="Game Server"
+            subItems={gameServerSubItems}
+            isExpanded={preferences.gameServerNavExpanded}
+            onExpandedChange={setGameServerNavExpanded}
+            isCollapsed={isCollapsed}
+            routePrefix="/game-server"
+          />
 
-            return navButton;
-          })}
+          {/* Other nav items */}
+          {bottomNavItems.map(renderNavItem)}
         </nav>
 
         <Separator className="bg-sidebar-border" />

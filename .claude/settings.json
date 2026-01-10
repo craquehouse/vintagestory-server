@@ -18,6 +18,8 @@
       "mcp__grep__*",
       "Edit(_bmad-output/**)",
       "Write(_bmad-output/**)",
+      "Edit(web/src/**/*test.tsx)",
+      "Write(web/src/**/*test.tsx)",
       "Edit(project-context.md)",
       "Write(project-context.md)",
       "Bash(/opt/homebrew/bin/mise exec:*)",

@@ -51,6 +51,7 @@ describe("PreferencesContext", () => {
         theme: "system",
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
+        gameServerNavExpanded: true,
       });
     });
 
@@ -60,6 +61,7 @@ describe("PreferencesContext", () => {
           theme: "dark",
           consoleFontSize: 16,
           sidebarCollapsed: true,
+          gameServerNavExpanded: false,
         })
       );
 
@@ -69,6 +71,7 @@ describe("PreferencesContext", () => {
         theme: "dark",
         consoleFontSize: 16,
         sidebarCollapsed: true,
+        gameServerNavExpanded: false,
       });
     });
 
@@ -86,6 +89,7 @@ describe("PreferencesContext", () => {
         theme: "system", // Default for invalid
         consoleFontSize: FONT_SIZE_DEFAULT, // Default for out of range
         sidebarCollapsed: false, // Default for missing
+        gameServerNavExpanded: true, // Default for missing
       });
     });
 
@@ -98,6 +102,7 @@ describe("PreferencesContext", () => {
         theme: "system",
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
+        gameServerNavExpanded: true,
       });
     });
 
@@ -222,6 +227,49 @@ describe("PreferencesContext", () => {
         "vs_ui_prefs",
         expect.stringContaining('"sidebarCollapsed":true')
       );
+    });
+  });
+
+  describe("setGameServerNavExpanded", () => {
+    it("updates game server nav expanded state", () => {
+      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+      // Default is true, so set to false
+      act(() => {
+        result.current.setGameServerNavExpanded(false);
+      });
+
+      expect(result.current.preferences.gameServerNavExpanded).toBe(false);
+    });
+
+    it("persists game server nav expanded state to cookie", () => {
+      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+      act(() => {
+        result.current.setGameServerNavExpanded(false);
+      });
+
+      expect(mockedSetCookie).toHaveBeenCalledWith(
+        "vs_ui_prefs",
+        expect.stringContaining('"gameServerNavExpanded":false')
+      );
+    });
+
+    it("can toggle game server nav expanded state", () => {
+      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+      // Start expanded (default), collapse, then expand again
+      expect(result.current.preferences.gameServerNavExpanded).toBe(true);
+
+      act(() => {
+        result.current.setGameServerNavExpanded(false);
+      });
+      expect(result.current.preferences.gameServerNavExpanded).toBe(false);
+
+      act(() => {
+        result.current.setGameServerNavExpanded(true);
+      });
+      expect(result.current.preferences.gameServerNavExpanded).toBe(true);
     });
   });
 

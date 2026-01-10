@@ -26,6 +26,7 @@ export interface UserPreferences {
   theme: ThemePreference;
   consoleFontSize: number;
   sidebarCollapsed: boolean;
+  gameServerNavExpanded: boolean;
 }
 
 /** Default preferences for new users */
@@ -33,6 +34,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   theme: "system",
   consoleFontSize: 14,
   sidebarCollapsed: false,
+  gameServerNavExpanded: true,
 };
 
 /** Cookie name for preferences storage */
@@ -49,6 +51,7 @@ interface PreferencesContextType {
   setThemePreference: (theme: ThemePreference) => void;
   setConsoleFontSize: (size: number) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setGameServerNavExpanded: (expanded: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(
@@ -79,6 +82,10 @@ function loadPreferences(): UserPreferences {
         typeof parsed.sidebarCollapsed === "boolean"
           ? parsed.sidebarCollapsed
           : DEFAULT_PREFERENCES.sidebarCollapsed,
+      gameServerNavExpanded:
+        typeof parsed.gameServerNavExpanded === "boolean"
+          ? parsed.gameServerNavExpanded
+          : DEFAULT_PREFERENCES.gameServerNavExpanded,
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };
@@ -143,6 +150,10 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
     setPreferences((prev) => ({ ...prev, sidebarCollapsed: collapsed }));
   }, []);
 
+  const setGameServerNavExpanded = useCallback((expanded: boolean) => {
+    setPreferences((prev) => ({ ...prev, gameServerNavExpanded: expanded }));
+  }, []);
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -150,6 +161,7 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
         setThemePreference,
         setConsoleFontSize,
         setSidebarCollapsed,
+        setGameServerNavExpanded,
       }}
     >
       {children}
