@@ -1,6 +1,6 @@
 # Story 10.6: Mod Detail View
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -65,18 +65,18 @@ So that **I can read full information before installing**.
   - [x] Subtask 2.4: Display releases list with version, date, and compatibility tags
   - [x] Subtask 2.5: Write tests for description rendering and releases display
 
-- [ ] Task 3: Implement install/update section with version selection + tests (AC: 2, 3)
-  - [ ] Subtask 3.1: Create version dropdown using shadcn Select component
-  - [ ] Subtask 3.2: Check installed mods list to determine install vs update state
-  - [ ] Subtask 3.3: Show "Install" or "Update to vX.Y.Z" button based on state
-  - [ ] Subtask 3.4: Show "Installed: vX.Y.Z" indicator when mod is installed
-  - [ ] Subtask 3.5: Write tests for all install/update states
+- [x] Task 3: Implement install/update section with version selection + tests (AC: 2, 3)
+  - [x] Subtask 3.1: Create version dropdown using shadcn Select component
+  - [x] Subtask 3.2: Check installed mods list to determine install vs update state
+  - [x] Subtask 3.3: Show "Install" or "Update to vX.Y.Z" button based on state
+  - [x] Subtask 3.4: Show "Installed: vX.Y.Z" indicator when mod is installed
+  - [x] Subtask 3.5: Write tests for all install/update states
 
-- [ ] Task 4: Add navigation and route integration + tests (AC: 4)
-  - [ ] Subtask 4.1: Add `/mods/browse/:slug` route in App.tsx
-  - [ ] Subtask 4.2: Implement back button with navigation history
-  - [ ] Subtask 4.3: Add breadcrumb navigation (Mods > Browse > {ModName})
-  - [ ] Subtask 4.4: Write tests for route parameters and back navigation
+- [x] Task 4: Add navigation and route integration + tests (AC: 4)
+  - [x] Subtask 4.1: Add `/mods/browse/:slug` route in App.tsx
+  - [x] Subtask 4.2: Implement back button with navigation history
+  - [x] Subtask 4.3: Add breadcrumb navigation (Mods > Browse > {ModName})
+  - [x] Subtask 4.4: Write tests for route parameters and back navigation
 
 ## Dev Notes
 
@@ -336,10 +336,33 @@ Per Epic 10 planning:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None
+
 ### Completion Notes List
 
+- Task 1: Extended backend ModLookupResponse with releases, follows, tags, and other metadata fields. Added ModRelease model. Created useModDetail hook with TanStack Query.
+- Task 2: Created ModDetailPage component with loading skeleton, error state, header section (logo, name, author, stats, tags), description with DOMPurify sanitization, and releases list with compatibility tags.
+- Task 3: Added InstallSection component with version dropdown (shadcn Select), install/update button logic based on installed state, and "Installed: vX.Y.Z" indicator. Fixed defensive null check for modsData?.data?.mods?.find().
+- Task 4: Added `/mods/browse/:slug` route in App.tsx, implemented back button with navigate(-1) fallback, added breadcrumb navigation (Mods > Browse > {ModName}) with proper accessibility.
+
 ### File List
+
+**Created:**
+- web/src/features/mods/ModDetailPage.tsx
+- web/src/features/mods/ModDetailPage.test.tsx
+- web/src/hooks/use-mod-detail.ts
+- web/src/hooks/use-mod-detail.test.tsx
+- web/src/components/ui/select.tsx (via shadcn CLI)
+
+**Modified:**
+- api/src/vintagestory_api/models/mods.py (added ModRelease, extended ModLookupResponse)
+- api/src/vintagestory_api/services/mods.py (build release list in lookup_mod)
+- api/tests/test_mods.py (added ModRelease tests, updated serialization test)
+- web/src/api/types.ts (added ModRelease, extended ModLookupData)
+- web/src/api/query-keys.ts (added mods.detail query key)
+- web/src/features/mods/index.ts (export ModDetailPage)
+- web/src/App.tsx (added browse/:slug route)
