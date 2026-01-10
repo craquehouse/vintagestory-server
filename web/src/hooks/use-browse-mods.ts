@@ -5,6 +5,7 @@
  * Uses TanStack Query for caching and state management.
  */
 
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
@@ -21,13 +22,23 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  * Supports server-side pagination/sorting (via API) and client-side search filtering.
  * Search filtering is done client-side because the API doesn't support a search parameter yet.
  *
+ * Story 10.7: Added pagination state management with setPage, goToNextPage, goToPrevPage.
+ *
  * @param params - Browse parameters including page, pageSize, sort, and search
- * @returns Query result with filtered mods array and pagination metadata
+ * @returns Query result with filtered mods array, pagination metadata, and page control functions
  *
  * @example
  * function BrowseList() {
- *   const { mods, pagination, isLoading, isError } = useBrowseMods({
- *     page: 1,
+ *   const {
+ *     mods,
+ *     pagination,
+ *     isLoading,
+ *     isError,
+ *     currentPage,
+ *     setPage,
+ *     goToNextPage,
+ *     goToPrevPage,
+ *   } = useBrowseMods({
  *     pageSize: 20,
  *     sort: 'recent',
  *     search: 'farming',
@@ -37,28 +48,58 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  *   if (isError) return <div>Error loading mods</div>;
  *
  *   return (
- *     <ul>
- *       {mods.map(mod => <li key={mod.slug}>{mod.name}</li>)}
- *     </ul>
+ *     <>
+ *       <ul>
+ *         {mods.map(mod => <li key={mod.slug}>{mod.name}</li>)}
+ *       </ul>
+ *       <div>
+ *         <button onClick={goToPrevPage} disabled={!pagination?.hasPrev}>Prev</button>
+ *         <span>Page {currentPage} of {pagination?.totalPages}</span>
+ *         <button onClick={goToNextPage} disabled={!pagination?.hasNext}>Next</button>
+ *       </div>
+ *     </>
  *   );
  * }
  */
 export function useBrowseMods(params: BrowseParams = {}) {
+  // Story 10.7: Manage page state internally, with initial value from params
+  const [currentPage, setCurrentPage] = useState(params.page ?? 1);
+
   // Separate search and filters from API params (both are client-side)
   // Also separate 'name' sort since it's client-side only
-  const { search, filters, sort, ...apiParams } = params;
+  const { search, filters, sort, page: _ignoredPage, ...apiParams } = params;
 
   // Only pass sort to API if it's a server-side option
   const apiSort = sort === 'name' ? undefined : sort;
 
   const query = useQuery({
-    queryKey: queryKeys.mods.browse({ ...apiParams, sort: apiSort }),
-    queryFn: () => fetchBrowseMods({ ...apiParams, sort: apiSort }),
+    queryKey: queryKeys.mods.browse({ ...apiParams, page: currentPage, sort: apiSort }),
+    queryFn: () => fetchBrowseMods({ ...apiParams, page: currentPage, sort: apiSort }),
     staleTime: BROWSE_STALE_TIME,
   });
 
+  // Get pagination from response (if available)
+  const pagination = query.data?.data?.pagination;
+
+  // Story 10.7: Page navigation functions
+  const setPage = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const goToNextPage = useCallback(() => {
+    if (pagination?.hasNext) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  }, [pagination?.hasNext]);
+
+  const goToPrevPage = useCallback(() => {
+    if (pagination?.hasPrev) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  }, [pagination?.hasPrev]);
+
   // Client-side filtering pipeline
-  let allMods = query.data?.data?.mods ?? [];
+  const allMods = query.data?.data?.mods ?? [];
   const searchFiltered = filterModsBySearch(allMods, search);
   const fullyFiltered = filterModsByFilters(searchFiltered, filters);
 
@@ -70,7 +111,12 @@ export function useBrowseMods(params: BrowseParams = {}) {
   return {
     ...query,
     mods: sorted,
-    pagination: query.data?.data?.pagination,
+    pagination,
+    // Story 10.7: Expose page state and navigation functions
+    currentPage,
+    setPage,
+    goToNextPage,
+    goToPrevPage,
   };
 }
 

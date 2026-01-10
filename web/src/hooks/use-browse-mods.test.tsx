@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useBrowseMods,
@@ -488,5 +488,338 @@ describe('useBrowseMods', () => {
     // Then filter by side 'both' (primitivesurvival is 'both', so it passes)
     expect(result.current.mods).toHaveLength(1);
     expect(result.current.mods[0].slug).toBe('primitivesurvival');
+  });
+
+  // Story 10.7: Pagination state tests
+  describe('pagination state management', () => {
+    it('exposes setPage function to change current page', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Should have setPage function
+      expect(typeof result.current.setPage).toBe('function');
+
+      // Initial page should be 1
+      expect(result.current.currentPage).toBe(1);
+    });
+
+    it('updates currentPage when setPage is called', async () => {
+      const page1Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockMods,
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: false,
+          },
+        },
+      };
+
+      const page2Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockMods.slice(0, 1), // Different data for page 2
+          pagination: {
+            page: 2,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: true,
+          },
+        },
+      };
+
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(page1Response),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(page2Response),
+        });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      // Change to page 2
+      act(() => {
+        result.current.setPage(2);
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentPage).toBe(2);
+      });
+    });
+
+    it('exposes goToNextPage function', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(typeof result.current.goToNextPage).toBe('function');
+    });
+
+    it('exposes goToPrevPage function', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(typeof result.current.goToPrevPage).toBe('function');
+    });
+
+    it('includes page in query key for proper caching', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 1,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: false,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      // Change to page 2 via setPage - should trigger new fetch
+      act(() => {
+        result.current.setPage(2);
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+
+      // Verify page 2 was requested
+      const [url] = mockFetch.mock.calls[1];
+      expect(url).toContain('page=2');
+    });
+
+    it('goToNextPage increments page when hasNext is true', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 1,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: false,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(1);
+
+      // Call goToNextPage
+      act(() => {
+        result.current.goToNextPage();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentPage).toBe(2);
+      });
+    });
+
+    it('goToPrevPage decrements page when hasPrev is true', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 2,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: true,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(2);
+
+      // Call goToPrevPage
+      act(() => {
+        result.current.goToPrevPage();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentPage).toBe(1);
+      });
+    });
+
+    it('goToNextPage does nothing when hasNext is false', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 5,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: false,
+                hasPrev: true,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods({ page: 5 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(5);
+
+      // Call goToNextPage - should do nothing
+      act(() => {
+        result.current.goToNextPage();
+      });
+
+      // Wait a bit to ensure state didn't change
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(result.current.currentPage).toBe(5);
+    });
+
+    it('goToPrevPage does nothing when hasPrev is false', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              mods: mockMods,
+              pagination: {
+                page: 1,
+                pageSize: 20,
+                totalItems: 100,
+                totalPages: 5,
+                hasNext: true,
+                hasPrev: false,
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result } = renderHook(() => useBrowseMods(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.currentPage).toBe(1);
+
+      // Call goToPrevPage - should do nothing
+      act(() => {
+        result.current.goToPrevPage();
+      });
+
+      // Wait a bit to ensure state didn't change
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(result.current.currentPage).toBe(1);
+    });
   });
 });
