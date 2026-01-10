@@ -16,10 +16,21 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { BrowseTab } from './BrowseTab';
 import type { ApiResponse, ModBrowseData } from '@/api/types';
+
+// Mock useNavigate
+const mockNavigate = vi.fn();
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -91,6 +102,7 @@ describe('BrowseTab', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    mockNavigate.mockClear();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
@@ -582,6 +594,67 @@ describe('BrowseTab', () => {
         expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-card-primitivesurvival')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Story 10.5: Card Navigation (AC 3)', () => {
+    it('navigates to mod detail when card is clicked', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Click on a mod card
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/mods/browse/carrycapacity');
+    });
+
+    it('navigates to correct mod when different card is clicked', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Click on second mod card
+      const card = screen.getByTestId('mod-card-primitivesurvival');
+      await user.click(card);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/mods/browse/primitivesurvival');
+    });
+
+    it('mod cards are clickable (have cursor-pointer)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('cursor-pointer');
     });
   });
 });

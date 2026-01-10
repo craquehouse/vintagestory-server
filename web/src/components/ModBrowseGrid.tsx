@@ -17,6 +17,8 @@ interface ModBrowseGridProps {
   mods: ModBrowseItem[];
   /** Whether the data is currently loading */
   isLoading?: boolean;
+  /** Click handler for mod card navigation (passed to each ModCard) */
+  onModClick?: (slug: string) => void;
 }
 
 /**
@@ -53,7 +55,11 @@ function ModCardSkeleton() {
  * @example
  * <ModBrowseGrid mods={filteredMods} isLoading={isLoading} />
  */
-export function ModBrowseGrid({ mods, isLoading = false }: ModBrowseGridProps) {
+export function ModBrowseGrid({
+  mods,
+  isLoading = false,
+  onModClick,
+}: ModBrowseGridProps) {
   if (isLoading) {
     return (
       <div
@@ -84,7 +90,11 @@ export function ModBrowseGrid({ mods, isLoading = false }: ModBrowseGridProps) {
       data-testid="mod-browse-grid"
     >
       {mods.map((mod) => (
-        <ModCard key={mod.slug} mod={mod} />
+        <ModCard
+          key={mod.slug}
+          mod={mod}
+          onClick={onModClick ? () => onModClick(mod.slug) : undefined}
+        />
       ))}
     </div>
   );
