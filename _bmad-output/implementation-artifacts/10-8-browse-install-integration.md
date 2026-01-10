@@ -52,12 +52,12 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 1.4: Implement Install/Cancel buttons with loading state
   - [x] Subtask 1.5: Write tests for dialog rendering, states, and interactions
 
-- [ ] Task 2: Add Install button to ModCard + tests (AC: 1, 3, 4)
-  - [ ] Subtask 2.1: Add Install button to ModCard component
-  - [ ] Subtask 2.2: Show "Installed" indicator when mod already installed
-  - [ ] Subtask 2.3: Integrate InstallConfirmDialog trigger
-  - [ ] Subtask 2.4: Handle install success/error with toast notifications
-  - [ ] Subtask 2.5: Write tests for card install button states and interactions
+- [x] Task 2: Add Install button to ModCard + tests (AC: 1, 3, 4)
+  - [x] Subtask 2.1: Add Install button to ModCard component
+  - [x] Subtask 2.2: Show "Installed" indicator when mod already installed
+  - [x] Subtask 2.3: Integrate InstallConfirmDialog trigger
+  - [x] Subtask 2.4: Handle install success/error with toast notifications
+  - [x] Subtask 2.5: Write tests for card install button states and interactions
 
 - [ ] Task 3: Enhance ModDetailPage install section + tests (AC: 1, 3, 4)
   - [ ] Subtask 3.1: Replace direct install with InstallConfirmDialog
@@ -348,8 +348,15 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Created InstallConfirmDialog component with comprehensive test coverage (15 tests). Component displays mod info, CompatibilityBadge, warnings for not_verified/incompatible mods, and handles install mutation with success/error callbacks.
+- Task 2: Added Install button to ModCard with dialog integration. Shows "Installed" indicator for already-installed mods. Updated ModBrowseGrid and BrowseTab to pass installed slugs from useMods(). Added 6 new tests for install button functionality.
 
 ### File List
 
 - `web/src/components/InstallConfirmDialog.tsx` (created)
 - `web/src/components/InstallConfirmDialog.test.tsx` (created)
+- `web/src/components/ModCard.tsx` (modified)
+- `web/src/components/ModCard.test.tsx` (modified)
+- `web/src/components/ModBrowseGrid.tsx` (modified)
+- `web/src/components/ModBrowseGrid.test.tsx` (modified)
+- `web/src/features/mods/BrowseTab.tsx` (modified)
+- `web/src/features/mods/BrowseTab.test.tsx` (modified)

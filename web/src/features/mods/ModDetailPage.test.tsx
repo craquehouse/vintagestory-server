@@ -778,6 +778,82 @@ describe('ModDetailPage', () => {
         expect(updateButton).not.toBeDisabled();
       });
     });
+
+    describe('confirmation dialog (Story 10.8)', () => {
+      it('opens confirmation dialog when Install button is clicked', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockFetchForInstallTests(
+          mockModDetailResponse,
+          mockEmptyModsResponse
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+
+        const installButton = await screen.findByTestId('mod-detail-install-button');
+        await user.click(installButton);
+
+        // Dialog should appear
+        expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('install-dialog-mod-name')).toHaveTextContent('Smithing Plus');
+      });
+
+      it('opens confirmation dialog when Update button is clicked', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockFetchForInstallTests(
+          mockModDetailResponse,
+          mockInstalledModsResponse
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+
+        const updateButton = await screen.findByTestId('mod-detail-update-button');
+        await user.click(updateButton);
+
+        // Dialog should appear
+        expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+        expect(screen.getByTestId('install-dialog-mod-name')).toHaveTextContent('Smithing Plus');
+      });
+
+      it('dialog shows compatibility badge from mod data', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockFetchForInstallTests(
+          mockModDetailResponse,
+          mockEmptyModsResponse
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+
+        const installButton = await screen.findByTestId('mod-detail-install-button');
+        await user.click(installButton);
+
+        // Get the badge inside the dialog
+        const dialog = screen.getByTestId('install-confirm-dialog');
+        const dialogBadge = within(dialog).getByTestId('compatibility-badge');
+        expect(dialogBadge).toHaveAttribute('data-status', 'compatible');
+      });
+
+      it('dialog closes when Cancel is clicked', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockFetchForInstallTests(
+          mockModDetailResponse,
+          mockEmptyModsResponse
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+
+        const installButton = await screen.findByTestId('mod-detail-install-button');
+        await user.click(installButton);
+
+        // Dialog should be open
+        expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+
+        // Click cancel
+        await user.click(screen.getByTestId('install-dialog-cancel'));
+
+        // Dialog should be closed
+        expect(screen.queryByTestId('install-confirm-dialog')).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('navigation (Task 4)', () => {

@@ -3,6 +3,7 @@
  *
  * Story 10.6: Displays full mod information including HTML description,
  * all releases with compatibility tags, metadata, and stats.
+ * Story 10.8: Added confirmation dialog before install/update.
  *
  * Subtasks handled:
  * - 2.1: Route params extraction via useParams
@@ -45,9 +46,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
-import { useMods, useInstallMod } from '@/hooks/use-mods';
-import type { ModRelease } from '@/api/types';
+import { useMods } from '@/hooks/use-mods';
+import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
 /**
  * Formats a number with K/M suffix for compact display.
@@ -141,16 +143,28 @@ function ModDetailError({ message }: { message: string }) {
 interface InstallSectionProps {
   /** Mod slug for install */
   slug: string;
+  /** Mod name for dialog display */
+  name: string;
+  /** Mod author for dialog display */
+  author: string;
+  /** Mod logo URL */
+  logoUrl: string | null;
   /** Latest version available */
   latestVersion: string;
   /** All available releases */
   releases: ModRelease[];
   /** Currently installed version (null if not installed) */
   installedVersion: string | null;
+  /** Compatibility status for dialog */
+  compatibilityStatus: CompatibilityStatus;
+  /** Compatibility message for dialog */
+  compatibilityMessage?: string;
 }
 
 /**
  * Install/Update section with version dropdown and action button.
+ *
+ * Story 10.8: Uses InstallConfirmDialog before actual install.
  *
  * Shows different states:
  * - Not installed: "Install" button with version dropdown
@@ -159,89 +173,109 @@ interface InstallSectionProps {
  */
 function InstallSection({
   slug,
+  name,
+  author,
+  logoUrl,
   latestVersion,
   releases,
   installedVersion,
+  compatibilityStatus,
+  compatibilityMessage,
 }: InstallSectionProps) {
   const [selectedVersion, setSelectedVersion] = useState(latestVersion);
-  const { mutate: install, isPending } = useInstallMod();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const isInstalled = installedVersion !== null;
   const hasUpdate = isInstalled && installedVersion !== latestVersion;
 
-  const handleInstall = () => {
-    install({ slug, version: selectedVersion });
+  const handleInstallClick = () => {
+    setIsDialogOpen(true);
   };
 
   return (
-    <Card className="w-64" data-testid="mod-detail-install-section">
-      <CardContent className="pt-4 space-y-3">
-        {/* Installed indicator */}
-        {isInstalled && (
-          <div
-            className="flex items-center gap-2 text-sm"
-            data-testid="mod-detail-installed-indicator"
-          >
-            <Check className="h-4 w-4 text-green-500" />
-            <span>Installed: v{installedVersion}</span>
+    <>
+      <Card className="w-64" data-testid="mod-detail-install-section">
+        <CardContent className="pt-4 space-y-3">
+          {/* Installed indicator */}
+          {isInstalled && (
+            <div
+              className="flex items-center gap-2 text-sm"
+              data-testid="mod-detail-installed-indicator"
+            >
+              <Check className="h-4 w-4 text-green-500" />
+              <span>Installed: v{installedVersion}</span>
+            </div>
+          )}
+
+          {/* Version selector */}
+          <div className="space-y-2">
+            <label className="text-sm text-muted-foreground">Version</label>
+            <Select
+              value={selectedVersion}
+              onValueChange={setSelectedVersion}
+            >
+              <SelectTrigger data-testid="mod-detail-version-select">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {releases.map((release, index) => (
+                  <SelectItem
+                    key={release.version}
+                    value={release.version}
+                    data-testid={`mod-detail-version-option-${release.version}`}
+                  >
+                    v{release.version}
+                    {index === 0 && ' (Latest)'}
+                    {release.version === installedVersion && ' (Installed)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        {/* Version selector */}
-        <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">Version</label>
-          <Select
-            value={selectedVersion}
-            onValueChange={setSelectedVersion}
-            disabled={isPending}
-          >
-            <SelectTrigger data-testid="mod-detail-version-select">
-              <SelectValue placeholder="Select version" />
-            </SelectTrigger>
-            <SelectContent>
-              {releases.map((release, index) => (
-                <SelectItem
-                  key={release.version}
-                  value={release.version}
-                  data-testid={`mod-detail-version-option-${release.version}`}
-                >
-                  v{release.version}
-                  {index === 0 && ' (Latest)'}
-                  {release.version === installedVersion && ' (Installed)'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Action button */}
-        {hasUpdate && selectedVersion === latestVersion ? (
-          <Button
-            className="w-full gap-2"
-            onClick={handleInstall}
-            disabled={isPending}
-            data-testid="mod-detail-update-button"
-          >
-            <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-            {isPending ? 'Updating...' : `Update to v${latestVersion}`}
-          </Button>
-        ) : (
-          <Button
-            className="w-full gap-2"
-            onClick={handleInstall}
-            disabled={isPending || (isInstalled && selectedVersion === installedVersion)}
-            data-testid="mod-detail-install-button"
-          >
-            <Download className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
-            {isPending
-              ? 'Installing...'
-              : isInstalled && selectedVersion === installedVersion
+          {/* Action button */}
+          {hasUpdate && selectedVersion === latestVersion ? (
+            <Button
+              className="w-full gap-2"
+              onClick={handleInstallClick}
+              data-testid="mod-detail-update-button"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Update to v{latestVersion}
+            </Button>
+          ) : (
+            <Button
+              className="w-full gap-2"
+              onClick={handleInstallClick}
+              disabled={isInstalled && selectedVersion === installedVersion}
+              data-testid="mod-detail-install-button"
+            >
+              <Download className="h-4 w-4" />
+              {isInstalled && selectedVersion === installedVersion
                 ? 'Already Installed'
                 : `Install v${selectedVersion}`}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Story 10.8: Install confirmation dialog */}
+      <InstallConfirmDialog
+        mod={{
+          slug,
+          name,
+          version: selectedVersion,
+          logoUrl,
+          author,
+        }}
+        compatibility={{
+          status: compatibilityStatus,
+          message: compatibilityMessage,
+        }}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+      />
+    </>
   );
 }
 
@@ -495,9 +529,14 @@ export function ModDetailPage() {
         {mod.releases.length > 0 && (
           <InstallSection
             slug={mod.slug}
+            name={mod.name}
+            author={mod.author}
+            logoUrl={mod.logoUrl}
             latestVersion={mod.latestVersion}
             releases={mod.releases}
             installedVersion={installedVersion}
+            compatibilityStatus={mod.compatibility?.status ?? 'not_verified'}
+            compatibilityMessage={mod.compatibility?.message}
           />
         )}
       </div>
