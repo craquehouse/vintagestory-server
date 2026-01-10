@@ -1,6 +1,6 @@
 # Story 10.8: Browse Install Integration
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -65,10 +65,10 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 3.3: Update UI state after successful install
   - [x] Subtask 3.4: Write tests for detail page install flow
 
-- [ ] Task 4: Implement cross-tab state synchronization + tests (AC: 3)
-  - [ ] Subtask 4.1: Verify TanStack Query cache invalidation propagates to Installed tab
-  - [ ] Subtask 4.2: Test mod appears in Installed tab after browse install
-  - [ ] Subtask 4.3: Write integration tests for cross-tab synchronization
+- [x] Task 4: Implement cross-tab state synchronization + tests (AC: 3)
+  - [x] Subtask 4.1: Verify TanStack Query cache invalidation propagates to Installed tab
+  - [x] Subtask 4.2: Test mod appears in Installed tab after browse install
+  - [x] Subtask 4.3: Write integration tests for cross-tab synchronization
 
 ## Dev Notes
 
@@ -350,6 +350,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Created InstallConfirmDialog component with comprehensive test coverage (15 tests). Component displays mod info, CompatibilityBadge, warnings for not_verified/incompatible mods, and handles install mutation with success/error callbacks.
 - Task 2: Added Install button to ModCard with dialog integration. Shows "Installed" indicator for already-installed mods. Updated ModBrowseGrid and BrowseTab to pass installed slugs from useMods(). Added 6 new tests for install button functionality.
 - Task 3: Replaced direct install in ModDetailPage InstallSection with InstallConfirmDialog integration. Install/Update buttons now open dialog with mod info and compatibility status. Added 4 new tests for dialog integration.
+- Task 4: Verified cross-tab state synchronization. The existing useInstallMod hook already implements cache invalidation via queryClient.invalidateQueries(). Added explicit integration test that proves useMods() subscribers receive updated data after install.
 
 ### File List
 
@@ -363,3 +364,4 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - `web/src/features/mods/BrowseTab.test.tsx` (modified)
 - `web/src/features/mods/ModDetailPage.tsx` (modified)
 - `web/src/features/mods/ModDetailPage.test.tsx` (modified)
+- `web/src/hooks/use-mods.test.tsx` (modified)
