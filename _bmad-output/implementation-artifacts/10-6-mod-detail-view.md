@@ -78,6 +78,18 @@ So that **I can read full information before installing**.
   - [x] Subtask 4.3: Add breadcrumb navigation (Mods > Browse > {ModName})
   - [x] Subtask 4.4: Write tests for route parameters and back navigation
 
+## Review Follow-ups (AI)
+
+### High Priority
+- [ ] [AI-Review][HIGH] Add inline type ignore justifications or fix root cause (api/tests/test_mod_models.py:623, 638, 654)
+- [ ] [AI-Review][HIGH] Implement dependency display OR update AC1 to remove "dependencies" requirement
+- [ ] [AI-Review][HIGH] Add web/src/api/query-keys.ts to File List (created and used)
+- [ ] [AI-Review][HIGH] Fix file name reference: "api/tests/test_mod_models.py" not "test_mods.py"
+
+### Medium Priority
+- [ ] [AI-Review][MEDIUM] Implement scroll position restoration for back navigation (ModDetailPage.tsx:306-314)
+- [ ] [AI-Review][MEDIUM] Document package.json/lock file changes or add to .gitignore
+
 ## Dev Notes
 
 ### Testing Requirements
