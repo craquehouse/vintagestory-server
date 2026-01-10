@@ -49,20 +49,8 @@ import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods } from '@/hooks/use-mods';
+import { formatNumber } from '@/lib/utils';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
-
-/**
- * Formats a number with K/M suffix for compact display.
- */
-function formatNumber(num: number): string {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
-  }
-  if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}K`;
-  }
-  return String(num);
-}
 
 /**
  * Formats a timestamp string to a readable date.

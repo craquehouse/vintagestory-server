@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { getBrowseCardCompatibility } from '@/lib/mod-compatibility';
+import { formatNumber } from '@/lib/utils';
 import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
@@ -30,22 +31,6 @@ interface ModCardProps {
  * Version string used when installing from browse cards (latest available).
  */
 const LATEST_VERSION = 'latest';
-
-/**
- * Formats a number with K/M suffix for compact display.
- *
- * @param num - Number to format
- * @returns Formatted string (e.g., "1.2K", "3.4M")
- */
-function formatNumber(num: number): string {
-  if (num >= 1_000_000) {
-    return `${(num / 1_000_000).toFixed(1)}M`;
-  }
-  if (num >= 1_000) {
-    return `${(num / 1_000).toFixed(1)}K`;
-  }
-  return String(num);
-}
 
 /**
  * Card displaying mod information in the browse grid.
@@ -209,5 +194,3 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
     </>
   );
 }
-
-export { formatNumber };

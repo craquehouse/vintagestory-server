@@ -170,12 +170,10 @@ export function InstallConfirmDialog({
         </div>
 
         {/* Compatibility badge */}
-        <div className="flex items-center gap-2" data-testid="install-dialog-compatibility">
-          <CompatibilityBadge
-            status={compatibility.status}
-            message={compatibility.message}
-          />
-        </div>
+        <CompatibilityBadge
+          status={compatibility.status}
+          message={compatibility.message}
+        />
 
         {/* Warning message for not_verified/incompatible */}
         {warningMessage && (

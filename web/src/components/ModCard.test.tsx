@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ModCard, formatNumber } from './ModCard';
+import { ModCard } from './ModCard';
+import { formatNumber } from '@/lib/utils';
 import * as useMods from '@/hooks/use-mods';
 import type { ModBrowseItem } from '@/api/types';
 
