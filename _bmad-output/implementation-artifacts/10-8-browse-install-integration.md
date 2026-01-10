@@ -72,11 +72,11 @@ CRITICAL TASK STRUCTURE RULES:
 
 ### Review Follow-ups (AI-Review)
 
-- [ ] [AI-Review][HIGH] Add tracking issue comment to eslint-disable in TerminalView.tsx:123 or properly list dependencies
-- [ ] [AI-Review][MEDIUM] Refactor BrowseTab.tsx installedSlugs Set construction to use Set constructor with map
-- [ ] [AI-Review][MEDIUM] Propagate onModInstalled callback in BrowseTab.tsx or remove unused prop from ModBrowseGrid
-- [ ] [AI-Review][LOW] Update test count documentation from ~750 to 1105 tests
-- [ ] [AI-Review][LOW] Extract 'latest' string constant in ModCard.tsx for version handling
+- [x] [AI-Review][HIGH] Add tracking issue comment to eslint-disable in TerminalView.tsx:123 or properly list dependencies
+- [x] [AI-Review][MEDIUM] Refactor BrowseTab.tsx installedSlugs Set construction to use Set constructor with map
+- [x] [AI-Review][MEDIUM] Propagate onModInstalled callback in BrowseTab.tsx or remove unused prop from ModBrowseGrid
+- [x] [AI-Review][LOW] Update test count documentation from ~750 to 1105 tests
+- [x] [AI-Review][LOW] Extract 'latest' string constant in ModCard.tsx for version handling
 
 ## Dev Notes
 
@@ -237,7 +237,7 @@ interface InstallConfirmDialogProps {
 - `web/src/hooks/use-browse-mods.ts` - Added pagination state
 - `web/src/components/Pagination.tsx` - Created pagination controls
 
-**Current Test Count:** ~750 web tests
+**Current Test Count:** ~1105 tests (web + API)
 
 ### Git Intelligence (Recent Commits)
 

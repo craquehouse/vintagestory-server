@@ -51,11 +51,10 @@ export function BrowseTab() {
 
   // Story 10.8: Get installed mods to show install state on cards
   const { data: modsData } = useMods();
-  const installedSlugs = useMemo(() => {
-    const slugs = new Set<string>();
-    modsData?.data?.mods?.forEach((mod) => slugs.add(mod.slug));
-    return slugs;
-  }, [modsData]);
+  const installedSlugs = useMemo(
+    () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
+    [modsData]
+  );
 
   // Story 10.7: Scroll position restoration
   // Read saved state synchronously for initial page (before first render)

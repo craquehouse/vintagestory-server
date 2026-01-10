@@ -120,6 +120,9 @@ export function TerminalView({
       onDisposeRef.current?.();
     };
     // Only depend on themeMode for initial theme - callbacks are in refs
+    // The terminal instance should only be created once on mount. All mutable
+    // values (onData, onDispose, themeMode) are accessed via refs to avoid
+    // recreating the terminal which would lose terminal state and cause flicker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

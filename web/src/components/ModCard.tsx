@@ -24,9 +24,12 @@ interface ModCardProps {
   onClick?: () => void;
   /** Set of installed mod slugs (optional, used for install button) */
   installedSlugs?: Set<string>;
-  /** Callback when mod install succeeds */
-  onInstalled?: (slug: string) => void;
 }
+
+/**
+ * Version string used when installing from browse cards (latest available).
+ */
+const LATEST_VERSION = 'latest';
 
 /**
  * Formats a number with K/M suffix for compact display.
@@ -53,7 +56,7 @@ function formatNumber(num: number): string {
  * @example
  * <ModCard mod={modBrowseItem} />
  */
-export function ModCard({ mod, onClick, installedSlugs, onInstalled }: ModCardProps) {
+export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
 
   // For browse grid, use 'not_verified' as conservative default
@@ -72,11 +75,6 @@ export function ModCard({ mod, onClick, installedSlugs, onInstalled }: ModCardPr
   const handleInstallClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsInstallDialogOpen(true);
-  };
-
-  // Handle successful installation
-  const handleInstallSuccess = () => {
-    onInstalled?.(mod.slug);
   };
 
   return (
@@ -198,7 +196,7 @@ export function ModCard({ mod, onClick, installedSlugs, onInstalled }: ModCardPr
       mod={{
         slug: mod.slug,
         name: mod.name,
-        version: 'latest', // Browse cards use latest version
+        version: LATEST_VERSION,
         logoUrl: mod.logoUrl,
         author: mod.author,
       }}
@@ -207,7 +205,6 @@ export function ModCard({ mod, onClick, installedSlugs, onInstalled }: ModCardPr
       }}
       open={isInstallDialogOpen}
       onOpenChange={setIsInstallDialogOpen}
-      onSuccess={handleInstallSuccess}
     />
     </>
   );

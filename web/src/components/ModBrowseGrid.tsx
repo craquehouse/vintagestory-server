@@ -22,8 +22,6 @@ interface ModBrowseGridProps {
   onModClick?: (slug: string) => void;
   /** Set of installed mod slugs for showing install state (Story 10.8) */
   installedSlugs?: Set<string>;
-  /** Callback when a mod is successfully installed (Story 10.8) */
-  onModInstalled?: (slug: string) => void;
 }
 
 /**
@@ -70,7 +68,6 @@ export function ModBrowseGrid({
   isLoading = false,
   onModClick,
   installedSlugs,
-  onModInstalled,
 }: ModBrowseGridProps) {
   if (isLoading) {
     return (
@@ -107,7 +104,6 @@ export function ModBrowseGrid({
           mod={mod}
           onClick={onModClick ? () => onModClick(mod.slug) : undefined}
           installedSlugs={installedSlugs}
-          onInstalled={onModInstalled}
         />
       ))}
     </div>

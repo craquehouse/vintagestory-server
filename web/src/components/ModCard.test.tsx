@@ -400,32 +400,5 @@ describe('ModCard', () => {
       expect(handleClick).not.toHaveBeenCalled();
     });
 
-    it('calls onInstalled callback when install succeeds', async () => {
-      const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
-      const handleInstalled = vi.fn();
-
-      // Make mutate call onSuccess synchronously
-      mockMutate.mockImplementation((_params, options) => {
-        options?.onSuccess?.();
-      });
-
-      render(
-        <ModCard
-          mod={mockMod}
-          installedSlugs={installedSlugs}
-          onInstalled={handleInstalled}
-        />,
-        { wrapper: createWrapper() }
-      );
-
-      // Open dialog
-      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
-
-      // Click install in dialog
-      await user.click(screen.getByTestId('install-dialog-confirm'));
-
-      expect(handleInstalled).toHaveBeenCalledWith('carrycapacity');
-    });
   });
 });
