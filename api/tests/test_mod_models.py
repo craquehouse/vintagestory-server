@@ -620,7 +620,7 @@ class TestModBrowseItem:
                 downloads=0,
                 follows=0,
                 trending_points=0,
-                side=side,  # type: ignore[arg-type]
+                side=side,  # type: ignore[arg-type] - testing literal validation with loop variable
                 mod_type="mod",
             )
             assert item.side == side
@@ -635,7 +635,7 @@ class TestModBrowseItem:
                 downloads=0,
                 follows=0,
                 trending_points=0,
-                side="invalid",  # type: ignore[arg-type]
+                side="invalid",  # type: ignore[arg-type] - intentionally invalid for validation test
                 mod_type="mod",
             )
 
@@ -651,7 +651,7 @@ class TestModBrowseItem:
                 follows=0,
                 trending_points=0,
                 side="both",
-                mod_type=mod_type,  # type: ignore[arg-type]
+                mod_type=mod_type,  # type: ignore[arg-type] - testing literal validation with loop variable
             )
             assert item.mod_type == mod_type
 
