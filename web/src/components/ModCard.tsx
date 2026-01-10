@@ -5,11 +5,15 @@
  * short description, and compatibility badge.
  *
  * Story 10.5: Enhanced with thumbnail and compatibility badge.
+ * Story 10.8: Added install button with confirmation dialog.
  */
 
-import { Download, Users, TrendingUp, ExternalLink, Package } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Users, TrendingUp, ExternalLink, Package, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { getBrowseCardCompatibility } from '@/lib/mod-compatibility';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -18,6 +22,10 @@ interface ModCardProps {
   mod: ModBrowseItem;
   /** Click handler for card navigation (optional) */
   onClick?: () => void;
+  /** Set of installed mod slugs (optional, used for install button) */
+  installedSlugs?: Set<string>;
+  /** Callback when mod install succeeds */
+  onInstalled?: (slug: string) => void;
 }
 
 /**
@@ -45,17 +53,34 @@ function formatNumber(num: number): string {
  * @example
  * <ModCard mod={modBrowseItem} />
  */
-export function ModCard({ mod, onClick }: ModCardProps) {
+export function ModCard({ mod, onClick, installedSlugs, onInstalled }: ModCardProps) {
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+
   // For browse grid, use 'not_verified' as conservative default
   // Full compatibility check deferred to mod detail view (Story 10.6)
   const compatibilityStatus = getBrowseCardCompatibility();
+
+  // Check if this mod is already installed
+  const isInstalled = installedSlugs?.has(mod.slug) ?? false;
 
   // Only apply clickable styles when onClick handler is provided
   const clickableStyles = onClick
     ? 'cursor-pointer hover:shadow-lg transition-shadow'
     : '';
 
+  // Handle install button click - stop propagation to prevent card click
+  const handleInstallClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsInstallDialogOpen(true);
+  };
+
+  // Handle successful installation
+  const handleInstallSuccess = () => {
+    onInstalled?.(mod.slug);
+  };
+
   return (
+    <>
     <Card
       className={`h-full ${clickableStyles}`}
       data-testid={`mod-card-${mod.slug}`}
@@ -139,8 +164,52 @@ export function ModCard({ mod, onClick }: ModCardProps) {
             {formatNumber(mod.trendingPoints)}
           </span>
         </div>
+
+        {/* Install button or Installed indicator (Story 10.8) */}
+        {installedSlugs !== undefined && (
+          <div className="mt-3 pt-3 border-t">
+            {isInstalled ? (
+              <div
+                className="flex items-center gap-1.5 text-sm text-green-500"
+                data-testid={`mod-card-installed-${mod.slug}`}
+              >
+                <Check className="h-4 w-4" />
+                <span>Installed</span>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full"
+                onClick={handleInstallClick}
+                data-testid={`mod-card-install-${mod.slug}`}
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Install
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
+
+    {/* Install confirmation dialog */}
+    <InstallConfirmDialog
+      mod={{
+        slug: mod.slug,
+        name: mod.name,
+        version: 'latest', // Browse cards use latest version
+        logoUrl: mod.logoUrl,
+        author: mod.author,
+      }}
+      compatibility={{
+        status: compatibilityStatus,
+      }}
+      open={isInstallDialogOpen}
+      onOpenChange={setIsInstallDialogOpen}
+      onSuccess={handleInstallSuccess}
+    />
+    </>
   );
 }
 

@@ -32,6 +32,38 @@ vi.mock('react-router', async () => {
   };
 });
 
+// Mock useMods (needed for install button feature in Story 10.8)
+vi.mock('@/hooks/use-mods', async () => {
+  const actual = await vi.importActual('@/hooks/use-mods');
+  return {
+    ...actual,
+    useMods: vi.fn(() => ({
+      data: { status: 'ok', data: { mods: [], pendingRestart: false } },
+      isLoading: false,
+      isError: false,
+      error: null,
+    })),
+    useInstallMod: vi.fn(() => ({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      isIdle: true,
+      data: undefined,
+      variables: undefined,
+      reset: vi.fn(),
+      status: 'idle',
+      mutateAsync: vi.fn(),
+      context: undefined,
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: 0,
+      isPaused: false,
+    })),
+  };
+});
+
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
   return new QueryClient({

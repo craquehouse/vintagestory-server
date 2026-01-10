@@ -4,6 +4,32 @@ import userEvent from '@testing-library/user-event';
 import { ModBrowseGrid } from './ModBrowseGrid';
 import type { ModBrowseItem } from '@/api/types';
 
+// Mock useInstallMod hook (needed by InstallConfirmDialog used in ModCard)
+vi.mock('@/hooks/use-mods', async () => {
+  const actual = await vi.importActual('@/hooks/use-mods');
+  return {
+    ...actual,
+    useInstallMod: vi.fn(() => ({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      isIdle: true,
+      data: undefined,
+      variables: undefined,
+      reset: vi.fn(),
+      status: 'idle',
+      mutateAsync: vi.fn(),
+      context: undefined,
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: 0,
+      isPaused: false,
+    })),
+  };
+});
+
 // Mock mod data for testing
 const mockMods: ModBrowseItem[] = [
   {

@@ -5,6 +5,7 @@
  * - Responsive grid layout (1-4 columns based on viewport)
  * - Loading skeleton state
  * - Empty state when no mods match filters
+ * - Story 10.8: Install buttons on cards with confirmation dialog
  */
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +20,10 @@ interface ModBrowseGridProps {
   isLoading?: boolean;
   /** Click handler for mod card navigation (passed to each ModCard) */
   onModClick?: (slug: string) => void;
+  /** Set of installed mod slugs for showing install state (Story 10.8) */
+  installedSlugs?: Set<string>;
+  /** Callback when a mod is successfully installed (Story 10.8) */
+  onModInstalled?: (slug: string) => void;
 }
 
 /**
@@ -64,6 +69,8 @@ export function ModBrowseGrid({
   mods,
   isLoading = false,
   onModClick,
+  installedSlugs,
+  onModInstalled,
 }: ModBrowseGridProps) {
   if (isLoading) {
     return (
@@ -99,6 +106,8 @@ export function ModBrowseGrid({
           key={mod.slug}
           mod={mod}
           onClick={onModClick ? () => onModClick(mod.slug) : undefined}
+          installedSlugs={installedSlugs}
+          onInstalled={onModInstalled}
         />
       ))}
     </div>

@@ -261,7 +261,7 @@ describe('InstallConfirmDialog', () => {
         isSuccess: false,
         isIdle: false,
         data: undefined,
-        variables: undefined,
+        variables: { slug: 'carrycapacity', version: '1.2.0' },
         reset: vi.fn(),
         status: 'pending',
         mutateAsync: vi.fn(),
