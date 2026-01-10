@@ -259,20 +259,20 @@ const sanitizedHtml = DOMPurify.sanitize(mod.description);
 ┌──────────────────────────────────────────────────────────────┐
 │ ← Back to Browse    Mods > Browse > {ModName}                │
 ├──────────────────────────────────────────────────────────────┤
-│  ┌─────────┐  ModName                    ┌─────────────────┐ │
-│  │  Logo   │  by AuthorName              │ Install v1.8.3 ▾│ │
-│  │         │  ★ 2,348 followers          │   [Install]     │ │
-│  └─────────┘  ⬇ 204,656 downloads        │ or              │ │
-│               Side: Both                  │ ✓ Installed 1.8.2│
-│               Tags: Crafting, QoL        │ [Update to 1.8.3]│
-│                                          └─────────────────┘ │
+│  ┌─────────┐  ModName                   ┌──────────────────┐ │
+│  │  Logo   │  by AuthorName             │ Install v1.8.3 ▾ │ │
+│  │         │  ★ 2,348 followers         │   [Install]      │ │
+│  └─────────┘  ⬇ 204,656 downloads      │ or               │ │
+│               Side: Both                │ ✓ Installed 1.8.2│ │
+│               Tags: Crafting, QoL       │ [Update to 1.8.3]│ │
+│                                         └──────────────────┘ │
 ├──────────────────────────────────────────────────────────────┤
-│  Description                                                  │
+│  Description                                                 │
 │  ─────────────────────────────────────────────────────────── │
 │  [Rendered HTML description from mod API]                    │
 │                                                              │
 ├──────────────────────────────────────────────────────────────┤
-│  Releases                                                     │
+│  Releases                                                    │
 │  ─────────────────────────────────────────────────────────── │
 │  v1.8.3 (2025-10-09) - Compatible: 1.21.0-1.21.3             │
 │  v1.8.2 (2025-09-15) - Compatible: 1.21.0-1.21.1             │
