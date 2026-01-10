@@ -5,7 +5,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
-import { ModsPage, InstalledTab, BrowseTab } from "@/features/mods";
+import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
 import { GameServerPage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
 
@@ -23,6 +23,7 @@ function App() {
                 <Route index element={<Navigate to="installed" replace />} />
                 <Route path="installed" element={<InstalledTab />} />
                 <Route path="browse" element={<BrowseTab />} />
+                <Route path="browse/:slug" element={<ModDetailPage />} />
               </Route>
               <Route path="/config" element={<SettingsPage />} />
             </Routes>
