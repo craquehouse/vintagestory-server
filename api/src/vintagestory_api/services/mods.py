@@ -428,7 +428,7 @@ class ModService:
         ]
 
         result = ModLookupResponse(
-            slug=mod.get("urlalias", slug),
+            slug=mod.get("urlalias") or slug,
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
             description=mod.get("text"),

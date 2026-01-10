@@ -242,24 +242,6 @@ describe('ModCard', () => {
     });
   });
 
-  describe('compatibility badge display (AC 2)', () => {
-    it('displays compatibility badge with not_verified status by default', () => {
-      render(<ModCard mod={mockMod} />);
-
-      const badge = screen.getByTestId('compatibility-badge');
-      expect(badge).toBeInTheDocument();
-      expect(badge).toHaveAttribute('data-status', 'not_verified');
-      expect(badge).toHaveTextContent('Not verified');
-    });
-
-    it('displays compatibility badge for mod with logo', () => {
-      render(<ModCard mod={mockModWithLogo} />);
-
-      const badge = screen.getByTestId('compatibility-badge');
-      expect(badge).toBeInTheDocument();
-    });
-  });
-
   describe('click navigation (AC 3)', () => {
     it('calls onClick handler when card is clicked', async () => {
       const user = userEvent.setup();

@@ -524,3 +524,48 @@ def sort_mods(
         return sorted(mods, key=_get_trending, reverse=True)
     else:  # recent
         return sorted(mods, key=_get_recent, reverse=True)
+
+
+def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
+    """Filter mods by search term.
+
+    Searches across name, author, summary, and tags (case-insensitive).
+
+    Args:
+        mods: List of mod dictionaries from the API.
+        search: Search term to filter by. Empty string returns all mods.
+
+    Returns:
+        Filtered list of mods matching the search term.
+    """
+    search = search.strip().lower()
+    if not search:
+        return mods
+
+    results = []
+    for mod in mods:
+        # Check name
+        name = str(mod.get("name", "")).lower()
+        if search in name:
+            results.append(mod)
+            continue
+
+        # Check author
+        author = str(mod.get("author", "")).lower()
+        if search in author:
+            results.append(mod)
+            continue
+
+        # Check summary
+        summary = str(mod.get("summary") or "").lower()
+        if search in summary:
+            results.append(mod)
+            continue
+
+        # Check tags
+        tags = mod.get("tags", [])
+        if any(search in str(tag).lower() for tag in tags):
+            results.append(mod)
+            continue
+
+    return results

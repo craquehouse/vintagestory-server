@@ -2,9 +2,9 @@
  * ModCard - Card component for displaying a single mod in the browse grid.
  *
  * Displays: thumbnail (or placeholder), name, author, download count,
- * short description, and compatibility badge.
+ * and short description.
  *
- * Story 10.5: Enhanced with thumbnail and compatibility badge.
+ * Story 10.5: Enhanced with thumbnail.
  * Story 10.8: Added install button with confirmation dialog.
  */
 
@@ -12,9 +12,7 @@ import { useState } from 'react';
 import { Download, Users, TrendingUp, ExternalLink, Package, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
-import { getBrowseCardCompatibility } from '@/lib/mod-compatibility';
 import { formatNumber } from '@/lib/utils';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -36,17 +34,13 @@ const LATEST_VERSION = 'latest';
  * Card displaying mod information in the browse grid.
  *
  * Shows thumbnail (or placeholder), name, author, download count,
- * short description, and compatibility badge.
+ * and short description.
  *
  * @example
  * <ModCard mod={modBrowseItem} />
  */
 export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
-
-  // For browse grid, use 'not_verified' as conservative default
-  // Full compatibility check deferred to mod detail view (Story 10.6)
-  const compatibilityStatus = getBrowseCardCompatibility();
 
   // Check if this mod is already installed
   const isInstalled = installedSlugs?.has(mod.slug) ?? false;
@@ -106,7 +100,6 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
               <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </a>
           </CardTitle>
-          <CompatibilityBadge status={compatibilityStatus} />
         </div>
         <p className="text-sm text-muted-foreground" data-testid={`mod-card-author-${mod.slug}`}>
           by {mod.author}
@@ -186,7 +179,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
         author: mod.author,
       }}
       compatibility={{
-        status: compatibilityStatus,
+        status: 'not_verified',
       }}
       open={isInstallDialogOpen}
       onOpenChange={setIsInstallDialogOpen}

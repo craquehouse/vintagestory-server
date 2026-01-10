@@ -114,7 +114,7 @@ curl https://mods.vintagestory.at/api/mods
 ```
 
 **Notes:**
-- Returns 550+ mods without pagination
+- Returns ~5000 mods without pagination (as of January 2026)
 - Results ordered by `lastreleased` (newest first)
 - `logo` and `urlalias` may be `null`
 

@@ -1,11 +1,11 @@
 /**
  * Hook for fetching and filtering browsable mods.
  *
- * Combines server-side pagination/sorting with client-side search filtering.
+ * Uses server-side search and pagination with client-side filtering for additional criteria.
  * Uses TanStack Query for caching and state management.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
@@ -19,8 +19,8 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
 /**
  * Hook to fetch and filter browsable mods.
  *
- * Supports server-side pagination/sorting (via API) and client-side search filtering.
- * Search filtering is done client-side because the API doesn't support a search parameter yet.
+ * Supports server-side pagination, sorting, and search (via API).
+ * Additional filtering (side, tags, type) is done client-side.
  *
  * Story 10.7: Added pagination state management with setPage, goToNextPage, goToPrevPage.
  *
@@ -65,16 +65,38 @@ export function useBrowseMods(params: BrowseParams = {}) {
   // Story 10.7: Manage page state internally, with initial value from params
   const [currentPage, setCurrentPage] = useState(params.page ?? 1);
 
-  // Separate search and filters from API params (both are client-side)
+  // Track previous search to reset page when search changes
+  const prevSearchRef = useRef(params.search);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    if (prevSearchRef.current !== params.search) {
+      setCurrentPage(1);
+      prevSearchRef.current = params.search;
+    }
+  }, [params.search]);
+
+  // Separate filters from API params (filters are still client-side)
   // Also separate 'name' sort since it's client-side only
-  const { search, filters, sort, page: _ignoredPage, ...apiParams } = params;
+  const { filters, sort, page: _ignoredPage, ...apiParams } = params;
 
   // Only pass sort to API if it's a server-side option
   const apiSort = sort === 'name' ? undefined : sort;
 
   const query = useQuery({
-    queryKey: queryKeys.mods.browse({ ...apiParams, page: currentPage, sort: apiSort }),
-    queryFn: () => fetchBrowseMods({ ...apiParams, page: currentPage, sort: apiSort }),
+    queryKey: queryKeys.mods.browse({
+      ...apiParams,
+      page: currentPage,
+      sort: apiSort,
+      search: params.search,
+    }),
+    queryFn: () =>
+      fetchBrowseMods({
+        ...apiParams,
+        page: currentPage,
+        sort: apiSort,
+        search: params.search,
+      }),
     staleTime: BROWSE_STALE_TIME,
   });
 
@@ -110,15 +132,12 @@ export function useBrowseMods(params: BrowseParams = {}) {
     });
   }, [pagination?.hasPrev]);
 
-  // Client-side filtering pipeline
+  // Client-side filtering pipeline (search is now server-side)
   const allMods = query.data?.data?.mods ?? [];
-  const searchFiltered = filterModsBySearch(allMods, search);
-  const fullyFiltered = filterModsByFilters(searchFiltered, filters);
+  const fullyFiltered = filterModsByFilters(allMods, filters);
 
   // Client-side sorting for 'name' option
-  const sorted = sort === 'name'
-    ? sortModsByName(fullyFiltered)
-    : fullyFiltered;
+  const sorted = sort === 'name' ? sortModsByName(fullyFiltered) : fullyFiltered;
 
   return {
     ...query,

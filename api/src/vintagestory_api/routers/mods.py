@@ -18,6 +18,7 @@ from vintagestory_api.services.mod_api import (
     ModDict,
     ModVersionNotFoundError,
     SortOption,
+    search_mods,
     sort_mods,
     validate_slug,
 )
@@ -138,11 +139,18 @@ async def browse_mods(
         SortOption,
         Query(description="Sort order: downloads, trending, or recent"),
     ] = "recent",
+    search: Annotated[
+        str | None,
+        Query(
+            max_length=100,
+            description="Search term to filter mods by name, author, summary, or tags",
+        ),
+    ] = None,
 ) -> ApiResponse:
     """Browse available mods from the VintageStory mod database.
 
     Returns a paginated list of all mods available for installation,
-    sorted by the specified criteria.
+    sorted by the specified criteria. Optionally filter by search term.
 
     Both Admin and Monitor roles can access this read-only endpoint.
 
@@ -150,6 +158,7 @@ async def browse_mods(
         page: Page number (1-indexed, default 1).
         page_size: Number of items per page (1-100, default 20).
         sort: Sort order - "downloads", "trending", or "recent" (default).
+        search: Optional search term to filter by name, author, summary, or tags.
 
     Returns:
         ApiResponse with ModBrowseResponse containing:
@@ -161,14 +170,19 @@ async def browse_mods(
         HTTPException: 401 if not authenticated
         HTTPException: 502 if mod database API is unavailable
     """
-    logger.debug("router_browse_mods_start", page=page, page_size=page_size, sort=sort)
+    logger.debug(
+        "router_browse_mods_start", page=page, page_size=page_size, sort=sort, search=search
+    )
 
     try:
         # Get all mods from API (cached)
         all_mods = await service.api_client.get_all_mods()
 
+        # Filter by search term if provided
+        filtered_mods = search_mods(all_mods, search or "")
+
         # Sort mods
-        sorted_mods = sort_mods(all_mods, sort_by=sort)
+        sorted_mods = sort_mods(filtered_mods, sort_by=sort)
 
         # Calculate pagination
         total_items = len(sorted_mods)

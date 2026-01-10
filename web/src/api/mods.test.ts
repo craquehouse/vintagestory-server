@@ -114,7 +114,7 @@ describe('fetchBrowseMods', () => {
     expect(url).toContain('sort=trending');
   });
 
-  it('does not send search parameter to API (handled client-side)', async () => {
+  it('sends search parameter to API', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockBrowseResponse),
@@ -124,8 +124,33 @@ describe('fetchBrowseMods', () => {
     await fetchBrowseMods({ search: 'test' });
 
     const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain('search=test');
+  });
+
+  it('trims search parameter before sending', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    await fetchBrowseMods({ search: '  farming  ' });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain('search=farming');
+  });
+
+  it('does not send empty search parameter', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockBrowseResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    await fetchBrowseMods({ search: '   ' });
+
+    const [url] = mockFetch.mock.calls[0];
     expect(url).not.toContain('search');
-    expect(url).not.toContain('q=');
   });
 
   it('returns the API response with mods and pagination', async () => {

@@ -316,7 +316,7 @@ describe('useBrowseMods', () => {
     expect(url).toContain('sort=downloads');
   });
 
-  it('does not pass search parameter to API', async () => {
+  it('passes search parameter to API', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockBrowseResponse),
@@ -332,14 +332,29 @@ describe('useBrowseMods', () => {
     });
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).not.toContain('search');
-    expect(url).not.toContain('test');
+    expect(url).toContain('search=test');
   });
 
-  it('filters mods client-side when search is provided', async () => {
+  it('returns mods from API when search is provided (server-side filtering)', async () => {
+    // API now filters server-side and returns only matching mods
+    const searchResponse: ApiResponse<ModBrowseData> = {
+      status: 'ok',
+      data: {
+        mods: [mockMods[0]], // API returns filtered result
+        pagination: {
+          page: 1,
+          pageSize: 20,
+          totalItems: 1, // Reflects filtered count
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      },
+    };
+
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockBrowseResponse),
+      json: () => Promise.resolve(searchResponse),
     });
     globalThis.fetch = mockFetch;
 
@@ -351,11 +366,11 @@ describe('useBrowseMods', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    // Should filter to just the 'carrycapacity' mod
+    // Should return the filtered result from API
     expect(result.current.mods).toHaveLength(1);
     expect(result.current.mods[0].slug).toBe('carrycapacity');
-    // Pagination should still reflect original totals
-    expect(result.current.pagination?.totalItems).toBe(100);
+    // Pagination now reflects filtered totals
+    expect(result.current.pagination?.totalItems).toBe(1);
   });
 
   it('returns empty mods array when loading', () => {
@@ -464,10 +479,27 @@ describe('useBrowseMods', () => {
     expect(url).not.toContain('filter');
   });
 
-  it('combines search and filters', async () => {
+  it('combines server-side search with client-side filters', async () => {
+    // API returns search results, then client-side filters are applied
+    const searchResponse: ApiResponse<ModBrowseData> = {
+      status: 'ok',
+      data: {
+        // API returns all mods matching 'survival' search
+        mods: [mockMods[1]], // primitivesurvival
+        pagination: {
+          page: 1,
+          pageSize: 20,
+          totalItems: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      },
+    };
+
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(mockBrowseResponse),
+      json: () => Promise.resolve(searchResponse),
     });
     globalThis.fetch = mockFetch;
 
@@ -484,10 +516,15 @@ describe('useBrowseMods', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    // Should first filter by search (1 result: primitivesurvival)
-    // Then filter by side 'both' (primitivesurvival is 'both', so it passes)
+    // Search is server-side, filters are client-side
+    // Server returns primitivesurvival (matching 'survival')
+    // Client filters by side 'both' (primitivesurvival is 'both', so it passes)
     expect(result.current.mods).toHaveLength(1);
     expect(result.current.mods[0].slug).toBe('primitivesurvival');
+
+    // Verify search was passed to API
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain('search=survival');
   });
 
   // Story 10.7: Pagination state tests

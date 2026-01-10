@@ -120,7 +120,7 @@ export async function removeMod(
  * Returns mods from the VintageStory mod database with pagination.
  * The API caches results for 5 minutes.
  *
- * @param params - Pagination and sort parameters
+ * @param params - Pagination, sort, and search parameters
  * @returns Paginated mod list with metadata
  *
  * Accessible to both Admin and Monitor roles.
@@ -136,10 +136,13 @@ export async function fetchBrowseMods(
   if (params.pageSize !== undefined) {
     searchParams.set('page_size', String(params.pageSize));
   }
-  if (params.sort !== undefined) {
+  if (params.sort !== undefined && params.sort !== 'name') {
+    // 'name' sort is still client-side only
     searchParams.set('sort', params.sort);
   }
-  // Note: search param is not sent to API - it's handled client-side in the hook
+  if (params.search?.trim()) {
+    searchParams.set('search', params.search.trim());
+  }
 
   const query = searchParams.toString();
   const url = query ? `${API_PREFIX}/browse?${query}` : `${API_PREFIX}/browse`;

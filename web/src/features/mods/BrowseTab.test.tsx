@@ -223,10 +223,30 @@ describe('BrowseTab', () => {
   });
 
   describe('AC3: Debounced search', () => {
-    it('waits for debounce before filtering', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
+    it('waits for debounce before making API request', async () => {
+      // Search response returns filtered result (server-side filtering)
+      const searchResponse: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: [mockBrowseResponse.data.mods[0]], // Just carrycapacity
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+
+      // Mock returns different responses based on whether search param is present
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const hasSearch = url.includes('search=');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(hasSearch ? searchResponse : mockBrowseResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
@@ -244,7 +264,7 @@ describe('BrowseTab', () => {
         fireEvent.change(searchInput, { target: { value: 'carry' } });
       });
 
-      // Before debounce completes, should still show both mods
+      // Before debounce completes, should still show both mods (old data)
       expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
       expect(screen.getByTestId('mod-card-primitivesurvival')).toBeInTheDocument();
 
@@ -253,7 +273,7 @@ describe('BrowseTab', () => {
         vi.advanceTimersByTime(350);
       });
 
-      // After debounce, should filter to only matching mod
+      // After debounce, API returns filtered results
       await waitFor(() => {
         expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-card-primitivesurvival')).not.toBeInTheDocument();
@@ -261,9 +281,28 @@ describe('BrowseTab', () => {
     });
 
     it('updates results count with search term', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
+      // Search response returns filtered result (server-side filtering)
+      const searchResponse: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: [mockBrowseResponse.data.mods[0]], // Just carrycapacity
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const hasSearch = url.includes('search=');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(hasSearch ? searchResponse : mockBrowseResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
@@ -535,9 +574,28 @@ describe('BrowseTab', () => {
 
   describe('empty results', () => {
     it('shows empty state when search returns no results', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
+      // Empty response for no search results
+      const emptySearchResponse: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: [],
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const hasSearch = url.includes('search=');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(hasSearch ? emptySearchResponse : mockBrowseResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
@@ -598,9 +656,28 @@ describe('BrowseTab', () => {
     });
 
     it('combines search and filters correctly', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
+      // Search response returns filtered result (server-side filtering)
+      const searchResponse: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: [mockBrowseResponse.data.mods[0]], // Just carrycapacity
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 1,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const hasSearch = url.includes('search=');
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(hasSearch ? searchResponse : mockBrowseResponse),
+        });
       });
 
       const queryClient = createTestQueryClient();
@@ -621,7 +698,7 @@ describe('BrowseTab', () => {
         vi.advanceTimersByTime(350);
       });
 
-      // Only carrycapacity should be visible
+      // Only carrycapacity should be visible (from server-side filtered results)
       await waitFor(() => {
         expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
         expect(screen.queryByTestId('mod-card-primitivesurvival')).not.toBeInTheDocument();
