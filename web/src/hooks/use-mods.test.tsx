@@ -402,6 +402,102 @@ describe('useInstallMod', () => {
         queryKey: ['mods'],
       });
     });
+
+    /**
+     * Story 10.8 - Cross-tab state synchronization (AC: 3)
+     *
+     * This test verifies that installing a mod from the Browse tab
+     * causes the Installed tab to update via cache invalidation.
+     * Both tabs use useMods() which listens to queryKeys.mods.all.
+     */
+    it('triggers useMods subscribers to refetch after install (cross-tab sync)', async () => {
+      // Initial empty mods list
+      const emptyModsResponse = {
+        status: 'ok',
+        data: {
+          mods: [],
+          pending_restart: false,
+        },
+      };
+
+      // Updated mods list after install
+      const updatedModsResponse = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'newmod-1.5.0.zip',
+              slug: 'newmod',
+              version: '1.5.0',
+              enabled: true,
+              installed_at: '2025-01-15T00:00:00Z',
+              name: 'New Mod',
+              authors: ['TestAuthor'],
+              description: 'A new mod',
+            },
+          ],
+          pending_restart: true,
+        },
+      };
+
+      let fetchCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.endsWith('/mods') && !url.includes('POST')) {
+          fetchCount++;
+          // First fetch returns empty, subsequent fetches return the installed mod
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve(fetchCount === 1 ? emptyModsResponse : updatedModsResponse),
+          };
+        }
+        // Install endpoint
+        return {
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                slug: 'newmod',
+                version: '1.5.0',
+                filename: 'newmod-1.5.0.zip',
+                compatibility: 'compatible',
+                pending_restart: true,
+              },
+            }),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Render useMods hook (simulates InstalledTab subscription)
+      const { result: modsResult } = renderHook(() => useMods(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Wait for initial fetch to complete
+      await waitFor(() => expect(modsResult.current.isSuccess).toBe(true));
+      expect(modsResult.current.data?.data.mods).toHaveLength(0);
+
+      // Render useInstallMod hook (simulates BrowseTab install action)
+      const { result: installResult } = renderHook(() => useInstallMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Perform install
+      await act(async () => {
+        installResult.current.mutate({ slug: 'newmod', version: '1.5.0' });
+      });
+
+      await waitFor(() => expect(installResult.current.isSuccess).toBe(true));
+
+      // Verify the mods list was refetched and now includes the new mod
+      await waitFor(() => {
+        expect(modsResult.current.data?.data.mods).toHaveLength(1);
+        expect(modsResult.current.data?.data.mods[0].slug).toBe('newmod');
+      });
+    });
   });
 });
 

@@ -1,8 +1,50 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ModCard, formatNumber } from './ModCard';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ModCard } from './ModCard';
+import { formatNumber } from '@/lib/utils';
+import * as useMods from '@/hooks/use-mods';
 import type { ModBrowseItem } from '@/api/types';
+
+// Mock useInstallMod hook - return default mock for all tests
+vi.mock('@/hooks/use-mods', async () => {
+  const actual = await vi.importActual('@/hooks/use-mods');
+  return {
+    ...actual,
+    useInstallMod: vi.fn(() => ({
+      mutate: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+      isSuccess: false,
+      isIdle: true,
+      data: undefined,
+      variables: undefined,
+      reset: vi.fn(),
+      status: 'idle',
+      mutateAsync: vi.fn(),
+      context: undefined,
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: 0,
+      isPaused: false,
+    })),
+  };
+});
+
+// Helper to create a QueryClient wrapper
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
 // Mock mod data for testing
 const mockMod: ModBrowseItem = {
@@ -266,5 +308,98 @@ describe('ModCard', () => {
       const card = screen.getByTestId('mod-card-carrycapacity');
       expect(card.className).not.toContain('cursor-pointer');
     });
+  });
+
+  describe('install button (Story 10.8)', () => {
+    const mockMutate = vi.fn();
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.mocked(useMods.useInstallMod).mockReturnValue({
+        mutate: mockMutate,
+        isPending: false,
+        isError: false,
+        error: null,
+        isSuccess: false,
+        isIdle: true,
+        data: undefined,
+        variables: undefined,
+        reset: vi.fn(),
+        status: 'idle',
+        mutateAsync: vi.fn(),
+        context: undefined,
+        failureCount: 0,
+        failureReason: null,
+        submittedAt: 0,
+        isPaused: false,
+      });
+    });
+
+    it('does not show install button when installedSlugs is not provided', () => {
+      render(<ModCard mod={mockMod} />, { wrapper: createWrapper() });
+
+      expect(screen.queryByTestId('mod-card-install-carrycapacity')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-card-installed-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('shows Install button when mod is not installed', () => {
+      const installedSlugs = new Set<string>();
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      const installButton = screen.getByTestId('mod-card-install-carrycapacity');
+      expect(installButton).toBeInTheDocument();
+      expect(installButton).toHaveTextContent('Install');
+    });
+
+    it('shows Installed indicator when mod is already installed', () => {
+      const installedSlugs = new Set(['carrycapacity']);
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      const indicator = screen.getByTestId('mod-card-installed-carrycapacity');
+      expect(indicator).toBeInTheDocument();
+      expect(indicator).toHaveTextContent('Installed');
+      expect(screen.queryByTestId('mod-card-install-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('opens confirmation dialog when Install button is clicked', async () => {
+      const user = userEvent.setup();
+      const installedSlugs = new Set<string>();
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Dialog should open
+      expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('install-dialog-mod-name')).toHaveTextContent('Carry Capacity');
+    });
+
+    it('does not trigger card onClick when Install button is clicked', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+      const installedSlugs = new Set<string>();
+
+      render(
+        <ModCard mod={mockMod} onClick={handleClick} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Card onClick should NOT be called
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+
   });
 });

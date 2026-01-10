@@ -9,19 +9,22 @@
  * - Sort by Newest, Downloads, Trending, Name
  * - Loading and error states
  * - Pagination for large result sets (Story 10.7)
+ * - Install buttons on mod cards (Story 10.8)
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
  * Story 10.7: Pagination
+ * Story 10.8: Browse Install Integration
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
+import { useMods } from '@/hooks/use-mods';
 import {
   useBrowseScrollRestoration,
   getSavedScrollState,
@@ -45,6 +48,13 @@ export function BrowseTab() {
   const [searchInput, setSearchInput] = useState('');
   const [filters, setFilters] = useState<ModFilters>({});
   const [sort, setSort] = useState<BrowseSortOption>('recent');
+
+  // Story 10.8: Get installed mods to show install state on cards
+  const { data: modsData } = useMods();
+  const installedSlugs = useMemo(
+    () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
+    [modsData]
+  );
 
   // Story 10.7: Scroll position restoration
   // Read saved state synchronously for initial page (before first render)
@@ -197,7 +207,12 @@ export function BrowseTab() {
       />
 
       {/* Results Grid */}
-      <ModBrowseGrid mods={mods} isLoading={isLoading} onModClick={handleModClick} />
+      <ModBrowseGrid
+        mods={mods}
+        isLoading={isLoading}
+        onModClick={handleModClick}
+        installedSlugs={installedSlugs}
+      />
 
       {/* Story 10.7: Pagination controls */}
       {!isLoading && pagination && pagination.totalPages > 1 && (
