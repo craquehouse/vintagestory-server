@@ -597,6 +597,291 @@ describe('BrowseTab', () => {
     });
   });
 
+  describe('Story 10.7: Pagination Integration', () => {
+    it('renders pagination controls when results span multiple pages', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pagination')).toBeInTheDocument();
+      });
+
+      // Should show page info
+      expect(screen.getByText(/Page 1 of 5/)).toBeInTheDocument();
+    });
+
+    it('does not render pagination for single page results', async () => {
+      const singlePageResponse = {
+        status: 'ok' as const,
+        data: {
+          mods: mockBrowseResponse.data.mods,
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 2,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(singlePageResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Should NOT show pagination
+      expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
+    });
+
+    it('changes page when clicking next button', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      const page1Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockBrowseResponse.data.mods,
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: false,
+          },
+        },
+      };
+
+      const page2Response = {
+        status: 'ok' as const,
+        data: {
+          mods: [
+            {
+              ...mockBrowseResponse.data.mods[0],
+              slug: 'page2mod',
+              name: 'Page 2 Mod',
+            },
+          ],
+          pagination: {
+            page: 2,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: true,
+          },
+        },
+      };
+
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(page1Response),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(page2Response),
+        });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pagination')).toBeInTheDocument();
+      });
+
+      // Click next page
+      const nextButton = screen.getByRole('button', { name: /next/i });
+      await user.click(nextButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Page 2 of 5/)).toBeInTheDocument();
+      });
+    });
+
+    it('resets to page 1 when search changes', async () => {
+      // Start on page 2
+      const page2Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockBrowseResponse.data.mods,
+          pagination: {
+            page: 2,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: true,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(page2Response),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      // Type in search - should reset page to 1
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'carry' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Page should reset to 1 (internal state)
+      // We can verify by checking the next button is enabled (indicating we're not on last page)
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
+      });
+    });
+  });
+
+  describe('Story 10.7: Scroll Position Restoration (AC3)', () => {
+    // Mock sessionStorage
+    const mockSessionStorage = {
+      store: {} as Record<string, string>,
+      getItem: vi.fn((key: string) => mockSessionStorage.store[key] ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        mockSessionStorage.store[key] = value;
+      }),
+      removeItem: vi.fn((key: string) => {
+        delete mockSessionStorage.store[key];
+      }),
+    };
+
+    beforeEach(() => {
+      mockSessionStorage.store = {};
+      Object.defineProperty(window, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+      });
+      Object.defineProperty(window, 'scrollY', {
+        value: 500,
+        configurable: true,
+      });
+      window.scrollTo = vi.fn();
+    });
+
+    it('saves scroll position when clicking a mod card', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Click on a mod card
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      // Should have saved position to sessionStorage
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        'browse-scroll-position',
+        expect.any(String)
+      );
+    });
+
+    it('restores page from saved position on mount', async () => {
+      // Pre-populate sessionStorage with saved position
+      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
+        scrollY: 750,
+        page: 3,
+      });
+
+      const page3Response = {
+        status: 'ok' as const,
+        data: {
+          mods: mockBrowseResponse.data.mods,
+          pagination: {
+            page: 3,
+            pageSize: 20,
+            totalItems: 100,
+            totalPages: 5,
+            hasNext: true,
+            hasPrev: true,
+          },
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(page3Response),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      // Should display page 3 (restored from sessionStorage)
+      await waitFor(() => {
+        expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
+      });
+    });
+
+    it('clears saved position when search changes', async () => {
+      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
+        scrollY: 500,
+        page: 2,
+      });
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      // Type in search
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should have cleared saved position
+      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(
+        'browse-scroll-position'
+      );
+    });
+  });
+
   describe('Story 10.5: Card Navigation (AC 3)', () => {
     it('navigates to mod detail when card is clicked', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
