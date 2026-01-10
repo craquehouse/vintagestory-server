@@ -95,3 +95,6 @@ Thumbs.db
 
 # Auto Claude data directory
 .auto-claude/
+
+# Playwright-mcp
+.playwright-mcp
