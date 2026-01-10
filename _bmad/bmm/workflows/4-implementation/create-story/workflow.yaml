@@ -15,8 +15,16 @@ story_dir: "{implementation_artifacts}"
 # Workflow components
 installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/create-story"
 template: "{installed_path}/template.md"
+template_api_spike: "{installed_path}/template-api-spike.md"
 instructions: "{installed_path}/instructions.xml"
 validation: "{installed_path}/checklist.md"
+
+# Template Selection Guide:
+# - template.md: Standard implementation stories (default)
+# - template-api-spike.md: Story X.0 for epics depending on external APIs
+#   Use API spike when: epic browses/searches external data, integrates with
+#   third-party services, or depends on APIs not previously used in project.
+#   Prevents mid-story pivots by discovering API quirks upfront.
 
 # Variables and inputs
 variables:

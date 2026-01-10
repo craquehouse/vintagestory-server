@@ -162,11 +162,11 @@ development_status:
 # Track action items from retrospectives to ensure follow-through
 retro_action_items:
   # Epic 10 Action Items (from 2026-01-10 retrospective)
-  E10-A1-add-retro-action-tracking-mechanism: pending # Owner: Bob (SM)
-  E10-A2-create-api-spike-story-template: pending # Owner: Charlie (Dev)
-  E10-A3-document-epic10-architecture-decisions: pending # Owner: Charlie (Dev) - client/server filtering, conservative compat
-  E10-A4-review-prioritize-polish-backlog: pending # Owner: Alice (PO)
-  E10-A5-audit-previous-retro-action-items: pending # Owner: Bob (SM) - resolve Epic 8 items
+  E10-A1-add-retro-action-tracking-mechanism: done # Already exists via E9-A1
+  E10-A2-create-api-spike-story-template: done # Created template-api-spike.md in create-story workflow
+  E10-A3-document-epic10-architecture-decisions: done # Added 5 ADRs to architecture.md (hybrid filtering, conservative compat, cache invalidation, URL state, browse cache)
+  E10-A4-review-prioritize-polish-backlog: pending # Owner: Alice (PO) - backlog reviewed, awaiting prioritization decisions
+  E10-A5-audit-previous-retro-action-items: done # E8-A1/A2/A3 already marked done
   # Epic 9 Action Items (from 2026-01-05)
   E9-A1-add-retro-section-to-sprint-status: done # This section exists
   E9-A2-review-polish-backlog-at-epic-10-kickoff: done # 4 items added to backlog during Epic 10
