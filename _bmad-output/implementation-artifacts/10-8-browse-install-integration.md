@@ -70,6 +70,14 @@ CRITICAL TASK STRUCTURE RULES:
   - [x] Subtask 4.2: Test mod appears in Installed tab after browse install
   - [x] Subtask 4.3: Write integration tests for cross-tab synchronization
 
+### Review Follow-ups (AI-Review)
+
+- [ ] [AI-Review][HIGH] Add tracking issue comment to eslint-disable in TerminalView.tsx:123 or properly list dependencies
+- [ ] [AI-Review][MEDIUM] Refactor BrowseTab.tsx installedSlugs Set construction to use Set constructor with map
+- [ ] [AI-Review][MEDIUM] Propagate onModInstalled callback in BrowseTab.tsx or remove unused prop from ModBrowseGrid
+- [ ] [AI-Review][LOW] Update test count documentation from ~750 to 1105 tests
+- [ ] [AI-Review][LOW] Extract 'latest' string constant in ModCard.tsx for version handling
+
 ## Dev Notes
 
 ### Testing Requirements
