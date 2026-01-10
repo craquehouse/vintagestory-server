@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ModCard, formatNumber } from './ModCard';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -17,6 +18,13 @@ const mockMod: ModBrowseItem = {
   logoUrl: null,
   tags: ['utility', 'qol'],
   lastReleased: '2024-01-15T10:00:00Z',
+};
+
+const mockModWithLogo: ModBrowseItem = {
+  ...mockMod,
+  slug: 'modwithlogo',
+  name: 'Mod With Logo',
+  logoUrl: 'https://mods.vintagestory.at/assets/modlogo.png',
 };
 
 const mockModNoSummary: ModBrowseItem = {
@@ -160,6 +168,103 @@ describe('ModCard', () => {
       expect(screen.getByTestId('mod-card-downloads-empty')).toHaveTextContent('0');
       expect(screen.getByTestId('mod-card-follows-empty')).toHaveTextContent('0');
       expect(screen.getByTestId('mod-card-trending-empty')).toHaveTextContent('0');
+    });
+  });
+
+  describe('thumbnail display (AC 1, 4)', () => {
+    it('displays logo image when logoUrl is provided', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const image = screen.getByTestId('mod-card-logo-modwithlogo');
+      expect(image).toBeInTheDocument();
+      expect(image).toHaveAttribute('src', 'https://mods.vintagestory.at/assets/modlogo.png');
+      expect(image).toHaveAttribute('alt', 'Mod With Logo thumbnail');
+    });
+
+    it('displays placeholder icon when logoUrl is null', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const placeholder = screen.getByTestId('mod-card-placeholder-carrycapacity');
+      expect(placeholder).toBeInTheDocument();
+      // Logo image should not exist
+      expect(screen.queryByTestId('mod-card-logo-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('displays thumbnail in correct aspect ratio container', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const thumbnail = screen.getByTestId('mod-card-thumbnail-modwithlogo');
+      expect(thumbnail).toBeInTheDocument();
+      // Check for aspect ratio styling (CSS class)
+      expect(thumbnail.className).toContain('aspect-');
+    });
+  });
+
+  describe('compatibility badge display (AC 2)', () => {
+    it('displays compatibility badge with not_verified status by default', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const badge = screen.getByTestId('compatibility-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveAttribute('data-status', 'not_verified');
+      expect(badge).toHaveTextContent('Not verified');
+    });
+
+    it('displays compatibility badge for mod with logo', () => {
+      render(<ModCard mod={mockModWithLogo} />);
+
+      const badge = screen.getByTestId('compatibility-badge');
+      expect(badge).toBeInTheDocument();
+    });
+  });
+
+  describe('click navigation (AC 3)', () => {
+    it('calls onClick handler when card is clicked', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('has cursor-pointer styling when onClick is provided', () => {
+      const handleClick = vi.fn();
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('cursor-pointer');
+    });
+
+    it('has hover shadow transition when onClick is provided', () => {
+      const handleClick = vi.fn();
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('transition-shadow');
+    });
+
+    it('does NOT call onClick when external link is clicked (event bubbling)', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const externalLink = screen.getByTestId('mod-card-link-carrycapacity');
+      await user.click(externalLink);
+
+      // External link click should NOT trigger card onClick
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+
+    it('does not have cursor-pointer when onClick is not provided', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).not.toContain('cursor-pointer');
     });
   });
 });

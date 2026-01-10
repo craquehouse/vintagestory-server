@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,11 +34,20 @@ import type { ModFilters, BrowseSortOption } from '@/api/types';
  * <BrowseTab />
  */
 export function BrowseTab() {
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [filters, setFilters] = useState<ModFilters>({});
   const [sort, setSort] = useState<BrowseSortOption>('recent');
 
   const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Navigate to mod detail view (Story 10.6)
+  const handleModClick = useCallback(
+    (slug: string) => {
+      navigate(`/mods/browse/${slug}`);
+    },
+    [navigate]
+  );
 
   const {
     mods,
@@ -53,18 +63,15 @@ export function BrowseTab() {
     sort,
   });
 
-  const handleClearSearch = useCallback(() => {
+  function handleClearSearch(): void {
     setSearchInput('');
-  }, []);
+  }
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Escape') {
-        handleClearSearch();
-      }
-    },
-    [handleClearSearch]
-  );
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
+    if (e.key === 'Escape') {
+      handleClearSearch();
+    }
+  }
 
   if (isError) {
     return (
@@ -132,7 +139,7 @@ export function BrowseTab() {
       />
 
       {/* Results Grid */}
-      <ModBrowseGrid mods={mods} isLoading={isLoading} />
+      <ModBrowseGrid mods={mods} isLoading={isLoading} onModClick={handleModClick} />
 
       {/* Results count */}
       {!isLoading && pagination && (

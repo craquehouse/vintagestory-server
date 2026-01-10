@@ -17,12 +17,19 @@ interface ModBrowseGridProps {
   mods: ModBrowseItem[];
   /** Whether the data is currently loading */
   isLoading?: boolean;
+  /** Click handler for mod card navigation (passed to each ModCard) */
+  onModClick?: (slug: string) => void;
 }
 
 /**
  * Number of skeleton cards to show during loading state.
  */
 const SKELETON_COUNT = 8;
+
+/**
+ * Responsive grid layout classes.
+ */
+const GRID_CLASSES = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
 
 /**
  * Skeleton card component for loading state.
@@ -53,11 +60,15 @@ function ModCardSkeleton() {
  * @example
  * <ModBrowseGrid mods={filteredMods} isLoading={isLoading} />
  */
-export function ModBrowseGrid({ mods, isLoading = false }: ModBrowseGridProps) {
+export function ModBrowseGrid({
+  mods,
+  isLoading = false,
+  onModClick,
+}: ModBrowseGridProps) {
   if (isLoading) {
     return (
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        className={GRID_CLASSES}
         data-testid="mod-browse-grid-loading"
       >
         {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
@@ -80,11 +91,15 @@ export function ModBrowseGrid({ mods, isLoading = false }: ModBrowseGridProps) {
 
   return (
     <div
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      className={GRID_CLASSES}
       data-testid="mod-browse-grid"
     >
       {mods.map((mod) => (
-        <ModCard key={mod.slug} mod={mod} />
+        <ModCard
+          key={mod.slug}
+          mod={mod}
+          onClick={onModClick ? () => onModClick(mod.slug) : undefined}
+        />
       ))}
     </div>
   );

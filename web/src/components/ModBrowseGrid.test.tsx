@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ModBrowseGrid } from './ModBrowseGrid';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -122,6 +123,51 @@ describe('ModBrowseGrid', () => {
       expect(grid).toBeInTheDocument();
       expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
       expect(grid.children.length).toBe(1);
+    });
+  });
+
+  describe('onModClick handler', () => {
+    it('calls onModClick with slug when card is clicked', async () => {
+      const user = userEvent.setup();
+      const handleModClick = vi.fn();
+
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />);
+
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      await user.click(card);
+
+      expect(handleModClick).toHaveBeenCalledTimes(1);
+      expect(handleModClick).toHaveBeenCalledWith('carrycapacity');
+    });
+
+    it('calls onModClick with correct slug for each card', async () => {
+      const user = userEvent.setup();
+      const handleModClick = vi.fn();
+
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />);
+
+      // Click second card
+      const secondCard = screen.getByTestId('mod-card-primitivesurvival');
+      await user.click(secondCard);
+
+      expect(handleModClick).toHaveBeenCalledWith('primitivesurvival');
+    });
+
+    it('does not provide onClick to cards when onModClick is not provided', () => {
+      render(<ModBrowseGrid mods={mockMods} />);
+
+      // Cards should exist but not have cursor-pointer styling
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).not.toContain('cursor-pointer');
+    });
+
+    it('provides onClick to cards when onModClick is provided', () => {
+      const handleModClick = vi.fn();
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />);
+
+      // Cards should have cursor-pointer styling when clickable
+      const card = screen.getByTestId('mod-card-carrycapacity');
+      expect(card.className).toContain('cursor-pointer');
     });
   });
 });
