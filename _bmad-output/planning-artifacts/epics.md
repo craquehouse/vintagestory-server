@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-01-03'
+lastUpdated: '2026-01-10'
 updates:
+  - date: '2026-01-10'
+    description: 'Added Epic 11 (6 stories), Epic 12 (6 stories), Epic 13 (6 stories) for Navigation Refactor, Enhanced Dashboard, and Version Browser'
   - date: '2026-01-03'
     description: 'Added Epic 9 (7 stories) and Epic 10 (8 stories) for QoL Polish and Advanced Mod Browser'
 ---
@@ -279,6 +281,49 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR83 | Epic 10 | Install from browse/detail |
 | FR84 | Epic 10 | Show compatibility before install |
 | FR85 | Epic 10 | Update UI after install |
+| FR86 | Epic 11 | Expandable Game Server sub-navigation |
+| FR87 | Epic 11 | Sub-nav order: Version, Settings, Mods, Console |
+| FR88 | Epic 11 | Persist expanded/collapsed state |
+| FR89 | Epic 11 | Dynamic Installation/Version label |
+| FR90 | Epic 11 | Rename Settings to VSManager |
+| FR91 | Epic 11 | Mods under Game Server nav |
+| FR92 | Epic 11 | Dedicated Console page |
+| FR93 | Epic 11 | Dedicated Settings page |
+| FR94 | Epic 11 | Version/Installation page |
+| FR95 | Epic 11 | Mods at /game-server/mods with redirects |
+| FR96 | Epic 11 | Empty state when server not installed |
+| FR97 | Epic 11 | Remove install from Dashboard |
+| FR98 | Epic 11 | Dashboard link to Version page |
+| FR99 | Epic 11 | Default redirect /game-server → /game-server/version |
+| FR100 | Epic 12 | Collect API server metrics |
+| FR101 | Epic 12 | Collect game server process metrics |
+| FR102 | Epic 12 | Configurable metrics interval |
+| FR103 | Epic 12 | Historical metrics storage |
+| FR104 | Epic 12 | Current metrics API |
+| FR105 | Epic 12 | Historical metrics API with time filter |
+| FR106 | Epic 12 | Admin-only metrics access |
+| FR107 | Epic 12 | Dashboard stat cards |
+| FR108 | Epic 12 | Memory card with API/Game breakdown |
+| FR109 | Epic 12 | Time-series memory chart |
+| FR110 | Epic 12 | Selectable chart time ranges |
+| FR111 | Epic 12 | Quick links to Game Server pages |
+| FR112 | Epic 12 | Disabled quick links when no server |
+| FR113 | Epic 13 | Version list from stable/unstable |
+| FR114 | Epic 13 | Channel filter for versions |
+| FR115 | Epic 13 | Version card display |
+| FR116 | Epic 13 | Version data caching |
+| FR117 | Epic 13 | Version cards like mod browser |
+| FR118 | Epic 13 | Installed version indicator |
+| FR119 | Epic 13 | Latest version badge |
+| FR120 | Epic 13 | Version sort by newest |
+| FR121 | Epic 13 | Install from version card |
+| FR122 | Epic 13 | Install confirmation dialog |
+| FR123 | Epic 13 | Upgrade version comparison |
+| FR124 | Epic 13 | Downgrade warning |
+| FR125 | Epic 13 | Server-running warning |
+| FR126 | Epic 13 | Installation progress display |
+| FR127 | Epic 13 | Install Latest Stable quick action |
+| FR128 | Epic 13 | Update to Latest quick action |
 
 ## Epic List
 
@@ -1784,7 +1829,10 @@ So that **I can monitor background task status**.
 | Epic 8: Periodic Task Patterns | 8.0, 8.1, 8.2, 8.3 | 4 |
 | Epic 9: Quality of Life Polish Pass | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7 | 7 |
 | Epic 10: Advanced Mod Browser | 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8 | 8 |
-| **Total** | | **53** |
+| Epic 11: GameServer Navigation Refactor | 11.1, 11.2, 11.3, 11.4, 11.5, 11.6 | 6 |
+| Epic 12: Enhanced Dashboard with Server Metrics | 12.0, 12.1, 12.2, 12.3, 12.4, 12.5 | 6 |
+| Epic 13: Server Version Browser | 13.0, 13.1, 13.2, 13.3, 13.4, 13.5 | 6 |
+| **Total** | | **71** |
 
 ---
 
@@ -2310,3 +2358,797 @@ So that **discovery and installation is a seamless experience**.
 **When** the error occurs
 **Then** a clear error message is displayed
 **And** the install button returns to its original state
+
+---
+
+## Epic 11: GameServer Navigation Refactor
+
+Admins can navigate game server functionality through an organized sub-navigation structure, with dedicated pages for version management, settings, mods, and console access.
+
+**Goal:** Split the current combined GameServer page into distinct sections with proper sub-navigation, improving organization and discoverability. Move Mods under Game Server as a logical grouping.
+
+### Current State
+
+- Single `/game-server` route with split-view layout (Console + Settings)
+- Server installation lives on Dashboard (ServerInstallCard)
+- Mods is a top-level navigation item
+- No sub-navigation under Game Server
+
+### Target State
+
+```
+Sidebar Navigation:
+├── Dashboard (server stats at-a-glance)
+├── Game Server (expandable)
+│   ├── Installation / Version (dynamic label based on install state)
+│   ├── Settings (game configuration)
+│   ├── Mods (mod management + browser)
+│   └── Console (full-page console view)
+└── VSManager (app settings - formerly "Settings")
+```
+
+**Dynamic Label:** "Installation" when no server installed → "Version" once installed
+
+**Rationale:**
+- Mods are part of the game server, not a separate top-level concept
+- Clear distinction: "Game Server → Settings" = game config vs "VSManager" = application settings
+- Logical flow: Version → Settings → Mods → Console
+
+---
+
+### Story 11.1: Sub-Navigation Infrastructure
+
+As a **frontend developer**,
+I want **an expandable sub-navigation component in the sidebar**,
+So that **Game Server can have nested navigation items**.
+
+**Acceptance Criteria:**
+
+**Given** I view the sidebar
+**When** I click on "Game Server"
+**Then** the section expands to show sub-items: Version/Installation, Settings, Mods, Console
+**And** the expanded/collapsed state is persisted in localStorage
+
+**Given** the Game Server section is expanded
+**When** I click on "Game Server" again
+**Then** the section collapses to hide sub-items
+
+**Given** I am on a Game Server sub-page (e.g., `/game-server/console`)
+**When** I view the sidebar
+**Then** the Game Server section is automatically expanded
+**And** the active sub-item is highlighted
+
+**Given** no server is installed
+**When** I view the sidebar
+**Then** the first sub-item shows "Installation"
+
+**Given** a server is installed
+**When** I view the sidebar
+**Then** the first sub-item shows "Version"
+
+**Given** the sidebar is in collapsed mode (icons only)
+**When** I hover over the Game Server icon
+**Then** a tooltip/flyout shows the sub-navigation items
+
+**Tasks:**
+- [ ] Create ExpandableNavItem component with expand/collapse behavior
+- [ ] Add sub-navigation items to Sidebar.tsx
+- [ ] Update routes in App.tsx for nested routing
+- [ ] Implement localStorage persistence for expanded state
+- [ ] Add dynamic label logic based on server install state
+- [ ] Handle collapsed sidebar hover behavior
+- [ ] Update tests for new navigation structure
+
+---
+
+### Story 11.2: Version/Installation Page
+
+As an **administrator**,
+I want **a dedicated page for server version management**,
+So that **I can see and manage which server version is installed**.
+
+**Acceptance Criteria:**
+
+**Given** no server is installed
+**When** I navigate to `/game-server/version`
+**Then** I see the installation interface (version input + install button)
+**And** the page title is "Server Installation"
+
+**Given** a server is installed
+**When** I navigate to `/game-server/version`
+**Then** I see the current installed version prominently displayed
+**And** I see server state (running/stopped)
+**And** the page title is "Server Version"
+
+**Given** server installation is in progress
+**When** I view the page
+**Then** I see installation progress (stage + percentage)
+**And** the install button is disabled
+
+**Given** a newer version is available
+**When** I view the page (server installed)
+**Then** I see an "Update Available" indicator
+**And** I can see the new version number
+
+**Given** I am on the version page
+**When** the page loads
+**Then** the ServerInstallCard logic from Dashboard is reused/moved here
+
+**Tasks:**
+- [ ] Create `/features/game-server/VersionPage.tsx`
+- [ ] Move ServerInstallCard logic from Dashboard
+- [ ] Add installed version display with status
+- [ ] Add update available indicator
+- [ ] Add route `/game-server/version`
+- [ ] Add tests for version page states
+
+---
+
+### Story 11.3: Settings Page Extraction
+
+As an **administrator**,
+I want **a dedicated full-page view for game server settings**,
+So that **I have more space to view and edit configuration**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to `/game-server/settings`
+**When** the page loads
+**Then** I see the GameConfigPanel in a full-width layout
+**And** server status is shown in the page header
+
+**Given** no server is installed
+**When** I navigate to `/game-server/settings`
+**Then** I see a message indicating server must be installed first
+**And** a link to the Installation page is provided
+
+**Given** I am on the settings page
+**When** I edit a setting
+**Then** the existing auto-save behavior works as before
+**And** toast notifications appear for success/error
+
+**Given** the settings page is displayed
+**When** I view the layout
+**Then** setting groups have better horizontal space utilization than the previous split-view
+
+**Tasks:**
+- [ ] Create `/features/game-server/SettingsPage.tsx`
+- [ ] Extract GameConfigPanel into full-page layout
+- [ ] Add server status header component
+- [ ] Add empty state for no server installed
+- [ ] Add route `/game-server/settings`
+- [ ] Improve layout for wider screens
+- [ ] Add tests for settings page
+
+---
+
+### Story 11.4: Mods Page Migration
+
+As an **administrator**,
+I want **Mods accessible under Game Server navigation**,
+So that **mod management is logically grouped with other server functions**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to `/game-server/mods`
+**When** the page loads
+**Then** I see the existing Mods interface (Installed/Browse tabs)
+**And** all existing mod functionality works as before
+
+**Given** I navigate to the old `/mods` URL
+**When** the page loads
+**Then** I am redirected to `/game-server/mods`
+
+**Given** I am on the mod detail page
+**When** I view the URL
+**Then** it is `/game-server/mods/browse/:slug`
+
+**Given** no server is installed
+**When** I navigate to `/game-server/mods`
+**Then** I see a message indicating server must be installed first
+**And** compatibility checking is disabled (no game version to check against)
+
+**Tasks:**
+- [ ] Move mods feature routes under `/game-server/mods`
+- [ ] Update all internal links to mods pages
+- [ ] Add redirect from old `/mods` routes
+- [ ] Update breadcrumbs in mod detail page
+- [ ] Add empty state for no server installed
+- [ ] Update tests for new routes
+
+---
+
+### Story 11.5: Console Page Extraction
+
+As an **administrator**,
+I want **a dedicated full-page console view**,
+So that **I have maximum space for monitoring server output**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to `/game-server/console`
+**When** the page loads
+**Then** I see the ConsolePanel in a full-width, full-height layout
+**And** server status is shown in the page header
+
+**Given** no server is installed
+**When** I navigate to `/game-server/console`
+**Then** I see a message indicating server must be installed first
+**And** the console is not displayed
+
+**Given** the server is stopped
+**When** I view the console page
+**Then** I can still view console history
+**And** command input is disabled with explanation
+
+**Given** I am on the console page
+**When** I select a different log source (dropdown)
+**Then** the log streaming switches as before
+
+**Tasks:**
+- [ ] Create `/features/game-server/ConsolePage.tsx`
+- [ ] Extract ConsolePanel into full-page layout
+- [ ] Add server status header component
+- [ ] Add empty state for no server installed
+- [ ] Add route `/game-server/console`
+- [ ] Maximize vertical space usage
+- [ ] Add tests for console page
+
+---
+
+### Story 11.6: Dashboard & Navigation Cleanup
+
+As an **administrator**,
+I want **a simplified Dashboard focused on status**,
+So that **it serves as a quick overview without duplicate functionality**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to Dashboard
+**When** the page loads
+**Then** ServerInstallCard is NOT displayed (moved to Version page)
+**And** Server status card remains with basic info
+
+**Given** no server is installed
+**When** I view the Dashboard
+**Then** I see a card indicating "No server installed"
+**And** a button/link takes me to `/game-server/version`
+
+**Given** the sidebar navigation is updated
+**When** I view the sidebar
+**Then** "Settings" is renamed to "VSManager"
+**And** "Mods" is no longer a top-level item
+
+**Given** the default route for `/game-server`
+**When** I navigate to `/game-server` without a sub-path
+**Then** I am redirected to `/game-server/version`
+
+**Tasks:**
+- [ ] Remove ServerInstallCard from Dashboard
+- [ ] Add "No server installed" card with link to version page
+- [ ] Rename "Settings" to "VSManager" in sidebar
+- [ ] Remove top-level "Mods" from sidebar
+- [ ] Set default redirect for `/game-server` → `/game-server/version`
+- [ ] Update any remaining internal navigation links
+- [ ] Add tests for navigation changes
+
+---
+
+## Epic 12: Enhanced Dashboard with Server Metrics
+
+Admins can monitor server health and performance through a comprehensive dashboard with real-time metrics, historical charts, and quick actions.
+
+**Goal:** Transform Dashboard from a basic status card into a monitoring hub with CPU, memory, player count, and time-series visualizations.
+
+### Current State
+
+- Dashboard shows: server state badge, version, uptime, disk space, controls
+- No historical data, no player info, no resource metrics
+- Single polling interval (5 seconds)
+- Basic status card layout
+
+### Target State
+
+- Real-time metrics: Memory (API + Game), CPU, player count
+- Time-series charts for key metrics (1h, 6h, 24h views)
+- Server health indicators with thresholds
+- Quick links to other sections
+- Responsive card-based layout
+
+---
+
+### Story 12.0: Epic 12 Technical Preparation
+
+As a **developer**,
+I want **to research metrics collection and visualization approaches**,
+So that **subsequent stories have a solid technical foundation**.
+
+**Acceptance Criteria:**
+
+**Given** we need to collect process metrics
+**When** I research approaches
+**Then** I document how to use psutil for API server metrics
+**And** I document how to find and monitor the VintageStory game server process
+
+**Given** we need to display charts
+**When** I evaluate charting libraries
+**Then** I recommend a library (recharts, visx, or lightweight alternative)
+**And** I document bundle size and feature trade-offs
+
+**Given** we need to store historical metrics
+**When** I design the storage approach
+**Then** I document in-memory ring buffer design with configurable retention
+**And** I specify data structure for metrics snapshots
+
+**Given** we may want player information
+**When** I research VintageStory server capabilities
+**Then** I document how to get player count (console parsing, RCON, or API)
+**And** I note any limitations
+
+**Tasks:**
+- [ ] Research psutil for process metrics collection
+- [ ] Document game server process discovery (by name or PID file)
+- [ ] Evaluate charting libraries (recharts vs alternatives)
+- [ ] Design MetricsSnapshot data model
+- [ ] Design in-memory ring buffer with retention policy
+- [ ] Research player count extraction methods
+- [ ] Update architecture.md with findings
+
+---
+
+### Story 12.1: Metrics Collection Service
+
+As a **backend developer**,
+I want **a service that collects server metrics periodically**,
+So that **current and historical metrics are available via API**.
+
+**Acceptance Criteria:**
+
+**Given** the API server is running
+**When** the metrics collection job executes (default every 10 seconds)
+**Then** it collects: timestamp, api_memory_mb, api_cpu_percent
+
+**Given** the game server process is running
+**When** metrics are collected
+**Then** it also collects: game_memory_mb, game_cpu_percent
+
+**Given** the game server is not running
+**When** metrics are collected
+**Then** game_memory_mb and game_cpu_percent are null
+**And** collection continues without error
+
+**Given** metrics are collected
+**When** the ring buffer is at capacity (default 1 hour at 10s intervals = 360 samples)
+**Then** the oldest samples are evicted (FIFO)
+
+**Given** the collection interval is configurable
+**When** `VS_METRICS_INTERVAL` is set
+**Then** metrics are collected at the specified interval
+
+**Tasks:**
+- [ ] Add psutil dependency to pyproject.toml
+- [ ] Create MetricsService with collect() method
+- [ ] Create MetricsSnapshot Pydantic model
+- [ ] Implement ring buffer storage with configurable size
+- [ ] Implement game server process discovery
+- [ ] Register metrics collection background job
+- [ ] Add tests for metrics collection
+
+---
+
+### Story 12.2: Metrics API Endpoints
+
+As a **frontend developer**,
+I want **API endpoints to retrieve current and historical metrics**,
+So that **the dashboard can display real-time and chart data**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/metrics/current` as Admin
+**When** metrics have been collected
+**Then** I receive the latest MetricsSnapshot
+**And** response includes: timestamp, api_memory_mb, api_cpu_percent, game_memory_mb, game_cpu_percent
+
+**Given** I call `GET /api/v1alpha1/metrics/history` as Admin
+**When** I don't specify parameters
+**Then** I receive all available historical metrics (up to buffer size)
+
+**Given** I call `GET /api/v1alpha1/metrics/history?minutes=60`
+**When** I specify a time range
+**Then** I receive metrics from the last 60 minutes only
+
+**Given** I am authenticated as Monitor
+**When** I call metrics endpoints
+**Then** I receive a 403 Forbidden (metrics are Admin-only)
+
+**Given** no metrics have been collected yet
+**When** I call metrics endpoints
+**Then** I receive an empty response (not an error)
+
+**Tasks:**
+- [ ] Create /metrics router with current and history endpoints
+- [ ] Add time range filtering for history
+- [ ] Add Admin-only authorization
+- [ ] Add OpenAPI documentation
+- [ ] Add tests for metrics API
+
+---
+
+### Story 12.3: Dashboard Stats Cards
+
+As an **administrator**,
+I want **stat cards showing current server metrics**,
+So that **I can see server health at a glance**.
+
+**Acceptance Criteria:**
+
+**Given** I view the Dashboard
+**When** the page loads
+**Then** I see stat cards for: Server Status, Memory Usage, Disk Space, Uptime
+
+**Given** the Memory Usage card is displayed
+**When** metrics are available
+**Then** I see API memory and Game memory separately
+**And** values update in real-time (polling every 10 seconds)
+
+**Given** the Server Status card is displayed
+**When** I view it
+**Then** I see status badge (running/stopped/etc.)
+**And** Start/Stop/Restart buttons are available
+
+**Given** the game server is not running
+**When** I view the Memory card
+**Then** Game memory shows "N/A" or "-"
+**And** API memory is still displayed
+
+**Given** I am on a mobile device
+**When** I view the Dashboard
+**Then** stat cards stack vertically in a responsive layout
+
+**Tasks:**
+- [ ] Create StatCard component with icon, label, value, trend
+- [ ] Create useMetrics hook for polling current metrics
+- [ ] Redesign Dashboard layout with card grid
+- [ ] Implement Memory card with API/Game breakdown
+- [ ] Implement Disk Space card (existing data)
+- [ ] Implement Uptime card
+- [ ] Move server controls to Status card
+- [ ] Add responsive layout for mobile
+- [ ] Add tests for stat cards
+
+---
+
+### Story 12.4: Dashboard Time-Series Charts
+
+As an **administrator**,
+I want **charts showing metrics over time**,
+So that **I can identify trends and anomalies**.
+
+**Acceptance Criteria:**
+
+**Given** I view the Dashboard
+**When** the page loads
+**Then** I see a Memory Usage chart showing API and Game memory over time
+
+**Given** the chart is displayed
+**When** I view it
+**Then** it shows data for the selected time range (default 1 hour)
+**And** API and Game memory are shown as separate lines
+
+**Given** I want to change the time range
+**When** I click a time range selector (15m, 1h, 6h, 24h)
+**Then** the chart updates to show that time period
+
+**Given** the game server was stopped during the time range
+**When** I view the chart
+**Then** Game memory line has gaps where data is unavailable
+
+**Given** I hover over a point on the chart
+**When** the tooltip appears
+**Then** I see the timestamp and exact values
+
+**Tasks:**
+- [ ] Add recharts (or chosen library) dependency
+- [ ] Create MetricsChart component
+- [ ] Create useMetricsHistory hook
+- [ ] Implement time range selector
+- [ ] Style chart with Catppuccin theme colors
+- [ ] Add responsive sizing
+- [ ] Add tests for chart component
+
+---
+
+### Story 12.5: Quick Actions & Links
+
+As an **administrator**,
+I want **quick links to common actions from the Dashboard**,
+So that **I can navigate efficiently to frequently used features**.
+
+**Acceptance Criteria:**
+
+**Given** I view the Dashboard
+**When** I look at the quick links section
+**Then** I see links to: Console, Settings, Mods, Version
+
+**Given** I click a quick link
+**When** the navigation occurs
+**Then** I am taken to the corresponding page under Game Server
+
+**Given** the server is not installed
+**When** I view quick links
+**Then** Console, Settings, and Mods links are disabled or hidden
+**And** Version/Installation link is prominently displayed
+
+**Given** there are pending actions (e.g., pending restart)
+**When** I view the Dashboard
+**Then** I see a notification badge on relevant quick links
+
+**Tasks:**
+- [ ] Create QuickLinks component
+- [ ] Add icons for each destination
+- [ ] Implement disabled state for no-server-installed
+- [ ] Add pending restart indicator
+- [ ] Style consistently with stat cards
+- [ ] Add tests for quick links
+
+---
+
+## Epic 13: Server Version Browser
+
+Admins can browse and install server versions through a visual interface similar to the mod browser, replacing the simple version input with a discoverable list of available releases.
+
+**Goal:** Replace free-text version input with a browsable list showing available versions, release info, and one-click install/upgrade.
+
+### Current State
+
+- User must know exact version number (e.g., "1.21.3")
+- Version input is free-text field
+- No visibility into available versions or release dates
+- No upgrade path visibility
+- Must type version manually
+
+### Target State
+
+- Browse available versions with release metadata
+- Filter by channel (stable/unstable)
+- One-click install or upgrade
+- Version comparison and warnings
+- Similar UX to mod browser
+
+---
+
+### Story 13.0: Epic 13 Technical Preparation
+
+As a **developer**,
+I want **to research VintageStory version APIs and plan the browser implementation**,
+So that **subsequent stories have accurate API documentation and design**.
+
+**Acceptance Criteria:**
+
+**Given** we need to fetch available versions
+**When** I research the VintageStory version API
+**Then** I document the response format from stable.json and unstable.json
+**And** I note all available fields (version, filename, filesize, md5, etc.)
+
+**Given** we want to show release information
+**When** I research available metadata
+**Then** I document what release info is available (date, changelog, etc.)
+**And** I note any limitations
+
+**Given** we need to cache version data
+**When** I design the caching strategy
+**Then** I document cache TTL (versions don't change frequently)
+**And** I specify how to handle cache refresh
+
+**Given** we want a similar UX to mod browser
+**When** I design the UI approach
+**Then** I document which patterns can be reused from Epic 10
+
+**Tasks:**
+- [ ] Document VintageStory version API response format
+- [ ] Identify all available version metadata
+- [ ] Design versions caching strategy (extend existing VersionsCache)
+- [ ] Plan UI component reuse from mod browser
+- [ ] Update architecture.md with findings
+
+---
+
+### Story 13.1: Server Versions API
+
+As a **frontend developer**,
+I want **an API endpoint to list available server versions**,
+So that **the version browser can display all available releases**.
+
+**Acceptance Criteria:**
+
+**Given** I call `GET /api/v1alpha1/versions` as Admin
+**When** the endpoint is called
+**Then** I receive a list of available versions from both stable and unstable channels
+**And** each version includes: version, channel, filename, filesize, md5, is_latest
+
+**Given** I call `GET /api/v1alpha1/versions?channel=stable`
+**When** the channel filter is applied
+**Then** I receive only stable versions
+
+**Given** I call `GET /api/v1alpha1/versions?channel=unstable`
+**When** the channel filter is applied
+**Then** I receive only unstable versions
+
+**Given** the VintageStory API is unavailable
+**When** I call the versions endpoint
+**Then** I receive cached data if available
+**And** the response includes a `cached: true` indicator
+
+**Given** I call `GET /api/v1alpha1/versions/{version}`
+**When** the version exists
+**Then** I receive detailed information for that specific version
+
+**Tasks:**
+- [ ] Extend VersionsCache to store full version lists (not just latest)
+- [ ] Create /versions router with list and detail endpoints
+- [ ] Add channel filtering
+- [ ] Add cache indicator in response
+- [ ] Add background job to refresh version cache
+- [ ] Add tests for versions API
+
+---
+
+### Story 13.2: Version Card Component
+
+As an **administrator**,
+I want **versions displayed as informative cards**,
+So that **I can quickly scan and compare available versions**.
+
+**Acceptance Criteria:**
+
+**Given** the version list is displayed
+**When** I view the version cards
+**Then** each card shows: version number, channel badge (stable/unstable), file size
+
+**Given** a version is the currently installed version
+**When** I view its card
+**Then** I see an "Installed" badge
+
+**Given** a version is the latest in its channel
+**When** I view its card
+**Then** I see a "Latest" badge
+
+**Given** I click on a version card
+**When** the click is registered
+**Then** the version detail view opens (or inline expansion)
+
+**Tasks:**
+- [ ] Create VersionCard component
+- [ ] Add channel badge (stable = green, unstable = yellow)
+- [ ] Add "Installed" badge logic
+- [ ] Add "Latest" badge logic
+- [ ] Style consistently with mod cards
+- [ ] Add tests for version card
+
+---
+
+### Story 13.3: Version List Page
+
+As an **administrator**,
+I want **a browsable list of server versions**,
+So that **I can see all available versions and choose one to install**.
+
+**Acceptance Criteria:**
+
+**Given** I navigate to `/game-server/version`
+**When** a server is installed
+**Then** I see my current version prominently at the top
+**And** below I see "Available Versions" with the version list
+
+**Given** I view the version list
+**When** it loads
+**Then** versions are grouped or filterable by channel (All, Stable, Unstable)
+**And** default filter is "All"
+
+**Given** I select the "Stable" filter
+**When** the filter is applied
+**Then** only stable versions are displayed
+
+**Given** versions are displayed
+**When** I view the list
+**Then** versions are sorted by version number (newest first)
+
+**Given** I am viewing on mobile
+**When** the page loads
+**Then** the layout is responsive and cards stack appropriately
+
+**Tasks:**
+- [ ] Create VersionListPage component (or update existing VersionPage)
+- [ ] Add channel filter tabs/buttons
+- [ ] Create useVersions hook for data fetching
+- [ ] Display current version section
+- [ ] Add responsive layout
+- [ ] Add loading and error states
+- [ ] Add tests for version list
+
+---
+
+### Story 13.4: Install/Upgrade Flow
+
+As an **administrator**,
+I want **a confirmation dialog when installing or upgrading versions**,
+So that **I understand the implications before making changes**.
+
+**Acceptance Criteria:**
+
+**Given** I click "Install" on a version (no server installed)
+**When** the dialog opens
+**Then** I see version details and an "Install" confirmation button
+
+**Given** I click "Upgrade" on a version (server installed, newer version)
+**When** the dialog opens
+**Then** I see current version → new version comparison
+**And** I see a warning that the server will be stopped
+
+**Given** I click "Downgrade" on a version (server installed, older version)
+**When** the dialog opens
+**Then** I see a prominent warning about downgrading
+**And** I must confirm I understand the risks
+
+**Given** the server is currently running
+**When** I confirm install/upgrade
+**Then** I see a warning that the server will be stopped
+**And** the server is stopped before installation begins
+
+**Given** I confirm installation
+**When** the installation starts
+**Then** I see progress indication (stage + percentage)
+**And** I can stay on the page or navigate away
+
+**Given** installation completes successfully
+**When** the process finishes
+**Then** I see a success message
+**And** the version list updates to show the new installed version
+
+**Tasks:**
+- [ ] Create InstallVersionDialog component
+- [ ] Add version comparison display
+- [ ] Add downgrade warning
+- [ ] Add server-running warning
+- [ ] Integrate with existing install progress tracking
+- [ ] Add success/error handling
+- [ ] Add tests for install flow
+
+---
+
+### Story 13.5: Version Page Integration
+
+As an **administrator**,
+I want **the version browser integrated into the Version page**,
+So that **version management is a cohesive experience**.
+
+**Acceptance Criteria:**
+
+**Given** no server is installed
+**When** I view `/game-server/version`
+**Then** I see the version browser with "Install" buttons
+**And** page title is "Server Installation"
+
+**Given** a server is installed
+**When** I view `/game-server/version`
+**Then** I see current version info at the top
+**And** I see "Change Version" section with the browser below
+**And** page title is "Server Version"
+
+**Given** an update is available
+**When** I view the version page
+**Then** the newer version card is highlighted
+**And** an "Update Available" banner is shown
+
+**Given** I want to quickly install the latest stable
+**When** I view the page
+**Then** there is a prominent "Install Latest Stable" button (if not installed)
+**Or** "Update to Latest" button (if installed and update available)
+
+**Tasks:**
+- [ ] Integrate version browser into VersionPage
+- [ ] Add "Install Latest Stable" quick action
+- [ ] Add "Update Available" banner
+- [ ] Highlight newer versions
+- [ ] Add page title dynamic switching
+- [ ] Add tests for integrated page

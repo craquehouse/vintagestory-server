@@ -1,4 +1,4 @@
-# generated: 2026-01-03
+# generated: 2026-01-10
 # project: vintagestory-server
 # project_key: vintagestory-server
 # tracking_system: file-system
@@ -116,7 +116,9 @@ development_status:
   epic-9-retrospective: done
   # Epic 10: Advanced Mod Browser (Added 2026-01-03)
   # FRs: FR56-FR85 - Full mod discovery and browsing experience
-  epic-10: in-progress
+  # COMPLETED 2026-01-10: All 8 stories done + retrospective complete
+  # MVP FEATURE SET COMPLETE - 30 FRs delivered, ~173 new tests
+  epic-10: done
   10-1-mod-browse-api: done
   10-2-mods-tab-restructure: done
   10-3-browse-landing-page-and-search: done
@@ -125,16 +127,52 @@ development_status:
   10-6-mod-detail-view: done
   10-7-pagination: done
   10-8-browse-install-integration: done
-  epic-10-retrospective: optional
-# RETRO ACTION ITEMS (from Epic 9 Retrospective 2026-01-05)
-# These must be verified before Epic 10 stories begin
+  epic-10-retrospective: done
+  # Epic 11: GameServer Navigation Refactor
+  # FRs: UI Architecture - Sub-navigation system for server context pages
+  epic-11: backlog
+  11-1-sub-navigation-infrastructure: backlog
+  11-2-version-installation-page: backlog
+  11-3-settings-page-extraction: backlog
+  11-4-mods-page-migration: backlog
+  11-5-console-page-extraction: backlog
+  11-6-dashboard-navigation-cleanup: backlog
+  epic-11-retrospective: optional
+  # Epic 12: Enhanced Dashboard with Server Metrics
+  # FRs: Dashboard improvements with stats and quick actions
+  epic-12: backlog
+  12-0-epic-12-technical-preparation: backlog
+  12-1-metrics-collection-service: backlog
+  12-2-metrics-api-endpoints: backlog
+  12-3-dashboard-stats-cards: backlog
+  12-4-dashboard-time-series-charts: backlog
+  12-5-quick-actions-links: backlog
+  epic-12-retrospective: optional
+  # Epic 13: Server Version Browser
+  # FRs: Browse and manage VintageStory server versions
+  epic-13: backlog
+  13-0-epic-13-technical-preparation: backlog
+  13-1-server-versions-api: backlog
+  13-2-version-card-component: backlog
+  13-3-version-list-page: backlog
+  13-4-install-upgrade-flow: backlog
+  13-5-version-page-integration: backlog
+  epic-13-retrospective: optional
+# RETRO ACTION ITEMS
+# Track action items from retrospectives to ensure follow-through
 retro_action_items:
-  # Epic 9 Action Items
-  A1-add-retro-section-to-sprint-status: done # This section
-  A2-review-polish-backlog-at-epic-10-kickoff: pending # Owner: Alice (PO)
-  A3-document-enhancement-story-process: pending # Owner: Charlie - add to project-context.md
-  A4-pre-epic-checklist-verify-previous-retro: pending # Owner: Bob - also address Epic 8 items
-  # Outstanding Epic 8 Action Items (carried forward)
+  # Epic 10 Action Items (from 2026-01-10 retrospective)
+  E10-A1-add-retro-action-tracking-mechanism: pending # Owner: Bob (SM)
+  E10-A2-create-api-spike-story-template: pending # Owner: Charlie (Dev)
+  E10-A3-document-epic10-architecture-decisions: pending # Owner: Charlie (Dev) - client/server filtering, conservative compat
+  E10-A4-review-prioritize-polish-backlog: pending # Owner: Alice (PO)
+  E10-A5-audit-previous-retro-action-items: pending # Owner: Bob (SM) - resolve Epic 8 items
+  # Epic 9 Action Items (from 2026-01-05)
+  E9-A1-add-retro-section-to-sprint-status: done # This section exists
+  E9-A2-review-polish-backlog-at-epic-10-kickoff: done # 4 items added to backlog during Epic 10
+  E9-A3-document-enhancement-story-process: pending # Owner: Charlie - add to project-context.md
+  E9-A4-pre-epic-checklist-verify-previous-retro: pending # Owner: Bob
+  # Outstanding Epic 8 Action Items (carried forward - need audit per E10-A5)
   E8-A1-add-ui-testing-philosophy-to-architecture: pending # From Epic 8 retro
   E8-A2-improve-placeholder-code-documentation: pending # From Epic 8 retro
   E8-A3-document-research-driven-preparation-pattern: pending # From Epic 8 retro

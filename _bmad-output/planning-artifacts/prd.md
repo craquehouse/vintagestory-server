@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-01-03'
+lastUpdated: '2026-01-10'
 updates:
+  - date: '2026-01-10'
+    description: 'Added FR86-FR128 for Epic 11 (GameServer Navigation), Epic 12 (Enhanced Dashboard), Epic 13 (Version Browser)'
   - date: '2026-01-03'
     description: 'Added FR40-FR85 for Epic 9 (QoL Polish) and Epic 10 (Advanced Mod Browser)'
 ---
@@ -477,3 +479,79 @@ If trivial to implement:
 - FR83: Admin can install a mod directly from browse results or detail view
 - FR84: Installation shows compatibility check result before confirming
 - FR85: After successful installation, mod appears in Installed tab and browse UI updates to reflect installed state
+
+### Epic 11: GameServer Navigation Refactor
+
+#### Sub-Navigation Structure
+
+- FR86: Sidebar displays expandable Game Server section with sub-navigation items
+- FR87: Game Server sub-navigation includes: Version/Installation, Settings, Mods, Console (in that order)
+- FR88: Sub-navigation expanded/collapsed state persists across sessions
+- FR89: First sub-item label dynamically shows "Installation" when no server installed, "Version" when installed
+- FR90: Top-level "Settings" is renamed to "VSManager" to distinguish from game settings
+- FR91: Mods is accessible under Game Server navigation, not as top-level item
+
+#### Dedicated Pages
+
+- FR92: Console is accessible as dedicated full-page view at `/game-server/console`
+- FR93: Game settings is accessible as dedicated full-page view at `/game-server/settings`
+- FR94: Version/Installation is accessible at `/game-server/version`
+- FR95: Mods is accessible at `/game-server/mods` with redirect from legacy `/mods` URLs
+- FR96: Pages show appropriate empty state when server is not installed
+
+#### Dashboard Simplification
+
+- FR97: Dashboard no longer contains server installation UI (moved to Version page)
+- FR98: Dashboard shows link to Version page when server is not installed
+- FR99: Default route `/game-server` redirects to `/game-server/version`
+
+### Epic 12: Enhanced Dashboard with Server Metrics
+
+#### Metrics Collection
+
+- FR100: System collects API server memory and CPU metrics periodically
+- FR101: System collects game server process memory and CPU metrics when running
+- FR102: Metrics collection interval is configurable via environment variable
+- FR103: Historical metrics are stored in memory with configurable retention period
+
+#### Metrics API
+
+- FR104: Admin can retrieve current metrics snapshot via API
+- FR105: Admin can retrieve historical metrics with optional time range filter
+- FR106: Metrics endpoints are restricted to Admin role
+
+#### Dashboard Display
+
+- FR107: Dashboard displays stat cards for server status, memory usage, disk space, and uptime
+- FR108: Memory card shows both API and game server memory separately
+- FR109: Dashboard displays time-series chart of memory usage over time
+- FR110: Chart supports selectable time ranges (15m, 1h, 6h, 24h)
+- FR111: Dashboard provides quick links to Console, Settings, Mods, and Version pages
+- FR112: Quick links show disabled state when server is not installed
+
+### Epic 13: Server Version Browser
+
+#### Version Listing
+
+- FR113: Admin can view list of available server versions from both stable and unstable channels
+- FR114: Version list can be filtered by channel (All, Stable, Unstable)
+- FR115: Each version displays: version number, channel, file size, and badges for Installed/Latest
+- FR116: Version data is cached with periodic refresh
+
+#### Version Display
+
+- FR117: Versions are displayed as cards similar to mod browser
+- FR118: Currently installed version is prominently indicated
+- FR119: Latest version in each channel is indicated with badge
+- FR120: Version list is sorted by version number (newest first)
+
+#### Install/Upgrade Flow
+
+- FR121: Admin can install a version by clicking Install button on version card
+- FR122: Install confirmation dialog shows version details before proceeding
+- FR123: Upgrade confirmation shows current → new version comparison
+- FR124: Downgrade shows prominent warning about risks
+- FR125: If server is running, warning indicates server will be stopped
+- FR126: Installation progress is displayed with stage and percentage
+- FR127: "Install Latest Stable" quick action available when no server installed
+- FR128: "Update to Latest" quick action available when update exists
