@@ -9,9 +9,14 @@
  * - 2.2: Mod header with logo, name, author, stats
  * - 2.3: Description with HTML sanitization (DOMPurify)
  * - 2.4: Releases list with version, date, and compatibility tags
+ * - 3.1: Version dropdown using shadcn Select
+ * - 3.2: Check installed mods list to determine install vs update state
+ * - 3.3: Show Install or Update button based on state
+ * - 3.4: Show "Installed: vX.Y.Z" indicator when mod is installed
  */
 
-import { useParams } from 'react-router';
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router';
 import DOMPurify from 'dompurify';
 import {
   ArrowLeft,
@@ -20,17 +25,28 @@ import {
   Calendar,
   ExternalLink,
   Package,
-  Github,
   Globe,
   Tag,
+  Check,
+  RefreshCw,
+  ChevronRight,
+  Code,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { useModDetail } from '@/hooks/use-mod-detail';
+import { useMods, useInstallMod } from '@/hooks/use-mods';
 import type { ModRelease } from '@/api/types';
 
 /**
@@ -120,6 +136,116 @@ function ModDetailError({ message }: { message: string }) {
 }
 
 /**
+ * Install/Update section props.
+ */
+interface InstallSectionProps {
+  /** Mod slug for install */
+  slug: string;
+  /** Latest version available */
+  latestVersion: string;
+  /** All available releases */
+  releases: ModRelease[];
+  /** Currently installed version (null if not installed) */
+  installedVersion: string | null;
+}
+
+/**
+ * Install/Update section with version dropdown and action button.
+ *
+ * Shows different states:
+ * - Not installed: "Install" button with version dropdown
+ * - Installed (current): "Installed: vX.Y.Z" indicator
+ * - Installed (update available): "Update to vX.Y.Z" button
+ */
+function InstallSection({
+  slug,
+  latestVersion,
+  releases,
+  installedVersion,
+}: InstallSectionProps) {
+  const [selectedVersion, setSelectedVersion] = useState(latestVersion);
+  const { mutate: install, isPending } = useInstallMod();
+
+  const isInstalled = installedVersion !== null;
+  const hasUpdate = isInstalled && installedVersion !== latestVersion;
+
+  const handleInstall = () => {
+    install({ slug, version: selectedVersion });
+  };
+
+  return (
+    <Card className="w-64" data-testid="mod-detail-install-section">
+      <CardContent className="pt-4 space-y-3">
+        {/* Installed indicator */}
+        {isInstalled && (
+          <div
+            className="flex items-center gap-2 text-sm"
+            data-testid="mod-detail-installed-indicator"
+          >
+            <Check className="h-4 w-4 text-green-500" />
+            <span>Installed: v{installedVersion}</span>
+          </div>
+        )}
+
+        {/* Version selector */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground">Version</label>
+          <Select
+            value={selectedVersion}
+            onValueChange={setSelectedVersion}
+            disabled={isPending}
+          >
+            <SelectTrigger data-testid="mod-detail-version-select">
+              <SelectValue placeholder="Select version" />
+            </SelectTrigger>
+            <SelectContent>
+              {releases.map((release, index) => (
+                <SelectItem
+                  key={release.version}
+                  value={release.version}
+                  data-testid={`mod-detail-version-option-${release.version}`}
+                >
+                  v{release.version}
+                  {index === 0 && ' (Latest)'}
+                  {release.version === installedVersion && ' (Installed)'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Action button */}
+        {hasUpdate && selectedVersion === latestVersion ? (
+          <Button
+            className="w-full gap-2"
+            onClick={handleInstall}
+            disabled={isPending}
+            data-testid="mod-detail-update-button"
+          >
+            <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+            {isPending ? 'Updating...' : `Update to v${latestVersion}`}
+          </Button>
+        ) : (
+          <Button
+            className="w-full gap-2"
+            onClick={handleInstall}
+            disabled={isPending || (isInstalled && selectedVersion === installedVersion)}
+            data-testid="mod-detail-install-button"
+          >
+            <Download className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+            {isPending
+              ? 'Installing...'
+              : isInstalled && selectedVersion === installedVersion
+                ? 'Already Installed'
+                : `Install v${selectedVersion}`}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * Single release item in the releases list.
  */
 function ReleaseItem({ release, isLatest }: { release: ModRelease; isLatest: boolean }) {
@@ -168,7 +294,24 @@ function ReleaseItem({ release, isLatest }: { release: ModRelease; isLatest: boo
  */
 export function ModDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const { data, isLoading, error } = useModDetail(slug ?? '');
+  const { data: modsData } = useMods();
+
+  // Find installed version if this mod is installed
+  const installedMod = modsData?.data?.mods?.find((m) => m.slug === slug);
+  const installedVersion = installedMod?.version ?? null;
+
+  // Handle back navigation - go back in history or to browse tab
+  const handleBack = () => {
+    // Check if we have history to go back to
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Fallback to browse tab if no history
+      navigate('/mods/browse');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -202,12 +345,45 @@ export function ModDetailPage() {
 
   return (
     <div className="container mx-auto py-6 max-w-4xl space-y-6" data-testid="mod-detail-page">
-      {/* Back button placeholder - will be wired up in Task 4 */}
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Button variant="ghost" size="sm" className="gap-1" data-testid="mod-detail-back">
+      {/* Navigation: Back button and Breadcrumbs */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1"
+          onClick={handleBack}
+          data-testid="mod-detail-back"
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Browse
         </Button>
+
+        {/* Breadcrumb navigation */}
+        <nav
+          className="flex items-center gap-1 text-sm text-muted-foreground"
+          aria-label="Breadcrumb"
+          data-testid="mod-detail-breadcrumb"
+        >
+          <Link
+            to="/mods"
+            className="hover:text-foreground transition-colors"
+            data-testid="mod-detail-breadcrumb-mods"
+          >
+            Mods
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <Link
+            to="/mods/browse"
+            className="hover:text-foreground transition-colors"
+            data-testid="mod-detail-breadcrumb-browse"
+          >
+            Browse
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground font-medium" data-testid="mod-detail-breadcrumb-name">
+            {mod.name}
+          </span>
+        </nav>
       </div>
 
       {/* Header section */}
@@ -308,12 +484,22 @@ export function ModDetailPage() {
                 className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 data-testid="mod-detail-source-link"
               >
-                <Github className="h-3.5 w-3.5" />
+                <Code className="h-3.5 w-3.5" />
                 Source
               </a>
             )}
           </div>
         </div>
+
+        {/* Install/Update section */}
+        {mod.releases.length > 0 && (
+          <InstallSection
+            slug={mod.slug}
+            latestVersion={mod.latestVersion}
+            releases={mod.releases}
+            installedVersion={installedVersion}
+          />
+        )}
       </div>
 
       <Separator />
