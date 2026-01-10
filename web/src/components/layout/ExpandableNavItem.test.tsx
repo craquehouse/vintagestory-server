@@ -258,8 +258,10 @@ describe("ExpandableNavItem", () => {
       expect(screen.queryByTestId("expandable-nav-toggle")).not.toBeInTheDocument();
       // Should show collapsed nav trigger instead
       expect(screen.getByTestId("collapsed-nav-trigger")).toBeInTheDocument();
-      // Should not show sub-items container
+      // Should not show expanded mode sub-items container
       expect(screen.queryByTestId("sub-items-container")).not.toBeInTheDocument();
+      // Should show collapsed mode sub-items container
+      expect(screen.getByTestId("collapsed-sub-items-container")).toBeInTheDocument();
     });
 
     it("applies active styling when on sub-route in collapsed mode", () => {
@@ -287,15 +289,29 @@ describe("ExpandableNavItem", () => {
       expect(onExpandedChange).toHaveBeenCalledWith(true);
     });
 
-    it("has proper data-testid for collapsed flyout content", () => {
-      // The collapsed mode component renders with data-testid="collapsed-nav-flyout"
-      // in its TooltipContent. Since Tooltip uses portals, we verify the trigger exists
-      // and has the correct structure. The actual flyout appears on hover.
-      renderWithRouter({ isCollapsed: true });
+    it("shows sub-item icons when expanded in collapsed mode", () => {
+      renderWithRouter({ isCollapsed: true, isExpanded: true });
+
+      const container = screen.getByTestId("collapsed-sub-items-container");
+      expect(container).toHaveClass("max-h-40", "opacity-100");
+
+      // Sub-items should be links
+      const links = screen.getAllByRole("link");
+      expect(links).toHaveLength(4);
+    });
+
+    it("hides sub-items when collapsed in collapsed mode", () => {
+      renderWithRouter({ isCollapsed: true, isExpanded: false });
+
+      const container = screen.getByTestId("collapsed-sub-items-container");
+      expect(container).toHaveClass("max-h-0", "opacity-0");
+    });
+
+    it("sets aria-expanded correctly in collapsed mode", () => {
+      renderWithRouter({ isCollapsed: true, isExpanded: true });
 
       const trigger = screen.getByTestId("collapsed-nav-trigger");
-      expect(trigger).toBeInTheDocument();
-      expect(trigger.tagName.toLowerCase()).toBe("button");
+      expect(trigger).toHaveAttribute("aria-expanded", "true");
     });
   });
 

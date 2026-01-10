@@ -7,7 +7,7 @@
  * Story: 11-1-sub-navigation-infrastructure
  */
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router";
 import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,8 +40,6 @@ interface ExpandableNavItemProps {
   isCollapsed?: boolean;
   /** Route prefix for auto-expansion (e.g., "/game-server") */
   routePrefix: string;
-  /** Custom tooltip content for collapsed mode (optional) */
-  tooltipContent?: ReactNode;
 }
 
 /**
@@ -87,54 +85,66 @@ export function ExpandableNavItem({
       location.pathname.startsWith(item.to + "/")
   );
 
-  // Collapsed sidebar mode - render icon with flyout menu showing sub-items
+  // Collapsed sidebar mode - render icon-only with expandable sub-items below
   if (isCollapsed) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={cn(
-              "w-full justify-center",
-              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              isAnySubItemActive && "bg-sidebar-accent text-sidebar-primary"
-            )}
-            onClick={handleToggle}
-            data-testid="collapsed-nav-trigger"
-          >
-            <Icon className="h-5 w-5 shrink-0" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent
-          side="right"
-          className="p-0 w-40"
-          data-testid="collapsed-nav-flyout"
+      <div className="space-y-1">
+        {/* Parent item with tooltip for label */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "w-full justify-center",
+                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isAnySubItemActive && "bg-sidebar-accent text-sidebar-primary"
+              )}
+              onClick={handleToggle}
+              aria-expanded={isOpen}
+              data-testid="collapsed-nav-trigger"
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{label}</TooltipContent>
+        </Tooltip>
+
+        {/* Sub-items expanded below (icons only with tooltips) */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-200 ease-in-out space-y-1",
+            isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          )}
+          data-testid="collapsed-sub-items-container"
         >
-          <div className="py-1">
-            <div className="px-3 py-1.5 text-sm font-semibold border-b">
-              {label}
-            </div>
-            <div className="py-1">
-              {subItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent",
-                      isActive && "bg-accent font-medium"
-                    )
-                  }
+          {subItems.map((item) => (
+            <Tooltip key={item.to}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  asChild
+                  className="w-full justify-center"
                 >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        isActive && "bg-sidebar-accent text-sidebar-primary"
+                      )
+                    }
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                  </NavLink>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </div>
     );
   }
 
