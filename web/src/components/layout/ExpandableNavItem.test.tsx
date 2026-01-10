@@ -1,9 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { Home, Settings, Terminal, Package } from "lucide-react";
 import { ExpandableNavItem, type SubNavItem } from "./ExpandableNavItem";
+
+// Mock ResizeObserver for Radix UI components
+beforeAll(() => {
+  global.ResizeObserver = vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
+  }));
+});
 
 // Mock lucide-react icons to include test identifiers
 vi.mock("lucide-react", async (importOriginal) => {
