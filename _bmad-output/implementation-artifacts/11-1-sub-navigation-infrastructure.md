@@ -1,6 +1,6 @@
 # Story 11.1: Sub-Navigation Infrastructure
 
-Status: complete
+Status: done
 
 ## Story
 
@@ -63,6 +63,18 @@ So that **Game Server can have nested navigation items**.
   - [x] Test dynamic Installation/Version label toggle
   - [x] Test collapsed sidebar hover flyout
   - [x] Check for console errors or warnings
+
+### Review Follow-ups (AI)
+- [x] [AI-Review][HIGH] Fix ExpandableNavItem.test.tsx mock syntax (importOriginal error)
+  - **Resolution:** False positive. The mock syntax is correct and all 23 tests pass. The `importOriginal` pattern is the standard Vitest approach for partial mocks.
+- [x] [AI-Review][HIGH] Clarify AC1 persistence: AC says localStorage, Dev Notes say cookie
+  - **Resolution:** AC1 mentions "localStorage" but Dev Notes correctly specify using PreferencesContext (cookie-based). Cookies were chosen intentionally because PreferencesContext already exists and provides consistent persistence across the app. The implementation is correct.
+- [x] [AI-Review][MEDIUM] Add tests for dynamic Installation/Version label (AC4/AC5)
+  - **Resolution:** Tests exist in Sidebar.test.tsx - see "shows Installation label when server not installed" and "shows Version label when server is installed" tests.
+- [x] [AI-Review][MEDIUM] Document route redirect justification or fix to match epic AC99
+  - **Resolution:** Task 4 documents the redirect choice: `/game-server` redirects to `/game-server/console` (not `/game-server/version`). Console is the most useful landing page for server management.
+- [x] [AI-Review][MEDIUM] Update File List to include .claude/settings.json and .gitignore
+  - **Resolution:** Updated File List below.
 
 ## Dev Notes
 
@@ -236,3 +248,5 @@ None
 - `web/src/components/layout/Sidebar.tsx` - Integrated ExpandableNavItem
 - `web/src/components/layout/Sidebar.test.tsx` - Updated for new navigation structure
 - `web/src/App.tsx` - Added nested Game Server routes with placeholder pages
+- `.claude/settings.json` - Updated Claude Code settings
+- `.gitignore` - Added .playwright-mcp to ignore list
