@@ -445,6 +445,10 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - **Task 3 (2026-01-09):** Created mod-compatibility utility with conservative 'not_verified' default for browse cards. Per Dev Notes recommendation, full version comparison deferred to Story 10.6. ModCard now uses getBrowseCardCompatibility(). All 965 web tests pass.
 - **Task 4 (2026-01-09):** Integrated navigation in BrowseTab and ModBrowseGrid. Added onModClick prop passthrough to ModCard, useNavigate hook in BrowseTab navigates to /mods/browse/{slug}. All 972 web tests pass.
 
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][LOW] AC2: Compatibility badge shows only "Not verified" status (by design, deferred to Story 10.6 for full version comparison)
+
 ### File List
 
 - `web/src/components/ModCard.tsx` - Modified: Added thumbnail display, CompatibilityBadge, onClick prop, uses getBrowseCardCompatibility()
