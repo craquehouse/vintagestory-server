@@ -12,6 +12,7 @@ from vintagestory_api.models.mods import (
     ModInfo,
     ModLookupResponse,
     ModMetadata,
+    ModRelease,
     ModState,
     PaginationMeta,
 )
@@ -290,6 +291,64 @@ class TestCompatibilityInfo:
         }
 
 
+class TestModRelease:
+    """Tests for ModRelease model (mod version/release data)."""
+
+    def test_create_with_required_fields(self) -> None:
+        """ModRelease can be created with required fields."""
+        release = ModRelease(
+            version="1.8.3",
+            filename="smithingplus_1.8.3.zip",
+            file_id=59176,
+            downloads=49726,
+            game_versions=["1.21.0", "1.21.1", "1.21.2", "1.21.3"],
+            created="2025-10-09 21:28:57",
+        )
+        assert release.version == "1.8.3"
+        assert release.filename == "smithingplus_1.8.3.zip"
+        assert release.file_id == 59176
+        assert release.downloads == 49726
+        assert release.game_versions == ["1.21.0", "1.21.1", "1.21.2", "1.21.3"]
+        assert release.created == "2025-10-09 21:28:57"
+        assert release.changelog is None
+
+    def test_create_with_changelog(self) -> None:
+        """ModRelease can include optional changelog."""
+        release = ModRelease(
+            version="1.8.3",
+            filename="smithingplus_1.8.3.zip",
+            file_id=59176,
+            downloads=49726,
+            game_versions=["1.21.0"],
+            created="2025-10-09 21:28:57",
+            changelog="<ul><li>Fixed bug</li></ul>",
+        )
+        assert release.changelog == "<ul><li>Fixed bug</li></ul>"
+
+    def test_serialization_for_api_response(self) -> None:
+        """ModRelease serializes correctly for API responses."""
+        release = ModRelease(
+            version="1.8.3",
+            filename="smithingplus_1.8.3.zip",
+            file_id=59176,
+            downloads=49726,
+            game_versions=["1.21.0", "1.21.1"],
+            created="2025-10-09 21:28:57",
+            changelog="<p>Changelog</p>",
+        )
+        data = release.model_dump(mode="json")
+
+        assert data == {
+            "version": "1.8.3",
+            "filename": "smithingplus_1.8.3.zip",
+            "file_id": 59176,
+            "downloads": 49726,
+            "game_versions": ["1.21.0", "1.21.1"],
+            "created": "2025-10-09 21:28:57",
+            "changelog": "<p>Changelog</p>",
+        }
+
+
 class TestModLookupResponse:
     """Tests for ModLookupResponse model (lookup endpoint response)."""
 
@@ -395,6 +454,7 @@ class TestModLookupResponse:
             "description": "Expanded smithing",
             "latest_version": "1.8.3",
             "downloads": 49726,
+            "follows": 0,
             "side": "Both",
             "compatibility": {
                 "status": "compatible",
@@ -403,6 +463,12 @@ class TestModLookupResponse:
                 "message": None,
             },
             "logo_url": None,
+            "releases": [],
+            "tags": [],
+            "homepage_url": None,
+            "source_url": None,
+            "created": None,
+            "last_released": None,
         }
 
     def test_nested_compatibility_info(self) -> None:
@@ -430,6 +496,68 @@ class TestModLookupResponse:
             data["compatibility"]["message"]
             == "Mod version 1.5.0 is only compatible with 1.19.x"
         )
+
+    def test_create_with_releases_and_metadata(self) -> None:
+        """ModLookupResponse can include releases, follows, tags, and urls."""
+        compat = CompatibilityInfo(
+            status="compatible",
+            game_version="1.21.3",
+            mod_version="1.8.3",
+        )
+        releases = [
+            ModRelease(
+                version="1.8.3",
+                filename="smithingplus_1.8.3.zip",
+                file_id=59176,
+                downloads=49726,
+                game_versions=["1.21.0", "1.21.1", "1.21.2", "1.21.3"],
+                created="2025-10-09 21:28:57",
+            ),
+            ModRelease(
+                version="1.8.2",
+                filename="smithingplus_1.8.2.zip",
+                file_id=57894,
+                downloads=31245,
+                game_versions=["1.21.0", "1.21.1"],
+                created="2025-09-15 14:22:11",
+            ),
+        ]
+        response = ModLookupResponse(
+            slug="smithingplus",
+            name="Smithing Plus",
+            author="jayu",
+            description="<p>HTML description</p>",
+            latest_version="1.8.3",
+            downloads=204656,
+            follows=2348,
+            side="Both",
+            compatibility=compat,
+            logo_url="https://moddbcdn.vintagestory.at/logo.png",
+            releases=releases,
+            tags=["Crafting", "QoL", "Utility"],
+            homepage_url="https://example.com",
+            source_url="https://github.com/user/repo",
+            created="2024-10-24 01:06:14",
+            last_released="2025-10-09 21:28:57",
+        )
+
+        assert response.follows == 2348
+        assert len(response.releases) == 2
+        assert response.releases[0].version == "1.8.3"
+        assert response.releases[1].version == "1.8.2"
+        assert response.tags == ["Crafting", "QoL", "Utility"]
+        assert response.homepage_url == "https://example.com"
+        assert response.source_url == "https://github.com/user/repo"
+        assert response.created == "2024-10-24 01:06:14"
+        assert response.last_released == "2025-10-09 21:28:57"
+
+        # Verify serialization includes new fields
+        data = response.model_dump(mode="json")
+        assert data["follows"] == 2348
+        assert len(data["releases"]) == 2
+        assert data["releases"][0]["version"] == "1.8.3"
+        assert data["tags"] == ["Crafting", "QoL", "Utility"]
+        assert data["homepage_url"] == "https://example.com"
 
 
 class TestModBrowseItem:
