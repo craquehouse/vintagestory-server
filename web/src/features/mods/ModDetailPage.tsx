@@ -331,7 +331,7 @@ export function ModDetailPage() {
       navigate(-1);
     } else {
       // Fallback to browse tab if no history
-      navigate('/mods/browse');
+      navigate('/game-server/mods/browse');
     }
   };
 
@@ -387,7 +387,7 @@ export function ModDetailPage() {
           data-testid="mod-detail-breadcrumb"
         >
           <Link
-            to="/mods"
+            to="/game-server/mods"
             className="hover:text-foreground transition-colors"
             data-testid="mod-detail-breadcrumb-mods"
           >
@@ -395,7 +395,7 @@ export function ModDetailPage() {
           </Link>
           <ChevronRight className="h-4 w-4" />
           <Link
-            to="/mods/browse"
+            to="/game-server/mods/browse"
             className="hover:text-foreground transition-colors"
             data-testid="mod-detail-breadcrumb-browse"
           >

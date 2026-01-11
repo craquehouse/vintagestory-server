@@ -22,20 +22,6 @@ function GameServerLayout() {
   );
 }
 
-/**
- * Placeholder for Game Server Mods page.
- * Story 11.4 will implement the actual content.
- */
-function GameServerModsPage() {
-  return (
-    <div className="p-4" data-testid="game-server-mods-page">
-      <h1 className="text-2xl font-bold mb-4">Server Mods</h1>
-      <p className="text-muted-foreground">
-        Server mod management will be implemented in Story 11.4.
-      </p>
-    </div>
-  );
-}
 
 /**
  * Console page showing full-width console panel.
@@ -62,14 +48,14 @@ function App() {
                 <Route index element={<Navigate to="console" replace />} />
                 <Route path="version" element={<VersionPage />} />
                 <Route path="settings" element={<GameServerSettingsPage />} />
-                <Route path="mods" element={<GameServerModsPage />} />
+                {/* Mods routes - moved from top-level /mods (Story 11.4) */}
+                <Route path="mods" element={<ModsPage />}>
+                  <Route index element={<Navigate to="installed" replace />} />
+                  <Route path="installed" element={<InstalledTab />} />
+                  <Route path="browse" element={<BrowseTab />} />
+                  <Route path="browse/:slug" element={<ModDetailPage />} />
+                </Route>
                 <Route path="console" element={<GameServerConsolePage />} />
-              </Route>
-              <Route path="/mods" element={<ModsPage />}>
-                <Route index element={<Navigate to="installed" replace />} />
-                <Route path="installed" element={<InstalledTab />} />
-                <Route path="browse" element={<BrowseTab />} />
-                <Route path="browse/:slug" element={<ModDetailPage />} />
               </Route>
               <Route path="/config" element={<SettingsPage />} />
             </Routes>
