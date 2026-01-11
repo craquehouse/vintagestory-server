@@ -1,6 +1,6 @@
 # Story 11.3: Settings Page Extraction
 
-Status: ready-for-dev
+Status: complete
 
 ## Story
 
@@ -20,41 +20,57 @@ So that **I have more space to view and edit configuration**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create SettingsPage component with server status header + tests (AC: 1, 4)
-  - [ ] Create `web/src/features/game-server/SettingsPage.tsx` (rename from placeholder)
-  - [ ] Add page header with title "Game Settings" and ServerStatusBadge
-  - [ ] Integrate GameConfigPanel with full-width layout
-  - [ ] Apply responsive padding (`p-4` on mobile, `p-6` on desktop)
-  - [ ] Write unit tests for SettingsPage rendering and header content
+- [x] Task 1: Create SettingsPage component with server status header + tests (AC: 1, 4)
+  - [x] Create `web/src/features/game-server/SettingsPage.tsx` (rename from placeholder)
+  - [x] Add page header with title "Game Settings" and ServerStatusBadge
+  - [x] Integrate GameConfigPanel with full-width layout
+  - [x] Apply responsive padding (`p-4` on mobile, `p-6` on desktop)
+  - [x] Write unit tests for SettingsPage rendering and header content
 
-- [ ] Task 2: Add empty state for no server installed + tests (AC: 2)
-  - [ ] Create EmptyServerState component (or inline in SettingsPage)
-  - [ ] Display "Server not installed" message with icon
-  - [ ] Add `Link` to `/game-server/version` (Installation page)
-  - [ ] Conditionally render based on `serverStatus.data?.data?.state === 'not_installed'`
-  - [ ] Write tests for empty state rendering and link presence
+- [x] Task 2: Add empty state for no server installed + tests (AC: 2)
+  - [x] Create EmptyServerState component (or inline in SettingsPage)
+  - [x] Display "Server not installed" message with icon
+  - [x] Add `Link` to `/game-server/version` (Installation page)
+  - [x] Conditionally render based on `serverStatus.data?.data?.state === 'not_installed'`
+  - [x] Write tests for empty state rendering and link presence
 
-- [ ] Task 3: Update App.tsx routing to use SettingsPage component + tests (AC: 1)
-  - [ ] Replace placeholder `GameServerSettingsPage` with imported `SettingsPage`
-  - [ ] Add export to `web/src/features/game-server/index.ts`
-  - [ ] Verify route `/game-server/settings` renders correctly
-  - [ ] Write integration tests for route behavior
+- [x] Task 3: Update App.tsx routing to use SettingsPage component + tests (AC: 1)
+  - [x] Replace placeholder `GameServerSettingsPage` with imported `SettingsPage`
+  - [x] Add export to `web/src/features/game-server/index.ts`
+  - [x] Verify route `/game-server/settings` renders correctly
+  - [x] Write integration tests for route behavior
 
-- [ ] Task 4: Verify auto-save and toast behavior (AC: 3)
-  - [ ] Confirm existing GameConfigPanel save behavior unchanged
-  - [ ] Verify toast notifications appear on save success/error
-  - [ ] No code changes expected; verify existing tests cover this
-  - [ ] Add any missing tests for save behavior if needed
+- [x] Task 4: Verify auto-save and toast behavior (AC: 3)
+  - [x] Confirm existing GameConfigPanel save behavior unchanged
+  - [x] Verify toast notifications appear on save success/error
+  - [x] No code changes expected; verify existing tests cover this
+  - [x] Add any missing tests for save behavior if needed
 
-- [ ] Task 5: Manual browser verification (AC: all)
-  - [ ] Start dev servers (`just dev-api` and `just dev-web`)
-  - [ ] Navigate to `/game-server/settings`
-  - [ ] Verify server status badge displays correctly in header
-  - [ ] Test not_installed state → shows empty state with link
-  - [ ] Test installed state → shows GameConfigPanel
-  - [ ] Edit a setting and verify auto-save with toast
-  - [ ] Verify improved layout width compared to previous split-view
-  - [ ] Check for console errors or warnings
+- [x] Task 5: Manual browser verification (AC: all)
+  - [x] Start dev servers (`just dev-api` and `just dev-web`)
+  - [x] Navigate to `/game-server/settings`
+  - [x] Verify server status badge displays correctly in header
+  - [x] Test not_installed state → shows empty state with link
+  - [x] Test installed state → shows GameConfigPanel
+  - [x] Edit a setting and verify auto-save with toast
+  - [x] Verify improved layout width compared to previous split-view
+   - [x] Check for console errors or warnings
+
+## Review Follow-ups (AI)
+
+### Code Review by Adversarial Reviewer (2026-01-11)
+
+#### High Priority
+- [x] [AI-Review][HIGH] Add route integration test for `/game-server/settings` route (Task 3 subtask "Write integration tests for route behavior" incomplete) [file: web/src/features/game-server/SettingsPage.test.tsx]
+
+#### Medium Priority
+- [x] [AI-Review][MEDIUM] Remove extra blank lines in App.tsx (lines 25-26) after placeholder removal [file: web/src/App.tsx:25-26]
+- [x] [AI-Review][MEDIUM] Document CSS theme color additions as dependency fix in Dev Notes (scope creep from AC) [file: web/src/styles/index.css]
+
+#### Low Priority
+- [x] [AI-Review][LOW] Add test verifying `lg:p-6` responsive padding class [file: web/src/features/game-server/SettingsPage.test.tsx]
+- [x] [AI-Review][LOW] Add `aria-label="Game Settings"` to main container for accessibility [file: web/src/features/game-server/SettingsPage.tsx:69]
+- [x] [AI-Review][LOW] Add test for "View Installation Progress" link in installing state [file: web/src/features/game-server/SettingsPage.test.tsx]
 
 ## Dev Notes
 
@@ -262,10 +278,40 @@ feat(story-11.3/task-N): description
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- ✅ Task 1: Created SettingsPage component with page header ("Game Settings" title + ServerStatusBadge), full-width GameConfigPanel integration, loading/error states, and EmptyServerState for not_installed/installing states. 14 unit tests covering all behaviors.
+- ✅ Task 2: Empty state already implemented as part of Task 1 (EmptyServerState inline component with ServerOff icon, message, and Link to /game-server/version). Tests already cover empty state rendering and link presence.
+- ✅ Task 3: Integrated SettingsPage into App.tsx routing. Added export to game-server index.ts. Removed placeholder GameServerSettingsPage function and unused GameConfigPanel import. Existing Sidebar tests already verify route paths.
+- ✅ Task 4: Verified auto-save and toast behavior unchanged. GameConfigPanel was NOT modified - SettingsPage simply wraps it. Existing GameConfigPanel tests (11 tests) verify API calls on blur and toast.success/toast.error are already implemented in the component (lines 163, 172).
+- ✅ Task 5: Manual browser verification completed. All ACs verified. Ad-hoc fix: Added missing --success and --warning CSS theme colors (Catppuccin green/yellow) to fix ServerStatusBadge background coloring.
+
 ### File List
+
+- web/src/features/game-server/SettingsPage.tsx (created)
+- web/src/features/game-server/SettingsPage.test.tsx (created)
+- web/src/features/game-server/index.ts (modified)
+- web/src/App.tsx (modified)
+- web/src/styles/index.css (modified - added success/warning theme colors)
+
+### Change Log
+
+- 2026-01-11: Story implementation complete. Created SettingsPage with full-width GameConfigPanel, server status header, and empty state for not_installed. Fixed pre-existing bug with missing success/warning CSS colors.
+- 2026-01-11: Code review follow-ups addressed. Added route integration test, responsive padding test, installing state link test, aria-label for accessibility, and removed extra blank lines in App.tsx.
+
+### CSS Theme Color Dependency Fix (Ad-hoc)
+
+During manual browser verification, ServerStatusBadge background colors (success/warning states) were not rendering correctly. Investigation revealed that `--success` and `--warning` CSS custom properties were missing from the theme configuration.
+
+**Root Cause:** The base CSS variables `--success`, `--success-foreground`, `--warning`, and `--warning-foreground` were not defined in the `:root` and `.dark` selectors, nor mapped in the `@theme inline` block.
+
+**Fix Applied (web/src/styles/index.css):**
+- Added Catppuccin Latte colors for light mode: `--success: #40a02b` (green), `--warning: #df8e1d` (yellow)
+- Added Catppuccin Mocha colors for dark mode: `--success: #a6e3a1`, `--warning: #f9e2af`
+- Added theme mappings: `--color-success`, `--color-success-foreground`, `--color-warning`, `--color-warning-foreground`
+
+This was a pre-existing infrastructure gap that only became visible when ServerStatusBadge was rendered in a context requiring these colors. The fix is consistent with the existing Catppuccin theme palette.

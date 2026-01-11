@@ -41,7 +41,8 @@
       "Bash(./scripts/polish-backlog.sh:*)",
       "Bash(bash ./scripts/polish-backlog.sh:*)",
       "Bash(yq:*)",
-      "Bash(gh pr create --title \"feat\\(story-11.2\\): Version/Installation Page\" --body \"$\\(cat <<''EOF''\n## Summary\n\n- Create dedicated VersionPage component for server version management at `/game-server/version`\n- Display different content based on server state: installation interface \\(not_installed\\), progress \\(installing\\), or version info \\(installed\\)\n- Reuse existing ServerInstallCard component for installation states\n- Add UpdateAvailableBanner when newer version is available in cache\n- Fix scheduler to run version check job immediately at startup \\(populates version cache\\)\n\n## Test plan\n\n- [x] Unit tests for VersionPage component \\(12 tests covering all states\\)\n- [x] All existing tests pass \\(`just test`\\)\n- [x] Manual verification in Docker container:\n  - [x] Not installed state shows ServerInstallCard\n  - [x] Installed state shows version info with status badge\n  - [x] Installing state shows progress\n  - [x] Update available banner appears when version differs\nEOF\n\\)\")"
+      "Bash(gh pr:*)",
+      "Bash(just typecheck:*)"
     ]
   },
   "enabledPlugins": {

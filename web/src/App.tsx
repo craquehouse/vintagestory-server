@@ -6,7 +6,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
-import { GameConfigPanel, VersionPage } from "@/features/game-server";
+import { VersionPage, SettingsPage as GameServerSettingsPage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
 import { ConsolePanel } from "@/components/ConsolePanel";
 
@@ -18,19 +18,6 @@ function GameServerLayout() {
   return (
     <div className="h-full" data-testid="game-server-layout">
       <Outlet />
-    </div>
-  );
-}
-
-
-/**
- * Placeholder for Game Server Settings page.
- * Story 11.3 will implement the actual content.
- */
-function GameServerSettingsPage() {
-  return (
-    <div className="p-4 h-full overflow-auto" data-testid="game-server-settings-page">
-      <GameConfigPanel />
     </div>
   );
 }
