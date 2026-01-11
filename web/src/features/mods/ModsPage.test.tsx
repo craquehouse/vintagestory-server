@@ -19,6 +19,7 @@ import { type ReactNode } from 'react';
 import { ModsPage } from './ModsPage';
 import { InstalledTab } from './InstalledTab';
 import { BrowseTab } from './BrowseTab';
+import { ModDetailPage } from './ModDetailPage';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -122,6 +123,7 @@ function createTestRouterWithRedirects(initialEntries: string[], queryClient: Qu
               <Route index element={<Navigate to="installed" replace />} />
               <Route path="installed" element={<InstalledTab />} />
               <Route path="browse" element={<BrowseTab />} />
+              <Route path="browse/:slug" element={<ModDetailPage />} />
             </Route>
             {/* Legacy route redirects */}
             <Route path="/mods/*" element={<ModsRedirect />} />
@@ -304,6 +306,18 @@ describe('ModsPage routing', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('redirects /mods/browse/:slug to /game-server/mods/browse/:slug', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects(['/mods/browse/testmod'], queryClient);
+
+      render(<Router />);
+
+      // Should render the ModDetailPage (shows loading state initially)
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-detail-loading')).toBeInTheDocument();
       });
     });
   });
