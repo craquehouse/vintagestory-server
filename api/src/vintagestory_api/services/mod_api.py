@@ -542,7 +542,7 @@ def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
     if not search:
         return mods
 
-    results = []
+    results: list[ModDict] = []
     for mod in mods:
         # Check name
         name = str(mod.get("name", "")).lower()

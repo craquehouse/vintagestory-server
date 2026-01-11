@@ -34,6 +34,8 @@ function renderWithProviders(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
         <Routes>
+          <Route path="/mods" element={<div>Mods Page</div>} />
+          <Route path="/mods/browse" element={<div>Browse Page</div>} />
           <Route path="/mods/browse/:slug" element={ui} />
         </Routes>
       </MemoryRouter>

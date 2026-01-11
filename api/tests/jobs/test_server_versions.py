@@ -67,11 +67,11 @@ class TestServerVersionsJobExists:
 
     def test_check_server_versions_is_async(self) -> None:
         """check_server_versions is an async function."""
-        import asyncio
+        import inspect
 
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        assert asyncio.iscoroutinefunction(check_server_versions)
+        assert inspect.iscoroutinefunction(check_server_versions)
 
 
 class TestServerVersionsExecution:

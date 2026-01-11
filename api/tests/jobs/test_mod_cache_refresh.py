@@ -56,11 +56,11 @@ class TestModCacheRefreshJobExists:
 
     def test_refresh_mod_cache_is_async(self) -> None:
         """refresh_mod_cache is an async function."""
-        import asyncio
+        import inspect
 
         from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
 
-        assert asyncio.iscoroutinefunction(refresh_mod_cache)
+        assert inspect.iscoroutinefunction(refresh_mod_cache)
 
 
 class TestModCacheRefreshExecution:

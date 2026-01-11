@@ -11,13 +11,21 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     css: true,
     exclude: ['**/node_modules/**', '**/e2e/**'],
+    // Suppress known false-positive warnings from third-party libraries
+    onConsoleLog(log) {
+      // Radix UI's Presence component triggers act() warnings due to internal animations
+      if (log.includes('An update to Presence inside a test was not wrapped in act')) {
+        return false;
+      }
+      return true;
+    },
+    env: {
+      LOCALSTORAGE_FILE: '/tmp/localStorage.json',
+    },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-  },
-  env: {
-    LOCALSTORAGE_FILE: '/tmp/localStorage.json',
   },
 });
