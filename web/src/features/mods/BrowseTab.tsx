@@ -100,10 +100,11 @@ export function BrowseTab() {
 
   // Navigate to mod detail view (Story 10.6)
   // Story 10.7: Save scroll position before navigating
+  // Story 11.4: Updated path to /game-server/mods/browse
   const handleModClick = useCallback(
     (slug: string) => {
       savePosition(currentPage);
-      navigate(`/mods/browse/${slug}`);
+      navigate(`/game-server/mods/browse/${slug}`);
     },
     [navigate, savePosition, currentPage]
   );

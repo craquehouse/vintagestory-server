@@ -27,12 +27,12 @@ So that **mod management is logically grouped with other server functions**.
   - [x] Update handleBack navigation in ModDetailPage to use `/game-server/mods/browse`
   - [x] Add/update route tests to verify new paths render correctly
 
-- [ ] Task 2: Add redirects from old `/mods` routes + tests (AC: 2)
-  - [ ] Add `<Navigate to="/game-server/mods" replace />` for `/mods` route
-  - [ ] Add redirect for `/mods/installed` → `/game-server/mods/installed`
-  - [ ] Add redirect for `/mods/browse` → `/game-server/mods/browse`
-  - [ ] Add redirect for `/mods/browse/:slug` → `/game-server/mods/browse/:slug` (preserve params)
-  - [ ] Write tests verifying all redirects work correctly
+- [x] Task 2: Add redirects from old `/mods` routes + tests (AC: 2)
+  - [x] Add `<Navigate to="/game-server/mods" replace />` for `/mods` route
+  - [x] Add redirect for `/mods/installed` → `/game-server/mods/installed`
+  - [x] Add redirect for `/mods/browse` → `/game-server/mods/browse`
+  - [x] Add redirect for `/mods/browse/:slug` → `/game-server/mods/browse/:slug` (preserve params)
+  - [x] Write tests verifying all redirects work correctly
 
 - [ ] Task 3: Update internal links throughout codebase + tests (AC: 1, 3)
   - [ ] Update ModsPage tab navigation to use new paths (`/game-server/mods/installed`, `/game-server/mods/browse`)
