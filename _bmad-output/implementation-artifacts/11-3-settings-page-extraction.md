@@ -1,6 +1,6 @@
 # Story 11.3: Settings Page Extraction
 
-Status: in-progress
+Status: complete
 
 ## Story
 
