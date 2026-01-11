@@ -132,7 +132,7 @@ development_status:
   # FRs: UI Architecture - Sub-navigation system for server context pages
   epic-11: in-progress
   11-1-sub-navigation-infrastructure: done
-  11-2-version-installation-page: review
+  11-2-version-installation-page: done
   11-3-settings-page-extraction: backlog
   11-4-mods-page-migration: backlog
   11-5-console-page-extraction: backlog
