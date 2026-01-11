@@ -134,7 +134,7 @@ development_status:
   11-1-sub-navigation-infrastructure: done
   11-2-version-installation-page: done
   11-3-settings-page-extraction: done
-  11-4-mods-page-migration: backlog
+  11-4-mods-page-migration: ready-for-dev
   11-5-console-page-extraction: backlog
   11-6-dashboard-navigation-cleanup: backlog
   epic-11-retrospective: optional
