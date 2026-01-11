@@ -47,10 +47,10 @@ So that **mod management is logically grouped with other server functions**.
   - [x] Add link to `/game-server/version` (Installation page)
   - [x] Write tests for empty state rendering
 
-- [ ] Task 5: Remove top-level Mods from sidebar + tests (AC: 1)
-  - [ ] In Sidebar.tsx, remove "Mods" from `bottomNavItems` array (line 35)
-  - [ ] Verify Game Server > Mods sub-navigation item still works (already exists, line 56)
-  - [ ] Write tests verifying sidebar no longer shows top-level Mods
+- [x] Task 5: Remove top-level Mods from sidebar + tests (AC: 1)
+  - [x] In Sidebar.tsx, remove "Mods" from `bottomNavItems` array (line 35)
+  - [x] Verify Game Server > Mods sub-navigation item still works (already exists, line 56)
+  - [x] Write tests verifying sidebar no longer shows top-level Mods
 
 - [ ] Task 6: Manual browser verification (AC: all)
   - [ ] Start dev servers (`just dev-api` and `just dev-web`)

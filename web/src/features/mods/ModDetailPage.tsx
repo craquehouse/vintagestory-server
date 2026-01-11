@@ -324,15 +324,10 @@ export function ModDetailPage() {
   const installedMod = modsData?.data?.mods?.find((m) => m.slug === slug);
   const installedVersion = installedMod?.version ?? null;
 
-  // Handle back navigation - go back in history or to browse tab
+  // Handle back navigation - always go to browse tab
+  // Story 11.4: Changed from navigate(-1) to explicit path for predictable behavior
   const handleBack = () => {
-    // Check if we have history to go back to
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      // Fallback to browse tab if no history
-      navigate('/game-server/mods/browse');
-    }
+    navigate('/game-server/mods/browse');
   };
 
   if (isLoading) {
