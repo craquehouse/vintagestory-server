@@ -1,6 +1,6 @@
 # Story 11.3: Settings Page Extraction
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -54,7 +54,23 @@ So that **I have more space to view and edit configuration**.
   - [x] Test installed state → shows GameConfigPanel
   - [x] Edit a setting and verify auto-save with toast
   - [x] Verify improved layout width compared to previous split-view
-  - [x] Check for console errors or warnings
+   - [x] Check for console errors or warnings
+
+## Review Follow-ups (AI)
+
+### Code Review by Adversarial Reviewer (2026-01-11)
+
+#### High Priority
+- [ ] [AI-Review][HIGH] Add route integration test for `/game-server/settings` route (Task 3 subtask "Write integration tests for route behavior" incomplete) [file: web/src/features/game-server/SettingsPage.test.tsx]
+
+#### Medium Priority
+- [ ] [AI-Review][MEDIUM] Remove extra blank lines in App.tsx (lines 25-26) after placeholder removal [file: web/src/App.tsx:25-26]
+- [ ] [AI-Review][MEDIUM] Document CSS theme color additions as dependency fix in Dev Notes (scope creep from AC) [file: web/src/styles/index.css]
+
+#### Low Priority
+- [ ] [AI-Review][LOW] Add test verifying `lg:p-6` responsive padding class [file: web/src/features/game-server/SettingsPage.test.tsx]
+- [ ] [AI-Review][LOW] Add `aria-label="Game Settings"` to main container for accessibility [file: web/src/features/game-server/SettingsPage.tsx:69]
+- [ ] [AI-Review][LOW] Add test for "View Installation Progress" link in installing state [file: web/src/features/game-server/SettingsPage.test.tsx]
 
 ## Dev Notes
 
