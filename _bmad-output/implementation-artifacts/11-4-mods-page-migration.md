@@ -34,11 +34,11 @@ So that **mod management is logically grouped with other server functions**.
   - [x] Add redirect for `/mods/browse/:slug` → `/game-server/mods/browse/:slug` (preserve params)
   - [x] Write tests verifying all redirects work correctly
 
-- [ ] Task 3: Update internal links throughout codebase + tests (AC: 1, 3)
-  - [ ] Update ModsPage tab navigation to use new paths (`/game-server/mods/installed`, `/game-server/mods/browse`)
-  - [ ] Update ModDetailPage breadcrumbs to use new paths
-  - [ ] Search for any other `/mods` links in components and update them
-  - [ ] Write tests to verify internal navigation works
+- [x] Task 3: Update internal links throughout codebase + tests (AC: 1, 3)
+  - [x] Update ModsPage tab navigation to use new paths (`/game-server/mods/installed`, `/game-server/mods/browse`)
+  - [x] Update ModDetailPage breadcrumbs to use new paths
+  - [x] Search for any other `/mods` links in components and update them (BrowseTab handleModClick)
+  - [x] Write tests to verify internal navigation works
 
 - [ ] Task 4: Add empty state for no server installed + tests (AC: 4)
   - [ ] In App.tsx GameServerModsPage (or new wrapper), check `serverStatus?.data?.state === 'not_installed'`
