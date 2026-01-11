@@ -78,15 +78,14 @@ describe("Sidebar", () => {
       expect(screen.getByText("Game Server")).toBeInTheDocument();
     });
 
-    it("renders top-level Mods link", () => {
+    // Story 11.4: Top-level Mods link removed - now only under Game Server
+    it("does not render top-level Mods link", () => {
       renderWithProviders(<Sidebar />);
 
-      // There are two Mods links - one sub-item (/game-server/mods) and one top-level (/mods)
+      // Only one Mods link should exist - the sub-item under Game Server
       const modsLinks = screen.getAllByRole("link", { name: /^mods$/i });
-      const topLevelModsLink = modsLinks.find((link) =>
-        link.getAttribute("href") === "/mods"
-      );
-      expect(topLevelModsLink).toBeInTheDocument();
+      expect(modsLinks.length).toBe(1);
+      expect(modsLinks[0]).toHaveAttribute("href", "/game-server/mods");
     });
 
     it("renders VSManager (Settings) link", () => {
@@ -107,9 +106,10 @@ describe("Sidebar", () => {
       expect(
         screen.getByRole("link", { name: /^settings$/i })
       ).toBeInTheDocument();
-      // Note: "Mods" appears twice - once as sub-item, once as top-level
+      // Story 11.4: "Mods" now only appears once - as sub-item under Game Server
       const modsLinks = screen.getAllByRole("link", { name: /mods/i });
-      expect(modsLinks.length).toBe(2); // Sub-item + top-level
+      expect(modsLinks.length).toBe(1); // Only sub-item
+      expect(modsLinks[0]).toHaveAttribute("href", "/game-server/mods");
       expect(screen.getByRole("link", { name: /console/i })).toBeInTheDocument();
     });
 
@@ -180,19 +180,17 @@ describe("Sidebar", () => {
   });
 
   describe("Active Route Highlighting", () => {
+    // Story 11.4: Updated to use /game-server/mods instead of /mods
     it("highlights active route with bg-sidebar-accent class", () => {
-      renderWithProviders(<Sidebar />, { initialRoute: "/mods" });
+      renderWithProviders(<Sidebar />, { initialRoute: "/game-server/mods" });
 
-      // Find top-level Mods link (href="/mods")
-      const modsLinks = screen.getAllByRole("link", { name: /^mods$/i });
-      const topLevelModsLink = modsLinks.find((link) =>
-        link.getAttribute("href") === "/mods"
-      );
-      expect(topLevelModsLink).toBeInTheDocument();
+      // Find Mods link under Game Server (href="/game-server/mods")
+      const modsLink = screen.getByRole("link", { name: /^mods$/i });
+      expect(modsLink).toHaveAttribute("href", "/game-server/mods");
     });
 
     it("does not highlight inactive routes", () => {
-      renderWithProviders(<Sidebar />, { initialRoute: "/mods" });
+      renderWithProviders(<Sidebar />, { initialRoute: "/game-server/mods" });
 
       const dashboardLink = screen.getByRole("link", { name: /dashboard/i });
       expect(dashboardLink).not.toHaveClass("bg-sidebar-accent");

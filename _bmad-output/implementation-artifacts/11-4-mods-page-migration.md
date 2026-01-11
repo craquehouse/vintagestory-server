@@ -40,12 +40,12 @@ So that **mod management is logically grouped with other server functions**.
   - [x] Search for any other `/mods` links in components and update them (BrowseTab handleModClick)
   - [x] Write tests to verify internal navigation works
 
-- [ ] Task 4: Add empty state for no server installed + tests (AC: 4)
-  - [ ] In App.tsx GameServerModsPage (or new wrapper), check `serverStatus?.data?.state === 'not_installed'`
-  - [ ] Display EmptyServerState with message about server installation requirement
-  - [ ] Include note that compatibility checking is disabled without installed server
-  - [ ] Add link to `/game-server/version` (Installation page)
-  - [ ] Write tests for empty state rendering
+- [x] Task 4: Add empty state for no server installed + tests (AC: 4)
+  - [x] In App.tsx GameServerModsPage (or new wrapper), check `serverStatus?.data?.state === 'not_installed'`
+  - [x] Display EmptyServerState with message about server installation requirement
+  - [x] Include note that compatibility checking is disabled without installed server
+  - [x] Add link to `/game-server/version` (Installation page)
+  - [x] Write tests for empty state rendering
 
 - [ ] Task 5: Remove top-level Mods from sidebar + tests (AC: 1)
   - [ ] In Sidebar.tsx, remove "Mods" from `bottomNavItems` array (line 35)

@@ -31,8 +31,8 @@ const topNavItems = [
 ];
 
 /** Bottom navigation items (non-expandable) */
+// Story 11.4: Removed top-level Mods - now under Game Server > Mods
 const bottomNavItems = [
-  { to: "/mods", icon: Package, label: "Mods" },
   { to: "/config", icon: Settings, label: "VSManager" },
 ];
 
