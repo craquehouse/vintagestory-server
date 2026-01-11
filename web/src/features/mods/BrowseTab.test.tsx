@@ -1010,7 +1010,7 @@ describe('BrowseTab', () => {
       const card = screen.getByTestId('mod-card-carrycapacity');
       await user.click(card);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/mods/browse/carrycapacity');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity');
     });
 
     it('navigates to correct mod when different card is clicked', async () => {
@@ -1031,7 +1031,7 @@ describe('BrowseTab', () => {
       const card = screen.getByTestId('mod-card-primitivesurvival');
       await user.click(card);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/mods/browse/primitivesurvival');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/primitivesurvival');
     });
 
     it('mod cards are clickable (have cursor-pointer)', async () => {

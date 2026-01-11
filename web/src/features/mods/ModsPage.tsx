@@ -15,9 +15,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
  * Extract the active tab from the current URL path.
- * /mods/installed → "installed"
- * /mods/browse → "browse"
- * /mods → "installed" (fallback)
+ * /game-server/mods/installed → "installed"
+ * /game-server/mods/browse → "browse"
+ * /game-server/mods → "installed" (fallback)
  */
 function getActiveTab(pathname: string): string {
   const segments = pathname.split('/');
@@ -41,7 +41,7 @@ export function ModsPage() {
   const activeTab = getActiveTab(location.pathname);
 
   const handleTabChange = (value: string) => {
-    navigate(`/mods/${value}`);
+    navigate(`/game-server/mods/${value}`);
   };
 
   return (

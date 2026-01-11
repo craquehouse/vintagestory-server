@@ -2,22 +2,24 @@
  * ModsPage routing and tab navigation tests.
  *
  * Story 10.2: Mods Tab Restructure - AC4, AC5, AC6
+ * Story 11.4: Updated to /game-server/mods paths
  *
  * Tests cover:
  * - AC4: URL updates when switching tabs, browser history works
- * - AC5: Direct navigation to /mods/browse works
- * - AC6: Redirect from /mods to /mods/installed
+ * - AC5: Direct navigation to /game-server/mods/browse works
+ * - AC6: Redirect from /game-server/mods to /game-server/mods/installed
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, Navigate } from 'react-router';
+import { MemoryRouter, Routes, Route, Navigate, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { ModsPage } from './ModsPage';
 import { InstalledTab } from './InstalledTab';
 import { BrowseTab } from './BrowseTab';
+import { ModDetailPage } from './ModDetailPage';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -81,18 +83,50 @@ const mockServerStatusResponse = {
   },
 };
 
-// Wrapper for tests that need routing
+// Wrapper for tests that need routing - Story 11.4: Uses /game-server/mods paths
 function createTestRouter(initialEntries: string[], queryClient: QueryClient) {
   return function TestRouter({ children }: { children?: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={initialEntries}>
           <Routes>
-            <Route path="/mods" element={<ModsPage />}>
+            <Route path="/game-server/mods" element={<ModsPage />}>
               <Route index element={<Navigate to="installed" replace />} />
               <Route path="installed" element={<InstalledTab />} />
               <Route path="browse" element={<BrowseTab />} />
             </Route>
+          </Routes>
+          {children}
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+  };
+}
+
+/**
+ * Redirect component for testing legacy /mods routes (mirrors App.tsx ModsRedirect).
+ */
+function ModsRedirect() {
+  const location = useLocation();
+  const newPath = location.pathname.replace(/^\/mods/, '/game-server/mods');
+  return <Navigate to={newPath} replace />;
+}
+
+// Wrapper for tests that include legacy route redirects - Story 11.4
+function createTestRouterWithRedirects(initialEntries: string[], queryClient: QueryClient) {
+  return function TestRouter({ children }: { children?: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/game-server/mods" element={<ModsPage />}>
+              <Route index element={<Navigate to="installed" replace />} />
+              <Route path="installed" element={<InstalledTab />} />
+              <Route path="browse" element={<BrowseTab />} />
+              <Route path="browse/:slug" element={<ModDetailPage />} />
+            </Route>
+            {/* Legacy route redirects */}
+            <Route path="/mods/*" element={<ModsRedirect />} />
           </Routes>
           {children}
         </MemoryRouter>
@@ -140,10 +174,10 @@ describe('ModsPage routing', () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe('AC6: redirect from /mods to /mods/installed', () => {
-    it('redirects /mods to /mods/installed', async () => {
+  describe('AC6: redirect from /game-server/mods to /game-server/mods/installed', () => {
+    it('redirects /game-server/mods to /game-server/mods/installed', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods'], queryClient);
+      const Router = createTestRouter(['/game-server/mods'], queryClient);
 
       render(<Router />);
 
@@ -158,10 +192,10 @@ describe('ModsPage routing', () => {
     });
   });
 
-  describe('AC5: direct navigation to /mods/browse', () => {
-    it('shows Browse tab when navigating directly to /mods/browse', async () => {
+  describe('AC5: direct navigation to /game-server/mods/browse', () => {
+    it('shows Browse tab when navigating directly to /game-server/mods/browse', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/browse'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/browse'], queryClient);
 
       render(<Router />);
 
@@ -176,9 +210,9 @@ describe('ModsPage routing', () => {
       });
     });
 
-    it('shows Installed tab when navigating directly to /mods/installed', async () => {
+    it('shows Installed tab when navigating directly to /game-server/mods/installed', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/installed'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/installed'], queryClient);
 
       render(<Router />);
 
@@ -198,7 +232,7 @@ describe('ModsPage routing', () => {
     it('switches to Browse tab when clicked', async () => {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/installed'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/installed'], queryClient);
 
       render(<Router />);
 
@@ -220,7 +254,7 @@ describe('ModsPage routing', () => {
     it('switches to Installed tab when clicked', async () => {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/browse'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/browse'], queryClient);
 
       render(<Router />);
 
@@ -240,10 +274,58 @@ describe('ModsPage routing', () => {
     });
   });
 
+  describe('Story 11.4 AC2: legacy /mods route redirects', () => {
+    it('redirects /mods to /game-server/mods/installed', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects(['/mods'], queryClient);
+
+      render(<Router />);
+
+      // Should show the Installed tab content (via redirect chain: /mods → /game-server/mods → /game-server/mods/installed)
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('redirects /mods/installed to /game-server/mods/installed', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects(['/mods/installed'], queryClient);
+
+      render(<Router />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('redirects /mods/browse to /game-server/mods/browse', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects(['/mods/browse'], queryClient);
+
+      render(<Router />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+    });
+
+    it('redirects /mods/browse/:slug to /game-server/mods/browse/:slug', async () => {
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects(['/mods/browse/testmod'], queryClient);
+
+      render(<Router />);
+
+      // Should render the ModDetailPage (shows loading state initially)
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-detail-loading')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('AC1: page structure', () => {
     it('renders page with correct heading', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/installed'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/installed'], queryClient);
 
       render(<Router />);
 
@@ -256,7 +338,7 @@ describe('ModsPage routing', () => {
 
     it('renders both tab triggers', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/installed'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/installed'], queryClient);
 
       render(<Router />);
 
@@ -266,7 +348,7 @@ describe('ModsPage routing', () => {
 
     it('defaults to Installed tab being active', async () => {
       const queryClient = createTestQueryClient();
-      const Router = createTestRouter(['/mods/installed'], queryClient);
+      const Router = createTestRouter(['/game-server/mods/installed'], queryClient);
 
       render(<Router />);
 

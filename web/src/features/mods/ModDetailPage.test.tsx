@@ -3,6 +3,7 @@
  *
  * Story 10.6: Verifies mod detail view renders correctly with
  * sanitized HTML description, releases list, and all metadata.
+ * Story 11.4: Updated to /game-server/mods paths.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -23,10 +24,10 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper to provide QueryClient and Router context
+// Wrapper to provide QueryClient and Router context - Story 11.4: Uses /game-server/mods paths
 function renderWithProviders(
   ui: React.ReactElement,
-  { route = '/mods/browse/testmod' } = {}
+  { route = '/game-server/mods/browse/testmod' } = {}
 ) {
   const queryClient = createTestQueryClient();
 
@@ -34,9 +35,9 @@ function renderWithProviders(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[route]}>
         <Routes>
-          <Route path="/mods" element={<div>Mods Page</div>} />
-          <Route path="/mods/browse" element={<div>Browse Page</div>} />
-          <Route path="/mods/browse/:slug" element={ui} />
+          <Route path="/game-server/mods" element={<div>Mods Page</div>} />
+          <Route path="/game-server/mods/browse" element={<div>Browse Page</div>} />
+          <Route path="/game-server/mods/browse/:slug" element={ui} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -141,7 +142,7 @@ describe('ModDetailPage', () => {
           })
       );
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       expect(screen.getByTestId('mod-detail-loading')).toBeInTheDocument();
     });
@@ -158,7 +159,7 @@ describe('ModDetailPage', () => {
           }),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/nonexistent' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/nonexistent' });
 
       expect(await screen.findByTestId('mod-detail-error')).toBeInTheDocument();
       expect(screen.getByText('Failed to load mod details')).toBeInTheDocument();
@@ -172,7 +173,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       expect(await screen.findByTestId('mod-detail-name')).toHaveTextContent(
         'Smithing Plus'
@@ -186,7 +187,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       await screen.findByTestId('mod-detail-page');
       const logo = screen.getByTestId('mod-detail-logo');
@@ -203,7 +204,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockMinimalResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
       await screen.findByTestId('mod-detail-page');
       const logo = screen.getByTestId('mod-detail-logo');
@@ -217,7 +218,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const stats = await screen.findByTestId('mod-detail-stats');
       // Downloads formatted as 204.7K
@@ -234,7 +235,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const tags = await screen.findByTestId('mod-detail-tags');
       expect(tags).toHaveTextContent('Crafting');
@@ -248,7 +249,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       await screen.findByTestId('mod-detail-page');
       const badge = screen.getByTestId('compatibility-badge');
@@ -263,7 +264,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const description = await screen.findByTestId('mod-detail-description');
       // Should contain the sanitized HTML
@@ -286,7 +287,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(responseWithScript),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const description = await screen.findByTestId('mod-detail-description');
       // Should not contain script tag
@@ -303,7 +304,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockMinimalResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
       expect(await screen.findByTestId('mod-detail-no-description')).toHaveTextContent(
         'No description available'
@@ -318,7 +319,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const releasesList = await screen.findByTestId('mod-detail-releases-list');
 
@@ -340,7 +341,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const releasesList = await screen.findByTestId('mod-detail-releases-list');
       const latestRelease = within(releasesList).getByTestId('mod-detail-release-1.8.3');
@@ -357,7 +358,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const releasesList = await screen.findByTestId('mod-detail-releases-list');
       const release1 = within(releasesList).getByTestId('mod-detail-release-1.8.3');
@@ -371,7 +372,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const releasesCard = await screen.findByTestId('mod-detail-releases-card');
       expect(releasesCard).toHaveTextContent('Releases (2)');
@@ -383,7 +384,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockMinimalResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
       expect(await screen.findByTestId('mod-detail-no-releases')).toHaveTextContent(
         'No releases available'
@@ -398,7 +399,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const link = await screen.findByTestId('mod-detail-moddb-link');
       expect(link).toHaveAttribute(
@@ -414,7 +415,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const link = await screen.findByTestId('mod-detail-homepage-link');
       expect(link).toHaveAttribute('href', 'https://example.com/smithingplus');
@@ -426,7 +427,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const link = await screen.findByTestId('mod-detail-source-link');
       expect(link).toHaveAttribute('href', 'https://github.com/user/smithingplus');
@@ -438,7 +439,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockMinimalResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
       await screen.findByTestId('mod-detail-page');
       expect(screen.queryByTestId('mod-detail-homepage-link')).not.toBeInTheDocument();
@@ -453,7 +454,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       expect(await screen.findByTestId('mod-detail-created')).toHaveTextContent(
         'Oct 24, 2024'
@@ -469,7 +470,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       expect(await screen.findByTestId('mod-detail-slug')).toHaveTextContent(
         'smithingplus'
@@ -482,7 +483,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockMinimalResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
       expect(await screen.findByTestId('mod-detail-created')).toHaveTextContent(
         'Unknown'
@@ -500,7 +501,7 @@ describe('ModDetailPage', () => {
         json: () => Promise.resolve(mockModDetailResponse),
       });
 
-      renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       await screen.findByTestId('mod-detail-page');
 
@@ -567,7 +568,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         expect(await screen.findByTestId('mod-detail-install-section')).toBeInTheDocument();
       });
@@ -578,7 +579,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const versionSelect = await screen.findByTestId('mod-detail-version-select');
         expect(versionSelect).toBeInTheDocument();
@@ -592,7 +593,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         expect(installButton).toBeInTheDocument();
@@ -606,7 +607,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         await screen.findByTestId('mod-detail-install-section');
         expect(screen.queryByTestId('mod-detail-installed-indicator')).not.toBeInTheDocument();
@@ -618,7 +619,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/simplemod' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
 
         await screen.findByTestId('mod-detail-page');
         expect(screen.queryByTestId('mod-detail-install-section')).not.toBeInTheDocument();
@@ -632,7 +633,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const indicator = await screen.findByTestId('mod-detail-installed-indicator');
         expect(indicator).toBeInTheDocument();
@@ -662,7 +663,7 @@ describe('ModDetailPage', () => {
           installedCurrentResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         expect(installButton).toHaveTextContent('Already Installed');
@@ -675,7 +676,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         // Wait for install section to render
         await screen.findByTestId('mod-detail-install-section');
@@ -693,7 +694,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         // When installed 1.8.2 and latest is 1.8.3, should show update button
         const updateButton = await screen.findByTestId('mod-detail-update-button');
@@ -710,7 +711,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         // Wait for update button (default state with latest selected)
         await screen.findByTestId('mod-detail-update-button');
@@ -730,7 +731,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const versionSelect = await screen.findByTestId('mod-detail-version-select');
         // Latest version is 1.8.3
@@ -743,7 +744,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         // Wait for install section
         await screen.findByTestId('mod-detail-install-section');
@@ -762,7 +763,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         expect(installButton).not.toBeDisabled();
@@ -774,7 +775,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const updateButton = await screen.findByTestId('mod-detail-update-button');
         expect(updateButton).not.toBeDisabled();
@@ -789,7 +790,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         await user.click(installButton);
@@ -806,7 +807,7 @@ describe('ModDetailPage', () => {
           mockInstalledModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const updateButton = await screen.findByTestId('mod-detail-update-button');
         await user.click(updateButton);
@@ -823,7 +824,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         await user.click(installButton);
@@ -841,7 +842,7 @@ describe('ModDetailPage', () => {
           mockEmptyModsResponse
         );
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         await user.click(installButton);
@@ -866,7 +867,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const backButton = await screen.findByTestId('mod-detail-back');
         expect(backButton).toBeInTheDocument();
@@ -880,7 +881,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const backButton = await screen.findByTestId('mod-detail-back');
         // Just verify it can be clicked without error
@@ -895,7 +896,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const breadcrumb = await screen.findByTestId('mod-detail-breadcrumb');
         expect(breadcrumb).toBeInTheDocument();
@@ -907,11 +908,11 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const modsLink = await screen.findByTestId('mod-detail-breadcrumb-mods');
         expect(modsLink).toHaveTextContent('Mods');
-        expect(modsLink).toHaveAttribute('href', '/mods');
+        expect(modsLink).toHaveAttribute('href', '/game-server/mods');
       });
 
       it('breadcrumb shows Browse link', async () => {
@@ -920,11 +921,11 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const browseLink = await screen.findByTestId('mod-detail-breadcrumb-browse');
         expect(browseLink).toHaveTextContent('Browse');
-        expect(browseLink).toHaveAttribute('href', '/mods/browse');
+        expect(browseLink).toHaveAttribute('href', '/game-server/mods/browse');
       });
 
       it('breadcrumb shows current mod name', async () => {
@@ -933,7 +934,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const modName = await screen.findByTestId('mod-detail-breadcrumb-name');
         expect(modName).toHaveTextContent('Smithing Plus');
@@ -945,7 +946,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         const breadcrumb = await screen.findByTestId('mod-detail-breadcrumb');
         expect(breadcrumb).toHaveAttribute('aria-label', 'Breadcrumb');
@@ -959,7 +960,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(mockModDetailResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/smithingplus' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
         await screen.findByTestId('mod-detail-page');
 
@@ -985,7 +986,7 @@ describe('ModDetailPage', () => {
           json: () => Promise.resolve(differentModResponse),
         });
 
-        renderWithProviders(<ModDetailPage />, { route: '/mods/browse/anothermod' });
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/anothermod' });
 
         await screen.findByTestId('mod-detail-page');
 
