@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
@@ -34,6 +34,17 @@ function GameServerConsolePage() {
   );
 }
 
+/**
+ * Redirect component for legacy /mods routes.
+ * Story 11.4: Redirects old /mods/* paths to /game-server/mods/*
+ * Preserves the path portion after /mods (e.g., /mods/browse/slug → /game-server/mods/browse/slug)
+ */
+function ModsRedirect() {
+  const location = useLocation();
+  const newPath = location.pathname.replace(/^\/mods/, '/game-server/mods');
+  return <Navigate to={newPath} replace />;
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -58,6 +69,8 @@ function App() {
                 <Route path="console" element={<GameServerConsolePage />} />
               </Route>
               <Route path="/config" element={<SettingsPage />} />
+              {/* Story 11.4: Redirect legacy /mods/* routes to /game-server/mods/* */}
+              <Route path="/mods/*" element={<ModsRedirect />} />
             </Routes>
           </Layout>
         </BrowserRouter>

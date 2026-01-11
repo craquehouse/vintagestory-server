@@ -1,6 +1,6 @@
 # Story 11.4: Mods Page Migration
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -20,12 +20,12 @@ So that **mod management is logically grouped with other server functions**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Move mods routes under `/game-server/mods` + tests (AC: 1, 3)
-  - [ ] Update App.tsx: Move mods routes from top-level `/mods` to nested under `/game-server`
-  - [ ] Update ModsPage to work with new route structure (`/game-server/mods/*`)
-  - [ ] Update ModDetailPage breadcrumb links to use new paths
-  - [ ] Update handleBack navigation in ModDetailPage to use `/game-server/mods/browse`
-  - [ ] Add/update route tests to verify new paths render correctly
+- [x] Task 1: Move mods routes under `/game-server/mods` + tests (AC: 1, 3)
+  - [x] Update App.tsx: Move mods routes from top-level `/mods` to nested under `/game-server`
+  - [x] Update ModsPage to work with new route structure (`/game-server/mods/*`)
+  - [x] Update ModDetailPage breadcrumb links to use new paths
+  - [x] Update handleBack navigation in ModDetailPage to use `/game-server/mods/browse`
+  - [x] Add/update route tests to verify new paths render correctly
 
 - [ ] Task 2: Add redirects from old `/mods` routes + tests (AC: 2)
   - [ ] Add `<Navigate to="/game-server/mods" replace />` for `/mods` route
