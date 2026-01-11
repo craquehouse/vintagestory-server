@@ -6,7 +6,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
-import { GameConfigPanel } from "@/features/game-server";
+import { GameConfigPanel, VersionPage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
 import { ConsolePanel } from "@/components/ConsolePanel";
 
@@ -22,20 +22,6 @@ function GameServerLayout() {
   );
 }
 
-/**
- * Placeholder for Version/Installation page.
- * Story 11.2 will implement the actual content.
- */
-function GameServerVersionPage() {
-  return (
-    <div className="p-4" data-testid="game-server-version-page">
-      <h1 className="text-2xl font-bold mb-4">Version & Installation</h1>
-      <p className="text-muted-foreground">
-        Server version management will be implemented in Story 11.2.
-      </p>
-    </div>
-  );
-}
 
 /**
  * Placeholder for Game Server Settings page.
@@ -87,7 +73,7 @@ function App() {
               {/* Game Server nested routes */}
               <Route path="/game-server" element={<GameServerLayout />}>
                 <Route index element={<Navigate to="console" replace />} />
-                <Route path="version" element={<GameServerVersionPage />} />
+                <Route path="version" element={<VersionPage />} />
                 <Route path="settings" element={<GameServerSettingsPage />} />
                 <Route path="mods" element={<GameServerModsPage />} />
                 <Route path="console" element={<GameServerConsolePage />} />
