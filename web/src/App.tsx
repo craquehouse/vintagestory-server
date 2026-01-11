@@ -22,8 +22,6 @@ function GameServerLayout() {
   );
 }
 
-
-
 /**
  * Placeholder for Game Server Mods page.
  * Story 11.4 will implement the actual content.

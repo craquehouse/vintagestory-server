@@ -69,6 +69,7 @@ export function SettingsPage() {
     <div
       className="p-4 lg:p-6 h-full overflow-auto"
       data-testid="settings-page"
+      aria-label="Game Settings"
     >
       {/* Page Header with title and status badge */}
       <div className="flex items-center justify-between mb-6">

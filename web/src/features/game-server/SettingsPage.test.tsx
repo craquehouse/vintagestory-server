@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import { SettingsPage } from './SettingsPage';
 import * as serverStatusHook from '@/hooks/use-server-status';
 
@@ -240,6 +240,62 @@ describe('SettingsPage', () => {
       renderWithProviders(<SettingsPage />);
 
       expect(screen.getByTestId('settings-page')).toBeInTheDocument();
+    });
+  });
+
+  describe('responsive layout', () => {
+    it('applies responsive padding classes (p-4 and lg:p-6)', () => {
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
+        data: { data: { state: 'running', version: '1.21.3' } },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof serverStatusHook.useServerStatus>);
+
+      renderWithProviders(<SettingsPage />);
+
+      const page = screen.getByTestId('settings-page');
+      expect(page).toHaveClass('p-4');
+      expect(page).toHaveClass('lg:p-6');
+    });
+  });
+
+  describe('installing state link', () => {
+    it('shows "View Installation Progress" link when server is installing', () => {
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
+        data: { data: { state: 'installing', version: null } },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof serverStatusHook.useServerStatus>);
+
+      renderWithProviders(<SettingsPage />);
+
+      const progressLink = screen.getByRole('link', { name: /view installation progress/i });
+      expect(progressLink).toBeInTheDocument();
+      expect(progressLink).toHaveAttribute('href', '/game-server/version');
+    });
+  });
+
+  describe('route integration', () => {
+    it('renders SettingsPage at /game-server/settings route', () => {
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
+        data: { data: { state: 'running', version: '1.21.3' } },
+        isLoading: false,
+        error: null,
+      } as ReturnType<typeof serverStatusHook.useServerStatus>);
+
+      const queryClient = createTestQueryClient();
+      render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={['/game-server/settings']}>
+            <Routes>
+              <Route path="/game-server/settings" element={<SettingsPage />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>
+      );
+
+      expect(screen.getByTestId('settings-page')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /game settings/i })).toBeInTheDocument();
     });
   });
 });

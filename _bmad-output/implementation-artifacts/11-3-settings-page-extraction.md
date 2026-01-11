@@ -61,16 +61,16 @@ So that **I have more space to view and edit configuration**.
 ### Code Review by Adversarial Reviewer (2026-01-11)
 
 #### High Priority
-- [ ] [AI-Review][HIGH] Add route integration test for `/game-server/settings` route (Task 3 subtask "Write integration tests for route behavior" incomplete) [file: web/src/features/game-server/SettingsPage.test.tsx]
+- [x] [AI-Review][HIGH] Add route integration test for `/game-server/settings` route (Task 3 subtask "Write integration tests for route behavior" incomplete) [file: web/src/features/game-server/SettingsPage.test.tsx]
 
 #### Medium Priority
-- [ ] [AI-Review][MEDIUM] Remove extra blank lines in App.tsx (lines 25-26) after placeholder removal [file: web/src/App.tsx:25-26]
-- [ ] [AI-Review][MEDIUM] Document CSS theme color additions as dependency fix in Dev Notes (scope creep from AC) [file: web/src/styles/index.css]
+- [x] [AI-Review][MEDIUM] Remove extra blank lines in App.tsx (lines 25-26) after placeholder removal [file: web/src/App.tsx:25-26]
+- [x] [AI-Review][MEDIUM] Document CSS theme color additions as dependency fix in Dev Notes (scope creep from AC) [file: web/src/styles/index.css]
 
 #### Low Priority
-- [ ] [AI-Review][LOW] Add test verifying `lg:p-6` responsive padding class [file: web/src/features/game-server/SettingsPage.test.tsx]
-- [ ] [AI-Review][LOW] Add `aria-label="Game Settings"` to main container for accessibility [file: web/src/features/game-server/SettingsPage.tsx:69]
-- [ ] [AI-Review][LOW] Add test for "View Installation Progress" link in installing state [file: web/src/features/game-server/SettingsPage.test.tsx]
+- [x] [AI-Review][LOW] Add test verifying `lg:p-6` responsive padding class [file: web/src/features/game-server/SettingsPage.test.tsx]
+- [x] [AI-Review][LOW] Add `aria-label="Game Settings"` to main container for accessibility [file: web/src/features/game-server/SettingsPage.tsx:69]
+- [x] [AI-Review][LOW] Add test for "View Installation Progress" link in installing state [file: web/src/features/game-server/SettingsPage.test.tsx]
 
 ## Dev Notes
 
@@ -301,3 +301,17 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Change Log
 
 - 2026-01-11: Story implementation complete. Created SettingsPage with full-width GameConfigPanel, server status header, and empty state for not_installed. Fixed pre-existing bug with missing success/warning CSS colors.
+- 2026-01-11: Code review follow-ups addressed. Added route integration test, responsive padding test, installing state link test, aria-label for accessibility, and removed extra blank lines in App.tsx.
+
+### CSS Theme Color Dependency Fix (Ad-hoc)
+
+During manual browser verification, ServerStatusBadge background colors (success/warning states) were not rendering correctly. Investigation revealed that `--success` and `--warning` CSS custom properties were missing from the theme configuration.
+
+**Root Cause:** The base CSS variables `--success`, `--success-foreground`, `--warning`, and `--warning-foreground` were not defined in the `:root` and `.dark` selectors, nor mapped in the `@theme inline` block.
+
+**Fix Applied (web/src/styles/index.css):**
+- Added Catppuccin Latte colors for light mode: `--success: #40a02b` (green), `--warning: #df8e1d` (yellow)
+- Added Catppuccin Mocha colors for dark mode: `--success: #a6e3a1`, `--warning: #f9e2af`
+- Added theme mappings: `--color-success`, `--color-success-foreground`, `--color-warning`, `--color-warning-foreground`
+
+This was a pre-existing infrastructure gap that only became visible when ServerStatusBadge was rendered in a context requiring these colors. The fix is consistent with the existing Catppuccin theme palette.
