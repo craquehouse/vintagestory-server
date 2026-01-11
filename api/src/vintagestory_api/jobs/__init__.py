@@ -69,6 +69,7 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
 
     # Story 8.2: server_versions_check job
     # Registered when settings.server_versions_refresh_interval > 0
+    # Runs immediately at startup to populate version cache, then on interval
     if settings.server_versions_refresh_interval > 0:
         from vintagestory_api.jobs.server_versions import check_server_versions
 
@@ -76,12 +77,14 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
             check_server_versions,
             seconds=settings.server_versions_refresh_interval,
             job_id="server_versions_check",
+            run_immediately=True,  # Populate cache at startup
         )
         jobs_registered += 1
         logger.info(
             "job_registered",
             job_id="server_versions_check",
             interval_seconds=settings.server_versions_refresh_interval,
+            run_immediately=True,
         )
 
     logger.info("default_jobs_registered", count=jobs_registered)

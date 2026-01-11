@@ -104,6 +104,7 @@ class SchedulerService:
         func: Callable[..., Any],
         seconds: int,
         job_id: str,
+        run_immediately: bool = False,
         **kwargs: Any,
     ) -> Job:
         """Add a job that runs at fixed intervals.
@@ -112,6 +113,8 @@ class SchedulerService:
             func: The async or sync function to execute.
             seconds: Interval between executions in seconds.
             job_id: Unique identifier for the job.
+            run_immediately: If True, run the job once immediately at registration.
+                            The job will then continue on its regular interval.
             **kwargs: Additional arguments passed to scheduler.add_job().
 
         Returns:
@@ -121,15 +124,37 @@ class SchedulerService:
             >>> async def refresh_cache():
             ...     pass
             >>> scheduler.add_interval_job(refresh_cache, seconds=3600, job_id="cache_refresh")
+            >>> # Run immediately, then every hour:
+            >>> scheduler.add_interval_job(
+            ...     check_versions, seconds=3600, job_id="version_check", run_immediately=True
+            ... )
         """
+        from datetime import UTC, datetime
+
+        # If run_immediately, set next_run_time to now so first execution happens immediately
+        trigger_kwargs: dict[str, Any] = {"seconds": seconds}
+        job_kwargs: dict[str, Any] = {
+            "id": job_id,
+            "replace_existing": True,
+            **kwargs,
+        }
+
+        if run_immediately:
+            # Setting next_run_time to now causes immediate first execution
+            job_kwargs["next_run_time"] = datetime.now(UTC)
+
         job: Job = self.scheduler.add_job(  # type: ignore[reportUnknownMemberType]
             func,
-            trigger=IntervalTrigger(seconds=seconds),
-            id=job_id,
-            replace_existing=True,
-            **kwargs,
+            trigger=IntervalTrigger(**trigger_kwargs),
+            **job_kwargs,
         )
-        logger.info("job_added", job_id=job_id, trigger_type="interval", seconds=seconds)
+        logger.info(
+            "job_added",
+            job_id=job_id,
+            trigger_type="interval",
+            seconds=seconds,
+            run_immediately=run_immediately,
+        )
         return job
 
     def add_cron_job(
