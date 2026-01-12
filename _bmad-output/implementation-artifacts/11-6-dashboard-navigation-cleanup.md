@@ -1,6 +1,6 @@
 # Story 11.6: Dashboard & Navigation Cleanup
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -40,15 +40,15 @@ So that **it serves as a quick overview without duplicate functionality**.
   - [x] Review existing Sidebar tests verify these behaviors
   - [x] No new code changes needed - just verification
 
-- [ ] Task 4: Manual browser verification (AC: all)
-  - [ ] Start dev servers (`just dev-api` and `just dev-web`)
-  - [ ] Navigate to Dashboard when server not installed → see empty state with link
-  - [ ] Click link → goes to `/game-server/version` (Installation page)
-  - [ ] Navigate to `/game-server` → redirects to `/game-server/version`
-  - [ ] Verify sidebar shows "VSManager" (not "Settings")
-  - [ ] Verify "Mods" is only under Game Server sub-nav
-  - [ ] With server installed → Dashboard shows server status card
-  - [ ] Check for console errors or warnings
+- [x] Task 4: Manual browser verification (AC: all)
+  - [x] Start dev servers (`just dev-api` and `just dev-web`)
+  - [x] Navigate to Dashboard when server not installed → see empty state with link
+  - [x] Click link → goes to `/game-server/version` (Installation page)
+  - [x] Navigate to `/game-server` → redirects to `/game-server/version`
+  - [x] Verify sidebar shows "VSManager" (not "Settings")
+  - [x] Verify "Mods" is only under Game Server sub-nav
+  - [x] With server installed → Dashboard shows server status card
+  - [x] Check for console errors or warnings
 
 ## Dev Notes
 
@@ -280,6 +280,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Replaced ServerInstallCard with shared EmptyServerState component in Dashboard. Removed useInstallStatus hook dependency. Updated tests to verify empty state behavior with links to /game-server/version. All 1198 web tests pass.
 - Task 2: Changed default /game-server redirect from "console" to "version" in App.tsx. Created App.test.tsx with routing tests. All 1201 web tests pass.
 - Task 3: Verification only. Confirmed "VSManager" label in Sidebar.tsx:36 and top-level Mods removed (per Story 11.4). Existing Sidebar tests verify these behaviors. No code changes needed.
+- Task 4: Manual browser verification completed. All acceptance criteria verified in Docker container at localhost:8080.
 
 ### File List
 
