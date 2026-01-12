@@ -154,7 +154,7 @@ development_status:
   # FRs: Browse and manage VintageStory server versions
   # NOTE: Uninstall stories (13-6, 13-7) added from Epic 11 retro to support testing workflow
   epic-13: in-progress
-  13-0-epic-13-technical-preparation: ready-for-dev
+  13-0-epic-13-technical-preparation: review
   13-1-server-versions-api: done
   13-2-version-card-component: backlog
   13-3-version-list-page: backlog

@@ -1,6 +1,6 @@
 # Story 13.0: Epic 13 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -39,25 +39,25 @@ was already completed before this story was created. The tasks below focus on
 documenting findings and updating architecture docs based on what was learned.
 -->
 
-- [ ] Task 1: Document VintageStory version API findings (AC: 1, 2)
-  - [ ] Subtask 1.1: Review agentdocs/server-installation.md for existing API documentation
-  - [ ] Subtask 1.2: Document any gaps or clarifications based on 13-1 implementation
-  - [ ] Subtask 1.3: Note metadata limitations (no release date, no changelog)
+- [x] Task 1: Document VintageStory version API findings (AC: 1, 2)
+  - [x] Subtask 1.1: Review agentdocs/server-installation.md for existing API documentation
+  - [x] Subtask 1.2: Document any gaps or clarifications based on 13-1 implementation
+  - [x] Subtask 1.3: Note metadata limitations (no release date, no changelog)
 
-- [ ] Task 2: Document caching strategy used in 13-1 (AC: 3)
-  - [ ] Subtask 2.1: Document VersionsCache extension from Story 13-1
-  - [ ] Subtask 2.2: Document cache TTL approach (background job refresh)
-  - [ ] Subtask 2.3: Document cache fallback behavior for API failures
+- [x] Task 2: Document caching strategy used in 13-1 (AC: 3)
+  - [x] Subtask 2.1: Document VersionsCache extension from Story 13-1
+  - [x] Subtask 2.2: Document cache TTL approach (background job refresh)
+  - [x] Subtask 2.3: Document cache fallback behavior for API failures
 
-- [ ] Task 3: Plan UI component reuse from Epic 10 (AC: 4)
-  - [ ] Subtask 3.1: Identify mod browser patterns applicable to version browser
-  - [ ] Subtask 3.2: Document UI component architecture for stories 13.2-13.5
-  - [ ] Subtask 3.3: Note differences (no tags, no search, simpler filtering)
+- [x] Task 3: Plan UI component reuse from Epic 10 (AC: 4)
+  - [x] Subtask 3.1: Identify mod browser patterns applicable to version browser
+  - [x] Subtask 3.2: Document UI component architecture for stories 13.2-13.5
+  - [x] Subtask 3.3: Note differences (no tags, no search, simpler filtering)
 
-- [ ] Task 4: Update architecture.md with Epic 13 decisions
-  - [ ] Subtask 4.1: Create architecture/epic-13-server-version-browser.md
-  - [ ] Subtask 4.2: Document ADRs for version caching and UI patterns
-  - [ ] Subtask 4.3: Update architecture.md index to include new file
+- [x] Task 4: Update architecture.md with Epic 13 decisions
+  - [x] Subtask 4.1: Create architecture/epic-13-server-version-browser.md
+  - [x] Subtask 4.2: Document ADRs for version caching and UI patterns
+  - [x] Subtask 4.3: Update architecture.md index to include new file
 
 ## Dev Notes
 
@@ -205,10 +205,21 @@ Use `just` for all development tasks:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+None - documentation/research story with no code debugging required.
+
 ### Completion Notes List
 
+- Task 1: Updated agentdocs/server-installation.md with metadata limitations (no release dates, changelogs), version ordering caveat (don't rely on key order), and cache architecture pattern from Story 13-1.
+- Task 2: Added cache TTL strategy documentation (24h default via server_versions_refresh_interval) and cache fallback behavior (graceful degradation with cached indicator).
+- Task 3: Documented UI component reuse strategy - identified reusable patterns (card layout, grid, badges, TanStack Query) and patterns NOT to reuse (search, pagination, complex filters).
+- Task 4: Created architecture/epic-13-server-version-browser.md with 5 ADRs covering simplified architecture, UI reuse, version card design, query cache sync, and channel filter implementation.
+
 ### File List
+
+- Modified: agentdocs/server-installation.md (Epic 13 implementation notes section)
+- Created: _bmad-output/planning-artifacts/architecture/epic-13-server-version-browser.md
+- Modified: _bmad-output/planning-artifacts/architecture.md (added Epic 13 to index)
