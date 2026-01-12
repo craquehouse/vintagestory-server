@@ -42,7 +42,9 @@
       "Bash(bash ./scripts/polish-backlog.sh:*)",
       "Bash(yq:*)",
       "Bash(gh pr:*)",
-      "Bash(just typecheck:*)"
+      "Bash(just typecheck:*)",
+      "Bash(just docker-rebuild:*)",
+      "Bash(just --list:*)"
     ]
   },
   "enabledPlugins": {
