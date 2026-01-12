@@ -254,4 +254,66 @@ See [quartzar/vintage-story-server](https://github.com/quartzar/vintage-story-se
 
 ---
 
-_Last updated: 2025-12-27 (Epic 3 Preparation)_
+---
+
+## Additional Implementation Notes (Epic 13)
+
+_These notes were added based on learnings from Story 13.1 implementation._
+
+### Metadata Limitations
+
+The VintageStory version API is purely for download discovery. It does **not** provide:
+
+- ❌ **Release date** - No timestamp of when version was released
+- ❌ **Changelog/release notes** - No description of changes
+- ❌ **Release title/description** - No human-readable summary
+- ❌ **Dependencies/requirements** - No .NET version or system requirements
+
+**UI Implication:** The version browser cannot show "Released X days ago" or changelog content. Display should focus on version numbers, channel (stable/unstable), and installed status.
+
+### Version Ordering
+
+> **Important:** Version keys in the JSON response are **not guaranteed** to be in any particular order.
+
+To find the latest version:
+
+1. Look for the version with `"latest": true` flag
+2. Do NOT rely on dictionary iteration order
+
+```python
+# CORRECT: Use latest flag
+def find_latest(versions: dict) -> str:
+    for version, data in versions.items():
+        if data.get("linuxserver", {}).get("latest"):
+            return version
+    return next(iter(versions.keys()))  # fallback
+
+# WRONG: Assume first key is latest
+latest = next(iter(versions.keys()))  # Order not guaranteed!
+```
+
+### Cache Architecture Pattern
+
+From Story 13.1, the recommended caching pattern for version data:
+
+```text
+LatestVersionsCache (singleton)
+├── _versions: LatestVersions
+│   ├── stable_version: str | None (latest only)
+│   └── unstable_version: str | None (latest only)
+├── _version_lists: dict[channel, list[VersionInfo]]
+│   ├── "stable": [...all stable versions...]
+│   └── "unstable": [...all unstable versions...]
+└── _cached_at: datetime | None
+```
+
+**Why dual storage:**
+
+- `_versions` → Quick access for status page ("update available" check)
+- `_version_lists` → Full data for version browser UI
+
+**Cache population:** Background job fetches periodically (versions change infrequently).
+
+---
+
+_Last updated: 2026-01-12 (Epic 13 Technical Preparation - Story 13.0)_
