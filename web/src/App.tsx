@@ -8,11 +8,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Dashboard } from "@/features/dashboard/Dashboard";
 import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
-import { VersionPage, SettingsPage as GameServerSettingsPage } from "@/features/game-server";
+import { VersionPage, SettingsPage as GameServerSettingsPage, ConsolePage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
-import { ConsolePanel } from "@/components/ConsolePanel";
 import { useServerStatus } from "@/hooks/use-server-status";
-import type { ServerState } from "@/api/types";
+import { isServerInstalled } from "@/lib/server-utils";
 
 /**
  * Placeholder component for Game Server sub-pages.
@@ -28,17 +27,6 @@ function GameServerLayout() {
 
 
 /**
- * Console page showing full-width console panel.
- */
-function GameServerConsolePage() {
-  return (
-    <div className="h-full p-4" data-testid="game-server-console-page">
-      <ConsolePanel className="h-full" />
-    </div>
-  );
-}
-
-/**
  * Redirect component for legacy /mods routes.
  * Story 11.4: Redirects old /mods/* paths to /game-server/mods/*
  * Preserves the path portion after /mods (e.g., /mods/browse/slug → /game-server/mods/browse/slug)
@@ -47,13 +35,6 @@ function ModsRedirect() {
   const location = useLocation();
   const newPath = location.pathname.replace(/^\/mods/, '/game-server/mods');
   return <Navigate to={newPath} replace />;
-}
-
-/**
- * Determines if the server is in an "installed" state (has a version installed).
- */
-function isServerInstalled(state: ServerState): boolean {
-  return state !== 'not_installed' && state !== 'installing';
 }
 
 /**
@@ -138,7 +119,7 @@ function App() {
                   <Route path="browse" element={<BrowseTab />} />
                   <Route path="browse/:slug" element={<ModDetailPage />} />
                 </Route>
-                <Route path="console" element={<GameServerConsolePage />} />
+                <Route path="console" element={<ConsolePage />} />
               </Route>
               <Route path="/config" element={<SettingsPage />} />
               {/* Story 11.4: Redirect legacy /mods/* routes to /game-server/mods/* */}

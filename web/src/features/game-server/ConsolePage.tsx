@@ -1,27 +1,27 @@
 /**
- * Settings Page Component
+ * Console Page Component
  *
- * Story 11.3: Settings Page Extraction
+ * Story 11.5: Console Page Extraction
  *
- * Displays game server settings in a full-width layout with:
+ * Displays the game server console in a full-height layout with:
  * - Page header with title and server status badge
  * - Empty state when server is not installed
- * - GameConfigPanel for configured servers
+ * - ConsolePanel with maximum vertical space for terminal output
  */
 
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { EmptyServerState } from '@/components/EmptyServerState';
 import { useServerStatus } from '@/hooks/use-server-status';
-import { GameConfigPanel } from './GameConfigPanel';
+import { ConsolePanel } from '@/components/ConsolePanel';
 import { isServerInstalled } from '@/lib/server-utils';
 
 /**
- * Settings page for the Game Server section.
+ * Console page for the Game Server section.
  *
- * Shows server settings when installed, and an empty state
+ * Shows the console terminal when installed, and an empty state
  * with link to installation when no server is present.
  */
-export function SettingsPage() {
+export function ConsolePage() {
   const { data: statusResponse, isLoading, error } = useServerStatus();
   const serverStatus = statusResponse?.data;
   const serverState = serverStatus?.state ?? 'not_installed';
@@ -34,10 +34,10 @@ export function SettingsPage() {
   if (isLoading) {
     return (
       <div
-        className="p-4 lg:p-6 h-full overflow-auto"
-        data-testid="settings-page-loading"
+        className="p-4 lg:p-6 h-full flex flex-col"
+        data-testid="console-page-loading"
       >
-        <h1 className="text-2xl font-bold">Game Settings</h1>
+        <h1 className="text-2xl font-bold">Server Console</h1>
         <p className="text-muted-foreground mt-4">Loading server status...</p>
       </div>
     );
@@ -47,24 +47,26 @@ export function SettingsPage() {
   if (error) {
     return (
       <div
-        className="p-4 lg:p-6 h-full overflow-auto"
-        data-testid="settings-page-error"
+        className="p-4 lg:p-6 h-full flex flex-col"
+        data-testid="console-page-error"
       >
-        <h1 className="text-2xl font-bold">Game Settings</h1>
+        <h1 className="text-2xl font-bold">Server Console</h1>
         <p className="text-destructive mt-4">Error: {error.message}</p>
       </div>
     );
   }
 
+  // Height calculation: viewport - header (48px) - layout padding (32px mobile, 48px desktop)
+  // Mobile: 100vh - 80px, Desktop (md+): 100vh - 96px
   return (
     <div
-      className="p-4 lg:p-6 h-full overflow-auto"
-      data-testid="settings-page"
-      aria-label="Game Settings"
+      className="h-[calc(100vh-80px)] md:h-[calc(100vh-96px)] flex flex-col"
+      data-testid="console-page"
+      aria-label="Server Console"
     >
       {/* Page Header with title and status badge */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Game Settings</h1>
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h1 className="text-2xl font-bold">Server Console</h1>
         {isInstalled && (
           <ServerStatusBadge state={serverState} />
         )}
@@ -72,13 +74,13 @@ export function SettingsPage() {
 
       {/* Content area */}
       {isInstalled ? (
-        <GameConfigPanel />
+        <ConsolePanel className="flex-1 min-h-0" />
       ) : (
         <EmptyServerState
           isInstalling={isInstalling}
-          notInstalledMessage="Install a VintageStory server to configure settings."
-          installingMessage="Settings will be available once installation completes."
-          testId="settings-page-empty"
+          notInstalledMessage="Install a VintageStory server to access the console."
+          installingMessage="Console will be available once installation completes."
+          testId="console-page-empty"
         />
       )}
     </div>
