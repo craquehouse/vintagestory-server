@@ -1,6 +1,6 @@
 # Story 11.5: Console Page Extraction
 
-Status: in-progress
+Status: done
 
 ## Story
 
