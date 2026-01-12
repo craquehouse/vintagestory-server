@@ -1,6 +1,6 @@
 # Story 13.1: Server Versions API
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -34,11 +34,11 @@ So that **the version browser can display all available releases**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Extend VersionsCache to store full version lists + tests (AC: 4)
-  - [ ] Subtask 1.1: Rename/extend `LatestVersionsCache` to also store full version lists (not just latest)
-  - [ ] Subtask 1.2: Add methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`
-  - [ ] Subtask 1.3: Add `cached_at` timestamp for staleness detection
-  - [ ] Subtask 1.4: Write unit tests for new cache methods
+- [x] Task 1: Extend VersionsCache to store full version lists + tests (AC: 4)
+  - [x] Subtask 1.1: Rename/extend `LatestVersionsCache` to also store full version lists (not just latest)
+  - [x] Subtask 1.2: Add methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`
+  - [x] Subtask 1.3: Add `cached_at` timestamp for staleness detection
+  - [x] Subtask 1.4: Write unit tests for new cache methods
 
 - [ ] Task 2: Create Pydantic models for versions response + tests (AC: 1)
   - [ ] Subtask 2.1: Create `VersionListItem` model extending existing `VersionInfo`
@@ -265,11 +265,16 @@ feat(story-13.1/task-5): update server_versions job to populate cache
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Extended LatestVersionsCache with full version list storage. Added methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`, `has_cached_versions()`, and `cached_at` property. 11 new unit tests pass.
+
 ### File List
+
+- Modified: api/src/vintagestory_api/services/versions_cache.py
+- Modified: api/tests/test_versions_cache.py
 
