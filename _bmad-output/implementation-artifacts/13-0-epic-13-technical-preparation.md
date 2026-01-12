@@ -203,11 +203,11 @@ Use `just` for all development tasks:
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][HIGH] Update File List to include Story 13.1 test changes - api/tests/test_server_versions_job.py and api/tests/test_versions_router.py were modified in commit 697420e but not documented in Story 13.0's File List
-- [ ] [AI-Review][MEDIUM] Update File List to include .mise.toml bump - uv version 0.9.18 → 0.9.24 modified in commit f642557 but not documented in Story 13.0's File List
-- [ ] [AI-Review][MEDIUM] Add reference in ADR-3 to version tracking documentation - Link to agentdocs/server-installation.md → Version Tracking section for how to determine installed status
-- [ ] [AI-Review][MEDIUM] Document VersionDetailView contents in ADR - Add ADR-6 or expand ADR-3 to explain what VersionDetailView displays given limited metadata
-- [ ] [AI-Review][MEDIUM] Justify or make configurable the 24h cache TTL - Document monitoring strategy or add env-specific intervals
+- [x] [AI-Review][HIGH] Update File List to include Story 13.1 test changes - api/tests/test_server_versions_job.py and api/tests/test_versions_router.py were modified in commit 697420e but not documented in Story 13.0's File List
+- [x] [AI-Review][MEDIUM] Update File List to include .mise.toml bump - **Not applicable**: .mise.toml was merged from main (commit f642557), not part of this story's implementation
+- [x] [AI-Review][MEDIUM] Add reference in ADR-3 to version tracking documentation - Link to agentdocs/server-installation.md → Version Tracking section for how to determine installed status
+- [x] [AI-Review][MEDIUM] Document VersionDetailView contents in ADR - Add ADR-6 or expand ADR-3 to explain what VersionDetailView displays given limited metadata
+- [x] [AI-Review][MEDIUM] Justify or make configurable the 24h cache TTL - Document monitoring strategy or add env-specific intervals
 
 ## Dev Agent Record
 
@@ -224,10 +224,12 @@ None - documentation/research story with no code debugging required.
 - Task 1: Updated agentdocs/server-installation.md with metadata limitations (no release dates, changelogs), version ordering caveat (don't rely on key order), and cache architecture pattern from Story 13-1.
 - Task 2: Added cache TTL strategy documentation (24h default via server_versions_refresh_interval) and cache fallback behavior (graceful degradation with cached indicator).
 - Task 3: Documented UI component reuse strategy - identified reusable patterns (card layout, grid, badges, TanStack Query) and patterns NOT to reuse (search, pagination, complex filters).
-- Task 4: Created architecture/epic-13-server-version-browser.md with 5 ADRs covering simplified architecture, UI reuse, version card design, query cache sync, and channel filter implementation.
+- Task 4: Created architecture/epic-13-server-version-browser.md with 6 ADRs covering simplified architecture, UI reuse, version card design, query cache sync, channel filter implementation, and version detail view design.
 
 ### File List
 
 - Modified: agentdocs/server-installation.md (Epic 13 implementation notes section)
 - Created: _bmad-output/planning-artifacts/architecture/epic-13-server-version-browser.md
 - Modified: _bmad-output/planning-artifacts/architecture.md (added Epic 13 to index)
+- Modified: api/tests/test_versions_router.py (type annotations fix - lint follow-up)
+- Modified: api/tests/test_server_versions_job.py (type annotations fix - lint follow-up)

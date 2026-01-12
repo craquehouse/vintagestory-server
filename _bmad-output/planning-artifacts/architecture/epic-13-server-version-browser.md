@@ -101,7 +101,7 @@ Version cards show:
 | Channel | API `channel` | Badge: "Stable" or "Unstable" |
 | File size | API `filesize` | Human-readable string |
 | Is Latest | API `is_latest` | Badge if true |
-| Is Installed | Compare to current | Badge if matches installed version |
+| Is Installed | Compare to current | Badge if matches installed version (see [Version Tracking](../../../agentdocs/server-installation.md#version-tracking)) |
 
 **Not shown (metadata limitations):**
 
@@ -172,6 +172,55 @@ Implement as a **simple toggle/tabs** rather than FilterControls:
 - Simpler implementation
 - More appropriate UX for the use case
 - Consistent with other tab patterns in the app
+
+## ADR-6: Version Detail View Design
+
+**Context:**
+What should the detail view show when a user clicks on a version card?
+
+**Decision:**
+Given metadata limitations (no changelog, no release date), the detail view provides:
+
+```text
+┌─────────────────────────────────────────────┐
+│ Server Version 1.21.6              [Stable] │
+│                                             │
+│ File Size: 40.2 MB                          │
+│ MD5: abc123def456...                        │
+│                                             │
+│ Download URLs:                              │
+│   CDN: https://cdn.vintagestory.at/...      │
+│   Local: https://vintagestory.at/...        │
+│                                             │
+│ [Latest Version] [Currently Installed]      │
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │ [Install] or [Reinstall] or [Upgrade]  │ │
+│ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────┘
+```
+
+**Why minimal:**
+
+- No changelog available from API
+- No release date/notes available
+- Focus on actionable information (install, verify checksum)
+
+**Action button logic:**
+
+| Current State | Button Text | Action |
+|--------------|-------------|--------|
+| Not installed | "Install" | Install this version |
+| Same version installed | "Reinstall" | Reinstall same version |
+| Older version installed | "Upgrade" | Upgrade to this version |
+| Newer version installed | "Downgrade" | Downgrade to this version |
+
+**Consequences:**
+
+- Detail view is simple but provides all available information
+- Checksum display enables manual verification if needed
+- Clear action based on current state
+- Pattern: Don't create fake UI for missing data
 
 ## Component Architecture Summary
 

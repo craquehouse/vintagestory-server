@@ -329,6 +329,15 @@ Version data is cached via background job refresh, not explicit TTL expiration:
 - Background job isolates API failures from user requests
 - Cache persists across API outages
 
+**24-hour default justification:**
+
+- VintageStory stable releases occur ~4-8 weeks apart
+- Unstable/pre-releases are more frequent but still days apart
+- 24h provides timely update detection without excessive API calls
+- Setting is configurable via `VS_SERVER_VERSIONS_REFRESH_INTERVAL` env var
+- Set to 0 to disable automatic refresh (manual refresh only)
+- For development/testing: reduce to 300 (5 min) for faster feedback
+
 ### Cache Fallback Behavior
 
 When the VintageStory API is unavailable:
