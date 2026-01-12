@@ -29,16 +29,16 @@ So that **it serves as a quick overview without duplicate functionality**.
   - [x] Update Dashboard tests: remove ServerInstallCard tests, add empty state tests
   - [x] Verify server status card still displays when installed
 
-- [ ] Task 2: Update /game-server default redirect to /version + tests (AC: 4)
-  - [ ] Change `Navigate to="console"` to `Navigate to="version"` in App.tsx
-  - [ ] Update App.tsx route comment to reflect the change
-  - [ ] Add/update test for default redirect behavior
+- [x] Task 2: Update /game-server default redirect to /version + tests (AC: 4)
+  - [x] Change `Navigate to="console"` to `Navigate to="version"` in App.tsx
+  - [x] Update App.tsx route comment to reflect the change
+  - [x] Add/update test for default redirect behavior
 
-- [ ] Task 3: Verify sidebar navigation (AC: 3) - No Code Changes Expected
-  - [ ] Confirm "VSManager" label exists in Sidebar.tsx (line 36)
-  - [ ] Confirm top-level "Mods" is removed (Story 11.4 completed this)
-  - [ ] Review existing Sidebar tests verify these behaviors
-  - [ ] No new code changes needed - just verification
+- [x] Task 3: Verify sidebar navigation (AC: 3) - No Code Changes Expected
+  - [x] Confirm "VSManager" label exists in Sidebar.tsx (line 36)
+  - [x] Confirm top-level "Mods" is removed (Story 11.4 completed this)
+  - [x] Review existing Sidebar tests verify these behaviors
+  - [x] No new code changes needed - just verification
 
 - [ ] Task 4: Manual browser verification (AC: all)
   - [ ] Start dev servers (`just dev-api` and `just dev-web`)
@@ -278,8 +278,12 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Replaced ServerInstallCard with shared EmptyServerState component in Dashboard. Removed useInstallStatus hook dependency. Updated tests to verify empty state behavior with links to /game-server/version. All 1198 web tests pass.
+- Task 2: Changed default /game-server redirect from "console" to "version" in App.tsx. Created App.test.tsx with routing tests. All 1201 web tests pass.
+- Task 3: Verification only. Confirmed "VSManager" label in Sidebar.tsx:36 and top-level Mods removed (per Story 11.4). Existing Sidebar tests verify these behaviors. No code changes needed.
 
 ### File List
 
 - web/src/features/dashboard/Dashboard.tsx (modified)
 - web/src/features/dashboard/Dashboard.test.tsx (modified)
+- web/src/App.tsx (modified)
+- web/src/App.test.tsx (created)
