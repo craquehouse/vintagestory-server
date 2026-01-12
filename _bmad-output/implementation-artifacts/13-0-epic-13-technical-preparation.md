@@ -201,6 +201,14 @@ Use `just` for all development tasks:
 - [Source: api/src/vintagestory_api/routers/versions.py] - Versions router
 - [Source: _bmad-output/planning-artifacts/architecture/epic-10-architecture-decisions.md] - Reusable UI patterns
 
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Update File List to include Story 13.1 test changes - api/tests/test_server_versions_job.py and api/tests/test_versions_router.py were modified in commit 697420e but not documented in Story 13.0's File List
+- [ ] [AI-Review][MEDIUM] Update File List to include .mise.toml bump - uv version 0.9.18 → 0.9.24 modified in commit f642557 but not documented in Story 13.0's File List
+- [ ] [AI-Review][MEDIUM] Add reference in ADR-3 to version tracking documentation - Link to agentdocs/server-installation.md → Version Tracking section for how to determine installed status
+- [ ] [AI-Review][MEDIUM] Document VersionDetailView contents in ADR - Add ADR-6 or expand ADR-3 to explain what VersionDetailView displays given limited metadata
+- [ ] [AI-Review][MEDIUM] Justify or make configurable the 24h cache TTL - Document monitoring strategy or add env-specific intervals
+
 ## Dev Agent Record
 
 ### Agent Model Used
