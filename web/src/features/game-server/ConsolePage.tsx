@@ -9,10 +9,8 @@
  * - ConsolePanel with maximum vertical space for terminal output
  */
 
-import { Link } from 'react-router';
-import { ServerOff, Loader2 } from 'lucide-react';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
-import { Button } from '@/components/ui/button';
+import { EmptyServerState } from '@/components/EmptyServerState';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { ConsolePanel } from '@/components/ConsolePanel';
 import { isServerInstalled } from '@/lib/server-utils';
@@ -78,49 +76,12 @@ export function ConsolePage() {
       {isInstalled ? (
         <ConsolePanel className="flex-1 min-h-0" />
       ) : (
-        <EmptyServerState isInstalling={isInstalling} />
-      )}
-    </div>
-  );
-}
-
-interface EmptyServerStateProps {
-  isInstalling: boolean;
-}
-
-/**
- * Empty state shown when server is not installed.
- *
- * Displays a message and link to the Installation page.
- */
-function EmptyServerState({ isInstalling }: EmptyServerStateProps) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center h-64 text-center"
-      data-testid="console-page-empty"
-    >
-      {isInstalling ? (
-        <>
-          <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
-          <p className="text-lg font-medium">Installation in Progress</p>
-          <p className="text-muted-foreground mb-4">
-            Console will be available once installation completes.
-          </p>
-          <Link to="/game-server/version">
-            <Button variant="outline">View Installation Progress</Button>
-          </Link>
-        </>
-      ) : (
-        <>
-          <ServerOff className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">Server Not Installed</p>
-          <p className="text-muted-foreground mb-4">
-            Install a VintageStory server to access the console.
-          </p>
-          <Link to="/game-server/version">
-            <Button variant="default">Go to Installation</Button>
-          </Link>
-        </>
+        <EmptyServerState
+          isInstalling={isInstalling}
+          notInstalledMessage="Install a VintageStory server to access the console."
+          installingMessage="Console will be available once installation completes."
+          testId="console-page-empty"
+        />
       )}
     </div>
   );

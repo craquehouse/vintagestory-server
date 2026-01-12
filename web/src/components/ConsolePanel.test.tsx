@@ -222,6 +222,11 @@ describe('ConsolePanel', () => {
       vi.mocked(useConsoleWebSocket).mockReturnValueOnce({
         connectionState: 'connected',
         sendCommand: vi.fn(),
+        retryCount: 0,
+        isReconnecting: false,
+        wsRef: { current: null },
+        reconnect: vi.fn(),
+        disconnect: vi.fn(),
       });
       vi.mocked(useServerStatus).mockReturnValueOnce({
         data: { data: { state: 'installed' } }, // 'installed' = stopped
@@ -242,6 +247,11 @@ describe('ConsolePanel', () => {
       vi.mocked(useConsoleWebSocket).mockReturnValueOnce({
         connectionState: 'connected',
         sendCommand: vi.fn(),
+        retryCount: 0,
+        isReconnecting: false,
+        wsRef: { current: null },
+        reconnect: vi.fn(),
+        disconnect: vi.fn(),
       });
       vi.mocked(useServerStatus).mockReturnValueOnce({
         data: { data: { state: 'installed' } }, // 'installed' = stopped
