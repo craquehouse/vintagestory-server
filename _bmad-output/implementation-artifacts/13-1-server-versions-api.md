@@ -10,7 +10,7 @@ So that **the version browser can display all available releases**.
 
 ## Acceptance Criteria
 
-1. **Given** I call `GET /api/v1alpha1/versions` as Admin
+1. **Given** I call `GET /api/v1alpha1/versions` as Admin or Monitor
    **When** the endpoint is called
    **Then** I receive a list of available versions from both stable and unstable channels
    **And** each version includes: version, channel, filename, filesize, md5, is_latest
@@ -291,8 +291,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][MEDIUM] AC 1 wording mismatch - should say "Admin or Monitor" not just "Admin" [13-1-server-versions-api.md:13]
-- [ ] [AI-Review][MEDIUM] Remove duplicate version_check_summary log in server_versions.py [api/src/vintagestory_api/jobs/server_versions.py:106]
-- [ ] [AI-Review][LOW] Add type annotations to pytest fixture parameters in test_versions_router.py [api/tests/test_versions_router.py:326]
-- [ ] [AI-Review][LOW] Update completion notes to reflect accurate test counts (51 total vs 37 claimed) [13-1-server-versions-api.md:274]
+- [x] [AI-Review][MEDIUM] AC 1 wording mismatch - should say "Admin or Monitor" not just "Admin" [13-1-server-versions-api.md:13]
+- [x] [AI-Review][MEDIUM] Remove duplicate version_check_summary log in server_versions.py [api/src/vintagestory_api/jobs/server_versions.py:106]
+- [x] [AI-Review][LOW] Add type annotations to pytest fixture parameters in test_versions_router.py [api/tests/test_versions_router.py:326]
+- [x] [AI-Review][LOW] Update completion notes to reflect accurate test counts (51 total vs 37 claimed) [13-1-server-versions-api.md:274] - Verified: 37 new tests is correct (11+6+14+6)
 

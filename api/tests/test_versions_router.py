@@ -318,13 +318,16 @@ class TestMonitorRoleAccess:
     """Tests for Monitor role access to versions endpoints."""
 
     @pytest.fixture
-    def monitor_headers(self):
+    def monitor_headers(self) -> dict[str, str]:
         """Monitor authentication headers."""
         return {"X-API-Key": TEST_MONITOR_KEY}
 
     def test_list_versions_monitor_role(
-        self, client, monitor_headers, mock_versions
-    ):
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """Monitor role should be able to list versions (read-only)."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
@@ -340,8 +343,11 @@ class TestMonitorRoleAccess:
             assert response.status_code == 200
 
     def test_get_version_monitor_role(
-        self, client, monitor_headers, mock_versions
-    ):
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """Monitor role should be able to get version detail (read-only)."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"

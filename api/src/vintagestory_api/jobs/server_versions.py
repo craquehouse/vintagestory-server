@@ -103,12 +103,6 @@ async def check_server_versions() -> None:
             new_version=new_unstable,
         )
 
-    logger.info(
-        "version_check_summary",
-        stable=new_stable,
-        unstable=new_unstable,
-    )
-
     # Update cache with any successfully fetched versions
     # If API failed for a channel, preserve the old value (don't update with None)
     if not stable_error and new_stable:
