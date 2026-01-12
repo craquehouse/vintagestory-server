@@ -40,10 +40,10 @@ So that **the version browser can display all available releases**.
   - [x] Subtask 1.3: Add `cached_at` timestamp for staleness detection
   - [x] Subtask 1.4: Write unit tests for new cache methods
 
-- [ ] Task 2: Create Pydantic models for versions response + tests (AC: 1)
-  - [ ] Subtask 2.1: Create `VersionListItem` model extending existing `VersionInfo`
-  - [ ] Subtask 2.2: Create `VersionListResponse` with pagination-like metadata
-  - [ ] Subtask 2.3: Write unit tests for model serialization
+- [x] Task 2: Create Pydantic models for versions response + tests (AC: 1)
+  - [x] Subtask 2.1: Create `VersionListItem` model extending existing `VersionInfo`
+  - [x] Subtask 2.2: Create `VersionListResponse` with pagination-like metadata
+  - [x] Subtask 2.3: Write unit tests for model serialization
 
 - [ ] Task 3: Create /versions router with list and detail endpoints + tests (AC: 1, 2, 3, 5)
   - [ ] Subtask 3.1: Create `api/src/vintagestory_api/routers/versions.py` router
@@ -272,9 +272,12 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 ### Completion Notes List
 
 - Task 1: Extended LatestVersionsCache with full version list storage. Added methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`, `has_cached_versions()`, and `cached_at` property. 11 new unit tests pass.
+- Task 2: Created Pydantic models VersionListResponse and VersionDetailResponse in new models/versions.py. Reuses existing VersionInfo model. 6 new unit tests pass.
 
 ### File List
 
 - Modified: api/src/vintagestory_api/services/versions_cache.py
 - Modified: api/tests/test_versions_cache.py
+- Created: api/src/vintagestory_api/models/versions.py
+- Created: api/tests/test_versions_models.py
 
