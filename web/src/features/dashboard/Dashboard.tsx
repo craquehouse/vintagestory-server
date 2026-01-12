@@ -8,19 +8,19 @@ import {
 } from '@/components/ui/card';
 import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
-import { ServerInstallCard } from '@/components/ServerInstallCard';
+import { EmptyServerState } from '@/components/EmptyServerState';
 import { ServerControls } from './ServerControls';
-import {
-  useServerStatus,
-  useInstallStatus,
-  useServerStateToasts,
-} from '@/hooks/use-server-status';
+import { useServerStatus, useServerStateToasts } from '@/hooks/use-server-status';
+import { isServerInstalled } from '@/lib/server-utils';
 
 /**
  * Dashboard page showing server status and controls.
  *
+ * Story 11.6: Dashboard & Navigation Cleanup
+ *
  * Conditionally renders:
- * - ServerInstallCard when server is not installed or installing
+ * - Empty state with link to Installation page when server is not installed
+ * - Installing state with spinner and link to view progress
  * - Server status card with controls when server is installed
  *
  * Uses TanStack Query with 5-second polling for auto-refresh.
@@ -31,11 +31,6 @@ export function Dashboard() {
 
   // Show toasts when server state transitions complete
   useServerStateToasts(serverStatus?.state);
-
-  // Only poll install status when installing
-  const isInstalling = serverStatus?.state === 'installing';
-  const { data: installStatusResponse } = useInstallStatus(isInstalling);
-  const installStatus = installStatusResponse?.data;
 
   if (isLoading) {
     return (
@@ -60,15 +55,19 @@ export function Dashboard() {
   }
 
   const state = serverStatus?.state ?? 'not_installed';
+  const isInstalled = isServerInstalled(state);
+  const isInstalling = state === 'installing';
 
-  // Show install card for not_installed and installing states
-  if (state === 'not_installed' || state === 'installing') {
+  // Show empty state for not_installed and installing states
+  if (!isInstalled) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <ServerInstallCard
-          isInstalling={state === 'installing'}
-          installStatus={installStatus}
+        <EmptyServerState
+          isInstalling={isInstalling}
+          notInstalledMessage="Install a VintageStory server to get started."
+          installingMessage="Visit the Installation page to view progress."
+          testId="dashboard-empty"
         />
       </div>
     );

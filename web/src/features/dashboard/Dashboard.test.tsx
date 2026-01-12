@@ -1,9 +1,21 @@
+/**
+ * Tests for Dashboard component.
+ *
+ * Story 11.6: Dashboard & Navigation Cleanup
+ *
+ * Tests verify the Dashboard shows:
+ * - Empty state with link to Installation page when server not installed
+ * - Installing state with spinner and link to view progress
+ * - Server status card with controls when server is installed
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router';
 import { type ReactNode } from 'react';
 import { Dashboard } from './Dashboard';
-import type { ServerStatus, InstallStatus } from '@/api/types';
+import type { ServerStatus } from '@/api/types';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -19,11 +31,13 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper component for rendering with providers
+// Wrapper component for rendering with providers (includes MemoryRouter for Link)
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
     );
   };
 }
@@ -69,8 +83,8 @@ describe('Dashboard', () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe('not installed state (AC: 1)', () => {
-    it('shows ServerInstallCard when server is not installed', async () => {
+  describe('not installed state (AC: 1, 2)', () => {
+    it('shows empty state card when server is not installed', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
         mockServerStatus(createServerStatus({ state: 'not_installed' }))
       );
@@ -80,14 +94,14 @@ describe('Dashboard', () => {
       render(<Dashboard />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByText('Install Server')).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
       });
 
-      // Should show version input and install button
-      expect(screen.getByRole('textbox', { name: /server version/i })).toBeInTheDocument();
+      // Should show "Server Not Installed" message
+      expect(screen.getByText(/server not installed/i)).toBeInTheDocument();
     });
 
-    it('hides server control buttons when not installed', async () => {
+    it('shows link to Installation page in empty state', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
         mockServerStatus(createServerStatus({ state: 'not_installed' }))
       );
@@ -97,7 +111,26 @@ describe('Dashboard', () => {
       render(<Dashboard />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByText('Install Server')).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
+      });
+
+      // Should have link to Installation page
+      const installLink = screen.getByRole('link', { name: /installation/i });
+      expect(installLink).toBeInTheDocument();
+      expect(installLink).toHaveAttribute('href', '/game-server/version');
+    });
+
+    it('does not show server controls in empty state', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({ state: 'not_installed' }))
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
       });
 
       // Control buttons should not be visible
@@ -107,74 +140,46 @@ describe('Dashboard', () => {
     });
   });
 
-  describe('installing state (AC: 2)', () => {
-    it('shows progress indicator during installation', async () => {
-      const mockFetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/status') && !url.includes('/install/status')) {
-          return Promise.resolve(
-            mockServerStatus(createServerStatus({ state: 'installing' }))
-          );
-        }
-        if (url.includes('/install/status')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'ok',
-                data: {
-                  state: 'downloading',
-                  progress: 50,
-                  message: 'Downloading...',
-                } as InstallStatus,
-              }),
-          });
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
+  describe('installing state (AC: 1, 2)', () => {
+    it('shows installing state with spinner and progress link', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({ state: 'installing' }))
+      );
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<Dashboard />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByRole('status', { name: /installation progress/i })).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
       });
+
+      // Should show "Installation in Progress" message
+      expect(screen.getByText(/installation in progress/i)).toBeInTheDocument();
+
+      // Should have link to view installation progress
+      const progressLink = screen.getByRole('link', { name: /view installation progress/i });
+      expect(progressLink).toBeInTheDocument();
+      expect(progressLink).toHaveAttribute('href', '/game-server/version');
     });
 
-    it('disables install button during installation', async () => {
-      const mockFetch = vi.fn().mockImplementation((url: string) => {
-        if (url.includes('/status') && !url.includes('/install/status')) {
-          return Promise.resolve(
-            mockServerStatus(createServerStatus({ state: 'installing' }))
-          );
-        }
-        if (url.includes('/install/status')) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                status: 'ok',
-                data: {
-                  state: 'downloading',
-                  progress: 50,
-                  message: 'Downloading...',
-                } as InstallStatus,
-              }),
-          });
-        }
-        return Promise.reject(new Error('Unknown URL'));
-      });
+    it('does not show server controls during installation', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({ state: 'installing' }))
+      );
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<Dashboard />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByRole('status', { name: /installation progress/i })).toBeInTheDocument();
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
       });
 
-      // Install button should not be visible during installation (progress is shown instead)
-      expect(screen.queryByRole('button', { name: /install server/i })).not.toBeInTheDocument();
+      // Control buttons should not be visible
+      expect(screen.queryByRole('button', { name: 'Start server' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Stop server' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Restart server' })).not.toBeInTheDocument();
     });
   });
 

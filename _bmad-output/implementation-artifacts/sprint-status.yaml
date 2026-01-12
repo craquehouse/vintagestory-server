@@ -136,7 +136,7 @@ development_status:
   11-3-settings-page-extraction: done
   11-4-mods-page-migration: done
   11-5-console-page-extraction: done
-  11-6-dashboard-navigation-cleanup: backlog
+  11-6-dashboard-navigation-cleanup: review
   epic-11-retrospective: optional
   # Epic 12: Enhanced Dashboard with Server Metrics
   # FRs: Dashboard improvements with stats and quick actions
