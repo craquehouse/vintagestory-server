@@ -9,7 +9,7 @@ Tests cover:
 - Cache behavior
 """
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -58,13 +58,22 @@ def client(override_settings: None) -> TestClient:
 
 
 @pytest.fixture
-def auth_headers():
+def auth_headers() -> dict[str, str]:
     """Admin authentication headers."""
     return {"X-API-Key": TEST_ADMIN_KEY}
 
 
+def make_version_getter(
+    versions: dict[str, dict[str, VersionInfo]],
+) -> Callable[[str], dict[str, VersionInfo]]:
+    """Create a typed getter function for mock side_effect."""
+    def getter(channel: str) -> dict[str, VersionInfo]:
+        return versions.get(channel, {})
+    return getter
+
+
 @pytest.fixture
-def mock_versions():
+def mock_versions() -> dict[str, dict[str, VersionInfo]]:
     """Sample versions data for mocking."""
     return {
         "stable": {
@@ -107,7 +116,7 @@ def mock_versions():
 class TestListVersions:
     """Tests for GET /versions endpoint."""
 
-    def test_list_versions_requires_auth(self, client):
+    def test_list_versions_requires_auth(self, client: TestClient) -> None:
         """GET /versions without auth should return 401."""
         # Make request without auth headers
         response = client.get("/api/v1alpha1/versions")
@@ -115,14 +124,19 @@ class TestListVersions:
         # 401 for no auth, not 403
         assert response.status_code == 401
 
-    def test_list_versions_all_channels(self, client, auth_headers, mock_versions):
+    def test_list_versions_all_channels(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions should return versions from all channels."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -138,7 +152,12 @@ class TestListVersions:
             channels = {v["channel"] for v in versions}
             assert channels == {"stable", "unstable"}
 
-    def test_list_versions_stable_only(self, client, auth_headers, mock_versions):
+    def test_list_versions_stable_only(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions?channel=stable should return only stable versions."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
@@ -159,7 +178,12 @@ class TestListVersions:
             assert len(versions) == 2
             assert all(v["channel"] == "stable" for v in versions)
 
-    def test_list_versions_unstable_only(self, client, auth_headers, mock_versions):
+    def test_list_versions_unstable_only(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions?channel=unstable should return only unstable versions."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
@@ -180,7 +204,9 @@ class TestListVersions:
             assert len(versions) == 1
             assert versions[0]["channel"] == "unstable"
 
-    def test_list_versions_invalid_channel(self, client, auth_headers):
+    def test_list_versions_invalid_channel(
+        self, client: TestClient, auth_headers: dict[str, str]
+    ) -> None:
         """GET /versions?channel=invalid should return 422 validation error."""
         response = client.get(
             "/api/v1alpha1/versions?channel=invalid", headers=auth_headers
@@ -188,14 +214,19 @@ class TestListVersions:
 
         assert response.status_code == 422
 
-    def test_list_versions_includes_total(self, client, auth_headers, mock_versions):
+    def test_list_versions_includes_total(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """Response should include total count of versions."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -206,15 +237,18 @@ class TestListVersions:
             assert data["data"]["total"] == 3
 
     def test_list_versions_includes_cache_indicator(
-        self, client, auth_headers, mock_versions
-    ):
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """Response should include cached indicator."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -229,20 +263,25 @@ class TestListVersions:
 class TestGetVersionDetail:
     """Tests for GET /versions/{version} endpoint."""
 
-    def test_get_version_requires_auth(self, client):
+    def test_get_version_requires_auth(self, client: TestClient) -> None:
         """GET /versions/{version} without auth should return 401."""
         response = client.get("/api/v1alpha1/versions/1.21.3")
 
         assert response.status_code == 401
 
-    def test_get_version_found(self, client, auth_headers, mock_versions):
+    def test_get_version_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions/{version} should return version details when found."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -255,14 +294,19 @@ class TestGetVersionDetail:
             assert data["data"]["version"]["channel"] == "stable"
             assert data["data"]["version"]["is_latest"] is True
 
-    def test_get_version_not_found(self, client, auth_headers, mock_versions):
+    def test_get_version_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions/{version} should return 404 when version not found."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -274,14 +318,19 @@ class TestGetVersionDetail:
             data = response.json()
             assert data["detail"]["code"] == "VERSION_NOT_FOUND"
 
-    def test_get_unstable_version(self, client, auth_headers, mock_versions):
+    def test_get_unstable_version(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """GET /versions/{version} should find unstable versions."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -294,15 +343,18 @@ class TestGetVersionDetail:
             assert data["data"]["version"]["channel"] == "unstable"
 
     def test_get_version_includes_cache_indicator(
-        self, client, auth_headers, mock_versions
-    ):
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        mock_versions: dict[str, dict[str, VersionInfo]],
+    ) -> None:
         """Version detail response should include cached indicator."""
         with patch(
             "vintagestory_api.routers.versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -334,7 +386,7 @@ class TestMonitorRoleAccess:
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -354,7 +406,7 @@ class TestMonitorRoleAccess:
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
