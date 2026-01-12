@@ -1,6 +1,6 @@
 # Story 13.1: Server Versions API
 
-Status: in-progress
+Status: done
 
 ## Story
 

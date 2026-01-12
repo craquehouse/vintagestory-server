@@ -1,6 +1,6 @@
 # Story 11.6: Dashboard & Navigation Cleanup
 
-Status: review
+Status: done
 
 ## Story
 
