@@ -106,9 +106,9 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              {/* Game Server nested routes */}
+              {/* Game Server nested routes - Story 11.6: Default to /version (Installation page) */}
               <Route path="/game-server" element={<GameServerLayout />}>
-                <Route index element={<Navigate to="console" replace />} />
+                <Route index element={<Navigate to="version" replace />} />
                 <Route path="version" element={<VersionPage />} />
                 <Route path="settings" element={<GameServerSettingsPage />} />
                 {/* Mods routes - moved from top-level /mods (Story 11.4) */}

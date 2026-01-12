@@ -1,6 +1,6 @@
 # Story 11.6: Dashboard & Navigation Cleanup
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -20,14 +20,14 @@ So that **it serves as a quick overview without duplicate functionality**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Remove ServerInstallCard from Dashboard and add empty state + tests (AC: 1, 2)
-  - [ ] Remove `ServerInstallCard` import from Dashboard.tsx
-  - [ ] Remove install status polling logic (no longer needed in Dashboard)
-  - [ ] Replace not_installed/installing rendering with simplified empty state card
-  - [ ] Add "No server installed" card with HardDrive icon and link to `/game-server/version`
-  - [ ] Add "Installation in progress" state with link to version page
-  - [ ] Update Dashboard tests: remove ServerInstallCard tests, add empty state tests
-  - [ ] Verify server status card still displays when installed
+- [x] Task 1: Remove ServerInstallCard from Dashboard and add empty state + tests (AC: 1, 2)
+  - [x] Remove `ServerInstallCard` import from Dashboard.tsx
+  - [x] Remove install status polling logic (no longer needed in Dashboard)
+  - [x] Replace not_installed/installing rendering with simplified empty state card
+  - [x] Add "No server installed" card with HardDrive icon and link to `/game-server/version`
+  - [x] Add "Installation in progress" state with link to version page
+  - [x] Update Dashboard tests: remove ServerInstallCard tests, add empty state tests
+  - [x] Verify server status card still displays when installed
 
 - [ ] Task 2: Update /game-server default redirect to /version + tests (AC: 4)
   - [ ] Change `Navigate to="console"` to `Navigate to="version"` in App.tsx
@@ -271,10 +271,15 @@ feat(story-11.6/task-N): description
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Replaced ServerInstallCard with shared EmptyServerState component in Dashboard. Removed useInstallStatus hook dependency. Updated tests to verify empty state behavior with links to /game-server/version. All 1198 web tests pass.
+
 ### File List
+
+- web/src/features/dashboard/Dashboard.tsx (modified)
+- web/src/features/dashboard/Dashboard.test.tsx (modified)
