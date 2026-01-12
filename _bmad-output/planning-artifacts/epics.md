@@ -3152,3 +3152,92 @@ So that **version management is a cohesive experience**.
 - [ ] Highlight newer versions
 - [ ] Add page title dynamic switching
 - [ ] Add tests for integrated page
+
+---
+
+### Story 13.6: Server Uninstall API
+
+As a **developer**,
+I want **an API endpoint to uninstall the server**,
+So that **I can programmatically remove the server installation**.
+
+**Background:** Added from Epic 11 retrospective to support testing workflow. Allows clean uninstall for version switching without manual file deletion.
+
+**Acceptance Criteria:**
+
+**Given** the server is running
+**When** I call `DELETE /api/v1alpha1/server` as Admin
+**Then** the server is stopped first
+**And** the `/data/server` directory is deleted
+**And** the server state becomes `not_installed`
+**And** I receive a success response
+
+**Given** the server is stopped
+**When** I call `DELETE /api/v1alpha1/server` as Admin
+**Then** the `/data/server` directory is deleted
+**And** the server state becomes `not_installed`
+**And** I receive a success response
+
+**Given** no server is installed
+**When** I call `DELETE /api/v1alpha1/server` as Admin
+**Then** I receive a 404 or appropriate error response
+**And** no files are deleted
+
+**Given** I call the uninstall endpoint
+**When** the operation completes
+**Then** the `/data/serverdata` directory is preserved (configs, mods, worlds)
+
+**Tasks:**
+- [ ] Add `DELETE /api/v1alpha1/server` endpoint to server router
+- [ ] Implement uninstall logic in ServerService (stop if running, delete /data/server)
+- [ ] Add state transition to `not_installed` after successful uninstall
+- [ ] Preserve `/data/serverdata` directory (configs, mods, worlds)
+- [ ] Add error handling for edge cases (already not_installed, deletion failures)
+- [ ] Add comprehensive tests for uninstall scenarios
+
+---
+
+### Story 13.7: Server Uninstall UI
+
+As an **administrator**,
+I want **a way to uninstall the server from the UI**,
+So that **I can cleanly remove the installation without manual file deletion**.
+
+**Background:** Added from Epic 11 retrospective to support testing workflow. Provides UI for the uninstall API with appropriate confirmation.
+
+**Acceptance Criteria:**
+
+**Given** a server is installed
+**When** I view the Version page
+**Then** I see a "Remove Server" button (or similar)
+**And** the button is styled as a destructive action (red/warning)
+
+**Given** the server is running
+**When** I click "Remove Server"
+**Then** I see a confirmation dialog explaining the server will be stopped
+**And** the dialog notes that configuration and world data will be preserved
+
+**Given** the server is stopped
+**When** I click "Remove Server"
+**Then** I see a confirmation dialog
+**And** the dialog notes that configuration and world data will be preserved
+
+**Given** I confirm the uninstall
+**When** the operation completes
+**Then** I see a success toast notification
+**And** the page transitions to the "Server Installation" view
+**And** the sidebar label changes from "Version" to "Installation"
+
+**Given** I cancel the confirmation dialog
+**When** I close the dialog
+**Then** no action is taken
+**And** the server remains installed
+
+**Tasks:**
+- [ ] Add "Remove Server" button to VersionPage (visible when installed)
+- [ ] Create UninstallConfirmDialog component with appropriate warnings
+- [ ] Implement useUninstallServer mutation hook
+- [ ] Handle loading state during uninstall operation
+- [ ] Add success toast and state transition after uninstall
+- [ ] Disable button when server is in transitional states (starting, stopping, installing)
+- [ ] Add tests for uninstall UI flow

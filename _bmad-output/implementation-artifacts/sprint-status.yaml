@@ -130,14 +130,16 @@ development_status:
   epic-10-retrospective: done
   # Epic 11: GameServer Navigation Refactor
   # FRs: UI Architecture - Sub-navigation system for server context pages
-  epic-11: in-progress
+  # COMPLETED 2026-01-11: All 6 stories done + retrospective complete
+  # Sub-navigation infrastructure, page extractions, mods migration, dashboard cleanup
+  epic-11: done
   11-1-sub-navigation-infrastructure: done
   11-2-version-installation-page: done
   11-3-settings-page-extraction: done
   11-4-mods-page-migration: done
   11-5-console-page-extraction: done
   11-6-dashboard-navigation-cleanup: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
   # Epic 12: Enhanced Dashboard with Server Metrics
   # FRs: Dashboard improvements with stats and quick actions
   epic-12: backlog
@@ -148,24 +150,31 @@ development_status:
   12-4-dashboard-time-series-charts: backlog
   12-5-quick-actions-links: backlog
   epic-12-retrospective: optional
-  # Epic 13: Server Version Browser
+  # Epic 13: Server Version Browser (NEXT EPIC - selected over Epic 12)
   # FRs: Browse and manage VintageStory server versions
-  epic-13: backlog
+  # NOTE: Uninstall stories (13-6, 13-7) added from Epic 11 retro to support testing workflow
+  epic-13: in-progress
   13-0-epic-13-technical-preparation: backlog
   13-1-server-versions-api: backlog
   13-2-version-card-component: backlog
   13-3-version-list-page: backlog
   13-4-install-upgrade-flow: backlog
   13-5-version-page-integration: backlog
+  13-6-server-uninstall-api: backlog
+  13-7-server-uninstall-ui: backlog
   epic-13-retrospective: optional
 # RETRO ACTION ITEMS
 # Track action items from retrospectives to ensure follow-through
 retro_action_items:
+  # Epic 11 Action Items (from 2026-01-11 retrospective)
+  E11-A1-theme-consistency-audit-polish-backlog: pending # Owner: Dana (QA) - Add polish backlog item for systematic theme audit
+  E11-A2-complete-polish-backlog-prioritization: pending # Owner: Alice (PO) - Carryover from E10-A4, complete before Epic 13
+  E11-A3-improve-file-list-discipline: pending # Owner: All Devs - Ensure File Lists complete in Dev Agent Record
   # Epic 10 Action Items (from 2026-01-10 retrospective)
   E10-A1-add-retro-action-tracking-mechanism: done # Already exists via E9-A1
   E10-A2-create-api-spike-story-template: done # Created template-api-spike.md in create-story workflow
   E10-A3-document-epic10-architecture-decisions: done # Added 5 ADRs to architecture.md (hybrid filtering, conservative compat, cache invalidation, URL state, browse cache)
-  E10-A4-review-prioritize-polish-backlog: pending # Owner: Alice (PO) - backlog reviewed, awaiting prioritization decisions
+  E10-A4-review-prioritize-polish-backlog: pending # Owner: Alice (PO) - carried forward to E11-A2
   E10-A5-audit-previous-retro-action-items: done # E8-A1/A2/A3 already marked done
   # Epic 9 Action Items (from 2026-01-05)
   E9-A1-add-retro-section-to-sprint-status: done # This section exists
