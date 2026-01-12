@@ -1,6 +1,6 @@
 # Story 11.5: Console Page Extraction
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -385,10 +385,35 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 4: Verified ConsolePanel dropdown behavior unchanged - no code changes needed, existing tests pass
 - Task 5: Manual browser verification passed - fixed height issue using viewport-relative calc() for full-height console
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Extract duplicate `isServerInstalled` function to shared utility (`web/src/lib/server-utils.ts`) and update imports
+  - Created `web/src/lib/server-utils.ts` with `isServerInstalled` function
+  - Updated imports in: ConsolePage.tsx, SettingsPage.tsx, VersionPage.tsx, App.tsx
+- [x] [AI-Review][LOW] Add responsive padding classes (`p-4 lg:p-6`) to ConsolePage container per story spec
+  - No change needed: Layout.tsx already provides `p-4 md:p-6` padding wrapper
+- [x] [AI-Review][LOW] Add test for command input disabled behavior when server is stopped (AC3 coverage)
+  - Added 2 tests to ConsolePanel.test.tsx for AC3 coverage
+- [x] [AI-Review][LOW] Capture test run output in story completion notes for verification audit trail
+  - Test output: 69 test files, 1197 tests passed, 3 skipped (6.43s)
+
+### Test Run Output
+
+```
+Test Files  69 passed (69)
+     Tests  1197 passed | 3 skipped (1200)
+  Start at  21:05:24
+  Duration  6.43s (transform 3.10s, setup 11.10s, import 10.82s, tests 22.35s, environment 28.60s)
+```
+
 ### File List
 
 - `web/src/features/game-server/ConsolePage.tsx` (NEW)
 - `web/src/features/game-server/ConsolePage.test.tsx` (NEW)
 - `web/src/features/game-server/index.ts` (MODIFIED)
 - `web/src/App.tsx` (MODIFIED)
+- `web/src/lib/server-utils.ts` (NEW - code review follow-up)
+- `web/src/features/game-server/SettingsPage.tsx` (MODIFIED - code review follow-up)
+- `web/src/features/game-server/VersionPage.tsx` (MODIFIED - code review follow-up)
+- `web/src/components/ConsolePanel.test.tsx` (MODIFIED - code review follow-up)
 
