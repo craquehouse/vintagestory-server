@@ -65,9 +65,11 @@ export function ConsolePage() {
     );
   }
 
+  // Height calculation: viewport - header (48px) - layout padding (32px mobile, 48px desktop)
+  // Mobile: 100vh - 80px, Desktop (md+): 100vh - 96px
   return (
     <div
-      className="p-4 lg:p-6 h-full flex flex-col"
+      className="h-[calc(100vh-80px)] md:h-[calc(100vh-96px)] flex flex-col"
       data-testid="console-page"
       aria-label="Server Console"
     >

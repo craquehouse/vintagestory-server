@@ -145,7 +145,7 @@ describe('ConsolePage', () => {
       expect(screen.getByTestId('console-panel')).toBeInTheDocument();
     });
 
-    it('has full-height flex column layout container', () => {
+    it('has viewport-height flex column layout container', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
         data: { data: { state: 'running', version: '1.21.3' } },
         isLoading: false,
@@ -156,7 +156,8 @@ describe('ConsolePage', () => {
 
       const page = screen.getByTestId('console-page');
       expect(page).toBeInTheDocument();
-      expect(page).toHaveClass('h-full');
+      // Uses viewport-relative height: calc(100vh - header - padding)
+      expect(page).toHaveClass('h-[calc(100vh-80px)]');
       expect(page).toHaveClass('flex');
       expect(page).toHaveClass('flex-col');
     });
@@ -273,7 +274,7 @@ describe('ConsolePage', () => {
   });
 
   describe('responsive layout', () => {
-    it('applies responsive padding classes (p-4 and lg:p-6)', () => {
+    it('applies responsive viewport height classes', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue({
         data: { data: { state: 'running', version: '1.21.3' } },
         isLoading: false,
@@ -283,8 +284,9 @@ describe('ConsolePage', () => {
       renderWithProviders(<ConsolePage />);
 
       const page = screen.getByTestId('console-page');
-      expect(page).toHaveClass('p-4');
-      expect(page).toHaveClass('lg:p-6');
+      // Mobile: calc(100vh - 80px), Desktop: calc(100vh - 96px)
+      expect(page).toHaveClass('h-[calc(100vh-80px)]');
+      expect(page).toHaveClass('md:h-[calc(100vh-96px)]');
     });
   });
 
