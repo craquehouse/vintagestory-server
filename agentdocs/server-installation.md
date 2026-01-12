@@ -314,6 +314,43 @@ LatestVersionsCache (singleton)
 
 **Cache population:** Background job fetches periodically (versions change infrequently).
 
+### Cache TTL Strategy
+
+Version data is cached via background job refresh, not explicit TTL expiration:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `server_versions_refresh_interval` | 86400 (24h) | Seconds between version checks |
+
+**Why background refresh (not explicit TTL):**
+
+- VintageStory releases are infrequent (weeks/months between versions)
+- 24-hour refresh is sufficient for update detection
+- Background job isolates API failures from user requests
+- Cache persists across API outages
+
+### Cache Fallback Behavior
+
+When the VintageStory API is unavailable:
+
+1. **API returns cached data** with `cached: true` indicator
+2. **Frontend knows data freshness** via `cached_at` timestamp
+3. **Stale cache preserved** - job failures don't wipe existing data
+4. **503 only when no cache** - If API fails AND cache is empty, return 503
+
+```python
+# Fallback logic in versions router
+try:
+    versions = await fetch_from_api()
+    is_cached = False
+except httpx.HTTPError:
+    if cache.has_cached_versions():
+        versions = cache.get_all_versions()
+        is_cached = True  # Signal stale data to frontend
+    else:
+        raise HTTPException(503, "API unavailable and no cached data")
+```
+
 ---
 
 _Last updated: 2026-01-12 (Epic 13 Technical Preparation - Story 13.0)_
