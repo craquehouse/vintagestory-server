@@ -1,6 +1,6 @@
 # Story 13.1: Server Versions API
 
-Status: done
+Status: in-progress
 
 ## Story
 
@@ -288,4 +288,11 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Modified: api/src/vintagestory_api/main.py
 - Modified: api/src/vintagestory_api/jobs/server_versions.py
 - Created: api/tests/test_server_versions_job.py
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][MEDIUM] AC 1 wording mismatch - should say "Admin or Monitor" not just "Admin" [13-1-server-versions-api.md:13]
+- [ ] [AI-Review][MEDIUM] Remove duplicate version_check_summary log in server_versions.py [api/src/vintagestory_api/jobs/server_versions.py:106]
+- [ ] [AI-Review][LOW] Add type annotations to pytest fixture parameters in test_versions_router.py [api/tests/test_versions_router.py:326]
+- [ ] [AI-Review][LOW] Update completion notes to reflect accurate test counts (51 total vs 37 claimed) [13-1-server-versions-api.md:274]
 
