@@ -45,12 +45,12 @@ So that **the version browser can display all available releases**.
   - [x] Subtask 2.2: Create `VersionListResponse` with pagination-like metadata
   - [x] Subtask 2.3: Write unit tests for model serialization
 
-- [ ] Task 3: Create /versions router with list and detail endpoints + tests (AC: 1, 2, 3, 5)
-  - [ ] Subtask 3.1: Create `api/src/vintagestory_api/routers/versions.py` router
-  - [ ] Subtask 3.2: Implement `GET /versions` endpoint with channel filter
-  - [ ] Subtask 3.3: Implement `GET /versions/{version}` detail endpoint
-  - [ ] Subtask 3.4: Register router in `main.py`
-  - [ ] Subtask 3.5: Write integration tests for all endpoints
+- [x] Task 3: Create /versions router with list and detail endpoints + tests (AC: 1, 2, 3, 5)
+  - [x] Subtask 3.1: Create `api/src/vintagestory_api/routers/versions.py` router
+  - [x] Subtask 3.2: Implement `GET /versions` endpoint with channel filter
+  - [x] Subtask 3.3: Implement `GET /versions/{version}` detail endpoint
+  - [x] Subtask 3.4: Register router in `main.py`
+  - [x] Subtask 3.5: Write integration tests for all endpoints
 
 - [ ] Task 4: Add cache indicator and staleness handling + tests (AC: 4)
   - [ ] Subtask 4.1: Add `cached: bool` and `cached_at: datetime | None` to response
@@ -273,6 +273,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 - Task 1: Extended LatestVersionsCache with full version list storage. Added methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`, `has_cached_versions()`, and `cached_at` property. 11 new unit tests pass.
 - Task 2: Created Pydantic models VersionListResponse and VersionDetailResponse in new models/versions.py. Reuses existing VersionInfo model. 6 new unit tests pass.
+- Task 3: Created versions router with GET /versions (with channel filter) and GET /versions/{version} endpoints. Registered in main.py. Includes cache fallback on API errors. 14 integration tests pass.
 
 ### File List
 
@@ -280,4 +281,7 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Modified: api/tests/test_versions_cache.py
 - Created: api/src/vintagestory_api/models/versions.py
 - Created: api/tests/test_versions_models.py
+- Created: api/src/vintagestory_api/routers/versions.py
+- Created: api/tests/test_versions_router.py
+- Modified: api/src/vintagestory_api/main.py
 

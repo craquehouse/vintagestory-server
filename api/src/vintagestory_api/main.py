@@ -24,6 +24,7 @@ from vintagestory_api.routers import (
     mods,
     server,
     test_rbac,
+    versions,
     ws_token,
 )
 from vintagestory_api.services.scheduler import SchedulerService
@@ -201,6 +202,7 @@ api_v1.include_router(debug.router)
 api_v1.include_router(jobs.router)
 api_v1.include_router(mods.router)
 api_v1.include_router(server.router)
+api_v1.include_router(versions.router)
 api_v1.include_router(ws_token.router)
 
 # Test RBAC endpoints - only exposed in DEBUG mode for development/testing
