@@ -10,6 +10,7 @@ Tests cover:
 - Individual channel failures don't affect other channels
 """
 
+from collections.abc import Callable, Generator
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -20,8 +21,17 @@ from vintagestory_api.models.server import VersionInfo
 from vintagestory_api.services.versions_cache import get_versions_cache, reset_versions_cache
 
 
+def make_version_getter(
+    versions: dict[str, dict[str, VersionInfo]],
+) -> Callable[[str], dict[str, VersionInfo]]:
+    """Create a typed getter function for mock side_effect."""
+    def getter(channel: str) -> dict[str, VersionInfo]:
+        return versions.get(channel, {})
+    return getter
+
+
 @pytest.fixture(autouse=True)
-def reset_cache():
+def reset_cache() -> Generator[None]:
     """Reset versions cache before and after each test."""
     reset_versions_cache()
     yield
@@ -29,7 +39,7 @@ def reset_cache():
 
 
 @pytest.fixture
-def mock_versions():
+def mock_versions() -> dict[str, dict[str, VersionInfo]]:
     """Sample versions data for mocking."""
     return {
         "stable": {
@@ -73,14 +83,16 @@ class TestCheckServerVersionsJob:
     """Tests for check_server_versions job."""
 
     @pytest.mark.asyncio
-    async def test_populates_latest_versions(self, mock_versions):
+    async def test_populates_latest_versions(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Job should populate latest version strings in cache."""
         with patch(
             "vintagestory_api.jobs.server_versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -92,14 +104,16 @@ class TestCheckServerVersionsJob:
             assert latest.unstable_version == "1.22.0-pre.1"
 
     @pytest.mark.asyncio
-    async def test_populates_full_version_lists(self, mock_versions):
+    async def test_populates_full_version_lists(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Job should populate full version lists in cache (Story 13.1)."""
         with patch(
             "vintagestory_api.jobs.server_versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -119,14 +133,16 @@ class TestCheckServerVersionsJob:
             assert unstable_list[0]["version"] == "1.22.0-pre.1"
 
     @pytest.mark.asyncio
-    async def test_updates_cached_at_timestamp(self, mock_versions):
+    async def test_updates_cached_at_timestamp(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Job should update cached_at timestamp when populating cache."""
         with patch(
             "vintagestory_api.jobs.server_versions.get_server_service"
         ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
-                side_effect=lambda ch: mock_versions.get(ch, {})
+                side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
@@ -139,7 +155,9 @@ class TestCheckServerVersionsJob:
             assert cache.cached_at is not None
 
     @pytest.mark.asyncio
-    async def test_stable_error_preserves_unstable(self, mock_versions):
+    async def test_stable_error_preserves_unstable(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Stable API error should not affect unstable cache."""
         with patch(
             "vintagestory_api.jobs.server_versions.get_server_service"
@@ -174,7 +192,9 @@ class TestCheckServerVersionsJob:
             assert len(cache.get_versions("unstable")) == 1
 
     @pytest.mark.asyncio
-    async def test_unstable_error_preserves_stable(self, mock_versions):
+    async def test_unstable_error_preserves_stable(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Unstable API error should not affect stable cache."""
         with patch(
             "vintagestory_api.jobs.server_versions.get_server_service"
@@ -209,7 +229,9 @@ class TestCheckServerVersionsJob:
             assert cache.get_versions("unstable") == []  # Not cached due to error
 
     @pytest.mark.asyncio
-    async def test_both_errors_preserve_stale_cache(self, mock_versions):
+    async def test_both_errors_preserve_stale_cache(
+        self, mock_versions: dict[str, dict[str, VersionInfo]]
+    ) -> None:
         """Both API errors should preserve stale cache data."""
         cache = get_versions_cache()
         # Pre-populate cache with stale data
