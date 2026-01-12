@@ -181,3 +181,117 @@ class TestVersionsCacheSingleton:
         versions = cache2.get_latest_versions()
 
         assert versions.stable_version == "1.21.3"
+
+
+class TestFullVersionListCache:
+    """Tests for full version list caching (Story 13.1)."""
+
+    def test_get_versions_empty_initially(self):
+        """get_versions should return empty list when cache is empty."""
+        cache = LatestVersionsCache()
+
+        assert cache.get_versions("stable") == []
+        assert cache.get_versions("unstable") == []
+
+    def test_set_and_get_stable_versions(self):
+        """set_versions should store and get_versions should retrieve stable versions."""
+        cache = LatestVersionsCache()
+        versions = [
+            {"version": "1.21.3", "channel": "stable", "is_latest": True},
+            {"version": "1.21.2", "channel": "stable", "is_latest": False},
+        ]
+
+        cache.set_versions("stable", versions)
+        result = cache.get_versions("stable")
+
+        assert result == versions
+        # Should not affect unstable
+        assert cache.get_versions("unstable") == []
+
+    def test_set_and_get_unstable_versions(self):
+        """set_versions should store and get_versions should retrieve unstable versions."""
+        cache = LatestVersionsCache()
+        versions = [
+            {"version": "1.22.0-pre.1", "channel": "unstable", "is_latest": True},
+        ]
+
+        cache.set_versions("unstable", versions)
+        result = cache.get_versions("unstable")
+
+        assert result == versions
+        # Should not affect stable
+        assert cache.get_versions("stable") == []
+
+    def test_get_all_versions_empty_initially(self):
+        """get_all_versions should return empty dict when cache is empty."""
+        cache = LatestVersionsCache()
+
+        result = cache.get_all_versions()
+
+        assert result == {"stable": [], "unstable": []}
+
+    def test_get_all_versions_returns_both_channels(self):
+        """get_all_versions should return versions from both channels."""
+        cache = LatestVersionsCache()
+        stable = [{"version": "1.21.3", "channel": "stable", "is_latest": True}]
+        unstable = [{"version": "1.22.0-pre.1", "channel": "unstable", "is_latest": True}]
+
+        cache.set_versions("stable", stable)
+        cache.set_versions("unstable", unstable)
+        result = cache.get_all_versions()
+
+        assert result == {"stable": stable, "unstable": unstable}
+
+    def test_set_versions_updates_cached_at(self):
+        """set_versions should update cached_at timestamp."""
+        cache = LatestVersionsCache()
+
+        # Initially None
+        assert cache.cached_at is None
+
+        cache.set_versions("stable", [{"version": "1.21.3"}])
+
+        assert cache.cached_at is not None
+
+    def test_set_versions_overwrites_previous(self):
+        """set_versions should replace previous versions for the channel."""
+        cache = LatestVersionsCache()
+        old_versions = [{"version": "1.21.2", "channel": "stable"}]
+        new_versions = [{"version": "1.21.3", "channel": "stable"}]
+
+        cache.set_versions("stable", old_versions)
+        cache.set_versions("stable", new_versions)
+        result = cache.get_versions("stable")
+
+        assert result == new_versions
+
+    def test_clear_resets_full_version_lists(self):
+        """clear should reset full version lists to empty."""
+        cache = LatestVersionsCache()
+        cache.set_versions("stable", [{"version": "1.21.3"}])
+        cache.set_versions("unstable", [{"version": "1.22.0-pre.1"}])
+
+        cache.clear()
+
+        assert cache.get_versions("stable") == []
+        assert cache.get_versions("unstable") == []
+        assert cache.cached_at is None
+
+    def test_has_cached_versions_false_when_empty(self):
+        """has_cached_versions should return False when no versions cached."""
+        cache = LatestVersionsCache()
+
+        assert cache.has_cached_versions() is False
+
+    def test_has_cached_versions_true_when_populated(self):
+        """has_cached_versions should return True when versions are cached."""
+        cache = LatestVersionsCache()
+        cache.set_versions("stable", [{"version": "1.21.3"}])
+
+        assert cache.has_cached_versions() is True
+
+    def test_invalid_channel_returns_empty_list(self):
+        """get_versions with invalid channel should return empty list."""
+        cache = LatestVersionsCache()
+
+        assert cache.get_versions("invalid") == []
