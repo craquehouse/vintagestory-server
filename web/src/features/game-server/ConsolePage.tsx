@@ -15,14 +15,7 @@ import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { Button } from '@/components/ui/button';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { ConsolePanel } from '@/components/ConsolePanel';
-import type { ServerState } from '@/api/types';
-
-/**
- * Determines if the server is in an "installed" state (has a version installed).
- */
-function isServerInstalled(state: ServerState): boolean {
-  return state !== 'not_installed' && state !== 'installing';
-}
+import { isServerInstalled } from '@/lib/server-utils';
 
 /**
  * Console page for the Game Server section.

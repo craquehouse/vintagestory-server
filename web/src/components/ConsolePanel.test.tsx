@@ -67,6 +67,8 @@ vi.mock('@/lib/cookies', () => ({
 // Import after mocks
 import { ConsolePanel } from './ConsolePanel';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
+import { useServerStatus } from '@/hooks/use-server-status';
 
 // Create fresh QueryClient for each test
 function createTestQueryClient() {
@@ -213,6 +215,45 @@ describe('ConsolePanel', () => {
 
       // Button state depends on connection/input, just verify it renders
       expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
+    });
+
+    it('command input is disabled with "Server not running" placeholder when server is stopped (AC3)', () => {
+      // Configure mocks for connected but server stopped
+      vi.mocked(useConsoleWebSocket).mockReturnValueOnce({
+        connectionState: 'connected',
+        sendCommand: vi.fn(),
+      });
+      vi.mocked(useServerStatus).mockReturnValueOnce({
+        data: { data: { state: 'installed' } }, // 'installed' = stopped
+      } as ReturnType<typeof useServerStatus>);
+
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByLabelText('Command input');
+      expect(input).toBeDisabled();
+      expect(input).toHaveAttribute('placeholder', 'Server not running');
+    });
+
+    it('send button is disabled when server is stopped (AC3)', () => {
+      // Configure mocks for connected but server stopped
+      vi.mocked(useConsoleWebSocket).mockReturnValueOnce({
+        connectionState: 'connected',
+        sendCommand: vi.fn(),
+      });
+      vi.mocked(useServerStatus).mockReturnValueOnce({
+        data: { data: { state: 'installed' } }, // 'installed' = stopped
+      } as ReturnType<typeof useServerStatus>);
+
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const button = screen.getByRole('button', { name: 'Send' });
+      expect(button).toBeDisabled();
     });
   });
 

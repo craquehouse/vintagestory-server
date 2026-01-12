@@ -12,14 +12,8 @@
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
+import { isServerInstalled } from '@/lib/server-utils';
 import type { ServerState } from '@/api/types';
-
-/**
- * Determines if the server is in an "installed" state (has a version installed).
- */
-function isServerInstalled(state: ServerState): boolean {
-  return state !== 'not_installed' && state !== 'installing';
-}
 
 /**
  * Version/Installation page for the Game Server section.

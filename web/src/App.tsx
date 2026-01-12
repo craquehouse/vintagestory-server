@@ -11,7 +11,7 @@ import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mod
 import { VersionPage, SettingsPage as GameServerSettingsPage, ConsolePage } from "@/features/game-server";
 import { SettingsPage } from "@/features/settings";
 import { useServerStatus } from "@/hooks/use-server-status";
-import type { ServerState } from "@/api/types";
+import { isServerInstalled } from "@/lib/server-utils";
 
 /**
  * Placeholder component for Game Server sub-pages.
@@ -35,13 +35,6 @@ function ModsRedirect() {
   const location = useLocation();
   const newPath = location.pathname.replace(/^\/mods/, '/game-server/mods');
   return <Navigate to={newPath} replace />;
-}
-
-/**
- * Determines if the server is in an "installed" state (has a version installed).
- */
-function isServerInstalled(state: ServerState): boolean {
-  return state !== 'not_installed' && state !== 'installing';
 }
 
 /**
