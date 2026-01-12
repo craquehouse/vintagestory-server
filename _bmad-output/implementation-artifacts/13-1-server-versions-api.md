@@ -1,6 +1,6 @@
 # Story 13.1: Server Versions API
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -52,15 +52,15 @@ So that **the version browser can display all available releases**.
   - [x] Subtask 3.4: Register router in `main.py`
   - [x] Subtask 3.5: Write integration tests for all endpoints
 
-- [ ] Task 4: Add cache indicator and staleness handling + tests (AC: 4)
-  - [ ] Subtask 4.1: Add `cached: bool` and `cached_at: datetime | None` to response
-  - [ ] Subtask 4.2: Return cached data with indicator when API fails
-  - [ ] Subtask 4.3: Write tests for cache fallback behavior
+- [x] Task 4: Add cache indicator and staleness handling + tests (AC: 4) [Completed in Task 3]
+  - [x] Subtask 4.1: Add `cached: bool` and `cached_at: datetime | None` to response
+  - [x] Subtask 4.2: Return cached data with indicator when API fails
+  - [x] Subtask 4.3: Write tests for cache fallback behavior
 
-- [ ] Task 5: Update server_versions job to populate new cache + tests (AC: 4)
-  - [ ] Subtask 5.1: Modify `check_server_versions()` to also cache full version lists
-  - [ ] Subtask 5.2: Ensure cache is populated on job run
-  - [ ] Subtask 5.3: Write tests for job populating cache
+- [x] Task 5: Update server_versions job to populate new cache + tests (AC: 4)
+  - [x] Subtask 5.1: Modify `check_server_versions()` to also cache full version lists
+  - [x] Subtask 5.2: Ensure cache is populated on job run
+  - [x] Subtask 5.3: Write tests for job populating cache
 
 ## Dev Notes
 
@@ -274,6 +274,8 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 1: Extended LatestVersionsCache with full version list storage. Added methods: `get_versions(channel)`, `set_versions(channel, versions)`, `get_all_versions()`, `has_cached_versions()`, and `cached_at` property. 11 new unit tests pass.
 - Task 2: Created Pydantic models VersionListResponse and VersionDetailResponse in new models/versions.py. Reuses existing VersionInfo model. 6 new unit tests pass.
 - Task 3: Created versions router with GET /versions (with channel filter) and GET /versions/{version} endpoints. Registered in main.py. Includes cache fallback on API errors. 14 integration tests pass.
+- Task 4: Cache indicator and staleness handling was implemented as part of Task 3 (cached and cached_at fields in responses).
+- Task 5: Updated server_versions job to populate full version lists in cache alongside latest version strings. 6 new unit tests pass.
 
 ### File List
 
@@ -284,4 +286,6 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Created: api/src/vintagestory_api/routers/versions.py
 - Created: api/tests/test_versions_router.py
 - Modified: api/src/vintagestory_api/main.py
+- Modified: api/src/vintagestory_api/jobs/server_versions.py
+- Created: api/tests/test_server_versions_job.py
 
