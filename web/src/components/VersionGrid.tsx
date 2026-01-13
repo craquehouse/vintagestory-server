@@ -97,6 +97,8 @@ export function VersionGrid({
           key={version.version}
           version={version}
           installedVersion={installedVersion}
+          // Story 13.5: Highlight versions newer than installed
+          isNewer={installedVersion ? version.version > installedVersion : false}
           onClick={onVersionClick ? () => onVersionClick(version.version) : undefined}
         />
       ))}
