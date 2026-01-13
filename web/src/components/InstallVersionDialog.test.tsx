@@ -9,7 +9,7 @@ import {
   type InstallVersionDialogProps,
 } from './InstallVersionDialog';
 import * as useServerStatus from '@/hooks/use-server-status';
-import type { VersionInfo, ServerState } from '@/api/types';
+import type { VersionInfo } from '@/api/types';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -160,8 +160,8 @@ describe('InstallVersionDialog', () => {
       isFetchedAfterMount: false,
       isInitialLoading: false,
       refetch: vi.fn(),
-      promise: Promise.resolve({} as ReturnType<typeof useServerStatus.useInstallStatus>['data']),
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   describe('action type display', () => {
@@ -530,8 +530,8 @@ describe('InstallVersionDialog', () => {
         isFetchedAfterMount: true,
         isInitialLoading: false,
         refetch: vi.fn(),
-        promise: Promise.resolve({} as ReturnType<typeof useServerStatus.useInstallStatus>['data']),
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
 
       render(
         <InstallVersionDialog
@@ -579,8 +579,8 @@ describe('InstallVersionDialog', () => {
         isFetchedAfterMount: true,
         isInitialLoading: false,
         refetch: vi.fn(),
-        promise: Promise.resolve({} as ReturnType<typeof useServerStatus.useInstallStatus>['data']),
-      });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
 
       render(
         <InstallVersionDialog

@@ -677,4 +677,188 @@ describe('VersionPage', () => {
       expect(screen.getByTestId('version-grid-loading')).toBeInTheDocument();
     });
   });
+
+  /**
+   * Story 13.4: Install/Upgrade Dialog Integration Tests
+   *
+   * AC 1: Dialog opens when clicking version card
+   * AC 2: Dialog shows correct action type (upgrade/reinstall/downgrade)
+   * AC 3: Dialog closes on cancel
+   */
+  describe('install/upgrade dialog (Story 13.4)', () => {
+    it('opens dialog when clicking a version card (AC: 1)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Wait for versions to load
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      });
+
+      // Click a version card
+      await user.click(screen.getByTestId('version-card-1.21.6'));
+
+      // Dialog should open
+      await waitFor(() => {
+        expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
+      });
+    });
+
+    it('shows upgrade dialog when selecting newer version (AC: 2)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus), // version 1.21.5
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      });
+
+      // Click newer version (1.21.6 vs installed 1.21.5)
+      await user.click(screen.getByTestId('version-card-1.21.6'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dialog-title')).toHaveTextContent('Upgrade Server Version');
+      });
+    });
+
+    it('shows reinstall dialog when selecting same version (AC: 2)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus), // version 1.21.5
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      });
+
+      // Click same version (1.21.5)
+      await user.click(screen.getByTestId('version-card-1.21.5'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
+      });
+    });
+
+    it('closes dialog when cancel is clicked (AC: 3)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      });
+
+      // Open dialog
+      await user.click(screen.getByTestId('version-card-1.21.6'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
+      });
+
+      // Click cancel
+      await user.click(screen.getByTestId('cancel-button'));
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('install-version-dialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows server running warning when server is running', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockRunningStatus), // Server is running
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      });
+
+      // Click a different version
+      await user.click(screen.getByTestId('version-card-1.21.5'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('server-running-warning')).toBeInTheDocument();
+      });
+    });
+  });
 });

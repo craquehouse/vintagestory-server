@@ -3,6 +3,7 @@
  *
  * Story 11.2: Dedicated page for server version management.
  * Story 13.3: Added browsable version list with channel filter.
+ * Story 13.4: Added install/upgrade dialog with confirmation.
  *
  * Displays different content based on server state:
  * - not_installed: Shows ServerInstallCard for installation
@@ -15,10 +16,11 @@ import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ChannelFilter, type ChannelFilterValue } from '@/components/ChannelFilter';
 import { VersionGrid } from '@/components/VersionGrid';
+import { InstallVersionDialog } from '@/components/InstallVersionDialog';
 import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
 import { useVersions } from '@/hooks/use-versions';
 import { isServerInstalled } from '@/lib/server-utils';
-import type { ServerState } from '@/api/types';
+import type { ServerState, VersionInfo } from '@/api/types';
 
 /**
  * Version/Installation page for the Game Server section.
@@ -48,10 +50,17 @@ export function VersionPage() {
   });
   const versions = versionsResponse?.data?.versions ?? [];
 
-  // Handler for version card clicks - prep for Story 13.4
+  // Story 13.4: Dialog state for install/upgrade confirmation
+  const [selectedVersion, setSelectedVersion] = useState<VersionInfo | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Handler for version card clicks - Story 13.4
   const handleVersionClick = (version: string) => {
-    // Story 13.4 will add install/upgrade dialog
-    console.log('Version clicked:', version);
+    const versionInfo = versions.find((v) => v.version === version);
+    if (versionInfo) {
+      setSelectedVersion(versionInfo);
+      setIsDialogOpen(true);
+    }
   };
 
   // Dynamic page title based on state
@@ -102,6 +111,17 @@ export function VersionPage() {
               onVersionClick={handleVersionClick}
             />
           </div>
+
+          {/* Story 13.4: Install/Upgrade Dialog */}
+          {selectedVersion && (
+            <InstallVersionDialog
+              version={selectedVersion}
+              installedVersion={serverStatus?.version ?? null}
+              serverState={serverState}
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+            />
+          )}
         </>
       ) : (
         <ServerInstallCard
