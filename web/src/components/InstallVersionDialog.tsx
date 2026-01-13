@@ -176,26 +176,30 @@ export function InstallVersionDialog({
     (isDowngrade && !downgradeConfirmed);
 
   const handleInstall = () => {
-    installMutation.mutate(version.version, {
-      onSuccess: () => {
-        toast.success(
-          actionType === 'install'
-            ? `Installing version ${version.version}`
-            : `Updating to version ${version.version}`,
-          {
-            description: 'Server installation started.',
-          }
-        );
-        // Don't close dialog immediately - show progress
-        // Dialog will be closed when user dismisses or installation completes
-        onSuccess?.();
-      },
-      onError: (error) => {
-        toast.error('Installation failed', {
-          description: error.message,
-        });
-      },
-    });
+    const needsForce = actionType !== 'install';
+    installMutation.mutate(
+      { version: version.version, force: needsForce },
+      {
+        onSuccess: () => {
+          toast.success(
+            actionType === 'install'
+              ? `Installing version ${version.version}`
+              : `Updating to version ${version.version}`,
+            {
+              description: 'Server installation started.',
+            }
+          );
+          // Don't close dialog immediately - show progress
+          // Dialog will be closed when user dismisses or installation completes
+          onSuccess?.();
+        },
+        onError: (error) => {
+          toast.error('Installation failed', {
+            description: error.message,
+          });
+        },
+      }
+    );
   };
 
   // Reset downgrade confirmation when dialog closes

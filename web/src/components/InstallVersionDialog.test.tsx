@@ -404,8 +404,60 @@ describe('InstallVersionDialog', () => {
 
       await user.click(screen.getByTestId('confirm-button'));
 
+      // Story 13.4: Now passes an object with version and force flag
+      // force=false for fresh install (installedVersion is null in default props)
       expect(mockMutate).toHaveBeenCalledWith(
-        '1.21.6',
+        { version: '1.21.6', force: false },
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        })
+      );
+    });
+
+    it('passes force=true for upgrade/downgrade/reinstall', async () => {
+      const user = userEvent.setup();
+
+      // Test upgrade (installed version older than target)
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            installedVersion: '1.20.0', // Older than target 1.21.6
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('confirm-button'));
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        { version: '1.21.6', force: true },
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        })
+      );
+    });
+
+    it('passes force=true for reinstall', async () => {
+      const user = userEvent.setup();
+
+      // Test reinstall (same version)
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            installedVersion: '1.21.6', // Same as target
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('confirm-button'));
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        { version: '1.21.6', force: true },
         expect.objectContaining({
           onSuccess: expect.any(Function),
           onError: expect.any(Function),

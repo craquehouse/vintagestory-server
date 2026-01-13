@@ -59,19 +59,32 @@ export async function restartServer(): Promise<ApiResponse<ActionMessage>> {
   });
 }
 
+export interface InstallServerOptions {
+  /** The version to install (e.g., "1.21.3") */
+  version: string;
+  /** Force installation even if a server is already installed. */
+  force?: boolean;
+}
+
 /**
  * Install a specific version of the VintageStory server.
  *
  * Requires Admin role.
  *
- * @param version - The version to install (e.g., "1.21.3")
+ * @param options - Installation options including version and optional force flag
  */
 export async function installServer(
-  version: string
+  options: InstallServerOptions | string
 ): Promise<ApiResponse<ActionMessage>> {
+  // Support both old signature (string) and new signature (options object)
+  const body =
+    typeof options === 'string'
+      ? { version: options }
+      : { version: options.version, force: options.force ?? false };
+
   return apiClient<ApiResponse<ActionMessage>>(`${API_PREFIX}/install`, {
     method: 'POST',
-    body: { version },
+    body,
   });
 }
 

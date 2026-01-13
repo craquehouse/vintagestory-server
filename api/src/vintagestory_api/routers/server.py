@@ -34,14 +34,15 @@ async def install_server(
     Args:
         request: Installation request with version number. Can be a specific
             version (e.g., "1.21.3") or an alias ("stable" or "unstable") to
-            install the latest version from that channel.
+            install the latest version from that channel. Set force=true to
+            reinstall, upgrade, or downgrade an existing installation.
 
     Returns:
         ApiResponse with initial installation status
 
     Raises:
         HTTPException: 422 if version format is invalid
-        HTTPException: 409 if server is already installed or installation in progress
+        HTTPException: 409 if already installed (without force) or install in progress
         HTTPException: 404 if version not found
     """
     version = request.version
@@ -69,8 +70,7 @@ async def install_server(
             },
         )
 
-    # Check if already installed
-    if service.is_installed():
+    if service.is_installed() and not request.force:
         installed_version = service.get_installed_version()
         raise HTTPException(
             status_code=409,
@@ -102,9 +102,8 @@ async def install_server(
             },
         )
 
-    # Start installation in background
-    logger.debug("router_install_server_start", version=version)
-    background_tasks.add_task(service.install_server, version)
+    logger.debug("router_install_server_start", version=version, force=request.force)
+    background_tasks.add_task(service.install_server, version, force=request.force)
 
     # Return initial progress
     return ApiResponse(
