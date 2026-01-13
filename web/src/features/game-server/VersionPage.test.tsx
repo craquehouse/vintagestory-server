@@ -1015,4 +1015,105 @@ describe('VersionPage', () => {
       });
     });
   });
+
+  /**
+   * Story 13.5: Quick Install Button Tests
+   *
+   * AC 4: Quick action buttons for install/update
+   */
+  describe('quick install button (Story 13.5)', () => {
+    it('shows "Install Latest Stable" button when not installed', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-install-button')).toBeInTheDocument();
+      });
+
+      // Check button contains the expected text
+      const button = screen.getByTestId('quick-install-button');
+      expect(button).toHaveTextContent(/Install Latest Stable/);
+      expect(button).toHaveTextContent(/1\.21\.6/);
+    });
+
+    it('shows "Update to" button when update available', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus), // version 1.21.5
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('quick-install-button')).toBeInTheDocument();
+      });
+
+      // Check button contains the expected text
+      const button = screen.getByTestId('quick-install-button');
+      expect(button).toHaveTextContent(/Update to/);
+      expect(button).toHaveTextContent(/1\.21\.6/);
+    });
+
+    it('does not show button when version is current', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockRunningStatus), // version 1.21.6 (current)
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Wait for page to load
+      await waitFor(() => {
+        expect(screen.getByTestId('version-page')).toBeInTheDocument();
+      });
+
+      // Wait for versions to load
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+
+      // Button should not be present when up to date
+      expect(screen.queryByTestId('quick-install-button')).not.toBeInTheDocument();
+    });
+  });
 });

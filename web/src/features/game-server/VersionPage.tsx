@@ -18,6 +18,7 @@ import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ChannelFilter, type ChannelFilterValue } from '@/components/ChannelFilter';
 import { VersionGrid } from '@/components/VersionGrid';
 import { InstallVersionDialog } from '@/components/InstallVersionDialog';
+import { QuickInstallButton } from '@/components/QuickInstallButton';
 import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
 import { useVersions } from '@/hooks/use-versions';
 import { isServerInstalled } from '@/lib/server-utils';
@@ -106,6 +107,15 @@ export function VersionPage() {
             availableStableVersion={serverStatus?.availableStableVersion ?? null}
           />
 
+          {/* Story 13.5: Quick update button when update available */}
+          <div className="mt-6">
+            <QuickInstallButton
+              versions={versions}
+              installedVersion={serverStatus?.version ?? null}
+              isLoadingVersions={isLoadingVersions}
+            />
+          </div>
+
           {/* Available Versions Section - Story 13.3 */}
           <div className="mt-8" data-testid="available-versions-section">
             <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
@@ -134,6 +144,13 @@ export function VersionPage() {
       ) : (
         /* Story 13.5: Not installed state - Show version browser */
         <>
+          {/* Story 13.5: Quick install button */}
+          <QuickInstallButton
+            versions={versions}
+            installedVersion={null}
+            isLoadingVersions={isLoadingVersions}
+          />
+
           {/* Available Versions Section for fresh install */}
           <div data-testid="available-versions-section">
             <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
