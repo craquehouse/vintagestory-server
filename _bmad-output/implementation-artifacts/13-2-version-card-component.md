@@ -51,9 +51,16 @@ So that **I can quickly scan and compare available versions**.
 
 - [x] Task 4: Manual browser verification (AC: all)
   - [x] Subtask 4.1: Component is reusable; full browser verification deferred to Story 13.3 (VersionList integration)
-  - [x] Subtask 4.2: All 22 unit tests pass covering AC 1-4
+  - [x] Subtask 4.2: All 34 unit tests pass covering AC 1-4 (22 component tests + 12 hook tests)
   - [x] Subtask 4.3: TypeScript type check passes
   - [x] Subtask 4.4: Web test suite passes (1238 tests)
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][M1] Fix test count mismatch in Subtask 4.2 - changed from 22 to 34 to include hook tests [13-2-version-card-component.md:54]
+- [ ] [AI-Review][M2] Fix test count in Completion Notes - change "57 new tests added" to "37 new tests added" [13-2-version-card-component.md:342]
+- [ ] [AI-Review][M3] Fix test count mismatch in PR body - change "57" to "37" in PR #64 [PR #64 body]
+- [ ] [AI-Review][L1] Document post-implementation refactor in Completion Notes - add note about commit 4622bbd [13-2-version-card-component.md:329]
 
 ## Dev Notes
 
@@ -342,10 +349,11 @@ None required.
 - Created TypeScript types: `VersionInfo`, `VersionListResponse`, `VersionDetailResponse`, `VersionChannel`
 - Created `useVersions` and `useVersionDetail` hooks with TanStack Query
 - Created `VersionCard` component matching ModCard patterns
-- 57 new tests added (3 type transformation tests, 12 hook tests, 22 component tests)
+- 37 new tests added (3 type transformation tests, 12 hook tests, 22 component tests)
 - All 1238 web tests pass
 - TypeScript type check passes
 - Browser verification deferred to Story 13.3 (component is reusable, needs integration)
+- Post-implementation refactor (4622bbd): Simplified version card implementation
 
 ### File List
 
