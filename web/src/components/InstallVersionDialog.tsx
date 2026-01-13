@@ -12,7 +12,7 @@
  * - Displays installation progress when installing
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Download, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -165,6 +165,18 @@ export function InstallVersionDialog({
 
   const isServerRunning = serverState === 'running';
   const isDowngrade = actionType === 'downgrade';
+
+  // Track previous server state to detect installation completion
+  const prevServerStateRef = useRef<ServerState | undefined>(undefined);
+
+  // Auto-close dialog when installation completes (installing → installed)
+  useEffect(() => {
+    const prevState = prevServerStateRef.current;
+    if (prevState === 'installing' && serverState === 'installed' && open) {
+      onOpenChange(false);
+    }
+    prevServerStateRef.current = serverState;
+  }, [serverState, open, onOpenChange]);
 
   // Button disabled if:
   // - Mutation is pending
