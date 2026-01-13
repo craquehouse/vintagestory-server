@@ -1,6 +1,6 @@
 # Story 13.2: Version Card Component
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -57,10 +57,10 @@ So that **I can quickly scan and compare available versions**.
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][M1] Fix test count mismatch in Subtask 4.2 - changed from 22 to 34 to include hook tests [13-2-version-card-component.md:54]
-- [ ] [AI-Review][M2] Fix test count in Completion Notes - change "57 new tests added" to "37 new tests added" [13-2-version-card-component.md:342]
-- [ ] [AI-Review][M3] Fix test count mismatch in PR body - change "57" to "37" in PR #64 [PR #64 body]
-- [ ] [AI-Review][L1] Document post-implementation refactor in Completion Notes - add note about commit 4622bbd [13-2-version-card-component.md:329]
+- [x] [AI-Review][M1] Fix test count mismatch in Subtask 4.2 - changed from 22 to 34 to include hook tests [13-2-version-card-component.md:54]
+- [x] [AI-Review][M2] Fix test count in Completion Notes - change "57 new tests added" to "37 new tests added" [13-2-version-card-component.md:342]
+- [x] [AI-Review][M3] Fix test count mismatch in PR body - change "57" to "37" in PR #64 [PR #64 body]
+- [x] [AI-Review][L1] Document post-implementation refactor in Completion Notes - add note about commit 4622bbd [13-2-version-card-component.md:329]
 
 ## Dev Notes
 
