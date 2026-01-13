@@ -54,6 +54,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | UI-028 | Add debug logging toggle to Settings tab - enable/disable verbose logging at runtime via /api/v1alpha1/debug endpoints                 | low      | S      | backlog | Story-9.4               | API endpoints already implemented; needs UI toggle component |
 | UI-031 | Add scroll position restoration for mod detail back navigation | low | S | backlog | - | - |
 | UI-032 | Theme consistency audit - verify CSS variables defined and applied consistently | low | M | backlog | Epic-11 | Check --success --warning etc. |
+| UI-033 | Consider table view instead of card view for version list | medium | S | backlog | - | Story 13.3 UX feedback - card view may be overkill for small version list |
 
 
 ---

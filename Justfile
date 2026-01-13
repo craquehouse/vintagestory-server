@@ -271,5 +271,11 @@ sprint *ARGS:
 #   just polish add UI "Add dark mode toggle" medium S
 #   just polish set UI-029 in-progress
 #   just polish done UI-029 https://github.com/org/repo/pull/99
+# On macOS, uses Homebrew bash (script requires bash 4+ for associative arrays)
 polish *ARGS:
-    ./scripts/polish-backlog.sh {{ARGS}}
+    #!/usr/bin/env bash
+    if [[ "$(uname)" == "Darwin" ]] && [[ -x /opt/homebrew/bin/bash ]]; then
+        /opt/homebrew/bin/bash ./scripts/polish-backlog.sh {{ARGS}}
+    else
+        ./scripts/polish-backlog.sh {{ARGS}}
+    fi

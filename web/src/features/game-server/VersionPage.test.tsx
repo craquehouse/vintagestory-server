@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { VersionPage } from './VersionPage';
@@ -114,6 +115,79 @@ const mockInstallProgress = {
     state: 'downloading',
     progress: 45,
     message: 'Downloading VintageStory 1.21.6...',
+  },
+};
+
+// Story 13.3: Mock versions list response
+const mockVersionsList = {
+  status: 'ok',
+  data: {
+    versions: [
+      {
+        version: '1.21.6',
+        filename: 'vs_server_linux-x64_1.21.6.tar.gz',
+        filesize: '45.2 MB',
+        md5: 'abc123',
+        cdn_url: 'https://cdn.example.com/1.21.6',
+        local_url: '/local/1.21.6',
+        is_latest: true,
+        channel: 'stable',
+      },
+      {
+        version: '1.21.5',
+        filename: 'vs_server_linux-x64_1.21.5.tar.gz',
+        filesize: '44.8 MB',
+        md5: 'def456',
+        cdn_url: 'https://cdn.example.com/1.21.5',
+        local_url: '/local/1.21.5',
+        is_latest: false,
+        channel: 'stable',
+      },
+      {
+        version: '1.22.0-pre.1',
+        filename: 'vs_server_linux-x64_1.22.0-pre.1.tar.gz',
+        filesize: '46.1 MB',
+        md5: 'ghi789',
+        cdn_url: 'https://cdn.example.com/1.22.0-pre.1',
+        local_url: '/local/1.22.0-pre.1',
+        is_latest: true,
+        channel: 'unstable',
+      },
+    ],
+    total: 3,
+    cached: true,
+    cached_at: '2026-01-13T10:00:00Z',
+  },
+};
+
+const mockStableVersionsList = {
+  status: 'ok',
+  data: {
+    versions: [
+      {
+        version: '1.21.6',
+        filename: 'vs_server_linux-x64_1.21.6.tar.gz',
+        filesize: '45.2 MB',
+        md5: 'abc123',
+        cdn_url: 'https://cdn.example.com/1.21.6',
+        local_url: '/local/1.21.6',
+        is_latest: true,
+        channel: 'stable',
+      },
+      {
+        version: '1.21.5',
+        filename: 'vs_server_linux-x64_1.21.5.tar.gz',
+        filesize: '44.8 MB',
+        md5: 'def456',
+        cdn_url: 'https://cdn.example.com/1.21.5',
+        local_url: '/local/1.21.5',
+        is_latest: false,
+        channel: 'stable',
+      },
+    ],
+    total: 2,
+    cached: true,
+    cached_at: '2026-01-13T10:00:00Z',
   },
 };
 
@@ -383,6 +457,224 @@ describe('VersionPage', () => {
       expect(
         screen.queryByTestId('update-available-banner')
       ).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Story 13.3: Version List Section Tests
+   *
+   * AC 1: Available Versions section shown when installed
+   * AC 2: Channel filter with All, Stable, Unstable tabs
+   * AC 3: Filtering by channel works
+   * AC 4: Versions sorted by version number (newest first - handled by API)
+   */
+  describe('version list section (Story 13.3)', () => {
+    it('shows Available Versions section when installed (AC: 1)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('available-versions-section')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Available Versions')).toBeInTheDocument();
+    });
+
+    it('does not show Available Versions section when not installed', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockNotInstalledStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-page')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('available-versions-section')).not.toBeInTheDocument();
+    });
+
+    it('renders ChannelFilter with All, Stable, Unstable tabs (AC: 2)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('channel-filter')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('channel-filter-all')).toBeInTheDocument();
+      expect(screen.getByTestId('channel-filter-stable')).toBeInTheDocument();
+      expect(screen.getByTestId('channel-filter-unstable')).toBeInTheDocument();
+    });
+
+    it('renders VersionGrid with versions (AC: 4)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+
+      // Should show all three versions
+      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+    });
+
+    it('shows installed badge on current version', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+
+      // mockInstalledStatus has version 1.21.5 installed
+      expect(screen.getByTestId('version-card-installed-1.21.5')).toBeInTheDocument();
+      // Other versions should not show installed
+      expect(screen.queryByTestId('version-card-installed-1.21.6')).not.toBeInTheDocument();
+    });
+
+    it('filters by channel when tab clicked (AC: 3)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions?channel=stable')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockStableVersionsList),
+          };
+        }
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+
+      // Initially shows all versions including unstable
+      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+
+      // Click Stable tab
+      await user.click(screen.getByTestId('channel-filter-stable'));
+
+      // Wait for filtered results - unstable should be removed
+      await waitFor(() => {
+        expect(screen.queryByTestId('version-card-1.22.0-pre.1')).not.toBeInTheDocument();
+      });
+
+      // Stable versions should still be present
+      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+    });
+
+    it('shows loading skeleton while fetching versions', async () => {
+      // Make versions request hang
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return new Promise(() => {}); // Never resolves
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('available-versions-section')).toBeInTheDocument();
+      });
+
+      // Should show loading state
+      expect(screen.getByTestId('version-grid-loading')).toBeInTheDocument();
     });
   });
 });

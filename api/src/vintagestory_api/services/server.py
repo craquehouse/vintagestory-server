@@ -337,13 +337,27 @@ class ServerService:
         for version, platforms in versions_data.items():
             linux_server = platforms.get("linuxserver")
             if linux_server:
+                # Skip versions without CDN URL (can't be downloaded)
+                urls = linux_server.get("urls", {})
+                cdn_url = urls.get("cdn")
+                local_url = urls.get("local")
+                if not cdn_url or not local_url:
+                    logger.debug(
+                        "skipping_version_missing_urls",
+                        version=version,
+                        channel=channel,
+                        cdn_url=cdn_url,
+                        local_url=local_url,
+                    )
+                    continue
+
                 versions[version] = VersionInfo(
                     version=version,
                     filename=linux_server["filename"],
                     filesize=linux_server["filesize"],
                     md5=linux_server["md5"],
-                    cdn_url=linux_server["urls"]["cdn"],
-                    local_url=linux_server["urls"]["local"],
+                    cdn_url=cdn_url,
+                    local_url=local_url,
                     is_latest=linux_server.get("latest", False),
                     channel=channel,
                 )

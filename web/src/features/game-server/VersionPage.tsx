@@ -2,16 +2,21 @@
  * Version/Installation Page Component
  *
  * Story 11.2: Dedicated page for server version management.
+ * Story 13.3: Added browsable version list with channel filter.
  *
  * Displays different content based on server state:
  * - not_installed: Shows ServerInstallCard for installation
  * - installing: Shows ServerInstallCard with installation progress
- * - installed/running/etc: Shows current version with status
+ * - installed/running/etc: Shows current version with status + Available Versions list
  */
 
+import { useState } from 'react';
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
+import { ChannelFilter, type ChannelFilterValue } from '@/components/ChannelFilter';
+import { VersionGrid } from '@/components/VersionGrid';
 import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
+import { useVersions } from '@/hooks/use-versions';
 import { isServerInstalled } from '@/lib/server-utils';
 import type { ServerState } from '@/api/types';
 
@@ -32,6 +37,22 @@ export function VersionPage() {
 
   // Determine if server is installed (not in 'not_installed' or 'installing' state)
   const isInstalled = isServerInstalled(serverState);
+
+  // Channel filter state for version list (Story 13.3)
+  const [channel, setChannel] = useState<ChannelFilterValue>(undefined);
+
+  // Fetch available versions (only when installed - Story 13.3)
+  const { data: versionsResponse, isLoading: isLoadingVersions } = useVersions({
+    channel,
+    enabled: isInstalled,
+  });
+  const versions = versionsResponse?.data?.versions ?? [];
+
+  // Handler for version card clicks - prep for Story 13.4
+  const handleVersionClick = (version: string) => {
+    // Story 13.4 will add install/upgrade dialog
+    console.log('Version clicked:', version);
+  };
 
   // Dynamic page title based on state
   const pageTitle = isInstalled ? 'Server Version' : 'Server Installation';
@@ -61,11 +82,27 @@ export function VersionPage() {
       </h1>
 
       {isInstalled ? (
-        <InstalledVersionCard
-          version={serverStatus?.version ?? 'Unknown'}
-          state={serverState}
-          availableStableVersion={serverStatus?.availableStableVersion ?? null}
-        />
+        <>
+          <InstalledVersionCard
+            version={serverStatus?.version ?? 'Unknown'}
+            state={serverState}
+            availableStableVersion={serverStatus?.availableStableVersion ?? null}
+          />
+
+          {/* Available Versions Section - Story 13.3 */}
+          <div className="mt-8" data-testid="available-versions-section">
+            <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
+            <div className="mb-4">
+              <ChannelFilter value={channel} onChange={setChannel} />
+            </div>
+            <VersionGrid
+              versions={versions}
+              isLoading={isLoadingVersions}
+              installedVersion={serverStatus?.version}
+              onVersionClick={handleVersionClick}
+            />
+          </div>
+        </>
       ) : (
         <ServerInstallCard
           isInstalling={isInstalling}
