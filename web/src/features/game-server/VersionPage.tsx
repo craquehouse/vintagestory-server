@@ -4,9 +4,10 @@
  * Story 11.2: Dedicated page for server version management.
  * Story 13.3: Added browsable version list with channel filter.
  * Story 13.4: Added install/upgrade dialog with confirmation.
+ * Story 13.5: Added version browser for not_installed state (replacing ServerInstallCard).
  *
  * Displays different content based on server state:
- * - not_installed: Shows ServerInstallCard for installation
+ * - not_installed: Shows version browser with available versions
  * - installing: Shows ServerInstallCard with installation progress
  * - installed/running/etc: Shows current version with status + Available Versions list
  */
@@ -43,10 +44,11 @@ export function VersionPage() {
   // Channel filter state for version list (Story 13.3)
   const [channel, setChannel] = useState<ChannelFilterValue>(undefined);
 
-  // Fetch available versions (only when installed - Story 13.3)
+  // Story 13.5: Fetch versions for both installed AND not_installed states
+  // Only disable when actively installing to avoid UI flickering
   const { data: versionsResponse, isLoading: isLoadingVersions } = useVersions({
     channel,
-    enabled: isInstalled,
+    enabled: !isInstalling,
   });
   const versions = versionsResponse?.data?.versions ?? [];
 
@@ -90,7 +92,13 @@ export function VersionPage() {
         {pageTitle}
       </h1>
 
-      {isInstalled ? (
+      {/* Installing state: Show progress card */}
+      {isInstalling ? (
+        <ServerInstallCard
+          isInstalling={isInstalling}
+          installStatus={installStatus}
+        />
+      ) : isInstalled ? (
         <>
           <InstalledVersionCard
             version={serverStatus?.version ?? 'Unknown'}
@@ -124,10 +132,33 @@ export function VersionPage() {
           )}
         </>
       ) : (
-        <ServerInstallCard
-          isInstalling={isInstalling}
-          installStatus={installStatus}
-        />
+        /* Story 13.5: Not installed state - Show version browser */
+        <>
+          {/* Available Versions Section for fresh install */}
+          <div data-testid="available-versions-section">
+            <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
+            <div className="mb-4">
+              <ChannelFilter value={channel} onChange={setChannel} />
+            </div>
+            <VersionGrid
+              versions={versions}
+              isLoading={isLoadingVersions}
+              installedVersion={null}
+              onVersionClick={handleVersionClick}
+            />
+          </div>
+
+          {/* Install Dialog for fresh install */}
+          {selectedVersion && (
+            <InstallVersionDialog
+              version={selectedVersion}
+              installedVersion={null}
+              serverState={serverState}
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}
+            />
+          )}
+        </>
       )}
     </div>
   );

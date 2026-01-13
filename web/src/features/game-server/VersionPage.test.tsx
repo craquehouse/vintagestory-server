@@ -239,12 +239,24 @@ describe('VersionPage', () => {
     });
   });
 
-  describe('not installed state (AC: 1, 5)', () => {
+  /**
+   * Story 13.5: Not installed state now shows version browser instead of ServerInstallCard
+   */
+  describe('not installed state (AC: 1, Story 13.5)', () => {
     it('shows "Server Installation" title when not installed', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockNotInstalledStatus),
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
       });
+      globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<VersionPage />, {
@@ -260,11 +272,20 @@ describe('VersionPage', () => {
       );
     });
 
-    it('shows ServerInstallCard when server is not installed', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockNotInstalledStatus),
+    it('shows version browser instead of ServerInstallCard when not installed', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
       });
+      globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<VersionPage />, {
@@ -275,11 +296,131 @@ describe('VersionPage', () => {
         expect(screen.getByTestId('version-page')).toBeInTheDocument();
       });
 
-      // ServerInstallCard should be rendered
-      expect(screen.getByText('Install Server')).toBeInTheDocument();
-      expect(
-        screen.getByPlaceholderText('e.g., stable, unstable, 1.21.6')
-      ).toBeInTheDocument();
+      // Should NOT show ServerInstallCard anymore
+      expect(screen.queryByText('Install Server')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('e.g., stable, unstable, 1.21.6')).not.toBeInTheDocument();
+
+      // Should show version browser components
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('channel-filter')).toBeInTheDocument();
+      expect(screen.getByText('Available Versions')).toBeInTheDocument();
+    });
+
+    it('shows VersionGrid with versions when not installed', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+      });
+
+      // Should show all versions
+      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+    });
+
+    it('opens InstallVersionDialog on card click when not installed', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Wait for versions to load
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      });
+
+      // Click a version card
+      await user.click(screen.getByTestId('version-card-1.21.6'));
+
+      // Dialog should open showing "Install" action (since not installed)
+      await waitFor(() => {
+        expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Install Server Version');
+    });
+
+    it('enables channel filter when not installed', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions?channel=stable')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockStableVersionsList),
+          };
+        }
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('channel-filter')).toBeInTheDocument();
+      });
+
+      // Initially shows all versions including unstable
+      await waitFor(() => {
+        expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+      });
+
+      // Click Stable tab
+      await user.click(screen.getByTestId('channel-filter-stable'));
+
+      // Wait for filtered results - unstable should be removed
+      await waitFor(() => {
+        expect(screen.queryByTestId('version-card-1.22.0-pre.1')).not.toBeInTheDocument();
+      });
+
+      // Stable versions should still be present
+      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
     });
   });
 
@@ -496,11 +637,21 @@ describe('VersionPage', () => {
       expect(screen.getByText('Available Versions')).toBeInTheDocument();
     });
 
-    it('does not show Available Versions section when not installed', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockNotInstalledStatus),
+    // Story 13.5: Now shows version browser when not installed too
+    it('shows Available Versions section when not installed (Story 13.5)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
       });
+      globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<VersionPage />, {
@@ -511,7 +662,10 @@ describe('VersionPage', () => {
         expect(screen.getByTestId('version-page')).toBeInTheDocument();
       });
 
-      expect(screen.queryByTestId('available-versions-section')).not.toBeInTheDocument();
+      // Story 13.5: Now shows available versions section even when not installed
+      await waitFor(() => {
+        expect(screen.getByTestId('available-versions-section')).toBeInTheDocument();
+      });
     });
 
     it('renders ChannelFilter with All, Stable, Unstable tabs (AC: 2)', async () => {
