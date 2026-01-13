@@ -1,6 +1,6 @@
 # Story 13.2: Version Card Component
 
-Status: done
+Status: in-progress
 
 ## Story
 
