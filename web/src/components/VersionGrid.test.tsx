@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VersionGrid } from './VersionGrid';
 import type { VersionInfo } from '@/api/types';
@@ -18,6 +18,7 @@ const mockVersions: VersionInfo[] = [
     filesize: '45.2 MB',
     md5: 'abc123',
     cdnUrl: 'https://cdn.example.com/1.20.0',
+    localUrl: '/local/1.20.0',
     isLatest: true,
     channel: 'stable',
   },
@@ -27,6 +28,7 @@ const mockVersions: VersionInfo[] = [
     filesize: '40.1 MB',
     md5: 'def456',
     cdnUrl: 'https://cdn.example.com/1.19.8',
+    localUrl: '/local/1.19.8',
     isLatest: false,
     channel: 'stable',
   },
@@ -36,6 +38,7 @@ const mockVersions: VersionInfo[] = [
     filesize: '46.3 MB',
     md5: 'ghi789',
     cdnUrl: 'https://cdn.example.com/1.20.1-rc.1',
+    localUrl: '/local/1.20.1-rc.1',
     isLatest: true,
     channel: 'unstable',
   },
