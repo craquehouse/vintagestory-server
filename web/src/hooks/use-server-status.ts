@@ -168,6 +168,9 @@ export function useRestartServer() {
 /**
  * Hook to install a specific server version.
  *
+ * Story 13.4: Per ADR-4, invalidates both server status and versions queries
+ * on success to ensure UI updates reflect the new installed version.
+ *
  * @param options.onSuccess - Callback when installation starts successfully
  *
  * @example
@@ -187,7 +190,10 @@ export function useInstallServer() {
   return useMutation({
     mutationFn: installServer,
     onSuccess: () => {
+      // Invalidate server status to show new installed version
       queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
+      // Story 13.4: Also invalidate versions list to update "Installed" badges
+      queryClient.invalidateQueries({ queryKey: ['versions'] });
     },
   });
 }
@@ -216,6 +222,7 @@ export function useInstallStatus(enabled: boolean) {
  * Detects when the server transitions from a transitional state to a stable state:
  * - `starting` → `running`: Shows "Server started" toast
  * - `stopping` → `installed`: Shows "Server stopped" toast
+ * - `installing` → `installed`: Shows "Installation complete" toast (Story 13.4)
  *
  * @param currentState - Current server state from useServerStatus
  */
@@ -238,6 +245,13 @@ export function useServerStateToasts(currentState: ServerState | undefined) {
       if (previousState === 'stopping' && currentState === 'installed') {
         toast.success('Server stopped', {
           description: 'The server has stopped.',
+        });
+      }
+
+      // Story 13.4: Server finished installing
+      if (previousState === 'installing' && currentState === 'installed') {
+        toast.success('Installation complete', {
+          description: 'The server has been installed successfully.',
         });
       }
     }
