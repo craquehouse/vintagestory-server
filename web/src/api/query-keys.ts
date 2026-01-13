@@ -51,11 +51,8 @@ export const queryKeys = {
   },
   // Story 13.2: Version management
   versions: {
-    all: ['versions'] as const,
-    list: (channel?: string) =>
-      channel
-        ? (['versions', 'list', channel] as const)
-        : (['versions', 'list'] as const),
+    all: (channel?: string) =>
+      channel ? (['versions', channel] as const) : (['versions'] as const),
     detail: (version: string) => ['versions', 'detail', version] as const,
   },
 };
