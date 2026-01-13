@@ -39,13 +39,13 @@ export function VersionPage() {
   const { data: installStatusResponse } = useInstallStatus(isInstalling);
   const installStatus = installStatusResponse?.data;
 
-  // Determine if server is installed (not in 'not_installed' or 'installing' state)
   const isInstalled = isServerInstalled(serverState);
+  const installedVersion = serverStatus?.version ?? null;
 
-  // Channel filter state for version list (Story 13.3)
+  // Channel filter state for version list
   const [channel, setChannel] = useState<ChannelFilterValue>(undefined);
 
-  // Story 13.5: Fetch versions for both installed AND not_installed states
+  // Fetch versions for both installed AND not_installed states
   // Only disable when actively installing to avoid UI flickering
   const { data: versionsResponse, isLoading: isLoadingVersions } = useVersions({
     channel,
@@ -53,20 +53,18 @@ export function VersionPage() {
   });
   const versions = versionsResponse?.data?.versions ?? [];
 
-  // Story 13.4: Dialog state for install/upgrade confirmation
+  // Dialog state for install/upgrade confirmation
   const [selectedVersion, setSelectedVersion] = useState<VersionInfo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Handler for version card clicks - Story 13.4
-  const handleVersionClick = (version: string) => {
+  function handleVersionClick(version: string): void {
     const versionInfo = versions.find((v) => v.version === version);
     if (versionInfo) {
       setSelectedVersion(versionInfo);
       setIsDialogOpen(true);
     }
-  };
+  }
 
-  // Dynamic page title based on state
   const pageTitle = isInstalled ? 'Server Version' : 'Server Installation';
 
   if (isLoading) {
@@ -87,95 +85,65 @@ export function VersionPage() {
     );
   }
 
+  // Installing state: Show progress card only
+  if (isInstalling) {
+    return (
+      <div className="p-4" data-testid="version-page">
+        <h1 className="text-2xl font-bold mb-4" data-testid="version-page-title">
+          {pageTitle}
+        </h1>
+        <ServerInstallCard isInstalling={isInstalling} installStatus={installStatus} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4" data-testid="version-page">
       <h1 className="text-2xl font-bold mb-4" data-testid="version-page-title">
         {pageTitle}
       </h1>
 
-      {/* Installing state: Show progress card */}
-      {isInstalling ? (
-        <ServerInstallCard
-          isInstalling={isInstalling}
-          installStatus={installStatus}
+      {/* Installed state: Show current version info */}
+      {isInstalled && (
+        <InstalledVersionCard
+          version={installedVersion ?? 'Unknown'}
+          state={serverState}
+          availableStableVersion={serverStatus?.availableStableVersion ?? null}
         />
-      ) : isInstalled ? (
-        <>
-          <InstalledVersionCard
-            version={serverStatus?.version ?? 'Unknown'}
-            state={serverState}
-            availableStableVersion={serverStatus?.availableStableVersion ?? null}
-          />
+      )}
 
-          {/* Story 13.5: Quick update button when update available */}
-          <div className="mt-6">
-            <QuickInstallButton
-              versions={versions}
-              installedVersion={serverStatus?.version ?? null}
-              isLoadingVersions={isLoadingVersions}
-            />
-          </div>
+      {/* Quick install/update button */}
+      <QuickInstallButton
+        versions={versions}
+        installedVersion={installedVersion}
+        isLoadingVersions={isLoadingVersions}
+        serverState={serverState}
+        className={isInstalled ? 'mt-6' : undefined}
+      />
 
-          {/* Available Versions Section - Story 13.3 */}
-          <div className="mt-8" data-testid="available-versions-section">
-            <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
-            <div className="mb-4">
-              <ChannelFilter value={channel} onChange={setChannel} />
-            </div>
-            <VersionGrid
-              versions={versions}
-              isLoading={isLoadingVersions}
-              installedVersion={serverStatus?.version}
-              onVersionClick={handleVersionClick}
-            />
-          </div>
+      {/* Available Versions Section */}
+      <div className={isInstalled ? 'mt-8' : undefined} data-testid="available-versions-section">
+        <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
+        <div className="mb-4">
+          <ChannelFilter value={channel} onChange={setChannel} />
+        </div>
+        <VersionGrid
+          versions={versions}
+          isLoading={isLoadingVersions}
+          installedVersion={installedVersion}
+          onVersionClick={handleVersionClick}
+        />
+      </div>
 
-          {/* Story 13.4: Install/Upgrade Dialog */}
-          {selectedVersion && (
-            <InstallVersionDialog
-              version={selectedVersion}
-              installedVersion={serverStatus?.version ?? null}
-              serverState={serverState}
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-            />
-          )}
-        </>
-      ) : (
-        /* Story 13.5: Not installed state - Show version browser */
-        <>
-          {/* Story 13.5: Quick install button */}
-          <QuickInstallButton
-            versions={versions}
-            installedVersion={null}
-            isLoadingVersions={isLoadingVersions}
-          />
-
-          {/* Available Versions Section for fresh install */}
-          <div data-testid="available-versions-section">
-            <h2 className="text-xl font-semibold mb-4">Available Versions</h2>
-            <div className="mb-4">
-              <ChannelFilter value={channel} onChange={setChannel} />
-            </div>
-            <VersionGrid
-              versions={versions}
-              isLoading={isLoadingVersions}
-              installedVersion={null}
-              onVersionClick={handleVersionClick}
-            />
-          </div>
-
-          {/* Install Dialog for fresh install */}
-          {selectedVersion && (
-            <InstallVersionDialog
-              version={selectedVersion}
-              installedVersion={null}
-              serverState={serverState}
-              open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-            />
-          )}
-        </>
+      {/* Install/Upgrade Dialog */}
+      {selectedVersion && (
+        <InstallVersionDialog
+          version={selectedVersion}
+          installedVersion={installedVersion}
+          serverState={serverState}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+        />
       )}
     </div>
   );

@@ -159,7 +159,7 @@ development_status:
   13-2-version-card-component: done
   13-3-version-list-page: done
   13-4-install-upgrade-flow: done
-  13-5-version-page-integration: backlog
+  13-5-version-page-integration: review
   13-6-server-uninstall-api: backlog
   13-7-server-uninstall-ui: backlog
   epic-13-retrospective: optional

@@ -277,4 +277,153 @@ describe('QuickInstallButton', () => {
       expect(screen.getByTestId('quick-install-button')).toBeDisabled();
     });
   });
+
+  describe('server running confirmation', () => {
+    it('shows confirmation dialog when server is running and update clicked', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion="1.21.5"
+          isLoadingVersions={false}
+          serverState="running"
+        />,
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      await user.click(screen.getByTestId('quick-install-button'));
+
+      // Confirmation dialog should appear
+      expect(screen.getByTestId('quick-install-confirm-dialog')).toBeInTheDocument();
+      expect(screen.getByText(/Server Currently Running/)).toBeInTheDocument();
+      expect(screen.getByText(/will be stopped/)).toBeInTheDocument();
+    });
+
+    it('does not show confirmation when server is not running', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { message: 'Installing' } }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion="1.21.5"
+          isLoadingVersions={false}
+          serverState="installed"
+        />,
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      await user.click(screen.getByTestId('quick-install-button'));
+
+      // Should NOT show confirmation dialog
+      expect(screen.queryByTestId('quick-install-confirm-dialog')).not.toBeInTheDocument();
+
+      // Should trigger install directly
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+    });
+
+    it('triggers install when confirmation is accepted', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { message: 'Installing' } }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion="1.21.5"
+          isLoadingVersions={false}
+          serverState="running"
+        />,
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      // Click update button
+      await user.click(screen.getByTestId('quick-install-button'));
+
+      // Click proceed in confirmation dialog
+      await user.click(screen.getByTestId('confirm-dialog-proceed'));
+
+      // Should trigger install
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringMatching(/\/api\/v1alpha1\/server\/install/),
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
+    });
+
+    it('does not trigger install when confirmation is cancelled', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion="1.21.5"
+          isLoadingVersions={false}
+          serverState="running"
+        />,
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      // Click update button
+      await user.click(screen.getByTestId('quick-install-button'));
+
+      // Click cancel in confirmation dialog
+      await user.click(screen.getByTestId('confirm-dialog-cancel'));
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('quick-install-confirm-dialog')).not.toBeInTheDocument();
+      });
+
+      // Should NOT trigger install
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('does not show confirmation for fresh install even with serverState undefined', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { message: 'Installing' } }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion={null}
+          isLoadingVersions={false}
+        />,
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      await user.click(screen.getByTestId('quick-install-button'));
+
+      // Should NOT show confirmation dialog for fresh install
+      expect(screen.queryByTestId('quick-install-confirm-dialog')).not.toBeInTheDocument();
+
+      // Should trigger install directly
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+    });
+  });
 });
