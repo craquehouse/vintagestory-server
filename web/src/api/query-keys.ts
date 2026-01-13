@@ -49,4 +49,13 @@ export const queryKeys = {
   jobs: {
     all: ['jobs'] as const,
   },
+  // Story 13.2: Version management
+  versions: {
+    all: ['versions'] as const,
+    list: (channel?: string) =>
+      channel
+        ? (['versions', 'list', channel] as const)
+        : (['versions', 'list'] as const),
+    detail: (version: string) => ['versions', 'detail', version] as const,
+  },
 };
