@@ -158,7 +158,7 @@ development_status:
   13-1-server-versions-api: done
   13-2-version-card-component: done
   13-3-version-list-page: done
-  13-4-install-upgrade-flow: done
+  13-4-install-upgrade-flow: in-progress
   13-5-version-page-integration: backlog
   13-6-server-uninstall-api: backlog
   13-7-server-uninstall-ui: backlog
@@ -170,6 +170,7 @@ retro_action_items:
   E11-A1-theme-consistency-audit-polish-backlog: done # Owner: Dana (QA) - Added UI-032 to polish backlog
   E11-A2-complete-polish-backlog-prioritization: done # Owner: Alice (PO) - Reviewed high priority items; API-005, API-007, API-024 marked done
   E11-A3-improve-file-list-discipline: pending # Owner: All Devs - Ensure File Lists complete in Dev Agent Record
+  E13-A1-fix-code-supplication-documentation-gap: pending # Owner: All Devs - Story 13-4 code review found undocumented eslint-disable violations (Epic 6 retro requirement)
   # Epic 10 Action Items (from 2026-01-10 retrospective)
   E10-A1-add-retro-action-tracking-mechanism: done # Already exists via E9-A1
   E10-A2-create-api-spike-story-template: done # Created template-api-spike.md in create-story workflow

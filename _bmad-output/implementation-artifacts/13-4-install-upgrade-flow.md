@@ -1,6 +1,6 @@
 # Story 13.4: Install/Upgrade Flow
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -73,6 +73,15 @@ So that **I understand the implications before making changes**.
   - [x] Subtask 4.5: Test downgrade warning and checkbox requirement
   - [x] Subtask 4.6: Test install flow and progress display
   - [x] Subtask 4.7: Verify success toast and version list update
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Document code suppressions with justification and tracking issue - InstallVersionDialog.test.tsx:163,585,634 (Per Epic 6 retro, all eslint-disable must have inline comment explaining WHY and reference tracking issue)
+- [ ] [AI-Review][HIGH] Update Dev Agent Record File List to include API changes - Missing: api/src/vintagestory_api/models/server.py, api/src/vintagestory_api/routers/server.py, api/src/vintagestory_api/services/server.py, web/src/api/server.ts
+- [ ] [AI-Review][HIGH] Consider auto-close dialog on successful install - InstallVersionDialog.tsx:183-194 (Improve UX by closing dialog after successful install instead of requiring manual dismissal)
+- [ ] [AI-Review][MEDIUM] Document version comparison edge case as tech debt - InstallVersionDialog.tsx:69 (Track for future semver library implementation to handle pre-release versions correctly)
+- [ ] [AI-Review][LOW] Document force flag work as separate task - Commit d94e330 (Force flag work discovered during implementation, should be separate task or documented in story)
+- [ ] [AI-Review][MEDIUM] Add API files to File List - api/src/vintagestory_api/models/server.py, api/src/vintagestory_api/routers/server.py, api/src/vintagestory_api/services/server.py, web/src/api/server.ts
 
 ## Dev Notes
 
@@ -409,3 +418,7 @@ None
 - `web/src/features/game-server/VersionPage.test.tsx` - Added 5 dialog integration tests
 - `web/src/hooks/use-server-status.ts` - Added versions query invalidation, installation complete toast
 - `web/src/hooks/use-server-status.test.tsx` - Added tests for new functionality
+- `api/src/vintagestory_api/models/server.py` - Added force field to InstallRequest (force flag support)
+- `api/src/vintagestory_api/routers/server.py` - Updated to pass force flag to service
+- `api/src/vintagestory_api/services/server.py` - Updated install_server() to accept force parameter
+- `web/src/api/server.ts` - Added InstallServerOptions interface, backward compatible installServer() function
