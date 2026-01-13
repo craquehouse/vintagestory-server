@@ -54,6 +54,19 @@ The `scripts/polish-backlog.sh` script provides the same functionality:
 ./scripts/polish-backlog.sh done UI-029 https://github.com/org/repo/pull/99
 ```
 
+### macOS Users: Bash Version Requirement
+
+**IMPORTANT:** The script requires Bash 4+ for associative arrays (`declare -A`). macOS ships with Bash 3.2 which does not support this feature. You must use Homebrew's Bash:
+
+```bash
+# Use Homebrew bash explicitly
+/opt/homebrew/bin/bash ./scripts/polish-backlog.sh add UI "Description" medium S
+
+# Or ensure your PATH includes Homebrew bash first
+```
+
+The `just polish` commands handle this automatically, so prefer using `just polish` over direct script invocation on macOS.
+
 ## Valid Values
 
 ### Categories
