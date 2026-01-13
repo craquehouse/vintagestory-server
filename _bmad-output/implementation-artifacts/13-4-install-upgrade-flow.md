@@ -1,6 +1,6 @@
 # Story 13.4: Install/Upgrade Flow
 
-Status: in-progress
+Status: done
 
 ## Story
 
