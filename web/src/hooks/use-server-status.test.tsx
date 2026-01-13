@@ -485,6 +485,40 @@ describe('useInstallServer', () => {
         queryKey: ['server', 'status'],
       });
     });
+
+    // Story 13.4: Test versions query invalidation
+    it('invalidates versions query on success (Story 13.4)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Installation started' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useInstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate('1.21.3');
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify both server.status and versions are invalidated
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['server', 'status'],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['versions'],
+      });
+    });
   });
 });
 
@@ -540,6 +574,35 @@ describe('useServerStateToasts', () => {
       const { rerender } = renderHook(
         ({ state }) => useServerStateToasts(state),
         { initialProps: { state: 'running' as ServerState } }
+      );
+
+      // Transition directly to installed (shouldn't happen normally)
+      rerender({ state: 'installed' as ServerState });
+
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+  });
+
+  // Story 13.4: Installation complete toast
+  describe('installation complete toast (Story 13.4)', () => {
+    it('shows toast when transitioning from installing to installed', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'installing' as ServerState } }
+      );
+
+      // Transition to installed (installation complete)
+      rerender({ state: 'installed' as ServerState });
+
+      expect(toast.success).toHaveBeenCalledWith('Installation complete', {
+        description: 'The server has been installed successfully.',
+      });
+    });
+
+    it('does not show toast when installed without prior installing state', () => {
+      const { rerender } = renderHook(
+        ({ state }) => useServerStateToasts(state),
+        { initialProps: { state: 'not_installed' as ServerState } }
       );
 
       // Transition directly to installed (shouldn't happen normally)

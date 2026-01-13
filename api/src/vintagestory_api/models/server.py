@@ -38,6 +38,11 @@ class InstallRequest(BaseModel):
         ...,
         pattern=r"^(\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a-zA-Z0-9.]+)?|stable|unstable)$",
     )
+    force: bool = Field(
+        default=False,
+        description="Force installation even if a server version is already installed. "
+        "Use for upgrades, downgrades, or reinstalls.",
+    )
 
 
 class InstallProgress(BaseModel):

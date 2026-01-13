@@ -672,7 +672,7 @@ class ServerService:
         # Ensure vsmanager directory exists (for version tracking, etc)
         self._settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
-    async def install_server(self, version: str) -> InstallProgress:
+    async def install_server(self, version: str, *, force: bool = False) -> InstallProgress:
         """Install VintageStory server.
 
         Performs:
@@ -687,6 +687,8 @@ class ServerService:
 
         Args:
             version: Version to install (e.g., "1.21.3")
+            force: If True, allows reinstall/upgrade/downgrade when server is already
+                installed. Story 13.4.
 
         Returns:
             InstallProgress with final state.
@@ -697,11 +699,11 @@ class ServerService:
         """
         # Use lock to prevent race conditions from concurrent requests
         async with self._install_lock:
-            return await self._install_server_locked(version)
+            return await self._install_server_locked(version, force=force)
 
-    async def _install_server_locked(self, version: str) -> InstallProgress:
+    async def _install_server_locked(self, version: str, *, force: bool = False) -> InstallProgress:
         """Internal installation logic (must be called with lock held)."""
-        logger.debug("install_server_begin", version=version)
+        logger.debug("install_server_begin", version=version, force=force)
 
         # Clear any previous error state to allow retry (AC3: return to not_installed)
         if self._install_state == ServerState.ERROR:
@@ -728,8 +730,7 @@ class ServerService:
             )
             return self.get_install_progress()
 
-        # Check if already installed
-        if self.is_installed():
+        if self.is_installed() and not force:
             installed_ver = self.get_installed_version()
             self._set_install_error(
                 f"Server version {installed_ver} is already installed",
