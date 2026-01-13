@@ -385,3 +385,46 @@ export interface BrowseParams {
   search?: string; // For client-side filtering (API doesn't support search yet)
   filters?: ModFilters; // For client-side filtering
 }
+
+// ===== Version Types (Story 13.2) =====
+
+/**
+ * Channel options for VintageStory versions.
+ */
+export type VersionChannel = 'stable' | 'unstable';
+
+/**
+ * Version information from GET /api/v1alpha1/versions.
+ * Story 13.2: Version Card Component
+ *
+ * Note: API returns snake_case, apiClient transforms to camelCase.
+ */
+export interface VersionInfo {
+  version: string;
+  filename: string;
+  filesize: string; // Human-readable, e.g., "40.2 MB"
+  md5: string;
+  cdnUrl: string;
+  localUrl: string;
+  isLatest: boolean;
+  channel: VersionChannel;
+}
+
+/**
+ * Response from GET /api/v1alpha1/versions.
+ */
+export interface VersionListResponse {
+  versions: VersionInfo[];
+  total: number;
+  cached: boolean;
+  cachedAt: string | null; // ISO 8601
+}
+
+/**
+ * Response from GET /api/v1alpha1/versions/{version}.
+ */
+export interface VersionDetailResponse {
+  version: VersionInfo;
+  cached: boolean;
+  cachedAt: string | null; // ISO 8601
+}
