@@ -98,3 +98,20 @@ export async function fetchInstallStatus(): Promise<
 > {
   return apiClient<ApiResponse<InstallStatus>>(`${API_PREFIX}/install/status`);
 }
+
+/**
+ * Uninstall the VintageStory server.
+ *
+ * Removes server binaries while preserving configuration, mods, and world data.
+ *
+ * Requires Admin role.
+ *
+ * @returns ActionMessage with state: 'not_installed' on success
+ * @throws 409 if server is running (code: SERVER_RUNNING)
+ * @throws 404 if server is not installed (code: SERVER_NOT_INSTALLED)
+ */
+export async function uninstallServer(): Promise<ApiResponse<ActionMessage>> {
+  return apiClient<ApiResponse<ActionMessage>>(`${API_PREFIX}`, {
+    method: 'DELETE',
+  });
+}
