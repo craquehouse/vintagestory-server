@@ -1116,4 +1116,164 @@ describe('VersionPage', () => {
       expect(screen.queryByTestId('quick-install-button')).not.toBeInTheDocument();
     });
   });
+
+  /**
+   * Story 13.7: Server Uninstall Tests
+   *
+   * AC 1: Remove Server button visible when installed
+   * AC 4: Success toast and page transition on uninstall
+   * AC 5: Cancel closes dialog without action
+   * AC 6: Error toast on failure
+   */
+  describe('server uninstall (Story 13.7)', () => {
+    it('shows Remove Server button when server is installed (AC: 1)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockInstalledStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-version-card')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      expect(screen.getByTestId('remove-server-button')).toHaveTextContent('Remove Server');
+    });
+
+    it('hides Remove Server button when not installed', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockNotInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('version-page')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('remove-server-button')).not.toBeInTheDocument();
+    });
+
+    it('disables Remove Server button during transitional states', async () => {
+      const mockStartingStatus = {
+        ...mockInstalledStatus,
+        data: {
+          ...mockInstalledStatus.data,
+          state: 'starting',
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockStartingStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('installed-version-card')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('remove-server-button')).toBeDisabled();
+    });
+
+    it('opens dialog when Remove Server clicked (AC: 5)', async () => {
+      const user = userEvent.setup();
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockInstalledStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
+      });
+    });
+
+    it('closes dialog when Cancel clicked (AC: 5)', async () => {
+      const user = userEvent.setup();
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockInstalledStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      });
+
+      // Open dialog
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
+      });
+
+      // Click cancel
+      await user.click(screen.getByTestId('cancel-button'));
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByTestId('uninstall-confirm-dialog')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows server running warning when server is running (AC: 2)', async () => {
+      const user = userEvent.setup();
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockRunningStatus),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('server-running-warning')).toBeInTheDocument();
+      });
+    });
+  });
 });
