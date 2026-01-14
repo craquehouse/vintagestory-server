@@ -15,6 +15,7 @@ import {
   restartServer,
   installServer,
   fetchInstallStatus,
+  uninstallServer,
 } from '@/api/server';
 import type { ServerState } from '@/api/types';
 
@@ -259,4 +260,36 @@ export function useServerStateToasts(currentState: ServerState | undefined) {
     // Update the ref for next render
     previousStateRef.current = currentState;
   }, [currentState]);
+}
+
+/**
+ * Hook to uninstall the server.
+ *
+ * Story 13.7: Removes server binaries while preserving config/mods/worlds.
+ * Per ADR-4, invalidates both server status and versions queries on success
+ * to ensure UI updates reflect the uninstalled state.
+ *
+ * @example
+ * function RemoveButton() {
+ *   const { mutate: uninstall, isPending } = useUninstallServer();
+ *
+ *   return (
+ *     <button onClick={() => uninstall()} disabled={isPending}>
+ *       {isPending ? 'Removing...' : 'Remove Server'}
+ *     </button>
+ *   );
+ * }
+ */
+export function useUninstallServer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: uninstallServer,
+    onSuccess: () => {
+      // Invalidate server status to show not_installed state
+      queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
+      // Story 13.7: Also invalidate versions list to update "Installed" badges
+      queryClient.invalidateQueries({ queryKey: ['versions'] });
+    },
+  });
 }
