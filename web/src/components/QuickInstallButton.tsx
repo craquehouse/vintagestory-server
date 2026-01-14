@@ -13,6 +13,7 @@
 
 import { useState } from 'react';
 import { Download, Loader2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -71,15 +72,30 @@ export function QuickInstallButton({
 
   const targetVersion = latestStable.version;
   const isServerRunning = serverState === 'running';
+  const isInstalling = serverState === 'installing';
   const buttonText = installedVersion
     ? `Update to ${targetVersion}`
     : `Install Latest Stable (${targetVersion})`;
 
   function performInstall(): void {
-    installMutation.mutate({
-      version: targetVersion,
-      force: !!installedVersion,
-    });
+    installMutation.mutate(
+      {
+        version: targetVersion,
+        force: !!installedVersion,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Installing version ${targetVersion}`, {
+            description: 'Server installation started.',
+          });
+        },
+        onError: (error) => {
+          toast.error('Installation failed', {
+            description: error.message,
+          });
+        },
+      }
+    );
   }
 
   function handleClick(): void {
@@ -100,7 +116,7 @@ export function QuickInstallButton({
       <Button
         size="lg"
         onClick={handleClick}
-        disabled={installMutation.isPending}
+        disabled={installMutation.isPending || isInstalling || showConfirmDialog}
         data-testid="quick-install-button"
         className={cn('mb-6', className)}
       >
