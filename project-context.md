@@ -139,10 +139,19 @@ Task 3: Write tests  <- TOO LATE
 
 ### 2. Testing Discipline is Non-Negotiable
 
-> **Rule:** Every test must pass, all the time. No exceptions without explicit project lead approval.
+> **Rule:** Every test must pass, all the time. No exceptions without explicit user confirmation.
+
+**FAILING TESTS ARE UNACCEPTABLE UNDER ANY CIRCUMSTANCE EXCEPT RED TESTING.**
+
+This applies to:
+
+- Tests you wrote as part of the current task, except for red testing.
+- Pre-existing tests that were passing before your changes
+- Tests in any part of the codebase, not just files you modified
 
 Do not mark a task as complete if:
-- Tests are failing
+
+- Tests are failing (ANY tests, not just new ones)
 - Implementation is partial
 - You encountered unresolved errors
 - Test coverage for the new functionality is missing
@@ -152,6 +161,8 @@ Do not mark a task as complete if:
 - Never auto-complete manual testing tasks
 - Deferring or excluding failing tests is a **grievous error in judgment**
 - If you think excluding a test is appropriate, stop and ask the user first
+- **If tests fail, you MUST investigate and fix them** - do not proceed with other work
+- **User confirmation is REQUIRED to accept any failing test** - never assume failures are acceptable
 
 ### 3. API Response Envelope
 
@@ -785,4 +796,4 @@ Before starting a new epic, verify the following:
 
 ---
 
-_Last updated: 2026-01-10 (Added Story Lifecycle and Pre-Epic Checklist sections per Epic 9 retro action items)_
+_Last updated: 2026-01-14 (Strengthened testing discipline rule: failing tests are unacceptable, user confirmation required to accept failures)_
