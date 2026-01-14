@@ -1112,3 +1112,157 @@ class TestServerStatusVersionFields:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["available_stable_version"] == "1.21.3"
+
+
+# ============================================
+# Server Uninstall Endpoint Tests (Story 13.6)
+# ============================================
+
+
+class TestServerUninstallEndpoint:
+    """Tests for DELETE /api/v1alpha1/server endpoint."""
+
+    @pytest.fixture
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def _create_fake_installation(self, temp_data_dir: Path, version: str) -> None:
+        """Helper to create a fake server installation."""
+        server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (vsmanager_dir / "current_version").write_text(version)
+
+    def test_uninstall_requires_authentication(
+        self, integration_client: TestClient
+    ) -> None:
+        """DELETE /server requires API key."""
+        response = integration_client.delete("/api/v1alpha1/server")
+        assert response.status_code == 401
+
+    def test_uninstall_requires_admin_role(
+        self, integration_client: TestClient
+    ) -> None:
+        """DELETE /server requires Admin role (monitor cannot uninstall)."""
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+        assert response.status_code == 403
+
+    def test_uninstall_when_not_installed_returns_404(
+        self, integration_client: TestClient
+    ) -> None:
+        """DELETE /server returns 404 when no server installed."""
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "SERVER_NOT_INSTALLED"
+
+    def test_uninstall_when_running_returns_409(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """DELETE /server returns 409 when server is running."""
+        self._create_fake_installation(temp_data_dir, "1.21.3")
+
+        # Get the test service and simulate running server
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        mock_process = MagicMock()
+        mock_process.returncode = None
+        test_service._process = mock_process
+
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 409
+        data = response.json()
+        assert data["detail"]["code"] == "SERVER_RUNNING"
+        assert "stopped" in data["detail"]["message"].lower()
+
+    def test_uninstall_when_stopped_succeeds(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """DELETE /server succeeds when server is stopped."""
+        self._create_fake_installation(temp_data_dir, "1.21.3")
+
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["state"] == "not_installed"
+        assert "successfully" in data["data"]["message"].lower()
+
+    def test_uninstall_preserves_serverdata(
+        self, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """DELETE /server preserves serverdata directory."""
+        self._create_fake_installation(temp_data_dir, "1.21.3")
+
+        # Create test files in serverdata
+        serverdata_dir = temp_data_dir / "serverdata"
+        serverdata_dir.mkdir(parents=True, exist_ok=True)
+        config_file = serverdata_dir / "serverconfig.json"
+        config_file.write_text('{"test": true}')
+
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+
+        # Verify serverdata preserved
+        assert serverdata_dir.exists()
+        assert config_file.exists()
+        assert config_file.read_text() == '{"test": true}'
+
+        # Verify server dir deleted
+        assert not (temp_data_dir / "server").exists()
+
+    def test_uninstall_error_response_structure(
+        self, integration_client: TestClient
+    ) -> None:
+        """Error responses use proper detail structure with code and message."""
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        json_response = response.json()
+        assert "detail" in json_response
+        assert "code" in json_response["detail"]
+        assert "message" in json_response["detail"]

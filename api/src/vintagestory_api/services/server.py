@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import re
+import shutil
 import signal
 import tarfile
 import time
@@ -1220,4 +1221,70 @@ class ServerService:
         await self._process.stdin.drain()
 
         logger.debug("command_sent", command_length=len(command))
+        return True
+
+    # ============================================
+    # Server Uninstallation (Story 13.6)
+    # ============================================
+
+    async def uninstall_server(self) -> bool:
+        """Uninstall the server, preserving serverdata.
+
+        Removes /data/server directory (binaries) and version tracking file.
+        Preserves /data/serverdata (configs, mods, worlds) so user can reinstall
+        a different version without losing their configuration.
+
+        Returns:
+            True if uninstallation successful.
+
+        Raises:
+            RuntimeError: If server is running or not installed.
+        """
+        async with self._lifecycle_lock:
+            return await self._uninstall_server_locked()
+
+    async def _uninstall_server_locked(self) -> bool:
+        """Internal uninstall logic (must be called with lock held)."""
+        logger.debug("uninstall_server_begin")
+
+        # Check if installed
+        if not self.is_installed():
+            logger.warning("uninstall_failed", reason="not_installed")
+            raise RuntimeError(ErrorCode.SERVER_NOT_INSTALLED)
+
+        # Check if running - MUST be stopped first
+        if self._process is not None and self._process.returncode is None:
+            logger.warning("uninstall_failed", reason="server_running")
+            raise RuntimeError(ErrorCode.SERVER_RUNNING)
+
+        # Get current version for logging
+        current_version = self.get_installed_version()
+
+        logger.info("uninstalling_server", version=current_version)
+
+        # Delete server directory (binaries)
+        server_dir = self._settings.server_dir
+        if server_dir.exists():
+            try:
+                shutil.rmtree(server_dir)
+                logger.info("server_dir_deleted", path=str(server_dir))
+            except OSError as e:
+                logger.error("server_dir_delete_failed", path=str(server_dir), error=str(e))
+                raise RuntimeError(ErrorCode.UNINSTALL_FAILED) from e
+
+        # Delete version tracking file
+        version_file = self._settings.vsmanager_dir / "current_version"
+        if version_file.exists():
+            try:
+                version_file.unlink()
+                logger.info("version_file_deleted", path=str(version_file))
+            except OSError as e:
+                logger.error("version_file_delete_failed", path=str(version_file), error=str(e))
+                raise RuntimeError(ErrorCode.UNINSTALL_FAILED) from e
+
+        # Reset internal state
+        self._reset_install_state()
+        self._server_state = ServerState.NOT_INSTALLED
+
+        logger.info("uninstall_complete", previous_version=current_version)
         return True

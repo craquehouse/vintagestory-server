@@ -357,3 +357,73 @@ async def restart_server(
                     "message": f"Failed to restart server: {error_code}",
                 },
             )
+
+
+# ============================================
+# Server Uninstallation (Story 13.6)
+# ============================================
+
+
+@router.delete("", response_model=ApiResponse)
+async def uninstall_server(
+    _: RequireAdmin,
+    service: ServerService = Depends(get_server_service),
+) -> ApiResponse:
+    """Uninstall the VintageStory server.
+
+    Removes the server installation while preserving configuration,
+    mods, and world data in /data/serverdata.
+    Requires Admin role.
+
+    Returns:
+        ApiResponse with uninstall result
+
+    Raises:
+        HTTPException: 409 if server is running
+        HTTPException: 404 if server not installed
+    """
+    logger.debug("router_uninstall_server_start")
+    try:
+        await service.uninstall_server()
+        logger.debug("router_uninstall_server_complete")
+        return ApiResponse(
+            status="ok",
+            data={
+                "message": "Server uninstalled successfully",
+                "state": ServerState.NOT_INSTALLED.value,
+            },
+        )
+    except RuntimeError as e:
+        error_code = str(e)
+        if error_code == ErrorCode.SERVER_NOT_INSTALLED:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": ErrorCode.SERVER_NOT_INSTALLED,
+                    "message": "No server is installed.",
+                },
+            )
+        elif error_code == ErrorCode.SERVER_RUNNING:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": ErrorCode.SERVER_RUNNING,
+                    "message": "Server must be stopped before uninstalling.",
+                },
+            )
+        elif error_code == ErrorCode.UNINSTALL_FAILED:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.UNINSTALL_FAILED,
+                    "message": "Failed to delete server files. Check file permissions.",
+                },
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.INTERNAL_ERROR,
+                    "message": f"Failed to uninstall server: {error_code}",
+                },
+            )

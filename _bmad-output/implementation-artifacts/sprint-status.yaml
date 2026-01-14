@@ -160,7 +160,7 @@ development_status:
   13-3-version-list-page: done
   13-4-install-upgrade-flow: done
   13-5-version-page-integration: done
-  13-6-server-uninstall-api: backlog
+  13-6-server-uninstall-api: done
   13-7-server-uninstall-ui: backlog
   epic-13-retrospective: optional
 # RETRO ACTION ITEMS
