@@ -10,125 +10,99 @@ from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.server import ServerService
 
-
-@pytest.fixture
-def temp_data_dir(tmp_path: Path) -> Path:
-    """Create temporary data directory structure."""
-    data_dir = tmp_path / "data"
-    data_dir.mkdir(parents=True)
-    return data_dir
-
-
-@pytest.fixture
-def settings(temp_data_dir: Path) -> Settings:
-    """Create Settings with temp data directory."""
-    return Settings(data_dir=temp_data_dir)
-
-
-@pytest.fixture
-def service(settings: Settings) -> ServerService:
-    """Create a ServerService with test settings."""
-    return ServerService(settings=settings)
+# pyright: reportPrivateUsage=false
 
 
 def create_fake_installation(settings: Settings, version: str) -> None:
     """Helper to create a fake server installation."""
-    # Ensure directories exist
     settings.server_dir.mkdir(parents=True, exist_ok=True)
     settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create required server files
     (settings.server_dir / "VintagestoryServer.dll").touch()
     (settings.server_dir / "VintagestoryLib.dll").touch()
-
-    # Create version tracking file
     version_file = settings.vsmanager_dir / "current_version"
     version_file.write_text(version)
 
 
-class TestUninstallServerService:
+class TestUninstallServer:
     """Tests for ServerService.uninstall_server() method."""
 
     @pytest.mark.asyncio
     async def test_uninstall_deletes_server_dir(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall removes server directory and its contents."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
-        # Verify installation exists
         assert service.is_installed()
-        assert (settings.server_dir / "VintagestoryServer.dll").exists()
+        assert (test_settings.server_dir / "VintagestoryServer.dll").exists()
 
-        # Uninstall
         result = await service.uninstall_server()
 
-        # Verify server dir deleted
         assert result is True
-        assert not settings.server_dir.exists()
+        assert not test_settings.server_dir.exists()
 
     @pytest.mark.asyncio
     async def test_uninstall_removes_version_file(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall removes version tracking file."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
-        version_file = settings.vsmanager_dir / "current_version"
+        version_file = test_settings.vsmanager_dir / "current_version"
         assert version_file.exists()
         assert version_file.read_text() == "1.21.3"
 
-        # Uninstall
         await service.uninstall_server()
 
-        # Verify version file deleted
         assert not version_file.exists()
 
     @pytest.mark.asyncio
     async def test_uninstall_preserves_serverdata(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall preserves serverdata directory (configs, mods, worlds)."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
         # Create test files in serverdata
-        settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
-        config_file = settings.serverdata_dir / "serverconfig.json"
+        test_settings.serverdata_dir.mkdir(parents=True, exist_ok=True)
+        config_file = test_settings.serverdata_dir / "serverconfig.json"
         config_file.write_text('{"test": true}')
-        mods_dir = settings.serverdata_dir / "Mods"
+        mods_dir = test_settings.serverdata_dir / "Mods"
         mods_dir.mkdir()
         (mods_dir / "test_mod.zip").touch()
 
-        # Uninstall
         await service.uninstall_server()
 
-        # Verify serverdata preserved
-        assert settings.serverdata_dir.exists()
+        assert test_settings.serverdata_dir.exists()
         assert config_file.exists()
         assert config_file.read_text() == '{"test": true}'
         assert (mods_dir / "test_mod.zip").exists()
 
     @pytest.mark.asyncio
     async def test_uninstall_resets_state_to_not_installed(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall resets service state to NOT_INSTALLED."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
-        # Verify initial state
         assert service.is_installed()
 
-        # Uninstall
         await service.uninstall_server()
 
-        # Verify state reset
         assert not service.is_installed()
         status = service.get_server_status()
         assert status.state == ServerState.NOT_INSTALLED
 
     @pytest.mark.asyncio
-    async def test_uninstall_raises_when_not_installed(self, service: ServerService) -> None:
+    async def test_uninstall_raises_when_not_installed(
+        self, test_settings: Settings, temp_data_dir: Path
+    ) -> None:
         """Uninstall raises RuntimeError when server not installed."""
+        service = ServerService(settings=test_settings)
         assert not service.is_installed()
 
         with pytest.raises(RuntimeError) as exc_info:
@@ -138,15 +112,16 @@ class TestUninstallServerService:
 
     @pytest.mark.asyncio
     async def test_uninstall_raises_when_server_running(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall raises RuntimeError when server is running."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
-        # Simulate running server by setting process with None returncode
+        # Simulate running server
         mock_process = MagicMock()
-        mock_process.returncode = None  # Indicates process is running
-        service._process = mock_process  # pyright: ignore[reportPrivateUsage]
+        mock_process.returncode = None
+        service._process = mock_process
 
         with pytest.raises(RuntimeError) as exc_info:
             await service.uninstall_server()
@@ -155,35 +130,35 @@ class TestUninstallServerService:
 
     @pytest.mark.asyncio
     async def test_uninstall_succeeds_when_server_stopped(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall succeeds when server has exited (returncode is set)."""
-        create_fake_installation(settings, "1.21.3")
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
 
-        # Simulate stopped server by setting process with returncode
+        # Simulate stopped server
         mock_process = MagicMock()
-        mock_process.returncode = 0  # Process has exited
-        service._process = mock_process  # pyright: ignore[reportPrivateUsage]
+        mock_process.returncode = 0
+        service._process = mock_process
 
-        # Should succeed
         result = await service.uninstall_server()
         assert result is True
-        assert not settings.server_dir.exists()
+        assert not test_settings.server_dir.exists()
 
     @pytest.mark.asyncio
     async def test_uninstall_handles_missing_version_file(
-        self, service: ServerService, settings: Settings
+        self, test_settings: Settings, temp_data_dir: Path
     ) -> None:
         """Uninstall succeeds even if version file doesn't exist."""
         # Create server files but no version file
-        settings.server_dir.mkdir(parents=True, exist_ok=True)
-        (settings.server_dir / "VintagestoryServer.dll").touch()
-        (settings.server_dir / "VintagestoryLib.dll").touch()
+        test_settings.server_dir.mkdir(parents=True, exist_ok=True)
+        (test_settings.server_dir / "VintagestoryServer.dll").touch()
+        (test_settings.server_dir / "VintagestoryLib.dll").touch()
 
-        version_file = settings.vsmanager_dir / "current_version"
+        service = ServerService(settings=test_settings)
+        version_file = test_settings.vsmanager_dir / "current_version"
         assert not version_file.exists()
 
-        # Should succeed
         result = await service.uninstall_server()
         assert result is True
-        assert not settings.server_dir.exists()
+        assert not test_settings.server_dir.exists()
