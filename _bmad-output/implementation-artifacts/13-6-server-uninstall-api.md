@@ -1,6 +1,6 @@
 # Story 13.6: Server Uninstall API
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -53,6 +53,14 @@ So that **I can programmatically remove the server installation**.
 - [x] Task 3: Add `SERVER_RUNNING` error code + tests (AC: 1)
   - [x] Subtask 3.1: Add `SERVER_RUNNING` constant to `api/src/vintagestory_api/models/errors.py`
   - [x] Subtask 3.2: Document error code in ErrorCode class docstring
+
+### Review Follow-ups (AI)
+
+Action items created during code review (2026-01-14):
+
+- [ ] [AI-Review][MEDIUM] Update File List to reflect post-refactor test file structure - remove `api/tests/test_server_service.py` and `api/tests/test_server_router.py`, add `api/tests/test_uninstall.py` (8 service tests) and update `api/tests/server/test_endpoints.py` entry [13-6-server-uninstall-api.md:413-414]
+- [ ] [AI-Review][MEDIUM] Wrap shutil.rmtree call in uninstall_server with try-except OSError handling to prevent 500 Internal Server Error on file system failures [api/src/vintagestory_api/services/server.py:1268]
+- [ ] [AI-Review][LOW] Add sprint-status.yaml to Modified files list in Dev Agent Record File List [13-6-server-uninstall-api.md:413]
 
 ## Dev Notes
 
@@ -392,6 +400,20 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 None - no issues encountered
 
+### Code Review Summary (2026-01-14)
+
+**Reviewer:** Amelia (dev agent, adversarial code review workflow)
+
+**Findings:**
+- **0 HIGH** - No critical issues
+- **2 MEDIUM** - File list discrepancy, missing OSError handling
+- **1 LOW** - sprint-status.yaml not documented in File List
+
+**Action Items Created:** 3
+**Issues Fixed Automatically:** 0
+
+**Status:** in-progress (action items pending)
+
 ### Completion Notes List
 
 - All 3 tasks completed successfully
@@ -399,6 +421,7 @@ None - no issues encountered
 - All tests pass, typecheck clean, lint clean
 - Pre-existing test failures unrelated to this story (websocket, scheduler, jobs_router)
 - Implemented exactly as specified in dev notes
+- Code review found 3 action items requiring follow-up
 
 ### File List
 
