@@ -146,7 +146,7 @@ class TestUninstallServerService:
         # Simulate running server by setting process with None returncode
         mock_process = MagicMock()
         mock_process.returncode = None  # Indicates process is running
-        service._process = mock_process
+        service._process = mock_process  # pyright: ignore[reportPrivateUsage]
 
         with pytest.raises(RuntimeError) as exc_info:
             await service.uninstall_server()
@@ -163,7 +163,7 @@ class TestUninstallServerService:
         # Simulate stopped server by setting process with returncode
         mock_process = MagicMock()
         mock_process.returncode = 0  # Process has exited
-        service._process = mock_process
+        service._process = mock_process  # pyright: ignore[reportPrivateUsage]
 
         # Should succeed
         result = await service.uninstall_server()
