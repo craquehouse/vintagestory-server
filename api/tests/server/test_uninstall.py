@@ -1,7 +1,7 @@
 """Tests for ServerService uninstall functionality (Story 13.6)."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -162,3 +162,17 @@ class TestUninstallServer:
         result = await service.uninstall_server()
         assert result is True
         assert not test_settings.server_dir.exists()
+
+    @pytest.mark.asyncio
+    async def test_uninstall_raises_on_filesystem_error(
+        self, test_settings: Settings, temp_data_dir: Path
+    ) -> None:
+        """Uninstall raises UNINSTALL_FAILED on OSError."""
+        create_fake_installation(test_settings, "1.21.3")
+        service = ServerService(settings=test_settings)
+
+        with patch("shutil.rmtree", side_effect=OSError("Permission denied")):
+            with pytest.raises(RuntimeError) as exc_info:
+                await service.uninstall_server()
+
+            assert str(exc_info.value) == ErrorCode.UNINSTALL_FAILED

@@ -411,6 +411,14 @@ async def uninstall_server(
                     "message": "Server must be stopped before uninstalling.",
                 },
             )
+        elif error_code == ErrorCode.UNINSTALL_FAILED:
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "code": ErrorCode.UNINSTALL_FAILED,
+                    "message": "Failed to delete server files. Check file permissions.",
+                },
+            )
         else:
             raise HTTPException(
                 status_code=500,

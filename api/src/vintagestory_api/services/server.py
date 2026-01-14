@@ -1265,14 +1265,22 @@ class ServerService:
         # Delete server directory (binaries)
         server_dir = self._settings.server_dir
         if server_dir.exists():
-            shutil.rmtree(server_dir)
-            logger.info("server_dir_deleted", path=str(server_dir))
+            try:
+                shutil.rmtree(server_dir)
+                logger.info("server_dir_deleted", path=str(server_dir))
+            except OSError as e:
+                logger.error("server_dir_delete_failed", path=str(server_dir), error=str(e))
+                raise RuntimeError(ErrorCode.UNINSTALL_FAILED) from e
 
         # Delete version tracking file
         version_file = self._settings.vsmanager_dir / "current_version"
         if version_file.exists():
-            version_file.unlink()
-            logger.info("version_file_deleted", path=str(version_file))
+            try:
+                version_file.unlink()
+                logger.info("version_file_deleted", path=str(version_file))
+            except OSError as e:
+                logger.error("version_file_delete_failed", path=str(version_file), error=str(e))
+                raise RuntimeError(ErrorCode.UNINSTALL_FAILED) from e
 
         # Reset internal state
         self._reset_install_state()

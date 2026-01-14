@@ -1,6 +1,6 @@
 # Story 13.6: Server Uninstall API
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -58,9 +58,9 @@ So that **I can programmatically remove the server installation**.
 
 Action items created during code review (2026-01-14):
 
-- [ ] [AI-Review][MEDIUM] Update File List to reflect post-refactor test file structure - remove `api/tests/test_server_service.py` and `api/tests/test_server_router.py`, add `api/tests/test_uninstall.py` (8 service tests) and update `api/tests/server/test_endpoints.py` entry [13-6-server-uninstall-api.md:413-414]
-- [ ] [AI-Review][MEDIUM] Wrap shutil.rmtree call in uninstall_server with try-except OSError handling to prevent 500 Internal Server Error on file system failures [api/src/vintagestory_api/services/server.py:1268]
-- [ ] [AI-Review][LOW] Add sprint-status.yaml to Modified files list in Dev Agent Record File List [13-6-server-uninstall-api.md:413]
+- [x] [AI-Review][MEDIUM] Update File List to reflect post-refactor test file structure - remove `api/tests/test_server_service.py` and `api/tests/test_server_router.py`, add `api/tests/test_uninstall.py` (8 service tests) and update `api/tests/server/test_endpoints.py` entry [13-6-server-uninstall-api.md:413-414]
+- [x] [AI-Review][MEDIUM] Wrap shutil.rmtree call in uninstall_server with try-except OSError handling to prevent 500 Internal Server Error on file system failures [api/src/vintagestory_api/services/server.py:1268]
+- [x] [AI-Review][LOW] Add sprint-status.yaml to Modified files list in Dev Agent Record File List [13-6-server-uninstall-api.md:413]
 
 ## Dev Notes
 
@@ -412,7 +412,7 @@ None - no issues encountered
 **Action Items Created:** 3
 **Issues Fixed Automatically:** 0
 
-**Status:** in-progress (action items pending)
+**Status:** review (all action items addressed)
 
 ### Completion Notes List
 
@@ -430,8 +430,9 @@ None - no issues encountered
 - `api/src/vintagestory_api/models/errors.py` - Added SERVER_RUNNING error code
 - `api/src/vintagestory_api/services/server.py` - Added uninstall_server method
 - `api/src/vintagestory_api/routers/server.py` - Added DELETE endpoint
+- `api/tests/server/test_endpoints.py` - Added TestServerUninstallEndpoint class (7 tests)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` - Updated story status
 
 **Added:**
 
-- `api/tests/test_server_service.py` - 8 service unit tests
-- `api/tests/test_server_router.py` - 7 router integration tests
+- `api/tests/server/test_uninstall.py` - 8 service unit tests
