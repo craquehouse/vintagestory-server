@@ -212,6 +212,51 @@ describe('VersionCard', () => {
     });
   });
 
+  /**
+   * Story 13.5: Newer version highlighting
+   *
+   * AC 3: Newer versions should be visually highlighted
+   */
+  describe('newer version highlighting (Story 13.5)', () => {
+    it('highlights card when isNewer is true', () => {
+      render(
+        <VersionCard version={mockStableVersion} installedVersion="1.21.5" isNewer={true} />
+      );
+
+      const card = screen.getByTestId('version-card-1.21.6');
+      // Should have ring styling for highlight
+      expect(card.className).toMatch(/ring/);
+    });
+
+    it('does not highlight card when isNewer is false', () => {
+      render(
+        <VersionCard version={mockOlderVersion} installedVersion="1.21.6" isNewer={false} />
+      );
+
+      const card = screen.getByTestId('version-card-1.21.5');
+      // Should not have ring styling
+      expect(card.className).not.toMatch(/ring-2/);
+    });
+
+    it('does not highlight installed version', () => {
+      render(
+        <VersionCard version={mockStableVersion} installedVersion="1.21.6" isNewer={false} />
+      );
+
+      const card = screen.getByTestId('version-card-1.21.6');
+      // Should not have ring styling
+      expect(card.className).not.toMatch(/ring-2/);
+    });
+
+    it('does not highlight when isNewer is not provided', () => {
+      render(<VersionCard version={mockStableVersion} />);
+
+      const card = screen.getByTestId('version-card-1.21.6');
+      // Should not have ring styling
+      expect(card.className).not.toMatch(/ring-2/);
+    });
+  });
+
   describe('with different version data', () => {
     it('handles pre-release version numbers', () => {
       const preRelease: VersionInfo = {

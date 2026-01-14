@@ -14,6 +14,8 @@ import type { VersionInfo, VersionChannel } from '@/api/types';
 interface VersionCardProps {
   version: VersionInfo;
   installedVersion?: string | null;
+  /** Story 13.5: Whether this version is newer than installed */
+  isNewer?: boolean;
   onClick?: () => void;
 }
 
@@ -37,6 +39,7 @@ const channelStyles: Record<VersionChannel, { label: string; className: string }
 export function VersionCard({
   version,
   installedVersion,
+  isNewer,
   onClick,
 }: VersionCardProps) {
   const isInstalled = installedVersion === version.version;
@@ -44,7 +47,12 @@ export function VersionCard({
 
   return (
     <Card
-      className={cn('h-full', onClick && 'cursor-pointer hover:shadow-lg transition-shadow')}
+      className={cn(
+        'h-full',
+        onClick && 'cursor-pointer hover:shadow-lg transition-shadow',
+        // Story 13.5: Highlight newer versions with ring styling
+        isNewer && 'ring-2 ring-primary ring-offset-2'
+      )}
       data-testid={`version-card-${version.version}`}
       onClick={onClick}
     >
