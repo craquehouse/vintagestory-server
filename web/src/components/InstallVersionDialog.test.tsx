@@ -160,6 +160,9 @@ describe('InstallVersionDialog', () => {
       isFetchedAfterMount: false,
       isInitialLoading: false,
       refetch: vi.fn(),
+      // TanStack Query's UseQueryResult has complex generic types that are
+      // impractical to fully type in test mocks. Using `as any` is the standard
+      // pattern for mocking query hooks. See: https://github.com/TanStack/query/discussions/4795
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
   });

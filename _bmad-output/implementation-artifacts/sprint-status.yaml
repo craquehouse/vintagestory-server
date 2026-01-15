@@ -143,12 +143,6 @@ development_status:
   # Epic 12: Enhanced Dashboard with Server Metrics
   # FRs: Dashboard improvements with stats and quick actions
   epic-12: backlog
-  12-0-epic-12-technical-preparation: backlog
-  12-1-metrics-collection-service: backlog
-  12-2-metrics-api-endpoints: backlog
-  12-3-dashboard-stats-cards: backlog
-  12-4-dashboard-time-series-charts: backlog
-  12-5-quick-actions-links: backlog
   epic-12-retrospective: optional
   # Epic 13: Server Version Browser (NEXT EPIC - selected over Epic 12)
   # FRs: Browse and manage VintageStory server versions
@@ -163,15 +157,21 @@ development_status:
   13-6-server-uninstall-api: done
   13-7-server-uninstall-ui: done
   epic-13-retrospective: done
+  12-1-epic-12-technical-preparation: backlog
+  12-2-metrics-collection-service: backlog
+  12-3-metrics-api-endpoints: backlog
+  12-4-dashboard-stats-cards: backlog
+  12-5-dashboard-time-series-charts: backlog
+  12-6-quick-actions-links: backlog
 # RETRO ACTION ITEMS
 # Track action items from retrospectives to ensure follow-through
 retro_action_items:
   # Epic 13 Action Items (from 2026-01-14 retrospective)
-  E13-A1-fix-code-suppression-documentation-gap: pending # Owner: All Devs - All eslint-disable statements need inline comments explaining why + tracking reference
-  E13-A2-eliminate-story-zero-naming: pending # Owner: Bob (SM) - Prep stories should be Story 1; all epics start at Story 1
-  E13-A3-exclude-sprint-status-from-file-list: pending # Owner: Bob (SM) - Document in project-context.md that sprint-status.yaml excluded from File List tracking
+  E13-A1-fix-code-suppression-documentation-gap: done # Owner: All Devs - All eslint-disable statements need inline comments explaining why + tracking reference
+  E13-A2-eliminate-story-zero-naming: done # Owner: Bob (SM) - Prep stories should be Story 1; all epics start at Story 1
+  E13-A3-exclude-sprint-status-from-file-list: done # Owner: Bob (SM) - Document in project-context.md that sprint-status.yaml excluded from File List tracking
   E13-A4-update-file-list-in-realtime: pending # Owner: All Devs - Update File List as you go during implementation, not at end
-  E13-A5-renumber-epic-12-stories: pending # Owner: Bob (SM) - Renumber 12-0 to 12-1, 12-1 to 12-2, etc. in sprint-status.yaml and epics.md
+  E13-A5-renumber-epic-12-stories: done # Owner: Bob (SM) - Renumber 12-0 to 12-1, 12-1 to 12-2, etc. in sprint-status.yaml and epics.md
   # Epic 11 Action Items (from 2026-01-11 retrospective)
   E11-A1-theme-consistency-audit-polish-backlog: done # Owner: Dana (QA) - Added UI-032 to polish backlog
   E11-A2-complete-polish-backlog-prioritization: done # Owner: Alice (PO) - Reviewed high priority items; API-005, API-007, API-024 marked done

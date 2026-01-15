@@ -1830,7 +1830,7 @@ So that **I can monitor background task status**.
 | Epic 9: Quality of Life Polish Pass | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7 | 7 |
 | Epic 10: Advanced Mod Browser | 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8 | 8 |
 | Epic 11: GameServer Navigation Refactor | 11.1, 11.2, 11.3, 11.4, 11.5, 11.6 | 6 |
-| Epic 12: Enhanced Dashboard with Server Metrics | 12.0, 12.1, 12.2, 12.3, 12.4, 12.5 | 6 |
+| Epic 12: Enhanced Dashboard with Server Metrics | 12.1, 12.2, 12.3, 12.4, 12.5, 12.6 | 6 |
 | Epic 13: Server Version Browser | 13.0, 13.1, 13.2, 13.3, 13.4, 13.5 | 6 |
 | **Total** | | **71** |
 
@@ -2657,7 +2657,7 @@ Admins can monitor server health and performance through a comprehensive dashboa
 
 ---
 
-### Story 12.0: Epic 12 Technical Preparation
+### Story 12.1: Epic 12 Technical Preparation
 
 As a **developer**,
 I want **to research metrics collection and visualization approaches**,
@@ -2696,7 +2696,7 @@ So that **subsequent stories have a solid technical foundation**.
 
 ---
 
-### Story 12.1: Metrics Collection Service
+### Story 12.2: Metrics Collection Service
 
 As a **backend developer**,
 I want **a service that collects server metrics periodically**,
@@ -2736,7 +2736,7 @@ So that **current and historical metrics are available via API**.
 
 ---
 
-### Story 12.2: Metrics API Endpoints
+### Story 12.3: Metrics API Endpoints
 
 As a **frontend developer**,
 I want **API endpoints to retrieve current and historical metrics**,
@@ -2774,7 +2774,7 @@ So that **the dashboard can display real-time and chart data**.
 
 ---
 
-### Story 12.3: Dashboard Stats Cards
+### Story 12.4: Dashboard Stats Cards
 
 As an **administrator**,
 I want **stat cards showing current server metrics**,
@@ -2818,7 +2818,7 @@ So that **I can see server health at a glance**.
 
 ---
 
-### Story 12.4: Dashboard Time-Series Charts
+### Story 12.5: Dashboard Time-Series Charts
 
 As an **administrator**,
 I want **charts showing metrics over time**,
@@ -2858,7 +2858,7 @@ So that **I can identify trends and anomalies**.
 
 ---
 
-### Story 12.5: Quick Actions & Links
+### Story 12.6: Quick Actions & Links
 
 As an **administrator**,
 I want **quick links to common actions from the Dashboard**,

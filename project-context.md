@@ -757,6 +757,33 @@ During testing, discover enhancement opportunity
 
 ---
 
+## Story Conventions
+
+### Story Numbering
+
+**Epics always start at Story 1, never Story 0.**
+
+The first story in any epic is the "Technical Preparation" or "Epic Preparation" story. Use Story 1, not Story 0.
+
+| Pattern | Status |
+|---------|--------|
+| 12-1-epic-12-technical-preparation | ✅ Correct |
+| 12-0-epic-12-technical-preparation | ❌ Deprecated |
+
+**Why:** Story 0 is confusing and inconsistent with natural counting. Preparation stories are real stories with deliverables (ADRs, architecture decisions, research docs) and deserve a real story number.
+
+**Historical Note:** Epics 4-13 used Story 0 for preparation. Epic 12 onwards uses Story 1. The transition was documented in the Epic 13 retrospective (E13-A2).
+
+### File List Tracking
+
+Story files contain a "Files Modified/Created" section to track what was changed. This helps with code review and future maintenance.
+
+**Exclusion:** `sprint-status.yaml` should NOT be included in File List tracking.
+
+**Why:** Sprint status is updated for every story (marking status changes) and including it would be noise rather than signal. The file list should focus on actual implementation artifacts - code, tests, configuration, and documentation.
+
+---
+
 ## Pre-Epic Checklist
 
 Before starting a new epic, verify the following:
@@ -796,4 +823,4 @@ Before starting a new epic, verify the following:
 
 ---
 
-_Last updated: 2026-01-14 (Strengthened testing discipline rule: failing tests are unacceptable, user confirmation required to accept failures)_
+_Last updated: 2026-01-14 (Added Story Conventions section: Story 1 numbering, File List exclusion rules from E13 retro)_
