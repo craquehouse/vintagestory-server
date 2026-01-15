@@ -9,6 +9,7 @@ import {
   useStopServer,
   useRestartServer,
   useInstallServer,
+  useUninstallServer,
   useServerStateToasts,
 } from './use-server-status';
 import type { ServerState } from '../api/types';
@@ -507,6 +508,117 @@ describe('useInstallServer', () => {
 
       await act(async () => {
         result.current.mutate('1.21.3');
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify both server.status and versions are invalidated
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['server', 'status'],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['versions'],
+      });
+    });
+  });
+});
+
+/**
+ * Story 13.7: useUninstallServer Tests
+ */
+describe('useUninstallServer', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('mutation behavior (Story 13.7)', () => {
+    it('calls DELETE /api/v1alpha1/server endpoint', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { state: 'not_installed' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useUninstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:8080/api/v1alpha1/server',
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
+
+    it('invalidates server status query on success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { state: 'not_installed' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useUninstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['server', 'status'],
+      });
+    });
+
+    it('invalidates versions query on success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { state: 'not_installed' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useUninstallServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
       });
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));

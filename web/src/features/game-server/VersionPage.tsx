@@ -5,6 +5,7 @@
  * Story 13.3: Added browsable version list with channel filter.
  * Story 13.4: Added install/upgrade dialog with confirmation.
  * Story 13.5: Added version browser for not_installed state (replacing ServerInstallCard).
+ * Story 13.7: Added server uninstall functionality with confirmation dialog.
  *
  * Displays different content based on server state:
  * - not_installed: Shows version browser with available versions
@@ -13,13 +14,21 @@
  */
 
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ChannelFilter, type ChannelFilterValue } from '@/components/ChannelFilter';
 import { VersionGrid } from '@/components/VersionGrid';
 import { InstallVersionDialog } from '@/components/InstallVersionDialog';
+import { UninstallConfirmDialog } from '@/components/UninstallConfirmDialog';
 import { QuickInstallButton } from '@/components/QuickInstallButton';
-import { useServerStatus, useInstallStatus } from '@/hooks/use-server-status';
+import {
+  useServerStatus,
+  useInstallStatus,
+  useUninstallServer,
+} from '@/hooks/use-server-status';
 import { useVersions } from '@/hooks/use-versions';
 import { isServerInstalled } from '@/lib/server-utils';
 import type { ServerState, VersionInfo } from '@/api/types';
@@ -56,6 +65,26 @@ export function VersionPage() {
   // Dialog state for install/upgrade confirmation
   const [selectedVersion, setSelectedVersion] = useState<VersionInfo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Story 13.7: Uninstall dialog state and mutation
+  const [isUninstallDialogOpen, setIsUninstallDialogOpen] = useState(false);
+  const uninstallMutation = useUninstallServer();
+
+  function handleUninstall(): void {
+    uninstallMutation.mutate(undefined, {
+      onSuccess: () => {
+        setIsUninstallDialogOpen(false);
+        toast.success('Server removed', {
+          description: 'The server installation has been removed.',
+        });
+      },
+      onError: (error) => {
+        toast.error('Failed to remove server', {
+          description: error.message,
+        });
+      },
+    });
+  }
 
   function handleVersionClick(version: string): void {
     const versionInfo = versions.find((v) => v.version === version);
@@ -109,6 +138,8 @@ export function VersionPage() {
           version={installedVersion ?? 'Unknown'}
           state={serverState}
           availableStableVersion={serverStatus?.availableStableVersion ?? null}
+          onRemoveClick={() => setIsUninstallDialogOpen(true)}
+          isRemovePending={uninstallMutation.isPending}
         />
       )}
 
@@ -145,6 +176,15 @@ export function VersionPage() {
           onOpenChange={setIsDialogOpen}
         />
       )}
+
+      {/* Story 13.7: Uninstall Confirmation Dialog */}
+      <UninstallConfirmDialog
+        serverState={serverState}
+        open={isUninstallDialogOpen}
+        onOpenChange={setIsUninstallDialogOpen}
+        onConfirm={handleUninstall}
+        isPending={uninstallMutation.isPending}
+      />
     </div>
   );
 }
@@ -153,6 +193,10 @@ interface InstalledVersionCardProps {
   version: string;
   state: ServerState;
   availableStableVersion: string | null;
+  /** Story 13.7: Callback when Remove Server button clicked */
+  onRemoveClick: () => void;
+  /** Story 13.7: Whether uninstall is in progress */
+  isRemovePending?: boolean;
 }
 
 /**
@@ -162,17 +206,23 @@ interface InstalledVersionCardProps {
  * - Current installed version prominently
  * - Server state badge (running/stopped)
  * - Update available indicator when newer version exists
+ * - Story 13.7: Remove Server button
  */
 function InstalledVersionCard({
   version,
   state,
   availableStableVersion,
+  onRemoveClick,
+  isRemovePending = false,
 }: InstalledVersionCardProps) {
   // Check if an update is available
   const hasUpdate =
     version &&
     availableStableVersion &&
     version !== availableStableVersion;
+
+  // Story 13.7: Disable remove button during transitional states
+  const isTransitional = ['starting', 'stopping', 'installing'].includes(state);
 
   return (
     <div
@@ -193,6 +243,20 @@ function InstalledVersionCard({
           </p>
         </div>
         <ServerStatusBadge state={state} />
+      </div>
+
+      {/* Story 13.7: Remove Server Button */}
+      <div>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={isTransitional || isRemovePending}
+          onClick={onRemoveClick}
+          data-testid="remove-server-button"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Remove Server
+        </Button>
       </div>
     </div>
   );

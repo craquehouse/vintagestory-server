@@ -161,7 +161,7 @@ development_status:
   13-4-install-upgrade-flow: done
   13-5-version-page-integration: done
   13-6-server-uninstall-api: done
-  13-7-server-uninstall-ui: backlog
+  13-7-server-uninstall-ui: done
   epic-13-retrospective: optional
 # RETRO ACTION ITEMS
 # Track action items from retrospectives to ensure follow-through
