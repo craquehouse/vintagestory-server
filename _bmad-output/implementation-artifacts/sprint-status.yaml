@@ -153,7 +153,7 @@ development_status:
   # Epic 13: Server Version Browser (NEXT EPIC - selected over Epic 12)
   # FRs: Browse and manage VintageStory server versions
   # NOTE: Uninstall stories (13-6, 13-7) added from Epic 11 retro to support testing workflow
-  epic-13: in-progress
+  epic-13: done
   13-0-epic-13-technical-preparation: done
   13-1-server-versions-api: done
   13-2-version-card-component: done
@@ -162,15 +162,20 @@ development_status:
   13-5-version-page-integration: done
   13-6-server-uninstall-api: done
   13-7-server-uninstall-ui: done
-  epic-13-retrospective: optional
+  epic-13-retrospective: done
 # RETRO ACTION ITEMS
 # Track action items from retrospectives to ensure follow-through
 retro_action_items:
+  # Epic 13 Action Items (from 2026-01-14 retrospective)
+  E13-A1-fix-code-suppression-documentation-gap: pending # Owner: All Devs - All eslint-disable statements need inline comments explaining why + tracking reference
+  E13-A2-eliminate-story-zero-naming: pending # Owner: Bob (SM) - Prep stories should be Story 1; all epics start at Story 1
+  E13-A3-exclude-sprint-status-from-file-list: pending # Owner: Bob (SM) - Document in project-context.md that sprint-status.yaml excluded from File List tracking
+  E13-A4-update-file-list-in-realtime: pending # Owner: All Devs - Update File List as you go during implementation, not at end
+  E13-A5-renumber-epic-12-stories: pending # Owner: Bob (SM) - Renumber 12-0 to 12-1, 12-1 to 12-2, etc. in sprint-status.yaml and epics.md
   # Epic 11 Action Items (from 2026-01-11 retrospective)
   E11-A1-theme-consistency-audit-polish-backlog: done # Owner: Dana (QA) - Added UI-032 to polish backlog
   E11-A2-complete-polish-backlog-prioritization: done # Owner: Alice (PO) - Reviewed high priority items; API-005, API-007, API-024 marked done
-  E11-A3-improve-file-list-discipline: pending # Owner: All Devs - Ensure File Lists complete in Dev Agent Record
-  E13-A1-fix-code-supplication-documentation-gap: pending # Owner: All Devs - Story 13-4 code review found undocumented eslint-disable violations (Epic 6 retro requirement)
+  E11-A3-improve-file-list-discipline: done # Owner: All Devs - Refined with E13-A3 and E13-A4 (clearer guidance now)
   # Epic 10 Action Items (from 2026-01-10 retrospective)
   E10-A1-add-retro-action-tracking-mechanism: done # Already exists via E9-A1
   E10-A2-create-api-spike-story-template: done # Created template-api-spike.md in create-story workflow
