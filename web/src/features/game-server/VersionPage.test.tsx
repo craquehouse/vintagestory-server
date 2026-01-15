@@ -4,6 +4,15 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { VersionPage } from './VersionPage';
+import { toast } from 'sonner';
+
+// Mock sonner toast for verifying toast notifications
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 /**
  * VersionPage Tests - Story 11.2
@@ -1273,6 +1282,194 @@ describe('VersionPage', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('server-running-warning')).toBeInTheDocument();
+      });
+    });
+
+    it('shows success toast after successful uninstall (AC: 4)', async () => {
+      const user = userEvent.setup();
+      let fetchCallCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        // Handle DELETE request for uninstall
+        if (options?.method === 'DELETE') {
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              status: 'ok',
+              data: { state: 'not_installed' },
+            }),
+          };
+        }
+        // Handle GET requests for server status
+        if (url.includes('/server')) {
+          fetchCallCount++;
+          // First call: installed, subsequent calls: not_installed (after uninstall)
+          if (fetchCallCount === 1) {
+            return {
+              ok: true,
+              json: () => Promise.resolve(mockInstalledStatus),
+            };
+          }
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockNotInstalledStatus),
+          };
+        }
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      });
+
+      // Open dialog
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
+      });
+
+      // Confirm uninstall
+      await user.click(screen.getByTestId('confirm-button'));
+
+      // Verify success toast was called
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Server removed', expect.any(Object));
+      });
+    });
+
+    it('changes page title to "Server Installation" after uninstall (AC: 4)', async () => {
+      const user = userEvent.setup();
+      let fetchCallCount = 0;
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        // Handle DELETE request for uninstall
+        if (options?.method === 'DELETE') {
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              status: 'ok',
+              data: { state: 'not_installed' },
+            }),
+          };
+        }
+        // Handle GET requests for server status
+        if (url.includes('/server') && !url.includes('/versions')) {
+          fetchCallCount++;
+          // First call: installed, subsequent calls: not_installed (after uninstall)
+          if (fetchCallCount === 1) {
+            return {
+              ok: true,
+              json: () => Promise.resolve(mockInstalledStatus),
+            };
+          }
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockNotInstalledStatus),
+          };
+        }
+        if (url.includes('/versions')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockVersionsList),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Verify initial title is "Server Version"
+      await waitFor(() => {
+        expect(screen.getByTestId('version-page-title')).toHaveTextContent('Server Version');
+      });
+
+      // Open dialog
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
+      });
+
+      // Confirm uninstall
+      await user.click(screen.getByTestId('confirm-button'));
+
+      // Verify page title changes to "Server Installation"
+      await waitFor(() => {
+        expect(screen.getByTestId('version-page-title')).toHaveTextContent('Server Installation');
+      });
+    });
+
+    it('shows error toast when uninstall API fails (AC: 6)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        // Handle DELETE request for uninstall - simulate failure
+        if (options?.method === 'DELETE') {
+          return {
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            json: () => Promise.resolve({
+              detail: { code: 'INTERNAL_ERROR', message: 'Failed to remove server' },
+            }),
+          };
+        }
+        // Handle GET requests for server status
+        if (url.includes('/server')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockInstalledStatus),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockInstalledStatus),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<VersionPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-server-button')).toBeInTheDocument();
+      });
+
+      // Open dialog
+      await user.click(screen.getByTestId('remove-server-button'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
+      });
+
+      // Confirm uninstall
+      await user.click(screen.getByTestId('confirm-button'));
+
+      // Verify error toast was called
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to remove server', expect.any(Object));
       });
     });
   });

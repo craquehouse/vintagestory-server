@@ -71,7 +71,7 @@ So that **I can cleanly remove the installation without manual file deletion**.
   - [x] Subtask 4.4: Button disabled during transitional states (starting, stopping, installing)
   - [x] Subtask 4.5: Update `VersionPage.test.tsx` with integration tests
 
-- [x] Task 5: Manual browser verification (AC: all)
+- [x] Task 5: Manual browser verification (AC: all) - **User confirmed all items work correctly**
   - [x] Subtask 5.1: Start dev servers (`just dev-api` and `just dev-web`)
   - [x] Subtask 5.2: With server installed and stopped, verify Remove button appears
   - [x] Subtask 5.3: Click Remove, verify dialog shows preservation message
@@ -81,13 +81,13 @@ So that **I can cleanly remove the installation without manual file deletion**.
 
 ### Review Follow-ups (AI-Review)
 
-- [ ] [AI-Review][HIGH] AC 4: Add test verifying success toast appears after uninstall (VersionPage.test.tsx)
-- [ ] [AI-Review][HIGH] AC 4: Add test verifying page title changes to "Server Installation" after success (VersionPage.test.tsx)
-- [ ] [AI-Review][HIGH] AC 6: Add test verifying error toast appears when API call fails (VersionPage.test.tsx)
-- [ ] [AI-Review][HIGH] Task 4: Mock sonner toast in VersionPage.test.tsx for toast tests
-- [ ] [AI-Review][MEDIUM] All: Add AC references to pending state tests in UninstallConfirmDialog.test.tsx
-- [ ] [AI-Review][MEDIUM] All: Add AC references to dialog title tests in UninstallConfirmDialog.test.tsx
-- [ ] [AI-Review][LOW] Story: Add explicit user confirmation for manual verification in Task 5
+- [x] [AI-Review][HIGH] AC 4: Add test verifying success toast appears after uninstall (VersionPage.test.tsx)
+- [x] [AI-Review][HIGH] AC 4: Add test verifying page title changes to "Server Installation" after success (VersionPage.test.tsx)
+- [x] [AI-Review][HIGH] AC 6: Add test verifying error toast appears when API call fails (VersionPage.test.tsx)
+- [x] [AI-Review][HIGH] Task 4: Mock sonner toast in VersionPage.test.tsx for toast tests
+- [x] [AI-Review][MEDIUM] All: Add AC references to pending state tests in UninstallConfirmDialog.test.tsx
+- [x] [AI-Review][MEDIUM] All: Add AC references to dialog title tests in UninstallConfirmDialog.test.tsx
+- [x] [AI-Review][LOW] Story: Add explicit user confirmation for manual verification in Task 5
 
 ## Dev Notes
 

@@ -170,8 +170,8 @@ describe('UninstallConfirmDialog', () => {
     });
   });
 
-  describe('pending state', () => {
-    it('disables Remove button when isPending is true', () => {
+  describe('pending state (AC: 4)', () => {
+    it('disables Remove button when isPending is true (AC: 4)', () => {
       render(
         <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
       );
@@ -179,7 +179,7 @@ describe('UninstallConfirmDialog', () => {
       expect(screen.getByTestId('confirm-button')).toBeDisabled();
     });
 
-    it('disables Cancel button when isPending is true', () => {
+    it('disables Cancel button when isPending is true (AC: 4)', () => {
       render(
         <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
       );
@@ -187,7 +187,7 @@ describe('UninstallConfirmDialog', () => {
       expect(screen.getByTestId('cancel-button')).toBeDisabled();
     });
 
-    it('shows "Removing..." text when isPending is true', () => {
+    it('shows "Removing..." text when isPending is true (AC: 4)', () => {
       render(
         <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
       );
@@ -197,7 +197,7 @@ describe('UninstallConfirmDialog', () => {
       );
     });
 
-    it('shows "Remove Server" text when not pending', () => {
+    it('shows "Remove Server" text when not pending (AC: 4)', () => {
       render(
         <UninstallConfirmDialog {...getDefaultProps({ isPending: false })} />
       );
@@ -208,8 +208,8 @@ describe('UninstallConfirmDialog', () => {
     });
   });
 
-  describe('dialog title and description', () => {
-    it('shows correct title', () => {
+  describe('dialog title and description (AC: 2, 3)', () => {
+    it('shows correct title (AC: 2, 3)', () => {
       render(<UninstallConfirmDialog {...getDefaultProps()} />);
 
       expect(screen.getByTestId('dialog-title')).toHaveTextContent(
@@ -217,7 +217,7 @@ describe('UninstallConfirmDialog', () => {
       );
     });
 
-    it('shows description about removing server binaries', () => {
+    it('shows description about removing server binaries (AC: 2, 3)', () => {
       render(<UninstallConfirmDialog {...getDefaultProps()} />);
 
       expect(screen.getByText(/remove the VintageStory server binaries/i)).toBeInTheDocument();
