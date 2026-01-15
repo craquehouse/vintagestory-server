@@ -1,6 +1,6 @@
 # Story 13.7: Server Uninstall UI
 
-Status: done
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -78,6 +78,16 @@ So that **I can cleanly remove the installation without manual file deletion**.
   - [x] Subtask 5.4: Confirm uninstall, verify success toast and page transition
   - [x] Subtask 5.5: With server running, verify dialog shows stop warning
   - [x] Subtask 5.6: Verify cancel closes dialog with no changes
+
+### Review Follow-ups (AI-Review)
+
+- [ ] [AI-Review][HIGH] AC 4: Add test verifying success toast appears after uninstall (VersionPage.test.tsx)
+- [ ] [AI-Review][HIGH] AC 4: Add test verifying page title changes to "Server Installation" after success (VersionPage.test.tsx)
+- [ ] [AI-Review][HIGH] AC 6: Add test verifying error toast appears when API call fails (VersionPage.test.tsx)
+- [ ] [AI-Review][HIGH] Task 4: Mock sonner toast in VersionPage.test.tsx for toast tests
+- [ ] [AI-Review][MEDIUM] All: Add AC references to pending state tests in UninstallConfirmDialog.test.tsx
+- [ ] [AI-Review][MEDIUM] All: Add AC references to dialog title tests in UninstallConfirmDialog.test.tsx
+- [ ] [AI-Review][LOW] Story: Add explicit user confirmation for manual verification in Task 5
 
 ## Dev Notes
 
