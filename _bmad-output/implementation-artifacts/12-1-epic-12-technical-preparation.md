@@ -1,6 +1,6 @@
 # Story 12.1: Epic 12 Technical Preparation
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
