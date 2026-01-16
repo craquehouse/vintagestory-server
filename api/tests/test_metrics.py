@@ -1,13 +1,15 @@
 """Tests for metrics models and services."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import FrozenInstanceError
 from datetime import datetime
 
-import pytest
-
 import psutil
+import pytest
 
 from vintagestory_api.models.metrics import MetricsSnapshot
 from vintagestory_api.services.metrics import (
@@ -224,7 +226,7 @@ class TestMetricsService:
     """Tests for MetricsService."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> None:
+    def reset_singleton(self) -> Generator[None, None, None]:
         """Reset metrics service singleton before each test."""
         reset_metrics_service()
         yield
@@ -291,9 +293,9 @@ class TestMetricsService:
         # Patch psutil.Process to return our mock for game server PID
         original_process = psutil.Process
 
-        def mock_process_factory(pid=None):
+        def mock_process_factory(pid: int | None = None) -> psutil.Process:
             if pid == 12345:
-                return mock_game_process
+                return mock_game_process  # type: ignore[return-value]
             return original_process(pid)
 
         with patch(
@@ -322,7 +324,7 @@ class TestMetricsService:
         # Mock psutil.Process to raise NoSuchProcess
         original_process = psutil.Process
 
-        def mock_process_factory(pid=None):
+        def mock_process_factory(pid: int | None = None) -> psutil.Process:
             if pid == 99999:
                 raise psutil.NoSuchProcess(pid)
             return original_process(pid)
@@ -355,7 +357,7 @@ class TestMetricsService:
         # Mock psutil.Process to raise AccessDenied
         original_process = psutil.Process
 
-        def mock_process_factory(pid=None):
+        def mock_process_factory(pid: int | None = None) -> psutil.Process:
             if pid == 88888:
                 raise psutil.AccessDenied(pid)
             return original_process(pid)
@@ -412,7 +414,7 @@ class TestMetricsServiceSingleton:
     """Tests for metrics service singleton pattern."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> None:
+    def reset_singleton(self) -> Generator[None, None, None]:
         """Reset metrics service singleton before and after each test."""
         reset_metrics_service()
         yield

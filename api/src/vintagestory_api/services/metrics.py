@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import psutil
@@ -103,7 +103,7 @@ class MetricsService:
     def __init__(
         self,
         buffer: MetricsBuffer | None = None,
-        server_service: "ServerService | None" = None,
+        server_service: ServerService | None = None,
     ) -> None:
         """Initialize the metrics service.
 
@@ -135,7 +135,7 @@ class MetricsService:
         Returns:
             The collected metrics snapshot.
         """
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
 
         # Collect API server metrics (AC: 1)
         api_memory_mb, api_cpu_percent = self._get_api_metrics()
@@ -187,11 +187,12 @@ class MetricsService:
         # Check if process exists and is still running
         # _process is None when no subprocess has been spawned
         # _process.returncode is None while process is running
+        # ADR-E12-002: Direct _process access is the documented pattern
         if (
-            server_service._process is not None
-            and server_service._process.returncode is None
+            server_service._process is not None  # pyright: ignore[reportPrivateUsage]
+            and server_service._process.returncode is None  # pyright: ignore[reportPrivateUsage]
         ):
-            return server_service._process.pid
+            return server_service._process.pid  # pyright: ignore[reportPrivateUsage]
 
         return None
 
@@ -223,7 +224,7 @@ class MetricsService:
             logger.warning("game_process_access_denied", pid=pid)
             return None, None
 
-    def _get_server_service(self) -> "ServerService | None":
+    def _get_server_service(self) -> ServerService | None:
         """Get the server service instance.
 
         Lazy resolution to avoid circular imports and allow
