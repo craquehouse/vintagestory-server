@@ -69,16 +69,16 @@ class TestCollectMetricsJob:
         assert "metrics_collection_completed" in captured_logs.getvalue()
 
     @pytest.mark.asyncio
-    async def test_collect_metrics_logs_snapshot_details(
+    async def test_collect_metrics_logs_via_service(
         self, captured_logs: StringIO
     ) -> None:
-        """collect_metrics() logs collected metrics details."""
+        """collect_metrics() logs collected metrics details via service."""
         await collect_metrics()
 
         output = captured_logs.getvalue()
-        assert "metrics_collection_snapshot" in output
+        # Logging is handled by MetricsService.collect(), not the job
+        assert "metrics_collected" in output
         assert "api_memory_mb" in output
-        assert "buffer_size" in output
 
     @pytest.mark.asyncio
     async def test_collect_metrics_handles_service_error_gracefully(

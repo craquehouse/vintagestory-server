@@ -12,12 +12,8 @@ AC 5: Runs at configured interval (default 10 seconds)
 
 from __future__ import annotations
 
-import structlog
-
 from vintagestory_api.jobs.base import safe_job
 from vintagestory_api.services.metrics import get_metrics_service
-
-logger = structlog.get_logger()
 
 
 @safe_job("metrics_collection")
@@ -39,20 +35,7 @@ async def collect_metrics() -> None:
     Note:
         This job is intentionally simple - all complexity is encapsulated
         in MetricsService.collect(). The job just invokes collection at
-        the configured interval.
+        the configured interval. Logging is handled by the service.
     """
     metrics_service = get_metrics_service()
-    snapshot = metrics_service.collect()
-
-    logger.debug(
-        "metrics_collection_snapshot",
-        api_memory_mb=round(snapshot.api_memory_mb, 2),
-        api_cpu_percent=round(snapshot.api_cpu_percent, 2),
-        game_memory_mb=round(snapshot.game_memory_mb, 2)
-        if snapshot.game_memory_mb
-        else None,
-        game_cpu_percent=round(snapshot.game_cpu_percent, 2)
-        if snapshot.game_cpu_percent
-        else None,
-        buffer_size=len(metrics_service.buffer),
-    )
+    metrics_service.collect()
