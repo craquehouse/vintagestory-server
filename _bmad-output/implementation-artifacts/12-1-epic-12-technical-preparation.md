@@ -1,6 +1,6 @@
 # Story 12.1: Epic 12 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -39,45 +39,45 @@ This is a RESEARCH/PREPARATION story - no code implementation, only documentatio
 Each task produces documented findings in architecture.md.
 -->
 
-- [ ] Task 1: Research psutil for process metrics collection + document findings (AC: 1)
-  - [ ] Subtask 1.1: Document psutil installation and basic usage patterns
-  - [ ] Subtask 1.2: Document how to get memory (RSS, VMS) and CPU percent for current process
-  - [ ] Subtask 1.3: Document asyncio-friendly usage patterns (psutil is sync but fast)
-  - [ ] Subtask 1.4: Add findings to architecture.md under new "Metrics Collection" section
+- [x] Task 1: Research psutil for process metrics collection + document findings (AC: 1)
+  - [x] Subtask 1.1: Document psutil installation and basic usage patterns
+  - [x] Subtask 1.2: Document how to get memory (RSS, VMS) and CPU percent for current process
+  - [x] Subtask 1.3: Document asyncio-friendly usage patterns (psutil is sync but fast)
+  - [x] Subtask 1.4: Add findings to architecture.md under new "Metrics Collection" section
 
-- [ ] Task 2: Document game server process discovery + metrics extraction (AC: 1)
-  - [ ] Subtask 2.1: Research how to find VintageStory game server process (by name pattern or PID file)
-  - [ ] Subtask 2.2: Document existing `ServerService.get_status()` and container process tracking
-  - [ ] Subtask 2.3: Document how to get external process metrics via psutil.Process(pid)
-  - [ ] Subtask 2.4: Document graceful handling when game server is not running
-  - [ ] Subtask 2.5: Add ADR to architecture.md for process discovery approach
+- [x] Task 2: Document game server process discovery + metrics extraction (AC: 1)
+  - [x] Subtask 2.1: Research how to find VintageStory game server process (by name pattern or PID file)
+  - [x] Subtask 2.2: Document existing `ServerService.get_status()` and container process tracking
+  - [x] Subtask 2.3: Document how to get external process metrics via psutil.Process(pid)
+  - [x] Subtask 2.4: Document graceful handling when game server is not running
+  - [x] Subtask 2.5: Add ADR to architecture.md for process discovery approach
 
-- [ ] Task 3: Evaluate charting libraries + recommend choice (AC: 2)
-  - [ ] Subtask 3.1: Research recharts - features, bundle size, React 19 compatibility
-  - [ ] Subtask 3.2: Research lightweight alternatives (visx, Chart.js, uPlot)
-  - [ ] Subtask 3.3: Document trade-offs (bundle size, features, TypeScript support, theming)
-  - [ ] Subtask 3.4: Recommend library with rationale
-  - [ ] Subtask 3.5: Add ADR to architecture.md for charting library selection
+- [x] Task 3: Evaluate charting libraries + recommend choice (AC: 2)
+  - [x] Subtask 3.1: Research recharts - features, bundle size, React 19 compatibility
+  - [x] Subtask 3.2: Research lightweight alternatives (visx, Chart.js, uPlot)
+  - [x] Subtask 3.3: Document trade-offs (bundle size, features, TypeScript support, theming)
+  - [x] Subtask 3.4: Recommend library with rationale
+  - [x] Subtask 3.5: Add ADR to architecture.md for charting library selection
 
-- [ ] Task 4: Design MetricsSnapshot data model + ring buffer storage (AC: 3)
-  - [ ] Subtask 4.1: Define MetricsSnapshot schema (timestamp, api_memory_mb, api_cpu_percent, game_memory_mb, game_cpu_percent)
-  - [ ] Subtask 4.2: Design in-memory ring buffer with configurable capacity (default: 360 samples = 1hr at 10s interval)
-  - [ ] Subtask 4.3: Document retention policy and eviction strategy (FIFO)
-  - [ ] Subtask 4.4: Specify thread-safety considerations for APScheduler job access
-  - [ ] Subtask 4.5: Add data model to architecture.md
+- [x] Task 4: Design MetricsSnapshot data model + ring buffer storage (AC: 3)
+  - [x] Subtask 4.1: Define MetricsSnapshot schema (timestamp, api_memory_mb, api_cpu_percent, game_memory_mb, game_cpu_percent)
+  - [x] Subtask 4.2: Design in-memory ring buffer with configurable capacity (default: 360 samples = 1hr at 10s interval)
+  - [x] Subtask 4.3: Document retention policy and eviction strategy (FIFO)
+  - [x] Subtask 4.4: Specify thread-safety considerations for APScheduler job access
+  - [x] Subtask 4.5: Add data model to architecture.md
 
-- [ ] Task 5: Research player count extraction methods (AC: 4)
-  - [ ] Subtask 5.1: Check VintageStory console output for player join/leave messages
-  - [ ] Subtask 5.2: Research if VintageStory has RCON or API for player info
-  - [ ] Subtask 5.3: Check agentdocs/vs-server-troubleshooting.md for relevant info
-  - [ ] Subtask 5.4: Document findings and limitations
-  - [ ] Subtask 5.5: Add findings to architecture.md (may be deferred to future epic if complex)
+- [x] Task 5: Research player count extraction methods (AC: 4)
+  - [x] Subtask 5.1: Check VintageStory console output for player join/leave messages
+  - [x] Subtask 5.2: Research if VintageStory has RCON or API for player info
+  - [x] Subtask 5.3: Check agentdocs/vs-server-troubleshooting.md for relevant info
+  - [x] Subtask 5.4: Document findings and limitations
+  - [x] Subtask 5.5: Add findings to architecture.md (may be deferred to future epic if complex)
 
-- [ ] Task 6: Update architecture.md with Epic 12 technical decisions (AC: all)
-  - [ ] Subtask 6.1: Create "Epic 12: Dashboard Metrics" section
-  - [ ] Subtask 6.2: Add all ADRs from Tasks 1-5
-  - [ ] Subtask 6.3: Document integration points with existing scheduler service
-  - [ ] Subtask 6.4: Verify all findings are properly referenced
+- [x] Task 6: Update architecture.md with Epic 12 technical decisions (AC: all)
+  - [x] Subtask 6.1: Create "Epic 12: Dashboard Metrics" section
+  - [x] Subtask 6.2: Add all ADRs from Tasks 1-5
+  - [x] Subtask 6.3: Document integration points with existing scheduler service
+  - [x] Subtask 6.4: Verify all findings are properly referenced
 
 ## Dev Notes
 
@@ -180,11 +180,28 @@ Files to create/modify in subsequent stories:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ### Debug Log References
 
+N/A - Research/documentation story, no code implementation
+
 ### Completion Notes List
 
+1. **Task 1-2 (psutil research)**: Documented psutil usage patterns for process metrics (RSS, VMS, CPU percent). Researched using Context7 documentation. Found psutil provides simple API for both current process and external process by PID. AsyncIO not needed - operations are fast enough for direct sync calls.
+
+2. **Task 2 (game server discovery)**: Analyzed ServerService._process to confirm direct PID access is available when game server is running. Documented graceful degradation when server is not running (return None for metrics).
+
+3. **Task 3 (charting library)**: Evaluated Recharts, visx, Chart.js, and uPlot. Recommended **Recharts** for: native TypeScript, React 19 compatibility, excellent DX, built-in tooltips/responsive containers. Bundle size (~400KB) acceptable given feature set.
+
+4. **Task 4 (MetricsSnapshot + ring buffer)**: Designed frozen dataclass for MetricsSnapshot with timestamp and 4 metric fields. Designed MetricsBuffer using collections.deque (same pattern as ConsoleBuffer). Default 360 samples = 1 hour at 10s intervals.
+
+5. **Task 5 (player count)**: Researched VintageStory capabilities. No RCON or HTTP API available. Console parsing possible but complex. **Deferred** to future epic due to fragility and complexity vs value.
+
+6. **Task 6 (architecture.md)**: Created comprehensive `architecture/epic-12-dashboard-metrics.md` with 5 ADRs covering all decisions. Updated main architecture.md index to include new file.
+
 ### File List
+
+- `_bmad-output/planning-artifacts/architecture/epic-12-dashboard-metrics.md` (created)
+- `_bmad-output/planning-artifacts/architecture.md` (modified - added Epic 12 to index)
 
