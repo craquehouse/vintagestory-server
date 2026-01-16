@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from collections import deque
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
+import psutil
 import structlog
 
 from vintagestory_api.models.metrics import MetricsSnapshot
+
+if TYPE_CHECKING:
+    from vintagestory_api.services.server import ServerService
 
 logger = structlog.get_logger()
 
@@ -82,3 +88,179 @@ class MetricsBuffer:
     def __len__(self) -> int:
         """Get current number of snapshots in buffer."""
         return len(self._buffer)
+
+
+class MetricsService:
+    """Service for collecting and storing server metrics.
+
+    Collects metrics from both the API server process and the game server
+    process (when running). Uses psutil for process-level resource metrics.
+
+    The service initializes CPU percent tracking on startup to get accurate
+    readings (first call to cpu_percent() returns 0.0 as baseline).
+    """
+
+    def __init__(
+        self,
+        buffer: MetricsBuffer | None = None,
+        server_service: "ServerService | None" = None,
+    ) -> None:
+        """Initialize the metrics service.
+
+        Args:
+            buffer: Optional metrics buffer. If None, creates one with default capacity.
+            server_service: Optional server service for game server PID discovery.
+                If None, will be resolved lazily via get_server_service().
+        """
+        self._buffer = buffer if buffer is not None else MetricsBuffer()
+        self._server_service = server_service
+        # Initialize API process for metrics collection
+        self._api_process = psutil.Process()
+        # Initialize CPU percent baseline (first call returns 0.0)
+        self._api_process.cpu_percent(interval=None)
+        logger.info("metrics_service_initialized", buffer_capacity=self._buffer.capacity)
+
+    @property
+    def buffer(self) -> MetricsBuffer:
+        """Get the metrics buffer."""
+        return self._buffer
+
+    def collect(self) -> MetricsSnapshot:
+        """Collect current metrics and store in buffer.
+
+        Collects API server metrics (always available) and game server
+        metrics (when game server is running). If game server is not
+        running or metrics collection fails, game metrics are set to None.
+
+        Returns:
+            The collected metrics snapshot.
+        """
+        timestamp = datetime.now(timezone.utc)
+
+        # Collect API server metrics (AC: 1)
+        api_memory_mb, api_cpu_percent = self._get_api_metrics()
+
+        # Collect game server metrics (AC: 2, 3)
+        game_memory_mb, game_cpu_percent = self._get_game_metrics()
+
+        snapshot = MetricsSnapshot(
+            timestamp=timestamp,
+            api_memory_mb=api_memory_mb,
+            api_cpu_percent=api_cpu_percent,
+            game_memory_mb=game_memory_mb,
+            game_cpu_percent=game_cpu_percent,
+        )
+
+        self._buffer.append(snapshot)
+
+        logger.debug(
+            "metrics_collected",
+            api_memory_mb=round(api_memory_mb, 2),
+            api_cpu_percent=round(api_cpu_percent, 2),
+            game_memory_mb=round(game_memory_mb, 2) if game_memory_mb else None,
+            game_cpu_percent=round(game_cpu_percent, 2) if game_cpu_percent else None,
+        )
+
+        return snapshot
+
+    def _get_api_metrics(self) -> tuple[float, float]:
+        """Get API server process metrics.
+
+        Returns:
+            Tuple of (memory_mb, cpu_percent).
+        """
+        memory_info = self._api_process.memory_info()
+        memory_mb = memory_info.rss / (1024 * 1024)  # Resident Set Size in MB
+        cpu_percent = self._api_process.cpu_percent(interval=None)  # Non-blocking
+        return memory_mb, cpu_percent
+
+    def _get_game_server_pid(self) -> int | None:
+        """Get the game server process ID if running.
+
+        Returns:
+            Game server PID if running, None otherwise.
+        """
+        server_service = self._get_server_service()
+        if server_service is None:
+            return None
+
+        # Check if process exists and is still running
+        # _process is None when no subprocess has been spawned
+        # _process.returncode is None while process is running
+        if (
+            server_service._process is not None
+            and server_service._process.returncode is None
+        ):
+            return server_service._process.pid
+
+        return None
+
+    def _get_game_metrics(self) -> tuple[float | None, float | None]:
+        """Get game server process metrics.
+
+        Gracefully handles cases where game server is not running
+        or process metrics cannot be collected (AC: 3).
+
+        Returns:
+            Tuple of (memory_mb, cpu_percent), both None if server not running.
+        """
+        pid = self._get_game_server_pid()
+        if pid is None:
+            return None, None
+
+        try:
+            game_process = psutil.Process(pid)
+            memory_info = game_process.memory_info()
+            memory_mb = memory_info.rss / (1024 * 1024)
+            cpu_percent = game_process.cpu_percent(interval=None)
+            return memory_mb, cpu_percent
+        except psutil.NoSuchProcess:
+            # Process terminated between PID check and metrics collection
+            logger.debug("game_process_no_longer_exists", pid=pid)
+            return None, None
+        except psutil.AccessDenied:
+            # Permission denied to access process metrics
+            logger.warning("game_process_access_denied", pid=pid)
+            return None, None
+
+    def _get_server_service(self) -> "ServerService | None":
+        """Get the server service instance.
+
+        Lazy resolution to avoid circular imports and allow
+        dependency injection for testing.
+
+        Returns:
+            ServerService instance or None if not available.
+        """
+        if self._server_service is not None:
+            return self._server_service
+
+        # Lazy import to avoid circular dependency
+        from vintagestory_api.services.server import get_server_service
+
+        return get_server_service()
+
+
+# Module-level singleton
+_metrics_service: MetricsService | None = None
+
+
+def get_metrics_service() -> MetricsService:
+    """Get or create the metrics service singleton.
+
+    Returns:
+        MetricsService instance.
+    """
+    global _metrics_service
+    if _metrics_service is None:
+        _metrics_service = MetricsService()
+    return _metrics_service
+
+
+def reset_metrics_service() -> None:
+    """Reset the metrics service singleton.
+
+    Used for testing to ensure clean state between tests.
+    """
+    global _metrics_service
+    _metrics_service = None

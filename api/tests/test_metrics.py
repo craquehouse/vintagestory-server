@@ -7,8 +7,15 @@ from datetime import datetime
 
 import pytest
 
+import psutil
+
 from vintagestory_api.models.metrics import MetricsSnapshot
-from vintagestory_api.services.metrics import MetricsBuffer
+from vintagestory_api.services.metrics import (
+    MetricsBuffer,
+    MetricsService,
+    get_metrics_service,
+    reset_metrics_service,
+)
 
 
 class TestMetricsSnapshot:
@@ -211,3 +218,217 @@ class TestMetricsBuffer:
         assert len(buffer) == 0
         assert buffer.get_latest() is None
         assert buffer.get_all() == []
+
+
+class TestMetricsService:
+    """Tests for MetricsService."""
+
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self) -> None:
+        """Reset metrics service singleton before each test."""
+        reset_metrics_service()
+        yield
+        reset_metrics_service()
+
+    def test_collect_returns_snapshot_with_api_metrics(self) -> None:
+        """Test that collect() returns a snapshot with API metrics (AC: 1)."""
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer, server_service=None)
+
+        snapshot = service.collect()
+
+        assert snapshot.timestamp is not None
+        assert snapshot.api_memory_mb > 0  # Must have some memory usage
+        assert snapshot.api_cpu_percent >= 0  # CPU can be 0 but not negative
+
+    def test_collect_stores_snapshot_in_buffer(self) -> None:
+        """Test that collect() adds snapshot to buffer."""
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer, server_service=None)
+
+        assert len(buffer) == 0
+
+        service.collect()
+
+        assert len(buffer) == 1
+
+    def test_collect_without_game_server_returns_none_for_game_metrics(
+        self,
+    ) -> None:
+        """Test that game metrics are None when server not running (AC: 3)."""
+        buffer = MetricsBuffer(capacity=10)
+        # No server service means no game server
+        service = MetricsService(buffer=buffer, server_service=None)
+
+        snapshot = service.collect()
+
+        # API metrics should be present
+        assert snapshot.api_memory_mb > 0
+        # Game metrics should be None
+        assert snapshot.game_memory_mb is None
+        assert snapshot.game_cpu_percent is None
+
+    def test_collect_with_game_server_running(self) -> None:
+        """Test that game metrics are collected when server is running (AC: 2)."""
+        from unittest.mock import MagicMock, patch
+
+        buffer = MetricsBuffer(capacity=10)
+
+        # Mock server service with a running process
+        mock_server_service = MagicMock()
+        mock_process = MagicMock()
+        mock_process.returncode = None  # Process is running
+        mock_process.pid = 12345
+        mock_server_service._process = mock_process
+
+        # Mock psutil.Process for the game server PID
+        mock_game_process = MagicMock()
+        mock_memory_info = MagicMock()
+        mock_memory_info.rss = 512 * 1024 * 1024  # 512 MB
+        mock_game_process.memory_info.return_value = mock_memory_info
+        mock_game_process.cpu_percent.return_value = 45.5
+
+        # Patch psutil.Process to return our mock for game server PID
+        original_process = psutil.Process
+
+        def mock_process_factory(pid=None):
+            if pid == 12345:
+                return mock_game_process
+            return original_process(pid)
+
+        with patch(
+            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
+        ):
+            service = MetricsService(buffer=buffer, server_service=mock_server_service)
+            snapshot = service.collect()
+
+        # Game metrics should be present
+        assert snapshot.game_memory_mb == 512.0
+        assert snapshot.game_cpu_percent == 45.5
+
+    def test_graceful_degradation_on_no_such_process(self) -> None:
+        """Test graceful handling when game process disappears (AC: 3)."""
+        from unittest.mock import MagicMock, patch
+
+        buffer = MetricsBuffer(capacity=10)
+
+        # Mock server service with a "running" process
+        mock_server_service = MagicMock()
+        mock_process = MagicMock()
+        mock_process.returncode = None
+        mock_process.pid = 99999
+        mock_server_service._process = mock_process
+
+        # Mock psutil.Process to raise NoSuchProcess
+        original_process = psutil.Process
+
+        def mock_process_factory(pid=None):
+            if pid == 99999:
+                raise psutil.NoSuchProcess(pid)
+            return original_process(pid)
+
+        with patch(
+            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
+        ):
+            service = MetricsService(buffer=buffer, server_service=mock_server_service)
+
+            # Should not raise, should return None for game metrics
+            snapshot = service.collect()
+
+        assert snapshot.api_memory_mb > 0  # API metrics still work
+        assert snapshot.game_memory_mb is None
+        assert snapshot.game_cpu_percent is None
+
+    def test_graceful_degradation_on_access_denied(self) -> None:
+        """Test graceful handling when access to game process denied (AC: 3)."""
+        from unittest.mock import MagicMock, patch
+
+        buffer = MetricsBuffer(capacity=10)
+
+        # Mock server service with a "running" process
+        mock_server_service = MagicMock()
+        mock_process = MagicMock()
+        mock_process.returncode = None
+        mock_process.pid = 88888
+        mock_server_service._process = mock_process
+
+        # Mock psutil.Process to raise AccessDenied
+        original_process = psutil.Process
+
+        def mock_process_factory(pid=None):
+            if pid == 88888:
+                raise psutil.AccessDenied(pid)
+            return original_process(pid)
+
+        with patch(
+            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
+        ):
+            service = MetricsService(buffer=buffer, server_service=mock_server_service)
+
+            # Should not raise, should return None for game metrics
+            snapshot = service.collect()
+
+        assert snapshot.api_memory_mb > 0  # API metrics still work
+        assert snapshot.game_memory_mb is None
+        assert snapshot.game_cpu_percent is None
+
+    def test_get_game_server_pid_returns_none_when_process_is_none(self) -> None:
+        """Test _get_game_server_pid returns None when no process."""
+        # Create mock server service with no process
+        from unittest.mock import MagicMock
+
+        mock_server_service = MagicMock()
+        mock_server_service._process = None
+
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer, server_service=mock_server_service)
+
+        assert service._get_game_server_pid() is None
+
+    def test_get_game_server_pid_returns_none_when_process_terminated(self) -> None:
+        """Test _get_game_server_pid returns None when process has terminated."""
+        from unittest.mock import MagicMock
+
+        mock_server_service = MagicMock()
+        mock_process = MagicMock()
+        mock_process.returncode = 0  # Process has exited
+        mock_process.pid = 12345
+        mock_server_service._process = mock_process
+
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer, server_service=mock_server_service)
+
+        assert service._get_game_server_pid() is None
+
+    def test_buffer_property(self) -> None:
+        """Test that buffer property returns the buffer."""
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer)
+
+        assert service.buffer is buffer
+
+
+class TestMetricsServiceSingleton:
+    """Tests for metrics service singleton pattern."""
+
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self) -> None:
+        """Reset metrics service singleton before and after each test."""
+        reset_metrics_service()
+        yield
+        reset_metrics_service()
+
+    def test_get_metrics_service_returns_same_instance(self) -> None:
+        """Test that get_metrics_service returns the same instance."""
+        service1 = get_metrics_service()
+        service2 = get_metrics_service()
+
+        assert service1 is service2
+
+    def test_reset_metrics_service_clears_singleton(self) -> None:
+        """Test that reset clears the singleton."""
+        service1 = get_metrics_service()
+        reset_metrics_service()
+        service2 = get_metrics_service()
+
+        assert service1 is not service2
