@@ -1,6 +1,6 @@
 # Story 12.2: Metrics Collection Service
 
-Status: in-progress
+Status: done
 
 ## Story
 
