@@ -53,6 +53,7 @@ class TestApiSettingsModel:
         assert settings.enforce_env_on_restart is False
         assert settings.mod_list_refresh_interval == 3600
         assert settings.server_versions_refresh_interval == 86400
+        assert settings.metrics_collection_interval == 10  # AC: 5 default 10s
 
     def test_custom_values(self) -> None:
         """ApiSettings accepts custom values."""
@@ -60,10 +61,12 @@ class TestApiSettingsModel:
             auto_start_server=True,
             block_env_managed_settings=False,
             mod_list_refresh_interval=1800,
+            metrics_collection_interval=30,
         )
         assert settings.auto_start_server is True
         assert settings.block_env_managed_settings is False
         assert settings.mod_list_refresh_interval == 1800
+        assert settings.metrics_collection_interval == 30
 
     def test_interval_validation_rejects_negative(self) -> None:
         """Negative intervals are rejected by Pydantic validation."""
@@ -88,6 +91,7 @@ class TestGetSettings:
         assert result.block_env_managed_settings is True
         assert result.mod_list_refresh_interval == 3600
         assert result.server_versions_refresh_interval == 86400
+        assert result.metrics_collection_interval == 10
 
     def test_reads_existing_file_correctly(self, service: ApiSettingsService) -> None:
         """get_settings reads and parses existing api-settings.json."""
@@ -323,6 +327,18 @@ class TestSchedulerCallback:
         await service.update_setting("auto_start_server", True)
 
         callback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_callback_invoked_for_metrics_interval(
+        self, settings: Settings
+    ) -> None:
+        """Callback invoked for metrics_collection_interval (AC: 5)."""
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+
+        await service.update_setting("metrics_collection_interval", 30)
+
+        callback.assert_called_once_with("metrics_collection_interval", 30)
 
     @pytest.mark.asyncio
     async def test_works_without_callback(self, service: ApiSettingsService) -> None:

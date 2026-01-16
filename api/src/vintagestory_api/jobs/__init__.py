@@ -3,6 +3,7 @@
 Story 8.0: Epic 8 Preparation
 Story 8.1: Mod Cache Refresh Job
 Story 8.2: Server Versions Check Job
+Story 12.2: Metrics Collection Job
 
 This module provides the infrastructure for registering and managing periodic
 background jobs. Jobs are registered during application startup via the
@@ -46,6 +47,7 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
     Registered Jobs:
         - mod_cache_refresh (Story 8.1): Refreshes mod metadata from API
         - server_versions_check (Story 8.2): Checks for new VintageStory versions
+        - metrics_collection (Story 12.2): Collects server metrics periodically
     """
     settings = ApiSettingsService().get_settings()
     jobs_registered = 0
@@ -85,6 +87,23 @@ def register_default_jobs(scheduler: SchedulerService) -> None:
             job_id="server_versions_check",
             interval_seconds=settings.server_versions_refresh_interval,
             run_immediately=True,
+        )
+
+    # Story 12.2: metrics_collection job
+    # Registered when settings.metrics_collection_interval > 0
+    if settings.metrics_collection_interval > 0:
+        from vintagestory_api.jobs.metrics_collection import collect_metrics
+
+        scheduler.add_interval_job(
+            collect_metrics,
+            seconds=settings.metrics_collection_interval,
+            job_id="metrics_collection",
+        )
+        jobs_registered += 1
+        logger.info(
+            "job_registered",
+            job_id="metrics_collection",
+            interval_seconds=settings.metrics_collection_interval,
         )
 
     logger.info("default_jobs_registered", count=jobs_registered)

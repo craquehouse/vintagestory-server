@@ -47,6 +47,11 @@ class ApiSettings(BaseModel):
         ge=0,
         description="Seconds between checking for new VS versions (0 = disabled)",
     )
+    metrics_collection_interval: int = Field(
+        default=10,
+        ge=0,
+        description="Seconds between metrics collection (0 = disabled)",
+    )
 
 
 class ApiSettingUnknownError(Exception):
@@ -218,7 +223,12 @@ class ApiSettingsService:
         # Note: validated_value is safe to pass here because Pydantic validation
         # (including ge=0 constraint) has already succeeded above. The callback
         # will only receive valid, type-checked integer values.
-        if key in ("mod_list_refresh_interval", "server_versions_refresh_interval"):
+        interval_settings = (
+            "mod_list_refresh_interval",
+            "server_versions_refresh_interval",
+            "metrics_collection_interval",
+        )
+        if key in interval_settings:
             if self._scheduler_callback:
                 self._scheduler_callback(key, validated_value)
 
