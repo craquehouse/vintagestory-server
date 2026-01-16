@@ -26,7 +26,7 @@ The full architecture documentation is now organized in the [architecture/](arch
 | [epic-6-game-configuration-management-architecture.md](architecture/epic-6-game-configuration-management-architecture.md) | Configuration via console commands, settings maps |
 | [epic-7-8-apscheduler-integration-periodic-tasks.md](architecture/epic-7-8-apscheduler-integration-periodic-tasks.md) | Scheduler integration, periodic tasks |
 | [epic-10-architecture-decisions.md](architecture/epic-10-architecture-decisions.md) | Mod browsing, hybrid filtering, URL state |
-| [epic-12-dashboard-metrics.md](architecture/epic-12-dashboard-metrics.md) | Process metrics with psutil, Recharts charting, ring buffer storage |
+| [epic-12-dashboard-metrics.md](architecture/epic-12-dashboard-metrics.md) | Process metrics with psutil, Recharts charting, ring buffer storage _(Story 12.1)_ |
 | [epic-13-server-version-browser.md](architecture/epic-13-server-version-browser.md) | Version browser, UI reuse from Epic 10 |
 
 ## Quick Reference

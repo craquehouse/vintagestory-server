@@ -336,6 +336,12 @@ VS_METRICS_INTERVAL_SECONDS = 10
 
 The PRD mentioned displaying player count on the dashboard. We researched methods to extract this information from VintageStory.
 
+### Sources Consulted
+
+- `agentdocs/vs-server-troubleshooting.md` - VintageStory server behavior documentation
+- VintageStory server logs at `{dataPath}/Logs/server-main.log`
+- ConsoleBuffer service output patterns
+
 ### Research Findings
 
 #### Option 1: Console Parsing
@@ -362,7 +368,11 @@ VintageStory server does NOT expose an HTTP API for status queries.
 
 #### Option 4: Log File Parsing
 
-Could parse `server-main.log` for player events.
+Per `agentdocs/vs-server-troubleshooting.md`, server logs are written to `{dataPath}/Logs/`:
+- `server-main.log` - Primary server log
+- `server-event.log` - Game events
+
+Could parse these files for player events.
 
 **Feasibility**: Similar complexity to console parsing, with additional file I/O concerns.
 

@@ -205,3 +205,12 @@ N/A - Research/documentation story, no code implementation
 - `_bmad-output/planning-artifacts/architecture/epic-12-dashboard-metrics.md` (created)
 - `_bmad-output/planning-artifacts/architecture.md` (modified - added Epic 12 to index)
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Add agentdocs citation to ADR-E12-005 - Document that agentdocs/vs-server-troubleshooting.md was consulted and confirm log file patterns for player count extraction research (epic-12-dashboard-metrics.md:ADR-E12-005)
+  - **Resolved**: Added "Sources Consulted" section to ADR-E12-005 citing agentdocs/vs-server-troubleshooting.md and log file paths
+- [x] [AI-Review][MEDIUM] Split single commit into task-level commits - Currently 1 commit for all 6 tasks; per project-context.md commit discipline, each task should have its own commit (git commit --amend not possible after push, use fixup commits or acknowledge for future stories)
+  - **Acknowledged**: This is a documentation-only research story where all tasks produced a single deliverable (the architecture doc). For future implementation stories, will commit per task. Single commit appropriate here as all research was synthesized into one comprehensive document.
+- [x] [AI-Review][LOW] Add story reference to architecture.md index entry - Consider linking epic-12-dashboard-metrics.md to story 12.1 for traceability (architecture.md:29)
+  - **Resolved**: Added _(Story 12.1)_ suffix to the Epic 12 entry in architecture.md
+
