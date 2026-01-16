@@ -307,9 +307,14 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 
 ## Review Follow-ups (AI)
 
-- [ ] [AI-Review][HIGH] Create api/example-config/api-settings.json.example with metrics_collection_interval [story:203-204]
-- [ ] [AI-Review][HIGH] File tracking issue for pyright private API suppressions or add public accessor to ServerService [services/metrics.py:192-195]
-- [ ] [AI-Review][HIGH] Lazy-load psutil.Process() in MetricsService to defer initialization [services/metrics.py:117-120]
-- [ ] [AI-Review][MEDIUM] Add integration test for game server crash during metrics collection [test_metrics_job.py]
-- [ ] [AI-Review][LOW] Add single-writer thread-safety guarantee note to MetricsBuffer docstring [services/metrics.py:19-23]
+- [x] [AI-Review][HIGH] Create api/example-config/api-settings.json.example with metrics_collection_interval [story:203-204]
+  - **Resolution:** N/A - This project doesn't use example config files for api-settings. Settings are runtime-configurable via API and stored in state directory. Subtask 4.2 was already marked N/A during implementation.
+- [x] [AI-Review][HIGH] File tracking issue for pyright private API suppressions or add public accessor to ServerService [services/metrics.py:192-195]
+  - **Resolution:** Added to polish backlog as API-032. ADR-E12-002 documents the current pattern as intentional.
+- [x] [AI-Review][HIGH] Lazy-load psutil.Process() in MetricsService to defer initialization [services/metrics.py:117-120]
+  - **Resolution:** Implemented lazy initialization via `_get_api_process()` method. Process handle and CPU baseline are now created on first `collect()` call.
+- [x] [AI-Review][MEDIUM] Add integration test for game server crash during metrics collection [test_metrics_job.py]
+  - **Resolution:** Added `test_game_server_crash_during_collection()` test that simulates NoSuchProcess and verifies graceful degradation.
+- [x] [AI-Review][LOW] Add single-writer thread-safety guarantee note to MetricsBuffer docstring [services/metrics.py:19-23]
+  - **Resolution:** Already documented at lines 26-27: "Thread-safe for single writer (APScheduler job) + multiple readers (API)."
 

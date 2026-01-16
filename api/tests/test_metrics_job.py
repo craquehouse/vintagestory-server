@@ -6,6 +6,7 @@ Tests cover:
 - Job execution collects metrics successfully
 - Job uses @safe_job decorator for error handling
 - Job stores metrics in the buffer
+- Graceful degradation when game server crashes during collection
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from collections.abc import Generator
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
+import psutil
 import pytest
 
 from vintagestory_api.jobs.metrics_collection import collect_metrics
@@ -144,3 +146,47 @@ class TestCollectMetricsJobIntegration:
 
             # Buffer should be at capacity (2), oldest evicted
             assert len(service.buffer) == 2
+
+    @pytest.mark.asyncio
+    async def test_game_server_crash_during_collection(self) -> None:
+        """Metrics collection degrades gracefully when game server crashes mid-collection (AC: 3).
+
+        Simulates the scenario where:
+        1. Game server is running when PID lookup succeeds
+        2. Game server crashes between PID lookup and psutil.Process(pid) call
+        3. Collection should continue with game metrics as None
+        """
+        from vintagestory_api.services.metrics import get_metrics_service
+
+        # Create mock server service that reports a running process
+        mock_server_service = MagicMock()
+        mock_process = MagicMock()
+        mock_process.returncode = None  # Process appears to be running
+        mock_process.pid = 99999  # Non-existent PID
+        mock_server_service._process = mock_process
+
+        service = get_metrics_service()
+        # Inject mock for testing - ADR-E12-002 pattern
+        service._server_service = mock_server_service  # pyright: ignore[reportPrivateUsage]
+
+        # Make psutil.Process raise NoSuchProcess for the game server PID
+        original_process = psutil.Process
+
+        def mock_psutil_process(pid: int | None = None) -> psutil.Process:
+            if pid == 99999:
+                raise psutil.NoSuchProcess(pid)
+            return original_process(pid)
+
+        with patch(
+            "vintagestory_api.services.metrics.psutil.Process",
+            side_effect=mock_psutil_process,
+        ):
+            # Should not raise - graceful degradation
+            await collect_metrics()
+
+            # Check that metrics were collected with None for game values
+            snapshot = service.buffer.get_latest()
+            assert snapshot is not None
+            assert snapshot.api_memory_mb > 0  # API metrics collected
+            assert snapshot.game_memory_mb is None  # Game metrics None
+            assert snapshot.game_cpu_percent is None

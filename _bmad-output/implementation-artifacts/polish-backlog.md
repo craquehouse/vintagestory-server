@@ -88,6 +88,7 @@ Tracks small-to-medium improvements discovered during development and testing th
 | API-029 | Browse endpoint: Add `sort=name` option for alphabetical sorting (Epic specifies 5 sort options, implemented 3)                         | low      | S      | backlog | Story-10.1 | Simple addition; deferred as downloads/trending/recent cover primary use cases                               |
 | API-030 | Documentation: Align Epic-10 and Story-10.1 parameter naming (`per_page` vs `page_size`) and sort options                               | low      | S      | backlog | Story-10.1 | Update Epic to use `page_size` and document final 3 sort options as intentional scope                        |
 | API-031 | Documentation: Update Story-10.1 AC1 to enumerate all 11 response fields (currently lists 7)                                            | low      | S      | backlog | Story-10.1 | Add: follows, trending_points, side, mod_type, last_released                                                 |
+| API-032 | ServerService-public-accessor-for-process-PID | medium | S | backlog | - | - |
 
 ---
 

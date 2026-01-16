@@ -96,8 +96,9 @@ class MetricsService:
     Collects metrics from both the API server process and the game server
     process (when running). Uses psutil for process-level resource metrics.
 
-    The service initializes CPU percent tracking on startup to get accurate
-    readings (first call to cpu_percent() returns 0.0 as baseline).
+    The API process handle is lazily initialized on first collect() call
+    to defer overhead until actually needed. CPU percent tracking baseline
+    is also initialized at that time (first call returns 0.0).
     """
 
     def __init__(
@@ -114,10 +115,8 @@ class MetricsService:
         """
         self._buffer = buffer if buffer is not None else MetricsBuffer()
         self._server_service = server_service
-        # Initialize API process for metrics collection
-        self._api_process = psutil.Process()
-        # Initialize CPU percent baseline (first call returns 0.0)
-        self._api_process.cpu_percent(interval=None)
+        # Lazy-loaded on first collect() call
+        self._api_process: psutil.Process | None = None
         logger.info("metrics_service_initialized", buffer_capacity=self._buffer.capacity)
 
     @property
@@ -163,15 +162,32 @@ class MetricsService:
 
         return snapshot
 
+    def _get_api_process(self) -> psutil.Process:
+        """Get or create the API process handle.
+
+        Lazy initialization defers psutil overhead until first use.
+        CPU percent baseline is also initialized on first call.
+
+        Returns:
+            psutil.Process handle for the current API process.
+        """
+        if self._api_process is None:
+            self._api_process = psutil.Process()
+            # Initialize CPU percent baseline (first call returns 0.0)
+            self._api_process.cpu_percent(interval=None)
+            logger.debug("api_process_initialized", pid=self._api_process.pid)
+        return self._api_process
+
     def _get_api_metrics(self) -> tuple[float, float]:
         """Get API server process metrics.
 
         Returns:
             Tuple of (memory_mb, cpu_percent).
         """
-        memory_info = self._api_process.memory_info()
+        api_process = self._get_api_process()
+        memory_info = api_process.memory_info()
         memory_mb = memory_info.rss / (1024 * 1024)  # Resident Set Size in MB
-        cpu_percent = self._api_process.cpu_percent(interval=None)  # Non-blocking
+        cpu_percent = api_process.cpu_percent(interval=None)  # Non-blocking
         return memory_mb, cpu_percent
 
     def _get_game_server_pid(self) -> int | None:
