@@ -1,6 +1,6 @@
 # Story 12.2: Metrics Collection Service
 
-Status: done
+Status: in-progress
 
 ## Story
 
@@ -304,4 +304,12 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - api/tests/test_metrics_job.py (NEW - job execution tests)
 - api/tests/test_api_settings.py (MODIFIED - added metrics interval tests)
 - api/tests/test_jobs_registration.py (MODIFIED - added metrics job registration tests)
+
+## Review Follow-ups (AI)
+
+- [ ] [AI-Review][HIGH] Create api/example-config/api-settings.json.example with metrics_collection_interval [story:203-204]
+- [ ] [AI-Review][HIGH] File tracking issue for pyright private API suppressions or add public accessor to ServerService [services/metrics.py:192-195]
+- [ ] [AI-Review][HIGH] Lazy-load psutil.Process() in MetricsService to defer initialization [services/metrics.py:117-120]
+- [ ] [AI-Review][MEDIUM] Add integration test for game server crash during metrics collection [test_metrics_job.py]
+- [ ] [AI-Review][LOW] Add single-writer thread-safety guarantee note to MetricsBuffer docstring [services/metrics.py:19-23]
 
