@@ -143,7 +143,7 @@ development_status:
   # Epic 12: Enhanced Dashboard with Server Metrics
   # FRs: Dashboard improvements with stats and quick actions
   epic-12: in-progress
-  12-1-epic-12-technical-preparation: ready-for-dev
+  12-1-epic-12-technical-preparation: done
   12-2-metrics-collection-service: backlog
   12-3-metrics-api-endpoints: backlog
   12-4-dashboard-stats-cards: backlog
