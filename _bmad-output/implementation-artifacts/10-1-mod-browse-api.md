@@ -13,7 +13,7 @@ So that **I can discover and evaluate mods for installation**.
 1. **Given** I am authenticated as Admin or Monitor
    **When** I call `GET /api/v1alpha1/mods/browse`
    **Then** I receive a paginated list of all available mods from the mod database
-   **And** each mod includes: slug, name, author, summary, downloads, tags, logo URL
+   **And** each mod includes: slug, name, author, summary, downloads, follows, trending_points, side, mod_type, logo_url, tags, last_released
    *(Covers FR56)*
 
 2. **Given** I am browsing mods
