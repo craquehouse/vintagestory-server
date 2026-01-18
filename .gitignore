@@ -100,4 +100,4 @@ Thumbs.db
 .playwright-mcp
 
 # Beads
-.beads/bd.sock.startsock
+.beads/bd.sock.startlock
