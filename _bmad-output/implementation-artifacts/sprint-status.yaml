@@ -165,35 +165,6 @@ development_status:
   13-7-server-uninstall-ui: done
   epic-13-retrospective: done
 # RETRO ACTION ITEMS
-# Track action items from retrospectives to ensure follow-through
-# NOTE: After Epic 12 retro, action items will migrate to beads with 'retroaction' label
-retro_action_items:
-  # Epic 12 Action Items (from 2026-01-18 retrospective)
-  E12-A1-update-manual-verification-docs-docker: done # Owner: Bob (SM) + Charlie - Update story template and project-context.md to prefer Docker over dev servers for manual validation
-  E12-A2-close-pending-e13-action-items: done # Owner: Matt - Close E13-A1, E13-A3, E13-A4 or convert to beads issues
-  E12-A3-migrate-retro-items-to-beads: pending # Owner: Matt - Convert all retro_action_items to beads issues with 'retroaction' label
-  # Epic 13 Action Items (from 2026-01-14 retrospective)
-  E13-A1-fix-code-suppression-documentation-gap: done # Owner: All Devs - All eslint-disable statements need inline comments explaining why + tracking reference
-  E13-A2-eliminate-story-zero-naming: done # Owner: Bob (SM) - Epic 12 starts at Story 12-1 (completed)
-  E13-A3-exclude-sprint-status-from-file-list: done # Owner: Bob (SM) - Document in project-context.md that sprint-status.yaml excluded from File List tracking
-  E13-A4-update-file-list-in-realtime: done # Owner: All Devs - Vague item; should become documentation rule or be dropped
-  E13-A5-renumber-epic-12-stories: done # Owner: Bob (SM) - Stories are 12-1 through 12-5 (completed)
-  # Epic 11 Action Items (from 2026-01-11 retrospective)
-  E11-A1-theme-consistency-audit-polish-backlog: done # Owner: Dana (QA) - Added UI-032 to polish backlog
-  E11-A2-complete-polish-backlog-prioritization: done # Owner: Alice (PO) - Reviewed high priority items; API-005, API-007, API-024 marked done
-  E11-A3-improve-file-list-discipline: done # Owner: All Devs - Refined with E13-A3 and E13-A4 (clearer guidance now)
-  # Epic 10 Action Items (from 2026-01-10 retrospective)
-  E10-A1-add-retro-action-tracking-mechanism: done # Already exists via E9-A1
-  E10-A2-create-api-spike-story-template: done # Created template-api-spike.md in create-story workflow
-  E10-A3-document-epic10-architecture-decisions: done # Added 5 ADRs to architecture.md (hybrid filtering, conservative compat, cache invalidation, URL state, browse cache)
-  E10-A4-review-prioritize-polish-backlog: done # Owner: Alice (PO) - completed with E11-A2
-  E10-A5-audit-previous-retro-action-items: done # E8-A1/A2/A3 already marked done
-  # Epic 9 Action Items (from 2026-01-05)
-  E9-A1-add-retro-section-to-sprint-status: done # This section exists
-  E9-A2-review-polish-backlog-at-epic-10-kickoff: done # 4 items added to backlog during Epic 10
-  E9-A3-document-enhancement-story-process: done # Owner: Charlie - add to project-context.md
-  E9-A4-pre-epic-checklist-verify-previous-retro: done # Owner: Bob
-  # Outstanding Epic 8 Action Items (carried forward - need audit per E10-A5)
-  E8-A1-add-ui-testing-philosophy-to-architecture: done # From Epic 8 retro
-  E8-A2-improve-placeholder-code-documentation: done # From Epic 8 retro
-  E8-A3-document-research-driven-preparation-pattern: done # From Epic 8 retro
+# Action items from retrospectives are now tracked in beads with the RETRO label.
+# Run: bd list --label RETRO --status open
+# See: project-context.md "Retrospective Action Item Tracking" section

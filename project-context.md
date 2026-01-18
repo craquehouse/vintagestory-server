@@ -815,14 +815,65 @@ Story files contain a "Files Modified/Created" section to track what was changed
 
 ---
 
+## Retrospective Action Item Tracking
+
+Action items from retrospectives are tracked in beads with the `RETRO` label.
+
+### Structure (3-Tier Hierarchy)
+
+```
+Epic shell (type: epic, label: RETRO)
+└── Retrospective container (type: task, label: RETRO)
+    └── Action items (type: task, label: RETRO)
+```
+
+**Example:**
+```
+Epic 12: Enhanced Dashboard with Server Metrics (epic)
+└── Epic 12 Retrospective (task)
+    ├── E12-A1: Update manual verification docs... (task)
+    ├── E12-A2: Close all pending E13 action items... (task)
+    └── E12-A3: Migrate historical retro items to beads... (task)
+```
+
+### Common Commands
+
+```bash
+# View all open retro action items
+bd list --label RETRO --status open
+
+# View all RETRO issues (open + closed)
+bd list --label RETRO
+
+# Create action item during retrospective
+bd create --title "E14-A1: Description" --type task --parent <retro-id> --label RETRO --priority 2 --description "Context from retrospective discussion"
+
+# Close completed action item
+bd close <id> --reason "Completed during Epic X sprint"
+
+# View specific action item details
+bd show <id>
+```
+
+### Workflow During Retrospectives
+
+1. **Create epic shell** (if not exists): `bd create --title "Epic X: Title" --type epic --label RETRO`
+2. **Create retro container**: `bd create --title "Epic X Retrospective" --type task --parent <epic-id> --label RETRO`
+3. **Create action items** as children of the retro container
+4. **Close action items** as they're completed in future sprints
+5. **Close retro container** when all action items are resolved
+6. **Close epic shell** when retrospective is fully resolved
+
+---
+
 ## Pre-Epic Checklist
 
 Before starting a new epic, verify the following:
 
 ### 1. Previous Retro Action Items (Required)
-- [ ] Review `sprint-status.yaml` `retro_action_items` section
+- [ ] Review beads issues with RETRO label: `bd list --label RETRO --status open`
 - [ ] Verify all action items from previous epic are either:
-  - Completed and marked `done`
+  - Closed with reason
   - Explicitly deferred with documented reasoning
 - [ ] Address any outstanding items before starting new work
 
@@ -854,4 +905,4 @@ Before starting a new epic, verify the following:
 
 ---
 
-_Last updated: 2026-01-18 (Added Manual Verification section: Docker-first approach for browser testing from E12 retro)_
+_Last updated: 2026-01-18 (Migrated retro action items from sprint-status.yaml to beads with RETRO label)_

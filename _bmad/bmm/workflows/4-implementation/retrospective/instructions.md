@@ -1300,7 +1300,7 @@ Bob (Scrum Master): "See you all when prep work is done. Meeting adjourned!"
 
 </step>
 
-<step n="11" goal="Save Retrospective and Update Sprint Status">
+<step n="11" goal="Save Retrospective, Create Beads Issues, and Update Sprint Status">
 
 <action>Ensure retrospectives folder exists: {retrospectives_folder}</action>
 <action>Create folder if it doesn't exist</action>
@@ -1327,6 +1327,40 @@ Bob (Scrum Master): "See you all when prep work is done. Meeting adjourned!"
 
 <output>
 ✅ Retrospective document saved: {retrospectives_folder}/epic-{{epic_number}}-retro-{date}.md
+</output>
+
+<action>Create beads issues for action items using RETRO label</action>
+
+Action items from retrospectives are tracked in beads with a 3-tier hierarchy:
+1. Epic shell (type: epic, label: RETRO)
+2. Retrospective container (type: task, parent: epic, label: RETRO)
+3. Action items (type: task, parent: retro container, label: RETRO)
+
+<action>Create epic shell if not exists:</action>
+```bash
+bd create --title "Epic {{epic_number}}: {{epic_title}}" --type epic --label RETRO --priority 4
+```
+
+<action>Create retrospective container:</action>
+```bash
+bd create --title "Epic {{epic_number}} Retrospective" --type task --parent <epic-id> --label RETRO --priority 4
+```
+
+<action>For each action item, create a beads issue:</action>
+```bash
+bd create --title "E{{epic_number}}-A{{n}}: {{description}}" --type task --parent <retro-id> --label RETRO --priority {{priority}} --description "{{context_from_retro_discussion}}"
+```
+
+<action>Verify structure:</action>
+```bash
+bd show <retro-id>
+```
+
+<output>
+✅ Beads issues created for {{action_count}} action items with RETRO label
+   Epic shell: <epic-id>
+   Retro container: <retro-id>
+   Action items: E{{epic_number}}-A1 through E{{epic_number}}-A{{action_count}}
 </output>
 
 <action>Update {sprint_status_file} to mark retrospective as completed</action>

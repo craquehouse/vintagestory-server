@@ -53,6 +53,7 @@ bd show VSS-abc --json                # JSON output
 | `INFRA` | Infrastructure/Docker/deployment |
 | `TOOLS` | Development tooling/scripts |
 | `CICD` | CI/CD pipeline items |
+| `RETRO` | Retrospective action items (3-tier: Epic → Retro → Action Items) |
 
 ### Effort Sizing (Labels)
 | Label | Description |
