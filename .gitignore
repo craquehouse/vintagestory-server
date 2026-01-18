@@ -98,3 +98,6 @@ Thumbs.db
 
 # Playwright-mcp
 .playwright-mcp
+
+# Beads
+.beads/bd.sock.startsock
