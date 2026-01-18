@@ -17,6 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MetricsChart } from './MetricsChart';
 import type { MetricsSnapshot } from '@/api/types';
 
@@ -128,7 +129,9 @@ describe('MetricsChart', () => {
       render(<MetricsChart data={mockDataWithGame} height={400} />);
 
       const chartContainer = screen.getByTestId('metrics-chart');
-      expect(chartContainer).toHaveStyle({ height: '400px' });
+      // Height is on the inner chart wrapper div (after the toggle)
+      const chartWrapper = chartContainer.querySelector('[style*="height"]');
+      expect(chartWrapper).toHaveStyle({ height: '400px' });
     });
 
     it('renders ResponsiveContainer wrapper', () => {
@@ -184,6 +187,50 @@ describe('MetricsChart', () => {
       }).not.toThrow();
 
       expect(screen.getByTestId('metrics-chart')).toBeInTheDocument();
+    });
+  });
+
+  describe('chart type toggle', () => {
+    it('renders chart type toggle with line and stacked buttons', () => {
+      render(<MetricsChart data={mockDataWithGame} />);
+
+      expect(screen.getByTestId('chart-type-toggle')).toBeInTheDocument();
+      expect(screen.getByTestId('chart-type-line')).toBeInTheDocument();
+      expect(screen.getByTestId('chart-type-stacked')).toBeInTheDocument();
+    });
+
+    it('defaults to line chart selected', () => {
+      render(<MetricsChart data={mockDataWithGame} />);
+
+      const lineButton = screen.getByTestId('chart-type-line');
+      const stackedButton = screen.getByTestId('chart-type-stacked');
+
+      expect(lineButton).toHaveAttribute('aria-pressed', 'true');
+      expect(stackedButton).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('switches to stacked area chart when toggle clicked', async () => {
+      const user = userEvent.setup();
+      render(<MetricsChart data={mockDataWithGame} />);
+
+      const stackedButton = screen.getByTestId('chart-type-stacked');
+      await user.click(stackedButton);
+
+      expect(stackedButton).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('chart-type-line')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('has accessible labels on toggle buttons', () => {
+      render(<MetricsChart data={mockDataWithGame} />);
+
+      expect(screen.getByLabelText('Line chart')).toBeInTheDocument();
+      expect(screen.getByLabelText('Stacked area chart')).toBeInTheDocument();
+    });
+
+    it('does not render toggle in empty state', () => {
+      render(<MetricsChart data={[]} />);
+
+      expect(screen.queryByTestId('chart-type-toggle')).not.toBeInTheDocument();
     });
   });
 
