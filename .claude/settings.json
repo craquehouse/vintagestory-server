@@ -1,7 +1,7 @@
 {
   "sandbox": {
     "autoAllowBashIfSandboxed": true,
-    "enabled": true
+    "enabled": false
   },
   "enabledPlugins": {
     "frontend-skills@claude-skills": true,
