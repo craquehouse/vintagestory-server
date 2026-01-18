@@ -211,4 +211,77 @@ describe('StatCard', () => {
       expect(screen.getByTestId('status-card')).toBeInTheDocument();
     });
   });
+
+  describe('accessibility', () => {
+    it('has role="region" for semantic grouping', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server Status"
+          value="Running"
+          testId="status-card"
+        />
+      );
+
+      const card = screen.getByTestId('status-card');
+      expect(card).toHaveAttribute('role', 'region');
+    });
+
+    it('has aria-label set to title for screen readers', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server Status"
+          value="Running"
+          testId="status-card"
+        />
+      );
+
+      const card = screen.getByTestId('status-card');
+      expect(card).toHaveAttribute('aria-label', 'Server Status');
+    });
+
+    it('has aria-hidden on decorative icon', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server Status"
+          value="Running"
+          testId="status-card"
+        />
+      );
+
+      const icon = document.querySelector('svg[aria-hidden="true"]');
+      expect(icon).toBeInTheDocument();
+    });
+
+    it('has aria-live="polite" on value for live updates', () => {
+      render(
+        <StatCard
+          icon={MemoryStick}
+          title="Memory Usage"
+          value="128.5 MB"
+          testId="memory-card"
+        />
+      );
+
+      const value = screen.getByTestId('memory-card-value');
+      expect(value).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('title element has id for programmatic association', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server Status"
+          value="Running"
+          testId="status-card"
+        />
+      );
+
+      const title = document.getElementById('status-card-title');
+      expect(title).toBeInTheDocument();
+      expect(title).toHaveTextContent('Server Status');
+    });
+  });
 });

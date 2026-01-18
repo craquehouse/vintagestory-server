@@ -7,6 +7,7 @@
  * Displays free/total disk space with usage percentage.
  */
 
+import { memo } from 'react';
 import { HardDrive } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import type { DiskSpaceData } from '@/api/types';
@@ -22,8 +23,12 @@ export interface DiskSpaceCardProps {
  * DiskSpaceCard displays server disk usage.
  *
  * Uses existing disk space data from useServerStatus hook.
+ * Memoized to prevent unnecessary re-renders when parent updates.
  */
-export function DiskSpaceCard({ diskSpace, isLoading }: DiskSpaceCardProps) {
+export const DiskSpaceCard = memo(function DiskSpaceCard({
+  diskSpace,
+  isLoading,
+}: DiskSpaceCardProps) {
   // Loading state
   if (isLoading) {
     return (
@@ -60,4 +65,4 @@ export function DiskSpaceCard({ diskSpace, isLoading }: DiskSpaceCardProps) {
       testId="disk-card"
     />
   );
-}
+});

@@ -394,9 +394,9 @@ describe('Dashboard', () => {
       });
 
       const grid = screen.getByTestId('dashboard-stats-grid');
-      // Check for responsive grid classes
+      // Check for responsive grid classes (sm breakpoint at 640px)
       expect(grid.className).toContain('grid');
-      expect(grid.className).toContain('md:grid-cols-2');
+      expect(grid.className).toContain('sm:grid-cols-2');
     });
 
     it('does not show stats grid when server not installed', async () => {

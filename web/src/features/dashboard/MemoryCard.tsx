@@ -10,16 +10,7 @@
 import { MemoryStick } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { useCurrentMetrics } from '@/hooks/use-metrics';
-
-/**
- * Format memory in MB to a readable string.
- */
-function formatMemory(mb: number | null | undefined): string {
-  if (mb === null || mb === undefined) {
-    return 'N/A';
-  }
-  return `${mb.toFixed(1)} MB`;
-}
+import { isValidNumeric, formatMemoryAdaptive } from '@/lib/numeric-utils';
 
 /**
  * MemoryCard displays API and Game server memory usage.
@@ -69,23 +60,31 @@ export function MemoryCard() {
     );
   }
 
-  // Compute total memory (API + Game if available)
+  // Compute total memory (API + Game if both valid)
   const apiMemory = metrics.apiMemoryMb;
   const gameMemory = metrics.gameMemoryMb;
-  const totalMemory =
-    gameMemory !== null ? apiMemory + gameMemory : apiMemory;
+  const validApiMemory = isValidNumeric(apiMemory);
+  const validGameMemory = isValidNumeric(gameMemory);
+
+  // Calculate total: use valid values only
+  let totalMemory: number | null = null;
+  if (validApiMemory && validGameMemory) {
+    totalMemory = apiMemory + gameMemory;
+  } else if (validApiMemory) {
+    totalMemory = apiMemory;
+  }
 
   return (
     <StatCard
       icon={MemoryStick}
       title="Memory Usage"
-      value={`${totalMemory.toFixed(1)} MB`}
+      value={formatMemoryAdaptive(totalMemory)}
       testId="memory-card"
     >
       <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-        <div data-testid="memory-card-api">API: {formatMemory(apiMemory)}</div>
+        <div data-testid="memory-card-api">API: {formatMemoryAdaptive(apiMemory)}</div>
         <div data-testid="memory-card-game">
-          Game: {formatMemory(gameMemory)}
+          Game: {formatMemoryAdaptive(gameMemory)}
         </div>
       </div>
     </StatCard>

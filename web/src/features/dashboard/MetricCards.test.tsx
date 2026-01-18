@@ -152,6 +152,84 @@ describe('MemoryCard', () => {
       expect(screen.getByText('No data')).toBeInTheDocument();
     });
   });
+
+  it('handles NaN memory values gracefully', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            timestamp: '2026-01-17T10:30:00Z',
+            apiMemoryMb: NaN,
+            apiCpuPercent: 2.3,
+            gameMemoryMb: 512.0,
+            gameCpuPercent: 15.2,
+          },
+        }),
+    });
+    globalThis.fetch = mockFetch;
+
+    const queryClient = createTestQueryClient();
+    render(<MemoryCard />, { wrapper: createWrapper(queryClient) });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: N/A');
+    });
+  });
+
+  it('handles negative memory values gracefully', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            timestamp: '2026-01-17T10:30:00Z',
+            apiMemoryMb: -50,
+            apiCpuPercent: 2.3,
+            gameMemoryMb: 512.0,
+            gameCpuPercent: 15.2,
+          },
+        }),
+    });
+    globalThis.fetch = mockFetch;
+
+    const queryClient = createTestQueryClient();
+    render(<MemoryCard />, { wrapper: createWrapper(queryClient) });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: N/A');
+    });
+    // Total should only show game memory since API is invalid
+    expect(screen.getByTestId('memory-card-value')).toHaveTextContent('N/A');
+  });
+
+  it('handles Infinity memory values gracefully', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            timestamp: '2026-01-17T10:30:00Z',
+            apiMemoryMb: Infinity,
+            apiCpuPercent: 2.3,
+            gameMemoryMb: null,
+            gameCpuPercent: null,
+          },
+        }),
+    });
+    globalThis.fetch = mockFetch;
+
+    const queryClient = createTestQueryClient();
+    render(<MemoryCard />, { wrapper: createWrapper(queryClient) });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: N/A');
+    });
+    expect(screen.getByTestId('memory-card-value')).toHaveTextContent('N/A');
+  });
 });
 
 describe('DiskSpaceCard', () => {
@@ -229,6 +307,25 @@ describe('UptimeCard', () => {
 
   it('shows N/A when uptime unavailable but server running', () => {
     render(<UptimeCard uptimeSeconds={null} isRunning={true} />);
+
+    expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
+  });
+
+  it('handles NaN uptime values gracefully', () => {
+    render(<UptimeCard uptimeSeconds={NaN} isRunning={true} />);
+
+    expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
+    expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Uptime unavailable');
+  });
+
+  it('handles Infinity uptime values gracefully', () => {
+    render(<UptimeCard uptimeSeconds={Infinity} isRunning={true} />);
+
+    expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
+  });
+
+  it('handles negative uptime values gracefully', () => {
+    render(<UptimeCard uptimeSeconds={-100} isRunning={true} />);
 
     expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
   });

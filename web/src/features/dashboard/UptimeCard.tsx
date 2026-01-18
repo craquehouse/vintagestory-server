@@ -7,8 +7,10 @@
  * Shows "N/A" when server is not running.
  */
 
+import { memo } from 'react';
 import { Clock } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
+import { isValidNumeric } from '@/lib/numeric-utils';
 
 export interface UptimeCardProps {
   /** Uptime in seconds */
@@ -21,6 +23,7 @@ export interface UptimeCardProps {
 
 /**
  * Format uptime seconds into a human-readable string.
+ * Handles invalid values by returning 'N/A'.
  *
  * Examples:
  * - 45 -> "45s"
@@ -29,12 +32,20 @@ export interface UptimeCardProps {
  * - 90061 -> "1d 1h"
  */
 function formatUptime(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds}s`;
+  // Guard against invalid values that slipped through
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return 'N/A';
   }
 
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+  // Round to integer to avoid fractional display issues
+  const roundedSeconds = Math.floor(seconds);
+
+  if (roundedSeconds < 60) {
+    return `${roundedSeconds}s`;
+  }
+
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
   if (minutes < 60) {
     return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
   }
@@ -70,8 +81,13 @@ function getUptimeDescription(seconds: number): string {
  * UptimeCard displays server uptime.
  *
  * Uses existing uptime data from useServerStatus hook.
+ * Memoized to prevent unnecessary re-renders when parent updates.
  */
-export function UptimeCard({ uptimeSeconds, isRunning, isLoading }: UptimeCardProps) {
+export const UptimeCard = memo(function UptimeCard({
+  uptimeSeconds,
+  isRunning,
+  isLoading,
+}: UptimeCardProps) {
   // Loading state
   if (isLoading) {
     return (
@@ -97,8 +113,8 @@ export function UptimeCard({ uptimeSeconds, isRunning, isLoading }: UptimeCardPr
     );
   }
 
-  // No uptime data available
-  if (uptimeSeconds === null || uptimeSeconds === undefined) {
+  // No uptime data available or invalid value (NaN, Infinity, negative)
+  if (!isValidNumeric(uptimeSeconds)) {
     return (
       <StatCard
         icon={Clock}
@@ -119,4 +135,4 @@ export function UptimeCard({ uptimeSeconds, isRunning, isLoading }: UptimeCardPr
       testId="uptime-card"
     />
   );
-}
+});

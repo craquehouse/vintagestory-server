@@ -12,6 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
 
+// Re-export skeleton for convenience
+export { StatCardSkeleton } from './StatCardSkeleton';
+
 export interface StatCardProps {
   /** Lucide icon component to display */
   icon: LucideIcon;
@@ -54,15 +57,26 @@ export function StatCard({
   testId,
 }: StatCardProps) {
   return (
-    <Card className={cn('min-h-[140px]', className)} data-testid={testId}>
+    <Card
+      className={cn('min-h-[140px]', className)}
+      data-testid={testId}
+      role="region"
+      aria-label={title}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
-          <CardTitle className="text-base font-medium">{title}</CardTitle>
+          <CardTitle className="text-base font-medium" id={testId ? `${testId}-title` : undefined}>
+            {title}
+          </CardTitle>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold" data-testid={testId ? `${testId}-value` : undefined}>
+        <div
+          className="text-2xl font-bold"
+          data-testid={testId ? `${testId}-value` : undefined}
+          aria-live="polite"
+        >
           {value}
         </div>
         {subtitle && (

@@ -7,6 +7,7 @@
  * Integrates with existing ServerControls component.
  */
 
+import { memo } from 'react';
 import { Server } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
@@ -27,8 +28,13 @@ export interface ServerStatusCardProps {
  *
  * Uses existing ServerStatusBadge and ServerControls components.
  * Provides Start/Stop/Restart buttons (AC: 3).
+ * Memoized to prevent unnecessary re-renders when parent updates.
  */
-export function ServerStatusCard({ state, version, isLoading }: ServerStatusCardProps) {
+export const ServerStatusCard = memo(function ServerStatusCard({
+  state,
+  version,
+  isLoading,
+}: ServerStatusCardProps) {
   // Loading state
   if (isLoading) {
     return (
@@ -69,4 +75,4 @@ export function ServerStatusCard({ state, version, isLoading }: ServerStatusCard
       </CardContent>
     </Card>
   );
-}
+});

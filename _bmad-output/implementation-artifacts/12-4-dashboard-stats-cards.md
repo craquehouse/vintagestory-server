@@ -1,6 +1,6 @@
 # Story 12.4: Dashboard Stats Cards
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -78,6 +78,23 @@ Each task includes tests and maps to specific ACs.
   - [x] Subtask 5.5: Test with server stopped (game metrics show N/A)
   - [x] Subtask 5.6: Test responsive layout at mobile breakpoint
   - [x] Subtask 5.7: Verify metrics update every 10 seconds
+
+### Review Follow-ups (AI)
+
+**Generated:** Sat Jan 17 2026 by Code Review Agent (Story 12.4)
+
+**Summary:** All acceptance criteria met, 10 issues found (0 critical, 7 medium, 3 low). Story is ready for completion with optional polish items.
+
+- [x] [AI-Review][MEDIUM] Add input validation to MemoryCard for negative/NaN memory values [web/src/features/dashboard/MemoryCard.tsx:72-76]
+- [x] [AI-Review][MEDIUM] Add input validation to UptimeCard for NaN/Infinity/negative seconds [web/src/features/dashboard/UptimeCard.tsx:31-51]
+- [x] [AI-Review][MEDIUM] Add memoization to Dashboard stat cards to prevent unnecessary re-renders [web/src/features/dashboard/Dashboard.tsx:98-116]
+- [x] [AI-Review][MEDIUM] Standardize null/undefined handling across card components (create utility) [web/src/features/dashboard/*.tsx]
+- [x] [AI-Review][MEDIUM] Add test to verify 10-second polling interval configuration [web/src/hooks/use-metrics.test.tsx]
+- [x] [AI-Review][MEDIUM] Add intermediate responsive breakpoint for tablet/sm laptop screens [web/src/features/dashboard/Dashboard.tsx:98]
+- [x] [AI-Review][MEDIUM] Add accessibility tests for keyboard navigation and ARIA labels [test files]
+- [x] [AI-Review][LOW] Consider individual error boundaries for stat cards [web/src/features/dashboard/Dashboard.tsx]
+- [x] [AI-Review][LOW] Consider adaptive memory formatting (GB for large values) [web/src/features/dashboard/MemoryCard.tsx:17-22]
+- [x] [AI-Review][LOW] Add skeleton loaders for loading states (UX polish) [all card components]
 
 ## Dev Notes
 
@@ -358,20 +375,27 @@ Claude Opus 4.5 (claude-opus-4-5-20251101)
 - Task 3: Created MemoryCard, DiskSpaceCard, UptimeCard, ServerStatusCard. MemoryCard shows N/A for game metrics when not running (AC: 4). ServerStatusCard includes controls (AC: 3). All 22 tests passing.
 - Task 4: Refactored Dashboard to use 2-column responsive grid with all 4 stat cards. Added grid tests. Full test suite passes (1293 API + 1415 web tests).
 - Task 5: Manual browser verification completed via Docker. All acceptance criteria verified.
+- Review Follow-ups: Addressed all 10 review items (7 MEDIUM + 3 LOW). MEDIUM: input validation for MemoryCard/UptimeCard, memoization for stat cards, shared numeric-utils utility, polling interval test, sm breakpoint, and accessibility tests with ARIA attributes. LOW: error boundaries for stat cards, adaptive memory formatting (MB/GB), skeleton loaders for loading states. All 1464 tests passing.
 
 ### File List
 
 - web/src/api/types.ts (MODIFIED - added MetricsSnapshot and MetricsHistoryResponse types)
 - web/src/api/query-keys.ts (MODIFIED - added metrics query keys)
 - web/src/hooks/use-metrics.ts (NEW)
-- web/src/hooks/use-metrics.test.tsx (NEW)
-- web/src/components/StatCard.tsx (NEW)
-- web/src/components/StatCard.test.tsx (NEW)
-- web/src/features/dashboard/MemoryCard.tsx (NEW)
-- web/src/features/dashboard/DiskSpaceCard.tsx (NEW)
-- web/src/features/dashboard/UptimeCard.tsx (NEW)
-- web/src/features/dashboard/ServerStatusCard.tsx (NEW)
-- web/src/features/dashboard/MetricCards.test.tsx (NEW)
-- web/src/features/dashboard/Dashboard.tsx (MODIFIED - refactored to stat cards grid)
-- web/src/features/dashboard/Dashboard.test.tsx (MODIFIED - added stat cards grid tests)
+- web/src/hooks/use-metrics.test.tsx (MODIFIED - added polling interval test)
+- web/src/components/StatCard.tsx (MODIFIED - added ARIA attributes, re-exports skeleton)
+- web/src/components/StatCard.test.tsx (MODIFIED - added accessibility tests)
+- web/src/components/StatCardSkeleton.tsx (NEW - skeleton loading component)
+- web/src/components/StatCardSkeleton.test.tsx (NEW)
+- web/src/components/StatCardErrorBoundary.tsx (NEW - error boundary for stat cards)
+- web/src/components/StatCardErrorBoundary.test.tsx (NEW)
+- web/src/lib/numeric-utils.ts (MODIFIED - added formatMemoryAdaptive for MB/GB)
+- web/src/lib/numeric-utils.test.ts (MODIFIED - added formatMemoryAdaptive tests)
+- web/src/features/dashboard/MemoryCard.tsx (MODIFIED - uses formatMemoryAdaptive, shared utility)
+- web/src/features/dashboard/DiskSpaceCard.tsx (MODIFIED - added memoization)
+- web/src/features/dashboard/UptimeCard.tsx (MODIFIED - added input validation, memoization, uses shared utility)
+- web/src/features/dashboard/ServerStatusCard.tsx (MODIFIED - added memoization)
+- web/src/features/dashboard/MetricCards.test.tsx (MODIFIED - added validation tests for NaN/Infinity/negative)
+- web/src/features/dashboard/Dashboard.tsx (MODIFIED - sm breakpoint, error boundaries)
+- web/src/features/dashboard/Dashboard.test.tsx (MODIFIED - updated responsive breakpoint test)
 

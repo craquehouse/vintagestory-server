@@ -9,9 +9,10 @@
  * - Disk Space
  * - Uptime
  *
- * Layout:
- * - Desktop (md+): 2-column grid (AC: 5)
- * - Mobile (<md): Single column, stacked (AC: 5)
+ * Layout (responsive breakpoints):
+ * - Mobile (<sm): Single column, stacked (AC: 5)
+ * - Tablet/small laptop (sm-lg): 2-column grid
+ * - Desktop (lg+): 2-column grid (AC: 5)
  */
 
 import { AlertCircle } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/card';
 import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
 import { EmptyServerState } from '@/components/EmptyServerState';
+import { StatCardErrorBoundary } from '@/components/StatCardErrorBoundary';
 import { useServerStatus, useServerStateToasts } from '@/hooks/use-server-status';
 import { isServerInstalled } from '@/lib/server-utils';
 import { ServerStatusCard } from './ServerStatusCard';
@@ -94,25 +96,35 @@ export function Dashboard() {
       {/* Disk space warning banner - shown when space is low */}
       <DiskSpaceWarningBanner diskSpace={serverStatus?.diskSpace} />
 
-      {/* Stat cards grid: 2 cols on md+, 1 col on mobile (AC: 1, 5) */}
-      <div className="grid gap-4 md:grid-cols-2" data-testid="dashboard-stats-grid">
+      {/* Stat cards grid: responsive layout (AC: 1, 5)
+          - Mobile (<640px): 1 column
+          - Tablet/sm laptop (640px+): 2 columns */}
+      <div className="grid gap-4 sm:grid-cols-2" data-testid="dashboard-stats-grid">
         {/* Server Status with controls (AC: 3) */}
-        <ServerStatusCard
-          state={state}
-          version={serverStatus?.version}
-        />
+        <StatCardErrorBoundary title="Server Status" testId="server-status-card">
+          <ServerStatusCard
+            state={state}
+            version={serverStatus?.version}
+          />
+        </StatCardErrorBoundary>
 
         {/* Memory Usage with API/Game breakdown (AC: 2, 4) */}
-        <MemoryCard />
+        <StatCardErrorBoundary title="Memory Usage" testId="memory-card">
+          <MemoryCard />
+        </StatCardErrorBoundary>
 
         {/* Disk Space */}
-        <DiskSpaceCard diskSpace={serverStatus?.diskSpace} />
+        <StatCardErrorBoundary title="Disk Space" testId="disk-card">
+          <DiskSpaceCard diskSpace={serverStatus?.diskSpace} />
+        </StatCardErrorBoundary>
 
         {/* Uptime */}
-        <UptimeCard
-          uptimeSeconds={serverStatus?.uptimeSeconds}
-          isRunning={isRunning}
-        />
+        <StatCardErrorBoundary title="Uptime" testId="uptime-card">
+          <UptimeCard
+            uptimeSeconds={serverStatus?.uptimeSeconds}
+            isRunning={isRunning}
+          />
+        </StatCardErrorBoundary>
       </div>
     </div>
   );
