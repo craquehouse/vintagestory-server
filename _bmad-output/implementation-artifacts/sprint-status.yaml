@@ -148,7 +148,6 @@ development_status:
   12-3-metrics-api-endpoints: done
   12-4-dashboard-stats-cards: done
   12-5-dashboard-time-series-charts: done
-  12-6-quick-actions-links: backlog
   epic-12-retrospective: optional
   # Epic 13: Server Version Browser (NEXT EPIC - selected over Epic 12)
   # FRs: Browse and manage VintageStory server versions
