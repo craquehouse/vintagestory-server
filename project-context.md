@@ -525,11 +525,42 @@ just dev-api --port 8001                 # Dev server on custom port
 just dev-web                             # Start web dev server
 just install                             # Install all dependencies
 just format                              # Format all code
+
+# Docker (preferred for manual verification)
+just docker restart                      # Start fresh Docker stack
+just docker stop                         # Stop Docker stack
+just docker logs                         # Follow container logs
+just docker status                       # Check container status
 ```
 
 Run `just` with no arguments to see all available commands.
 
 **Why:** Prevents tooling confusion (e.g., `bun test` vs `bun run test`). All commands use correct tool versions via mise. Variadic args enable specific test file/pattern targeting without bypassing `just`.
+
+### Manual Verification
+
+**Docker is the preferred method for manual browser verification.**
+
+```bash
+# Start the stack (rebuilds and restarts fresh)
+just docker restart
+
+# Navigate to http://localhost:8080 in browser
+# Test the feature manually
+
+# Stop when complete
+just docker stop
+```
+
+**Why Docker over dev servers:**
+- Dev servers (`just dev-api`) cannot launch the actual VintageStory game server on non-Linux platforms (macOS, Windows)
+- Features involving server status, metrics, console, or game operations require Docker for realistic validation
+- Docker matches the production environment more closely
+
+**When dev servers are acceptable:**
+- UI-only stories that don't interact with the game server
+- Quick iteration on frontend styling or layout
+- API development that doesn't require the VintageStory process
 
 ---
 
@@ -823,4 +854,4 @@ Before starting a new epic, verify the following:
 
 ---
 
-_Last updated: 2026-01-14 (Added Story Conventions section: Story 1 numbering, File List exclusion rules from E13 retro)_
+_Last updated: 2026-01-18 (Added Manual Verification section: Docker-first approach for browser testing from E12 retro)_

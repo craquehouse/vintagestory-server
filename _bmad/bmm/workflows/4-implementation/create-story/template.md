@@ -60,7 +60,18 @@ For stories with UI components, include a manual browser verification task. Auto
 - Tests can pass while the UI looks broken, has awkward spacing, or feels sluggish
 - Manual verification catches visual/UX issues that automated tests cannot detect
 
-Add this task pattern for UI stories:
+**Preferred: Docker-based verification** (required for game server features):
+```
+- [ ] Task N: Manual browser verification (AC: all)
+  - [ ] Start the stack with `just docker restart`
+  - [ ] Navigate to http://localhost:8080 in browser
+  - [ ] Verify visual appearance matches expectations
+  - [ ] Test user interactions feel responsive and intuitive
+  - [ ] Check for console errors or warnings
+  - [ ] Stop with `just docker stop` when complete
+```
+
+**Alternative: Dev servers** (UI-only stories without game server interaction):
 ```
 - [ ] Task N: Manual browser verification (AC: all)
   - [ ] Start dev servers (`just dev-api` and `just dev-web`)
@@ -69,6 +80,8 @@ Add this task pattern for UI stories:
   - [ ] Test user interactions feel responsive and intuitive
   - [ ] Check for console errors or warnings
 ```
+
+**Why Docker is preferred:** Dev servers (`just dev-api`) cannot launch the actual VintageStory game server on non-Linux platforms. Features involving server status, metrics, console, or game operations require Docker for realistic validation.
 
 ### Security Requirements
 
