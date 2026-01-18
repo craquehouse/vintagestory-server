@@ -1,12 +1,13 @@
 /**
  * Tests for Dashboard component.
  *
+ * Story 12.4: Dashboard Stats Cards
  * Story 11.6: Dashboard & Navigation Cleanup
  *
  * Tests verify the Dashboard shows:
  * - Empty state with link to Installation page when server not installed
  * - Installing state with spinner and link to view progress
- * - Server status card with controls when server is installed
+ * - Stat cards grid with server status, memory, disk, and uptime when installed
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -194,7 +195,8 @@ describe('Dashboard', () => {
       render(<Dashboard />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByText('Stopped')).toBeInTheDocument();
+        // Look for the badge specifically (it has the role="status" aria attribute)
+        expect(screen.getByRole('status')).toHaveTextContent('Stopped');
       });
     });
 
@@ -249,7 +251,7 @@ describe('Dashboard', () => {
       });
     });
 
-    it('displays server version and uptime when running', async () => {
+    it('displays server version when running', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
         mockServerStatus(createServerStatus({
           state: 'running',
@@ -264,7 +266,6 @@ describe('Dashboard', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Version 1.21.3')).toBeInTheDocument();
-        expect(screen.getByText('Uptime: 1 hour, 1 minute')).toBeInTheDocument();
       });
     });
 
@@ -341,6 +342,77 @@ describe('Dashboard', () => {
       await waitFor(() => {
         expect(screen.getByText('Error Loading Status')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('stat cards grid (Story 12.4)', () => {
+    it('renders stats grid with 4 cards when server is installed (AC: 1)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({
+          state: 'running',
+          version: '1.21.3',
+          uptimeSeconds: 3600,
+          diskSpace: {
+            totalGb: 100,
+            usedGb: 55,
+            availableGb: 45,
+            usagePercent: 55,
+            warning: false,
+          },
+        }))
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-stats-grid')).toBeInTheDocument();
+      });
+
+      // Verify all 4 stat cards are present
+      expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
+      expect(screen.getByTestId('memory-card')).toBeInTheDocument();
+      expect(screen.getByTestId('disk-card')).toBeInTheDocument();
+      expect(screen.getByTestId('uptime-card')).toBeInTheDocument();
+    });
+
+    it('shows responsive grid layout (AC: 5)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({
+          state: 'installed',
+          version: '1.21.3',
+        }))
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-stats-grid')).toBeInTheDocument();
+      });
+
+      const grid = screen.getByTestId('dashboard-stats-grid');
+      // Check for responsive grid classes (sm breakpoint at 640px)
+      expect(grid.className).toContain('grid');
+      expect(grid.className).toContain('sm:grid-cols-2');
+    });
+
+    it('does not show stats grid when server not installed', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({ state: 'not_installed' }))
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('dashboard-stats-grid')).not.toBeInTheDocument();
     });
   });
 });

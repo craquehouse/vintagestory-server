@@ -428,3 +428,28 @@ export interface VersionDetailResponse {
   cached: boolean;
   cachedAt: string | null; // ISO 8601
 }
+
+// ===== Metrics Types (Story 12.4) =====
+
+/**
+ * Single metrics snapshot from GET /api/v1alpha1/metrics/current.
+ * Story 12.4: Dashboard Stats Cards
+ *
+ * Note: API returns snake_case with serialization aliases, apiClient transforms to camelCase.
+ * Game metrics are null if the game server is not running.
+ */
+export interface MetricsSnapshot {
+  timestamp: string; // ISO 8601
+  apiMemoryMb: number;
+  apiCpuPercent: number;
+  gameMemoryMb: number | null;
+  gameCpuPercent: number | null;
+}
+
+/**
+ * Response from GET /api/v1alpha1/metrics/history.
+ */
+export interface MetricsHistoryResponse {
+  metrics: MetricsSnapshot[];
+  count: number;
+}
