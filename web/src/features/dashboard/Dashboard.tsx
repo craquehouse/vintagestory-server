@@ -2,6 +2,7 @@
  * Dashboard page showing server status and metrics.
  *
  * Story 12.4: Dashboard Stats Cards
+ * Story 12.5: Dashboard Time-Series Charts
  *
  * Displays stat cards in a responsive grid layout:
  * - Server Status with controls (AC: 3)
@@ -9,15 +10,20 @@
  * - Disk Space
  * - Uptime
  *
+ * Also displays time-series chart (Story 12.5):
+ * - Memory usage over time with selectable time ranges
+ *
  * Layout (responsive breakpoints):
  * - Mobile (<sm): Single column, stacked (AC: 5)
  * - Tablet/small laptop (sm-lg): 2-column grid
  * - Desktop (lg+): 2-column grid (AC: 5)
  */
 
+import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -26,11 +32,14 @@ import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
 import { EmptyServerState } from '@/components/EmptyServerState';
 import { StatCardErrorBoundary } from '@/components/StatCardErrorBoundary';
 import { useServerStatus, useServerStateToasts } from '@/hooks/use-server-status';
+import { useMetricsHistory } from '@/hooks/use-metrics';
 import { isServerInstalled } from '@/lib/server-utils';
 import { ServerStatusCard } from './ServerStatusCard';
 import { MemoryCard } from './MemoryCard';
 import { DiskSpaceCard } from './DiskSpaceCard';
 import { UptimeCard } from './UptimeCard';
+import { MetricsChart } from './MetricsChart';
+import { TimeRangeSelector, DEFAULT_TIME_RANGE } from './TimeRangeSelector';
 
 /**
  * Dashboard component displaying server metrics in a card grid.
@@ -38,10 +47,15 @@ import { UptimeCard } from './UptimeCard';
  * Shows:
  * - Empty state when server not installed
  * - Stat cards grid when server is installed
+ * - Time-series chart for memory usage (Story 12.5)
  */
 export function Dashboard() {
   const { data: statusResponse, isLoading, error } = useServerStatus();
   const serverStatus = statusResponse?.data;
+
+  // Time range state for metrics chart (Story 12.5: AC 3)
+  const [timeRange, setTimeRange] = useState(DEFAULT_TIME_RANGE);
+  const { data: historyData, isLoading: isHistoryLoading, error: historyError } = useMetricsHistory(timeRange);
 
   // Show toasts when server state transitions complete
   useServerStateToasts(serverStatus?.state);
@@ -126,6 +140,36 @@ export function Dashboard() {
           />
         </StatCardErrorBoundary>
       </div>
+
+      {/* Memory Usage Chart (Story 12.5: AC 1, 2, 3) */}
+      <Card data-testid="metrics-chart-card">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="text-lg">Memory Usage Over Time</CardTitle>
+            <TimeRangeSelector
+              value={timeRange}
+              onChange={setTimeRange}
+            />
+          </div>
+          {historyError && (
+            <CardDescription className="text-destructive">
+              Error loading chart data
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent>
+          {isHistoryLoading ? (
+            <div
+              className="flex h-[300px] items-center justify-center text-muted-foreground"
+              data-testid="metrics-chart-loading"
+            >
+              Loading chart...
+            </div>
+          ) : (
+            <MetricsChart data={historyData?.data?.metrics ?? []} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

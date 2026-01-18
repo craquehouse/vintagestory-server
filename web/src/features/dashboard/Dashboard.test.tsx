@@ -3,20 +3,31 @@
  *
  * Story 12.4: Dashboard Stats Cards
  * Story 11.6: Dashboard & Navigation Cleanup
+ * Story 12.5: Dashboard Time-Series Charts
  *
  * Tests verify the Dashboard shows:
  * - Empty state with link to Installation page when server not installed
  * - Installing state with spinner and link to view progress
  * - Stat cards grid with server status, memory, disk, and uptime when installed
+ * - Time-series chart with time range selector when installed (Story 12.5)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router';
 import { type ReactNode } from 'react';
 import { Dashboard } from './Dashboard';
-import type { ServerStatus } from '@/api/types';
+import type { ServerStatus, MetricsSnapshot } from '@/api/types';
+
+// Mock ResizeObserver for Recharts ResponsiveContainer
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -70,6 +81,39 @@ function mockServerStatus(status: ServerStatus) {
       }),
   };
 }
+
+// Mock metrics history response (Story 12.5)
+function mockMetricsHistory(metrics: MetricsSnapshot[]) {
+  return {
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        status: 'ok',
+        data: {
+          metrics,
+          count: metrics.length,
+        },
+      }),
+  };
+}
+
+// Sample metrics data for chart tests
+const sampleMetrics: MetricsSnapshot[] = [
+  {
+    timestamp: '2026-01-17T10:00:00Z',
+    apiMemoryMb: 100,
+    apiCpuPercent: 2.0,
+    gameMemoryMb: 500,
+    gameCpuPercent: 15.0,
+  },
+  {
+    timestamp: '2026-01-17T10:10:00Z',
+    apiMemoryMb: 105,
+    apiCpuPercent: 2.2,
+    gameMemoryMb: 510,
+    gameCpuPercent: 15.5,
+  },
+];
 
 describe('Dashboard', () => {
   const originalFetch = globalThis.fetch;
@@ -413,6 +457,200 @@ describe('Dashboard', () => {
       });
 
       expect(screen.queryByTestId('dashboard-stats-grid')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('metrics chart (Story 12.5)', () => {
+    it('renders chart card when server is installed (AC: 1)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'running', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory(sampleMetrics));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metrics-chart-card')).toBeInTheDocument();
+      });
+
+      // Should show chart title
+      expect(screen.getByText('Memory Usage Over Time')).toBeInTheDocument();
+    });
+
+    it('renders time range selector with all options (AC: 3)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory([]));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('time-range-selector')).toBeInTheDocument();
+      });
+
+      // Should have all time range options
+      expect(screen.getByText('15m')).toBeInTheDocument();
+      expect(screen.getByText('1h')).toBeInTheDocument();
+      expect(screen.getByText('6h')).toBeInTheDocument();
+      expect(screen.getByText('24h')).toBeInTheDocument();
+    });
+
+    it('defaults to 1h time range selected (AC: 3)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory([]));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('time-range-60')).toHaveAttribute('aria-pressed', 'true');
+      });
+    });
+
+    it('changes time range when clicking selector (AC: 3)', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory([]));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('time-range-selector')).toBeInTheDocument();
+      });
+
+      // Click 6h option
+      await user.click(screen.getByText('6h'));
+
+      // Should now be selected
+      expect(screen.getByTestId('time-range-360')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('time-range-60')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('shows loading state for chart while fetching (AC: 1)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'running', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          // Never resolve to keep loading
+          return new Promise(() => {});
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metrics-chart-loading')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Loading chart...')).toBeInTheDocument();
+    });
+
+    it('renders chart with data when loaded (AC: 1, 2)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'running', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory(sampleMetrics));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metrics-chart')).toBeInTheDocument();
+      });
+    });
+
+    it('shows empty state when no metrics data (AC: 1)', async () => {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/server/status')) {
+          return Promise.resolve(
+            mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+          );
+        }
+        if (url.includes('/metrics/history')) {
+          return Promise.resolve(mockMetricsHistory([]));
+        }
+        return Promise.reject(new Error(`Unexpected URL: ${url}`));
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metrics-chart-empty')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('No metrics data available')).toBeInTheDocument();
+    });
+
+    it('does not show chart when server not installed', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        mockServerStatus(createServerStatus({ state: 'not_installed' }))
+      );
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<Dashboard />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-empty')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('metrics-chart-card')).not.toBeInTheDocument();
     });
   });
 });

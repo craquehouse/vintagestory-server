@@ -84,6 +84,9 @@ export function useMetricsHistory(minutes?: number) {
       );
       return response;
     },
-    // No automatic polling for history - charts will refetch on demand
+    // Poll every 10 seconds to keep chart up-to-date with new data
+    refetchInterval: METRICS_POLL_INTERVAL,
+    // Stop polling when window is not focused to save resources
+    refetchIntervalInBackground: false,
   });
 }
