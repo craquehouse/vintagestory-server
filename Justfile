@@ -258,24 +258,3 @@ clean-data:
 sprint *ARGS:
     ./scripts/sprint-status.sh {{ARGS}}
 
-# =============================================================================
-# POLISH BACKLOG MANAGEMENT
-# =============================================================================
-
-# Polish backlog commands: list, get, add, set, done
-# Usage: just polish <command> [args]
-# Examples:
-#   just polish list
-#   just polish list API backlog
-#   just polish get UI-029
-#   just polish add UI "Add dark mode toggle" medium S
-#   just polish set UI-029 in-progress
-#   just polish done UI-029 https://github.com/org/repo/pull/99
-# On macOS, uses Homebrew bash (script requires bash 4+ for associative arrays)
-polish *ARGS:
-    #!/usr/bin/env bash
-    if [[ "$(uname)" == "Darwin" ]] && [[ -x /opt/homebrew/bin/bash ]]; then
-        /opt/homebrew/bin/bash ./scripts/polish-backlog.sh {{ARGS}}
-    else
-        ./scripts/polish-backlog.sh {{ARGS}}
-    fi
