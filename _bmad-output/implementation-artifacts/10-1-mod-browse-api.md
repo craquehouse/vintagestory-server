@@ -23,8 +23,8 @@ So that **I can discover and evaluate mods for installation**.
    *(Covers FR57)*
 
 3. **Given** I am browsing mods
-   **When** I request the list with `?sort=downloads` or `?sort=trending` or `?sort=recent`
-   **Then** the results are sorted accordingly (downloads desc, trending points desc, lastreleased desc)
+   **When** I request the list with `?sort=downloads` or `?sort=trending` or `?sort=recent` or `?sort=name`
+   **Then** the results are sorted accordingly (downloads desc, trending desc, lastreleased desc, name asc)
    *(Covers FR58)*
 
 4. **Given** the mod database API is unavailable

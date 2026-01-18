@@ -669,6 +669,15 @@ class TestSortMods:
         assert result[1]["urlalias"] == "smithingplus"  # 2025-10-09
         assert result[2]["urlalias"] == "oldpopular"  # 2024-01-15
 
+    def test_sort_by_name(self) -> None:
+        """Sorts mods by name ascending (alphabetical)."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = sort_mods(mods, sort_by="name")
+
+        assert result[0]["urlalias"] == "oldpopular"  # Old Popular Mod
+        assert result[1]["urlalias"] == "smithingplus"  # Smithing Plus
+        assert result[2]["urlalias"] == "trendingnew"  # Trending New Mod
+
     def test_sort_default_is_recent(self) -> None:
         """Default sort is by recent."""
         mods = BROWSE_MODS_LIST.copy()

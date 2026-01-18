@@ -137,7 +137,7 @@ async def browse_mods(
     ] = 20,
     sort: Annotated[
         SortOption,
-        Query(description="Sort order: downloads, trending, or recent"),
+        Query(description="Sort order: downloads, trending, recent, or name"),
     ] = "recent",
     search: Annotated[
         str | None,
@@ -157,7 +157,7 @@ async def browse_mods(
     Args:
         page: Page number (1-indexed, default 1).
         page_size: Number of items per page (1-100, default 20).
-        sort: Sort order - "downloads", "trending", or "recent" (default).
+        sort: Sort order - "downloads", "trending", "recent" (default), or "name".
         search: Optional search term to filter by name, author, summary, or tags.
 
     Returns:

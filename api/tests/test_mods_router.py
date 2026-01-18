@@ -1544,6 +1544,31 @@ class TestBrowseModsEndpoint:
         assert mods[2]["slug"] == "oldpopular"
 
     @respx.mock
+    def test_browse_mods_sort_by_name(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?sort=name sorts alphabetically ascending."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=name", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+
+        # Verify alphabetical sort order:
+        # Old Popular Mod < Smithing Plus < Trending New Mod
+        assert mods[0]["slug"] == "oldpopular"
+        assert mods[1]["slug"] == "smithingplus"
+        assert mods[2]["slug"] == "trendingnew"
+
+    @respx.mock
     def test_browse_mods_api_unavailable(
         self,
         client: TestClient,

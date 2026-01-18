@@ -29,7 +29,7 @@ ModDict = dict[str, Any]
 ReleaseDict = dict[str, Any]
 
 # Sort options for browse endpoint
-SortOption = Literal["downloads", "trending", "recent"]
+SortOption = Literal["downloads", "trending", "recent", "name"]
 
 
 @dataclass
@@ -513,15 +513,17 @@ def sort_mods(
 
     Args:
         mods: List of mod dictionaries from the API.
-        sort_by: Sort criteria - "downloads", "trending", or "recent".
+        sort_by: Sort criteria - "downloads", "trending", "recent", or "name".
 
     Returns:
-        Sorted list of mods (descending order).
+        Sorted list of mods (descending order, except name which is ascending).
     """
     if sort_by == "downloads":
         return sorted(mods, key=_get_downloads, reverse=True)
     elif sort_by == "trending":
         return sorted(mods, key=_get_trending, reverse=True)
+    elif sort_by == "name":
+        return sorted(mods, key=lambda m: m.get("name", "").lower())
     else:  # recent
         return sorted(mods, key=_get_recent, reverse=True)
 
