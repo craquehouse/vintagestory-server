@@ -1,6 +1,6 @@
 # Story 12.3: Metrics API Endpoints
 
-Status: in-progress
+Status: review
 
 ## Story
 
