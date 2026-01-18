@@ -427,12 +427,11 @@ Metrics service depends on ServerService for:
 - Game server PID discovery
 - Server running state detection
 
-### Dashboard (Stories 12.4-12.6)
+### Dashboard (Stories 12.4-12.5)
 
 Frontend integration:
 - Story 12.4: Stat cards showing latest metrics
 - Story 12.5: Time-series charts with Recharts
-- Story 12.6: Quick action links (not metrics-related)
 
 ---
 

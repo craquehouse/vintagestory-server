@@ -2858,41 +2858,6 @@ So that **I can identify trends and anomalies**.
 
 ---
 
-### Story 12.6: Quick Actions & Links
-
-As an **administrator**,
-I want **quick links to common actions from the Dashboard**,
-So that **I can navigate efficiently to frequently used features**.
-
-**Acceptance Criteria:**
-
-**Given** I view the Dashboard
-**When** I look at the quick links section
-**Then** I see links to: Console, Settings, Mods, Version
-
-**Given** I click a quick link
-**When** the navigation occurs
-**Then** I am taken to the corresponding page under Game Server
-
-**Given** the server is not installed
-**When** I view quick links
-**Then** Console, Settings, and Mods links are disabled or hidden
-**And** Version/Installation link is prominently displayed
-
-**Given** there are pending actions (e.g., pending restart)
-**When** I view the Dashboard
-**Then** I see a notification badge on relevant quick links
-
-**Tasks:**
-- [ ] Create QuickLinks component
-- [ ] Add icons for each destination
-- [ ] Implement disabled state for no-server-installed
-- [ ] Add pending restart indicator
-- [ ] Style consistently with stat cards
-- [ ] Add tests for quick links
-
----
-
 ## Epic 13: Server Version Browser
 
 Admins can browse and install server versions through a visual interface similar to the mod browser, replacing the simple version input with a discoverable list of available releases.
