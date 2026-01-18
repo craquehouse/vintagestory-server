@@ -702,7 +702,7 @@ When beginning a code review for a story:
 - [x] AC 2: ...
 
 ## Deferred Items
-<!-- Any polish backlog items added -->
+<!-- Any beads issues added (bd create) -->
 
 ## Notes for Reviewers
 <!-- Anything the reviewer should pay attention to -->
@@ -728,7 +728,7 @@ When beginning a code review for a story:
 When testing reveals useful enhancements or edge cases:
 
 1. **Do NOT add commits to completed stories** - Once a story is marked "done", its PR should be mergeable as-is
-2. **Create a backlog item** - Add the enhancement to `polish-backlog.md` with appropriate category, priority, and effort
+2. **Create a backlog item** - Add the enhancement to beads (`bd create`) with appropriate category, priority, and effort labels
 3. **If significant, create a new story** - Valuable enhancements that warrant their own PR should become a new story in the next epic
 
 **Why This Matters:**
@@ -739,7 +739,7 @@ When testing reveals useful enhancements or edge cases:
 
 **Pattern from Violations:**
 - ❌ Story 9.7 marked "done" before nested directory support added → Post-story commits after "done" status
-- ✅ Expected: Nested directory support becomes polish backlog item or new story
+- ✅ Expected: Nested directory support becomes beads issue or new story
 
 **Workflow:**
 ```
@@ -749,7 +749,7 @@ During testing, discover enhancement opportunity
     │   └── YES → Fix it now, before marking done
     │
     ├── Is it a small polish item?
-    │   └── YES → Add to polish-backlog.md
+    │   └── YES → Add to beads (bd create)
     │
     └── Is it a significant new feature?
         └── YES → Create new story for next epic
@@ -795,8 +795,8 @@ Before starting a new epic, verify the following:
   - Explicitly deferred with documented reasoning
 - [ ] Address any outstanding items before starting new work
 
-### 2. Polish Backlog Review (Required)
-- [ ] Review `polish-backlog.md` for items relevant to the new epic
+### 2. Beads Issue Review (Required)
+- [ ] Review beads issues (`bd list`) for items relevant to the new epic
 - [ ] Decide for each relevant item: include in epic or explicitly defer
 - [ ] Document decisions in epic kickoff notes or first story
 
@@ -808,7 +808,7 @@ Before starting a new epic, verify the following:
 
 **Why This Matters:**
 - Prevents action item accumulation across epics
-- Ensures polish items don't get lost indefinitely
+- Ensures beads issues don't get lost indefinitely
 - Creates accountability for retrospective commitments
 - Epic 9 retro found only 1/4 Epic 8 action items completed due to no visibility
 

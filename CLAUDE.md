@@ -38,22 +38,22 @@ just sprint add-story 10 10-9-new-feature # Add a new story
 
 See the skill at `.claude/skills/sprint-status-yaml/SKILL.md` for complete documentation.
 
-### Polish Backlog
+### Issue Tracking (Beads)
 
-`_bmad-output/implementation-artifacts/polish-backlog.md` tracks small-to-medium improvements discovered during development that don't belong to a specific epic. Items are categorized (UI, API, Infrastructure, Tools, CI/CD) with priority, effort estimates, and status tracking. When you encounter minor issues or improvements while working on features, add them to this backlog rather than addressing them immediately.
+This project uses [beads](https://github.com/steveyegge/beads) (`bd` CLI) for issue tracking. Issues are stored in `.beads/issues.jsonl` and committed to git. Items are labeled by category (UI, API, INFRA, TOOLS, CICD) and effort (size-s, size-m, size-l).
 
-**NEVER edit `polish-backlog.md` directly.** Use the `just polish` commands instead:
+**NEVER edit `.beads/` files directly.** Use the `bd` CLI instead:
 
 ```bash
-just polish list                          # List all items
-just polish list API backlog              # Filter by category and status
-just polish get UI-029                    # Get item details
-just polish add UI "Description" medium S # Add new item (auto-generates ID)
-just polish set UI-029 in-progress        # Update status
-just polish done UI-029 https://...       # Mark done and archive with PR link
+bd ready                                  # Show unblocked tasks
+bd list                                   # List all open issues
+bd list --label API                       # Filter by category
+bd create "[UI-NNN] Description" -t task -p 1 -l UI,size-m  # Create issue
+bd update VSS-abc --status in_progress    # Update status
+bd close VSS-abc --reason "PR: https://..." # Close with PR link
 ```
 
-See the skill at `.claude/skills/polish-backlog/SKILL.md` for complete documentation.
+See the skill at `.claude/skills/beads/SKILL.md` for complete documentation.
 
 ## Architecture
 
