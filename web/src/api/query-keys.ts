@@ -55,4 +55,12 @@ export const queryKeys = {
       channel ? (['versions', channel] as const) : (['versions'] as const),
     detail: (version: string) => ['versions', 'detail', version] as const,
   },
+  // Story 12.4: Dashboard metrics
+  metrics: {
+    current: ['metrics', 'current'] as const,
+    history: (minutes?: number) =>
+      minutes !== undefined
+        ? (['metrics', 'history', minutes] as const)
+        : (['metrics', 'history'] as const),
+  },
 };
