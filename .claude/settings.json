@@ -1,4 +1,8 @@
 {
+  "sandbox": {
+    "autoAllowBashIfSandboxed": true,
+    "enabled": true
+  },
   "enabledPlugins": {
     "frontend-skills@claude-skills": true,
     "pyright-lsp@claude-plugins-official": true,
