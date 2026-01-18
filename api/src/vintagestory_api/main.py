@@ -21,6 +21,7 @@ from vintagestory_api.routers import (
     debug,
     health,
     jobs,
+    metrics,
     mods,
     server,
     test_rbac,
@@ -200,6 +201,7 @@ api_v1.include_router(config.router)
 api_v1.include_router(console.router)
 api_v1.include_router(debug.router)
 api_v1.include_router(jobs.router)
+api_v1.include_router(metrics.router)
 api_v1.include_router(mods.router)
 api_v1.include_router(server.router)
 api_v1.include_router(versions.router)

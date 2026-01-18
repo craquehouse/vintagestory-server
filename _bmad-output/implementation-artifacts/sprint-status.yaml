@@ -145,7 +145,7 @@ development_status:
   epic-12: in-progress
   12-1-epic-12-technical-preparation: done
   12-2-metrics-collection-service: done
-  12-3-metrics-api-endpoints: backlog
+  12-3-metrics-api-endpoints: done
   12-4-dashboard-stats-cards: backlog
   12-5-dashboard-time-series-charts: backlog
   12-6-quick-actions-links: backlog
