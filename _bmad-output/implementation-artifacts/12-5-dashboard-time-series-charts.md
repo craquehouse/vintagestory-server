@@ -1,6 +1,6 @@
 # Story 12.5: Dashboard Time-Series Charts
 
-Status: code-review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -78,6 +78,18 @@ Each task includes tests and maps to specific ACs.
   - [x] Subtask 5.5: Stop game server and verify chart shows gaps (AC: 4)
   - [x] Subtask 5.6: Hover over chart points and verify tooltip (AC: 5)
   - [x] Subtask 5.7: Test responsive layout at mobile breakpoint
+
+## Review Follow-ups (AI)
+
+- [x] [AI-Review][LOW] Track enhancement features (chart type toggle, auto-refresh polling) - Tracked below per Epic 9 retro enhancement story process
+- [x] [AI-Review][LOW] Document commit message pattern for ad-hoc enhancements - Updated project-context.md: `/ad-hoc` suffix covers both fixes AND enhancements
+
+### Ad-hoc Enhancements (Story 12.5)
+
+The following enhancements were discovered and implemented during Task 4. Tracked here per Epic 9 retro guidelines:
+
+1. **Auto-refresh polling** - Chart polls every 10 seconds to display new metrics data (matches collection interval)
+2. **Chart type toggle** - Switch between line chart and stacked area chart with combined total in tooltip
 
 ## Dev Notes
 

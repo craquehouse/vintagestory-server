@@ -580,7 +580,7 @@ type(story-X.Y/task-N): description
 
 **Standard suffixes:**
 - `/task-N` - Work directly tied to task N
-- `/ad-hoc` - Discovered issues fixed opportunistically
+- `/ad-hoc` - Discovered work (fixes or enhancements) not in original task list
 - `/user` - User-directed changes during story execution
 - `/review` - Code review findings
 
