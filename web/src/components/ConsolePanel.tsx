@@ -245,7 +245,7 @@ export function ConsolePanel({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => setSource({ type: 'console' })}
-                    className={cn(source.type === 'console' && 'bg-accent')}
+                    className={cn(source.type === 'console' && 'bg-accent dark:bg-primary dark:text-primary-foreground')}
                   >
                     <Terminal className="mr-2 h-4 w-4" />
                     Live Console
@@ -265,7 +265,7 @@ export function ConsolePanel({
                           className={cn(
                             source.type === 'logfile' &&
                               source.filename === file.name &&
-                              'bg-accent'
+                              'bg-accent dark:bg-primary dark:text-primary-foreground'
                           )}
                         >
                           <FileText className="mr-2 h-4 w-4" />
