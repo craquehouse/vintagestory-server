@@ -57,6 +57,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T09:15:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -81,6 +82,7 @@ describe('useLogFiles', () => {
         status: 'ok',
         data: {
           files: [],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -125,6 +127,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T10:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -183,7 +186,7 @@ describe('useLogFiles', () => {
     it('uses correct query key', async () => {
       const mockResponse: ApiResponse<LogFilesData> = {
         status: 'ok',
-        data: { files: [] },
+        data: { files: [], logsDir: '/var/logs/vintagestory' },
       };
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
@@ -206,7 +209,7 @@ describe('useLogFiles', () => {
     it('calls correct API endpoint', async () => {
       const mockResponse: ApiResponse<LogFilesData> = {
         status: 'ok',
-        data: { files: [] },
+        data: { files: [], logsDir: '/var/logs/vintagestory' },
       };
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
@@ -234,6 +237,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T10:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -261,6 +265,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T11:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -299,6 +304,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T08:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -326,7 +332,7 @@ describe('useLogFiles', () => {
     it('returns all expected TanStack Query properties', async () => {
       const mockResponse: ApiResponse<LogFilesData> = {
         status: 'ok',
-        data: { files: [] },
+        data: { files: [], logsDir: '/var/logs/vintagestory' },
       };
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
@@ -362,6 +368,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T10:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -390,6 +397,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T10:00:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 
@@ -418,6 +426,7 @@ describe('useLogFiles', () => {
               modifiedAt: '2026-01-17T10:30:00Z',
             },
           ],
+          logsDir: '/var/logs/vintagestory',
         },
       };
 

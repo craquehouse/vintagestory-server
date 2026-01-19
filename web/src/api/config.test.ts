@@ -41,9 +41,12 @@ describe('api/config', () => {
               key: 'ServerName',
               value: 'My Server',
               type: 'string',
-              description: 'Server name',
+              liveUpdate: false,
+              envManaged: false,
             },
           ],
+          sourceFile: 'serverconfig.json',
+          lastModified: '2026-01-18T10:00:00Z',
         },
       };
 
@@ -63,10 +66,13 @@ describe('api/config', () => {
             {
               key: 'Port',
               value: 42420,
-              type: 'number',
-              description: 'Server port',
+              type: 'int',
+              liveUpdate: false,
+              envManaged: false,
             },
           ],
+          sourceFile: 'serverconfig.json',
+          lastModified: '2026-01-18T10:00:00Z',
         },
       };
 
@@ -94,7 +100,7 @@ describe('api/config', () => {
         data: {
           key: 'ServerName',
           value: 'New Server Name',
-          method: 'serverconfig',
+          method: 'file_update',
           pendingRestart: true,
         },
       };
@@ -118,7 +124,7 @@ describe('api/config', () => {
         data: {
           key: 'Key/With/Slashes',
           value: 'test',
-          method: 'serverconfig',
+          method: 'file_update',
           pendingRestart: false,
         },
       };
@@ -139,7 +145,7 @@ describe('api/config', () => {
         data: {
           key: 'ServerName',
           value: 'Test Server',
-          method: 'serverconfig',
+          method: 'file_update',
           pendingRestart: true,
         },
       };
@@ -163,7 +169,7 @@ describe('api/config', () => {
         data: {
           key: 'Port',
           value: 42420,
-          method: 'serverconfig',
+          method: 'file_update',
           pendingRestart: true,
         },
       };
@@ -186,7 +192,7 @@ describe('api/config', () => {
         data: {
           key: 'EnablePvP',
           value: true,
-          method: 'serverconfig',
+          method: 'file_update',
           pendingRestart: false,
         },
       };
@@ -217,14 +223,13 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ApiSettingsData> = {
         status: 'ok',
         data: {
-          settings: [
-            {
-              key: 'auto_start_server',
-              value: true,
-              type: 'boolean',
-              description: 'Auto-start server on API startup',
-            },
-          ],
+          settings: {
+            autoStartServer: true,
+            blockEnvManagedSettings: false,
+            enforceEnvOnRestart: false,
+            modListRefreshInterval: 300,
+            serverVersionsRefreshInterval: 3600,
+          },
         },
       };
 
@@ -240,14 +245,13 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ApiSettingsData> = {
         status: 'ok',
         data: {
-          settings: [
-            {
-              key: 'log_level',
-              value: 'INFO',
-              type: 'string',
-              description: 'API log level',
-            },
-          ],
+          settings: {
+            autoStartServer: false,
+            blockEnvManagedSettings: false,
+            enforceEnvOnRestart: true,
+            modListRefreshInterval: 600,
+            serverVersionsRefreshInterval: 7200,
+          },
         },
       };
 
@@ -256,8 +260,7 @@ describe('api/config', () => {
       const result = await fetchApiSettings();
 
       expect(result.status).toBe('ok');
-      expect(result.data.settings).toHaveLength(1);
-      expect(result.data.settings[0].key).toBe('log_level');
+      expect(result.data.settings.autoStartServer).toBe(false);
     });
 
     it('propagates errors from apiClient', async () => {
@@ -426,10 +429,7 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ConfigFileListData> = {
         status: 'ok',
         data: {
-          files: [
-            { name: 'serverconfig.json', size: 1024 },
-            { name: 'allowedmods.json', size: 512 },
-          ],
+          files: ['serverconfig.json', 'allowedmods.json'],
         },
       };
 
@@ -445,7 +445,7 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ConfigFileListData> = {
         status: 'ok',
         data: {
-          files: [{ name: 'config.json', size: 256 }],
+          files: ['config.json'],
         },
       };
 
@@ -502,6 +502,7 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ConfigFileContentData> = {
         status: 'ok',
         data: {
+          filename: 'serverconfig.json',
           content: { ServerName: 'My Server', Port: 42420 },
         },
       };
@@ -522,7 +523,7 @@ describe('api/config', () => {
     it('encodes special characters in filename', async () => {
       const mockResponse: ApiResponse<ConfigFileContentData> = {
         status: 'ok',
-        data: { content: {} },
+        data: { filename: 'file with spaces.json', content: {} },
       };
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
@@ -537,7 +538,7 @@ describe('api/config', () => {
     it('encodes slashes in filename', async () => {
       const mockResponse: ApiResponse<ConfigFileContentData> = {
         status: 'ok',
-        data: { content: {} },
+        data: { filename: 'path/to/file.json', content: {} },
       };
 
       vi.mocked(apiClient).mockResolvedValue(mockResponse);
@@ -553,6 +554,7 @@ describe('api/config', () => {
       const mockResponse: ApiResponse<ConfigFileContentData> = {
         status: 'ok',
         data: {
+          filename: 'config.json',
           content: {
             setting1: 'value1',
             setting2: 123,
