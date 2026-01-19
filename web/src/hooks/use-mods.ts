@@ -5,7 +5,7 @@
  * All mutations include optimistic updates and proper cache invalidation.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import {
   fetchMods,
@@ -15,7 +15,7 @@ import {
   disableMod,
   removeMod,
 } from '@/api/mods';
-import type { ApiResponse, ModsListData } from '@/api/types';
+import type { ApiResponse, ModsListData, CompatibilityStatus } from '@/api/types';
 
 /**
  * Default polling interval for mods list (10 seconds).
@@ -277,4 +277,70 @@ export function useRemoveMod() {
 export function useModsPendingRestart() {
   const { data } = useMods();
   return data?.data?.pendingRestart ?? false;
+}
+
+/**
+ * Hook to fetch compatibility status for multiple installed mods.
+ *
+ * Uses parallel queries to fetch mod details for each slug, extracting
+ * compatibility status. Results are cached with a 5-minute stale time.
+ *
+ * VSS-j3c: Fixes false "not verified" status on installed mods page.
+ *
+ * @param slugs - Array of mod slugs to look up compatibility for
+ * @returns Map of slug -> CompatibilityStatus, plus loading state
+ *
+ * @example
+ * function ModTable() {
+ *   const { data: modsData } = useMods();
+ *   const mods = modsData?.data?.mods ?? [];
+ *   const slugs = mods.map(m => m.slug);
+ *
+ *   const { compatibilityMap, isLoading } = useModsCompatibility(slugs);
+ *
+ *   return mods.map(mod => (
+ *     <CompatibilityBadge
+ *       status={compatibilityMap.get(mod.slug) ?? 'not_verified'}
+ *       loading={isLoading}
+ *     />
+ *   ));
+ * }
+ */
+export function useModsCompatibility(slugs: string[]) {
+  const queries = useQueries({
+    queries: slugs.map((slug) => ({
+      queryKey: queryKeys.mods.lookup(slug),
+      queryFn: () => lookupMod(slug),
+      // Keep results fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Don't refetch on window focus
+      refetchOnWindowFocus: false,
+      // Allow individual failures without failing all queries
+      retry: 1,
+    })),
+  });
+
+  // Build a map of slug -> compatibility status
+  const compatibilityMap = new Map<string, CompatibilityStatus>();
+
+  queries.forEach((query, index) => {
+    const slug = slugs[index];
+    if (query.data?.data?.compatibility?.status) {
+      compatibilityMap.set(slug, query.data.data.compatibility.status);
+    }
+    // If query failed or no data, we don't add to map (caller can fallback to 'not_verified')
+  });
+
+  // Consider loading if any query is still loading
+  const isLoading = queries.some((q) => q.isLoading);
+
+  // Consider all fetched if all queries have either data or error
+  const isAllFetched = queries.every((q) => q.isFetched);
+
+  return {
+    compatibilityMap,
+    isLoading,
+    isAllFetched,
+    queries, // Expose raw queries for advanced usage
+  };
 }

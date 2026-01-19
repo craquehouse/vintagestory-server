@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
-import { useMods, useEnableMod, useDisableMod, useRemoveMod } from '@/hooks/use-mods';
+import { useMods, useEnableMod, useDisableMod, useRemoveMod, useModsCompatibility } from '@/hooks/use-mods';
 import type { ModInfo, CompatibilityStatus } from '@/api/types';
 
 interface ModTableProps {
@@ -59,6 +59,10 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
 
   const mods = modsData?.data?.mods ?? [];
+
+  // VSS-j3c: Fetch compatibility status for all installed mods
+  const slugs = mods.map((m) => m.slug);
+  const { compatibilityMap } = useModsCompatibility(slugs);
 
   const handleToggle = (mod: ModInfo) => {
     if (mod.enabled) {
@@ -98,13 +102,10 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     setModToRemove(null);
   };
 
-  // Determine compatibility status for display
-  // Since installed mods don't have full compatibility info, we show "not_verified"
-  // unless we have that data from the server in the future
-  const getCompatibilityStatus = (_mod: ModInfo): CompatibilityStatus => {
-    // For now, installed mods show as "not_verified" since we don't have
-    // real-time compatibility checking for already-installed mods
-    return 'not_verified';
+  // VSS-j3c: Get compatibility status from fetched mod details
+  // Falls back to 'not_verified' if not yet loaded or lookup failed
+  const getCompatibilityStatus = (mod: ModInfo): CompatibilityStatus => {
+    return compatibilityMap.get(mod.slug) ?? 'not_verified';
   };
 
   const isTogglingMod = (slug: string) => {
