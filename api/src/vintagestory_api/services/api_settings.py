@@ -38,9 +38,9 @@ class ApiSettings(BaseModel):
         description="Re-apply VS_CFG_* values on each game server restart (backlog)",
     )
     mod_list_refresh_interval: int = Field(
-        default=3600,
+        default=14400,
         ge=0,
-        description="Seconds between mod API cache refreshes (0 = disabled)",
+        description="Seconds between mod API cache refreshes (0 = disabled). Default: 4 hours",
     )
     server_versions_refresh_interval: int = Field(
         default=86400,

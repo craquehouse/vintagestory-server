@@ -196,7 +196,8 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue(300);
+      // VSS-s9s: Now displays human-readable duration (5m = 300s)
+      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('5m');
     });
 
     it('renders server_versions_refresh_interval input', async () => {
@@ -214,7 +215,8 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue(3600);
+      // VSS-s9s: Now displays human-readable duration (1h = 3600s)
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1h');
     });
   });
 
@@ -327,13 +329,14 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      // Enter invalid value (too low)
+      // VSS-s9s: Enter invalid value (too low - 5s is less than min of 60s/1m)
       const input = screen.getByLabelText('Mod List Refresh');
-      fireEvent.change(input, { target: { value: '5' } });
+      fireEvent.change(input, { target: { value: '5s' } });
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.getByText('Must be between 10 and 3600 seconds')).toBeInTheDocument();
+        // New error message uses human-readable format
+        expect(screen.getByText('Must be at least 1m')).toBeInTheDocument();
       });
     });
   });

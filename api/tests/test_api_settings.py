@@ -51,7 +51,7 @@ class TestApiSettingsModel:
         assert settings.auto_start_server is False
         assert settings.block_env_managed_settings is True
         assert settings.enforce_env_on_restart is False
-        assert settings.mod_list_refresh_interval == 3600
+        assert settings.mod_list_refresh_interval == 14400
         assert settings.server_versions_refresh_interval == 86400
         assert settings.metrics_collection_interval == 10  # AC: 5 default 10s
 
@@ -89,7 +89,7 @@ class TestGetSettings:
 
         assert result.auto_start_server is False
         assert result.block_env_managed_settings is True
-        assert result.mod_list_refresh_interval == 3600
+        assert result.mod_list_refresh_interval == 14400
         assert result.server_versions_refresh_interval == 86400
         assert result.metrics_collection_interval == 10
 
@@ -125,7 +125,7 @@ class TestGetSettings:
 
         # Should return defaults on parse error
         assert result.auto_start_server is False
-        assert result.mod_list_refresh_interval == 3600
+        assert result.mod_list_refresh_interval == 14400
 
     def test_returns_defaults_on_validation_error(
         self, service: ApiSettingsService
@@ -139,7 +139,7 @@ class TestGetSettings:
         result = service.get_settings()
 
         # Should return defaults on validation error
-        assert result.mod_list_refresh_interval == 3600
+        assert result.mod_list_refresh_interval == 14400
 
 
 class TestUpdateSetting:

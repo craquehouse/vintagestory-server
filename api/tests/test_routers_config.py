@@ -597,7 +597,7 @@ class TestGetApiSettings:
         settings = response.json()["data"]["settings"]
         assert settings["auto_start_server"] is False
         assert settings["block_env_managed_settings"] is True
-        assert settings["mod_list_refresh_interval"] == 3600
+        assert settings["mod_list_refresh_interval"] == 14400
         assert settings["server_versions_refresh_interval"] == 86400
 
 

@@ -46,7 +46,7 @@ class TestRegisterDefaultJobs:
         register_default_jobs(scheduler)
 
         # Story 8.1: mod_cache_refresh job should be registered with default settings
-        # (mod_list_refresh_interval=3600 by default)
+        # (mod_list_refresh_interval=14400 by default, VSS-s9s)
         jobs = scheduler.get_jobs()
         assert len(jobs) >= 1
         job_ids: list[str] = [job.id for job in jobs]  # type: ignore[reportUnknownMemberType]

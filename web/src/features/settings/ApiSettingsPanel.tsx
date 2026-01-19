@@ -10,13 +10,14 @@
 
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DurationSettingField } from '@/components/DurationSettingField';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useApiSettings, useUpdateApiSetting } from '@/hooks/use-api-settings';
 import { useDebugStatus, useToggleDebug } from '@/hooks/use-debug';
-import { validators, type SettingValue } from '@/hooks/use-setting-field';
+import { type SettingValue } from '@/hooks/use-setting-field';
 
 /**
  * Props for the ApiSettingsPanel component.
@@ -143,31 +144,29 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
         {/* Refresh Intervals */}
         <SettingGroup
           title="Refresh Intervals"
-          description="Configure how often data is refreshed (in seconds)"
+          description="Configure how often data is refreshed (e.g., 4h, 30m, 1d)"
           collapsible
         >
-          <SettingField
+          <DurationSettingField
             settingKey="mod_list_refresh_interval"
             label="Mod List Refresh"
-            value={settings?.modListRefreshInterval ?? 300}
-            type="int"
+            value={settings?.modListRefreshInterval ?? 14400}
+            min={60}
+            max={86400}
+            minMessage="Must be at least {min}"
+            maxMessage="Must be at most {max}"
             description="How often to refresh the installed mods list"
-            validate={validators.compose(
-              validators.positiveInt('Must be a positive integer'),
-              validators.range(10, 3600, 'Must be between 10 and 3600 seconds')
-            )}
             onSave={handleSave}
           />
-          <SettingField
+          <DurationSettingField
             settingKey="server_versions_refresh_interval"
             label="Server Versions Refresh"
             value={settings?.serverVersionsRefreshInterval ?? 3600}
-            type="int"
+            min={60}
+            max={604800}
+            minMessage="Must be at least {min}"
+            maxMessage="Must be at most {max}"
             description="How often to check for new game server versions"
-            validate={validators.compose(
-              validators.positiveInt('Must be a positive integer'),
-              validators.range(60, 86400, 'Must be between 60 and 86400 seconds')
-            )}
             onSave={handleSave}
           />
         </SettingGroup>

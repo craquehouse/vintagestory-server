@@ -10,6 +10,7 @@
 import type { KeyboardEvent } from 'react';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { SettingType } from '@/api/types';
+import { parseDuration } from '@/lib/duration-utils';
 
 /**
  * Union type for all possible setting values.
@@ -67,6 +68,36 @@ export const validators = {
       const error = fn(value);
       if (error) return error;
     }
+    return null;
+  },
+
+  /**
+   * Validates a duration string and optionally checks range in seconds.
+   * Accepts human-readable formats like "4h", "30m", "1d".
+   */
+  duration: (options?: {
+    min?: number;
+    max?: number;
+    minMessage?: string;
+    maxMessage?: string;
+  }): Validator<SettingValue> => (value) => {
+    if (typeof value !== 'string') {
+      return 'Duration must be a string';
+    }
+
+    const result = parseDuration(value);
+    if (!result.success) {
+      return result.error ?? 'Invalid duration format';
+    }
+
+    if (options?.min !== undefined && result.seconds < options.min) {
+      return options.minMessage ?? `Duration must be at least ${options.min} seconds`;
+    }
+
+    if (options?.max !== undefined && result.seconds > options.max) {
+      return options.maxMessage ?? `Duration must be at most ${options.max} seconds`;
+    }
+
     return null;
   },
 };
