@@ -96,6 +96,7 @@ function createWrapper() {
 // Mock mod data for testing
 const mockMod: ModBrowseItem = {
   slug: 'carrycapacity',
+  urlalias: 'carrycapacity',
   assetId: 12345,
   name: 'Carry Capacity',
   author: 'copygirl',

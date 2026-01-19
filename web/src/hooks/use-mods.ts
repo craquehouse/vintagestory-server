@@ -75,12 +75,12 @@ export function useMods() {
  *   );
  * }
  */
-export function useLookupMod(slug: string) {
+export function useLookupMod(slug: string | null) {
   return useQuery({
-    queryKey: queryKeys.mods.lookup(slug),
-    queryFn: () => lookupMod(slug),
+    queryKey: queryKeys.mods.lookup(slug ?? ''),
+    queryFn: () => lookupMod(slug!),
     // Only fetch when slug is non-empty
-    enabled: !!slug.trim(),
+    enabled: !!slug?.trim(),
     // Keep lookup results fresh for 5 minutes
     staleTime: 5 * 60 * 1000,
   });

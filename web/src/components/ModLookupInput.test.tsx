@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { ModLookupInput, extractSlug } from './ModLookupInput';
+import { ModLookupInput } from './ModLookupInput';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -72,39 +72,7 @@ const mockIncompatibleResponse = {
   },
 };
 
-describe('extractSlug utility', () => {
-  it('extracts slug from full URL with https', () => {
-    expect(extractSlug('https://mods.vintagestory.at/smithingplus')).toBe(
-      'smithingplus'
-    );
-  });
-
-  it('extracts slug from full URL with http', () => {
-    expect(extractSlug('http://mods.vintagestory.at/carrycapacity')).toBe(
-      'carrycapacity'
-    );
-  });
-
-  it('extracts slug from URL without protocol', () => {
-    expect(extractSlug('mods.vintagestory.at/newmod')).toBe('newmod');
-  });
-
-  it('returns slug as-is when already a plain slug', () => {
-    expect(extractSlug('smithingplus')).toBe('smithingplus');
-  });
-
-  it('converts slug to lowercase', () => {
-    expect(extractSlug('SmithingPlus')).toBe('smithingplus');
-  });
-
-  it('trims whitespace', () => {
-    expect(extractSlug('  smithingplus  ')).toBe('smithingplus');
-  });
-
-  it('handles URL with trailing path', () => {
-    expect(extractSlug('mods.vintagestory.at/modname')).toBe('modname');
-  });
-});
+// Note: extractSlug tests moved to lib/mod-utils.test.ts (VSS-195)
 
 describe('ModLookupInput', () => {
   const originalFetch = globalThis.fetch;

@@ -11,12 +11,14 @@
  * - Pagination for large result sets (Story 10.7)
  * - Install buttons on mod cards (Story 10.8)
  * - Game version filtering (Story VSS-vth)
+ * - Direct slug/URL navigation on Enter key (VSS-195)
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
  * Story 10.7: Pagination
  * Story 10.8: Browse Install Integration
  * Story VSS-vth: Game version filter
+ * VSS-195: Slug/URL detection in search
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -38,6 +40,7 @@ import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
 import { Pagination } from '@/components/Pagination';
+import { detectSlugOrUrl } from '@/lib/mod-utils';
 import type { ModFilters, BrowseSortOption } from '@/api/types';
 
 /**
@@ -160,9 +163,23 @@ export function BrowseTab() {
     setSearchInput('');
   }
 
+  // VSS-195: Handle Enter key for direct slug/URL navigation
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Escape') {
+      e.preventDefault();
       handleClearSearch();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      const slug = detectSlugOrUrl(searchInput);
+      if (slug) {
+        e.preventDefault();
+        // Navigate directly to mod detail page
+        savePosition(currentPage);
+        navigate(`/game-server/mods/browse/${slug}`);
+      }
+      // If not a slug/URL, debounced search is already active - no action needed
     }
   }
 
@@ -196,7 +213,7 @@ export function BrowseTab() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search mods by name, author, or tag..."
+            placeholder="Search mods or enter slug/URL and press Enter..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -221,10 +221,8 @@ describe('ModsPage routing', () => {
         expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
       });
 
-      // Should show the mod lookup input
-      expect(
-        screen.getByPlaceholderText('Enter mod slug or paste URL')
-      ).toBeInTheDocument();
+      // VSS-195: ModLookupInput removed, verify "Installed Mods" heading instead
+      expect(screen.getByText('Installed Mods')).toBeInTheDocument();
     });
   });
 

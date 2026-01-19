@@ -443,6 +443,7 @@ class TestModLookupResponse:
         )
         response = ModLookupResponse(
             slug="smithingplus",
+            urlalias="smithingplus",
             asset_id=15312,
             name="Smithing Plus",
             author="jayu",
@@ -456,6 +457,7 @@ class TestModLookupResponse:
 
         assert data == {
             "slug": "smithingplus",
+            "urlalias": "smithingplus",
             "asset_id": 15312,
             "name": "Smithing Plus",
             "author": "jayu",
@@ -733,6 +735,7 @@ class TestModBrowseItem:
         """ModBrowseItem serializes correctly for API responses."""
         item = ModBrowseItem(
             slug="smithingplus",
+            urlalias="smithingplus",
             asset_id=15312,
             name="Smithing Plus",
             author="jayu",
@@ -750,6 +753,7 @@ class TestModBrowseItem:
 
         assert data == {
             "slug": "smithingplus",
+            "urlalias": "smithingplus",
             "asset_id": 15312,
             "name": "Smithing Plus",
             "author": "jayu",

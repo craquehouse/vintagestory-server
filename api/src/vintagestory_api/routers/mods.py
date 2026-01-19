@@ -86,11 +86,14 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
     Returns:
         ModBrowseItem with normalized field names.
     """
-    # Get slug - prefer urlalias, fallback to first modidstrs
-    slug = mod.get("urlalias")
-    if not slug:
-        modidstrs = mod.get("modidstrs", [])
-        slug = modidstrs[0] if modidstrs else str(mod.get("modid", "unknown"))
+    # Get slug from modidstrs[0] - this is what the /api/mod/{slug} endpoint expects
+    # VSS-brs: urlalias differs from modidstrs for some mods, causing lookup failures
+    # Handle both missing key and null value with `or []`
+    modidstrs: list[str] = mod.get("modidstrs") or []
+    slug: str = modidstrs[0] if modidstrs else str(mod.get("modid", "unknown"))
+
+    # Keep urlalias separate for website URL construction
+    urlalias = mod.get("urlalias")
 
     # Normalize side value to lowercase
     # Type narrowing: pyright can't infer that the `in` check guarantees side_raw
@@ -110,6 +113,7 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
 
     return ModBrowseItem(
         slug=slug,
+        urlalias=urlalias,
         asset_id=int(mod.get("assetid", 0)),
         name=str(mod.get("name", "")),
         author=str(mod.get("author", "")),

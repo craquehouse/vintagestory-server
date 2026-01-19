@@ -2,9 +2,9 @@
  * InstalledTab component tests.
  *
  * Story 10.2: Mods Tab Restructure - AC2
+ * VSS-195: Removed ModLookupInput - mod discovery moved to BrowseTab.
  *
- * Tests the Installed tab which contains the existing mod management UI
- * (extracted from ModList.tsx).
+ * Tests the Installed tab which displays and manages installed mods.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -84,7 +84,7 @@ describe('InstalledTab', () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe('AC2: Installed tab contains existing mod management UI', () => {
+  describe('AC2: Installed tab contains mod management UI', () => {
     it('renders the tab container', async () => {
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/mods')) {
@@ -105,7 +105,8 @@ describe('InstalledTab', () => {
       expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
     });
 
-    it('renders ModLookupInput component', async () => {
+    // VSS-195: ModLookupInput removed - mod discovery moved to BrowseTab
+    it('does not render ModLookupInput', async () => {
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/mods')) {
           return Promise.resolve({
@@ -122,9 +123,11 @@ describe('InstalledTab', () => {
       const queryClient = createTestQueryClient();
       render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
+      // Verify ModLookupInput is NOT present
       expect(
-        screen.getByPlaceholderText('Enter mod slug or paste URL')
-      ).toBeInTheDocument();
+        screen.queryByPlaceholderText('Enter mod slug or paste URL')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-search-input')).not.toBeInTheDocument();
     });
 
     it('renders Installed Mods section heading', async () => {

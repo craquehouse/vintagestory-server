@@ -21,6 +21,7 @@ describe('fetchBrowseMods', () => {
       mods: [
         {
           slug: 'test-mod',
+          urlalias: 'test-mod',
           assetId: 12345,
           name: 'Test Mod',
           author: 'TestAuthor',

@@ -165,7 +165,17 @@ class ModLookupResponse(BaseModel):
     """
 
     slug: str
-    """URL-friendly mod identifier (urlalias from API)."""
+    """Mod identifier from modidstrs[0] - used for API lookups (/api/mod/{slug}).
+
+    VSS-brs: This is always from modidstrs, NOT urlalias, for consistency with
+    ModBrowseItem. The VintageStory API only accepts modidstrs for lookups.
+    """
+
+    urlalias: str | None = None
+    """URL alias for website links (e.g., mods.vintagestory.at/{urlalias}).
+
+    May differ from slug. Use this for constructing website URLs, use slug for API calls.
+    """
 
     asset_id: int = 0
     """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).
@@ -263,7 +273,17 @@ class ModBrowseItem(BaseModel):
     """
 
     slug: str
-    """URL-friendly mod identifier (urlalias or modidstrs[0] fallback)."""
+    """Mod identifier from modidstrs[0] - used for API lookups (/api/mod/{slug}).
+
+    VSS-brs: This is always from modidstrs, NOT urlalias, because the VintageStory
+    API only accepts modidstrs for lookups. Some mods have different urlalias values.
+    """
+
+    urlalias: str | None = None
+    """URL alias for website links (e.g., mods.vintagestory.at/{urlalias}).
+
+    May differ from slug. Use this for constructing website URLs, use slug for API calls.
+    """
 
     asset_id: int = 0
     """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).

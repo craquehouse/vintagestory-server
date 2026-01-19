@@ -33,55 +33,11 @@ import {
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useLookupMod, useInstallMod } from '@/hooks/use-mods';
+import { extractSlug } from '@/lib/mod-utils';
 
 interface ModLookupInputProps {
   /** Callback when a mod is successfully installed */
   onInstalled?: (mod: { slug: string; version: string }) => void;
-}
-
-/**
- * Extracts a mod slug from a URL or returns the input as-is if it's already a slug.
- *
- * Handles:
- * - Full URLs: https://mods.vintagestory.at/smithingplus
- * - Protocol-less URLs: mods.vintagestory.at/smithingplus
- * - Plain slugs: smithingplus
- *
- * @param input - User input (slug or URL)
- * @returns Extracted slug (lowercase)
- *
- * @example Valid inputs:
- * extractSlug('smithingplus') // => 'smithingplus'
- * extractSlug('SmithingPlus') // => 'smithingplus'
- * extractSlug('https://mods.vintagestory.at/smithingplus') // => 'smithingplus'
- * extractSlug('mods.vintagestory.at/smithingplus') // => 'smithingplus'
- * extractSlug('https://mods.vintagestory.at/expanded_foods') // => 'expanded_foods'
- *
- * @example Edge cases:
- * extractSlug('  smithingplus  ') // => 'smithingplus' (trimmed)
- * extractSlug('/smithingplus') // => 'smithingplus' (path prefix stripped)
- */
-export function extractSlug(input: string): string {
-  const trimmed = input.trim();
-
-  // Handle full URLs with or without protocol
-  const urlMatch = trimmed.match(/mods\.vintagestory\.at\/([a-zA-Z0-9_-]+)/);
-  if (urlMatch) {
-    return urlMatch[1].toLowerCase();
-  }
-
-  // Handle paths like "/modname" or "some/path/modname"
-  if (trimmed.includes('/')) {
-    const parts = trimmed.split('/');
-    const lastPart = parts[parts.length - 1];
-    // Only return if it looks like a valid slug
-    if (/^[a-zA-Z0-9_-]+$/.test(lastPart)) {
-      return lastPart.toLowerCase();
-    }
-  }
-
-  // Already a slug
-  return trimmed.toLowerCase();
 }
 
 /**

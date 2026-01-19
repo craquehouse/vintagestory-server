@@ -431,8 +431,14 @@ class ModService:
             for r in releases
         ]
 
+        # Get slug from modidstrs[0] - this is what the /api/mod/{slug} endpoint expects
+        # VSS-brs: urlalias differs from modidstrs for some mods, causing lookup failures
+        modidstrs: list[str] = mod.get("modidstrs") or []
+        response_slug: str = modidstrs[0] if modidstrs else slug
+
         result = ModLookupResponse(
-            slug=mod.get("urlalias") or slug,
+            slug=response_slug,
+            urlalias=mod.get("urlalias"),
             asset_id=int(mod.get("assetid", 0)),
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
