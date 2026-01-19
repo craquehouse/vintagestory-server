@@ -323,7 +323,7 @@ describe('useUpdateGameSetting', () => {
       });
     });
 
-    it('invalidates game config query on success', async () => {
+    it('does NOT invalidate game config on success (trusts optimistic update)', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
@@ -352,12 +352,14 @@ describe('useUpdateGameSetting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(invalidateSpy).toHaveBeenCalledWith({
+      // Should NOT invalidate game config - optimistic update is trusted
+      // Polling (30s) handles eventual consistency
+      expect(invalidateSpy).not.toHaveBeenCalledWith({
         queryKey: ['config', 'game'],
       });
     });
 
-    it('also invalidates mods query on success (for pending restart)', async () => {
+    it('invalidates mods query on success (for pending restart status)', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
@@ -386,13 +388,68 @@ describe('useUpdateGameSetting', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      // Should invalidate both config and mods queries
-      expect(invalidateSpy).toHaveBeenCalledWith({
-        queryKey: ['config', 'game'],
-      });
+      // Should invalidate mods query (for pending restart status)
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['mods'],
       });
+      // But NOT game config
+      expect(invalidateSpy).not.toHaveBeenCalledWith({
+        queryKey: ['config', 'game'],
+      });
+    });
+
+    it('keeps optimistic update visible after mutation completes', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              key: 'ServerName',
+              value: 'Updated Name',
+              method: 'console_command',
+              pending_restart: false,
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Pre-populate the cache with initial config
+      queryClient.setQueryData(['config', 'game'], {
+        status: 'ok',
+        data: {
+          settings: [
+            {
+              key: 'ServerName',
+              value: 'Original Name',
+              type: 'string',
+              liveUpdate: true,
+              envManaged: false,
+            },
+          ],
+          sourceFile: 'serverconfig.json',
+          lastModified: '2025-12-30T10:00:00Z',
+        },
+      });
+
+      const { result } = renderHook(() => useUpdateGameSetting(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate({ key: 'ServerName', value: 'Updated Name' });
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Verify the optimistic value is still in cache after mutation completes
+      // (not overwritten by immediate refetch)
+      const cachedData = queryClient.getQueryData(['config', 'game']) as {
+        data: { settings: { key: string; value: string }[] };
+      };
+      expect(cachedData.data.settings[0].value).toBe('Updated Name');
     });
 
     it('rolls back on error', async () => {
