@@ -227,7 +227,9 @@ describe('ModDetailPage', () => {
       expect(stats).toHaveTextContent('204.7K');
       // Follows formatted as 2.3K
       expect(stats).toHaveTextContent('2.3K');
-      expect(stats).toHaveTextContent('Side: Both');
+      // VSS-qal: Side now shows as badges instead of "Side: Both" text
+      expect(stats).toHaveTextContent('Client');
+      expect(stats).toHaveTextContent('Server');
       expect(stats).toHaveTextContent('Version: 1.8.3');
     });
 

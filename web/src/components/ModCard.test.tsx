@@ -235,6 +235,33 @@ describe('ModCard', () => {
 
       expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
     });
+
+    // VSS-qal: SideBadge integration test
+    it('renders SideBadge with correct side value', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const sideContainer = screen.getByTestId('mod-card-side-carrycapacity');
+      expect(sideContainer).toBeInTheDocument();
+      // mockMod has side: 'both', so both badges should show
+      expect(screen.getByTestId('side-badge-client')).toBeInTheDocument();
+      expect(screen.getByTestId('side-badge-server')).toBeInTheDocument();
+    });
+
+    it('renders SideBadge for client-only mod', () => {
+      const clientOnlyMod = { ...mockMod, side: 'client' as const };
+      render(<ModCard mod={clientOnlyMod} />);
+
+      expect(screen.getByTestId('side-badge-client')).toBeInTheDocument();
+      expect(screen.queryByTestId('side-badge-server')).not.toBeInTheDocument();
+    });
+
+    it('renders SideBadge for server-only mod', () => {
+      const serverOnlyMod = { ...mockMod, side: 'server' as const };
+      render(<ModCard mod={serverOnlyMod} />);
+
+      expect(screen.queryByTestId('side-badge-client')).not.toBeInTheDocument();
+      expect(screen.getByTestId('side-badge-server')).toBeInTheDocument();
+    });
   });
 
   describe('with different mod data', () => {

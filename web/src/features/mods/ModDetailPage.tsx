@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods } from '@/hooks/use-mods';
@@ -453,7 +454,7 @@ export function ModDetailPage() {
               <Users className="h-4 w-4" />
               {formatNumber(mod.follows)}
             </span>
-            <span>Side: {mod.side}</span>
+            <SideBadge side={mod.side} />
             <span>Version: {mod.latestVersion}</span>
           </div>
 

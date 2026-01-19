@@ -31,8 +31,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { SideBadge } from '@/components/SideBadge';
 import { useMods, useEnableMod, useDisableMod, useRemoveMod, useModsCompatibility } from '@/hooks/use-mods';
-import type { ModInfo, CompatibilityStatus } from '@/api/types';
+import type { ModInfo, CompatibilityStatus, ModSide } from '@/api/types';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -61,8 +62,9 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const mods = modsData?.data?.mods ?? [];
 
   // VSS-j3c: Fetch compatibility status for all installed mods
+  // VSS-qal: Also fetch side info for SideBadge display
   const slugs = mods.map((m) => m.slug);
-  const { compatibilityMap } = useModsCompatibility(slugs);
+  const { compatibilityMap, sideMap } = useModsCompatibility(slugs);
 
   const handleToggle = (mod: ModInfo) => {
     if (mod.enabled) {
@@ -108,6 +110,12 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     return compatibilityMap.get(mod.slug) ?? 'not_verified';
   };
 
+  // VSS-qal: Get side from fetched mod details
+  // Returns undefined if not yet loaded (SideBadge handles fallback)
+  const getSide = (mod: ModInfo): ModSide | undefined => {
+    return sideMap.get(mod.slug);
+  };
+
   const isTogglingMod = (slug: string) => {
     return (
       (isEnabling && enablingSlug === slug) ||
@@ -141,6 +149,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Version</TableHead>
+            <TableHead>Side</TableHead>
             <TableHead>Compatibility</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[80px]">Actions</TableHead>
@@ -174,6 +183,9 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
               </TableCell>
               <TableCell>
                 <span className="text-muted-foreground">v{mod.version}</span>
+              </TableCell>
+              <TableCell>
+                <SideBadge side={getSide(mod)} />
               </TableCell>
               <TableCell>
                 <CompatibilityBadge status={getCompatibilityStatus(mod)} />

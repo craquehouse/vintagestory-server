@@ -15,7 +15,7 @@ import {
   disableMod,
   removeMod,
 } from '@/api/mods';
-import type { ApiResponse, ModsListData, CompatibilityStatus } from '@/api/types';
+import type { ApiResponse, ModsListData, CompatibilityStatus, ModSide } from '@/api/types';
 
 /**
  * Default polling interval for mods list (10 seconds).
@@ -320,15 +320,19 @@ export function useModsCompatibility(slugs: string[]) {
     })),
   });
 
-  // Build a map of slug -> compatibility status
+  // Build maps of slug -> compatibility status and slug -> side
   const compatibilityMap = new Map<string, CompatibilityStatus>();
+  const sideMap = new Map<string, ModSide>();
 
   queries.forEach((query, index) => {
     const slug = slugs[index];
     if (query.data?.data?.compatibility?.status) {
       compatibilityMap.set(slug, query.data.data.compatibility.status);
     }
-    // If query failed or no data, we don't add to map (caller can fallback to 'not_verified')
+    if (query.data?.data?.side) {
+      sideMap.set(slug, query.data.data.side);
+    }
+    // If query failed or no data, we don't add to map (caller can fallback)
   });
 
   // Consider loading if any query is still loading
@@ -339,6 +343,7 @@ export function useModsCompatibility(slugs: string[]) {
 
   return {
     compatibilityMap,
+    sideMap,
     isLoading,
     isAllFetched,
     queries, // Expose raw queries for advanced usage

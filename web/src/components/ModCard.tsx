@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { formatNumber } from '@/lib/utils';
+import { SideBadge } from '@/components/SideBadge';
 import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
@@ -182,6 +183,9 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
             <TrendingUp className="h-3.5 w-3.5" />
             {formatNumber(mod.trendingPoints)}
           </span>
+        </div>
+        <div className="mt-2" data-testid={`mod-card-side-${mod.slug}`}>
+          <SideBadge side={mod.side} />
         </div>
 
         {/* Install button or Installed indicator (Story 10.8) */}
