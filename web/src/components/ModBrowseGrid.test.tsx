@@ -284,12 +284,12 @@ describe('ModBrowseGrid', () => {
             latestVersion: '1.5.0',
             downloads: 50000,
             follows: 500,
-            side: 'both',
+            side: 'Both',
             compatibility: {
               status: 'compatible',
               gameVersion: '1.21.6',
               modVersion: '1.5.0',
-              message: undefined,
+              message: '',
             },
             logoUrl: null,
             releases: [],
@@ -297,6 +297,7 @@ describe('ModBrowseGrid', () => {
             homepageUrl: null,
             sourceUrl: null,
             created: null,
+            lastReleased: null,
           },
         },
         isLoading: false,
@@ -308,15 +309,23 @@ describe('ModBrowseGrid', () => {
         isPending: false,
         isLoadingError: false,
         isRefetchError: false,
+        isPlaceholderData: false,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isInitialLoading: false,
+        isStale: false,
         status: 'success',
         fetchStatus: 'idle',
         refetch: vi.fn(),
-        dataUpdatedAt: 0,
+        dataUpdatedAt: Date.now(),
         errorUpdateCount: 0,
         errorUpdatedAt: 0,
         failureCount: 0,
         failureReason: null,
-      });
+        promise: Promise.resolve({} as never),
+        isPaused: false,
+        isEnabled: true,
+      } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
       render(<ModBrowseGrid mods={mockMods} installedSlugs={installedSlugs} />, { wrapper: createWrapper() });
 
@@ -347,6 +356,11 @@ describe('ModBrowseGrid', () => {
         isPending: false,
         isLoadingError: true,
         isRefetchError: false,
+        isPlaceholderData: false,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isInitialLoading: false,
+        isStale: false,
         status: 'error',
         fetchStatus: 'idle',
         refetch: vi.fn(),
@@ -355,7 +369,10 @@ describe('ModBrowseGrid', () => {
         errorUpdatedAt: Date.now(),
         failureCount: 1,
         failureReason: new Error('Network failure'),
-      });
+        promise: Promise.resolve({} as never),
+        isPaused: false,
+        isEnabled: true,
+      } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
       render(<ModBrowseGrid mods={mockMods} installedSlugs={installedSlugs} />, { wrapper: createWrapper() });
 

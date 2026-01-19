@@ -67,9 +67,18 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
   useEffect(() => {
     if (shouldFetchDetails && !isLoadingDetails && (modDetails || isError)) {
       setIsInstallDialogOpen(true);
-      setShouldFetchDetails(false);
+      // Note: Don't reset shouldFetchDetails here - it keeps the query enabled
+      // so modDetails stays available. Reset when dialog closes instead.
     }
   }, [shouldFetchDetails, modDetails, isLoadingDetails, isError]);
+
+  // Reset fetch state when dialog closes (keeps query enabled while dialog is open)
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsInstallDialogOpen(open);
+    if (!open) {
+      setShouldFetchDetails(false);
+    }
+  };
 
   return (
     <>
@@ -204,11 +213,11 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
         author: mod.author,
       }}
       compatibility={{
-        status: modDetails?.data?.compatibility.status ?? 'not_verified',
-        message: modDetails?.data?.compatibility.message,
+        status: modDetails?.data?.compatibility?.status ?? 'not_verified',
+        message: modDetails?.data?.compatibility?.message,
       }}
       open={isInstallDialogOpen}
-      onOpenChange={setIsInstallDialogOpen}
+      onOpenChange={handleDialogOpenChange}
     />
     </>
   );

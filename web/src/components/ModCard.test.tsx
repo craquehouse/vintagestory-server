@@ -34,16 +34,50 @@ vi.mock('@/hooks/use-mods', async () => {
   };
 });
 
+// Helper to create a complete UseQueryResult mock
+function createQueryResultMock<T>(overrides: {
+  data?: T;
+  isLoading?: boolean;
+  isError?: boolean;
+  error?: Error | null;
+  isSuccess?: boolean;
+}) {
+  const isLoading = overrides.isLoading ?? false;
+  const isError = overrides.isError ?? false;
+  const isSuccess = overrides.isSuccess ?? false;
+  return {
+    data: overrides.data,
+    isLoading,
+    isError,
+    error: overrides.error ?? null,
+    isSuccess,
+    refetch: vi.fn(),
+    isFetching: isLoading,
+    isRefetching: false,
+    isPending: isLoading && !overrides.data,
+    isLoadingError: isError && isLoading,
+    isRefetchError: false,
+    isPlaceholderData: false,
+    isFetched: isSuccess || isError,
+    isFetchedAfterMount: isSuccess || isError,
+    isInitialLoading: isLoading && !overrides.data,
+    isStale: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: isError ? Date.now() : 0,
+    failureCount: isError ? 1 : 0,
+    failureReason: overrides.error ?? null,
+    fetchStatus: isLoading ? 'fetching' : 'idle',
+    status: isSuccess ? 'success' : isError ? 'error' : isLoading ? 'pending' : 'pending',
+    errorUpdateCount: isError ? 1 : 0,
+    promise: Promise.resolve(overrides.data),
+    isPaused: false,
+    isEnabled: true,
+  } as ReturnType<typeof useModDetail.useModDetail>;
+}
+
 // Mock useModDetail hook - return default mock for all tests
 vi.mock('@/hooks/use-mod-detail', () => ({
-  useModDetail: vi.fn(() => ({
-    data: undefined,
-    isLoading: false,
-    isError: false,
-    error: null,
-    isSuccess: false,
-    refetch: vi.fn(),
-  })),
+  useModDetail: vi.fn(() => createQueryResultMock({})),
 }));
 
 // Helper to create a QueryClient wrapper
@@ -329,14 +363,7 @@ describe('ModCard', () => {
         isPaused: false,
       });
       // Default mock for useModDetail - not loading, no data
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        isError: false,
-        error: null,
-        isSuccess: false,
-        refetch: vi.fn(),
-      });
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({}));
     });
 
     it('does not show install button when installedSlugs is not provided', () => {
@@ -378,7 +405,7 @@ describe('ModCard', () => {
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return mod data (simulating successful fetch)
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         data: {
           status: 'ok',
           data: {
@@ -389,12 +416,12 @@ describe('ModCard', () => {
             latestVersion: '1.5.0',
             downloads: 50000,
             follows: 500,
-            side: 'both',
+            side: 'Both',
             compatibility: {
               status: 'not_verified',
               gameVersion: '1.21.6',
               modVersion: '1.5.0',
-              message: undefined,
+              message: '',
             },
             logoUrl: null,
             releases: [],
@@ -402,14 +429,11 @@ describe('ModCard', () => {
             homepageUrl: null,
             sourceUrl: null,
             created: null,
+            lastReleased: null,
           },
         },
-        isLoading: false,
-        isError: false,
-        error: null,
         isSuccess: true,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
@@ -429,7 +453,7 @@ describe('ModCard', () => {
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return mod data
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         data: {
           status: 'ok',
           data: {
@@ -440,12 +464,12 @@ describe('ModCard', () => {
             latestVersion: '1.5.0',
             downloads: 50000,
             follows: 500,
-            side: 'both',
+            side: 'Both',
             compatibility: {
               status: 'not_verified',
               gameVersion: '1.21.6',
               modVersion: '1.5.0',
-              message: undefined,
+              message: '',
             },
             logoUrl: null,
             releases: [],
@@ -453,14 +477,11 @@ describe('ModCard', () => {
             homepageUrl: null,
             sourceUrl: null,
             created: null,
+            lastReleased: null,
           },
         },
-        isLoading: false,
-        isError: false,
-        error: null,
         isSuccess: true,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} onClick={handleClick} installedSlugs={installedSlugs} />,
@@ -474,18 +495,12 @@ describe('ModCard', () => {
     });
 
     it('shows loading state when Install button is clicked', async () => {
-      const user = userEvent.setup();
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return loading state
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
-        data: undefined,
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         isLoading: true,
-        isError: false,
-        error: null,
-        isSuccess: false,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
@@ -504,7 +519,7 @@ describe('ModCard', () => {
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return compatible mod
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         data: {
           status: 'ok',
           data: {
@@ -515,12 +530,12 @@ describe('ModCard', () => {
             latestVersion: '1.5.0',
             downloads: 50000,
             follows: 500,
-            side: 'both',
+            side: 'Both',
             compatibility: {
               status: 'compatible',
               gameVersion: '1.21.6',
               modVersion: '1.5.0',
-              message: undefined,
+              message: '',
             },
             logoUrl: null,
             releases: [],
@@ -528,14 +543,11 @@ describe('ModCard', () => {
             homepageUrl: null,
             sourceUrl: null,
             created: null,
+            lastReleased: null,
           },
         },
-        isLoading: false,
-        isError: false,
-        error: null,
         isSuccess: true,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
@@ -555,14 +567,10 @@ describe('ModCard', () => {
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return error state
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
-        data: undefined,
-        isLoading: false,
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         isError: true,
         error: new Error('Network error'),
-        isSuccess: false,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
@@ -582,7 +590,7 @@ describe('ModCard', () => {
       const installedSlugs = new Set<string>();
 
       // Mock useModDetail to return mod with specific version
-      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
         data: {
           status: 'ok',
           data: {
@@ -593,12 +601,12 @@ describe('ModCard', () => {
             latestVersion: '2.3.4',
             downloads: 50000,
             follows: 500,
-            side: 'both',
+            side: 'Both',
             compatibility: {
               status: 'not_verified',
               gameVersion: '1.21.6',
               modVersion: '2.3.4',
-              message: undefined,
+              message: '',
             },
             logoUrl: null,
             releases: [],
@@ -606,14 +614,11 @@ describe('ModCard', () => {
             homepageUrl: null,
             sourceUrl: null,
             created: null,
+            lastReleased: null,
           },
         },
-        isLoading: false,
-        isError: false,
-        error: null,
         isSuccess: true,
-        refetch: vi.fn(),
-      });
+      }));
 
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
