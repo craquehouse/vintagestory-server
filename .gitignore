@@ -101,3 +101,7 @@ Thumbs.db
 
 # Beads
 .beads/bd.sock.startlock
+.beads/.bv.lock
+
+# bv (beads viewer) local config and caches
+.bv/
