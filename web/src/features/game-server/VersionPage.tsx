@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ServerInstallCard } from '@/components/ServerInstallCard';
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { ChannelFilter, type ChannelFilterValue } from '@/components/ChannelFilter';
-import { VersionGrid } from '@/components/VersionGrid';
+import { VersionTable } from '@/components/VersionTable';
 import { InstallVersionDialog } from '@/components/InstallVersionDialog';
 import { UninstallConfirmDialog } from '@/components/UninstallConfirmDialog';
 import { QuickInstallButton } from '@/components/QuickInstallButton';
@@ -158,11 +158,11 @@ export function VersionPage() {
         <div className="mb-4">
           <ChannelFilter value={channel} onChange={setChannel} />
         </div>
-        <VersionGrid
+        <VersionTable
           versions={versions}
           isLoading={isLoadingVersions}
           installedVersion={installedVersion}
-          onVersionClick={handleVersionClick}
+          onVersionSelect={handleVersionClick}
         />
       </div>
 
