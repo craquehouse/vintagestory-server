@@ -443,6 +443,24 @@ raise HTTPException(
 )
 ```
 
+**Type checking configuration:**
+
+Pyright is configured in strict mode (`api/pyproject.toml`) with `reportMissingTypeStubs = "none"`:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "none"  # Suppress stub warnings for internal packages
+```
+
+**Rationale (VSS-bcy):**
+- All 423 stub warnings were for internal `vintagestory_api.*` modules where we control types directly
+- External dependencies (fastapi, httpx, pydantic, etc.) already provide type stubs
+- Actual type checking remains strict via other settings (reportUnknownMemberType, etc.)
+- To re-enable: change `"none"` to `"warning"` (generates 423+ warnings)
+
+**Philosophy:** Suppress noise from internal imports, catch real type errors.
+
 ### Frontend (TypeScript)
 
 **File naming:** kebab-case (`mod-card.tsx`)
