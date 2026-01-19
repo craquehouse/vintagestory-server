@@ -361,6 +361,7 @@ class TestModLookupResponse:
         )
         response = ModLookupResponse(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             latest_version="1.8.3",
@@ -369,6 +370,7 @@ class TestModLookupResponse:
             compatibility=compat,
         )
         assert response.slug == "smithingplus"
+        assert response.asset_id == 15312
         assert response.name == "Smithing Plus"
         assert response.author == "jayu"
         assert response.description is None
@@ -387,6 +389,7 @@ class TestModLookupResponse:
         )
         response = ModLookupResponse(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             description="Expanded smithing mechanics for VintageStory",
@@ -408,6 +411,7 @@ class TestModLookupResponse:
         )
         original = ModLookupResponse(
             slug="testmod",
+            asset_id=99999,
             name="Test Mod",
             author="TestAuthor",
             description="A test mod",
@@ -437,6 +441,7 @@ class TestModLookupResponse:
         )
         response = ModLookupResponse(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             description="Expanded smithing",
@@ -449,6 +454,7 @@ class TestModLookupResponse:
 
         assert data == {
             "slug": "smithingplus",
+            "asset_id": 15312,
             "name": "Smithing Plus",
             "author": "jayu",
             "description": "Expanded smithing",
@@ -481,6 +487,7 @@ class TestModLookupResponse:
         )
         response = ModLookupResponse(
             slug="oldmod",
+            asset_id=11111,
             name="Old Mod",
             author="someone",
             latest_version="1.5.0",
@@ -524,6 +531,7 @@ class TestModLookupResponse:
         ]
         response = ModLookupResponse(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             description="<p>HTML description</p>",
@@ -567,6 +575,7 @@ class TestModBrowseItem:
         """ModBrowseItem can be created with required fields and defaults."""
         item = ModBrowseItem(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             downloads=204656,
@@ -576,6 +585,7 @@ class TestModBrowseItem:
             mod_type="mod",
         )
         assert item.slug == "smithingplus"
+        assert item.asset_id == 15312
         assert item.name == "Smithing Plus"
         assert item.author == "jayu"
         assert item.downloads == 204656
@@ -592,6 +602,7 @@ class TestModBrowseItem:
         """ModBrowseItem can be created with all fields populated."""
         item = ModBrowseItem(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             summary="Expanded smithing mechanics",
@@ -615,6 +626,7 @@ class TestModBrowseItem:
         for side in ["client", "server", "both"]:
             item = ModBrowseItem(
                 slug="test",
+                asset_id=12345,
                 name="Test",
                 author="Test",
                 downloads=0,
@@ -630,6 +642,7 @@ class TestModBrowseItem:
         with pytest.raises(ValidationError):
             ModBrowseItem(
                 slug="test",
+                asset_id=12345,
                 name="Test",
                 author="Test",
                 downloads=0,
@@ -645,6 +658,7 @@ class TestModBrowseItem:
         for mod_type in ["mod", "externaltool", "other"]:
             item = ModBrowseItem(
                 slug="test",
+                asset_id=12345,
                 name="Test",
                 author="Test",
                 downloads=0,
@@ -661,6 +675,7 @@ class TestModBrowseItem:
         # (The actual transformation happens in ModApiClient)
         item = ModBrowseItem(
             slug="smithingplus",  # from urlalias
+            asset_id=15312,  # from assetid
             name="Smithing Plus",
             author="jayu",
             summary="Expanded smithing",
@@ -683,6 +698,7 @@ class TestModBrowseItem:
         """ModBrowseItem serializes to JSON and deserializes correctly."""
         original = ModBrowseItem(
             slug="testmod",
+            asset_id=99999,
             name="Test Mod",
             author="TestAuthor",
             summary="A test mod",
@@ -715,6 +731,7 @@ class TestModBrowseItem:
         """ModBrowseItem serializes correctly for API responses."""
         item = ModBrowseItem(
             slug="smithingplus",
+            asset_id=15312,
             name="Smithing Plus",
             author="jayu",
             summary="Expanded smithing",
@@ -731,6 +748,7 @@ class TestModBrowseItem:
 
         assert data == {
             "slug": "smithingplus",
+            "asset_id": 15312,
             "name": "Smithing Plus",
             "author": "jayu",
             "summary": "Expanded smithing",
@@ -870,6 +888,7 @@ class TestModBrowseResponse:
         mods = [
             ModBrowseItem(
                 slug="mod1",
+                asset_id=11111,
                 name="Mod 1",
                 author="Author1",
                 downloads=1000,
@@ -880,6 +899,7 @@ class TestModBrowseResponse:
             ),
             ModBrowseItem(
                 slug="mod2",
+                asset_id=22222,
                 name="Mod 2",
                 author="Author2",
                 downloads=2000,
@@ -925,6 +945,7 @@ class TestModBrowseResponse:
         mods = [
             ModBrowseItem(
                 slug="testmod",
+                asset_id=99999,
                 name="Test Mod",
                 author="TestAuthor",
                 downloads=1000,
@@ -958,6 +979,7 @@ class TestModBrowseResponse:
         mods = [
             ModBrowseItem(
                 slug="smithingplus",
+                asset_id=15312,
                 name="Smithing Plus",
                 author="jayu",
                 summary="Expanded smithing",
@@ -994,6 +1016,7 @@ class TestModBrowseResponse:
         """ModBrowseResponse properly nests ModBrowseItem and PaginationMeta."""
         mod = ModBrowseItem(
             slug="testmod",
+            asset_id=99999,
             name="Test Mod",
             author="Author",
             downloads=1000,

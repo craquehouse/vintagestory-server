@@ -155,6 +155,12 @@ class ModLookupResponse(BaseModel):
     slug: str
     """URL-friendly mod identifier (urlalias from API)."""
 
+    asset_id: int = 0
+    """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).
+
+    Defaults to 0 for backwards compatibility with API clients.
+    """
+
     name: str
     """Display name of the mod."""
 
@@ -246,6 +252,12 @@ class ModBrowseItem(BaseModel):
 
     slug: str
     """URL-friendly mod identifier (urlalias or modidstrs[0] fallback)."""
+
+    asset_id: int = 0
+    """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).
+
+    Defaults to 0 for backwards compatibility with API clients.
+    """
 
     name: str
     """Display name of the mod."""

@@ -157,6 +157,7 @@ export interface ModRelease {
  */
 export interface ModLookupData {
   slug: string;
+  assetId: number;
   name: string;
   author: string;
   description: string | null;
@@ -332,6 +333,7 @@ export type BrowseModSide = 'client' | 'server' | 'both';
  */
 export interface ModBrowseItem {
   slug: string;
+  assetId: number;
   name: string;
   author: string;
   summary: string | null;

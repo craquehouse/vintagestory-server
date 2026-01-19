@@ -110,6 +110,7 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
 
     return ModBrowseItem(
         slug=slug,
+        asset_id=int(mod.get("assetid", 0)),
         name=str(mod.get("name", "")),
         author=str(mod.get("author", "")),
         summary=mod.get("summary"),

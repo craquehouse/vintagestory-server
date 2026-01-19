@@ -49,6 +49,7 @@ const mockModDetailResponse = {
   status: 'ok',
   data: {
     slug: 'smithingplus',
+    asset_id: 15312,
     name: 'Smithing Plus',
     author: 'jayu',
     description: '<p>Enhanced smithing mechanics with <strong>bold text</strong></p>',
@@ -96,6 +97,7 @@ const mockMinimalResponse = {
   status: 'ok',
   data: {
     slug: 'simplemod',
+    asset_id: 99999,
     name: 'Simple Mod',
     author: 'author1',
     description: null,
@@ -404,7 +406,7 @@ describe('ModDetailPage', () => {
       const link = await screen.findByTestId('mod-detail-moddb-link');
       expect(link).toHaveAttribute(
         'href',
-        'https://mods.vintagestory.at/smithingplus'
+        'https://mods.vintagestory.at/show/mod/15312'
       );
       expect(link).toHaveAttribute('target', '_blank');
     });

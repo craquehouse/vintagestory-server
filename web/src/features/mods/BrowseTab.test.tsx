@@ -117,6 +117,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
     mods: [
       {
         slug: 'carrycapacity',
+        assetId: 12345,
         name: 'Carry Capacity',
         author: 'copygirl',
         summary: 'Allows picking up chests',
@@ -131,6 +132,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       },
       {
         slug: 'primitivesurvival',
+        assetId: 23456,
         name: 'Primitive Survival',
         author: 'Spear and Fang',
         summary: 'Survival mechanics',

@@ -96,6 +96,7 @@ function createWrapper() {
 // Mock mod data for testing
 const mockMod: ModBrowseItem = {
   slug: 'carrycapacity',
+  assetId: 12345,
   name: 'Carry Capacity',
   author: 'copygirl',
   summary: 'Allows picking up chests and other containers while keeping their contents',
@@ -151,7 +152,7 @@ describe('ModCard', () => {
 
       const link = screen.getByTestId('mod-card-link-carrycapacity');
       expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/carrycapacity');
+      expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/show/mod/12345');
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       expect(link).toHaveTextContent('Carry Capacity');

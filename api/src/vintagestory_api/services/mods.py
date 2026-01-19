@@ -429,6 +429,7 @@ class ModService:
 
         result = ModLookupResponse(
             slug=mod.get("urlalias") or slug,
+            asset_id=int(mod.get("assetid", 0)),
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
             description=mod.get("text"),

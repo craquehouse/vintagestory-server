@@ -113,7 +113,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
             <a
-              href={`https://mods.vintagestory.at/${mod.slug}`}
+              href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 hover:underline"

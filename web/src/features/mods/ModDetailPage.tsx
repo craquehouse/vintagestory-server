@@ -472,7 +472,7 @@ export function ModDetailPage() {
           {/* External links */}
           <div className="flex items-center gap-3 pt-1">
             <a
-              href={`https://mods.vintagestory.at/${mod.slug}`}
+              href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
