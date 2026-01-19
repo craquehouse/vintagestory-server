@@ -2061,7 +2061,7 @@ Admins can discover and install mods through a full-featured browser with search
 - Smart landing page with newest mods, pre-filtered to game version
 - Keyword search with debounce
 - Filters: side, tags, game version, mod type
-- Sorting: newest, downloads, updated, trending, name
+- Sorting: recent, downloads, trending, name
 - Card display with thumbnails and compatibility badges
 - Mod detail view with install/update actions
 - Pagination for large result sets
@@ -2080,7 +2080,7 @@ So that **the browse UI can display mods with all filtering and sorting options*
 **Given** I call `GET /api/v1alpha1/mods/browse`
 **When** no parameters are provided
 **Then** I receive the newest mods, pre-filtered to the current game server version
-**And** the response includes pagination metadata (total, page, per_page)
+**And** the response includes pagination metadata (total, page, page_size)
 *(Covers FR59, FR60, FR61)*
 
 **Given** I call `GET /api/v1alpha1/mods/browse?q=magic`
@@ -2094,12 +2094,12 @@ So that **the browse UI can display mods with all filtering and sorting options*
 *(Covers FR65, FR66, FR67, FR68, FR69)*
 
 **Given** I call with sort parameter
-**When** I include `sort=downloads` (or `newest`, `updated`, `trending`, `name`)
+**When** I include `sort=downloads` (or `trending`, `recent`, `name`)
 **Then** results are sorted accordingly
 *(Covers FR71, FR72, FR73)*
 
 **Given** I call with pagination parameters
-**When** I include `page=2&per_page=20`
+**When** I include `page=2&page_size=20`
 **Then** I receive the second page of 20 results
 **And** response includes `total_count` for pagination UI
 *(Covers FR80)*
