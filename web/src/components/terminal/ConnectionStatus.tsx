@@ -29,8 +29,8 @@ function getStatusConfig(
     case 'connecting':
       return {
         label: 'Connecting...',
-        indicatorClass: 'bg-yellow-500',
-        textClass: 'text-yellow-600 dark:text-yellow-400',
+        indicatorClass: 'bg-warning',
+        textClass: 'text-warning',
         pulse: true,
       };
     case 'connected':
@@ -38,32 +38,32 @@ function getStatusConfig(
       if (serverState && serverState !== 'running') {
         return {
           label: 'Server not running',
-          indicatorClass: 'bg-yellow-500',
-          textClass: 'text-yellow-600 dark:text-yellow-400',
+          indicatorClass: 'bg-warning',
+          textClass: 'text-warning',
         };
       }
       return {
         label: 'Connected',
-        indicatorClass: 'bg-green-500',
-        textClass: 'text-green-600 dark:text-green-400',
+        indicatorClass: 'bg-success',
+        textClass: 'text-success',
       };
     case 'disconnected':
       return {
         label: 'Disconnected',
-        indicatorClass: 'bg-gray-500',
-        textClass: 'text-gray-600 dark:text-gray-400',
+        indicatorClass: 'bg-muted-foreground',
+        textClass: 'text-muted-foreground',
       };
     case 'forbidden':
       return {
         label: 'Access Denied',
-        indicatorClass: 'bg-red-500',
-        textClass: 'text-red-600 dark:text-red-400',
+        indicatorClass: 'bg-destructive',
+        textClass: 'text-destructive',
       };
     case 'token_error':
       return {
         label: 'Authentication Error',
-        indicatorClass: 'bg-red-500',
-        textClass: 'text-red-600 dark:text-red-400',
+        indicatorClass: 'bg-destructive',
+        textClass: 'text-destructive',
       };
     default: {
       // TypeScript exhaustive check

@@ -20,9 +20,7 @@ from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 
-# Test API keys - match the test configuration
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture
@@ -44,18 +42,6 @@ def lifespan_client(integration_app: FastAPI):
     """Test client with app lifespan (starts scheduler)."""
     with TestClient(integration_app) as client:
         yield client
-
-
-@pytest.fixture
-def admin_headers() -> dict[str, str]:
-    """Admin authentication headers."""
-    return {"X-API-Key": TEST_ADMIN_KEY}
-
-
-@pytest.fixture
-def monitor_headers() -> dict[str, str]:
-    """Monitor authentication headers."""
-    return {"X-API-Key": TEST_MONITOR_KEY}
 
 
 class TestListJobsEndpoint:

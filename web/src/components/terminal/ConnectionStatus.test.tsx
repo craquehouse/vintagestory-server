@@ -47,31 +47,35 @@ describe('ConnectionStatus', () => {
   });
 
   describe('visual styling (AC: 4)', () => {
-    it('applies green indicator for connected state', () => {
+    it('applies success indicator for connected state', () => {
       const { container } = render(<ConnectionStatus state="connected" />);
 
-      const indicator = container.querySelector('.bg-green-500');
+      // Uses semantic bg-success class for theme-aware colors
+      const indicator = container.querySelector('.bg-success');
       expect(indicator).toBeInTheDocument();
     });
 
-    it('applies yellow indicator for connecting state', () => {
+    it('applies warning indicator for connecting state', () => {
       const { container } = render(<ConnectionStatus state="connecting" />);
 
-      const indicator = container.querySelector('.bg-yellow-500');
+      // Uses semantic bg-warning class for theme-aware colors
+      const indicator = container.querySelector('.bg-warning');
       expect(indicator).toBeInTheDocument();
     });
 
-    it('applies gray indicator for disconnected state', () => {
+    it('applies muted indicator for disconnected state', () => {
       const { container } = render(<ConnectionStatus state="disconnected" />);
 
-      const indicator = container.querySelector('.bg-gray-500');
+      // Uses semantic bg-muted-foreground class for theme-aware colors
+      const indicator = container.querySelector('.bg-muted-foreground');
       expect(indicator).toBeInTheDocument();
     });
 
-    it('applies red indicator for forbidden state', () => {
+    it('applies destructive indicator for forbidden state', () => {
       const { container } = render(<ConnectionStatus state="forbidden" />);
 
-      const indicator = container.querySelector('.bg-red-500');
+      // Uses semantic bg-destructive class for theme-aware colors
+      const indicator = container.querySelector('.bg-destructive');
       expect(indicator).toBeInTheDocument();
     });
 

@@ -24,9 +24,7 @@ from vintagestory_api.services.metrics import (
     reset_metrics_service,
 )
 
-# Test API keys - match the test configuration
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 def _create_snapshot(

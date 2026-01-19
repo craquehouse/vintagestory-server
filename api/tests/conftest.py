@@ -16,6 +16,10 @@ from fastapi.testclient import TestClient
 
 from vintagestory_api.main import app
 
+# Shared test API keys - use these instead of defining locally in test files
+TEST_ADMIN_KEY = "test-admin-key-12345"
+TEST_MONITOR_KEY = "test-monitor-key-67890"
+
 
 @pytest.fixture(autouse=True)
 def reset_structlog_for_tests() -> Generator[None, None, None]:
@@ -51,6 +55,18 @@ def reset_structlog_for_tests() -> Generator[None, None, None]:
 def client() -> TestClient:
     """Create a test client for FastAPI app."""
     return TestClient(app)
+
+
+@pytest.fixture
+def admin_headers() -> dict[str, str]:
+    """Headers with admin API key for authenticated requests."""
+    return {"X-API-Key": TEST_ADMIN_KEY}
+
+
+@pytest.fixture
+def monitor_headers() -> dict[str, str]:
+    """Headers with monitor API key (read-only, non-admin) for authenticated requests."""
+    return {"X-API-Key": TEST_MONITOR_KEY}
 
 
 @pytest.fixture

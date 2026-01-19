@@ -191,24 +191,24 @@ describe('VersionCard', () => {
   });
 
   describe('channel badge styling', () => {
-    it('stable badge has green styling', () => {
+    it('stable badge has success styling', () => {
       render(<VersionCard version={mockStableVersion} />);
 
       const channel = screen.getByTestId('version-card-channel-1.21.6');
       const badge = channel.querySelector('[data-slot="badge"]');
       expect(badge).toBeInTheDocument();
-      // Check for green-related class
-      expect(badge?.className).toMatch(/green/);
+      // Check for success-related class (semantic color)
+      expect(badge?.className).toMatch(/text-success/);
     });
 
-    it('unstable badge has yellow styling', () => {
+    it('unstable badge has warning styling', () => {
       render(<VersionCard version={mockUnstableVersion} />);
 
       const channel = screen.getByTestId('version-card-channel-1.22.0-rc1');
       const badge = channel.querySelector('[data-slot="badge"]');
       expect(badge).toBeInTheDocument();
-      // Check for yellow-related class
-      expect(badge?.className).toMatch(/yellow/);
+      // Check for warning-related class (semantic color)
+      expect(badge?.className).toMatch(/text-warning/);
     });
   });
 

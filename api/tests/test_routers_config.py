@@ -51,9 +51,7 @@ from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.server import ServerService, get_server_service
 
-# Test API keys
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture

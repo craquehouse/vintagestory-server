@@ -29,6 +29,9 @@ from vintagestory_api.services.ws_token_service import (
 )
 
 
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
+
+
 def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:
     """Helper to run async code in sync test context."""
     try:
@@ -37,10 +40,6 @@ def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(coro)
-
-# Test API keys
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
 
 
 @pytest.fixture

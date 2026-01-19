@@ -204,3 +204,42 @@
 .json-number { color: var(--json-number); }
 .json-boolean { color: var(--json-boolean); }
 .json-null { color: var(--json-null); }
+
+/* Semantic utility classes for badges, banners, and status indicators */
+@layer components {
+  /* Badge variants - rounded pill with subtle background */
+  .badge-success {
+    @apply bg-success/20 text-success border-success/30;
+  }
+  .badge-warning {
+    @apply bg-warning/20 text-warning border-warning/30;
+  }
+  .badge-destructive {
+    @apply bg-destructive/20 text-destructive border-destructive/30;
+  }
+  .badge-primary {
+    @apply bg-primary/20 text-primary border-primary/30;
+  }
+
+  /* Banner variants - full-width notification bars */
+  .banner-warning {
+    @apply bg-warning/20 text-warning;
+  }
+  .banner-primary {
+    @apply bg-primary/20 text-primary;
+  }
+
+  /* Status indicator dots */
+  .status-indicator-success {
+    @apply bg-success;
+  }
+  .status-indicator-warning {
+    @apply bg-warning;
+  }
+  .status-indicator-destructive {
+    @apply bg-destructive;
+  }
+  .status-indicator-muted {
+    @apply bg-muted-foreground;
+  }
+}

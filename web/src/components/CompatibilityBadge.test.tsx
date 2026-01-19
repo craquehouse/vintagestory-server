@@ -29,31 +29,28 @@ describe('CompatibilityBadge', () => {
   });
 
   describe('visual styling', () => {
-    it('applies green styling for compatible status', () => {
+    it('applies success styling for compatible status', () => {
       render(<CompatibilityBadge status="compatible" />);
 
       const badge = screen.getByTestId('compatibility-badge');
-      // Catppuccin green #a6e3a1
-      expect(badge).toHaveClass('bg-[#a6e3a1]/20');
-      expect(badge).toHaveClass('text-[#a6e3a1]');
+      // Uses semantic badge-success class for theme-aware colors
+      expect(badge).toHaveClass('badge-success');
     });
 
-    it('applies yellow styling for not_verified status', () => {
+    it('applies warning styling for not_verified status', () => {
       render(<CompatibilityBadge status="not_verified" />);
 
       const badge = screen.getByTestId('compatibility-badge');
-      // Catppuccin yellow #f9e2af
-      expect(badge).toHaveClass('bg-[#f9e2af]/20');
-      expect(badge).toHaveClass('text-[#f9e2af]');
+      // Uses semantic badge-warning class for theme-aware colors
+      expect(badge).toHaveClass('badge-warning');
     });
 
-    it('applies red styling for incompatible status', () => {
+    it('applies destructive styling for incompatible status', () => {
       render(<CompatibilityBadge status="incompatible" />);
 
       const badge = screen.getByTestId('compatibility-badge');
-      // Catppuccin red #f38ba8
-      expect(badge).toHaveClass('bg-[#f38ba8]/20');
-      expect(badge).toHaveClass('text-[#f38ba8]');
+      // Uses semantic badge-destructive class for theme-aware colors
+      expect(badge).toHaveClass('badge-destructive');
     });
   });
 

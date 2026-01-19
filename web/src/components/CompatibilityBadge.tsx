@@ -2,11 +2,11 @@
  * CompatibilityBadge - Displays mod compatibility status with color-coded badge.
  *
  * Visual indicators:
- * - Compatible: Green (#a6e3a1) with checkmark icon
- * - Not verified: Yellow (#f9e2af) with warning icon
- * - Incompatible: Red (#f38ba8) with X icon
+ * - Compatible: Green (success) with checkmark icon
+ * - Not verified: Yellow (warning) with warning icon
+ * - Incompatible: Red (destructive) with X icon
  *
- * Uses Catppuccin Mocha colors from the UX spec.
+ * Uses semantic CSS variables that adapt to light/dark themes.
  */
 
 import { Check, AlertTriangle, X } from 'lucide-react';
@@ -29,20 +29,17 @@ const statusConfig = {
   compatible: {
     label: 'Compatible',
     icon: Check,
-    // Catppuccin Mocha green - subtle treatment (success = quiet)
-    className: 'bg-[#a6e3a1]/20 text-[#a6e3a1] border-[#a6e3a1]/30',
+    className: 'badge-success',
   },
   not_verified: {
     label: 'Not verified',
     icon: AlertTriangle,
-    // Catppuccin Mocha yellow
-    className: 'bg-[#f9e2af]/20 text-[#f9e2af] border-[#f9e2af]/30',
+    className: 'badge-warning',
   },
   incompatible: {
     label: 'Incompatible',
     icon: X,
-    // Catppuccin Mocha red - prominent treatment (error = loud)
-    className: 'bg-[#f38ba8]/20 text-[#f38ba8] border-[#f38ba8]/30',
+    className: 'badge-destructive',
   },
 } as const;
 

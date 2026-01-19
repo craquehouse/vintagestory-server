@@ -21,9 +21,10 @@ from vintagestory_api.services.server import ServerService
 # pyright: reportMissingTypeArgument=false
 # Note: Above suppressions are for pytest fixture injection patterns.
 
-# Test API keys
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
+# Re-export shared test constants for use by test files in this directory
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
+
+__all__ = ["TEST_ADMIN_KEY", "TEST_MONITOR_KEY"]
 
 # Mock VintageStory API response
 MOCK_STABLE_API_RESPONSE = {

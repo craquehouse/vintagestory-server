@@ -18,6 +18,8 @@ from vintagestory_api.services.server import ServerService, get_server_service
 # pyright: reportUnknownParameterType=false
 # pyright: reportUnknownVariableType=false
 
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
+
 
 def _configure_stream_mocks(process: AsyncMock) -> None:
     """Configure stdout/stderr mocks to return EOF immediately.
@@ -28,11 +30,6 @@ def _configure_stream_mocks(process: AsyncMock) -> None:
     process.stdout.readline = AsyncMock(return_value=b"")
     process.stderr = AsyncMock()
     process.stderr.readline = AsyncMock(return_value=b"")
-
-
-# Test API keys
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
 
 
 class TestServerStartEndpoint:

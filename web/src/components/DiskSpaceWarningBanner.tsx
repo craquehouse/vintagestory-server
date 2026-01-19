@@ -31,15 +31,15 @@ export function DiskSpaceWarningBanner({ diskSpace }: DiskSpaceWarningBannerProp
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md bg-yellow-500/20 px-3 py-1.5 text-sm"
+      className="flex items-center gap-2 rounded-md bg-warning/20 px-3 py-1.5 text-sm"
       data-testid="disk-space-warning-banner"
     >
       <HardDrive
-        className="h-4 w-4 text-yellow-500"
+        className="h-4 w-4 text-warning"
         aria-hidden="true"
         data-testid="disk-warning-icon"
       />
-      <span className="text-yellow-500">
+      <span className="text-warning">
         Low disk space: {diskSpace.availableGb.toFixed(1)} GB available ({diskSpace.usagePercent.toFixed(0)}% used)
       </span>
     </div>

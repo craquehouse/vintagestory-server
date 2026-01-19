@@ -130,7 +130,7 @@ export function SettingField({
         {envManaged && (
           <Badge
             variant="outline"
-            className="text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30"
+            className="text-xs bg-warning/10 text-warning border-warning/30"
           >
             Env: {envVar || `VS_CFG_${settingKey.toUpperCase()}`}
           </Badge>
