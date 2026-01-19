@@ -454,8 +454,9 @@ class TestTailLogFile:
         with pytest.raises(LogFileAccessError):
             await tail_log_file(logs_dir, "symlink.log", lines=100)
 
-        # Note: We're using structlog in the actual code, but caplog may not capture it
-        # This test documents the expected behavior, actual log verification depends on structlog setup
+        # Note: We're using structlog in the actual code, but caplog may not capture it.
+        # This test documents the expected behavior; actual log verification depends on
+        # structlog setup.
 
     @pytest.mark.asyncio
     async def test_logging_on_file_too_large(self, logs_dir: Path, caplog: Any) -> None:

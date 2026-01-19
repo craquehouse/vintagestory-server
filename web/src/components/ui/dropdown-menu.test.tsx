@@ -14,9 +14,7 @@ import { render, screen } from '@testing-library/react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
-  DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuLabel,
 } from './dropdown-menu';
 
