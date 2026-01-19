@@ -46,6 +46,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 50,
         availableGb: 50,
         usagePercent: 50,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} isLoading={true} />);
@@ -83,6 +84,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 45.5,
         availableGb: 54.5,
         usagePercent: 45.5,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -96,6 +98,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 45.5,
         availableGb: 54.5,
         usagePercent: 45.5,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -111,6 +114,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 33.333,
         availableGb: 66.667,
         usagePercent: 33.333,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -124,6 +128,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 50.0,
         availableGb: 49.999,
         usagePercent: 50.0,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -139,6 +144,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 45.7,
         availableGb: 54.3,
         usagePercent: 45.7,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -154,6 +160,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 100.0,
         availableGb: 0.0,
         usagePercent: 100.0,
+        warning: true,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -170,6 +177,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 0.0,
         availableGb: 100.0,
         usagePercent: 0.0,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -184,6 +192,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 3.2,
         availableGb: 7.3,
         usagePercent: 30.5,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -200,6 +209,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 500.0,
         availableGb: 1500.0,
         usagePercent: 25.0,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -216,6 +226,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 33.333,
         availableGb: 66.667,
         usagePercent: 33.333,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -232,6 +243,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 50.0,
         availableGb: 50.0,
         usagePercent: 50.0,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
@@ -245,6 +257,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 50.0,
         availableGb: 50.0,
         usagePercent: 50.0,
+        warning: false,
       };
 
       // Loading state
@@ -272,6 +285,7 @@ describe('DiskSpaceCard', () => {
         usedGb: 50.0,
         availableGb: 50.0,
         usagePercent: 50.0,
+        warning: false,
       };
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
