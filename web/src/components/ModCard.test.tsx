@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModCard } from './ModCard';
 import { formatNumber } from '@/lib/utils';
 import * as useMods from '@/hooks/use-mods';
+import * as useModDetail from '@/hooks/use-mod-detail';
 import type { ModBrowseItem } from '@/api/types';
 
 // Mock useInstallMod hook - return default mock for all tests
@@ -32,6 +33,18 @@ vi.mock('@/hooks/use-mods', async () => {
     })),
   };
 });
+
+// Mock useModDetail hook - return default mock for all tests
+vi.mock('@/hooks/use-mod-detail', () => ({
+  useModDetail: vi.fn(() => ({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    error: null,
+    isSuccess: false,
+    refetch: vi.fn(),
+  })),
+}));
 
 // Helper to create a QueryClient wrapper
 function createWrapper() {
@@ -315,6 +328,15 @@ describe('ModCard', () => {
         submittedAt: 0,
         isPaused: false,
       });
+      // Default mock for useModDetail - not loading, no data
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: false,
+        refetch: vi.fn(),
+      });
     });
 
     it('does not show install button when installedSlugs is not provided', () => {
@@ -355,6 +377,40 @@ describe('ModCard', () => {
       const user = userEvent.setup();
       const installedSlugs = new Set<string>();
 
+      // Mock useModDetail to return mod data (simulating successful fetch)
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: {
+          status: 'ok',
+          data: {
+            slug: 'carrycapacity',
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            downloads: 50000,
+            follows: 500,
+            side: 'both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: undefined,
+            },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        refetch: vi.fn(),
+      });
+
       render(
         <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
         { wrapper: createWrapper() }
@@ -372,6 +428,40 @@ describe('ModCard', () => {
       const handleClick = vi.fn();
       const installedSlugs = new Set<string>();
 
+      // Mock useModDetail to return mod data
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: {
+          status: 'ok',
+          data: {
+            slug: 'carrycapacity',
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            downloads: 50000,
+            follows: 500,
+            side: 'both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: undefined,
+            },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        refetch: vi.fn(),
+      });
+
       render(
         <ModCard mod={mockMod} onClick={handleClick} installedSlugs={installedSlugs} />,
         { wrapper: createWrapper() }
@@ -381,6 +471,159 @@ describe('ModCard', () => {
 
       // Card onClick should NOT be called
       expect(handleClick).not.toHaveBeenCalled();
+    });
+
+    it('shows loading state when Install button is clicked', async () => {
+      const user = userEvent.setup();
+      const installedSlugs = new Set<string>();
+
+      // Mock useModDetail to return loading state
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+        isSuccess: false,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      const installButton = screen.getByTestId('mod-card-install-carrycapacity');
+
+      // Button should show loading state
+      expect(installButton).toBeDisabled();
+      expect(installButton).toHaveTextContent('Loading...');
+    });
+
+    it('opens dialog with compatible status after fetch completes', async () => {
+      const user = userEvent.setup();
+      const installedSlugs = new Set<string>();
+
+      // Mock useModDetail to return compatible mod
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: {
+          status: 'ok',
+          data: {
+            slug: 'carrycapacity',
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            downloads: 50000,
+            follows: 500,
+            side: 'both',
+            compatibility: {
+              status: 'compatible',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: undefined,
+            },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Dialog should open with compatible status
+      expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+      // Should not show warning for compatible mods
+      expect(screen.queryByTestId('install-dialog-warning')).not.toBeInTheDocument();
+    });
+
+    it('falls back to not_verified when fetch fails', async () => {
+      const user = userEvent.setup();
+      const installedSlugs = new Set<string>();
+
+      // Mock useModDetail to return error state
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Network error'),
+        isSuccess: false,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Dialog should open with not_verified fallback
+      expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
+      // Should show warning for not_verified
+      expect(screen.getByTestId('install-dialog-warning')).toBeInTheDocument();
+    });
+
+    it('uses fetched version instead of LATEST_VERSION', async () => {
+      const user = userEvent.setup();
+      const installedSlugs = new Set<string>();
+
+      // Mock useModDetail to return mod with specific version
+      vi.mocked(useModDetail.useModDetail).mockReturnValue({
+        data: {
+          status: 'ok',
+          data: {
+            slug: 'carrycapacity',
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '2.3.4',
+            downloads: 50000,
+            follows: 500,
+            side: 'both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '2.3.4',
+              message: undefined,
+            },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+          },
+        },
+        isLoading: false,
+        isError: false,
+        error: null,
+        isSuccess: true,
+        refetch: vi.fn(),
+      });
+
+      render(
+        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Dialog should show fetched version
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: 2.3.4');
     });
 
   });

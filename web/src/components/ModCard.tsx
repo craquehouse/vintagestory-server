@@ -8,11 +8,12 @@
  * Story 10.8: Added install button with confirmation dialog.
  */
 
-import { useState } from 'react';
-import { Download, Users, TrendingUp, ExternalLink, Package, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Users, TrendingUp, ExternalLink, Package, Check, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
+import { useModDetail } from '@/hooks/use-mod-detail';
 import { formatNumber } from '@/lib/utils';
 import type { ModBrowseItem } from '@/api/types';
 
@@ -41,6 +42,7 @@ const LATEST_VERSION = 'latest';
  */
 export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+  const [shouldFetchDetails, setShouldFetchDetails] = useState(false);
 
   // Check if this mod is already installed
   const isInstalled = installedSlugs?.has(mod.slug) ?? false;
@@ -50,11 +52,24 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
     ? 'cursor-pointer hover:shadow-lg transition-shadow'
     : '';
 
-  // Handle install button click - stop propagation to prevent card click
+  // Lazy-load mod details when Install button is clicked
+  const { data: modDetails, isLoading: isLoadingDetails, isError } = useModDetail(
+    shouldFetchDetails ? mod.slug : ''
+  );
+
+  // Handle install button click - fetch details first, then open dialog
   const handleInstallClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsInstallDialogOpen(true);
+    setShouldFetchDetails(true);
   };
+
+  // Open dialog once details are loaded or fetch fails
+  useEffect(() => {
+    if (shouldFetchDetails && !isLoadingDetails && (modDetails || isError)) {
+      setIsInstallDialogOpen(true);
+      setShouldFetchDetails(false);
+    }
+  }, [shouldFetchDetails, modDetails, isLoadingDetails, isError]);
 
   return (
     <>
@@ -158,10 +173,20 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
                 variant="outline"
                 className="w-full"
                 onClick={handleInstallClick}
+                disabled={isLoadingDetails}
                 data-testid={`mod-card-install-${mod.slug}`}
               >
-                <Download className="h-4 w-4 mr-1.5" />
-                Install
+                {isLoadingDetails ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Install
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -174,12 +199,13 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
       mod={{
         slug: mod.slug,
         name: mod.name,
-        version: LATEST_VERSION,
+        version: modDetails?.data?.latestVersion ?? LATEST_VERSION,
         logoUrl: mod.logoUrl,
         author: mod.author,
       }}
       compatibility={{
-        status: 'not_verified',
+        status: modDetails?.data?.compatibility.status ?? 'not_verified',
+        message: modDetails?.data?.compatibility.message,
       }}
       open={isInstallDialogOpen}
       onOpenChange={setIsInstallDialogOpen}
