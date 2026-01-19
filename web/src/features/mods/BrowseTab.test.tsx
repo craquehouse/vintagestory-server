@@ -77,6 +77,19 @@ vi.mock('@/hooks/use-game-versions', () => ({
   })),
 }));
 
+// VSS-y7u: Mock useModTags for tags filter
+vi.mock('@/hooks/use-mod-tags', () => ({
+  useModTags: vi.fn(() => ({
+    data: {
+      status: 'ok',
+      data: { tags: ['utility', 'qol', 'food', 'building'] },
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
+}));
+
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
   return new QueryClient({

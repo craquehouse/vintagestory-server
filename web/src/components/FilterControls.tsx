@@ -5,9 +5,9 @@
  * Displays active filters as removable badges.
  *
  * Story VSS-vth: Added game version filter with versions from API.
+ * VSS-y7u: Tags now fetched from dedicated API endpoint for complete list.
  */
 
-import { useMemo } from 'react';
 import { Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,12 +20,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import type { ModFilters, BrowseModSide, ModType, ModBrowseItem } from '@/api/types';
+import type { ModFilters, BrowseModSide, ModType } from '@/api/types';
 
 interface FilterControlsProps {
   filters: ModFilters;
   onChange: (filters: ModFilters) => void;
-  availableMods?: ModBrowseItem[]; // For extracting available tags dynamically
+  // VSS-y7u: Available tags from API (replaces extraction from current page)
+  availableTags?: string[];
+  tagsLoading?: boolean;
+  tagsError?: boolean;
   gameVersions?: string[]; // VSS-vth: Available game versions from API
   gameVersionsLoading?: boolean; // VSS-vth: Loading state for versions
   gameVersionsError?: boolean; // VSS-vth: Error state for versions
@@ -48,19 +51,14 @@ const MOD_TYPE_OPTIONS: Array<{ value: ModType; label: string }> = [
 export function FilterControls({
   filters,
   onChange,
-  availableMods = [],
+  // VSS-y7u: Tags now come from API via useModTags
+  availableTags = [],
+  tagsLoading = false,
+  tagsError = false,
   gameVersions = [],
   gameVersionsLoading = false,
   gameVersionsError = false,
 }: FilterControlsProps) {
-  // Extract unique tags from available mods
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    availableMods.forEach((mod) => {
-      mod.tags.forEach((tag) => tagSet.add(tag.toLowerCase()));
-    });
-    return Array.from(tagSet).sort();
-  }, [availableMods]);
   const handleSideChange = (side: BrowseModSide) => {
     onChange({ ...filters, side });
   };
@@ -135,18 +133,27 @@ export function FilterControls({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Tags Filter */}
+        {/* Tags Filter (VSS-y7u: now uses full tag list from API) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={tagsLoading}
+              data-testid="tags-filter-button"
+            >
               <Filter className="mr-2 h-4 w-4" />
-              Tags
+              {tagsLoading ? 'Loading...' : 'Tags'}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuLabel>Filter by Tags</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {availableTags.length > 0 ? (
+            {tagsError ? (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                Failed to load tags
+              </div>
+            ) : availableTags.length > 0 ? (
               <div className="max-h-[300px] overflow-y-auto">
                 {availableTags.map((tag) => (
                   <DropdownMenuCheckboxItem

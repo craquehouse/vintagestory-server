@@ -436,55 +436,60 @@ describe('useBrowseMods', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('filters mods client-side when filters are provided', async () => {
+  // VSS-y7u: Filters are now passed to API (server-side filtering)
+  it('passes side filter to API (server-side filtering)', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockBrowseResponse),
     });
     globalThis.fetch = mockFetch;
 
-    const { result } = renderHook(
+    renderHook(
       () => useBrowseMods({ filters: { side: 'server' } }),
       { wrapper: createWrapper() }
     );
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true);
+      expect(mockFetch).toHaveBeenCalled();
     });
 
-    // Should filter to just the server-side mod
-    expect(result.current.mods).toHaveLength(1);
-    expect(result.current.mods[0].slug).toBe('wildcraft');
-    // Pagination should still reflect original totals
-    expect(result.current.pagination?.totalItems).toBe(100);
+    // VSS-y7u: Side filter is now passed to API
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain('side=server');
   });
 
-  it('does not pass filters to API (client-side only)', async () => {
+  it('passes all filters to API (server-side filtering)', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockBrowseResponse),
     });
     globalThis.fetch = mockFetch;
 
-    renderHook(() => useBrowseMods({ filters: { side: 'server' } }), {
-      wrapper: createWrapper(),
-    });
+    renderHook(
+      () =>
+        useBrowseMods({
+          filters: { side: 'server', modType: 'mod', tags: ['utility', 'qol'] },
+        }),
+      { wrapper: createWrapper() }
+    );
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
+    // VSS-y7u: All filters are now passed to API
     const [url] = mockFetch.mock.calls[0];
-    expect(url).not.toContain('side');
-    expect(url).not.toContain('filter');
+    expect(url).toContain('side=server');
+    expect(url).toContain('mod_type=mod');
+    expect(url).toContain('tags=utility%2Cqol');
   });
 
-  it('combines server-side search with client-side filters', async () => {
-    // API returns search results, then client-side filters are applied
+  // VSS-y7u: Both search and filters are now server-side
+  it('passes both search and filters to API', async () => {
     const searchResponse: ApiResponse<ModBrowseData> = {
       status: 'ok',
       data: {
-        // API returns all mods matching 'survival' search
+        // API returns mods matching 'survival' search and 'both' side filter
         mods: [mockMods[1]], // primitivesurvival
         pagination: {
           page: 1,
@@ -516,15 +521,14 @@ describe('useBrowseMods', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    // Search is server-side, filters are client-side
-    // Server returns primitivesurvival (matching 'survival')
-    // Client filters by side 'both' (primitivesurvival is 'both', so it passes)
+    // VSS-y7u: Both search and filters are passed to API
     expect(result.current.mods).toHaveLength(1);
     expect(result.current.mods[0].slug).toBe('primitivesurvival');
 
-    // Verify search was passed to API
+    // Verify both search and side filter were passed to API
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain('search=survival');
+    expect(url).toContain('side=both');
   });
 
   // Story 10.7: Pagination state tests

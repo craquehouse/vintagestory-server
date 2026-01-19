@@ -1,11 +1,12 @@
 /**
  * Hook for fetching and filtering browsable mods.
  *
- * Uses server-side search, pagination, and game version filtering with
- * client-side filtering for additional criteria (side, tags, modType).
- * Uses TanStack Query for caching and state management.
+ * All filtering (search, side, tags, modType, gameVersion) is done
+ * server-side for accurate pagination. Uses TanStack Query for caching
+ * and state management.
  *
  * Story VSS-vth: Added server-side game version filtering.
+ * VSS-y7u: Moved all filters (side, tags, modType) to server-side.
  */
 
 import { useState, useCallback } from 'react';
@@ -22,8 +23,8 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
 /**
  * Hook to fetch and filter browsable mods.
  *
- * Supports server-side pagination, sorting, and search (via API).
- * Additional filtering (side, tags, type) is done client-side.
+ * Supports server-side pagination, sorting, search, and filtering (via API).
+ * VSS-y7u: All filters (side, tags, modType) are now server-side for accurate pagination.
  *
  * Story 10.7: Added pagination state management with setPage, goToNextPage, goToPrevPage.
  *
@@ -72,17 +73,19 @@ export function useBrowseMods(params: BrowseParams = {}) {
   // (BrowseTab) which has full context of all criteria changes.
   // This hook only manages pagination state.
 
-  // Separate filters from API params
-  // - filters.gameVersion is passed to API as 'version' (server-side)
-  // - filters.side, filters.tags, filters.modType are client-side
-  // - 'name' sort is client-side only
+  // VSS-y7u: All filters are now server-side for accurate pagination
+  // Extract filters for API - support both new flat params and legacy filters object
   const { filters, sort, page: _ignoredPage, ...apiParams } = params;
 
   // Only pass sort to API if it's a server-side option
   const apiSort = sort === 'name' ? undefined : sort;
 
-  // VSS-vth: Extract gameVersion for server-side filtering
-  const apiVersion = filters?.gameVersion;
+  // VSS-y7u: Build API params with all filters (server-side)
+  // Support both new flat params and legacy filters object for backwards compat
+  const apiVersion = params.version ?? filters?.gameVersion;
+  const apiSide = params.side ?? filters?.side;
+  const apiModType = params.modType ?? filters?.modType;
+  const apiTags = params.tags ?? filters?.tags;
 
   const query = useQuery({
     queryKey: queryKeys.mods.browse({
@@ -91,6 +94,10 @@ export function useBrowseMods(params: BrowseParams = {}) {
       sort: apiSort,
       search: params.search,
       version: apiVersion,
+      // VSS-y7u: Server-side filters
+      side: apiSide,
+      modType: apiModType,
+      tags: apiTags,
     }),
     queryFn: () =>
       fetchBrowseMods({
@@ -99,6 +106,10 @@ export function useBrowseMods(params: BrowseParams = {}) {
         sort: apiSort,
         search: params.search,
         version: apiVersion,
+        // VSS-y7u: Server-side filters
+        side: apiSide,
+        modType: apiModType,
+        tags: apiTags,
       }),
     staleTime: BROWSE_STALE_TIME,
   });
@@ -135,12 +146,11 @@ export function useBrowseMods(params: BrowseParams = {}) {
     });
   }, [pagination?.hasPrev]);
 
-  // Client-side filtering pipeline (search is now server-side)
+  // VSS-y7u: All filtering is now server-side, no client-side filtering needed
   const allMods = query.data?.data?.mods ?? [];
-  const fullyFiltered = filterModsByFilters(allMods, filters);
 
-  // Client-side sorting for 'name' option
-  const sorted = sort === 'name' ? sortModsByName(fullyFiltered) : fullyFiltered;
+  // Client-side sorting for 'name' option (only remaining client-side operation)
+  const sorted = sort === 'name' ? sortModsByName(allMods) : allMods;
 
   return {
     ...query,
@@ -214,12 +224,13 @@ export function sortModsByName(mods: ModBrowseItem[]): ModBrowseItem[] {
 /**
  * Filter mods by filter criteria (client-side).
  *
+ * @deprecated VSS-y7u: All filtering is now server-side for accurate pagination.
+ * This function is kept for backwards compatibility but is no longer used by useBrowseMods.
+ *
  * Applies AND logic across different filter types:
  * - Must match side if specified
  * - Must match at least one tag if tags specified (OR logic within tags)
  * - Must match modType if specified
- *
- * Note: gameVersion filtering is now server-side (VSS-vth).
  *
  * @param mods - Array of mods to filter
  * @param filters - Filter criteria
@@ -251,8 +262,6 @@ export function filterModsByFilters(
     if (filters.modType && mod.modType !== filters.modType) {
       return false;
     }
-
-    // Note: gameVersion is now handled server-side (VSS-vth)
 
     return true;
   });

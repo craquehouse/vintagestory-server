@@ -28,6 +28,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { useMods } from '@/hooks/use-mods';
 import { useGameVersions } from '@/hooks/use-game-versions';
+import { useModTags } from '@/hooks/use-mod-tags';
 import {
   useBrowseScrollRestoration,
   getSavedScrollState,
@@ -67,6 +68,14 @@ export function BrowseTab() {
   } = useGameVersions();
   const gameVersions = gameVersionsData?.data?.versions ?? [];
 
+  // VSS-y7u: Fetch all available mod tags for filtering
+  const {
+    data: modTagsData,
+    isLoading: modTagsLoading,
+    isError: modTagsError,
+  } = useModTags();
+  const modTags = modTagsData?.data?.tags ?? [];
+
   // Story 10.7: Scroll position restoration
   // Read saved state synchronously for initial page (before first render)
   const [savedState] = useState(() => getSavedScrollState());
@@ -97,7 +106,6 @@ export function BrowseTab() {
     isError,
     error,
     refetch,
-    data: queryData,
     // Story 10.7: Pagination state and controls
     currentPage,
     setPage,
@@ -215,7 +223,10 @@ export function BrowseTab() {
       <FilterControls
         filters={filters}
         onChange={setFilters}
-        availableMods={queryData?.data?.mods ?? []}
+        // VSS-y7u: Use full tag list from API instead of extracting from current page
+        availableTags={modTags}
+        tagsLoading={modTagsLoading}
+        tagsError={modTagsError}
         gameVersions={gameVersions}
         gameVersionsLoading={gameVersionsLoading}
         gameVersionsError={gameVersionsError}

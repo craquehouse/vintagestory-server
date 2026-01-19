@@ -21,9 +21,15 @@ export const queryKeys = {
       sort?: string;
       search?: string;
       version?: string; // VSS-vth: Game version filter
+      // VSS-y7u: Server-side filters
+      side?: string;
+      modType?: string;
+      tags?: string[];
     }) => ['mods', 'browse', params] as const,
     // VSS-vth: Game versions for mod filtering
     gameVersions: ['mods', 'gameversions'] as const,
+    // VSS-y7u: Mod tags for filtering
+    tags: ['mods', 'tags'] as const,
   },
   server: {
     status: ['server', 'status'] as const,

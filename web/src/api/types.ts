@@ -374,6 +374,14 @@ export interface GameVersionsData {
 }
 
 /**
+ * Response data from GET /api/v1alpha1/mods/tags.
+ * VSS-y7u: Server-side filtering for mod browser.
+ */
+export interface ModTagsData {
+  tags: string[];
+}
+
+/**
  * Filter criteria for client-side filtering.
  */
 export interface ModFilters {
@@ -385,6 +393,7 @@ export interface ModFilters {
 
 /**
  * Parameters for browse API request.
+ * VSS-y7u: All filters are now server-side for accurate pagination.
  */
 export interface BrowseParams {
   page?: number;
@@ -392,7 +401,11 @@ export interface BrowseParams {
   sort?: BrowseSortOption;
   search?: string; // Server-side search
   version?: string; // Server-side game version filter (VSS-vth)
-  filters?: ModFilters; // Client-side filters (side, tags, modType)
+  // VSS-y7u: Server-side filters (previously client-side)
+  side?: BrowseModSide;
+  modType?: ModType;
+  tags?: string[]; // OR logic - mod must have at least one matching tag
+  filters?: ModFilters; // Deprecated: kept for backwards compatibility
 }
 
 // ===== Version Types (Story 13.2) =====

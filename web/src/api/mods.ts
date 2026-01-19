@@ -16,6 +16,7 @@ import type {
   ModInstallData,
   ModEnableDisableData,
   ModRemoveData,
+  ModTagsData,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/mods';
@@ -134,12 +135,30 @@ export async function fetchGameVersions(): Promise<
 }
 
 /**
+ * Fetch list of all unique mod tags.
+ *
+ * Returns all tags across all mods in the database, sorted alphabetically.
+ * Used for populating the tag filter dropdown with complete tag list.
+ *
+ * VSS-y7u: Server-side filtering for mod browser.
+ *
+ * @returns List of tag strings
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchModTags(): Promise<ApiResponse<ModTagsData>> {
+  return apiClient<ApiResponse<ModTagsData>>(`${API_PREFIX}/tags`);
+}
+
+/**
  * Fetch paginated list of mods from the browse API.
  *
  * Returns mods from the VintageStory mod database with pagination.
  * The API caches results for 5 minutes.
  *
- * @param params - Pagination, sort, search, and version filter parameters
+ * VSS-y7u: All filters (side, modType, tags) are now server-side for accurate pagination.
+ *
+ * @param params - Pagination, sort, search, and filter parameters
  * @returns Paginated mod list with metadata
  *
  * Accessible to both Admin and Monitor roles.
@@ -165,6 +184,16 @@ export async function fetchBrowseMods(
   // VSS-vth: Server-side game version filtering
   if (params.version?.trim()) {
     searchParams.set('version', params.version.trim());
+  }
+  // VSS-y7u: Server-side filters (previously client-side)
+  if (params.side) {
+    searchParams.set('side', params.side);
+  }
+  if (params.modType) {
+    searchParams.set('mod_type', params.modType);
+  }
+  if (params.tags && params.tags.length > 0) {
+    searchParams.set('tags', params.tags.join(','));
   }
 
   const query = searchParams.toString();

@@ -155,12 +155,30 @@ async def browse_mods(
             description="Filter mods by compatible game version (e.g., '1.21.3')",
         ),
     ] = None,
+    side: Annotated[
+        Literal["client", "server", "both"] | None,
+        Query(description="Filter by mod side: 'client', 'server', or 'both'"),
+    ] = None,
+    mod_type: Annotated[
+        Literal["mod", "externaltool", "other"] | None,
+        Query(description="Filter by mod type: 'mod', 'externaltool', or 'other'"),
+    ] = None,
+    tags: Annotated[
+        str | None,
+        Query(
+            max_length=500,
+            description="Comma-separated list of tags to filter by (OR logic)",
+        ),
+    ] = None,
 ) -> ApiResponse:
     """Browse available mods from the VintageStory mod database.
 
     Returns a paginated list of all mods available for installation,
-    sorted by the specified criteria. Optionally filter by search term
-    and/or game version compatibility.
+    sorted by the specified criteria. Supports filtering by search term,
+    game version compatibility, mod side, mod type, and tags.
+
+    All filters are applied server-side before pagination, ensuring
+    accurate counts and consistent results across pages.
 
     Both Admin and Monitor roles can access this read-only endpoint.
 
@@ -170,6 +188,9 @@ async def browse_mods(
         sort: Sort order - "downloads", "trending", "recent" (default), or "name".
         search: Optional search term to filter by name, author, summary, or tags.
         version: Optional game version to filter by compatibility (e.g., "1.21.3").
+        side: Optional filter by mod side ('client', 'server', or 'both').
+        mod_type: Optional filter by mod type ('mod', 'externaltool', or 'other').
+        tags: Optional comma-separated tags to filter by (OR logic within tags).
 
     Returns:
         ApiResponse with ModBrowseResponse containing:
@@ -189,6 +210,9 @@ async def browse_mods(
         sort=sort,
         search=search,
         version=version,
+        side=side,
+        mod_type=mod_type,
+        tags=tags,
     )
 
     try:
@@ -208,6 +232,30 @@ async def browse_mods(
 
         # Filter by search term if provided
         filtered_mods = search_mods(all_mods, search or "")
+
+        # Filter by side if provided
+        if side:
+            filtered_mods = [
+                m for m in filtered_mods if str(m.get("side", "both")).lower() == side
+            ]
+
+        # Filter by mod_type if provided
+        if mod_type:
+            filtered_mods = [
+                m for m in filtered_mods if str(m.get("type", "mod")).lower() == mod_type
+            ]
+
+        # Filter by tags if provided (OR logic - mod must have at least one matching tag)
+        if tags:
+            tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
+            if tag_list:
+                filtered_mods = [
+                    m
+                    for m in filtered_mods
+                    if any(
+                        t.lower() in tag_list for t in m.get("tags", [])
+                    )
+                ]
 
         # Sort mods
         sorted_mods = sort_mods(filtered_mods, sort_by=sort)
@@ -335,6 +383,58 @@ async def list_game_versions(
         return ApiResponse(
             status="ok",
             data={"versions": versions},
+        )
+
+    except ExternalApiError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": ErrorCode.EXTERNAL_API_ERROR,
+                "message": str(e),
+            },
+        )
+
+
+@router.get("/tags", response_model=ApiResponse, summary="List available mod tags")
+async def list_mod_tags(
+    _: RequireAuth,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """List all unique tags across all mods.
+
+    Returns a sorted list of tags that can be used for filtering mods.
+    Tags are extracted from all mods in the database and deduplicated.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Returns:
+        ApiResponse with data containing:
+        - tags: Array of unique tag strings, sorted alphabetically
+
+    Raises:
+        HTTPException: 401 if not authenticated
+        HTTPException: 502 if mod database API is unavailable
+    """
+    logger.debug("router_list_mod_tags_start")
+
+    try:
+        # Get all mods from API (cached)
+        all_mods = await service.api_client.get_all_mods()
+
+        # Extract unique tags
+        tag_set: set[str] = set()
+        for mod in all_mods:
+            for tag in mod.get("tags", []):
+                tag_set.add(tag.lower())
+
+        # Sort alphabetically
+        tags = sorted(tag_set)
+
+        logger.debug("router_list_mod_tags_complete", tag_count=len(tags))
+
+        return ApiResponse(
+            status="ok",
+            data={"tags": tags},
         )
 
     except ExternalApiError as e:

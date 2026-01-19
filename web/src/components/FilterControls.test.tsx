@@ -2,25 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { FilterControls } from './FilterControls';
-import type { ModFilters, ModBrowseItem } from '@/api/types';
+import type { ModFilters } from '@/api/types';
 
-// Mock mods data for extracting tags
-const mockMods: ModBrowseItem[] = [
-  {
-    slug: 'test-mod',
-    name: 'Test Mod',
-    author: 'test',
-    summary: 'test',
-    downloads: 100,
-    follows: 10,
-    trendingPoints: 5,
-    side: 'both',
-    modType: 'mod',
-    logoUrl: null,
-    tags: ['qol', 'utility'],
-    lastReleased: '2024-01-01T00:00:00Z',
-  },
-];
+// VSS-y7u: Tags now come from API via useModTags, not extracted from mods
+const mockTags = ['qol', 'utility'];
 
 describe('FilterControls', () => {
   const mockOnChange = vi.fn();
@@ -35,7 +20,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -57,7 +42,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={filters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -74,7 +59,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -98,7 +83,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -123,7 +108,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={filters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -143,7 +128,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={filters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -160,7 +145,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -179,7 +164,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -201,7 +186,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={defaultFilters}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -219,7 +204,7 @@ describe('FilterControls', () => {
       <FilterControls
         filters={{ tags: ['qol'] }}
         onChange={mockOnChange}
-        availableMods={mockMods}
+        availableTags={mockTags}
       />
     );
 
@@ -232,5 +217,39 @@ describe('FilterControls', () => {
 
     // Should add to existing tags
     expect(mockOnChange).toHaveBeenLastCalledWith({ tags: ['qol', 'utility'] });
+  });
+
+  // VSS-y7u: New tests for loading/error states
+  it('shows loading state when tags are loading', () => {
+    render(
+      <FilterControls
+        filters={defaultFilters}
+        onChange={mockOnChange}
+        availableTags={[]}
+        tagsLoading={true}
+      />
+    );
+
+    const tagsButton = screen.getByTestId('tags-filter-button');
+    expect(tagsButton).toBeDisabled();
+    expect(tagsButton).toHaveTextContent('Loading...');
+  });
+
+  it('shows error message when tags fail to load', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={defaultFilters}
+        onChange={mockOnChange}
+        availableTags={[]}
+        tagsError={true}
+      />
+    );
+
+    const tagsButton = screen.getByTestId('tags-filter-button');
+    await user.click(tagsButton);
+
+    expect(screen.getByText('Failed to load tags')).toBeInTheDocument();
   });
 });
