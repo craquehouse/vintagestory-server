@@ -147,7 +147,29 @@ describe('formatNumber', () => {
 
 describe('ModCard', () => {
   describe('rendering', () => {
-    it('renders the mod name as a link', () => {
+    it('renders the mod name', () => {
+      render(<ModCard mod={mockMod} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+      expect(nameSpan).toBeInTheDocument();
+      expect(nameSpan).toHaveTextContent('Carry Capacity');
+      // Without onClick, should NOT have cursor-pointer or button role
+      expect(nameSpan.className).not.toContain('cursor-pointer');
+      expect(nameSpan).not.toHaveAttribute('role');
+    });
+
+    it('renders the mod name as interactive when onClick provided', () => {
+      const handleClick = vi.fn();
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+      expect(nameSpan).toBeInTheDocument();
+      expect(nameSpan.className).toContain('cursor-pointer');
+      expect(nameSpan).toHaveAttribute('role', 'button');
+      expect(nameSpan).toHaveAttribute('tabIndex', '0');
+    });
+
+    it('renders external link icon separately from mod name', () => {
       render(<ModCard mod={mockMod} />);
 
       const link = screen.getByTestId('mod-card-link-carrycapacity');
@@ -155,7 +177,10 @@ describe('ModCard', () => {
       expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/show/mod/12345');
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-      expect(link).toHaveTextContent('Carry Capacity');
+      expect(link).toHaveAttribute('title', 'Open on ModDB');
+      expect(link).toHaveAttribute('aria-label', 'Open Carry Capacity on ModDB (opens in new tab)');
+      // Link should NOT contain the mod name text (it's just the icon)
+      expect(link).not.toHaveTextContent('Carry Capacity');
     });
 
     it('renders the author name', () => {
@@ -301,6 +326,60 @@ describe('ModCard', () => {
       await user.click(card);
 
       expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onClick handler when mod name is clicked (navigates to detail)', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+      await user.click(nameSpan);
+
+      // Clicking mod name should bubble up and trigger card onClick
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onClick when Enter key is pressed on mod name', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+      nameSpan.focus();
+      await user.keyboard('{Enter}');
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls onClick when Space key is pressed on mod name', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<ModCard mod={mockMod} onClick={handleClick} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+      nameSpan.focus();
+      await user.keyboard(' ');
+
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing when mod name clicked and onClick is undefined', async () => {
+      const user = userEvent.setup();
+
+      // Render without onClick handler
+      render(<ModCard mod={mockMod} />);
+
+      const nameSpan = screen.getByTestId('mod-card-name-carrycapacity');
+
+      // Should not throw when clicked
+      await user.click(nameSpan);
+
+      // Name span should not have button role when onClick is undefined
+      expect(nameSpan).not.toHaveAttribute('role');
     });
 
     it('has cursor-pointer styling when onClick is provided', () => {

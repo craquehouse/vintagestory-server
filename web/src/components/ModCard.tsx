@@ -112,17 +112,36 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
-            <a
-              href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:underline"
-              data-testid={`mod-card-link-${mod.slug}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {mod.name}
-              <ExternalLink className="h-3 w-3 text-muted-foreground" />
-            </a>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className={`hover:underline${onClick ? ' cursor-pointer' : ''}`}
+                data-testid={`mod-card-name-${mod.slug}`}
+                {...(onClick && {
+                  role: 'button',
+                  tabIndex: 0,
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onClick();
+                    }
+                  },
+                })}
+              >
+                {mod.name}
+              </span>
+              <a
+                href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`mod-card-link-${mod.slug}`}
+                title="Open on ModDB"
+                aria-label={`Open ${mod.name} on ModDB (opens in new tab)`}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </span>
           </CardTitle>
         </div>
         <p className="text-sm text-muted-foreground" data-testid={`mod-card-author-${mod.slug}`}>
