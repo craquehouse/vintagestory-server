@@ -311,3 +311,264 @@ class TestConsoleBuffer:
         buffer = ConsoleBuffer()
         assert len(buffer) == 0
         assert buffer.get_history() == []
+
+    # ======================================
+    # Memory behavior under stress
+    # ======================================
+
+    @pytest.mark.asyncio
+    async def test_stress_large_number_of_lines(self, buffer: ConsoleBuffer) -> None:
+        """Test that buffer handles large number of lines without memory issues."""
+        # Add 10,000 lines (typical max_lines default)
+        for i in range(10000):
+            await buffer.append(f"[{i:05d}] Server output line")
+
+        # Buffer should be at capacity
+        assert len(buffer) == 100
+
+        # Get history should work efficiently
+        history = buffer.get_history()
+        assert len(history) == 100
+
+    @pytest.mark.asyncio
+    async def test_stress_large_line_content(self, buffer: ConsoleBuffer) -> None:
+        """Test that buffer handles lines with large content."""
+        # Create a very long line (simulating crash dump or stack trace)
+        large_line = "A" * 10000
+
+        await buffer.append(large_line)
+
+        history = buffer.get_history()
+        assert len(history) == 1
+        assert len(history[0]) == 10000
+
+    @pytest.mark.asyncio
+    async def test_stress_mixed_line_sizes(self, small_buffer: ConsoleBuffer) -> None:
+        """Test that buffer handles mixed line sizes correctly."""
+        # Add lines of varying sizes
+        await small_buffer.append("Short")
+        await small_buffer.append("Medium sized line")
+        await small_buffer.append("X" * 1000)
+        await small_buffer.append("Another medium line")
+        await small_buffer.append("Y" * 500)
+
+        # Add one more to trigger FIFO
+        await small_buffer.append("Z" * 200)
+
+        # Verify buffer still respects max_lines
+        assert len(small_buffer) == 5
+        history = small_buffer.get_history()
+
+        # First line (short) should be gone
+        assert history[0] != "Short"
+        # Newest line should be last
+        assert history[4] == "Z" * 200
+
+    @pytest.mark.asyncio
+    async def test_stress_rapid_append_operations(self, buffer: ConsoleBuffer) -> None:
+        """Test that rapid append operations work correctly."""
+        # Simulate rapid server output
+        for i in range(1000):
+            await buffer.append(f"Line {i}")
+
+        # All lines should be stored (buffer capacity is 100)
+        assert len(buffer) == 100
+        history = buffer.get_history()
+        assert len(history) == 100
+
+    # ======================================
+    # Concurrent operations
+    # ======================================
+
+    @pytest.mark.asyncio
+    async def test_subscribe_during_append(self, buffer: ConsoleBuffer) -> None:
+        """Test that subscribing during append operations is safe."""
+        received_early: list[str] = []
+        received_late: list[str] = []
+
+        async def early_callback(line: str) -> None:
+            received_early.append(line)
+
+        async def late_callback(line: str) -> None:
+            received_late.append(line)
+
+        # Subscribe first callback
+        buffer.subscribe(early_callback)
+        await buffer.append("Line 1")
+
+        # Subscribe second callback mid-stream
+        buffer.subscribe(late_callback)
+        await buffer.append("Line 2")
+
+        # Both should have received Line 2
+        assert len(received_early) == 2
+        assert len(received_late) == 1
+        assert received_late[0] == "Line 2"
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_during_append(self, buffer: ConsoleBuffer) -> None:
+        """Test that unsubscribing during append operations is safe."""
+        received_lines: list[str] = []
+
+        async def callback(line: str) -> None:
+            received_lines.append(line)
+
+        buffer.subscribe(callback)
+        await buffer.append("Line 1")
+
+        # Unsubscribe mid-stream
+        buffer.unsubscribe(callback)
+        await buffer.append("Line 2")
+
+        # Should only have Line 1
+        assert len(received_lines) == 1
+        assert received_lines[0] == "Line 1"
+
+    @pytest.mark.asyncio
+    async def test_multiple_subscribe_unsubscribe_cycles(self, buffer: ConsoleBuffer) -> None:
+        """Test that multiple subscribe/unsubscribe cycles work correctly."""
+        received_lines: list[str] = []
+
+        async def callback(line: str) -> None:
+            received_lines.append(line)
+
+        # Subscribe, append, unsubscribe
+        buffer.subscribe(callback)
+        await buffer.append("Line 1")
+        buffer.unsubscribe(callback)
+
+        # Subscribe again
+        buffer.subscribe(callback)
+        await buffer.append("Line 2")
+        buffer.unsubscribe(callback)
+
+        # Subscribe once more
+        buffer.subscribe(callback)
+        await buffer.append("Line 3")
+
+        # Should have received lines from each subscription
+        assert len(received_lines) == 3
+        assert received_lines == ["Line 1", "Line 2", "Line 3"]
+
+    @pytest.mark.asyncio
+    async def test_subscribe_all_failing_subscribers_removed(self, buffer: ConsoleBuffer) -> None:
+        """Test that when all subscribers fail, buffer continues to work."""
+
+        async def failing_callback_1(line: str) -> None:
+            raise RuntimeError("Error 1")
+
+        async def failing_callback_2(line: str) -> None:
+            raise RuntimeError("Error 2")
+
+        buffer.subscribe(failing_callback_1)
+        buffer.subscribe(failing_callback_2)
+
+        # Should not raise, both subscribers should be removed
+        await buffer.append("Line 1")
+
+        # Subscribers should be removed
+        assert len(buffer._subscribers) == 0  # type: ignore
+
+        # Buffer should continue working
+        received_lines: list[str] = []
+
+        async def good_callback(line: str) -> None:
+            received_lines.append(line)
+
+        buffer.subscribe(good_callback)
+        await buffer.append("Line 2")
+
+        assert len(received_lines) == 1
+
+    # ======================================
+    # Additional edge cases
+    # ======================================
+
+    @pytest.mark.asyncio
+    async def test_unsubscribe_nonexistent_callback(self, buffer: ConsoleBuffer) -> None:
+        """Test that unsubscribing a non-existent callback is safe."""
+
+        async def callback(line: str) -> None:
+            pass
+
+        # Should not raise
+        buffer.unsubscribe(callback)
+
+        # Even after subscribing and unsubscribing
+        buffer.subscribe(callback)
+        buffer.unsubscribe(callback)
+
+        # Unsubscribing again should be safe
+        buffer.unsubscribe(callback)
+
+    @pytest.mark.asyncio
+    async def test_get_history_limit_zero(self, buffer: ConsoleBuffer) -> None:
+        """Test that get_history with limit=0 returns all lines (Python slicing behavior)."""
+        await buffer.append("Line 1")
+        await buffer.append("Line 2")
+
+        history = buffer.get_history(limit=0)
+        # In Python, list[-0:] returns the entire list, not empty
+        assert history == ["Line 1", "Line 2"]
+
+    @pytest.mark.asyncio
+    async def test_get_history_negative_limit(self, buffer: ConsoleBuffer) -> None:
+        """Test that get_history with negative limit returns empty list."""
+        await buffer.append("Line 1")
+
+        history = buffer.get_history(limit=-1)
+        assert history == []
+
+    @pytest.mark.asyncio
+    async def test_append_empty_string(self, buffer: ConsoleBuffer) -> None:
+        """Test that appending empty string is allowed."""
+        await buffer.append("")
+        await buffer.append("Line 1")
+
+        history = buffer.get_history()
+        assert len(history) == 2
+        assert history[0] == ""
+        assert history[1] == "Line 1"
+
+    @pytest.mark.asyncio
+    async def test_append_unicode_content(self, buffer: ConsoleBuffer) -> None:
+        """Test that buffer handles unicode content correctly."""
+        unicode_lines = [
+            "Hello 世界",
+            "Привет мир",
+            "مرحبا",
+            "🎮 Gaming",
+            "Special chars: ©®™",
+        ]
+
+        for line in unicode_lines:
+            await buffer.append(line)
+
+        history = buffer.get_history()
+        assert len(history) == 5
+        assert "🎮 Gaming" in history[3]
+
+    @pytest.mark.asyncio
+    async def test_clear_on_empty_buffer(self, buffer: ConsoleBuffer) -> None:
+        """Test that clearing an empty buffer is safe."""
+        assert len(buffer) == 0
+
+        # Should not raise
+        buffer.clear()
+
+        assert len(buffer) == 0
+        assert buffer.get_history() == []
+
+    @pytest.mark.asyncio
+    async def test_len_property_accuracy(self, buffer: ConsoleBuffer) -> None:
+        """Test that __len__ property accurately reflects buffer size."""
+        assert len(buffer) == 0
+
+        await buffer.append("Line 1")
+        assert len(buffer) == 1
+
+        await buffer.append("Line 2")
+        assert len(buffer) == 2
+
+        buffer.clear()
+        assert len(buffer) == 0
