@@ -41,6 +41,7 @@ select = ["E", "F", "I", "UP"]
 [tool.pyright]
 include = ["src", "tests"]
 exclude = ["**/node_modules", "**/__pycache__", "**/.pytest_cache", ".venv"]
+extraPaths = ["tests"]
 typeCheckingMode = "strict"
 reportMissingImports = "warning"
 reportMissingTypeStubs = "warning"

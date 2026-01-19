@@ -20,9 +20,9 @@ from vintagestory_api.services.ws_token_service import (
 # pyright: reportPrivateUsage=false
 # Note: Tests need access to private members to verify internal state
 
-# Test API keys - must match expected format
-TEST_ADMIN_KEY = "test-admin-key-12345"
-TEST_MONITOR_KEY = "test-monitor-key-67890"
+# Import shared test constants from root conftest
+# Note: admin_headers and monitor_headers fixtures are inherited from root conftest.py
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture
@@ -103,15 +103,3 @@ def ws_client(
         yield test_client
 
     app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def admin_headers() -> dict[str, str]:
-    """Headers with admin API key."""
-    return {"X-API-Key": TEST_ADMIN_KEY}
-
-
-@pytest.fixture
-def monitor_headers() -> dict[str, str]:
-    """Headers with monitor API key (non-admin)."""
-    return {"X-API-Key": TEST_MONITOR_KEY}
