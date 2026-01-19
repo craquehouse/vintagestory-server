@@ -641,6 +641,15 @@ Every completed task MUST have a corresponding git commit before marking the tas
 - Tasks cannot be marked complete without a proper commit
 - Commit message MUST match pattern: `feat(story-X.Y/task-N): description`
 
+**Memorializing Commits in Beads:**
+
+When working on a beads issue, add commit links as comments to create a traceable history:
+
+```bash
+# After each significant commit, add a link to the bead
+bd comments add VSS-abc "Commit: https://github.com/craquehouse/vintagestory-server/commit/abc123f"
+```
+
 **Pattern from Violations:**
 - ❌ Story 6.1: Single commit for all 3 tasks → Hard to review, no granularity
 - ✅ Expected: 3 commits (task-1, task-2, task-3) → Clear progress, reviewable chunks
@@ -699,17 +708,22 @@ When beginning a code review for a story:
    gh pr create --title "Story 5.2: Mod Installation API" --body "..."
    ```
 
-3. **Code review happens on PR** (not on uncommitted changes)
+3. **Memorialize PR in beads** (if working on a beads issue):
+   ```bash
+   bd comments add VSS-abc "PR: https://github.com/craquehouse/vintagestory-server/pull/99"
+   ```
 
-4. **Review fixes committed to branch:**
+4. **Code review happens on PR** (not on uncommitted changes)
+
+5. **Review fixes committed to branch:**
    ```bash
    git commit -m "fix(story-5.2/review): address code review findings"
    git push
    ```
 
-5. **Regular merge (not squash)** - Preserves task-level history
+6. **Regular merge (not squash)** - Preserves task-level history
 
-6. **Delete story branch after merge**
+7. **Delete story branch after merge**
 
 ### PR Template
 

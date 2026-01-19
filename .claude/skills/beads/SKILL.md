@@ -41,6 +41,11 @@ bd close VSS-abc --reason "Fixed in commit abc123"
 # Show issue details
 bd show VSS-abc                       # Human-readable
 bd show VSS-abc --json                # JSON output
+
+# Add comments (for commit/PR links)
+bd comments add VSS-abc "Commit: https://github.com/.../commit/abc123"
+bd comments add VSS-abc "PR: https://github.com/.../pull/99"
+bd comments VSS-abc                   # View all comments
 ```
 
 ## Convention Mappings
@@ -108,10 +113,31 @@ bd ready
 bd update VSS-abc --status in_progress
 ```
 
+### Memorializing Commits and PRs
+
+When working on an issue, **always add comments** linking to commits and pull requests. This creates a traceable history of the work:
+
+```bash
+# Add commit link as comment
+bd comments add VSS-abc "Commit: https://github.com/craquehouse/vintagestory-server/commit/abc123f"
+
+# Add PR link as comment
+bd comments add VSS-abc "PR: https://github.com/craquehouse/vintagestory-server/pull/99"
+
+# View comments on an issue
+bd comments VSS-abc
+```
+
+**Best practices:**
+- Add a commit comment after each significant commit related to the issue
+- Add the PR comment when opening a pull request
+- Include brief context if helpful: `"Fix: https://github.com/.../commit/abc123 - resolved null pointer issue"`
+
 ### Completing an Issue
 
 ```bash
-# Close with PR link
+# Close with PR link (also add as comment for searchability)
+bd comments add VSS-abc "PR: https://github.com/craquehouse/vintagestory-server/pull/50"
 bd close VSS-abc --reason "PR: https://github.com/craquehouse/vintagestory-server/pull/50"
 
 # Close without PR (small fix)
