@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -23,8 +24,6 @@ from vintagestory_api.services.metrics import (
     MetricsService,
     reset_metrics_service,
 )
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 def _create_snapshot(

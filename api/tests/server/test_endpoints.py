@@ -7,18 +7,17 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+# pyright: reportPrivateUsage=false
+# pyright: reportUnknownParameterType=false
+# pyright: reportUnknownVariableType=false
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.server import ServerService, get_server_service
-
-# pyright: reportPrivateUsage=false
-# pyright: reportUnknownParameterType=false
-# pyright: reportUnknownVariableType=false
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 def _configure_stream_mocks(process: AsyncMock) -> None:

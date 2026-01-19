@@ -5,6 +5,11 @@ from pathlib import Path
 
 import pytest
 import respx
+
+# pyright: reportPrivateUsage=false
+# pyright: reportUnknownParameterType=false
+# pyright: reportUnknownVariableType=false
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import Response
@@ -18,12 +23,6 @@ from vintagestory_api.services.server import (
 )
 
 from .test_install import create_mock_server_tarball
-
-# pyright: reportPrivateUsage=false
-# pyright: reportUnknownParameterType=false
-# pyright: reportUnknownVariableType=false
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 class TestServerInstallEndpoint:

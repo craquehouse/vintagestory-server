@@ -6,14 +6,13 @@ Verifies the /api/v1alpha1/debug/* endpoints for runtime debug toggle.
 from collections.abc import Generator
 
 import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi.testclient import TestClient
 
 import vintagestory_api.config as config_module
 from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture

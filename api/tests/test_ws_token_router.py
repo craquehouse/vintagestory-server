@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -27,9 +28,6 @@ from vintagestory_api.services.ws_token_service import (
     get_ws_token_service,
     reset_ws_token_service,
 )
-
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 def _run_async[T](coro: Coroutine[Any, Any, T]) -> T:

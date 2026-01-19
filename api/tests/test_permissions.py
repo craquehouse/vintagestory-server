@@ -5,6 +5,7 @@
 # with FastAPI but not directly called, so pyright incorrectly flags them as unused.
 
 import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
@@ -15,8 +16,6 @@ from vintagestory_api.middleware.permissions import (
     require_console_access,
     require_role,
 )
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture

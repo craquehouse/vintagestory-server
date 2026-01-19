@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import Response
@@ -19,8 +20,6 @@ from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.services.mods import ModService, get_mod_service
 from vintagestory_api.services.pending_restart import PendingRestartState
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:

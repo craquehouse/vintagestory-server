@@ -4,6 +4,12 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+
+# pyright: reportPrivateUsage=false
+# Note: Tests need access to private members to verify internal state
+# Import shared test constants from root conftest
+# Note: admin_headers and monitor_headers fixtures are inherited from root conftest.py
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -16,13 +22,6 @@ from vintagestory_api.services.ws_token_service import (
     get_ws_token_service,
     reset_ws_token_service,
 )
-
-# pyright: reportPrivateUsage=false
-# Note: Tests need access to private members to verify internal state
-
-# Import shared test constants from root conftest
-# Note: admin_headers and monitor_headers fixtures are inherited from root conftest.py
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture

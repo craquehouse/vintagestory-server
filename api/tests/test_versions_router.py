@@ -13,6 +13,7 @@ from collections.abc import Callable, Generator
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
@@ -20,8 +21,6 @@ from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.server import VersionInfo
 from vintagestory_api.services.versions_cache import reset_versions_cache
-
-from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 
 
 @pytest.fixture(autouse=True)

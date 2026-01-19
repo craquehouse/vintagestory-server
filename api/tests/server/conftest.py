@@ -9,9 +9,6 @@ from pathlib import Path
 
 import pytest
 
-from vintagestory_api.config import Settings
-from vintagestory_api.services.server import ServerService
-
 # pyright: reportPrivateUsage=false
 # pyright: reportUnknownParameterType=false
 # pyright: reportUnknownVariableType=false
@@ -20,9 +17,11 @@ from vintagestory_api.services.server import ServerService
 # pyright: reportUnusedVariable=false
 # pyright: reportMissingTypeArgument=false
 # Note: Above suppressions are for pytest fixture injection patterns.
-
 # Re-export shared test constants for use by test files in this directory
 from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
+
+from vintagestory_api.config import Settings
+from vintagestory_api.services.server import ServerService
 
 __all__ = ["TEST_ADMIN_KEY", "TEST_MONITOR_KEY"]
 
