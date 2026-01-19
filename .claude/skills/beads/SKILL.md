@@ -141,15 +141,160 @@ bd comments VSS-abc
 - Add the PR comment when opening a pull request
 - Include brief context if helpful: `"Fix: https://github.com/.../commit/abc123 - resolved null pointer issue"`
 
+### After Action Reports (AAR)
+
+When closing beads, **add a comprehensive After Action Report (AAR)** as a comment. This provides better documentation than just commit links and helps with future reference.
+
+#### Full AAR Template
+
+Use this for non-trivial beads (size-m, size-l, or anything with interesting technical decisions):
+
+```bash
+bd comments add VSS-abc "$(cat <<'EOF'
+## After Action Report
+
+### Summary
+[Brief 1-2 sentence summary of what was accomplished]
+
+### Work Completed
+- [Major items completed]
+- [Include test counts, features added, etc.]
+
+### Test Coverage
+**Total Tests:** [X tests]
+
+**Coverage Areas:**
+- [Area 1]: X tests - [scenarios covered]
+- [Area 2]: X tests - [scenarios covered]
+
+### Files Created/Modified
+**Created:**
+- \`path/to/file1\` (X lines)
+
+**Modified:**
+- \`path/to/file2\` (added X lines)
+
+### Technical Decisions & Notes
+- [Decision 1 and rationale]
+- [Notable implementation details]
+
+### Challenges Encountered
+- [Challenge and how resolved]
+- None [if no significant challenges]
+
+### Quality Verification
+- [✓] All tests passing
+- [✓] Code follows project conventions
+- [✓] No linting errors
+
+### Links
+- Commit: https://github.com/org/repo/commit/[hash]
+
+### Follow-up Items
+- [Any follow-up work identified]
+- None [if no follow-ups]
+EOF
+)"
+```
+
+#### Abbreviated AAR Template
+
+Use this for simple beads (size-s with no challenges):
+
+```bash
+bd comments add VSS-abc "$(cat <<'EOF'
+## AAR
+
+**Summary:** Added comprehensive tests for use-debounce hook
+**Tests:** 20 tests covering default/custom delays, rapid changes, cleanup
+**Files:** Created \`web/src/hooks/use-debounce.test.tsx\` (358 lines)
+**Commit:** https://github.com/craquehouse/vintagestory-server/commit/abc123
+**Status:** ✓ All tests passing, no issues
+EOF
+)"
+```
+
+#### AAR Example
+
+```bash
+bd comments add VSS-029.2 "$(cat <<'EOF'
+## After Action Report
+
+### Summary
+Added comprehensive test suite for api/config module covering all 7 configuration API functions.
+
+### Work Completed
+- Implemented 32 tests for api/config.ts
+- Covered all CRUD operations for game and API settings
+- Tested URL encoding, parameter handling, error propagation
+
+### Test Coverage
+**Total Tests:** 32 tests
+
+**Coverage Areas:**
+- fetchGameConfig: 3 tests - endpoint, data structure, errors
+- updateGameSetting: 6 tests - POST method, URL encoding, value types
+- fetchApiSettings: 3 tests - endpoint, data structure, errors
+- updateApiSetting: 4 tests - POST method, URL encoding, value types
+- fetchConfigDirectories: 5 tests - parameters, encoding, edge cases
+- fetchConfigFiles: 5 tests - parameters, encoding, edge cases
+- fetchConfigFileContent: 5 tests - filename encoding, JSON parsing
+- API consistency: 1 test - prefix verification
+
+### Files Created/Modified
+**Created:**
+- \`web/src/api/config.test.ts\` (605 lines)
+
+**Modified:**
+- None
+
+### Technical Decisions & Notes
+- Used vi.mock() to mock apiClient for isolated unit testing
+- Tested URL encoding extensively due to security implications
+- Verified all value types (string, number, boolean) for settings
+- Added API prefix consistency test to catch refactoring issues
+
+### Challenges Encountered
+- None - straightforward API wrapper testing
+
+### Quality Verification
+- [✓] All 32 tests passing
+- [✓] Code follows project test patterns
+- [✓] No linting errors
+- [✓] Mock setup consistent with other test files
+
+### Links
+- Commit: https://github.com/craquehouse/vintagestory-server/commit/565cfb1
+
+### Follow-up Items
+- None
+EOF
+)"
+```
+
+**Best practices:**
+- Write AAR **before** closing the bead (while context is fresh)
+- Be specific about test coverage and technical decisions
+- Document "why" not just "what"
+- Note challenges to help others avoid same issues
+- Keep it scannable - use bullet points and clear sections
+- For batch work (multiple beads), write one AAR and link it to all related beads
+
 ### Completing an Issue
 
 ```bash
-# Close with PR link (also add as comment for searchability)
-bd comments add VSS-abc "PR: https://github.com/craquehouse/vintagestory-server/pull/50"
-bd close VSS-abc --reason "PR: https://github.com/craquehouse/vintagestory-server/pull/50"
+# 1. Add comprehensive AAR comment (see AAR template above)
+bd comments add VSS-abc "$(cat <<'EOF'
+## AAR
+[Your AAR content here]
+EOF
+)"
 
-# Close without PR (small fix)
-bd close VSS-abc --reason "Fixed directly"
+# 2. Close with descriptive reason
+bd close VSS-abc --reason "Added comprehensive test suite - 32 tests, all passing"
+
+# For batch closures (multiple related beads):
+bd close VSS-abc VSS-def VSS-ghi --reason "Batch: Added test suites for 5 utility modules"
 ```
 
 ### Finding Next ID for a Category
