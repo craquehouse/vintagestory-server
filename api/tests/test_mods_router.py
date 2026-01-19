@@ -1739,3 +1739,151 @@ class TestBrowseModsEndpoint:
         assert mod["logo_url"] is None
         # lastreleased -> last_released
         assert mod["last_released"] == "2024-01-15 10:00:00"
+
+    @respx.mock
+    def test_browse_mods_with_version_filter(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?version=1.21.3 filters mods by game version."""
+        # Mock game versions endpoint
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171286015, "name": "1.21.3", "color": "#CCCCCC"},
+                        {"tagid": -281565171220479, "name": "1.21.2", "color": "#CCCCCC"},
+                    ],
+                },
+            )
+        )
+
+        # Mock mods endpoint with gameversion parameter
+        route = respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": "-281565171286015"},
+        ).mock(return_value=Response(200, json=BROWSE_MODS_API_RESPONSE))
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        assert route.called
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "mods" in data["data"]
+        assert len(data["data"]["mods"]) == 3
+
+    @respx.mock
+    def test_browse_mods_version_not_found(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?version=invalid returns 400 with error."""
+        # Mock game versions endpoint with limited versions
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171286015, "name": "1.21.3", "color": "#CCCCCC"},
+                    ],
+                },
+            )
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=9.99.99", headers=admin_headers
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "GAME_VERSION_NOT_FOUND"
+        assert "9.99.99" in data["detail"]["message"]
+
+    @respx.mock
+    def test_browse_mods_version_with_search(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?version=1.21.3&search=smith combines filters."""
+        # Mock game versions endpoint
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171286015, "name": "1.21.3", "color": "#CCCCCC"},
+                    ],
+                },
+            )
+        )
+
+        # Mock mods endpoint with gameversion parameter
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": "-281565171286015"},
+        ).mock(return_value=Response(200, json=BROWSE_MODS_API_RESPONSE))
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=1.21.3&search=smithing",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        # Only "Smithing Plus" matches the search
+        assert len(data["data"]["mods"]) == 1
+        assert data["data"]["mods"][0]["slug"] == "smithingplus"
+
+    @respx.mock
+    def test_browse_mods_without_version_uses_cache(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse without version uses cached get_all_mods."""
+        route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        # First request
+        response1 = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+        assert response1.status_code == 200
+        assert route.call_count == 1
+
+        # Second request should use cache
+        response2 = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+        assert response2.status_code == 200
+        assert route.call_count == 1  # Still 1 - cached
+
+    @respx.mock
+    def test_browse_mods_version_filter_api_error(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/browse?version returns 502 when API fails."""
+        import httpx
+
+        # Mock game versions endpoint to fail
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers
+        )
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "EXTERNAL_API_ERROR"

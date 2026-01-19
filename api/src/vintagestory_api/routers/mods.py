@@ -15,6 +15,7 @@ from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.services.mod_api import (
     DownloadError,
     ExternalApiError,
+    GameVersionNotFoundError,
     ModDict,
     ModVersionNotFoundError,
     SortOption,
@@ -146,11 +147,19 @@ async def browse_mods(
             description="Search term to filter mods by name, author, summary, or tags",
         ),
     ] = None,
+    version: Annotated[
+        str | None,
+        Query(
+            max_length=20,
+            description="Filter mods by compatible game version (e.g., '1.21.3')",
+        ),
+    ] = None,
 ) -> ApiResponse:
     """Browse available mods from the VintageStory mod database.
 
     Returns a paginated list of all mods available for installation,
-    sorted by the specified criteria. Optionally filter by search term.
+    sorted by the specified criteria. Optionally filter by search term
+    and/or game version compatibility.
 
     Both Admin and Monitor roles can access this read-only endpoint.
 
@@ -159,6 +168,7 @@ async def browse_mods(
         page_size: Number of items per page (1-100, default 20).
         sort: Sort order - "downloads", "trending", "recent" (default), or "name".
         search: Optional search term to filter by name, author, summary, or tags.
+        version: Optional game version to filter by compatibility (e.g., "1.21.3").
 
     Returns:
         ApiResponse with ModBrowseResponse containing:
@@ -167,16 +177,33 @@ async def browse_mods(
 
     Raises:
         HTTPException: 400 if pagination parameters are invalid
+        HTTPException: 400 if game version is not found
         HTTPException: 401 if not authenticated
         HTTPException: 502 if mod database API is unavailable
     """
     logger.debug(
-        "router_browse_mods_start", page=page, page_size=page_size, sort=sort, search=search
+        "router_browse_mods_start",
+        page=page,
+        page_size=page_size,
+        sort=sort,
+        search=search,
+        version=version,
     )
 
     try:
-        # Get all mods from API (cached)
-        all_mods = await service.api_client.get_all_mods()
+        # Get mods - either filtered by version or all
+        if version:
+            # Look up the version tagid
+            game_versions = await service.api_client.get_game_versions()
+            version_tagid = game_versions.get(version)
+            if version_tagid is None:
+                raise GameVersionNotFoundError(version)
+
+            # Fetch mods filtered by version (server-side filtering)
+            all_mods = await service.api_client.get_mods_by_version(version_tagid)
+        else:
+            # Get all mods from API (cached)
+            all_mods = await service.api_client.get_all_mods()
 
         # Filter by search term if provided
         filtered_mods = search_mods(all_mods, search or "")
@@ -222,6 +249,15 @@ async def browse_mods(
         return ApiResponse(
             status="ok",
             data=response.model_dump(mode="json"),
+        )
+
+    except GameVersionNotFoundError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": ErrorCode.GAME_VERSION_NOT_FOUND,
+                "message": f"Game version '{e.version}' not found",
+            },
         )
 
     except ExternalApiError as e:

@@ -85,6 +85,14 @@ class DownloadError(ModApiError):
         super().__init__(f"Failed to download mod '{slug}': {message}")
 
 
+class GameVersionNotFoundError(ModApiError):
+    """Raised when a game version string is not found in the version list."""
+
+    def __init__(self, version: str) -> None:
+        self.version = version
+        super().__init__(f"Game version '{version}' not found")
+
+
 def extract_slug(slug_or_url: str) -> str:
     """Extract mod slug from URL or return as-is if already a slug.
 
@@ -199,6 +207,7 @@ class ModApiClient:
     DEFAULT_TIMEOUT = 30.0
     DOWNLOAD_TIMEOUT = 120.0
     BROWSE_CACHE_TTL = timedelta(minutes=5)
+    GAMEVERSIONS_CACHE_TTL = timedelta(hours=1)
 
     def __init__(
         self,
@@ -221,6 +230,10 @@ class ModApiClient:
         # In-memory cache for browse mod list
         self._browse_cache: list[ModDict] | None = None
         self._browse_cache_time: datetime | None = None
+
+        # In-memory cache for game versions list
+        self._gameversions_cache: dict[str, int] | None = None
+        self._gameversions_cache_time: datetime | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
@@ -488,6 +501,198 @@ class ModApiClient:
         self._browse_cache = None
         self._browse_cache_time = None
         logger.debug("browse_cache_cleared")
+
+    async def get_mods_by_version(self, version_tagid: int) -> list[ModDict]:
+        """Get mods filtered by game version from the VintageStory mod database.
+
+        This method fetches mods compatible with a specific game version using
+        the API's server-side filtering. Results are NOT cached since they vary
+        by version.
+
+        Args:
+            version_tagid: The game version tagid to filter by.
+
+        Returns:
+            List of mod dictionaries compatible with the specified version.
+
+        Raises:
+            ExternalApiError: If the mod API is unavailable.
+        """
+        client = await self._get_client()
+        try:
+            response = await client.get(
+                f"{self.BASE_URL}/mods",
+                params={"gameversion": version_tagid},
+            )
+
+            # Check HTTP status before parsing JSON
+            if response.status_code != 200:
+                logger.warning(
+                    "mod_api_http_error_mods_by_version",
+                    status_code=response.status_code,
+                    version_tagid=version_tagid,
+                )
+                raise ExternalApiError(
+                    f"VintageStory mod API returned HTTP {response.status_code}"
+                )
+
+            try:
+                data = response.json()
+            except ValueError as e:
+                logger.error(
+                    "mod_api_json_error_mods_by_version", version_tagid=version_tagid
+                )
+                raise ExternalApiError(
+                    "VintageStory mod API returned invalid JSON"
+                ) from e
+
+            # CRITICAL: statuscode is STRING, not int!
+            if data.get("statuscode") == "200":
+                mods = data.get("mods", [])
+                logger.debug(
+                    "mods_by_version_fetched",
+                    version_tagid=version_tagid,
+                    count=len(mods),
+                )
+                return mods
+
+            # Unexpected status - log and raise
+            logger.warning(
+                "unexpected_api_status_mods_by_version",
+                statuscode=data.get("statuscode"),
+                version_tagid=version_tagid,
+            )
+            raise ExternalApiError(
+                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+            )
+
+        except httpx.TimeoutException as e:
+            logger.error("mod_api_timeout_mods_by_version", version_tagid=version_tagid)
+            raise ExternalApiError("VintageStory mod API request timed out") from e
+
+        except httpx.ConnectError as e:
+            logger.error(
+                "mod_api_connection_error_mods_by_version", version_tagid=version_tagid
+            )
+            raise ExternalApiError(
+                "Could not connect to VintageStory mod API"
+            ) from e
+
+        except httpx.HTTPError as e:
+            logger.error(
+                "mod_api_error_mods_by_version",
+                version_tagid=version_tagid,
+                error=str(e),
+            )
+            raise ExternalApiError(
+                f"VintageStory mod API error: {e}"
+            ) from e
+
+    def _is_gameversions_cache_valid(self) -> bool:
+        """Check if the game versions cache is still valid.
+
+        Returns:
+            True if cache exists and hasn't expired, False otherwise.
+        """
+        if self._gameversions_cache is None or self._gameversions_cache_time is None:
+            return False
+        return datetime.now() - self._gameversions_cache_time < self.GAMEVERSIONS_CACHE_TTL
+
+    async def get_game_versions(
+        self, force_refresh: bool = False
+    ) -> dict[str, int]:
+        """Get game versions mapping from version string to tagid.
+
+        This method fetches the game versions list from the VintageStory API
+        and caches it in memory for 1 hour (game versions change infrequently).
+
+        Args:
+            force_refresh: If True, bypass the cache and fetch fresh data.
+
+        Returns:
+            Dictionary mapping version strings (e.g., "1.21.3") to tagids.
+
+        Raises:
+            ExternalApiError: If the mod API is unavailable.
+        """
+        # Return cached data if valid and not forcing refresh
+        if not force_refresh and self._is_gameversions_cache_valid():
+            logger.debug(
+                "gameversions_cache_hit", count=len(self._gameversions_cache or {})
+            )
+            return self._gameversions_cache or {}
+
+        client = await self._get_client()
+        try:
+            response = await client.get(f"{self.BASE_URL}/gameversions")
+
+            # Check HTTP status before parsing JSON
+            if response.status_code != 200:
+                logger.warning(
+                    "mod_api_http_error_gameversions",
+                    status_code=response.status_code,
+                )
+                raise ExternalApiError(
+                    f"VintageStory mod API returned HTTP {response.status_code}"
+                )
+
+            try:
+                data = response.json()
+            except ValueError as e:
+                logger.error("mod_api_json_error_gameversions")
+                raise ExternalApiError(
+                    "VintageStory mod API returned invalid JSON"
+                ) from e
+
+            # CRITICAL: statuscode is STRING, not int!
+            if data.get("statuscode") == "200":
+                versions = data.get("gameversions", [])
+                # Build mapping from version name to tagid
+                # Use .get() to handle malformed entries gracefully
+                version_map: dict[str, int] = {}
+                for v in versions:
+                    name = v.get("name")
+                    tagid = v.get("tagid")
+                    if name is not None and tagid is not None:
+                        version_map[name] = tagid
+                self._gameversions_cache = version_map
+                self._gameversions_cache_time = datetime.now()
+                logger.debug("gameversions_cache_refreshed", count=len(version_map))
+                return version_map
+
+            # Unexpected status - log and raise
+            logger.warning(
+                "unexpected_api_status_gameversions",
+                statuscode=data.get("statuscode"),
+            )
+            raise ExternalApiError(
+                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+            )
+
+        except httpx.TimeoutException as e:
+            logger.error("mod_api_timeout_gameversions")
+            raise ExternalApiError("VintageStory mod API request timed out") from e
+
+        except httpx.ConnectError as e:
+            logger.error("mod_api_connection_error_gameversions")
+            raise ExternalApiError(
+                "Could not connect to VintageStory mod API"
+            ) from e
+
+        except httpx.HTTPError as e:
+            logger.error("mod_api_error_gameversions", error=str(e))
+            raise ExternalApiError(
+                f"VintageStory mod API error: {e}"
+            ) from e
+
+    def clear_gameversions_cache(self) -> None:
+        """Clear the game versions cache.
+
+        This forces the next call to get_game_versions() to fetch fresh data.
+        """
+        self._gameversions_cache = None
+        self._gameversions_cache_time = None
+        logger.debug("gameversions_cache_cleared")
 
 
 def _get_downloads(m: ModDict) -> int:

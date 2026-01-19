@@ -875,3 +875,216 @@ class TestModApiClientBrowseCache:
         # Access protected member for testing
         result = mod_api_client._is_browse_cache_valid()  # pyright: ignore[reportPrivateUsage]
         assert result is True
+
+
+# --- Test data for game versions ---
+
+GAMEVERSIONS_RESPONSE: dict[str, Any] = {
+    "statuscode": "200",
+    "gameversions": [
+        {"tagid": -281565171286015, "name": "1.21.3", "color": "#CCCCCC"},
+        {"tagid": -281565171220479, "name": "1.21.2", "color": "#CCCCCC"},
+        {"tagid": -281565171154943, "name": "1.21.1", "color": "#CCCCCC"},
+        {"tagid": -281565171089407, "name": "1.21.0", "color": "#CCCCCC"},
+    ],
+}
+
+
+# --- Tests for ModApiClient game versions cache ---
+
+
+class TestModApiClientGameVersions:
+    """Tests for ModApiClient game versions methods."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_success(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() returns version mapping on success."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+        )
+
+        result = await mod_api_client.get_game_versions()
+
+        assert len(result) == 4
+        assert result["1.21.3"] == -281565171286015
+        assert result["1.21.0"] == -281565171089407
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_caches_result(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() caches result and returns cached data on subsequent calls."""
+        route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+        )
+
+        # First call - fetches from API
+        result1 = await mod_api_client.get_game_versions()
+        assert route.call_count == 1
+
+        # Second call - returns cached data
+        result2 = await mod_api_client.get_game_versions()
+        assert route.call_count == 1  # No additional API call
+
+        # Results are the same
+        assert result1 == result2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_force_refresh(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions(force_refresh=True) bypasses cache."""
+        route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+        )
+
+        # First call - fetches from API
+        await mod_api_client.get_game_versions()
+        assert route.call_count == 1
+
+        # Second call with force_refresh - fetches again
+        await mod_api_client.get_game_versions(force_refresh=True)
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_timeout(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on timeout."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=httpx.TimeoutException("timeout")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "timed out" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_connection_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on connection error."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "Could not connect" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_clear_gameversions_cache(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """clear_gameversions_cache() clears the cache."""
+        route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+        )
+
+        # Populate cache
+        await mod_api_client.get_game_versions()
+        assert route.call_count == 1
+
+        # Clear cache
+        mod_api_client.clear_gameversions_cache()
+
+        # Next call should fetch from API again
+        await mod_api_client.get_game_versions()
+        assert route.call_count == 2
+
+    def test_is_gameversions_cache_valid_when_empty(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """_is_gameversions_cache_valid() returns False when cache is empty."""
+        # Access protected member for testing
+        # pyright: ignore[reportPrivateUsage]
+        result = mod_api_client._is_gameversions_cache_valid()  # pyright: ignore[reportPrivateUsage]
+        assert result is False
+
+
+# --- Tests for ModApiClient get_mods_by_version ---
+
+
+class TestModApiClientModsByVersion:
+    """Tests for ModApiClient.get_mods_by_version() method."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_success(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() returns mods filtered by version."""
+        version_tagid = -281565171286015  # 1.21.3
+        route = respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(200, json=BROWSE_MODS_RESPONSE))
+
+        result = await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert route.called
+        assert len(result) == 3  # Uses same test data as browse
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_not_cached(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() does not use browse cache (each call fetches)."""
+        version_tagid = -281565171286015
+        route = respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(200, json=BROWSE_MODS_RESPONSE))
+
+        # First call
+        await mod_api_client.get_mods_by_version(version_tagid)
+        assert route.call_count == 1
+
+        # Second call - should fetch again (not cached)
+        await mod_api_client.get_mods_by_version(version_tagid)
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_timeout(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on timeout."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(side_effect=httpx.TimeoutException("timeout"))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "timed out" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_connection_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on connection error."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(side_effect=httpx.ConnectError("connection refused"))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "Could not connect" in str(exc_info.value)
