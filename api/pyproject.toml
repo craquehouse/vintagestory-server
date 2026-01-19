@@ -44,7 +44,11 @@ exclude = ["**/node_modules", "**/__pycache__", "**/.pytest_cache", ".venv"]
 extraPaths = ["tests"]
 typeCheckingMode = "strict"
 reportMissingImports = "warning"
-reportMissingTypeStubs = "warning"
+# Suppress stub warnings for internal packages (VSS-bcy)
+# All 423 warnings were for vintagestory_api.* internal modules where we control types.
+# External deps (fastapi, httpx, pydantic, etc.) already have stubs.
+# To re-enable: change "none" to "warning" (generates 423+ warnings)
+reportMissingTypeStubs = "none"
 reportUndefinedVariable = "error"
 reportUnknownArgumentType = "warning"
 reportUnknownMemberType = "warning"
