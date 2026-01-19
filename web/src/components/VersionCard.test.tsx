@@ -257,6 +257,54 @@ describe('VersionCard', () => {
     });
   });
 
+  describe('changelog link', () => {
+    it('renders changelog link with correct href', () => {
+      render(<VersionCard version={mockStableVersion} />);
+
+      const link = screen.getByTestId('version-card-changelog-1.21.6');
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', 'https://wiki.vintagestory.at/1.21.6');
+    });
+
+    it('opens changelog in new tab', () => {
+      render(<VersionCard version={mockStableVersion} />);
+
+      const link = screen.getByTestId('version-card-changelog-1.21.6');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('has accessible title and aria-label', () => {
+      render(<VersionCard version={mockStableVersion} />);
+
+      const link = screen.getByTestId('version-card-changelog-1.21.6');
+      expect(link).toHaveAttribute('title', 'View changelog');
+      expect(link).toHaveAttribute(
+        'aria-label',
+        'View changelog for version 1.21.6 (opens in new tab)'
+      );
+    });
+
+    it('does not trigger card click when clicking changelog link', async () => {
+      const user = userEvent.setup();
+      const handleClick = vi.fn();
+
+      render(<VersionCard version={mockStableVersion} onClick={handleClick} />);
+
+      const link = screen.getByTestId('version-card-changelog-1.21.6');
+      await user.click(link);
+
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+
+    it('renders changelog link for unstable versions', () => {
+      render(<VersionCard version={mockUnstableVersion} />);
+
+      const link = screen.getByTestId('version-card-changelog-1.22.0-rc1');
+      expect(link).toHaveAttribute('href', 'https://wiki.vintagestory.at/1.22.0-rc1');
+    });
+  });
+
   describe('with different version data', () => {
     it('handles pre-release version numbers', () => {
       const preRelease: VersionInfo = {

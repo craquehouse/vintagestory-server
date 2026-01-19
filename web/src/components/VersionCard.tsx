@@ -5,7 +5,7 @@
  * "Latest" badge, and "Installed" indicator.
  */
 
-import { Check, HardDrive } from 'lucide-react';
+import { Check, ExternalLink, HardDrive } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -67,7 +67,21 @@ export function VersionCard({
           className="text-xl font-semibold mb-1"
           data-testid={`version-card-version-${version.version}`}
         >
-          {version.version}
+          <span className="inline-flex items-center gap-1.5">
+            {version.version}
+            <a
+              href={`https://wiki.vintagestory.at/${version.version}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
+              onClick={(e) => e.stopPropagation()}
+              data-testid={`version-card-changelog-${version.version}`}
+              title="View changelog"
+              aria-label={`View changelog for version ${version.version} (opens in new tab)`}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </span>
         </h3>
 
         <div
