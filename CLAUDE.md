@@ -50,10 +50,33 @@ bd list                                   # List all open issues
 bd list --label API                       # Filter by category
 bd create "[UI-NNN] Description" -t task -p 1 -l UI,size-m  # Create issue
 bd update VSS-abc --status in_progress    # Update status
-bd close VSS-abc --reason "PR: https://..." # Close with PR link
 ```
 
-See the skill at `.claude/skills/beads/SKILL.md` for complete documentation.
+**Completing Issues - AAR Required:**
+
+When closing beads, **ALWAYS add an After Action Report (AAR) comment BEFORE closing**:
+
+```bash
+# 1. Add AAR (abbreviated format for size-s, full for size-m/l)
+bd comments add VSS-abc "$(cat <<'EOF'
+## AAR
+
+**Summary:** [What was accomplished in 1-2 sentences]
+**Tests:** [X tests covering Y scenarios]
+**Files:** Created/Modified `path/to/file` (X lines)
+**Commit:** https://github.com/craquehouse/vintagestory-server/commit/abc123
+**Status:** ✓ All tests passing, no issues
+EOF
+)"
+
+# 2. Close with brief reason
+bd close VSS-abc --reason "Brief completion summary"
+
+# 3. Sync to remote
+bd sync
+```
+
+See `.claude/skills/beads/SKILL.md` lines 144-282 for full/abbreviated AAR templates and examples.
 
 ## Architecture
 
