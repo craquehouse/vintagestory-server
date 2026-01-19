@@ -253,3 +253,54 @@ describe('FilterControls', () => {
     expect(screen.getByText('Failed to load tags')).toBeInTheDocument();
   });
 });
+
+// VSS-1u2: Installed version tests
+describe('installed version', () => {
+  const mockOnChange = vi.fn();
+
+  beforeEach(() => {
+    mockOnChange.mockClear();
+  });
+
+  it('shows installed version first in dropdown with label', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{}}
+        onChange={mockOnChange}
+        gameVersions={['1.21.2', '1.21.1', '1.21.3']}
+        installedVersion="1.21.3"
+      />
+    );
+
+    const versionButton = screen.getByTestId('version-filter-button');
+    await user.click(versionButton);
+
+    // Should show installed version with "(Installed)" label
+    expect(screen.getByText('(Installed)')).toBeInTheDocument();
+
+    // First option should be the installed version
+    const menuItems = screen.getAllByRole('menuitem');
+    expect(menuItems[0]).toHaveTextContent('1.21.3');
+    expect(menuItems[0]).toHaveTextContent('(Installed)');
+  });
+
+  it('does not show (Installed) label when no installed version', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{}}
+        onChange={mockOnChange}
+        gameVersions={['1.21.3', '1.21.2', '1.21.1']}
+        installedVersion={null}
+      />
+    );
+
+    const versionButton = screen.getByTestId('version-filter-button');
+    await user.click(versionButton);
+
+    expect(screen.queryByText('(Installed)')).not.toBeInTheDocument();
+  });
+});
