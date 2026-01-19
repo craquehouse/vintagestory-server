@@ -46,6 +46,10 @@ bd show VSS-abc --json                # JSON output
 bd comments add VSS-abc "Commit: https://github.com/.../commit/abc123"
 bd comments add VSS-abc "PR: https://github.com/.../pull/99"
 bd comments VSS-abc                   # View all comments
+
+# ⚠️ NOTE: Uses subcommand 'add', NOT flag syntax
+# CORRECT:   bd comments add <id> "message"
+# INCORRECT: bd comments <id> --add "message"
 ```
 
 ## Convention Mappings
@@ -126,6 +130,10 @@ bd comments add VSS-abc "PR: https://github.com/craquehouse/vintagestory-server/
 
 # View comments on an issue
 bd comments VSS-abc
+
+# ⚠️ IMPORTANT: 'comments add' uses subcommand syntax, not flags
+# CORRECT:   bd comments add <id> "message"
+# INCORRECT: bd comments <id> --add "message"
 ```
 
 **Best practices:**
