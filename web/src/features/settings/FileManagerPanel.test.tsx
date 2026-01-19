@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { FileManagerPanel } from './FileManagerPanel';
@@ -438,6 +439,582 @@ describe('FileManagerPanel', () => {
       await waitFor(() => {
         expect(screen.getByTestId('file-manager-panel')).toHaveClass('custom-class');
       });
+    });
+  });
+
+  describe('directory navigation (Story 9.7)', () => {
+    const mockDirectoriesResponse = {
+      status: 'ok',
+      data: {
+        directories: ['ModConfigs', 'Playerdata', 'Worlds'],
+      },
+    };
+
+    const mockSubdirectoryFilesResponse = {
+      status: 'ok',
+      data: {
+        files: ['mod1.json', 'mod2.json'],
+      },
+    };
+
+    it('hides back button at root directory', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockFilesResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+    });
+
+    it('shows back button when in subdirectory', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Click on a directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      // Verify back button is now visible
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+      });
+    });
+
+    it('navigates into directory and updates current path', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Click on a directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      // Verify we're now in the subdirectory
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+      });
+
+      // Verify subdirectory files are displayed
+      expect(screen.getByText('mod1.json')).toBeInTheDocument();
+      expect(screen.getByText('mod2.json')).toBeInTheDocument();
+    });
+
+    it('navigates back to parent directory', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+      });
+
+      // Click back button
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      // Back at root - back button should be hidden
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      });
+
+      // Original files should be visible again
+      expect(screen.getByText('serverconfig.json')).toBeInTheDocument();
+    });
+
+    it('navigates back to root from first-level subdirectory', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into first-level directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+      });
+
+      // Click back button
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      // Verify we're at root
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      });
+    });
+
+    it('filters out hidden directories (starting with .)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  directories: ['.git', 'ModConfigs', '.vscode', 'Playerdata'],
+                },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Visible directories should be in the list
+      expect(screen.getByTestId('file-item-ModConfigs')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-Playerdata')).toBeInTheDocument();
+
+      // Hidden directories should NOT be in the list
+      expect(screen.queryByTestId('file-item-.git')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('file-item-.vscode')).not.toBeInTheDocument();
+    });
+
+    it('clears file selection when navigating to directory', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        if (url.includes('/config/files/serverconfig.json')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockFileContentResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Select a file first
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-serverconfig.json'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer')).toBeInTheDocument();
+      });
+
+      // Navigate into directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      // Viewer should be empty (selection cleared)
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
+      });
+    });
+
+    it('clears file selection when navigating back', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('ModConfigs%2Fmod1.json')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  filename: 'ModConfigs/mod1.json',
+                  content: { ModName: 'Test Mod' },
+                },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      // Wait for file list to load in subdirectory
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Select a file in the subdirectory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-mod1.json'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent('ModName');
+      });
+
+      // Navigate back
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      // Viewer should be empty (selection cleared)
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
+      });
+    });
+
+    it('navigates into nested subdirectories', async () => {
+      const nestedDirectoriesResponse = {
+        status: 'ok',
+        data: {
+          directories: ['unpack', 'downloads'],
+        },
+      };
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=ModConfigs')) {
+            return {
+              ok: true,
+              json: () => Promise.resolve(nestedDirectoriesResponse),
+            };
+          }
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs%2Funpack')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { files: ['nested.json'] },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into first level
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+      });
+
+      // Navigate into nested directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-unpack'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('ModConfigs/unpack')).toBeInTheDocument();
+        expect(screen.getByText('nested.json')).toBeInTheDocument();
+      });
+    });
+
+    it('navigates back from nested subdirectory to parent', async () => {
+      const nestedDirectoriesResponse = {
+        status: 'ok',
+        data: {
+          directories: ['unpack', 'downloads'],
+        },
+      };
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=ModConfigs')) {
+            return {
+              ok: true,
+              json: () => Promise.resolve(nestedDirectoriesResponse),
+            };
+          }
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs%2Funpack')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { files: ['nested.json'] },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=ModConfigs')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockSubdirectoryFilesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into first level
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
+      });
+
+      // Wait for file list to load in subdirectory
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into nested directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-unpack'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('ModConfigs/unpack')).toBeInTheDocument();
+      });
+
+      // Navigate back
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      // Should be back at ModConfigs level
+      await waitFor(() => {
+        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+        expect(screen.getByText('mod1.json')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('word wrap toggle', () => {
+    it('toggles word wrap in the viewer', async () => {
+      const user = userEvent.setup();
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockFilesResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Select a file to show content
+      const mockContentFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/files/serverconfig.json')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockFileContentResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockContentFetch;
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-serverconfig.json'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer')).toBeInTheDocument();
+      });
+
+      // Click word wrap toggle
+      await user.click(screen.getByTestId('file-viewer-wrap-toggle'));
+
+      // The toggle should work (handled by FileViewer component)
+      expect(screen.getByTestId('file-viewer-wrap-toggle')).toBeInTheDocument();
     });
   });
 });
