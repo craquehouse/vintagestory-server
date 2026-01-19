@@ -88,11 +88,11 @@ export function UninstallConfirmDialog({
         {/* Server running warning - conditional */}
         {isServerRunning && (
           <div
-            className="flex items-start gap-2 rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3"
+            className="flex items-start gap-2 rounded-md bg-warning/10 border border-warning/20 p-3"
             data-testid="server-running-warning"
           >
-            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-500">
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-warning">
               The server is currently running and will be stopped first.
             </p>
           </div>

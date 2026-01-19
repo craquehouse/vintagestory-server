@@ -146,7 +146,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
           <div className="mt-3 pt-3 border-t">
             {isInstalled ? (
               <div
-                className="flex items-center gap-1.5 text-sm text-green-500"
+                className="flex items-center gap-1.5 text-sm text-success"
                 data-testid={`mod-card-installed-${mod.slug}`}
               >
                 <Check className="h-4 w-4" />

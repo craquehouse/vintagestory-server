@@ -22,11 +22,11 @@ interface VersionCardProps {
 const channelStyles: Record<VersionChannel, { label: string; className: string }> = {
   stable: {
     label: 'Stable',
-    className: 'text-green-600 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 dark:text-green-400',
+    className: 'text-success border-success/30 bg-success/10',
   },
   unstable: {
     label: 'Unstable',
-    className: 'text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-400',
+    className: 'text-warning border-warning/30 bg-warning/10',
   },
 };
 
@@ -90,7 +90,7 @@ export function VersionCard({
 
           {isInstalled && (
             <div
-              className="flex items-center gap-1.5 text-sm text-green-500"
+              className="flex items-center gap-1.5 text-sm text-success"
               data-testid={`version-card-installed-${version.version}`}
             >
               <Check className="h-4 w-4" />

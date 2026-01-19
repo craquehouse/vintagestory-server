@@ -178,11 +178,11 @@ export function InstallConfirmDialog({
         {/* Warning message for not_verified/incompatible */}
         {warningMessage && (
           <div
-            className="flex items-start gap-2 rounded-md bg-yellow-500/10 border border-yellow-500/20 p-3"
+            className="flex items-start gap-2 rounded-md bg-warning/10 border border-warning/20 p-3"
             data-testid="install-dialog-warning"
           >
-            <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-500">{warningMessage}</p>
+            <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-warning">{warningMessage}</p>
           </div>
         )}
 

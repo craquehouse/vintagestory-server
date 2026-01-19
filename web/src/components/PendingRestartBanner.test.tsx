@@ -274,7 +274,7 @@ describe('PendingRestartBanner', () => {
   });
 
   describe('styling', () => {
-    it('uses Catppuccin mauve color for styling', async () => {
+    it('uses primary color for styling', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsWithPendingRestart),
@@ -285,8 +285,8 @@ describe('PendingRestartBanner', () => {
 
       await waitFor(() => {
         const banner = screen.getByTestId('pending-restart-banner');
-        // Check for Catppuccin mauve background color
-        expect(banner).toHaveClass('bg-[#cba6f7]/20');
+        // Uses semantic primary class for theme-aware colors
+        expect(banner).toHaveClass('bg-primary/20');
       });
     });
   });

@@ -44,21 +44,21 @@ export function PendingRestartBanner({ onRestart }: PendingRestartBannerProps) {
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md bg-[#cba6f7]/20 px-3 py-1.5 text-sm"
+      className="flex items-center gap-2 rounded-md bg-primary/20 px-3 py-1.5 text-sm"
       data-testid="pending-restart-banner"
     >
       <RefreshCw
-        className="h-4 w-4 text-[#cba6f7]"
+        className="h-4 w-4 text-primary"
         aria-hidden="true"
         data-testid="restart-icon"
       />
-      <span className="text-[#cba6f7]">Restart required</span>
+      <span className="text-primary">Restart required</span>
       <Button
         variant="ghost"
         size="sm"
         onClick={handleRestart}
         disabled={isRestarting}
-        className="h-6 px-2 text-xs font-medium text-[#cba6f7] hover:bg-[#cba6f7]/20 hover:text-[#cba6f7]"
+        className="h-6 px-2 text-xs font-medium text-primary hover:bg-primary/20 hover:text-primary"
         data-testid="restart-button"
       >
         {isRestarting ? (

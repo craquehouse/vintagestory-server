@@ -183,7 +183,7 @@ export interface UseSettingFieldReturn<T> {
  *         onBlur={field.onBlur}
  *         disabled={field.isPending || setting.envManaged}
  *       />
- *       {field.error && <span className="text-red-500">{field.error}</span>}
+ *       {field.error && <span className="text-destructive">{field.error}</span>}
  *     </div>
  *   );
  * }

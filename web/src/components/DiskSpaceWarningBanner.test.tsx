@@ -80,7 +80,8 @@ describe('DiskSpaceWarningBanner', () => {
     it('uses warning color scheme', () => {
       render(<DiskSpaceWarningBanner diskSpace={lowDiskSpace} />);
       const banner = screen.getByTestId('disk-space-warning-banner');
-      expect(banner).toHaveClass('bg-yellow-500/20');
+      // Uses semantic warning class for theme-aware colors
+      expect(banner).toHaveClass('bg-warning/20');
     });
   });
 });
