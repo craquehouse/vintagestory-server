@@ -5,14 +5,17 @@
  * Settings control server auto-start, environment handling, and refresh intervals.
  *
  * Story 6.4: Settings UI - AC6
+ * VSS-c9o: Debug logging toggle
  */
 
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { useApiSettings, useUpdateApiSetting } from '@/hooks/use-api-settings';
+import { useDebugStatus, useToggleDebug } from '@/hooks/use-debug';
 import { validators, type SettingValue } from '@/hooks/use-setting-field';
 
 /**
@@ -33,6 +36,8 @@ export interface ApiSettingsPanelProps {
 export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
   const { data, isLoading, error } = useApiSettings();
   const updateMutation = useUpdateApiSetting();
+  const { data: debugData, isLoading: isDebugLoading, error: debugError } = useDebugStatus();
+  const toggleDebug = useToggleDebug();
 
   // Handle save with toast notification
   const handleSave = async (params: { key: string; value: SettingValue }) => {
@@ -42,6 +47,22 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update setting';
+      toast.error('Update failed', { description: message });
+      throw err;
+    }
+  };
+
+  // Handle debug toggle with toast notification
+  const handleDebugToggle = async (enabled: boolean) => {
+    try {
+      const result = await toggleDebug.mutateAsync({ enabled });
+      if (result.data?.changed) {
+        toast.success(`Debug logging ${enabled ? 'enabled' : 'disabled'}`);
+      } else {
+        toast.info(`Debug logging was already ${enabled ? 'enabled' : 'disabled'}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to toggle debug logging';
       toast.error('Update failed', { description: message });
       throw err;
     }
@@ -149,6 +170,57 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             )}
             onSave={handleSave}
           />
+        </SettingGroup>
+
+        {/* Debug Logging (VSS-c9o) */}
+        <SettingGroup
+          title="Debug Logging"
+          description="Enable verbose logging for troubleshooting"
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="debug_logging"
+                className="text-sm font-medium text-foreground"
+              >
+                Enable
+              </label>
+              {toggleDebug.isPending && (
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            {debugError ? (
+              <p className="text-xs text-destructive">
+                Unable to load debug status
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  {isDebugLoading ? (
+                    <Skeleton className="h-5 w-9" />
+                  ) : (
+                    <Switch
+                      id="debug_logging"
+                      checked={debugData?.data?.debugEnabled ?? false}
+                      onCheckedChange={handleDebugToggle}
+                      disabled={toggleDebug.isPending}
+                      data-testid="debug-logging-toggle"
+                      aria-describedby="debug_logging-desc"
+                    />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    {debugData?.data?.debugEnabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+                <p
+                  id="debug_logging-desc"
+                  className="text-xs text-muted-foreground"
+                >
+                  Enable DEBUG-level logging at runtime without server restart
+                </p>
+              </>
+            )}
+          </div>
         </SettingGroup>
       </div>
     </div>

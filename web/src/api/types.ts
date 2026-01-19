@@ -453,3 +453,21 @@ export interface MetricsHistoryResponse {
   metrics: MetricsSnapshot[];
   count: number;
 }
+
+// ===== Debug Types (VSS-c9o) =====
+
+/**
+ * Response from GET /api/v1alpha1/debug.
+ * VSS-c9o: Debug logging toggle
+ */
+export interface DebugStatusData {
+  debugEnabled: boolean;
+}
+
+/**
+ * Response from POST /api/v1alpha1/debug/enable or disable.
+ */
+export interface DebugToggleData {
+  debugEnabled: boolean;
+  changed: boolean;
+}

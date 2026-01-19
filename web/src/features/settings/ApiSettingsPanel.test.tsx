@@ -41,6 +41,21 @@ const mockApiSettingsCamelCase = {
   },
 };
 
+// Mock debug status response (VSS-c9o)
+const mockDebugStatusEnabled = {
+  status: 'ok',
+  data: {
+    debugEnabled: true,
+  },
+};
+
+const mockDebugStatusDisabled = {
+  status: 'ok',
+  data: {
+    debugEnabled: false,
+  },
+};
+
 describe('ApiSettingsPanel', () => {
   const originalFetch = globalThis.fetch;
 
@@ -359,6 +374,214 @@ describe('ApiSettingsPanel', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('api-settings-panel')).toHaveClass('custom-class');
+      });
+    });
+  });
+
+  describe('debug logging toggle (VSS-c9o)', () => {
+    it('renders Debug Logging group when loaded', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Debug Logging')).toBeInTheDocument();
+    });
+
+    it('renders debug toggle with correct initial state (disabled)', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      expect(toggle).toHaveAttribute('data-state', 'unchecked');
+      // Check the status text next to the toggle (sibling span)
+      const statusText = toggle.nextElementSibling;
+      expect(statusText).toHaveTextContent('Disabled');
+    });
+
+    it('renders debug toggle with correct initial state (enabled)', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusEnabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      expect(toggle).toHaveAttribute('data-state', 'checked');
+      // Check the status text next to the toggle (sibling span)
+      const statusText = toggle.nextElementSibling;
+      expect(statusText).toHaveTextContent('Enabled');
+    });
+
+    it('calls debug enable API when toggling on', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        if (url.includes('/debug/enable') && options?.method === 'POST') {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { debugEnabled: true, changed: true },
+              }),
+          };
+        }
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/debug/enable'),
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+    });
+
+    it('calls debug disable API when toggling off', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        if (url.includes('/debug/disable') && options?.method === 'POST') {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { debugEnabled: false, changed: true },
+              }),
+          };
+        }
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusEnabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/debug/disable'),
+          expect.objectContaining({ method: 'POST' })
+        );
+      });
+    });
+
+    it('shows error message when debug status fetch fails', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: false,
+            status: 403,
+            statusText: 'Forbidden',
+            json: () => Promise.resolve({ detail: 'Admin required' }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to load debug status')).toBeInTheDocument();
       });
     });
   });

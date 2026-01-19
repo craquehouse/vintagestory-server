@@ -63,4 +63,8 @@ export const queryKeys = {
         ? (['metrics', 'history', minutes] as const)
         : (['metrics', 'history'] as const),
   },
+  // VSS-c9o: Debug logging toggle
+  debug: {
+    status: ['debug', 'status'] as const,
+  },
 };
