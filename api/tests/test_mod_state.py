@@ -4,6 +4,7 @@ import json
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -99,6 +100,54 @@ class TestModStateManagerLoad:
         state_manager.load()
         assert state_manager.list_mods() == []
 
+    def test_load_handles_empty_file(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """load() handles empty state file by starting fresh."""
+        (temp_state_dir / "mods.json").write_text("")
+
+        # Should not raise, should start with empty state
+        state_manager.load()
+        assert state_manager.list_mods() == []
+
+    def test_load_handles_valid_json_invalid_schema(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """load() handles valid JSON with invalid mod state schema."""
+        # Valid JSON but missing required fields like 'filename', 'slug', etc.
+        invalid_state = {
+            "testmod_1.0.0.zip": {
+                "not_a_valid_field": "garbage",
+                # Missing: filename, slug, version, enabled, installed_at
+            }
+        }
+        (temp_state_dir / "mods.json").write_text(json.dumps(invalid_state))
+
+        # Should not raise, should start with empty state (Pydantic validation fails)
+        state_manager.load()
+        assert state_manager.list_mods() == []
+
+    def test_load_handles_non_dict_json(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """load() handles JSON that is not a dict (e.g., array, string)."""
+        # Valid JSON but wrong structure (array instead of dict)
+        (temp_state_dir / "mods.json").write_text('["not", "a", "dict"]')
+
+        # Should not raise, should start with empty state
+        state_manager.load()
+        assert state_manager.list_mods() == []
+
+    def test_load_handles_null_json(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """load() handles JSON null value."""
+        (temp_state_dir / "mods.json").write_text("null")
+
+        # Should not raise, should start with empty state
+        state_manager.load()
+        assert state_manager.list_mods() == []
+
 
 class TestModStateManagerSave:
     """Tests for saving mod state to file."""
@@ -168,6 +217,105 @@ class TestModStateManagerSave:
         manager.save()
 
         assert (state_dir / "mods.json").exists()
+
+
+class TestModStateManagerDiskIOErrors:
+    """Tests for disk I/O error handling in ModStateManager."""
+
+    def test_load_handles_state_file_is_directory(
+        self, temp_state_dir: Path, temp_mods_dir: Path
+    ) -> None:
+        """load() handles case when state file path is a directory."""
+        # Create a directory where the state file should be
+        state_file_as_dir = temp_state_dir / "mods.json"
+        state_file_as_dir.mkdir(parents=True)
+
+        manager = ModStateManager(state_dir=temp_state_dir, mods_dir=temp_mods_dir)
+        # Should not raise, should start with empty state
+        manager.load()
+        assert manager.list_mods() == []
+
+    def test_load_handles_permission_error(
+        self, temp_state_dir: Path, temp_mods_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """load() handles PermissionError when reading state file."""
+        # Create a valid state file first
+        state_file = temp_state_dir / "mods.json"
+        state_file.write_text("{}")
+
+        manager = ModStateManager(state_dir=temp_state_dir, mods_dir=temp_mods_dir)
+
+        # Mock read_text to raise PermissionError
+        def raise_permission_error(*args: object, **kwargs: object) -> str:
+            raise PermissionError("Access denied")
+
+        monkeypatch.setattr(Path, "read_text", raise_permission_error)
+
+        # Should not raise, should start with empty state
+        manager.load()
+        assert manager.list_mods() == []
+
+    def test_save_handles_permission_error(
+        self, temp_state_dir: Path, temp_mods_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """save() handles PermissionError when writing state file."""
+        manager = ModStateManager(state_dir=temp_state_dir, mods_dir=temp_mods_dir)
+        now = datetime.now(UTC)
+        state = ModState(
+            filename="test.zip",
+            slug="test",
+            version="1.0.0",
+            enabled=True,
+            installed_at=now,
+        )
+        manager.set_mod_state("test.zip", state)
+
+        # Mock write_text to raise PermissionError
+        original_write_text = Path.write_text
+
+        def raise_permission_error(self: Path, *args: Any, **kwargs: Any) -> int:
+            if "mods.json" in str(self) or ".tmp" in str(self):
+                raise PermissionError("Access denied")
+            return original_write_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "write_text", raise_permission_error)
+
+        # save() should raise PermissionError since it's a critical operation
+        with pytest.raises(PermissionError):
+            manager.save()
+
+    def test_save_handles_directory_creation_failure(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """save() handles OSError when creating state directory."""
+        state_dir = tmp_path / "nonexistent" / "state"
+        mods_dir = tmp_path / "mods"
+        mods_dir.mkdir(parents=True)
+
+        manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
+        now = datetime.now(UTC)
+        state = ModState(
+            filename="test.zip",
+            slug="test",
+            version="1.0.0",
+            enabled=True,
+            installed_at=now,
+        )
+        manager.set_mod_state("test.zip", state)
+
+        # Mock mkdir to raise OSError
+        original_mkdir = Path.mkdir
+
+        def raise_os_error(self: Path, *args: Any, **kwargs: Any) -> None:
+            if "nonexistent" in str(self):
+                raise OSError("Disk full")
+            return original_mkdir(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "mkdir", raise_os_error)
+
+        # save() should raise OSError since it's a critical operation
+        with pytest.raises(OSError):
+            manager.save()
 
 
 class TestModStateManagerGetMod:
@@ -485,6 +633,89 @@ class TestImportMod:
 
         # Should use filename-derived fallback
         assert metadata.modid == "truncated_2.0.0"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_handles_empty_zip(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() uses filename fallback if zip is empty (no files)."""
+        zip_path = temp_mods_dir / "emptyzip_1.0.0.zip"
+        # Create a valid zip with no files inside
+        with zipfile.ZipFile(zip_path, "w"):
+            pass  # Empty zip
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback
+        assert metadata.modid == "emptyzip_1.0.0"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_handles_modinfo_invalid_schema(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() uses filename fallback if modinfo.json has invalid schema."""
+        zip_path = temp_mods_dir / "invalidschema_2.0.0.zip"
+        # Valid JSON but missing required fields (modid, name, version)
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr(
+                "modinfo.json",
+                json.dumps({"not_modid": "something", "random_field": 42}),
+            )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback since required fields are missing
+        assert metadata.modid == "invalidschema_2.0.0"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_handles_modinfo_null_values(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() handles modinfo.json with null values for required fields."""
+        zip_path = temp_mods_dir / "nullfields_1.5.0.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr(
+                "modinfo.json",
+                json.dumps({"modid": None, "name": None, "version": None}),
+            )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback since values are null
+        assert metadata.modid == "nullfields_1.5.0"
+        assert metadata.version == "unknown"
+
+    def test_import_mod_handles_modinfo_empty_strings(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() handles modinfo.json with empty string values."""
+        zip_path = temp_mods_dir / "emptystrings_3.0.0.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr(
+                "modinfo.json",
+                json.dumps({"modid": "", "name": "", "version": ""}),
+            )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Empty strings are technically valid but may cause issues
+        # The current implementation accepts them as-is
+        # This test documents the current behavior
+        assert metadata.modid == ""
+        assert metadata.version == ""
+
+    def test_import_mod_handles_modinfo_array_instead_of_object(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """import_mod() uses fallback if modinfo.json is an array not object."""
+        zip_path = temp_mods_dir / "arraymod_1.0.0.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("modinfo.json", '["not", "an", "object"]')
+
+        metadata = state_manager.import_mod(zip_path)
+
+        # Should use filename-derived fallback
+        assert metadata.modid == "arraymod_1.0.0"
         assert metadata.version == "unknown"
 
     def test_import_mod_zip_slip_protection(

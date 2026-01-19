@@ -76,7 +76,14 @@ class ModStateManager:
                 mod_count=len(self._state),
                 path=str(self.state_file),
             )
-        except (json.JSONDecodeError, ValueError) as e:
+        except (
+            json.JSONDecodeError,
+            ValueError,
+            AttributeError,
+            TypeError,
+            IsADirectoryError,
+            PermissionError,
+        ) as e:
             logger.warning(
                 "mod_state_corrupt",
                 error=str(e),
