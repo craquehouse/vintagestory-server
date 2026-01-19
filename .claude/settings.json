@@ -1,13 +1,4 @@
 {
-  "sandbox": {
-    "autoAllowBashIfSandboxed": true,
-    "enabled": false
-  },
-  "enabledPlugins": {
-    "frontend-skills@claude-skills": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
   "permissions": {
     "allow": [
       "Bash(/opt/homebrew/bin/mise exec:*)",
@@ -56,5 +47,14 @@
       "mcp__grep__*",
       "mcp__playwright__*"
     ]
+  },
+  "enabledPlugins": {
+    "frontend-skills@claude-skills": false,
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": true
   }
 }
