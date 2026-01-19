@@ -114,6 +114,7 @@ export interface ModInfo {
   version: string;
   enabled: boolean;
   installedAt: string; // ISO 8601
+  assetId: number;
   name: string | null;
   authors: string[] | null;
   description: string | null;

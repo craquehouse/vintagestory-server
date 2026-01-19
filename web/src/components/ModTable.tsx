@@ -152,7 +152,11 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
                 <div>
                   <div className="font-medium">
                     <a
-                      href={`https://mods.vintagestory.at/${mod.slug}`}
+                      href={
+                        mod.assetId > 0
+                          ? `https://mods.vintagestory.at/show/mod/${mod.assetId}`
+                          : `https://mods.vintagestory.at/${mod.slug}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 hover:underline"

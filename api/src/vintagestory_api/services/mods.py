@@ -253,6 +253,7 @@ class ModService:
                     version=state.version,
                     enabled=state.enabled,
                     installed_at=state.installed_at,
+                    asset_id=state.asset_id,
                     name=metadata.name,
                     authors=metadata.authors,
                     description=metadata.description,
@@ -265,6 +266,7 @@ class ModService:
                     version=state.version,
                     enabled=state.enabled,
                     installed_at=state.installed_at,
+                    asset_id=state.asset_id,
                     name=state.slug,  # Use slug as name fallback
                 )
             mods.append(mod_info)
@@ -293,6 +295,7 @@ class ModService:
                 version=state.version,
                 enabled=state.enabled,
                 installed_at=state.installed_at,
+                asset_id=state.asset_id,
                 name=metadata.name,
                 authors=metadata.authors,
                 description=metadata.description,
@@ -304,6 +307,7 @@ class ModService:
             version=state.version,
             enabled=state.enabled,
             installed_at=state.installed_at,
+            asset_id=state.asset_id,
             name=state.slug,
         )
 
@@ -745,6 +749,7 @@ class ModService:
                 version=metadata.version,
                 enabled=True,
                 installed_at=datetime.now(UTC),
+                asset_id=download_result.asset_id,
             )
             self._state_manager.set_mod_state(download_result.filename, mod_state)
             self._state_manager.save()

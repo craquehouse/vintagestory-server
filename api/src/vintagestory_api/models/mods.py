@@ -59,6 +59,12 @@ class ModState(BaseModel):
     installed_at: datetime
     """When the mod was first installed."""
 
+    asset_id: int = 0
+    """Unique asset ID from ModDB for constructing reliable external URLs.
+
+    Defaults to 0 for backwards compatibility with existing state files.
+    """
+
 
 class ModInfo(BaseModel):
     """Combined local and remote mod information for API responses.
@@ -81,6 +87,12 @@ class ModInfo(BaseModel):
 
     installed_at: datetime
     """Installation timestamp."""
+
+    asset_id: int = 0
+    """Unique asset ID from ModDB for constructing reliable external URLs.
+
+    Defaults to 0 for backwards compatibility.
+    """
 
     name: str
     """Display name of the mod."""

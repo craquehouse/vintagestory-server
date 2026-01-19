@@ -141,6 +141,7 @@ class TestModState:
             version="1.8.3",
             enabled=True,
             installed_at=now,
+            asset_id=15312,
         )
         # Use mode="json" to serialize datetime as ISO string
         data = state.model_dump(mode="json")
@@ -151,6 +152,7 @@ class TestModState:
             "version": "1.8.3",
             "enabled": True,
             "installed_at": "2025-12-29T10:30:00Z",
+            "asset_id": 15312,
         }
 
 

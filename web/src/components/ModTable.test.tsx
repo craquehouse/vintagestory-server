@@ -38,6 +38,7 @@ const mockModsResponse = {
         version: '1.5.0',
         enabled: true,
         installedAt: '2024-01-15T10:30:00Z',
+        assetId: 15312,
         name: 'Smithing Plus',
         authors: ['TestAuthor'],
         description: 'Enhanced smithing features',
@@ -48,6 +49,7 @@ const mockModsResponse = {
         version: '2.0.0',
         enabled: false,
         installedAt: '2024-01-14T08:00:00Z',
+        assetId: 23456,
         name: 'Carry Capacity',
         authors: ['AnotherAuthor'],
         description: 'Increase carry capacity',
@@ -175,7 +177,7 @@ describe('ModTable', () => {
       await waitFor(() => {
         const modLink = screen.getByTestId('mod-link-smithingplus');
         expect(modLink).toBeInTheDocument();
-        expect(modLink).toHaveAttribute('href', 'https://mods.vintagestory.at/smithingplus');
+        expect(modLink).toHaveAttribute('href', 'https://mods.vintagestory.at/show/mod/15312');
         expect(modLink).toHaveAttribute('target', '_blank');
         expect(modLink).toHaveAttribute('rel', 'noopener noreferrer');
       });

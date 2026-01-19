@@ -48,6 +48,9 @@ class DownloadResult:
     release: ReleaseDict
     """Full release object for compatibility check."""
 
+    asset_id: int
+    """Unique asset ID for constructing reliable moddb URLs."""
+
 
 class ModApiError(Exception):
     """Base exception for mod API errors."""
@@ -402,6 +405,7 @@ class ModApiClient:
                 filename=filename,
                 version=release["modversion"],
                 release=release,
+                asset_id=int(mod.get("assetid", 0)),
             )
 
         except httpx.TimeoutException:
