@@ -6,9 +6,6 @@
       "Bash(bd:*)",
       "Bash(cat:*)",
       "Bash(curl:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr view:*)",
       "Bash(gh pr:*)",
       "Bash(git add:*)",
       "Bash(git checkout:*)",
@@ -27,6 +24,7 @@
       "Bash(just lint-api:*)",
       "Bash(just lint:*)",
       "Bash(just sprint:*)",
+      "Bash(just test:*)",
       "Bash(just test-api:*)",
       "Bash(just test-web:*)",
       "Bash(just typecheck-api:*)",
@@ -45,7 +43,9 @@
       "Write(web/src/**/*test.tsx)",
       "mcp__context7__*",
       "mcp__grep__*",
-      "mcp__playwright__*"
+      "mcp__playwright__*",
+      "Skill(beads)",
+      "Skill(sprint-status-yaml)"
     ]
   },
   "enabledPlugins": {
