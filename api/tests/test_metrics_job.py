@@ -158,15 +158,12 @@ class TestCollectMetricsJobIntegration:
         """
         from vintagestory_api.services.metrics import get_metrics_service
 
-        # Create mock server service that reports a running process
+        # Create mock server service with game_server_pid returning a PID
         mock_server_service = MagicMock()
-        mock_process = MagicMock()
-        mock_process.returncode = None  # Process appears to be running
-        mock_process.pid = 99999  # Non-existent PID
-        mock_server_service._process = mock_process
+        mock_server_service.game_server_pid = 99999  # Non-existent PID
 
         service = get_metrics_service()
-        # Inject mock for testing - ADR-E12-002 pattern
+        # Inject mock for testing
         service._server_service = mock_server_service  # pyright: ignore[reportPrivateUsage]
 
         # Make psutil.Process raise NoSuchProcess for the game server PID

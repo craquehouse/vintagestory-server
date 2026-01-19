@@ -276,12 +276,9 @@ class TestMetricsService:
 
         buffer = MetricsBuffer(capacity=10)
 
-        # Mock server service with a running process
+        # Mock server service with game_server_pid property returning a PID
         mock_server_service = MagicMock()
-        mock_process = MagicMock()
-        mock_process.returncode = None  # Process is running
-        mock_process.pid = 12345
-        mock_server_service._process = mock_process
+        mock_server_service.game_server_pid = 12345
 
         # Mock psutil.Process for the game server PID
         mock_game_process = MagicMock()
@@ -314,12 +311,9 @@ class TestMetricsService:
 
         buffer = MetricsBuffer(capacity=10)
 
-        # Mock server service with a "running" process
+        # Mock server service with game_server_pid returning a PID
         mock_server_service = MagicMock()
-        mock_process = MagicMock()
-        mock_process.returncode = None
-        mock_process.pid = 99999
-        mock_server_service._process = mock_process
+        mock_server_service.game_server_pid = 99999
 
         # Mock psutil.Process to raise NoSuchProcess
         original_process = psutil.Process
@@ -347,12 +341,9 @@ class TestMetricsService:
 
         buffer = MetricsBuffer(capacity=10)
 
-        # Mock server service with a "running" process
+        # Mock server service with game_server_pid returning a PID
         mock_server_service = MagicMock()
-        mock_process = MagicMock()
-        mock_process.returncode = None
-        mock_process.pid = 88888
-        mock_server_service._process = mock_process
+        mock_server_service.game_server_pid = 88888
 
         # Mock psutil.Process to raise AccessDenied
         original_process = psutil.Process
@@ -374,33 +365,31 @@ class TestMetricsService:
         assert snapshot.game_memory_mb is None
         assert snapshot.game_cpu_percent is None
 
-    def test_get_game_server_pid_returns_none_when_process_is_none(self) -> None:
-        """Test _get_game_server_pid returns None when no process."""
-        # Create mock server service with no process
+    def test_get_game_server_pid_returns_none_when_not_running(self) -> None:
+        """Test _get_game_server_pid returns None when server not running."""
         from unittest.mock import MagicMock
 
+        # Mock server service where game_server_pid returns None
         mock_server_service = MagicMock()
-        mock_server_service._process = None
+        mock_server_service.game_server_pid = None
 
         buffer = MetricsBuffer(capacity=10)
         service = MetricsService(buffer=buffer, server_service=mock_server_service)
 
         assert service._get_game_server_pid() is None
 
-    def test_get_game_server_pid_returns_none_when_process_terminated(self) -> None:
-        """Test _get_game_server_pid returns None when process has terminated."""
+    def test_get_game_server_pid_returns_pid_when_running(self) -> None:
+        """Test _get_game_server_pid returns PID when server is running."""
         from unittest.mock import MagicMock
 
+        # Mock server service where game_server_pid returns a PID
         mock_server_service = MagicMock()
-        mock_process = MagicMock()
-        mock_process.returncode = 0  # Process has exited
-        mock_process.pid = 12345
-        mock_server_service._process = mock_process
+        mock_server_service.game_server_pid = 12345
 
         buffer = MetricsBuffer(capacity=10)
         service = MetricsService(buffer=buffer, server_service=mock_server_service)
 
-        assert service._get_game_server_pid() is None
+        assert service._get_game_server_pid() == 12345
 
     def test_buffer_property(self) -> None:
         """Test that buffer property returns the buffer."""

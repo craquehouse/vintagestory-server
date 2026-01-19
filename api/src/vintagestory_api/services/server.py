@@ -192,6 +192,17 @@ class ServerService:
         """Get the console buffer for server output."""
         return self._console_buffer
 
+    @property
+    def game_server_pid(self) -> int | None:
+        """Get the PID of the running game server process.
+
+        Returns:
+            Process ID if game server is running, None otherwise.
+        """
+        if self._process is not None and self._process.returncode is None:
+            return self._process.pid
+        return None
+
     def _update_mod_service_server_state(self, running: bool) -> None:
         """Update the mod service with current server running state.
 

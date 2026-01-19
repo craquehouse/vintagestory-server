@@ -93,34 +93,35 @@ The game server runs as a separate subprocess managed by `ServerService`. We nee
 
 ### Decision
 
-**Reuse the existing `ServerService._process` reference** to get the game server PID.
+**Use the `ServerService.game_server_pid` public property** to get the game server PID.
 
 ### Rationale
 
-The `ServerService` already tracks the subprocess object when the server is running:
+The `ServerService` tracks the subprocess object internally and exposes a clean public accessor:
 
 ```python
 # In ServerService
-self._process: asyncio.subprocess.Process | None = None
+@property
+def game_server_pid(self) -> int | None:
+    """Get the PID of the running game server process."""
+    if self._process is not None and self._process.returncode is None:
+        return self._process.pid
+    return None
 ```
-
-When the server is running, `self._process.pid` gives us the PID.
 
 ### Implementation Approach
 
 ```python
 # In MetricsService
-def get_game_server_pid(self) -> int | None:
+def _get_game_server_pid(self) -> int | None:
     """Get the game server PID if running."""
-    server_service = get_server_service()
-
-    # Check if process exists and is running
-    if (server_service._process is not None and
-        server_service._process.returncode is None):
-        return server_service._process.pid
-
-    return None
+    server_service = self._get_server_service()
+    if server_service is None:
+        return None
+    return server_service.game_server_pid
 ```
+
+> **Note (API-032):** Originally implemented with direct `_process` access. Refactored to use public property to eliminate `# pyright: ignore[reportPrivateUsage]` comments and follow proper encapsulation.
 
 ### Graceful Degradation
 

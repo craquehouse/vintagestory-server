@@ -138,6 +138,34 @@ class TestServerStateManagement:
         assert not tmp_file.exists()
 
 
+class TestGameServerPid:
+    """Tests for game_server_pid property (API-032)."""
+
+    def test_game_server_pid_none_when_no_process(self, test_settings: Settings) -> None:
+        """game_server_pid returns None when no process is running."""
+        service = ServerService(test_settings)
+        assert service.game_server_pid is None
+
+    def test_game_server_pid_none_when_process_exited(self, test_settings: Settings) -> None:
+        """game_server_pid returns None when process has exited."""
+        service = ServerService(test_settings)
+        # Simulate a process that has terminated
+        mock_process = MagicMock()
+        mock_process.pid = 12345
+        mock_process.returncode = 0  # Process has exited
+        service._process = mock_process
+        assert service.game_server_pid is None
+
+    def test_game_server_pid_returns_pid_when_running(self, test_settings: Settings) -> None:
+        """game_server_pid returns PID when process is running."""
+        service = ServerService(test_settings)
+        mock_process = MagicMock()
+        mock_process.pid = 99999
+        mock_process.returncode = None  # Process is running
+        service._process = mock_process
+        assert service.game_server_pid == 99999
+
+
 class TestPostInstallSetup:
     """Tests for post-installation setup (Task 4)."""
 

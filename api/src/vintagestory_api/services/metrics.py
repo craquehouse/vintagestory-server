@@ -193,6 +193,8 @@ class MetricsService:
     def _get_game_server_pid(self) -> int | None:
         """Get the game server process ID if running.
 
+        Delegates to ServerService.game_server_pid property.
+
         Returns:
             Game server PID if running, None otherwise.
         """
@@ -200,17 +202,7 @@ class MetricsService:
         if server_service is None:
             return None
 
-        # Check if process exists and is still running
-        # _process is None when no subprocess has been spawned
-        # _process.returncode is None while process is running
-        # ADR-E12-002: Direct _process access is the documented pattern
-        if (
-            server_service._process is not None  # pyright: ignore[reportPrivateUsage]
-            and server_service._process.returncode is None  # pyright: ignore[reportPrivateUsage]
-        ):
-            return server_service._process.pid  # pyright: ignore[reportPrivateUsage]
-
-        return None
+        return server_service.game_server_pid
 
     def _get_game_metrics(self) -> tuple[float | None, float | None]:
         """Get game server process metrics.
