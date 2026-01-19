@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 __all__ = [
     "ApiResponse",
@@ -31,11 +31,31 @@ class ApiResponse(BaseModel):
     All API responses follow this format for consistency:
     - Success: {"status": "ok", "data": {...}}
     - Error: {"status": "error", "error": {...}}
+
+    Uses a custom serializer to exclude None values, ensuring success responses
+    don't include "error": null in the JSON output.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     status: Literal["ok", "error"]
     data: dict[str, Any] | None = None
     error: dict[str, Any] | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_exclude_none_error(
+        self, handler: Any, info: Any
+    ) -> dict[str, Any]:
+        """Custom serializer that excludes null error field from success responses.
+
+        The 'data' field can legitimately be null (e.g., no metrics available),
+        but 'error' being null in success responses is just noise.
+        """
+        result = handler(self)
+        # Only exclude 'error' when it's None (success responses)
+        if result.get("error") is None:
+            result.pop("error", None)
+        return result
 
 
 class SchedulerHealthData(BaseModel):

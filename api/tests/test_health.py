@@ -256,8 +256,22 @@ class TestApiResponseEnvelope:
         assert "status" in data
         assert "data" in data
         assert data["status"] == "ok"
-        # Error field should be None or absent for success
-        assert data.get("error") is None
+
+    def test_success_envelope_excludes_null_error_field(
+        self, client: TestClient
+    ) -> None:
+        """Test that success responses don't include null error field.
+
+        The ApiResponse model uses exclude_none to ensure cleaner JSON output.
+        Success responses should only contain 'status' and 'data', not 'error: null'.
+        """
+        response = client.get("/healthz")
+        data = response.json()
+        # Error field should be absent entirely, not present as null
+        assert "error" not in data, (
+            "Success responses should not include 'error' field. "
+            f"Got: {list(data.keys())}"
+        )
 
     def test_envelope_status_is_literal(self, client: TestClient) -> None:
         """Test that status field only contains valid values."""
