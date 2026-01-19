@@ -77,6 +77,19 @@ vi.mock('@/hooks/use-game-versions', () => ({
   })),
 }));
 
+// VSS-1u2: Mock useServerStatus for installed version
+vi.mock('@/hooks/use-server-status', () => ({
+  useServerStatus: vi.fn(() => ({
+    data: {
+      status: 'ok',
+      data: { state: 'running', version: '1.21.3' },
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
+}));
+
 // VSS-y7u: Mock useModTags for tags filter
 vi.mock('@/hooks/use-mod-tags', () => ({
   useModTags: vi.fn(() => ({

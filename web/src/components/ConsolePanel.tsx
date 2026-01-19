@@ -12,7 +12,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { FormEvent, KeyboardEvent } from 'react';
 import type { Terminal as XTerminal } from '@xterm/xterm';
-import { ChevronDown, FileText, Terminal } from 'lucide-react';
+import { ChevronDown, FileText, Minus, Plus, Terminal } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,11 @@ import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
 import { useLogStream } from '@/hooks/use-log-stream';
 import { useLogFiles } from '@/hooks/use-log-files';
 import { useServerStatus } from '@/hooks/use-server-status';
+import {
+  usePreferences,
+  FONT_SIZE_MIN,
+  FONT_SIZE_MAX,
+} from '@/contexts/PreferencesContext';
 import { cn } from '@/lib/utils';
 
 /**
@@ -100,6 +105,9 @@ export function ConsolePanel({
   // Get server status for connection indicator
   const { data: statusResponse } = useServerStatus();
   const serverState = statusResponse?.data?.state;
+
+  // Get font size preferences
+  const { preferences, setConsoleFontSize } = usePreferences();
 
   // Write a message to terminal, or queue if terminal not ready
   const writeToTerminal = useCallback((data: string) => {
@@ -284,10 +292,43 @@ export function ConsolePanel({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <ConnectionStatus
-              state={getDisplayConnectionState()}
-              serverState={serverState}
-            />
+            <div className="flex items-center gap-2">
+              {/* Font size controls */}
+              <div className="flex items-center gap-1" data-testid="font-size-controls">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setConsoleFontSize(preferences.consoleFontSize - 1)}
+                  disabled={preferences.consoleFontSize <= FONT_SIZE_MIN}
+                  aria-label="Decrease font size"
+                  data-testid="console-font-decrease"
+                  className="h-7 w-7"
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span
+                  className="text-xs text-muted-foreground w-8 text-center tabular-nums"
+                  data-testid="console-font-size"
+                >
+                  {preferences.consoleFontSize}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setConsoleFontSize(preferences.consoleFontSize + 1)}
+                  disabled={preferences.consoleFontSize >= FONT_SIZE_MAX}
+                  aria-label="Increase font size"
+                  data-testid="console-font-increase"
+                  className="h-7 w-7"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <ConnectionStatus
+                state={getDisplayConnectionState()}
+                serverState={serverState}
+              />
+            </div>
           </div>
         </CardHeader>
       )}

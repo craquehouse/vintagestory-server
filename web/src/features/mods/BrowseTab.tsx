@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { useMods } from '@/hooks/use-mods';
+import { useServerStatus } from '@/hooks/use-server-status';
 import { useGameVersions } from '@/hooks/use-game-versions';
 import { useModTags } from '@/hooks/use-mod-tags';
 import {
@@ -59,6 +60,10 @@ export function BrowseTab() {
     () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
     [modsData]
   );
+
+  // VSS-1u2: Get installed server version to show first in version filter
+  const { data: serverStatus } = useServerStatus();
+  const installedVersion = serverStatus?.data?.version ?? null;
 
   // VSS-vth: Fetch available game versions for filtering
   const {
@@ -230,6 +235,7 @@ export function BrowseTab() {
         gameVersions={gameVersions}
         gameVersionsLoading={gameVersionsLoading}
         gameVersionsError={gameVersionsError}
+        installedVersion={installedVersion}
       />
 
       {/* Results Grid */}
