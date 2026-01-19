@@ -149,7 +149,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
           by {mod.author}
         </p>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 flex-1 flex flex-col">
         {mod.summary && (
           <p
             className="text-sm text-muted-foreground line-clamp-2 mb-3"
@@ -190,7 +190,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
 
         {/* Install button or Installed indicator (Story 10.8) */}
         {installedSlugs !== undefined && (
-          <div className="mt-3 pt-3 border-t">
+          <div className="mt-auto pt-3 border-t">
             {isInstalled ? (
               <div
                 className="flex items-center gap-1.5 text-sm text-success"
