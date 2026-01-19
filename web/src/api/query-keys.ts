@@ -20,7 +20,10 @@ export const queryKeys = {
       pageSize?: number;
       sort?: string;
       search?: string;
+      version?: string; // VSS-vth: Game version filter
     }) => ['mods', 'browse', params] as const,
+    // VSS-vth: Game versions for mod filtering
+    gameVersions: ['mods', 'gameversions'] as const,
   },
   server: {
     status: ['server', 'status'] as const,

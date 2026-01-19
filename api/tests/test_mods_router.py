@@ -1887,3 +1887,198 @@ class TestBrowseModsEndpoint:
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+
+class TestGameVersionsEndpoint:
+    """Tests for GET /api/v1alpha1/mods/gameversions endpoint.
+
+    Story VSS-vth: Game version filter for mod browser.
+    """
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Headers with Admin API key."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Headers with Monitor API key."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    @respx.mock
+    def test_gameversions_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions returns sorted list of versions."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171089407, "name": "1.21.0"},
+                        {"tagid": -281565171286015, "name": "1.21.3"},
+                        {"tagid": -281565170958335, "name": "1.20.0"},
+                        {"tagid": -281565171155199, "name": "1.21.1"},
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        # Versions should be sorted newest first
+        versions = data["data"]["versions"]
+        assert len(versions) == 4
+        assert versions[0] == "1.21.3"
+        assert versions[1] == "1.21.1"
+        assert versions[2] == "1.21.0"
+        assert versions[3] == "1.20.0"
+
+    @respx.mock
+    def test_gameversions_requires_auth(self, client: TestClient) -> None:
+        """GET /mods/gameversions requires authentication."""
+        response = client.get("/api/v1alpha1/mods/gameversions")
+        assert response.status_code == 401
+
+    @respx.mock
+    def test_gameversions_monitor_access(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions is accessible by Monitor role."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171286015, "name": "1.21.3"},
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=monitor_headers)
+        assert response.status_code == 200
+
+    @respx.mock
+    def test_gameversions_api_error(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions returns 502 when external API fails."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+    @respx.mock
+    def test_gameversions_caches_result(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions caches results."""
+        route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": -281565171286015, "name": "1.21.3"},
+                    ],
+                },
+            )
+        )
+
+        # First request
+        response1 = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+        assert response1.status_code == 200
+        assert route.call_count == 1
+
+        # Second request should use cache
+        response2 = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+        assert response2.status_code == 200
+        assert route.call_count == 1  # Still 1 - cached
+
+    @respx.mock
+    def test_gameversions_empty_response(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions handles empty versions list gracefully."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [],
+                },
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["data"]["versions"] == []

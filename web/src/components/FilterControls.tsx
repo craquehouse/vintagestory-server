@@ -3,6 +3,8 @@
  *
  * Provides dropdowns for filtering by Side, Tags, Game Version, and Mod Type.
  * Displays active filters as removable badges.
+ *
+ * Story VSS-vth: Added game version filter with versions from API.
  */
 
 import { useMemo } from 'react';
@@ -24,12 +26,10 @@ interface FilterControlsProps {
   filters: ModFilters;
   onChange: (filters: ModFilters) => void;
   availableMods?: ModBrowseItem[]; // For extracting available tags dynamically
+  gameVersions?: string[]; // VSS-vth: Available game versions from API
+  gameVersionsLoading?: boolean; // VSS-vth: Loading state for versions
+  gameVersionsError?: boolean; // VSS-vth: Error state for versions
 }
-
-// Game version filtering requires API enhancement - browse endpoint doesn't include
-// game version compatibility data (only in detailed mod endpoint's releases array)
-// TODO: Add to polish backlog - requires API to include compatibility in browse response
-const GAME_VERSIONS: string[] = []; // Disabled until API supports it
 
 // Side options derived from type system
 const SIDE_OPTIONS: Array<{ value: BrowseModSide; label: string }> = [
@@ -45,7 +45,14 @@ const MOD_TYPE_OPTIONS: Array<{ value: ModType; label: string }> = [
   { value: 'other', label: 'Other' },
 ];
 
-export function FilterControls({ filters, onChange, availableMods = [] }: FilterControlsProps) {
+export function FilterControls({
+  filters,
+  onChange,
+  availableMods = [],
+  gameVersions = [],
+  gameVersionsLoading = false,
+  gameVersionsError = false,
+}: FilterControlsProps) {
   // Extract unique tags from available mods
   const availableTags = useMemo(() => {
     const tagSet = new Set<string>();
@@ -159,26 +166,47 @@ export function FilterControls({ filters, onChange, availableMods = [] }: Filter
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Game Version Filter - Disabled: API doesn't provide version compatibility in browse endpoint */}
-        {GAME_VERSIONS.length > 0 && (
+        {/* Game Version Filter (VSS-vth) */}
+        {(gameVersions.length > 0 || gameVersionsLoading || gameVersionsError) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="version-filter-button"
+                aria-label={
+                  filters.gameVersion
+                    ? `Game version filter: ${filters.gameVersion}`
+                    : 'Filter by game version'
+                }
+                disabled={gameVersionsLoading}
+              >
                 <Filter className="mr-2 h-4 w-4" />
-                Version
+                {gameVersionsLoading
+                  ? 'Loading...'
+                  : filters.gameVersion
+                    ? `v${filters.gameVersion}`
+                    : 'Version'}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="max-h-[300px] overflow-y-auto">
               <DropdownMenuLabel>Game Version</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {GAME_VERSIONS.map((version) => (
-                <DropdownMenuItem
-                  key={version}
-                  onClick={() => handleVersionChange(version)}
-                >
-                  {version}
-                </DropdownMenuItem>
-              ))}
+              {gameVersionsError ? (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  Failed to load versions
+                </div>
+              ) : (
+                gameVersions.map((version) => (
+                  <DropdownMenuItem
+                    key={version}
+                    onClick={() => handleVersionChange(version)}
+                    data-testid={`version-option-${version}`}
+                  >
+                    {version}
+                  </DropdownMenuItem>
+                ))
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

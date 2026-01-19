@@ -1,11 +1,14 @@
 /**
  * Hook for fetching and filtering browsable mods.
  *
- * Uses server-side search and pagination with client-side filtering for additional criteria.
+ * Uses server-side search, pagination, and game version filtering with
+ * client-side filtering for additional criteria (side, tags, modType).
  * Uses TanStack Query for caching and state management.
+ *
+ * Story VSS-vth: Added server-side game version filtering.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
@@ -65,23 +68,21 @@ export function useBrowseMods(params: BrowseParams = {}) {
   // Story 10.7: Manage page state internally, with initial value from params
   const [currentPage, setCurrentPage] = useState(params.page ?? 1);
 
-  // Track previous search to reset page when search changes
-  const prevSearchRef = useRef(params.search);
+  // Note: Page reset on search/filter/sort changes is handled by the consumer
+  // (BrowseTab) which has full context of all criteria changes.
+  // This hook only manages pagination state.
 
-  // Reset to page 1 when search changes
-  useEffect(() => {
-    if (prevSearchRef.current !== params.search) {
-      setCurrentPage(1);
-      prevSearchRef.current = params.search;
-    }
-  }, [params.search]);
-
-  // Separate filters from API params (filters are still client-side)
-  // Also separate 'name' sort since it's client-side only
+  // Separate filters from API params
+  // - filters.gameVersion is passed to API as 'version' (server-side)
+  // - filters.side, filters.tags, filters.modType are client-side
+  // - 'name' sort is client-side only
   const { filters, sort, page: _ignoredPage, ...apiParams } = params;
 
   // Only pass sort to API if it's a server-side option
   const apiSort = sort === 'name' ? undefined : sort;
+
+  // VSS-vth: Extract gameVersion for server-side filtering
+  const apiVersion = filters?.gameVersion;
 
   const query = useQuery({
     queryKey: queryKeys.mods.browse({
@@ -89,6 +90,7 @@ export function useBrowseMods(params: BrowseParams = {}) {
       page: currentPage,
       sort: apiSort,
       search: params.search,
+      version: apiVersion,
     }),
     queryFn: () =>
       fetchBrowseMods({
@@ -96,6 +98,7 @@ export function useBrowseMods(params: BrowseParams = {}) {
         page: currentPage,
         sort: apiSort,
         search: params.search,
+        version: apiVersion,
       }),
     staleTime: BROWSE_STALE_TIME,
   });
@@ -209,13 +212,14 @@ export function sortModsByName(mods: ModBrowseItem[]): ModBrowseItem[] {
 }
 
 /**
- * Filter mods by filter criteria.
+ * Filter mods by filter criteria (client-side).
  *
  * Applies AND logic across different filter types:
  * - Must match side if specified
  * - Must match at least one tag if tags specified (OR logic within tags)
  * - Must match modType if specified
- * - Must be compatible with gameVersion if specified
+ *
+ * Note: gameVersion filtering is now server-side (VSS-vth).
  *
  * @param mods - Array of mods to filter
  * @param filters - Filter criteria
@@ -248,12 +252,7 @@ export function filterModsByFilters(
       return false;
     }
 
-    // Game version filter disabled - API doesn't provide version compatibility in browse endpoint
-    // The lastReleased field is a timestamp, not a game version
-    // TODO: Add to polish backlog - requires API enhancement
-    // if (filters.gameVersion) {
-    //   return false; // Would need version compatibility data from API
-    // }
+    // Note: gameVersion is now handled server-side (VSS-vth)
 
     return true;
   });

@@ -9,6 +9,7 @@ import { apiClient } from './client';
 import type {
   ApiResponse,
   BrowseParams,
+  GameVersionsData,
   ModBrowseData,
   ModsListData,
   ModLookupData,
@@ -115,12 +116,30 @@ export async function removeMod(
 }
 
 /**
+ * Fetch list of available game versions for mod filtering.
+ *
+ * Returns versions from the VintageStory mod database API.
+ * Versions are sorted newest to oldest.
+ *
+ * Story VSS-vth: Game version filter for mod browser.
+ *
+ * @returns List of game version strings
+ *
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchGameVersions(): Promise<
+  ApiResponse<GameVersionsData>
+> {
+  return apiClient<ApiResponse<GameVersionsData>>(`${API_PREFIX}/gameversions`);
+}
+
+/**
  * Fetch paginated list of mods from the browse API.
  *
  * Returns mods from the VintageStory mod database with pagination.
  * The API caches results for 5 minutes.
  *
- * @param params - Pagination, sort, and search parameters
+ * @param params - Pagination, sort, search, and version filter parameters
  * @returns Paginated mod list with metadata
  *
  * Accessible to both Admin and Monitor roles.
@@ -142,6 +161,10 @@ export async function fetchBrowseMods(
   }
   if (params.search?.trim()) {
     searchParams.set('search', params.search.trim());
+  }
+  // VSS-vth: Server-side game version filtering
+  if (params.version?.trim()) {
+    searchParams.set('version', params.version.trim());
   }
 
   const query = searchParams.toString();

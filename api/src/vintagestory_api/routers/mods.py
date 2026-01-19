@@ -151,6 +151,7 @@ async def browse_mods(
         str | None,
         Query(
             max_length=20,
+            pattern=r"^[0-9]+(\.[0-9]+)*(-[a-zA-Z0-9]+)?$",
             description="Filter mods by compatible game version (e.g., '1.21.3')",
         ),
     ] = None,
@@ -258,6 +259,82 @@ async def browse_mods(
                 "code": ErrorCode.GAME_VERSION_NOT_FOUND,
                 "message": f"Game version '{e.version}' not found",
             },
+        )
+
+    except ExternalApiError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": ErrorCode.EXTERNAL_API_ERROR,
+                "message": str(e),
+            },
+        )
+
+
+@router.get("/gameversions", response_model=ApiResponse, summary="List game versions")
+async def list_game_versions(
+    _: RequireAuth,
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """List available game versions for mod filtering.
+
+    Returns a list of game version strings that can be used to filter
+    mods by compatibility. Versions are sorted newest to oldest.
+
+    Both Admin and Monitor roles can access this read-only endpoint.
+
+    Returns:
+        ApiResponse with data containing:
+        - versions: Array of game version strings (e.g., ["1.21.3", "1.21.0", ...])
+
+    Raises:
+        HTTPException: 401 if not authenticated
+        HTTPException: 502 if mod database API is unavailable
+    """
+    logger.debug("router_list_game_versions_start")
+
+    try:
+        # Get version -> tagid mapping from API
+        game_versions = await service.api_client.get_game_versions()
+
+        # Extract version strings and sort newest first (semantic version sort)
+        # Handles non-numeric parts like "1.21.3-rc1" by splitting on both . and -
+        # and preserving non-numeric suffixes in sort order
+        def parse_version(v: str) -> list[tuple[int, str]]:
+            """Parse version into sortable tuples.
+
+            Each part becomes (numeric_value, suffix_string).
+            "1.21.3-rc1" -> [(1, ""), (21, ""), (3, ""), (-1, "rc1")]
+            Non-numeric parts get -1 for numeric so they sort before numeric parts.
+            """
+            import re
+
+            parts = re.split(r"[.\-]", v)
+            result: list[tuple[int, str]] = []
+            for part in parts:
+                if part.isdigit():
+                    result.append((int(part), ""))
+                else:
+                    # Extract leading digits if any, then suffix
+                    match = re.match(r"^(\d*)(.*)$", part)
+                    if match and match.group(1):
+                        result.append((int(match.group(1)), match.group(2)))
+                    else:
+                        # Pure non-numeric (like "rc1") - sort before numbers
+                        result.append((-1, part))
+            return result
+
+        versions = sorted(
+            game_versions.keys(),
+            key=parse_version,
+            reverse=True,
+        )
+
+        logger.debug("router_list_game_versions_complete", version_count=len(versions))
+
+        return ApiResponse(
+            status="ok",
+            data={"versions": versions},
         )
 
     except ExternalApiError as e:

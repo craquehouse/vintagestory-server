@@ -10,11 +10,13 @@
  * - Loading and error states
  * - Pagination for large result sets (Story 10.7)
  * - Install buttons on mod cards (Story 10.8)
+ * - Game version filtering (Story VSS-vth)
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
  * Story 10.7: Pagination
  * Story 10.8: Browse Install Integration
+ * Story VSS-vth: Game version filter
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -25,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { useMods } from '@/hooks/use-mods';
+import { useGameVersions } from '@/hooks/use-game-versions';
 import {
   useBrowseScrollRestoration,
   getSavedScrollState,
@@ -55,6 +58,14 @@ export function BrowseTab() {
     () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
     [modsData]
   );
+
+  // VSS-vth: Fetch available game versions for filtering
+  const {
+    data: gameVersionsData,
+    isLoading: gameVersionsLoading,
+    isError: gameVersionsError,
+  } = useGameVersions();
+  const gameVersions = gameVersionsData?.data?.versions ?? [];
 
   // Story 10.7: Scroll position restoration
   // Read saved state synchronously for initial page (before first render)
@@ -205,6 +216,9 @@ export function BrowseTab() {
         filters={filters}
         onChange={setFilters}
         availableMods={queryData?.data?.mods ?? []}
+        gameVersions={gameVersions}
+        gameVersionsLoading={gameVersionsLoading}
+        gameVersionsError={gameVersionsError}
       />
 
       {/* Results Grid */}

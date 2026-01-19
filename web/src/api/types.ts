@@ -366,6 +366,14 @@ export interface ModBrowseData {
 }
 
 /**
+ * Response data from GET /api/v1alpha1/mods/gameversions.
+ * Story VSS-vth: Game version filter for mod browser.
+ */
+export interface GameVersionsData {
+  versions: string[];
+}
+
+/**
  * Filter criteria for client-side filtering.
  */
 export interface ModFilters {
@@ -382,8 +390,9 @@ export interface BrowseParams {
   page?: number;
   pageSize?: number;
   sort?: BrowseSortOption;
-  search?: string; // For client-side filtering (API doesn't support search yet)
-  filters?: ModFilters; // For client-side filtering
+  search?: string; // Server-side search
+  version?: string; // Server-side game version filter (VSS-vth)
+  filters?: ModFilters; // Client-side filters (side, tags, modType)
 }
 
 // ===== Version Types (Story 13.2) =====
