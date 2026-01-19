@@ -9,7 +9,8 @@ Unit tests for the logs service covering:
 
 import asyncio
 from pathlib import Path
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -287,9 +288,10 @@ class TestTailLogFile:
         # Patch the specific stat call inside tail_log_file
         original_stat = log_file.stat
 
-        def mock_stat(path_self, **kwargs):
+        def mock_stat(path_self: Any, **kwargs: Any):
             # Create a mock stat result with huge file size
             result = original_stat()
+
             # Create a new object with modified st_size
             class MockStat:
                 st_size = 101 * 1024 * 1024  # 101MB
@@ -313,7 +315,7 @@ class TestTailLogFile:
         # Patch the specific stat call to return exactly 100MB
         original_stat = log_file.stat
 
-        def mock_stat(path_self, **kwargs):
+        def mock_stat(path_self: Any, **kwargs: Any):
             result = original_stat()
 
             class MockStat:
@@ -380,7 +382,7 @@ class TestTailLogFile:
         original_executor = asyncio.get_event_loop().run_in_executor
         executor_called = False
 
-        async def mock_executor(executor, func):
+        async def mock_executor(executor: Any, func: Any):
             nonlocal executor_called
             executor_called = True
             return await original_executor(executor, func)
@@ -437,7 +439,9 @@ class TestTailLogFile:
         assert result == ["Line 1", "", "Line 3", ""]
 
     @pytest.mark.asyncio
-    async def test_logging_on_path_traversal(self, logs_dir: Path, tmp_path: Path, caplog) -> None:
+    async def test_logging_on_path_traversal(
+        self, logs_dir: Path, tmp_path: Path, caplog: Any
+    ) -> None:
         """Should log warning when path traversal is detected."""
         # Create a file outside logs_dir
         outside_file = tmp_path / "outside.log"
@@ -454,7 +458,7 @@ class TestTailLogFile:
         # This test documents the expected behavior, actual log verification depends on structlog setup
 
     @pytest.mark.asyncio
-    async def test_logging_on_file_too_large(self, logs_dir: Path, caplog) -> None:
+    async def test_logging_on_file_too_large(self, logs_dir: Path, caplog: Any) -> None:
         """Should log warning when file is too large."""
         log_file = logs_dir / "huge.log"
         log_file.write_text("x" * 100)
@@ -462,7 +466,7 @@ class TestTailLogFile:
         # Patch the specific stat call to return huge file size
         original_stat = log_file.stat
 
-        def mock_stat(path_self, **kwargs):
+        def mock_stat(path_self: Any, **kwargs: Any):
             result = original_stat()
 
             class MockStat:

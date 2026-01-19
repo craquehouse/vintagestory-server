@@ -3,7 +3,6 @@
 from io import StringIO
 
 import pytest
-import structlog
 
 from vintagestory_api.services.pending_restart import PendingRestartState
 
