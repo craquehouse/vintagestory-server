@@ -75,7 +75,7 @@ const CHART_COLORS = {
  * Format timestamp for X-axis ticks.
  * Shows HH:MM format for readability.
  */
-function formatAxisTime(timestamp: string): string {
+export function formatAxisTime(timestamp: string): string {
   try {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -88,7 +88,7 @@ function formatAxisTime(timestamp: string): string {
  * Format timestamp for tooltip label.
  * Shows full date and time for precision.
  */
-function formatTooltipTime(timestamp: string): string {
+export function formatTooltipTime(timestamp: string): string {
   try {
     const date = new Date(timestamp);
     return date.toLocaleString([], {
@@ -106,7 +106,7 @@ function formatTooltipTime(timestamp: string): string {
 /**
  * Format memory value for display.
  */
-function formatMemory(value: number | null | undefined): string {
+export function formatMemory(value: number | null | undefined): string {
   if (value === null || value === undefined) {
     return 'N/A';
   }
@@ -118,7 +118,7 @@ function formatMemory(value: number | null | undefined): string {
  * Shows timestamp and exact values for both API and Game memory.
  * When showTotal is true (stacked area mode), also displays the combined total.
  */
-function CustomTooltip({ active, payload, label, showTotal }: CustomTooltipProps) {
+export function CustomTooltip({ active, payload, label, showTotal }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
