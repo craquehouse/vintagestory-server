@@ -4,7 +4,7 @@
  * Story 11.5: Console Page Extraction
  *
  * Displays the game server console in a full-height layout with:
- * - Page header with title and server status badge
+ * - Page header with title, server controls (Start/Stop/Restart), and status badge
  * - Empty state when server is not installed
  * - ConsolePanel with maximum vertical space for terminal output
  */
@@ -13,6 +13,7 @@ import { ServerStatusBadge } from '@/components/ServerStatusBadge';
 import { EmptyServerState } from '@/components/EmptyServerState';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { ConsolePanel } from '@/components/ConsolePanel';
+import { ServerControls } from '@/features/dashboard/ServerControls';
 import { isServerInstalled } from '@/lib/server-utils';
 
 /**
@@ -64,11 +65,14 @@ export function ConsolePage() {
       data-testid="console-page"
       aria-label="Server Console"
     >
-      {/* Page Header with title and status badge */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      {/* Page Header with title, controls, and status badge */}
+      <div className="flex items-center justify-between gap-4 mb-4 flex-shrink-0">
         <h1 className="text-2xl font-bold">Server Console</h1>
         {isInstalled && (
-          <ServerStatusBadge state={serverState} />
+          <div className="flex items-center gap-4">
+            <ServerControls serverState={serverState} />
+            <ServerStatusBadge state={serverState} />
+          </div>
         )}
       </div>
 
