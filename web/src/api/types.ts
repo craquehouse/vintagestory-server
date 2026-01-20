@@ -118,6 +118,7 @@ export interface ModInfo {
   name: string | null;
   authors: string[] | null;
   description: string | null;
+  side: ModSide | null;
 }
 
 /**

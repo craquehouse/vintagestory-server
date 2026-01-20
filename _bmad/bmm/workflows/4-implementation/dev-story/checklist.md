@@ -39,6 +39,7 @@ validation-rules:
 
 ## 🧪 Testing & Quality Assurance
 
+- [ ] **Tests Written Incrementally:** Tests committed alongside each task (not batched at end) - per Epic 1 retro lesson 2 (VSS-op2)
 - [ ] **Unit Tests:** Unit tests added/updated for ALL core functionality introduced/changed by this story
 - [ ] **Integration Tests:** Integration tests added/updated for component interactions when story requirements demand them
 - [ ] **End-to-End Tests:** End-to-end tests created for critical user flows when story requirements specify them

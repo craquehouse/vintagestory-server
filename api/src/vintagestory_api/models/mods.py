@@ -36,6 +36,9 @@ class ModMetadata(BaseModel):
     description: str | None = None
     """Optional description of the mod."""
 
+    side: Literal["Both", "Client", "Server"] | None = None
+    """Mod side: 'Both', 'Client', or 'Server'. None if not specified in modinfo.json."""
+
 
 class ModState(BaseModel):
     """State index entry for an installed mod.
@@ -102,6 +105,9 @@ class ModInfo(BaseModel):
 
     description: str | None = None
     """Optional description."""
+
+    side: Literal["Both", "Client", "Server"] | None = None
+    """Mod side: 'Both', 'Client', or 'Server'. None if unknown."""
 
 
 class CompatibilityInfo(BaseModel):

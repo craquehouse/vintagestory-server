@@ -257,6 +257,7 @@ class ModService:
                     name=metadata.name,
                     authors=metadata.authors,
                     description=metadata.description,
+                    side=metadata.side,
                 )
             else:
                 # Fallback if no cached metadata
@@ -299,6 +300,7 @@ class ModService:
                 name=metadata.name,
                 authors=metadata.authors,
                 description=metadata.description,
+                side=metadata.side,
             )
 
         return ModInfo(
@@ -704,9 +706,7 @@ class ModService:
             raise ApiModNotFoundError(slug)
 
         # Check compatibility with game version
-        compatibility = check_compatibility(
-            download_result.release, self._game_version
-        )
+        compatibility = check_compatibility(download_result.release, self._game_version)
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
