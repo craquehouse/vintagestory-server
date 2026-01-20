@@ -80,6 +80,11 @@ export function useBrowseMods(params: BrowseParams = {}) {
   // Only pass sort to API if it's a server-side option
   const apiSort = sort === 'name' ? undefined : sort;
 
+  // VSS-arp: When sorting by name client-side, fetch all data to sort correctly
+  // Use a large pageSize to get all mods for client-side name sorting
+  const effectivePageSize = sort === 'name' ? 1000 : params.pageSize;
+  const apiPageSize = effectivePageSize ?? 20;
+
   // VSS-y7u: Build API params with all filters (server-side)
   // Support both new flat params and legacy filters object for backwards compat
   const apiVersion = params.version ?? filters?.gameVersion;
@@ -92,6 +97,7 @@ export function useBrowseMods(params: BrowseParams = {}) {
       ...apiParams,
       page: currentPage,
       sort: apiSort,
+      pageSize: apiPageSize,
       search: params.search,
       version: apiVersion,
       // VSS-y7u: Server-side filters
@@ -104,6 +110,7 @@ export function useBrowseMods(params: BrowseParams = {}) {
         ...apiParams,
         page: currentPage,
         sort: apiSort,
+        pageSize: apiPageSize,
         search: params.search,
         version: apiVersion,
         // VSS-y7u: Server-side filters

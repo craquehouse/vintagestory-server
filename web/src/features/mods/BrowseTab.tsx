@@ -264,7 +264,8 @@ export function BrowseTab() {
       />
 
       {/* Story 10.7: Pagination controls */}
-      {!isLoading && pagination && pagination.totalPages > 1 && (
+      {/* VSS-arp: Hide pagination when sorting by name (client-side sort of all results) */}
+      {!isLoading && pagination && pagination.totalPages > 1 && sort !== 'name' && (
         <Pagination
           currentPage={currentPage}
           totalPages={pagination.totalPages}
@@ -280,7 +281,11 @@ export function BrowseTab() {
           className="text-sm text-muted-foreground"
           data-testid="browse-results-count"
         >
-          {debouncedSearch ? (
+          {sort === 'name' ? (
+            <>
+              Showing all {pagination.totalItems} mods sorted alphabetically
+            </>
+          ) : debouncedSearch ? (
             <>
               Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{debouncedSearch}&quot;
             </>
