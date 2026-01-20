@@ -16,10 +16,28 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, Navigate, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+
+// Mock next-themes before importing components that use PreferencesContext
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
+}));
+
+// Mock cookies
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn(() => null),
+  setCookie: vi.fn(),
+}));
+
 import { ModsPage } from './ModsPage';
 import { InstalledTab } from './InstalledTab';
 import { BrowseTab } from './BrowseTab';
 import { ModDetailPage } from './ModDetailPage';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -88,16 +106,18 @@ function createTestRouter(initialEntries: string[], queryClient: QueryClient) {
   return function TestRouter({ children }: { children?: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <Routes>
-            <Route path="/game-server/mods" element={<ModsPage />}>
-              <Route index element={<Navigate to="installed" replace />} />
-              <Route path="installed" element={<InstalledTab />} />
-              <Route path="browse" element={<BrowseTab />} />
-            </Route>
-          </Routes>
-          {children}
-        </MemoryRouter>
+        <PreferencesProvider>
+          <MemoryRouter initialEntries={initialEntries}>
+            <Routes>
+              <Route path="/game-server/mods" element={<ModsPage />}>
+                <Route index element={<Navigate to="installed" replace />} />
+                <Route path="installed" element={<InstalledTab />} />
+                <Route path="browse" element={<BrowseTab />} />
+              </Route>
+            </Routes>
+            {children}
+          </MemoryRouter>
+        </PreferencesProvider>
       </QueryClientProvider>
     );
   };
@@ -117,19 +137,21 @@ function createTestRouterWithRedirects(initialEntries: string[], queryClient: Qu
   return function TestRouter({ children }: { children?: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <Routes>
-            <Route path="/game-server/mods" element={<ModsPage />}>
-              <Route index element={<Navigate to="installed" replace />} />
-              <Route path="installed" element={<InstalledTab />} />
-              <Route path="browse" element={<BrowseTab />} />
-              <Route path="browse/:slug" element={<ModDetailPage />} />
-            </Route>
-            {/* Legacy route redirects */}
-            <Route path="/mods/*" element={<ModsRedirect />} />
-          </Routes>
-          {children}
-        </MemoryRouter>
+        <PreferencesProvider>
+          <MemoryRouter initialEntries={initialEntries}>
+            <Routes>
+              <Route path="/game-server/mods" element={<ModsPage />}>
+                <Route index element={<Navigate to="installed" replace />} />
+                <Route path="installed" element={<InstalledTab />} />
+                <Route path="browse" element={<BrowseTab />} />
+                <Route path="browse/:slug" element={<ModDetailPage />} />
+              </Route>
+              {/* Legacy route redirects */}
+              <Route path="/mods/*" element={<ModsRedirect />} />
+            </Routes>
+            {children}
+          </MemoryRouter>
+        </PreferencesProvider>
       </QueryClientProvider>
     );
   };

@@ -12,10 +12,28 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route, Navigate, Link } from 'react-router';
 import { ServerOff, Loader2 } from 'lucide-react';
+
+// Mock next-themes before importing components that use PreferencesContext
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
+}));
+
+// Mock cookies
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn(() => null),
+  setCookie: vi.fn(),
+}));
+
 import { ModsPage } from './ModsPage';
 import { InstalledTab } from './InstalledTab';
 import { BrowseTab } from './BrowseTab';
 import { Button } from '@/components/ui/button';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import type { ServerState } from '@/api/types';
 
 // Mock the server status hook
@@ -105,16 +123,18 @@ function renderWithProviders(
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries}>
-        <Routes>
-          <Route path="/game-server/mods" element={<GameServerModsPage />}>
-            <Route index element={<Navigate to="installed" replace />} />
-            <Route path="installed" element={<InstalledTab />} />
-            <Route path="browse" element={<BrowseTab />} />
-          </Route>
-          <Route path="/game-server/version" element={<div data-testid="version-page">Version Page</div>} />
-        </Routes>
-      </MemoryRouter>
+      <PreferencesProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Routes>
+            <Route path="/game-server/mods" element={<GameServerModsPage />}>
+              <Route index element={<Navigate to="installed" replace />} />
+              <Route path="installed" element={<InstalledTab />} />
+              <Route path="browse" element={<BrowseTab />} />
+            </Route>
+            <Route path="/game-server/version" element={<div data-testid="version-page">Version Page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </PreferencesProvider>
     </QueryClientProvider>
   );
 }

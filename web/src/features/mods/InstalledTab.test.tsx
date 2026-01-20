@@ -11,7 +11,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+
+// Mock next-themes before importing components that use PreferencesContext
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
+}));
+
+// Mock cookies
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn(() => null),
+  setCookie: vi.fn(),
+}));
+
 import { InstalledTab } from './InstalledTab';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -27,11 +45,13 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper component for rendering with QueryClientProvider
+// Wrapper component for rendering with QueryClientProvider and PreferencesProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </QueryClientProvider>
     );
   };
 }
