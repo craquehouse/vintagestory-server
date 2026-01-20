@@ -8,12 +8,14 @@
  * Story 10.8: Added install button with confirmation dialog.
  */
 
-import { useState } from 'react';
-import { Download, Users, TrendingUp, ExternalLink, Package, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Users, TrendingUp, ExternalLink, Package, Check, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
+import { useModDetail } from '@/hooks/use-mod-detail';
 import { formatNumber } from '@/lib/utils';
+import { SideBadge } from '@/components/SideBadge';
 import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
@@ -41,6 +43,7 @@ const LATEST_VERSION = 'latest';
  */
 export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+  const [shouldFetchDetails, setShouldFetchDetails] = useState(false);
 
   // Check if this mod is already installed
   const isInstalled = installedSlugs?.has(mod.slug) ?? false;
@@ -50,10 +53,32 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
     ? 'cursor-pointer hover:shadow-lg transition-shadow'
     : '';
 
-  // Handle install button click - stop propagation to prevent card click
+  // Lazy-load mod details when Install button is clicked
+  const { data: modDetails, isLoading: isLoadingDetails, isError } = useModDetail(
+    shouldFetchDetails ? mod.slug : ''
+  );
+
+  // Handle install button click - fetch details first, then open dialog
   const handleInstallClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsInstallDialogOpen(true);
+    setShouldFetchDetails(true);
+  };
+
+  // Open dialog once details are loaded or fetch fails
+  useEffect(() => {
+    if (shouldFetchDetails && !isLoadingDetails && (modDetails || isError)) {
+      setIsInstallDialogOpen(true);
+      // Note: Don't reset shouldFetchDetails here - it keeps the query enabled
+      // so modDetails stays available. Reset when dialog closes instead.
+    }
+  }, [shouldFetchDetails, modDetails, isLoadingDetails, isError]);
+
+  // Reset fetch state when dialog closes (keeps query enabled while dialog is open)
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsInstallDialogOpen(open);
+    if (!open) {
+      setShouldFetchDetails(false);
+    }
   };
 
   return (
@@ -88,24 +113,43 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
-            <a
-              href={`https://mods.vintagestory.at/${mod.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:underline"
-              data-testid={`mod-card-link-${mod.slug}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {mod.name}
-              <ExternalLink className="h-3 w-3 text-muted-foreground" />
-            </a>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className={`hover:underline${onClick ? ' cursor-pointer' : ''}`}
+                data-testid={`mod-card-name-${mod.slug}`}
+                {...(onClick && {
+                  role: 'button',
+                  tabIndex: 0,
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onClick();
+                    }
+                  },
+                })}
+              >
+                {mod.name}
+              </span>
+              <a
+                href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`mod-card-link-${mod.slug}`}
+                title="Open on ModDB"
+                aria-label={`Open ${mod.name} on ModDB (opens in new tab)`}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </span>
           </CardTitle>
         </div>
         <p className="text-sm text-muted-foreground" data-testid={`mod-card-author-${mod.slug}`}>
           by {mod.author}
         </p>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0 flex-1 flex flex-col">
         {mod.summary && (
           <p
             className="text-sm text-muted-foreground line-clamp-2 mb-3"
@@ -140,10 +184,13 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
             {formatNumber(mod.trendingPoints)}
           </span>
         </div>
+        <div className="mt-2" data-testid={`mod-card-side-${mod.slug}`}>
+          <SideBadge side={mod.side} />
+        </div>
 
         {/* Install button or Installed indicator (Story 10.8) */}
         {installedSlugs !== undefined && (
-          <div className="mt-3 pt-3 border-t">
+          <div className="mt-auto pt-3 border-t">
             {isInstalled ? (
               <div
                 className="flex items-center gap-1.5 text-sm text-success"
@@ -158,10 +205,20 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
                 variant="outline"
                 className="w-full"
                 onClick={handleInstallClick}
+                disabled={isLoadingDetails}
                 data-testid={`mod-card-install-${mod.slug}`}
               >
-                <Download className="h-4 w-4 mr-1.5" />
-                Install
+                {isLoadingDetails ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Install
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -174,15 +231,16 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
       mod={{
         slug: mod.slug,
         name: mod.name,
-        version: LATEST_VERSION,
+        version: modDetails?.data?.latestVersion ?? LATEST_VERSION,
         logoUrl: mod.logoUrl,
         author: mod.author,
       }}
       compatibility={{
-        status: 'not_verified',
+        status: modDetails?.data?.compatibility?.status ?? 'not_verified',
+        message: modDetails?.data?.compatibility?.message,
       }}
       open={isInstallDialogOpen}
-      onOpenChange={setIsInstallDialogOpen}
+      onOpenChange={handleDialogOpenChange}
     />
     </>
   );

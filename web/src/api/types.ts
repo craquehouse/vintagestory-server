@@ -114,9 +114,11 @@ export interface ModInfo {
   version: string;
   enabled: boolean;
   installedAt: string; // ISO 8601
+  assetId: number;
   name: string | null;
   authors: string[] | null;
   description: string | null;
+  side: ModSide | null;
 }
 
 /**
@@ -154,9 +156,16 @@ export interface ModRelease {
 /**
  * Mod lookup response from GET /api/v1alpha1/mods/lookup/{slug}.
  * Story 10.6: Extended to include full release data for detail views.
+ *
+ * VSS-brs: slug is always from modidstrs[0] (for API lookups), urlalias is
+ * separate (for website URLs). These may differ for some mods.
  */
 export interface ModLookupData {
+  /** Mod identifier from modidstrs[0] - use this for API calls like /mods/lookup/{slug} */
   slug: string;
+  /** URL alias for website links (mods.vintagestory.at/{urlalias}). May differ from slug. */
+  urlalias: string | null;
+  assetId: number;
   name: string;
   author: string;
   description: string | null;
@@ -329,9 +338,16 @@ export type BrowseModSide = 'client' | 'server' | 'both';
 /**
  * Single mod from the browse API.
  * Note: API returns snake_case, apiClient transforms to camelCase.
+ *
+ * VSS-brs: slug is always from modidstrs[0] (for API lookups), urlalias is
+ * separate (for website URLs). These may differ for some mods.
  */
 export interface ModBrowseItem {
+  /** Mod identifier from modidstrs[0] - use this for API calls like /mods/lookup/{slug} */
   slug: string;
+  /** URL alias for website links (mods.vintagestory.at/{urlalias}). May differ from slug. */
+  urlalias: string | null;
+  assetId: number;
   name: string;
   author: string;
   summary: string | null;

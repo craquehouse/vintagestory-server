@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
+import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods } from '@/hooks/use-mods';
@@ -453,7 +454,7 @@ export function ModDetailPage() {
               <Users className="h-4 w-4" />
               {formatNumber(mod.follows)}
             </span>
-            <span>Side: {mod.side}</span>
+            <SideBadge side={mod.side} />
             <span>Version: {mod.latestVersion}</span>
           </div>
 
@@ -472,7 +473,7 @@ export function ModDetailPage() {
           {/* External links */}
           <div className="flex items-center gap-3 pt-1">
             <a
-              href={`https://mods.vintagestory.at/${mod.slug}`}
+              href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"

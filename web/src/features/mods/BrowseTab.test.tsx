@@ -3,6 +3,7 @@
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
+ * VSS-195: Slug/URL detection in search
  *
  * Tests cover:
  * - AC1: Loads mods immediately on page load
@@ -12,6 +13,7 @@
  * - AC6: Error state with retry
  * - AC7: Loading state
  * - AC8-11: Filter and sort integration
+ * - VSS-195: Direct navigation on Enter with slug/URL
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -77,6 +79,19 @@ vi.mock('@/hooks/use-game-versions', () => ({
   })),
 }));
 
+// VSS-1u2: Mock useServerStatus for installed version
+vi.mock('@/hooks/use-server-status', () => ({
+  useServerStatus: vi.fn(() => ({
+    data: {
+      status: 'ok',
+      data: { state: 'running', version: '1.21.3' },
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  })),
+}));
+
 // VSS-y7u: Mock useModTags for tags filter
 vi.mock('@/hooks/use-mod-tags', () => ({
   useModTags: vi.fn(() => ({
@@ -117,6 +132,8 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
     mods: [
       {
         slug: 'carrycapacity',
+        urlalias: 'carrycapacity',
+        assetId: 12345,
         name: 'Carry Capacity',
         author: 'copygirl',
         summary: 'Allows picking up chests',
@@ -131,6 +148,8 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       },
       {
         slug: 'primitivesurvival',
+        urlalias: 'primitivesurvival',
+        assetId: 23456,
         name: 'Primitive Survival',
         author: 'Spear and Fang',
         summary: 'Survival mechanics',
@@ -223,9 +242,10 @@ describe('BrowseTab', () => {
 
       const searchInput = screen.getByTestId('browse-search-input');
       expect(searchInput).toBeInTheDocument();
+      // VSS-195: Updated placeholder to hint at slug/URL support
       expect(searchInput).toHaveAttribute(
         'placeholder',
-        'Search mods by name, author, or tag...'
+        'Search mods or enter slug/URL and press Enter...'
       );
     });
 
@@ -1126,6 +1146,139 @@ describe('BrowseTab', () => {
 
       const card = screen.getByTestId('mod-card-carrycapacity');
       expect(card.className).toContain('cursor-pointer');
+    });
+  });
+
+  describe('VSS-195: Slug/URL Direct Navigation', () => {
+    it('navigates to mod detail when pressing Enter with a slug', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'smithingplus' } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key: 'Enter' });
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus');
+    });
+
+    it('navigates to mod detail when pressing Enter with a URL', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      await act(async () => {
+        fireEvent.change(searchInput, {
+          target: { value: 'https://mods.vintagestory.at/carrycapacity' },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key: 'Enter' });
+      });
+
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity');
+    });
+
+    it('does not navigate when pressing Enter with a multi-word search', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'carry capacity mod' } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key: 'Enter' });
+      });
+
+      // Should not navigate - it's a search query, not a slug
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('does not navigate when pressing Enter with empty search', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key: 'Enter' });
+      });
+
+      // Should not navigate with empty input
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('lowercases the slug before navigation', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'SmithingPlus' } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(searchInput, { key: 'Enter' });
+      });
+
+      // Should lowercase the slug
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus');
     });
   });
 });

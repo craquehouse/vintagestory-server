@@ -1299,6 +1299,7 @@ BROWSE_MODS_API_RESPONSE: dict[str, Any] = {
             "tags": ["Crafting", "QoL"],
             "lastreleased": "2025-10-09 21:28:57",
             "urlalias": "smithingplus",
+            "modidstrs": ["smithingplus"],
         },
         {
             "modid": 1234,
@@ -1314,6 +1315,7 @@ BROWSE_MODS_API_RESPONSE: dict[str, Any] = {
             "tags": ["Gameplay"],
             "lastreleased": "2024-01-15 10:00:00",
             "urlalias": "oldpopular",
+            "modidstrs": ["oldpopular"],
         },
         {
             "modid": 5678,
@@ -1329,6 +1331,7 @@ BROWSE_MODS_API_RESPONSE: dict[str, Any] = {
             "tags": ["UI"],
             "lastreleased": "2025-12-01 15:30:00",
             "urlalias": "trendingnew",
+            "modidstrs": ["trendingnew"],
         },
     ],
 }
@@ -2082,3 +2085,283 @@ class TestGameVersionsEndpoint:
         data = response.json()
         assert data["status"] == "ok"
         assert data["data"]["versions"] == []
+
+
+class TestBrowseItemSlugUrlalias:
+    """Tests for VSS-brs: urlalias vs modidstrs slug handling.
+
+    Some mods have different urlalias and modidstrs values. The browse API
+    should use modidstrs[0] as the slug (for API lookups) and expose urlalias
+    separately (for website URLs).
+    """
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Headers with Admin API key."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @respx.mock
+    def test_browse_slug_uses_modidstrs_not_urlalias(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """VSS-brs: slug should be modidstrs[0], not urlalias.
+
+        The "Mineral Necklaces" mod has:
+        - urlalias: "mineralnecklaces"
+        - modidstrs: ["mineraljewelry"]
+
+        The API lookup endpoint requires modidstrs[0], so slug must be "mineraljewelry".
+        """
+        # Mod where urlalias differs from modidstrs
+        mineral_necklaces_mod = {
+            "modid": 3456,
+            "assetid": 7890,
+            "name": "Mineral Necklaces",
+            "summary": "Craftable mineral jewelry",
+            "author": "jewelcrafter",
+            "downloads": 5000,
+            "follows": 100,
+            "trendingpoints": 50,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": ["Crafting"],
+            "lastreleased": "2025-11-01 12:00:00",
+            "urlalias": "mineralnecklaces",  # Different from modidstrs!
+            "modidstrs": ["mineraljewelry"],  # This is what the API expects
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mods": [mineral_necklaces_mod]},
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+
+        mod = mods[0]
+        # slug should be modidstrs[0], NOT urlalias
+        assert mod["slug"] == "mineraljewelry"
+        # urlalias should be exposed separately
+        assert mod["urlalias"] == "mineralnecklaces"
+
+    @respx.mock
+    def test_browse_slug_fallback_when_no_modidstrs(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """When modidstrs is empty, fall back to modid."""
+        mod_without_modidstrs: dict[str, Any] = {
+            "modid": 9999,
+            "assetid": 1234,
+            "name": "Legacy Mod",
+            "summary": "An old mod",
+            "author": "oldauthor",
+            "downloads": 100,
+            "follows": 10,
+            "trendingpoints": 5,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2024-01-01 00:00:00",
+            "urlalias": "legacymod",
+            "modidstrs": [],  # Empty!
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mods": [mod_without_modidstrs]},
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        mod = data["data"]["mods"][0]
+
+        # Should fall back to modid as string
+        assert mod["slug"] == "9999"
+        # urlalias still exposed
+        assert mod["urlalias"] == "legacymod"
+
+    @respx.mock
+    def test_browse_slug_fallback_when_modidstrs_is_null(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """When modidstrs is null (not just empty), fall back to modid."""
+        mod_with_null_modidstrs: dict[str, Any] = {
+            "modid": 7654,
+            "assetid": 4567,
+            "name": "Null Modidstrs Mod",
+            "summary": "A mod with null modidstrs",
+            "author": "author",
+            "downloads": 50,
+            "follows": 5,
+            "trendingpoints": 1,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2024-06-01 00:00:00",
+            "urlalias": "nullmod",
+            "modidstrs": None,  # Null, not empty!
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mods": [mod_with_null_modidstrs]},
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        mod = data["data"]["mods"][0]
+
+        # Should fall back to modid as string when modidstrs is null
+        assert mod["slug"] == "7654"
+        assert mod["urlalias"] == "nullmod"
+
+    @respx.mock
+    def test_browse_urlalias_null_when_not_present(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """When urlalias is not set in API response, it should be null."""
+        mod_without_urlalias = {
+            "modid": 8888,
+            "assetid": 5678,
+            "name": "No Alias Mod",
+            "summary": "A mod without urlalias",
+            "author": "author",
+            "downloads": 50,
+            "follows": 5,
+            "trendingpoints": 1,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2024-06-01 00:00:00",
+            # No urlalias field
+            "modidstrs": ["noaliasmod"],
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mods": [mod_without_urlalias]},
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        mod = data["data"]["mods"][0]
+
+        assert mod["slug"] == "noaliasmod"
+        assert mod["urlalias"] is None
+
+    @respx.mock
+    def test_browse_slug_matches_urlalias_when_same(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """When modidstrs[0] matches urlalias, both should have the same value."""
+        mod_matching = {
+            "modid": 7777,
+            "assetid": 4321,
+            "name": "Matching Mod",
+            "summary": "A mod where slug matches urlalias",
+            "author": "author",
+            "downloads": 200,
+            "follows": 20,
+            "trendingpoints": 10,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2025-01-01 00:00:00",
+            "urlalias": "matchingmod",
+            "modidstrs": ["matchingmod"],  # Same as urlalias
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mods": [mod_matching]},
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        mod = data["data"]["mods"][0]
+
+        # Both should be the same value
+        assert mod["slug"] == "matchingmod"
+        assert mod["urlalias"] == "matchingmod"

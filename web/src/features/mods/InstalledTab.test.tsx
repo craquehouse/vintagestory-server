@@ -2,16 +2,34 @@
  * InstalledTab component tests.
  *
  * Story 10.2: Mods Tab Restructure - AC2
+ * VSS-195: Removed ModLookupInput - mod discovery moved to BrowseTab.
  *
- * Tests the Installed tab which contains the existing mod management UI
- * (extracted from ModList.tsx).
+ * Tests the Installed tab which displays and manages installed mods.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+
+// Mock next-themes before importing components that use PreferencesContext
+vi.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'dark',
+    setTheme: vi.fn(),
+    resolvedTheme: 'dark',
+    systemTheme: 'dark',
+  }),
+}));
+
+// Mock cookies
+vi.mock('@/lib/cookies', () => ({
+  getCookie: vi.fn(() => null),
+  setCookie: vi.fn(),
+}));
+
 import { InstalledTab } from './InstalledTab';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -27,11 +45,13 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper component for rendering with QueryClientProvider
+// Wrapper component for rendering with QueryClientProvider and PreferencesProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>{children}</PreferencesProvider>
+      </QueryClientProvider>
     );
   };
 }
@@ -84,7 +104,7 @@ describe('InstalledTab', () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe('AC2: Installed tab contains existing mod management UI', () => {
+  describe('AC2: Installed tab contains mod management UI', () => {
     it('renders the tab container', async () => {
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/mods')) {
@@ -105,7 +125,8 @@ describe('InstalledTab', () => {
       expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
     });
 
-    it('renders ModLookupInput component', async () => {
+    // VSS-195: ModLookupInput removed - mod discovery moved to BrowseTab
+    it('does not render ModLookupInput', async () => {
       globalThis.fetch = vi.fn().mockImplementation((url: string) => {
         if (url.includes('/mods')) {
           return Promise.resolve({
@@ -122,9 +143,11 @@ describe('InstalledTab', () => {
       const queryClient = createTestQueryClient();
       render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
+      // Verify ModLookupInput is NOT present
       expect(
-        screen.getByPlaceholderText('Enter mod slug or paste URL')
-      ).toBeInTheDocument();
+        screen.queryByPlaceholderText('Enter mod slug or paste URL')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-search-input')).not.toBeInTheDocument();
     });
 
     it('renders Installed Mods section heading', async () => {

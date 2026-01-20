@@ -9,6 +9,7 @@ import {
   useEnableMod,
   useDisableMod,
   useRemoveMod,
+  useModsCompatibility,
 } from './use-mods';
 
 // Create a fresh QueryClient for each test
@@ -918,6 +919,247 @@ describe('useRemoveMod', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({
         queryKey: ['mods'],
       });
+    });
+  });
+});
+
+/**
+ * VSS-j3c: Tests for useModsCompatibility hook
+ *
+ * This hook fetches compatibility status for multiple installed mods
+ * by making parallel lookup queries for each slug.
+ */
+describe('useModsCompatibility', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  describe('query behavior', () => {
+    it('fetches compatibility for all provided slugs', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/mod1')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  slug: 'mod1',
+                  name: 'Mod 1',
+                  compatibility: {
+                    status: 'compatible',
+                    game_version: '1.21.3',
+                    mod_version: '1.0.0',
+                    message: 'Compatible',
+                  },
+                },
+              }),
+          };
+        }
+        if (url.includes('/lookup/mod2')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  slug: 'mod2',
+                  name: 'Mod 2',
+                  compatibility: {
+                    status: 'incompatible',
+                    game_version: '1.21.3',
+                    mod_version: '2.0.0',
+                    message: 'Not compatible with server version',
+                  },
+                },
+              }),
+          };
+        }
+        return { ok: false, status: 404 };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(
+        () => useModsCompatibility(['mod1', 'mod2']),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      await waitFor(() => expect(result.current.isAllFetched).toBe(true));
+
+      expect(result.current.compatibilityMap.get('mod1')).toBe('compatible');
+      expect(result.current.compatibilityMap.get('mod2')).toBe('incompatible');
+    });
+
+    it('returns empty map for empty slug array', async () => {
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useModsCompatibility([]), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Should not be loading with empty array
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.compatibilityMap.size).toBe(0);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('handles mixed success and failure gracefully', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/goodmod')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  slug: 'goodmod',
+                  name: 'Good Mod',
+                  compatibility: {
+                    status: 'not_verified',
+                    game_version: '1.21.3',
+                    mod_version: '1.0.0',
+                    message: 'Not verified for current version',
+                  },
+                },
+              }),
+          };
+        }
+        // badmod lookup fails - throw error to properly simulate API failure
+        throw new Error('Not found');
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(
+        () => useModsCompatibility(['goodmod', 'badmod']),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      // Wait for all queries to finish (either success or error after retries)
+      await waitFor(
+        () => {
+          const allDone = result.current.queries.every(
+            (q) => q.isSuccess || q.isError
+          );
+          expect(allDone).toBe(true);
+        },
+        { timeout: 5000 }
+      );
+
+      // goodmod should have its status
+      expect(result.current.compatibilityMap.get('goodmod')).toBe('not_verified');
+      // badmod should not be in map (lookup failed)
+      expect(result.current.compatibilityMap.has('badmod')).toBe(false);
+    });
+
+    it('reports loading state while queries are in flight', async () => {
+      let resolvePromise: () => void;
+      const delayPromise = new Promise<void>((resolve) => {
+        resolvePromise = resolve;
+      });
+
+      const mockFetch = vi.fn().mockImplementation(async () => {
+        await delayPromise;
+        return {
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                slug: 'slowmod',
+                name: 'Slow Mod',
+                compatibility: {
+                  status: 'compatible',
+                  game_version: '1.21.3',
+                  mod_version: '1.0.0',
+                  message: 'Compatible',
+                },
+              },
+            }),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useModsCompatibility(['slowmod']), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Should be loading initially
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.isAllFetched).toBe(false);
+
+      // Resolve the fetch
+      await act(async () => {
+        resolvePromise!();
+      });
+
+      await waitFor(() => expect(result.current.isAllFetched).toBe(true));
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    it('caches results and does not refetch for same slugs', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'cachedmod',
+              name: 'Cached Mod',
+              compatibility: {
+                status: 'compatible',
+                game_version: '1.21.3',
+                mod_version: '1.0.0',
+                message: 'Compatible',
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // First render
+      const { result: result1 } = renderHook(
+        () => useModsCompatibility(['cachedmod']),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      await waitFor(() => expect(result1.current.isAllFetched).toBe(true));
+
+      const fetchCountAfterFirst = mockFetch.mock.calls.length;
+
+      // Second render with same slugs
+      const { result: result2 } = renderHook(
+        () => useModsCompatibility(['cachedmod']),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      await waitFor(() => expect(result2.current.isAllFetched).toBe(true));
+
+      // Should not have made additional fetch calls due to caching
+      expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
+      expect(result2.current.compatibilityMap.get('cachedmod')).toBe('compatible');
     });
   });
 });

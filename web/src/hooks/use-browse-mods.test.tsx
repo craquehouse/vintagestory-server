@@ -29,6 +29,8 @@ function createWrapper() {
 const mockMods: ModBrowseItem[] = [
   {
     slug: 'carrycapacity',
+    urlalias: 'carrycapacity',
+    assetId: 12345,
     name: 'Carry Capacity',
     author: 'copygirl',
     summary: 'Allows picking up chests and other containers',
@@ -43,6 +45,8 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'primitivesurvival',
+    urlalias: 'primitivesurvival',
+    assetId: 23456,
     name: 'Primitive Survival',
     author: 'Spear and Fang',
     summary: 'Adds primitive survival mechanics like fishing and trapping',
@@ -57,6 +61,8 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'wildcraft',
+    urlalias: 'wildcraft',
+    assetId: 34567,
     name: 'Wildcraft',
     author: 'gabb',
     summary: null,

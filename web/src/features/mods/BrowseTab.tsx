@@ -11,12 +11,14 @@
  * - Pagination for large result sets (Story 10.7)
  * - Install buttons on mod cards (Story 10.8)
  * - Game version filtering (Story VSS-vth)
+ * - Direct slug/URL navigation on Enter key (VSS-195)
  *
  * Story 10.3: Browse Landing Page & Search
  * Story 10.4: Filter & Sort Controls
  * Story 10.7: Pagination
  * Story 10.8: Browse Install Integration
  * Story VSS-vth: Game version filter
+ * VSS-195: Slug/URL detection in search
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -27,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useBrowseMods } from '@/hooks/use-browse-mods';
 import { useMods } from '@/hooks/use-mods';
+import { useServerStatus } from '@/hooks/use-server-status';
 import { useGameVersions } from '@/hooks/use-game-versions';
 import { useModTags } from '@/hooks/use-mod-tags';
 import {
@@ -37,6 +40,7 @@ import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
 import { Pagination } from '@/components/Pagination';
+import { detectSlugOrUrl } from '@/lib/mod-utils';
 import type { ModFilters, BrowseSortOption } from '@/api/types';
 
 /**
@@ -59,6 +63,10 @@ export function BrowseTab() {
     () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
     [modsData]
   );
+
+  // VSS-1u2: Get installed server version to show first in version filter
+  const { data: serverStatus } = useServerStatus();
+  const installedVersion = serverStatus?.data?.version ?? null;
 
   // VSS-vth: Fetch available game versions for filtering
   const {
@@ -155,9 +163,23 @@ export function BrowseTab() {
     setSearchInput('');
   }
 
+  // VSS-195: Handle Enter key for direct slug/URL navigation
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
     if (e.key === 'Escape') {
+      e.preventDefault();
       handleClearSearch();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      const slug = detectSlugOrUrl(searchInput);
+      if (slug) {
+        e.preventDefault();
+        // Navigate directly to mod detail page
+        savePosition(currentPage);
+        navigate(`/game-server/mods/browse/${slug}`);
+      }
+      // If not a slug/URL, debounced search is already active - no action needed
     }
   }
 
@@ -191,7 +213,7 @@ export function BrowseTab() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search mods by name, author, or tag..."
+            placeholder="Search mods or enter slug/URL and press Enter..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -230,6 +252,7 @@ export function BrowseTab() {
         gameVersions={gameVersions}
         gameVersionsLoading={gameVersionsLoading}
         gameVersionsError={gameVersionsError}
+        installedVersion={installedVersion}
       />
 
       {/* Results Grid */}
@@ -241,7 +264,8 @@ export function BrowseTab() {
       />
 
       {/* Story 10.7: Pagination controls */}
-      {!isLoading && pagination && pagination.totalPages > 1 && (
+      {/* VSS-arp: Hide pagination when sorting by name (client-side sort of all results) */}
+      {!isLoading && pagination && pagination.totalPages > 1 && sort !== 'name' && (
         <Pagination
           currentPage={currentPage}
           totalPages={pagination.totalPages}
@@ -257,7 +281,11 @@ export function BrowseTab() {
           className="text-sm text-muted-foreground"
           data-testid="browse-results-count"
         >
-          {debouncedSearch ? (
+          {sort === 'name' ? (
+            <>
+              Showing all {pagination.totalItems} mods sorted alphabetically
+            </>
+          ) : debouncedSearch ? (
             <>
               Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{debouncedSearch}&quot;
             </>

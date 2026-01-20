@@ -32,6 +32,7 @@ interface FilterControlsProps {
   gameVersions?: string[]; // VSS-vth: Available game versions from API
   gameVersionsLoading?: boolean; // VSS-vth: Loading state for versions
   gameVersionsError?: boolean; // VSS-vth: Error state for versions
+  installedVersion?: string | null; // VSS-1u2: Installed server version (shown first)
 }
 
 // Side options derived from type system
@@ -58,7 +59,15 @@ export function FilterControls({
   gameVersions = [],
   gameVersionsLoading = false,
   gameVersionsError = false,
+  installedVersion,
 }: FilterControlsProps) {
+  // VSS-1u2: Reorder versions to show installed version first
+  const orderedVersions = installedVersion
+    ? [
+        installedVersion,
+        ...gameVersions.filter((v) => v !== installedVersion),
+      ]
+    : gameVersions;
   const handleSideChange = (side: BrowseModSide) => {
     onChange({ ...filters, side });
   };
@@ -204,13 +213,16 @@ export function FilterControls({
                   Failed to load versions
                 </div>
               ) : (
-                gameVersions.map((version) => (
+                orderedVersions.map((version) => (
                   <DropdownMenuItem
                     key={version}
                     onClick={() => handleVersionChange(version)}
                     data-testid={`version-option-${version}`}
                   >
                     {version}
+                    {version === installedVersion && (
+                      <span className="ml-2 text-muted-foreground">(Installed)</span>
+                    )}
                   </DropdownMenuItem>
                 ))
               )}

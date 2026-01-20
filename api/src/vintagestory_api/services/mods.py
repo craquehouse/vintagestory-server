@@ -253,9 +253,11 @@ class ModService:
                     version=state.version,
                     enabled=state.enabled,
                     installed_at=state.installed_at,
+                    asset_id=state.asset_id,
                     name=metadata.name,
                     authors=metadata.authors,
                     description=metadata.description,
+                    side=metadata.side,
                 )
             else:
                 # Fallback if no cached metadata
@@ -265,6 +267,7 @@ class ModService:
                     version=state.version,
                     enabled=state.enabled,
                     installed_at=state.installed_at,
+                    asset_id=state.asset_id,
                     name=state.slug,  # Use slug as name fallback
                 )
             mods.append(mod_info)
@@ -293,9 +296,11 @@ class ModService:
                 version=state.version,
                 enabled=state.enabled,
                 installed_at=state.installed_at,
+                asset_id=state.asset_id,
                 name=metadata.name,
                 authors=metadata.authors,
                 description=metadata.description,
+                side=metadata.side,
             )
 
         return ModInfo(
@@ -304,6 +309,7 @@ class ModService:
             version=state.version,
             enabled=state.enabled,
             installed_at=state.installed_at,
+            asset_id=state.asset_id,
             name=state.slug,
         )
 
@@ -427,8 +433,15 @@ class ModService:
             for r in releases
         ]
 
+        # Get slug from modidstrs[0] - this is what the /api/mod/{slug} endpoint expects
+        # VSS-brs: urlalias differs from modidstrs for some mods, causing lookup failures
+        modidstrs: list[str] = mod.get("modidstrs") or []
+        response_slug: str = modidstrs[0] if modidstrs else slug
+
         result = ModLookupResponse(
-            slug=mod.get("urlalias") or slug,
+            slug=response_slug,
+            urlalias=mod.get("urlalias"),
+            asset_id=int(mod.get("assetid", 0)),
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
             description=mod.get("text"),
@@ -693,9 +706,7 @@ class ModService:
             raise ApiModNotFoundError(slug)
 
         # Check compatibility with game version
-        compatibility = check_compatibility(
-            download_result.release, self._game_version
-        )
+        compatibility = check_compatibility(download_result.release, self._game_version)
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
@@ -744,6 +755,7 @@ class ModService:
                 version=metadata.version,
                 enabled=True,
                 installed_at=datetime.now(UTC),
+                asset_id=download_result.asset_id,
             )
             self._state_manager.set_mod_state(download_result.filename, mod_state)
             self._state_manager.save()

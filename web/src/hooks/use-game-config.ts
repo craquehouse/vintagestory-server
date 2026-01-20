@@ -122,10 +122,12 @@ export function useUpdateGameSetting() {
         queryClient.setQueryData(queryKeys.config.game, context.previous);
       }
     },
-    onSettled: () => {
-      // Always refetch after error or success to ensure server state
-      queryClient.invalidateQueries({ queryKey: queryKeys.config.game });
-      // Also invalidate mods list in case pending restart changed
+    onSuccess: () => {
+      // Don't invalidate game config - trust the optimistic update.
+      // Immediate invalidation can return stale data if server hasn't
+      // persisted yet, causing the UI to "revert" briefly.
+      // Polling (30s) handles eventual consistency.
+      // Only invalidate mods list in case pending restart status changed.
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
     },
   });

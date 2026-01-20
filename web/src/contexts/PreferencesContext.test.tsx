@@ -52,6 +52,7 @@ describe("PreferencesContext", () => {
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
         gameServerNavExpanded: true,
+        installedModsSort: { column: "name", direction: "asc" },
       });
     });
 
@@ -62,6 +63,7 @@ describe("PreferencesContext", () => {
           consoleFontSize: 16,
           sidebarCollapsed: true,
           gameServerNavExpanded: false,
+          installedModsSort: { column: "version", direction: "desc" },
         })
       );
 
@@ -72,6 +74,7 @@ describe("PreferencesContext", () => {
         consoleFontSize: 16,
         sidebarCollapsed: true,
         gameServerNavExpanded: false,
+        installedModsSort: { column: "version", direction: "desc" },
       });
     });
 
@@ -90,6 +93,7 @@ describe("PreferencesContext", () => {
         consoleFontSize: FONT_SIZE_DEFAULT, // Default for out of range
         sidebarCollapsed: false, // Default for missing
         gameServerNavExpanded: true, // Default for missing
+        installedModsSort: { column: "name", direction: "asc" }, // Default for missing
       });
     });
 
@@ -103,6 +107,7 @@ describe("PreferencesContext", () => {
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
         gameServerNavExpanded: true,
+        installedModsSort: { column: "name", direction: "asc" },
       });
     });
 

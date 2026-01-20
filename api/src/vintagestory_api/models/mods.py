@@ -36,6 +36,9 @@ class ModMetadata(BaseModel):
     description: str | None = None
     """Optional description of the mod."""
 
+    side: Literal["Both", "Client", "Server"] | None = None
+    """Mod side: 'Both', 'Client', or 'Server'. None if not specified in modinfo.json."""
+
 
 class ModState(BaseModel):
     """State index entry for an installed mod.
@@ -58,6 +61,12 @@ class ModState(BaseModel):
 
     installed_at: datetime
     """When the mod was first installed."""
+
+    asset_id: int = 0
+    """Unique asset ID from ModDB for constructing reliable external URLs.
+
+    Defaults to 0 for backwards compatibility with existing state files.
+    """
 
 
 class ModInfo(BaseModel):
@@ -82,6 +91,12 @@ class ModInfo(BaseModel):
     installed_at: datetime
     """Installation timestamp."""
 
+    asset_id: int = 0
+    """Unique asset ID from ModDB for constructing reliable external URLs.
+
+    Defaults to 0 for backwards compatibility.
+    """
+
     name: str
     """Display name of the mod."""
 
@@ -90,6 +105,9 @@ class ModInfo(BaseModel):
 
     description: str | None = None
     """Optional description."""
+
+    side: Literal["Both", "Client", "Server"] | None = None
+    """Mod side: 'Both', 'Client', or 'Server'. None if unknown."""
 
 
 class CompatibilityInfo(BaseModel):
@@ -153,7 +171,23 @@ class ModLookupResponse(BaseModel):
     """
 
     slug: str
-    """URL-friendly mod identifier (urlalias from API)."""
+    """Mod identifier from modidstrs[0] - used for API lookups (/api/mod/{slug}).
+
+    VSS-brs: This is always from modidstrs, NOT urlalias, for consistency with
+    ModBrowseItem. The VintageStory API only accepts modidstrs for lookups.
+    """
+
+    urlalias: str | None = None
+    """URL alias for website links (e.g., mods.vintagestory.at/{urlalias}).
+
+    May differ from slug. Use this for constructing website URLs, use slug for API calls.
+    """
+
+    asset_id: int = 0
+    """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).
+
+    Defaults to 0 for backwards compatibility with API clients.
+    """
 
     name: str
     """Display name of the mod."""
@@ -245,7 +279,23 @@ class ModBrowseItem(BaseModel):
     """
 
     slug: str
-    """URL-friendly mod identifier (urlalias or modidstrs[0] fallback)."""
+    """Mod identifier from modidstrs[0] - used for API lookups (/api/mod/{slug}).
+
+    VSS-brs: This is always from modidstrs, NOT urlalias, because the VintageStory
+    API only accepts modidstrs for lookups. Some mods have different urlalias values.
+    """
+
+    urlalias: str | None = None
+    """URL alias for website links (e.g., mods.vintagestory.at/{urlalias}).
+
+    May differ from slug. Use this for constructing website URLs, use slug for API calls.
+    """
+
+    asset_id: int = 0
+    """Unique asset ID for constructing reliable moddb URLs (/show/mod/{asset_id}).
+
+    Defaults to 0 for backwards compatibility with API clients.
+    """
 
     name: str
     """Display name of the mod."""

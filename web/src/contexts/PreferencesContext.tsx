@@ -21,12 +21,25 @@ import { getCookie, setCookie } from "@/lib/cookies";
 /** Theme preference options */
 export type ThemePreference = "light" | "dark" | "system";
 
+/** Sort direction for table columns */
+export type SortDirection = "asc" | "desc";
+
+/** Sortable columns in the installed mods table */
+export type InstalledModsSortColumn = "name" | "version" | "enabled";
+
+/** Sort preference for installed mods table */
+export interface InstalledModsSort {
+  column: InstalledModsSortColumn;
+  direction: SortDirection;
+}
+
 /** User preferences stored in cookie */
 export interface UserPreferences {
   theme: ThemePreference;
   consoleFontSize: number;
   sidebarCollapsed: boolean;
   gameServerNavExpanded: boolean;
+  installedModsSort: InstalledModsSort;
 }
 
 /** Default preferences for new users */
@@ -35,6 +48,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   consoleFontSize: 14,
   sidebarCollapsed: false,
   gameServerNavExpanded: true,
+  installedModsSort: { column: "name", direction: "asc" },
 };
 
 /** Cookie name for preferences storage */
@@ -52,6 +66,7 @@ interface PreferencesContextType {
   setConsoleFontSize: (size: number) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setGameServerNavExpanded: (expanded: boolean) => void;
+  setInstalledModsSort: (sort: InstalledModsSort) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(
@@ -86,6 +101,9 @@ function loadPreferences(): UserPreferences {
         typeof parsed.gameServerNavExpanded === "boolean"
           ? parsed.gameServerNavExpanded
           : DEFAULT_PREFERENCES.gameServerNavExpanded,
+      installedModsSort: isValidInstalledModsSort(parsed.installedModsSort)
+        ? parsed.installedModsSort
+        : DEFAULT_PREFERENCES.installedModsSort,
     };
   } catch {
     return { ...DEFAULT_PREFERENCES };
@@ -116,6 +134,26 @@ function isValidFontSize(size: unknown): size is number {
  */
 function clampFontSize(size: number): number {
   return Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(size)));
+}
+
+/** Valid sort columns */
+const VALID_SORT_COLUMNS: InstalledModsSortColumn[] = ["name", "version", "enabled"];
+
+/** Valid sort directions */
+const VALID_SORT_DIRECTIONS: SortDirection[] = ["asc", "desc"];
+
+/**
+ * Validate installed mods sort preference value.
+ */
+function isValidInstalledModsSort(sort: unknown): sort is InstalledModsSort {
+  if (typeof sort !== "object" || sort === null) {
+    return false;
+  }
+  const s = sort as Record<string, unknown>;
+  return (
+    VALID_SORT_COLUMNS.includes(s.column as InstalledModsSortColumn) &&
+    VALID_SORT_DIRECTIONS.includes(s.direction as SortDirection)
+  );
 }
 
 /**
@@ -154,6 +192,10 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
     setPreferences((prev) => ({ ...prev, gameServerNavExpanded: expanded }));
   }, []);
 
+  const setInstalledModsSort = useCallback((sort: InstalledModsSort) => {
+    setPreferences((prev) => ({ ...prev, installedModsSort: sort }));
+  }, []);
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -162,6 +204,7 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
         setConsoleFontSize,
         setSidebarCollapsed,
         setGameServerNavExpanded,
+        setInstalledModsSort,
       }}
     >
       {children}

@@ -311,13 +311,13 @@ describe('VersionPage', () => {
 
       // Should show version browser components
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
       expect(screen.getByTestId('channel-filter')).toBeInTheDocument();
       expect(screen.getByText('Available Versions')).toBeInTheDocument();
     });
 
-    it('shows VersionGrid with versions when not installed', async () => {
+    it('shows VersionTable with versions when not installed', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/versions')) {
           return {
@@ -338,16 +338,16 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
 
       // Should show all versions
-      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.22.0-pre.1')).toBeInTheDocument();
     });
 
-    it('opens InstallVersionDialog on card click when not installed', async () => {
+    it('opens InstallVersionDialog on Select button click when not installed', async () => {
       const user = userEvent.setup();
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/versions')) {
@@ -370,11 +370,11 @@ describe('VersionPage', () => {
 
       // Wait for versions to load
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
       });
 
-      // Click a version card
-      await user.click(screen.getByTestId('version-card-1.21.6'));
+      // Click Select button for a version
+      await user.click(screen.getByTestId('version-table-select-1.21.6'));
 
       // Dialog should open showing "Install" action (since not installed)
       await waitFor(() => {
@@ -416,7 +416,7 @@ describe('VersionPage', () => {
 
       // Initially shows all versions including unstable
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.22.0-pre.1')).toBeInTheDocument();
       });
 
       // Click Stable tab
@@ -424,12 +424,12 @@ describe('VersionPage', () => {
 
       // Wait for filtered results - unstable should be removed
       await waitFor(() => {
-        expect(screen.queryByTestId('version-card-1.22.0-pre.1')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('version-table-row-1.22.0-pre.1')).not.toBeInTheDocument();
       });
 
       // Stable versions should still be present
-      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
     });
   });
 
@@ -706,7 +706,7 @@ describe('VersionPage', () => {
       expect(screen.getByTestId('channel-filter-unstable')).toBeInTheDocument();
     });
 
-    it('renders VersionGrid with versions (AC: 4)', async () => {
+    it('renders VersionTable with versions (AC: 4)', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/versions')) {
           return {
@@ -727,13 +727,13 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
 
       // Should show all three versions
-      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.22.0-pre.1')).toBeInTheDocument();
     });
 
     it('shows installed badge on current version', async () => {
@@ -757,13 +757,13 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
 
       // mockInstalledStatus has version 1.21.5 installed
-      expect(screen.getByTestId('version-card-installed-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-installed-1.21.5')).toBeInTheDocument();
       // Other versions should not show installed
-      expect(screen.queryByTestId('version-card-installed-1.21.6')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-table-installed-1.21.6')).not.toBeInTheDocument();
     });
 
     it('filters by channel when tab clicked (AC: 3)', async () => {
@@ -795,23 +795,23 @@ describe('VersionPage', () => {
 
       // Wait for initial load
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
 
       // Initially shows all versions including unstable
-      expect(screen.getByTestId('version-card-1.22.0-pre.1')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.22.0-pre.1')).toBeInTheDocument();
 
       // Click Stable tab
       await user.click(screen.getByTestId('channel-filter-stable'));
 
       // Wait for filtered results - unstable should be removed
       await waitFor(() => {
-        expect(screen.queryByTestId('version-card-1.22.0-pre.1')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('version-table-row-1.22.0-pre.1')).not.toBeInTheDocument();
       });
 
       // Stable versions should still be present
-      expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
-      expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
     });
 
     it('shows loading skeleton while fetching versions', async () => {
@@ -837,19 +837,19 @@ describe('VersionPage', () => {
       });
 
       // Should show loading state
-      expect(screen.getByTestId('version-grid-loading')).toBeInTheDocument();
+      expect(screen.getByTestId('version-table-loading')).toBeInTheDocument();
     });
   });
 
   /**
    * Story 13.4: Install/Upgrade Dialog Integration Tests
    *
-   * AC 1: Dialog opens when clicking version card
+   * AC 1: Dialog opens when clicking version Select button
    * AC 2: Dialog shows correct action type (upgrade/reinstall/downgrade)
    * AC 3: Dialog closes on cancel
    */
   describe('install/upgrade dialog (Story 13.4)', () => {
-    it('opens dialog when clicking a version card (AC: 1)', async () => {
+    it('opens dialog when clicking a version Select button (AC: 1)', async () => {
       const user = userEvent.setup();
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/versions')) {
@@ -872,11 +872,11 @@ describe('VersionPage', () => {
 
       // Wait for versions to load
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
       });
 
-      // Click a version card
-      await user.click(screen.getByTestId('version-card-1.21.6'));
+      // Click Select button for a version
+      await user.click(screen.getByTestId('version-table-select-1.21.6'));
 
       // Dialog should open
       await waitFor(() => {
@@ -906,11 +906,11 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
       });
 
-      // Click newer version (1.21.6 vs installed 1.21.5)
-      await user.click(screen.getByTestId('version-card-1.21.6'));
+      // Click Select button for newer version (1.21.6 vs installed 1.21.5)
+      await user.click(screen.getByTestId('version-table-select-1.21.6'));
 
       await waitFor(() => {
         expect(screen.getByTestId('dialog-title')).toHaveTextContent('Upgrade Server Version');
@@ -939,11 +939,11 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
       });
 
-      // Click same version (1.21.5)
-      await user.click(screen.getByTestId('version-card-1.21.5'));
+      // Click Select button for same version (1.21.5)
+      await user.click(screen.getByTestId('version-table-select-1.21.5'));
 
       await waitFor(() => {
         expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
@@ -972,11 +972,11 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.6')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.6')).toBeInTheDocument();
       });
 
       // Open dialog
-      await user.click(screen.getByTestId('version-card-1.21.6'));
+      await user.click(screen.getByTestId('version-table-select-1.21.6'));
 
       await waitFor(() => {
         expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
@@ -1013,11 +1013,11 @@ describe('VersionPage', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('version-card-1.21.5')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table-row-1.21.5')).toBeInTheDocument();
       });
 
-      // Click a different version
-      await user.click(screen.getByTestId('version-card-1.21.5'));
+      // Click Select button for a different version
+      await user.click(screen.getByTestId('version-table-select-1.21.5'));
 
       await waitFor(() => {
         expect(screen.getByTestId('server-running-warning')).toBeInTheDocument();
@@ -1118,7 +1118,7 @@ describe('VersionPage', () => {
 
       // Wait for versions to load
       await waitFor(() => {
-        expect(screen.getByTestId('version-grid')).toBeInTheDocument();
+        expect(screen.getByTestId('version-table')).toBeInTheDocument();
       });
 
       // Button should not be present when up to date
