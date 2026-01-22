@@ -87,7 +87,8 @@ describe('queryClient', () => {
       }
 
       const error = new ApiError('SERVER_ERROR', 'Mutation failed', 500);
-      onError(error, undefined, undefined);
+      // onError signature: (error, variables, context, mutation)
+      onError(error, undefined, undefined, {} as never);
 
       expect(handleApiErrorSpy).toHaveBeenCalledWith(error);
       handleApiErrorSpy.mockRestore();

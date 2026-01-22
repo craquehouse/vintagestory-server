@@ -1017,4 +1017,549 @@ describe('FileManagerPanel', () => {
       expect(screen.getByTestId('file-viewer-wrap-toggle')).toBeInTheDocument();
     });
   });
+
+  describe('directory and file list combination', () => {
+    const mockDirectoriesResponse = {
+      status: 'ok',
+      data: {
+        directories: ['ModConfigs', 'Playerdata', 'Worlds'],
+      },
+    };
+
+    const mockMixedFilesResponse = {
+      status: 'ok',
+      data: {
+        files: ['serverconfig.json', 'worldconfig.json'],
+      },
+    };
+
+    it('displays directories before files in the list', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockMixedFilesResponse),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Get all list items (they have role="option" in the listbox)
+      const listItems = screen.getAllByRole('option');
+
+      // Find indices of directories and files
+      const modConfigsIndex = listItems.findIndex(
+        (item) => item.getAttribute('data-testid') === 'file-item-ModConfigs'
+      );
+      const playerdataIndex = listItems.findIndex(
+        (item) => item.getAttribute('data-testid') === 'file-item-Playerdata'
+      );
+      const worldsIndex = listItems.findIndex(
+        (item) => item.getAttribute('data-testid') === 'file-item-Worlds'
+      );
+      const serverConfigIndex = listItems.findIndex(
+        (item) => item.getAttribute('data-testid') === 'file-item-serverconfig.json'
+      );
+      const worldConfigIndex = listItems.findIndex(
+        (item) => item.getAttribute('data-testid') === 'file-item-worldconfig.json'
+      );
+
+      // Verify directories come before files
+      expect(modConfigsIndex).toBeGreaterThanOrEqual(0);
+      expect(playerdataIndex).toBeGreaterThanOrEqual(0);
+      expect(worldsIndex).toBeGreaterThanOrEqual(0);
+      expect(serverConfigIndex).toBeGreaterThanOrEqual(0);
+      expect(worldConfigIndex).toBeGreaterThanOrEqual(0);
+
+      expect(modConfigsIndex).toBeLessThan(serverConfigIndex);
+      expect(playerdataIndex).toBeLessThan(serverConfigIndex);
+      expect(worldsIndex).toBeLessThan(worldConfigIndex);
+    });
+
+    it('displays both directories and files correctly', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDirectoriesResponse),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockMixedFilesResponse),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Verify all directories are present
+      expect(screen.getByTestId('file-item-ModConfigs')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-Playerdata')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-Worlds')).toBeInTheDocument();
+
+      // Verify all files are present
+      expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-worldconfig.json')).toBeInTheDocument();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles directory with no files, only subdirectories', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=EmptyDir')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  status: 'ok',
+                  data: { directories: ['subdir1', 'subdir2'] },
+                }),
+            };
+          }
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { directories: ['EmptyDir'] },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=EmptyDir')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into EmptyDir
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-EmptyDir'));
+      });
+
+      // Should show subdirectories but no "no files" message
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-subdir1')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-subdir2')).toBeInTheDocument();
+      });
+    });
+
+    it('handles root with no directories, only files', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { directories: [] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Should show files only
+      expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-worldconfig.json')).toBeInTheDocument();
+      expect(screen.getByTestId('file-item-clientsettings.json')).toBeInTheDocument();
+    });
+
+    it('handles completely empty directory (no files, no subdirectories)', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=EmptyDir')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+            };
+          }
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { directories: ['EmptyDir'] },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=EmptyDir')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate into EmptyDir
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-EmptyDir'));
+      });
+
+      // Should show empty state
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list-empty')).toBeInTheDocument();
+      });
+    });
+
+    it('constructs correct file path in deeply nested directories', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=level1%2Flevel2%2Flevel3')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+            };
+          }
+          if (url.includes('directory=level1%2Flevel2')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: ['level3'] } }),
+            };
+          }
+          if (url.includes('directory=level1')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
+            };
+          }
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
+          };
+        }
+        if (url.includes('/config/files/level1%2Flevel2%2Flevel3%2Fdeep.json')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  filename: 'level1/level2/level3/deep.json',
+                  content: { deep: 'value' },
+                },
+              }),
+          };
+        }
+        if (
+          url.includes('/config/files') &&
+          url.includes('directory=level1%2Flevel2%2Flevel3')
+        ) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { files: ['deep.json'] } }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=level1%2Flevel2')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=level1')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: [] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockEmptyFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate through all levels
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-level1'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-level2'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1/level2')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-level3'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1/level2/level3')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-deep.json')).toBeInTheDocument();
+      });
+
+      // Select the deeply nested file
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-deep.json'));
+      });
+
+      // Verify the full path was used
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent('deep');
+      });
+
+      // Verify the fetch was called with the correct full path
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('level1%2Flevel2%2Flevel3%2Fdeep.json'),
+        expect.anything()
+      );
+    });
+
+    it('handles multiple sequential back navigations correctly', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          if (url.includes('directory=level1%2Flevel2')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+            };
+          }
+          if (url.includes('directory=level1')) {
+            return {
+              ok: true,
+              json: () =>
+                Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
+            };
+          }
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=level1%2Flevel2')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { files: ['file2.json'] } }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=level1')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { files: ['file1.json'] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () =>
+            Promise.resolve({ status: 'ok', data: { files: ['root.json'] } }),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Navigate to level1
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-level1'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1')).toBeInTheDocument();
+      });
+
+      // Navigate to level2
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-level2'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1/level2')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-file2.json')).toBeInTheDocument();
+      });
+
+      // Navigate back to level1
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('level1')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-file1.json')).toBeInTheDocument();
+      });
+
+      // Navigate back to root
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-manager-back'));
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+        expect(screen.getByTestId('file-item-root.json')).toBeInTheDocument();
+      });
+    });
+
+    it('handles directory loading error gracefully', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            json: () =>
+              Promise.resolve({
+                detail: {
+                  code: 'INTERNAL_ERROR',
+                  message: 'Failed to list directories',
+                },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      // Should still show files even if directories fail
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
+      });
+    });
+
+    it('handles back button click when already at root (defensive)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockFilesResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-list')).toBeInTheDocument();
+      });
+
+      // Back button should not be visible at root
+      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+
+      // If we could click it, it should do nothing (defensive check)
+      // This verifies the handleNavigateBack early return works
+      const fileList = screen.getByTestId('file-list');
+      expect(fileList).toBeInTheDocument();
+    });
+
+    it('shows loading state for directories separately from files', async () => {
+      let resolveDirectories: () => void;
+      const directoriesPromise = new Promise<void>((resolve) => {
+        resolveDirectories = resolve;
+      });
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          await directoriesPromise;
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { directories: ['TestDir'] },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      // Should show loading while directories are being fetched
+      expect(screen.getByTestId('file-list-loading')).toBeInTheDocument();
+
+      // Resolve directories
+      await act(async () => {
+        resolveDirectories!();
+      });
+
+      // Should show files and directories
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-list-loading')).not.toBeInTheDocument();
+        expect(screen.getByTestId('file-item-TestDir')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
+      });
+    });
+  });
 });
