@@ -181,6 +181,22 @@ describe('apiClient', () => {
       const [url] = mockFetch.mock.calls[0];
       expect(url).toBe('http://localhost:8080/api/v1/test');
     });
+
+    it('uses empty string when VITE_API_KEY is not set', async () => {
+      delete import.meta.env.VITE_API_KEY;
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: {} }),
+      });
+      globalThis.fetch = mockFetch;
+
+      await apiClient('/test');
+
+      const [, options] = mockFetch.mock.calls[0];
+      const headers = options.headers as Headers;
+      expect(headers.get('X-API-Key')).toBe('');
+    });
   });
 
   describe('response transformation', () => {
@@ -300,6 +316,42 @@ describe('apiClient', () => {
 
       await expect(apiClient('/test')).rejects.toThrow(ApiError);
       await expect(apiClient('/test')).rejects.toThrow('Internal Server Error');
+    });
+
+    it('uses UNKNOWN code when detail object has no code', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ detail: { message: 'Something went wrong' } }),
+      });
+      globalThis.fetch = mockFetch;
+
+      try {
+        await apiClient('/test');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect((error as ApiError).code).toBe('UNKNOWN');
+        expect((error as ApiError).message).toBe('Something went wrong');
+      }
+    });
+
+    it('uses statusText when detail object has no message', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ detail: { code: 'SERVER_ERROR' } }),
+      });
+      globalThis.fetch = mockFetch;
+
+      try {
+        await apiClient('/test');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect((error as ApiError).code).toBe('SERVER_ERROR');
+        expect((error as ApiError).message).toBe('Internal Server Error');
+      }
     });
   });
 
