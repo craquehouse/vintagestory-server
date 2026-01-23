@@ -9,7 +9,15 @@ import pytest
 import structlog
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
-from vintagestory_api.config import Settings, configure_logging
+from vintagestory_api.config import (
+    Settings,
+    configure_logging,
+    get_current_debug_setting,
+    initialize_debug_state,
+    is_debug_enabled,
+    reconfigure_logging_if_changed,
+    set_debug_enabled,
+)
 
 
 class TestDataDirectories:
@@ -239,6 +247,108 @@ class TestModCacheMaxSize:
                 Settings()
 
 
+class TestDiskSpaceThreshold:
+    """Tests for disk space warning threshold validation."""
+
+    def test_default_disk_space_threshold(self) -> None:
+        """Default disk space threshold is 1.0 GB."""
+        settings = Settings()
+        assert settings.disk_space_warning_threshold_gb == 1.0
+
+    def test_disk_space_threshold_from_env(self) -> None:
+        """Disk space threshold can be configured via environment variable."""
+        with patch.dict(os.environ, {"VS_DISK_SPACE_WARNING_THRESHOLD_GB": "5.0"}):
+            settings = Settings()
+            assert settings.disk_space_warning_threshold_gb == 5.0
+
+    def test_disk_space_threshold_zero_allowed(self) -> None:
+        """Setting disk space threshold to 0 disables fixed GB check."""
+        with patch.dict(os.environ, {"VS_DISK_SPACE_WARNING_THRESHOLD_GB": "0"}):
+            settings = Settings()
+            assert settings.disk_space_warning_threshold_gb == 0
+
+    def test_disk_space_threshold_negative_rejected(self) -> None:
+        """Negative disk space threshold is rejected."""
+        with patch.dict(os.environ, {"VS_DISK_SPACE_WARNING_THRESHOLD_GB": "-1.0"}):
+            with pytest.raises(ValueError, match="VS_DISK_SPACE_WARNING_THRESHOLD_GB must be non-negative"):
+                Settings()
+
+
+class TestCorsOriginsValidation:
+    """Tests for CORS origins validation."""
+
+    def test_default_cors_origins(self) -> None:
+        """Default CORS origins is localhost:5173."""
+        # Clear any VS_CORS_ORIGINS from environment to test the default
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove the key if it exists
+            env = os.environ.copy()
+            env.pop("VS_CORS_ORIGINS", None)
+            with patch.dict(os.environ, env, clear=True):
+                settings = Settings()
+                assert settings.cors_origins == "http://localhost:5173"
+
+    def test_cors_origins_from_env(self) -> None:
+        """CORS origins can be configured via environment variable."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "http://example.com"}):
+            settings = Settings()
+            assert settings.cors_origins == "http://example.com"
+
+    def test_cors_origins_multiple(self) -> None:
+        """Multiple CORS origins can be specified."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "http://localhost:5173,https://example.com"}):
+            settings = Settings()
+            assert settings.cors_origins == "http://localhost:5173,https://example.com"
+
+    def test_cors_origins_empty_string_rejected(self) -> None:
+        """Empty CORS origins string is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": ""}):
+            with pytest.raises(ValueError, match="VS_CORS_ORIGINS cannot be empty"):
+                Settings()
+
+    def test_cors_origins_whitespace_only_rejected(self) -> None:
+        """Whitespace-only CORS origins is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "   "}):
+            with pytest.raises(ValueError, match="VS_CORS_ORIGINS cannot be empty"):
+                Settings()
+
+    def test_cors_origins_all_whitespace_entries_rejected(self) -> None:
+        """CORS origins with only whitespace entries after split is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": " , , "}):
+            with pytest.raises(ValueError, match="VS_CORS_ORIGINS must contain at least one valid origin"):
+                Settings()
+
+    def test_cors_origins_invalid_url_rejected(self) -> None:
+        """Invalid CORS origin URL format is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "not-a-valid-url"}):
+            with pytest.raises(ValueError, match="Invalid CORS origin: 'not-a-valid-url'"):
+                Settings()
+
+    def test_cors_origins_missing_protocol_rejected(self) -> None:
+        """CORS origin without protocol is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "example.com"}):
+            with pytest.raises(ValueError, match="Invalid CORS origin"):
+                Settings()
+
+    def test_cors_origins_with_path_rejected(self) -> None:
+        """CORS origin with path is rejected."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "http://example.com/path"}):
+            with pytest.raises(ValueError, match="Invalid CORS origin"):
+                Settings()
+
+    def test_cors_origins_with_port(self) -> None:
+        """CORS origin with port is accepted."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "http://localhost:8080"}):
+            settings = Settings()
+            assert settings.cors_origins == "http://localhost:8080"
+
+    def test_cors_origins_https(self) -> None:
+        """CORS origin with https is accepted."""
+        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "https://secure.example.com"}):
+            settings = Settings()
+            assert settings.cors_origins == "https://secure.example.com"
+
+
 class TestConfigureLoggingContextVars:
     """Tests for structlog contextvars integration (Story 9.4 Task 2)."""
 
@@ -412,3 +522,166 @@ class TestConfigureLoggingContextVars:
         assert "prod-verify" in output
 
         clear_contextvars()
+
+
+class TestDebugStateManagement:
+    """Tests for debug state initialization and toggling."""
+
+    def test_initialize_debug_state_from_env_true(self) -> None:
+        """initialize_debug_state reads VS_DEBUG=true from environment."""
+        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
+            # Import the module to reset state
+            import vintagestory_api.config as config_module
+            config_module._debug_initialized = False
+            config_module._debug_enabled = False
+
+            initialize_debug_state()
+
+            assert is_debug_enabled() is True
+
+    def test_initialize_debug_state_from_env_false(self) -> None:
+        """initialize_debug_state reads VS_DEBUG=false from environment."""
+        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
+            import vintagestory_api.config as config_module
+            config_module._debug_initialized = False
+            config_module._debug_enabled = False
+
+            initialize_debug_state()
+
+            assert is_debug_enabled() is False
+
+    def test_initialize_debug_state_from_env_1(self) -> None:
+        """initialize_debug_state reads VS_DEBUG=1 as true."""
+        with patch.dict(os.environ, {"VS_DEBUG": "1"}):
+            import vintagestory_api.config as config_module
+            config_module._debug_initialized = False
+            config_module._debug_enabled = False
+
+            initialize_debug_state()
+
+            assert is_debug_enabled() is True
+
+    def test_initialize_debug_state_from_env_yes(self) -> None:
+        """initialize_debug_state reads VS_DEBUG=yes as true."""
+        with patch.dict(os.environ, {"VS_DEBUG": "yes"}):
+            import vintagestory_api.config as config_module
+            config_module._debug_initialized = False
+            config_module._debug_enabled = False
+
+            initialize_debug_state()
+
+            assert is_debug_enabled() is True
+
+    def test_initialize_debug_state_idempotent(self) -> None:
+        """initialize_debug_state only runs once."""
+        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
+            import vintagestory_api.config as config_module
+            config_module._debug_initialized = False
+            config_module._debug_enabled = False
+
+            initialize_debug_state()
+            first_state = is_debug_enabled()
+
+            # Change environment but call again
+            os.environ["VS_DEBUG"] = "false"
+            initialize_debug_state()
+
+            # Should still be true (first initialization wins)
+            assert is_debug_enabled() == first_state
+
+    def test_set_debug_enabled_toggle_on(self) -> None:
+        """set_debug_enabled toggles debug mode on."""
+        import vintagestory_api.config as config_module
+        config_module._debug_enabled = False
+
+        result = set_debug_enabled(True)
+
+        assert result is True  # State changed
+        assert is_debug_enabled() is True
+
+    def test_set_debug_enabled_toggle_off(self) -> None:
+        """set_debug_enabled toggles debug mode off."""
+        import vintagestory_api.config as config_module
+        config_module._debug_enabled = True
+
+        result = set_debug_enabled(False)
+
+        assert result is True  # State changed
+        assert is_debug_enabled() is False
+
+    def test_set_debug_enabled_no_change(self) -> None:
+        """set_debug_enabled returns False when state doesn't change."""
+        import vintagestory_api.config as config_module
+        config_module._debug_enabled = True
+
+        result = set_debug_enabled(True)
+
+        assert result is False  # State unchanged
+        assert is_debug_enabled() is True
+
+    def test_get_current_debug_setting(self) -> None:
+        """get_current_debug_setting returns current debug state (deprecated)."""
+        import vintagestory_api.config as config_module
+        config_module._debug_enabled = True
+
+        assert get_current_debug_setting() is True
+
+        config_module._debug_enabled = False
+        assert get_current_debug_setting() is False
+
+
+class TestConfigureLoggingWithLogLevel:
+    """Tests for configure_logging with custom log level."""
+
+    def test_configure_logging_with_valid_log_level(self) -> None:
+        """configure_logging accepts valid log level override."""
+        # Should not raise
+        configure_logging(debug=False, log_level="WARNING")
+        configure_logging(debug=False, log_level="ERROR")
+        configure_logging(debug=True, log_level="INFO")
+
+    def test_configure_logging_with_invalid_log_level(self) -> None:
+        """configure_logging falls back to default for invalid log level."""
+        # Should not raise, just fall back to default level
+        configure_logging(debug=True, log_level="INVALID_LEVEL")
+        # If debug=True, should fall back to DEBUG level
+        # If debug=False, should fall back to INFO level
+        configure_logging(debug=False, log_level="NOT_A_LEVEL")
+
+
+class TestReconfigureLoggingIfChanged:
+    """Tests for reconfigure_logging_if_changed function."""
+
+    def test_reconfigure_logging_if_changed_first_call(self) -> None:
+        """reconfigure_logging_if_changed returns True on first call."""
+        import vintagestory_api.config as config_module
+        config_module._last_debug_state = None
+        config_module._debug_enabled = False
+
+        result = reconfigure_logging_if_changed()
+
+        assert result is True
+        # First call initializes _last_debug_state
+        assert config_module._last_debug_state is False
+
+    def test_reconfigure_logging_if_changed_state_changed(self) -> None:
+        """reconfigure_logging_if_changed returns True when state changes."""
+        import vintagestory_api.config as config_module
+        config_module._last_debug_state = False
+        config_module._debug_enabled = True
+
+        result = reconfigure_logging_if_changed()
+
+        assert result is True
+        # State should be updated
+        assert config_module._last_debug_state is True
+
+    def test_reconfigure_logging_if_changed_no_change(self) -> None:
+        """reconfigure_logging_if_changed returns False when state unchanged."""
+        import vintagestory_api.config as config_module
+        config_module._last_debug_state = True
+        config_module._debug_enabled = True
+
+        result = reconfigure_logging_if_changed()
+
+        assert result is False

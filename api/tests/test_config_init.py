@@ -172,6 +172,15 @@ class TestParseEnvValueFloat:
             parse_env_value("not_a_float", "float")
 
 
+class TestParseEnvValueInvalidType:
+    """Tests for invalid value type handling."""
+
+    def test_unknown_value_type_raises(self) -> None:
+        """Unknown value types raise ValueError."""
+        with pytest.raises(ValueError, match="Unknown value type"):
+            parse_env_value("test", "invalid_type")  # type: ignore[arg-type]
+
+
 class TestGetConfigKeyPath:
     """Tests for config key path splitting."""
 

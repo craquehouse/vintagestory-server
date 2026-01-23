@@ -294,6 +294,20 @@ class TestMetricsServiceEdgeCases:
 
         assert result is None
 
+    def test_get_game_server_pid_when_get_server_service_returns_none(self) -> None:
+        """Test _get_game_server_pid returns None when _get_server_service returns None."""
+        buffer = MetricsBuffer(capacity=10)
+        service = MetricsService(buffer=buffer, server_service=None)
+
+        # Patch the lazy import to return None
+        with patch(
+            "vintagestory_api.services.server.get_server_service",
+            return_value=None,
+        ):
+            pid = service._get_game_server_pid()
+
+        assert pid is None
+
     def test_psutil_process_general_exception_during_game_metrics(self) -> None:
         """Test graceful handling of unexpected psutil exceptions."""
         buffer = MetricsBuffer(capacity=10)

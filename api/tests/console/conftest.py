@@ -4,6 +4,8 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+import respx
+from httpx import Response
 
 # pyright: reportPrivateUsage=false
 # Note: Tests need access to private members to verify internal state
@@ -102,3 +104,28 @@ def ws_client(
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def mock_vintagestory_api() -> Generator[respx.MockRouter, None, None]:
+    """Mock VintageStory API calls to prevent network access during tests."""
+    with respx.mock(assert_all_called=False) as mock:
+        # Mock the stable versions API
+        mock.get("https://api.vintagestory.at/stable.json").mock(
+            return_value=Response(
+                200,
+                json={"version": "1.21.3", "cdn": "https://cdn.vintagestory.at/"},
+            )
+        )
+        # Mock the versions endpoint
+        mock.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "gameversions": [{"tagname": "v1.21.3"}]},
+            )
+        )
+        # Mock any mod API calls
+        mock.get(url__startswith="https://mods.vintagestory.at/").mock(
+            return_value=Response(200, json={"statuscode": "200"})
+        )
+        yield mock

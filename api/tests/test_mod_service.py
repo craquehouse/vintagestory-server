@@ -72,6 +72,56 @@ class TestModServiceInit:
         assert service.state_manager.state_dir == state_dir
         assert service.state_manager.mods_dir == mods_dir
 
+    def test_cache_eviction_property(
+        self, temp_dirs: tuple[Path, Path], restart_state: PendingRestartState
+    ) -> None:
+        """cache_eviction property returns CacheEvictionService instance."""
+        from vintagestory_api.services.cache_eviction import CacheEvictionService
+
+        state_dir, mods_dir = temp_dirs
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+        assert isinstance(service.cache_eviction, CacheEvictionService)
+
+    @pytest.mark.asyncio
+    async def test_close_when_api_client_exists(
+        self, temp_dirs: tuple[Path, Path], restart_state: PendingRestartState
+    ) -> None:
+        """close() closes api_client when it has been initialized."""
+        state_dir, mods_dir = temp_dirs
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+
+        # Access api_client property to initialize it
+        _ = service.api_client
+
+        # Close should succeed and clean up the client
+        await service.close()
+
+        # After close, the client should be None
+        assert service._mod_api_client is None  # pyright: ignore[reportPrivateUsage]
+
+    @pytest.mark.asyncio
+    async def test_close_when_api_client_not_initialized(
+        self, temp_dirs: tuple[Path, Path], restart_state: PendingRestartState
+    ) -> None:
+        """close() succeeds even when api_client was never initialized."""
+        state_dir, mods_dir = temp_dirs
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+
+        # Close should succeed without error
+        await service.close()
+
 
 class TestModServiceListMods:
     """Tests for list_mods() function."""
@@ -133,6 +183,34 @@ class TestModServiceListMods:
         assert mod.authors == ["Author1", "Author2"]
         assert mod.description == "A rich test mod"
 
+    def test_list_mods_fallback_when_no_cached_metadata(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """list_mods() uses slug as name fallback when metadata cache is missing."""
+        import shutil
+
+        state_dir, mods_dir = temp_dirs
+        create_mod_zip(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test Mod", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Delete the cached metadata to simulate missing cache
+        cache_dir = state_dir / "mods" / "testmod"
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+
+        mods = mod_service.list_mods()
+
+        assert len(mods) == 1
+        mod = mods[0]
+        assert mod.slug == "testmod"
+        assert mod.name == "testmod"  # Should use slug as fallback
+        assert mod.authors == []  # Empty list when no metadata
+        assert mod.description is None
+
 
 class TestModServiceGetMod:
     """Tests for get_mod() function."""
@@ -160,6 +238,33 @@ class TestModServiceGetMod:
         assert isinstance(result, ModInfo)
         assert result.slug == "findme"
         assert result.name == "Find Me"
+
+    def test_get_mod_fallback_when_no_cached_metadata(
+        self, mod_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """get_mod() uses slug as name fallback when metadata cache is missing."""
+        import shutil
+
+        state_dir, mods_dir = temp_dirs
+        create_mod_zip(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test Mod", "version": "1.0.0"},
+        )
+
+        mod_service.state_manager.sync_state_with_disk()
+
+        # Delete the cached metadata
+        cache_dir = state_dir / "mods" / "testmod"
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+
+        result = mod_service.get_mod("testmod")
+
+        assert result is not None
+        assert result.slug == "testmod"
+        assert result.name == "testmod"  # Should use slug as fallback
+        assert result.authors == []  # Empty list when no metadata
+        assert result.description is None
 
 
 class TestModServiceEnableMod:
@@ -909,6 +1014,57 @@ class TestModServiceInstallMod:
         assert not (mods_dir / "smithingplus_1.8.3.tmp").exists()
 
     @pytest.mark.asyncio
+    async def test_install_mod_cleans_up_temp_file_on_rename_failure(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() cleans up temp file if rename fails after copy succeeds."""
+        # This tests line 736: temp_path.unlink() when temp_path.exists()
+        import shutil
+
+        import respx
+        from httpx import Response
+
+        _, mods_dir = temp_dirs
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+                )
+            )
+
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            # Track whether we're in the mods_dir context (not cache_dir)
+            original_rename = Path.rename
+            rename_count = {"count": 0}
+
+            def selective_failing_rename(self: Path, target: Path) -> Path:
+                # Only fail on the second rename (in mods_dir, not cache_dir)
+                # First rename is in download_mod (cache), second is in install_mod (mods_dir)
+                if str(self).endswith(".tmp") and str(self.parent) == str(mods_dir):
+                    # This is the install_mod rename (line 727)
+                    raise OSError("Permission denied - disk full")
+                # Otherwise, use original rename for cache operations
+                return original_rename(self, target)
+
+            with patch.object(Path, "rename", selective_failing_rename):
+                with pytest.raises(OSError, match="Permission denied"):
+                    await install_service.install_mod("smithingplus")
+
+        # Verify temp file was cleaned up (line 736 executed)
+        assert not (mods_dir / "smithingplus_1.8.3.tmp").exists()
+        # Verify final file was not created
+        assert not (mods_dir / "smithingplus_1.8.3.zip").exists()
+
+    @pytest.mark.asyncio
     async def test_install_mod_with_corrupt_zip_uses_fallback(
         self, install_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
@@ -944,6 +1100,26 @@ class TestModServiceInstallMod:
         # Verify file exists
         assert (mods_dir / "smithingplus_1.8.3.zip").exists()
 
+    @pytest.mark.asyncio
+    async def test_install_mod_download_returns_none(
+        self, install_service: ModService
+    ) -> None:
+        """install_mod() raises ModNotFoundError when download_mod returns None."""
+        from unittest.mock import AsyncMock
+
+        from vintagestory_api.services.mod_api import ModNotFoundError
+
+        # Mock the api_client's download_mod to return None
+        mock_client = AsyncMock()
+        mock_client.download_mod.return_value = None
+
+        with patch.object(
+            install_service, "_get_mod_api_client", return_value=mock_client
+        ):
+            with pytest.raises(ModNotFoundError) as exc_info:
+                await install_service.install_mod("nonexistent")
+
+            assert exc_info.value.slug == "nonexistent"
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""
@@ -1262,3 +1438,165 @@ class TestModServiceLookupMod:
             result = await lookup_service.lookup_mod("smithingplus")
 
         assert result.downloads == 50000  # 30000 + 15000 + 5000
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_no_releases(self, lookup_service: ModService) -> None:
+        """lookup_mod() raises ModNotFoundError when mod has no releases."""
+        import respx
+        from httpx import Response
+
+        mod_without_releases = {
+            "modid": 1234,
+            "name": "No Releases Mod",
+            "urlalias": "noreleases",
+            "author": "someone",
+            "releases": [],  # Empty releases
+        }
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/noreleases").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": mod_without_releases},
+                )
+            )
+
+            with pytest.raises(ModNotFoundError) as exc_info:
+                await lookup_service.lookup_mod("noreleases")
+
+            assert exc_info.value.slug == "noreleases"
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_incompatible_many_tags(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() truncates compatibility message with many compatible tags."""
+        import respx
+        from httpx import Response
+
+        mod_with_many_tags = {
+            "modid": 1234,
+            "name": "Many Tags Mod",
+            "urlalias": "manytags",
+            "author": "someone",
+            "text": None,
+            "side": "Both",
+            "releases": [
+                {
+                    "releaseid": 10000,
+                    "modversion": "1.5.0",
+                    "filename": "manytags_1.5.0.zip",
+                    "fileid": 10000,
+                    "downloads": 5000,
+                    "tags": ["1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4"],
+                },
+            ],
+        }
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/manytags").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": mod_with_many_tags},
+                )
+            )
+
+            result = await lookup_service.lookup_mod("manytags")
+
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.message is not None
+        # Should show first 3 tags with ellipsis
+        assert "1.18.0" in result.compatibility.message
+        assert "1.18.1" in result.compatibility.message
+        assert "1.18.2" in result.compatibility.message
+        assert "..." in result.compatibility.message
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_incompatible_no_tags(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """lookup_mod() handles incompatible mod with no tags."""
+        import respx
+        from httpx import Response
+
+        state_dir, mods_dir = temp_dirs
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+            game_version="1.21.3",
+        )
+
+        mod_without_tags = {
+            "modid": 1234,
+            "name": "No Tags Mod",
+            "urlalias": "notags",
+            "author": "someone",
+            "text": None,
+            "side": "Both",
+            "releases": [
+                {
+                    "releaseid": 10000,
+                    "modversion": "1.5.0",
+                    "filename": "notags_1.5.0.zip",
+                    "fileid": 10000,
+                    "downloads": 5000,
+                    "tags": [],  # No tags = incompatible
+                },
+            ],
+        }
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/notags").mock(
+                return_value=Response(
+                    200,
+                    json={"statuscode": "200", "mod": mod_without_tags},
+                )
+            )
+
+            result = await service.lookup_mod("notags")
+
+        # Mods with empty tags are marked as not_verified (not incompatible)
+        assert result.compatibility.status == "not_verified"
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_incompatible_none_tags_message(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() generates fallback message when incompatible with no tags list."""
+        # This tests the line 347 code path: incompatible status with None/empty tags
+        # We need to trigger _build_compatibility_message with status="incompatible"
+        # and compatible_tags being falsy (None or empty)
+
+        # We'll directly test the _build_compatibility_message method
+        message = lookup_service._build_compatibility_message(
+            status="incompatible",
+            mod_version="2.0.0",
+            game_version="1.21.3",
+            compatible_tags=None,  # This triggers line 347
+        )
+
+        assert message is not None
+        assert "2.0.0" in message
+        assert "not compatible with 1.21.3" in message
+        assert "Installation may cause issues" in message
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_incompatible_empty_tags_list(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() generates fallback message when incompatible with empty tags list."""
+        # This tests line 347: empty list [] triggers the else branch
+        message = lookup_service._build_compatibility_message(
+            status="incompatible",
+            mod_version="1.5.0",
+            game_version="1.21.3",
+            compatible_tags=[],  # Empty list triggers line 347
+        )
+
+        assert message is not None
+        assert "1.5.0" in message
+        assert "not compatible with 1.21.3" in message
+        assert "Installation may cause issues" in message

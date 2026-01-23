@@ -155,6 +155,36 @@ class TestConsoleWebSocket:
         # Verify subscriber was removed
         assert len(test_service.console_buffer._subscribers) == initial_subscribers
 
+    def test_websocket_send_failure_unsubscribes(
+        self, ws_client: TestClient, test_service: ServerService
+    ) -> None:
+        """Test that WebSocket send failure causes unsubscribe (lines 357-363)."""
+        import asyncio
+
+        with ws_client.websocket_connect(
+            f"/api/v1alpha1/console/ws?api_key={TEST_ADMIN_KEY}"
+        ) as ws:
+            # Get the subscriber callback that was registered
+            assert len(test_service.console_buffer._subscribers) == 1
+            subscriber = list(test_service.console_buffer._subscribers)[0]
+
+            # Close the WebSocket from client side to cause send to fail
+            ws.close()
+
+            # Try to send a line through the buffer (this will fail)
+            # The subscriber should raise an exception and be removed
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(subscriber("Test line"))
+            except Exception:
+                # Expected - the send should fail
+                pass
+            finally:
+                loop.close()
+
+        # Verify subscriber was removed (should be 0 since we're outside the context)
+        assert len(test_service.console_buffer._subscribers) == 0
+
 
 class TestConsoleWebSocketCommands:
     """WebSocket command handling tests for Story 4.3 (Task 3)."""

@@ -218,6 +218,40 @@ class TestModStateManagerSave:
 
         assert (state_dir / "mods.json").exists()
 
+    def test_save_cleans_up_temp_file_on_error(
+        self, state_manager: ModStateManager, temp_state_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """save() cleans up temp file if rename fails with OSError."""
+        now = datetime.now(UTC)
+        state = ModState(
+            filename="test.zip",
+            slug="test",
+            version="1.0.0",
+            enabled=True,
+            installed_at=now,
+        )
+        state_manager.set_mod_state("test.zip", state)
+
+        # Mock rename to raise OSError
+        original_rename = Path.rename
+
+        def raise_os_error(self: Path, target: Any) -> None:
+            if ".tmp" in str(self):
+                # Ensure temp file exists to test cleanup
+                self.touch()
+                raise OSError("Rename failed")
+            return original_rename(self, target)
+
+        monkeypatch.setattr(Path, "rename", raise_os_error)
+
+        # save() should raise OSError and clean up temp file
+        temp_file = temp_state_dir / "mods.json.tmp"
+        with pytest.raises(OSError):
+            state_manager.save()
+
+        # Temp file should be cleaned up
+        assert not temp_file.exists()
+
 
 class TestModStateManagerDiskIOErrors:
     """Tests for disk I/O error handling in ModStateManager."""
@@ -860,6 +894,62 @@ class TestZipSlipProtection:
         assert metadata.version == "1.2.3"
 
 
+class TestCacheModinfo:
+    """Tests for _cache_modinfo() function."""
+
+    def test_cache_modinfo_blocks_path_traversal_in_slug(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """_cache_modinfo() blocks path traversal in slug parameter."""
+        modinfo_data = {"modid": "../evil", "name": "Evil", "version": "1.0.0"}
+
+        # Should not raise, but should not create cache
+        state_manager._cache_modinfo("../evil", "1.0.0", modinfo_data)
+
+        # No cache directory should be created outside state dir
+        cache_path = temp_state_dir / "mods" / "../evil" / "1.0.0" / "modinfo.json"
+        assert not cache_path.exists()
+
+    def test_cache_modinfo_blocks_path_traversal_in_version(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """_cache_modinfo() blocks path traversal in version parameter."""
+        modinfo_data = {"modid": "testmod", "name": "Test", "version": "../1.0.0"}
+
+        # Should not raise, but should not create cache
+        state_manager._cache_modinfo("testmod", "../1.0.0", modinfo_data)
+
+        # No cache directory should be created with traversal
+        cache_path = temp_state_dir / "mods" / "testmod" / "../1.0.0" / "modinfo.json"
+        assert not cache_path.exists()
+
+    def test_cache_modinfo_blocks_slash_in_slug(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """_cache_modinfo() blocks slash in slug parameter."""
+        modinfo_data = {"modid": "evil/mod", "name": "Evil", "version": "1.0.0"}
+
+        # Should not raise, but should not create cache
+        state_manager._cache_modinfo("evil/mod", "1.0.0", modinfo_data)
+
+        # No cache directory should be created with slash
+        cache_path = temp_state_dir / "mods" / "evil/mod" / "1.0.0" / "modinfo.json"
+        assert not cache_path.exists()
+
+    def test_cache_modinfo_blocks_slash_in_version(
+        self, state_manager: ModStateManager, temp_state_dir: Path
+    ) -> None:
+        """_cache_modinfo() blocks slash in version parameter."""
+        modinfo_data = {"modid": "testmod", "name": "Test", "version": "1/0/0"}
+
+        # Should not raise, but should not create cache
+        state_manager._cache_modinfo("testmod", "1/0/0", modinfo_data)
+
+        # No cache directory should be created with slash
+        cache_path = temp_state_dir / "mods" / "testmod" / "1/0/0" / "modinfo.json"
+        assert not cache_path.exists()
+
+
 class TestGetCachedMetadata:
     """Tests for get_cached_metadata() function."""
 
@@ -868,6 +958,34 @@ class TestGetCachedMetadata:
     ) -> None:
         """get_cached_metadata() returns None if no cache exists."""
         result = state_manager.get_cached_metadata("nonexistent", "1.0.0")
+        assert result is None
+
+    def test_get_cached_metadata_blocks_path_traversal_in_slug(
+        self, state_manager: ModStateManager
+    ) -> None:
+        """get_cached_metadata() returns None for path traversal in slug."""
+        result = state_manager.get_cached_metadata("../evil", "1.0.0")
+        assert result is None
+
+    def test_get_cached_metadata_blocks_path_traversal_in_version(
+        self, state_manager: ModStateManager
+    ) -> None:
+        """get_cached_metadata() returns None for path traversal in version."""
+        result = state_manager.get_cached_metadata("testmod", "../1.0.0")
+        assert result is None
+
+    def test_get_cached_metadata_blocks_slash_in_slug(
+        self, state_manager: ModStateManager
+    ) -> None:
+        """get_cached_metadata() returns None for slash in slug."""
+        result = state_manager.get_cached_metadata("evil/mod", "1.0.0")
+        assert result is None
+
+    def test_get_cached_metadata_blocks_slash_in_version(
+        self, state_manager: ModStateManager
+    ) -> None:
+        """get_cached_metadata() returns None for slash in version."""
+        result = state_manager.get_cached_metadata("testmod", "1/0/0")
         assert result is None
 
     def test_get_cached_metadata_reads_from_cache(
@@ -977,6 +1095,19 @@ class TestScanModsDirectory:
     ) -> None:
         """scan_mods_directory() returns empty list for empty directory."""
         filenames = state_manager.scan_mods_directory()
+        assert filenames == []
+
+    def test_scan_mods_directory_handles_nonexistent_directory(
+        self, tmp_path: Path
+    ) -> None:
+        """scan_mods_directory() returns empty list if mods directory doesn't exist."""
+        state_dir = tmp_path / "state"
+        state_dir.mkdir(parents=True)
+        mods_dir = tmp_path / "nonexistent_mods"  # Don't create this directory
+
+        manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
+        filenames = manager.scan_mods_directory()
+
         assert filenames == []
 
 
