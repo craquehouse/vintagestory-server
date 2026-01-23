@@ -1,10 +1,8 @@
 """Shared fixtures for server tests."""
 
 import shutil
-import tarfile
 import tempfile
 from collections.abc import AsyncGenerator, Generator
-from io import BytesIO
 from pathlib import Path
 
 import pytest
@@ -128,23 +126,3 @@ async def installed_service(
     await service.close()
 
 
-def create_mock_tarball() -> tuple[bytes, str]:
-    """Create a mock server tarball for testing.
-
-    Returns:
-        Tuple of (tarball_bytes, md5_hash)
-    """
-    import hashlib
-
-    buffer = BytesIO()
-    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
-        # Add mock server files
-        for filename in ["VintagestoryServer.dll", "VintagestoryLib.dll"]:
-            data = f"mock {filename} content".encode()
-            info = tarfile.TarInfo(name=filename)
-            info.size = len(data)
-            tar.addfile(info, BytesIO(data))
-
-    tarball_bytes = buffer.getvalue()
-    md5_hash = hashlib.md5(tarball_bytes).hexdigest()
-    return tarball_bytes, md5_hash
