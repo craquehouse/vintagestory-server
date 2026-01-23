@@ -30,6 +30,11 @@ describe('ConnectionStatus', () => {
         expectedLabel: 'Access Denied',
         expectedAriaLabel: 'Connection status: Access Denied',
       },
+      {
+        state: 'token_error',
+        expectedLabel: 'Authentication Error',
+        expectedAriaLabel: 'Connection status: Authentication Error',
+      },
     ];
 
     it.each(stateTestCases)(
@@ -73,6 +78,14 @@ describe('ConnectionStatus', () => {
 
     it('applies destructive indicator for forbidden state', () => {
       const { container } = render(<ConnectionStatus state="forbidden" />);
+
+      // Uses semantic bg-destructive class for theme-aware colors
+      const indicator = container.querySelector('.bg-destructive');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('applies destructive indicator for token_error state', () => {
+      const { container } = render(<ConnectionStatus state="token_error" />);
 
       // Uses semantic bg-destructive class for theme-aware colors
       const indicator = container.querySelector('.bg-destructive');

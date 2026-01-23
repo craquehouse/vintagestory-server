@@ -5,6 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { ServerControls } from './ServerControls';
 import type { ServerState } from '@/api/types';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -255,6 +263,65 @@ describe('ServerControls', () => {
       expect(screen.getByRole('button', { name: 'Start server' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Stop server' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Restart server' })).toBeDisabled();
+    });
+  });
+
+  describe('error handling', () => {
+    it('shows error toast when start mutation fails', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Connection failed'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ServerControls serverState="installed" />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Start server' }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to start server', {
+          description: 'Connection failed',
+        });
+      });
+    });
+
+    it('shows error toast when stop mutation fails', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Stop operation failed'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ServerControls serverState="running" />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Stop server' }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to stop server', {
+          description: 'Stop operation failed',
+        });
+      });
+    });
+
+    it('shows error toast when restart mutation fails', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Restart failed'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ServerControls serverState="running" />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Restart server' }));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to restart server', {
+          description: 'Restart failed',
+        });
+      });
     });
   });
 });

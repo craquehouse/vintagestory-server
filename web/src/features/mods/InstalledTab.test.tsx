@@ -8,9 +8,16 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+  },
+}));
 
 // Mock next-themes before importing components that use PreferencesContext
 vi.mock('next-themes', () => ({
@@ -28,8 +35,22 @@ vi.mock('@/lib/cookies', () => ({
   setCookie: vi.fn(),
 }));
 
+// Mock useModsCompatibility to avoid complex fetch handling
+vi.mock('@/hooks/use-mods', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/use-mods')>();
+  return {
+    ...actual,
+    useModsCompatibility: () => ({
+      compatibilityMap: new Map(),
+      sideMap: new Map(),
+      isLoading: false,
+    }),
+  };
+});
+
 import { InstalledTab } from './InstalledTab';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { toast } from 'sonner';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -91,11 +112,18 @@ const mockServerStatusResponse = {
   },
 };
 
+const mockServerRunningResponse = {
+  status: 'ok',
+  data: {
+    state: 'running',
+  },
+};
+
 describe('InstalledTab', () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
@@ -247,6 +275,239 @@ describe('InstalledTab', () => {
 
       await waitFor(() => {
         expect(screen.queryByTestId('mod-table-loading')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('toast notifications', () => {
+    it('shows success toast when mod is disabled (server stopped)', async () => {
+      const disableFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              filename: 'smithingplus-1.5.0.zip',
+              slug: 'smithingplus',
+              version: '1.5.0',
+              enabled: false,
+            },
+          }),
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/disable')) {
+          return disableFetch();
+        }
+        if (url.includes('/status')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockServerStatusResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockModsResponse),
+        });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-toggle-smithingplus')).toBeInTheDocument();
+      });
+
+      // Click toggle to disable the mod
+      fireEvent.click(screen.getByTestId('mod-toggle-smithingplus'));
+
+      await waitFor(() => {
+        expect(disableFetch).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('smithingplus disabled', {
+          description: undefined,
+        });
+      });
+    });
+
+    it('shows success toast with restart message when mod is enabled (server running)', async () => {
+      const enableFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              filename: 'smithingplus-1.5.0.zip',
+              slug: 'smithingplus',
+              version: '1.5.0',
+              enabled: true,
+            },
+          }),
+      });
+
+      const modsWithDisabled = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'smithingplus-1.5.0.zip',
+              slug: 'smithingplus',
+              version: '1.5.0',
+              enabled: false,
+              installedAt: '2024-01-15T10:30:00Z',
+              name: 'Smithing Plus',
+              authors: ['TestAuthor'],
+              description: 'Enhanced smithing features',
+            },
+          ],
+          pendingRestart: false,
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/enable')) {
+          return enableFetch();
+        }
+        if (url.includes('/status')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockServerRunningResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(modsWithDisabled),
+        });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-toggle-smithingplus')).toBeInTheDocument();
+      });
+
+      // Click toggle to enable the mod
+      fireEvent.click(screen.getByTestId('mod-toggle-smithingplus'));
+
+      await waitFor(() => {
+        expect(enableFetch).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('smithingplus enabled', {
+          description: 'A server restart is required for changes to take effect.',
+        });
+      });
+    });
+
+    it('shows success toast when mod is removed (server stopped)', async () => {
+      const removeFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Mod removed successfully' },
+          }),
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (options?.method === 'DELETE') {
+          return removeFetch();
+        }
+        if (url.includes('/status')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockServerStatusResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockModsResponse),
+        });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
+      });
+
+      // Click remove button
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+
+      // Confirm removal in dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(removeFetch).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Removed smithingplus', {
+          description: undefined,
+        });
+      });
+    });
+
+    it('shows success toast with restart message when mod is removed (server running)', async () => {
+      const removeFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Mod removed successfully' },
+          }),
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (options?.method === 'DELETE') {
+          return removeFetch();
+        }
+        if (url.includes('/status')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockServerRunningResponse),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockModsResponse),
+        });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
+      });
+
+      // Click remove button
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+
+      // Confirm removal in dialog
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(removeFetch).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Removed smithingplus', {
+          description: 'A server restart may be required for changes to take effect.',
+        });
       });
     });
   });
