@@ -2087,6 +2087,168 @@ class TestGameVersionsEndpoint:
         assert data["data"]["versions"] == []
 
 
+class TestModTagsEndpoint:
+    """Tests for GET /api/v1alpha1/mods/tags endpoint."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def monitor_headers(self) -> dict[str, str]:
+        """Return headers for monitor authentication."""
+        return {"X-API-Key": TEST_MONITOR_KEY}
+
+    @respx.mock
+    def test_list_mod_tags_success(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/tags returns sorted list of unique tags."""
+        mods_with_tags = {
+            "statuscode": "200",
+            "mods": [
+                {
+                    "modid": 1,
+                    "name": "Mod 1",
+                    "tags": ["Crafting", "QoL"],
+                },
+                {
+                    "modid": 2,
+                    "name": "Mod 2",
+                    "tags": ["Gameplay", "CRAFTING"],  # Duplicate in different case
+                },
+                {
+                    "modid": 3,
+                    "name": "Mod 3",
+                    "tags": ["UI", "QoL"],  # Another duplicate
+                },
+            ],
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=mods_with_tags)
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        tags = data["data"]["tags"]
+
+        # Tags should be lowercased, deduplicated, and sorted
+        assert tags == ["crafting", "gameplay", "qol", "ui"]
+
+    @respx.mock
+    def test_list_mod_tags_empty(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/tags handles mods with no tags."""
+        mods_without_tags = {
+            "statuscode": "200",
+            "mods": [
+                {"modid": 1, "name": "Mod 1"},
+                {"modid": 2, "name": "Mod 2", "tags": []},
+            ],
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=mods_without_tags)
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["tags"] == []
+
+    @respx.mock
+    def test_list_mod_tags_monitor_access(
+        self,
+        client: TestClient,
+        monitor_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/tags is accessible by Monitor role."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": []})
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=monitor_headers)
+        assert response.status_code == 200
+
+    def test_list_mod_tags_requires_auth(self, client: TestClient) -> None:
+        """GET /mods/tags requires authentication."""
+        response = client.get("/api/v1alpha1/mods/tags")
+        assert response.status_code == 401
+
+    @respx.mock
+    def test_list_mod_tags_api_error(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/tags returns 502 when external API fails."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=httpx.ConnectError("connection refused")
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=admin_headers)
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+
 class TestBrowseItemSlugUrlalias:
     """Tests for VSS-brs: urlalias vs modidstrs slug handling.
 
@@ -2365,3 +2527,656 @@ class TestBrowseItemSlugUrlalias:
         # Both should be the same value
         assert mod["slug"] == "matchingmod"
         assert mod["urlalias"] == "matchingmod"
+
+
+class TestBrowseModsFilters:
+    """Tests for browse endpoint filters: side, mod_type, and tags."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @pytest.fixture
+    def diverse_mods(self) -> dict[str, Any]:
+        """Return API response with mods of different sides, types, and tags."""
+        return {
+            "statuscode": "200",
+            "mods": [
+                {
+                    "modid": 1,
+                    "name": "Client Only Mod",
+                    "side": "client",
+                    "type": "mod",
+                    "tags": ["UI", "Visual"],
+                    "modidstrs": ["clientmod"],
+                    "urlalias": "clientmod",
+                    "downloads": 100,
+                    "follows": 10,
+                    "trendingpoints": 5,
+                    "lastreleased": "2025-01-01 00:00:00",
+                },
+                {
+                    "modid": 2,
+                    "name": "Server Only Mod",
+                    "side": "server",
+                    "type": "mod",
+                    "tags": ["Gameplay", "Balance"],
+                    "modidstrs": ["servermod"],
+                    "urlalias": "servermod",
+                    "downloads": 200,
+                    "follows": 20,
+                    "trendingpoints": 10,
+                    "lastreleased": "2025-01-02 00:00:00",
+                },
+                {
+                    "modid": 3,
+                    "name": "Both Sides Mod",
+                    "side": "both",
+                    "type": "mod",
+                    "tags": ["Crafting"],
+                    "modidstrs": ["bothmod"],
+                    "urlalias": "bothmod",
+                    "downloads": 300,
+                    "follows": 30,
+                    "trendingpoints": 15,
+                    "lastreleased": "2025-01-03 00:00:00",
+                },
+                {
+                    "modid": 4,
+                    "name": "External Tool",
+                    "side": "both",
+                    "type": "externaltool",
+                    "tags": ["Tools"],
+                    "modidstrs": ["externaltool"],
+                    "urlalias": "externaltool",
+                    "downloads": 50,
+                    "follows": 5,
+                    "trendingpoints": 2,
+                    "lastreleased": "2025-01-04 00:00:00",
+                },
+            ],
+        }
+
+    @respx.mock
+    def test_browse_filter_by_side_client(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?side=client filters to client-only mods."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?side=client", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+        assert mods[0]["slug"] == "clientmod"
+        assert mods[0]["side"] == "client"
+
+    @respx.mock
+    def test_browse_filter_by_side_server(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?side=server filters to server-only mods."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?side=server", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+        assert mods[0]["slug"] == "servermod"
+        assert mods[0]["side"] == "server"
+
+    @respx.mock
+    def test_browse_filter_by_side_both(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?side=both filters to both-side mods."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?side=both", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 2
+        slugs = {m["slug"] for m in mods}
+        assert slugs == {"bothmod", "externaltool"}
+
+    @respx.mock
+    def test_browse_filter_by_mod_type(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?mod_type=externaltool filters by type."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?mod_type=externaltool", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+        assert mods[0]["slug"] == "externaltool"
+        assert mods[0]["mod_type"] == "externaltool"
+
+    @respx.mock
+    def test_browse_filter_by_tags_single(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?tags=Crafting filters by tag."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?tags=Crafting", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+        assert mods[0]["slug"] == "bothmod"
+
+    @respx.mock
+    def test_browse_filter_by_tags_multiple_or_logic(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?tags=UI,Crafting uses OR logic."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?tags=UI,Crafting", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 2
+        slugs = {m["slug"] for m in mods}
+        assert slugs == {"clientmod", "bothmod"}
+
+    @respx.mock
+    def test_browse_filter_tags_with_whitespace(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?tags= trims whitespace from tags."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?tags= UI , Crafting ", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 2
+
+    @respx.mock
+    def test_browse_filter_tags_empty_after_trim(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse?tags=,, returns all when tags are empty after trim."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?tags=,,", headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        # Should return all mods when tag list is effectively empty
+        assert len(mods) == 4
+
+    @respx.mock
+    def test_browse_combined_filters(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        diverse_mods: dict[str, Any],
+    ) -> None:
+        """GET /mods/browse can combine side, mod_type, and tags filters."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=diverse_mods)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?side=both&mod_type=mod&tags=Crafting",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        mods = data["data"]["mods"]
+        assert len(mods) == 1
+        assert mods[0]["slug"] == "bothmod"
+
+
+class TestInstallModVersionNotFound:
+    """Test install mod with specific version not found."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @respx.mock
+    def test_install_mod_version_not_found(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods returns 404 when specific version not found."""
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": "smithingplus", "version": "99.99.99"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["code"] == "MOD_VERSION_NOT_FOUND"
+        assert "99.99.99" in data["detail"]["message"]
+
+    @respx.mock
+    def test_install_mod_download_error(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods returns 502 when download fails."""
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+        # Mock download to fail
+        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+            side_effect=httpx.ConnectError("download failed")
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": "smithingplus"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 502
+        data = response.json()
+        assert data["detail"]["code"] == "DOWNLOAD_FAILED"
+
+
+class TestEnableDisableRemoveInvalidSlug:
+    """Test enable/disable/remove with invalid slug."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Return headers for admin authentication."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    def test_enable_mod_invalid_slug(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods/{slug}/enable returns 400 for invalid slug."""
+        # Use a slug with invalid characters (dots aren't allowed in mod slugs)
+        response = client.post(
+            "/api/v1alpha1/mods/invalid.slug.with.dots/enable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_SLUG"
+
+    def test_disable_mod_invalid_slug(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """POST /mods/{slug}/disable returns 400 for invalid slug."""
+        # Use a slug with invalid characters
+        response = client.post(
+            "/api/v1alpha1/mods/invalid.slug.with.dots/disable",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_SLUG"
+
+    def test_remove_mod_invalid_slug(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """DELETE /mods/{slug} returns 400 for invalid slug."""
+        # Use a slug with invalid characters
+        response = client.delete(
+            "/api/v1alpha1/mods/invalid.slug.with.dots",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"]["code"] == "INVALID_SLUG"
+
+
+class TestGameVersionsParsing:
+    """Test game versions endpoint with complex version strings."""
+
+    @pytest.fixture
+    def temp_data_dir(self, tmp_path: Path) -> Path:
+        """Create temporary data directory structure."""
+        data_dir = tmp_path / "data"
+        (data_dir / "state").mkdir(parents=True)
+        (data_dir / "mods").mkdir(parents=True)
+        (data_dir / "cache").mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def test_settings(self, temp_data_dir: Path) -> Settings:
+        """Create test settings with known API keys."""
+        return Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+            debug=True,
+        )
+
+    @pytest.fixture
+    def mod_service(self, temp_data_dir: Path) -> ModService:
+        """Create a ModService with test directories."""
+        return ModService(
+            state_dir=temp_data_dir / "state",
+            mods_dir=temp_data_dir / "mods",
+            cache_dir=temp_data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+
+    @pytest.fixture
+    def test_app(
+        self, mod_service: ModService, test_settings: Settings
+    ) -> Generator[FastAPI, None, None]:
+        """Create app with test mod service and settings injected."""
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def client(self, test_app: FastAPI) -> TestClient:
+        """Create test client with dependency overrides applied."""
+        return TestClient(test_app)
+
+    @pytest.fixture
+    def admin_headers(self) -> dict[str, str]:
+        """Headers with Admin API key."""
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @respx.mock
+    def test_gameversions_with_rc_versions(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions handles RC and pre-release versions."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": 1, "name": "1.22.0"},
+                        {"tagid": 2, "name": "1.22.0-rc1"},
+                        {"tagid": 3, "name": "1.21.3"},
+                        {"tagid": 4, "name": "1.21.3-pre5"},
+                        {"tagid": 5, "name": "1.21.0"},
+                        {"tagid": 6, "name": "alpha-1.20.0"},
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        versions = data["data"]["versions"]
+
+        # Versions should be sorted newest first with proper handling of rc/pre/alpha
+        assert len(versions) == 6
+        # Exact order depends on the parsing logic, but stable releases should come before pre-releases
+        assert "1.22.0" in versions
+        assert "1.22.0-rc1" in versions
+        assert "1.21.3" in versions
+        assert "1.21.3-pre5" in versions
+
+    @respx.mock
+    def test_gameversions_with_mixed_format_versions(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/gameversions handles versions with digits followed by suffix."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        {"tagid": 1, "name": "1.22.0"},
+                        {"tagid": 2, "name": "1.22.0-1rc1"},  # Digit followed by suffix
+                        {"tagid": 3, "name": "1.21.3-2beta"},  # Digit followed by suffix
+                        {"tagid": 4, "name": "1.21.0"},
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/api/v1alpha1/mods/gameversions", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        versions = data["data"]["versions"]
+
+        # Should handle versions with mixed numeric/text parts
+        assert len(versions) == 4
+        assert "1.22.0" in versions
+        assert "1.22.0-1rc1" in versions
+        assert "1.21.3-2beta" in versions

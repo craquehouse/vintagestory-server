@@ -142,6 +142,79 @@ class TestServerInstallEndpoint:
         assert error["code"] == "SERVER_ALREADY_INSTALLED"
 
     @respx.mock
+    def test_install_alias_stable_resolves_to_latest(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/install with 'stable' alias resolves to latest stable version."""
+        from vintagestory_api.services.server import VS_STABLE_API
+
+        # Mock stable.json API response
+        mock_api_response = {
+            "1.21.6": {
+                "linuxserver": {
+                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filesize": "40.2 MB",
+                    "md5": "abc123def456",
+                    "urls": {
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
+                        "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.21.6.tar.gz",
+                    },
+                    "latest": True,
+                }
+            }
+        }
+
+        respx.get(VS_STABLE_API).mock(return_value=Response(200, json=mock_api_response))
+
+        # Mock HEAD request for version availability check
+        head_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz"
+        respx.head(head_url).mock(return_value=Response(200))
+
+        # Create mock tarball
+        tarball_bytes, actual_md5 = create_mock_server_tarball(Path("/tmp"))
+
+        # Mock the actual download
+        download_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz"
+        respx.get(download_url).mock(
+            return_value=Response(
+                200,
+                content=tarball_bytes,
+                headers={"content-length": str(len(tarball_bytes))},
+            )
+        )
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/install",
+            json={"version": "stable"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["data"]["version"] == "1.21.6"
+
+    @respx.mock
+    def test_install_alias_not_found_returns_404(
+        self, integration_client: TestClient
+    ) -> None:
+        """POST /server/install with alias that fails to resolve returns 404."""
+        from vintagestory_api.services.server import VS_STABLE_API
+
+        # Mock empty or invalid API response
+        respx.get(VS_STABLE_API).mock(return_value=Response(200, json={}))
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/install",
+            json={"version": "stable"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 404
+        error = response.json()["detail"]
+        assert error["code"] == "VERSION_NOT_FOUND"
+        assert "stable" in error["message"]
+
+    @respx.mock
     def test_install_success_completes_end_to_end(
         self, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
@@ -345,3 +418,92 @@ class TestServerInstallStatusEndpoint:
         assert data["data"]["state"] == "error"
         assert data["data"]["error"] == "Downloaded server file checksum verification failed"
         assert data["data"]["error_code"] == ErrorCode.CHECKSUM_MISMATCH
+
+
+class TestServerInstallErrorPaths:
+    """Tests for error handling paths in POST /server/install endpoint."""
+
+    @pytest.fixture
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+        """Create app with test settings for integration testing."""
+        from vintagestory_api.main import app
+        from vintagestory_api.middleware.auth import get_settings
+
+        test_settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=temp_data_dir,
+        )
+
+        test_service = ServerService(test_settings)
+
+        app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_server_service] = lambda: test_service
+
+        yield app
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def integration_client(self, integration_app: FastAPI) -> TestClient:
+        """Create test client for integration tests."""
+        return TestClient(integration_app)
+
+    def test_install_invalid_version_after_alias_resolution_returns_422(
+        self, integration_app: FastAPI, integration_client: TestClient
+    ) -> None:
+        """POST /server/install returns 422 when resolved version format is invalid.
+
+        This tests the error path at line 65 where validate_version() returns False.
+        This can happen if the version validation regex differs from Pydantic validation,
+        or in edge cases where the resolved version doesn't match expected format.
+        """
+        from unittest.mock import patch
+
+        # Mock validate_version to return False for a specific version
+        # This simulates the case where validation fails after Pydantic passes
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        original_validate = test_service.validate_version
+
+        def mock_validate(version: str) -> bool:
+            if version == "1.21.3":
+                return False  # Simulate invalid version
+            return original_validate(version)
+
+        test_service.validate_version = mock_validate
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/install",
+            json={"version": "1.21.3"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 422
+        error = response.json()["detail"]
+        assert error["code"] == "INVALID_VERSION"
+        assert "1.21.3" in error["message"]
+        assert "X.Y.Z" in error["message"]
+
+    def test_install_while_installation_in_progress_returns_409(
+        self, integration_app: FastAPI, integration_client: TestClient
+    ) -> None:
+        """POST /server/install returns 409 when installation is already in progress.
+
+        This tests the error path at line 86 where progress.state == ServerState.INSTALLING.
+        """
+        from vintagestory_api.models.server import ServerState
+
+        # Get the service and set installation state to INSTALLING
+        test_service = integration_app.dependency_overrides[get_server_service]()
+        test_service._install_state = ServerState.INSTALLING
+        test_service._installing_version = "1.21.6"
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/install",
+            json={"version": "1.21.3"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 409
+        error = response.json()["detail"]
+        assert error["code"] == "INSTALLATION_IN_PROGRESS"
+        assert "already in progress" in error["message"]

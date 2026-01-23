@@ -219,6 +219,28 @@ describe('FilterControls', () => {
     expect(mockOnChange).toHaveBeenLastCalledWith({ tags: ['qol', 'utility'] });
   });
 
+  it('deselects tag when clicking on already selected tag', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{ tags: ['qol', 'utility'] }}
+        onChange={mockOnChange}
+        availableTags={mockTags}
+      />
+    );
+
+    const tagsButton = screen.getByRole('button', { name: /tags/i });
+    await user.click(tagsButton);
+
+    // Click on already selected tag to deselect it
+    const qolOption = screen.getByRole('menuitemcheckbox', { name: /qol/i });
+    await user.click(qolOption);
+
+    // Should remove 'qol' from tags
+    expect(mockOnChange).toHaveBeenCalledWith({ tags: ['utility'] });
+  });
+
   // VSS-y7u: New tests for loading/error states
   it('shows loading state when tags are loading', () => {
     render(
@@ -302,5 +324,72 @@ describe('installed version', () => {
     await user.click(versionButton);
 
     expect(screen.queryByText('(Installed)')).not.toBeInTheDocument();
+  });
+
+  it('calls onChange when version is selected', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{}}
+        onChange={mockOnChange}
+        gameVersions={['1.21.3', '1.21.2', '1.21.1']}
+      />
+    );
+
+    const versionButton = screen.getByTestId('version-filter-button');
+    await user.click(versionButton);
+
+    const versionOption = screen.getByTestId('version-option-1.21.2');
+    await user.click(versionOption);
+
+    expect(mockOnChange).toHaveBeenCalledWith(
+      expect.objectContaining({ gameVersion: '1.21.2' })
+    );
+  });
+
+  it('removes game version filter when badge close button is clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{ gameVersion: '1.21.3' }}
+        onChange={mockOnChange}
+        gameVersions={['1.21.3', '1.21.2', '1.21.1']}
+      />
+    );
+
+    const removeButton = screen.getByRole('button', {
+      name: /remove.*version.*1\.21\.3/i,
+    });
+    await user.click(removeButton);
+
+    expect(mockOnChange).toHaveBeenCalledWith({});
+  });
+});
+
+describe('mod type filter', () => {
+  const mockOnChange = vi.fn();
+
+  beforeEach(() => {
+    mockOnChange.mockClear();
+  });
+
+  it('removes mod type filter when badge close button is clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <FilterControls
+        filters={{ modType: 'mod' }}
+        onChange={mockOnChange}
+      />
+    );
+
+    const removeButton = screen.getByRole('button', {
+      name: /remove.*type.*filter:.*mod/i,
+    });
+    await user.click(removeButton);
+
+    expect(mockOnChange).toHaveBeenCalledWith({});
   });
 });

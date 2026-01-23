@@ -391,6 +391,23 @@ class TestMetricsService:
 
         assert service._get_game_server_pid() == 12345
 
+    def test_get_game_server_pid_returns_none_when_server_service_unavailable(
+        self,
+    ) -> None:
+        """Test _get_game_server_pid returns None when _get_server_service returns None."""
+        from unittest.mock import patch
+
+        buffer = MetricsBuffer(capacity=10)
+        # Don't inject a server_service - let it try lazy resolution
+        service = MetricsService(buffer=buffer, server_service=None)
+
+        # Mock get_server_service() to return None (server service not available)
+        with patch(
+            "vintagestory_api.services.server.get_server_service", return_value=None
+        ):
+            # This should trigger the line 203 path: return None
+            assert service._get_game_server_pid() is None
+
     def test_buffer_property(self) -> None:
         """Test that buffer property returns the buffer."""
         buffer = MetricsBuffer(capacity=10)

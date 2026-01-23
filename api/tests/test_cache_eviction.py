@@ -313,3 +313,137 @@ class TestLogging:
         captured = capsys.readouterr()
         assert "cache_eviction_failed" in captured.out
         assert "Permission denied" in captured.out
+
+    def test_evict_all_handles_deletion_failure(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that evict_all handles file deletion failures gracefully."""
+        create_test_file(cache_dir, "protected_mod.zip", 1000)
+        create_test_file(cache_dir, "normal_mod.zip", 2000)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        # Mock unlink to fail for the protected file
+        original_unlink = Path.unlink
+
+        def mock_unlink(self: Path, missing_ok: bool = False) -> None:
+            if self.name == "protected_mod.zip":
+                raise OSError("Permission denied")
+            original_unlink(self, missing_ok=missing_ok)
+
+        with patch.object(Path, "unlink", mock_unlink):
+            result = service.evict_all()
+
+        # Verify that one file was evicted and one failed
+        assert result.files_evicted == 1  # Only normal_mod.zip was deleted
+        assert result.bytes_freed == 2000  # Only normal_mod.zip size
+        # Protected file remains, so files_remaining should account for it
+        assert result.files_remaining == 1
+        assert result.bytes_remaining == 1000
+
+        # Verify failure event was logged
+        captured = capsys.readouterr()
+        assert "cache_eviction_failed" in captured.out
+        assert "Permission denied" in captured.out
+
+    def test_evict_all_oserror_with_file_not_found(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test evict_all handles OSError when file vanishes during deletion."""
+        create_test_file(cache_dir, "vanishing.zip", 1500)
+        create_test_file(cache_dir, "stable.zip", 500)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        # Mock unlink to raise FileNotFoundError for vanishing file (lines 260-261)
+        original_unlink = Path.unlink
+
+        def mock_unlink(self: Path, missing_ok: bool = False) -> None:
+            if self.name == "vanishing.zip":
+                raise OSError("[Errno 2] No such file or directory")
+            original_unlink(self, missing_ok=missing_ok)
+
+        with patch.object(Path, "unlink", mock_unlink):
+            result = service.evict_all()
+
+        # Only stable.zip should be successfully deleted
+        assert result.files_evicted == 1
+        assert result.bytes_freed == 500
+
+        # Verify the OSError was logged (covers lines 260-261)
+        captured = capsys.readouterr()
+        assert "cache_eviction_failed" in captured.out
+        assert "No such file or directory" in captured.out
+
+    def test_cache_file_stat_failed_logged(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test that cache_file_stat_failed is logged when stat() fails."""
+        # Create files - one will fail stat, one will succeed
+        create_test_file(cache_dir, "normal_mod.zip", 1000)
+        create_test_file(cache_dir, "good_mod.zip", 500)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        # Track which Path objects have been checked with is_file
+        # so we can fail on the second call (the actual stat() call)
+        checked_paths = set()
+        original_stat = Path.stat
+
+        def mock_stat(self: Path, *, follow_symlinks: bool = True) -> object:
+            path_str = str(self)
+            # If we've already successfully called stat on this path (from is_file),
+            # then fail on the next call (the explicit stat() call)
+            if self.name == "normal_mod.zip" and path_str in checked_paths:
+                raise OSError("File stat failed")
+            # Mark this path as checked and allow the call to succeed
+            checked_paths.add(path_str)
+            return original_stat(self, follow_symlinks=follow_symlinks)
+
+        with patch.object(Path, "stat", mock_stat):
+            stats = service.get_cache_stats()
+
+        # One file should be skipped, one should succeed
+        assert stats["file_count"] == 1
+        assert stats["total_size_bytes"] == 500
+
+        # Verify warning was logged
+        captured = capsys.readouterr()
+        assert "cache_file_stat_failed" in captured.out
+        assert "File stat failed" in captured.out
+
+    def test_stat_error_with_permission_denied(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test OSError handling during stat() with PermissionError scenario."""
+        # Create files to test stat failure
+        create_test_file(cache_dir, "restricted.zip", 2000)
+        create_test_file(cache_dir, "accessible.zip", 1000)
+
+        service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
+
+        # Mock stat to raise PermissionError for restricted file
+        call_count = {}
+        original_stat = Path.stat
+
+        def mock_stat(self: Path, *, follow_symlinks: bool = True) -> object:
+            # Count calls per path
+            path_str = str(self)
+            call_count[path_str] = call_count.get(path_str, 0) + 1
+
+            # Fail on the explicit stat() call (second call) for restricted.zip
+            if self.name == "restricted.zip" and call_count[path_str] > 1:
+                raise OSError("[Errno 13] Permission denied")
+            return original_stat(self, follow_symlinks=follow_symlinks)
+
+        with patch.object(Path, "stat", mock_stat):
+            stats = service.get_cache_stats()
+
+        # Only accessible.zip should be counted (lines 120-121 covered)
+        assert stats["file_count"] == 1
+        assert stats["total_size_bytes"] == 1000
+
+        # Verify error was logged
+        captured = capsys.readouterr()
+        assert "cache_file_stat_failed" in captured.out
+        assert "Permission denied" in captured.out

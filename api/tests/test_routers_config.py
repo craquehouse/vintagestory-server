@@ -410,6 +410,20 @@ class TestUpdateGameSettingErrors:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.SETTING_UNKNOWN
 
+    def test_update_invalid_value_returns_400(
+        self, client: TestClient
+    ) -> None:
+        """Invalid value returns 400 with SETTING_VALUE_INVALID error."""
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/Port",
+            json={"value": "not_a_number"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == ErrorCode.SETTING_VALUE_INVALID
+
     def test_update_console_command_fails(
         self, client: TestClient, mock_server_service: MagicMock
     ) -> None:
@@ -1268,3 +1282,81 @@ class TestConfigFilesResponseFormat:
         assert "detail" in data
         assert "code" in data["detail"]
         assert "message" in data["detail"]
+
+
+# ==============================================================================
+# Dependency Injection Tests (for coverage of factory functions)
+# ==============================================================================
+
+
+class TestDependencyInjection:
+    """Tests for dependency injection functions to achieve 100% coverage."""
+
+    def test_get_pending_restart_state_singleton_initialization(self) -> None:
+        """Test that get_pending_restart_state creates singleton on first call.
+
+        This covers lines 74-76 where the singleton is initialized.
+        """
+        # Import the module to reset the global state
+        from vintagestory_api.routers import config as config_module
+
+        # Clear any existing singleton to test initialization path
+        config_module._pending_restart_state = None
+
+        # First call should initialize the singleton
+        state1 = config_module.get_pending_restart_state()
+        assert state1 is not None
+        assert isinstance(state1, PendingRestartState)
+
+        # Second call should return the same instance
+        state2 = config_module.get_pending_restart_state()
+        assert state2 is state1
+
+    def test_get_game_config_service_factory(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Test that get_game_config_service creates service correctly.
+
+        This covers line 92 where GameConfigService is instantiated.
+        """
+        from vintagestory_api.routers.config import get_game_config_service
+
+        pending_state = PendingRestartState()
+        service = get_game_config_service(
+            server_service=mock_server_service,
+            pending_restart_state=pending_state,
+        )
+
+        assert isinstance(service, GameConfigService)
+        # Verify the service was created with the correct settings
+        assert service._settings == temp_settings
+
+    def test_get_api_settings_service_factory(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Test that get_api_settings_service creates service correctly.
+
+        This covers line 249 where ApiSettingsService is instantiated.
+        """
+        from vintagestory_api.routers.config import get_api_settings_service
+
+        service = get_api_settings_service(server_service=mock_server_service)
+
+        assert isinstance(service, ApiSettingsService)
+        # Verify the service was created with the correct settings
+        assert service._settings == temp_settings
+
+    def test_get_config_files_service_factory(
+        self, temp_settings: Settings, mock_server_service: MagicMock
+    ) -> None:
+        """Test that get_config_files_service creates service correctly.
+
+        This covers line 360 where ConfigFilesService is instantiated.
+        """
+        from vintagestory_api.routers.config import get_config_files_service
+
+        service = get_config_files_service(server_service=mock_server_service)
+
+        assert isinstance(service, ConfigFilesService)
+        # Verify the service was created with the correct settings
+        assert service.settings == temp_settings

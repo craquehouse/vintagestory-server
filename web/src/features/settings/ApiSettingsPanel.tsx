@@ -65,7 +65,6 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to toggle debug logging';
       toast.error('Update failed', { description: message });
-      throw err;
     }
   };
 

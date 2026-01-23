@@ -290,4 +290,136 @@ describe('TerminalView', () => {
       expect(updatedTheme?.background).toBe('#eff1f5');
     });
   });
+
+  describe('font size updates', () => {
+    it('updates terminal font size when fontSize prop changes', () => {
+      const { rerender } = render(
+        <PreferencesProvider>
+          <TerminalView fontSize={14} />
+        </PreferencesProvider>
+      );
+
+      // Clear the initial fit call
+      mockFit.mockClear();
+
+      // Update font size
+      rerender(
+        <PreferencesProvider>
+          <TerminalView fontSize={18} />
+        </PreferencesProvider>
+      );
+
+      // Verify font size was updated on terminal instance
+      expect(lastTerminalInstance?.options.fontSize).toBe(18);
+      // Verify fit was called to adjust terminal dimensions
+      expect(mockFit).toHaveBeenCalled();
+    });
+
+    it('updates terminal font size when fontSize prop changes from default', () => {
+      // Start without fontSize prop (uses default 14)
+      const { rerender } = render(
+        <PreferencesProvider>
+          <TerminalView />
+        </PreferencesProvider>
+      );
+
+      // Clear the initial fit call
+      mockFit.mockClear();
+
+      // Update to new fontSize
+      rerender(
+        <PreferencesProvider>
+          <TerminalView fontSize={20} />
+        </PreferencesProvider>
+      );
+
+      // Verify font size was updated on terminal instance
+      expect(lastTerminalInstance?.options.fontSize).toBe(20);
+      // Verify fit was called to adjust terminal dimensions
+      expect(mockFit).toHaveBeenCalled();
+    });
+
+    it('handles fit errors during font size update gracefully', () => {
+      // Make fit throw an error
+      mockFit.mockImplementationOnce(() => {
+        throw new Error('Terminal disposed');
+      });
+
+      const { rerender } = render(
+        <PreferencesProvider>
+          <TerminalView fontSize={14} />
+        </PreferencesProvider>
+      );
+
+      // Update font size - should not throw despite fit error
+      expect(() => {
+        rerender(
+          <PreferencesProvider>
+            <TerminalView fontSize={18} />
+          </PreferencesProvider>
+        );
+      }).not.toThrow();
+
+      // Verify fit was called even though it threw
+      expect(mockFit).toHaveBeenCalled();
+    });
+  });
+
+  describe('resize error handling', () => {
+    it('handles fit errors during resize gracefully', () => {
+      // Store RAF callback
+      let rafCallback: FrameRequestCallback | null = null;
+
+      // Mock requestAnimationFrame to capture the callback
+      const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        rafCallback = cb;
+        return 0;
+      });
+
+      // Store the ResizeObserver callback
+      let resizeObserverCallback: ResizeObserverCallback | null = null;
+
+      // Override ResizeObserver to capture callback
+      class TestMockResizeObserver {
+        callback: ResizeObserverCallback;
+        constructor(callback: ResizeObserverCallback) {
+          this.callback = callback;
+          resizeObserverCallback = callback;
+        }
+        observe = mockObserve;
+        disconnect = mockDisconnect;
+        unobserve = vi.fn();
+      }
+
+      global.ResizeObserver = TestMockResizeObserver as unknown as typeof ResizeObserver;
+
+      renderTerminal();
+
+      // Clear the initial fit call from mount
+      mockFit.mockClear();
+
+      // Make fit throw an error on next call
+      mockFit.mockImplementationOnce(() => {
+        throw new Error('Terminal disposed during resize');
+      });
+
+      // Verify we captured the resize callback
+      expect(resizeObserverCallback).toBeDefined();
+
+      // Trigger resize - this should call requestAnimationFrame with fit
+      if (resizeObserverCallback) {
+        resizeObserverCallback([], {} as ResizeObserver);
+
+        // Now execute the RAF callback which should call fit() in a try-catch
+        if (rafCallback) {
+          expect(() => rafCallback(0)).not.toThrow();
+        }
+
+        // Verify fit was attempted despite the error
+        expect(mockFit).toHaveBeenCalled();
+      }
+
+      rafSpy.mockRestore();
+    });
+  });
 });

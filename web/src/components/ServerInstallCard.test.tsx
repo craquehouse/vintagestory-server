@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { ServerInstallCard } from './ServerInstallCard';
 import type { InstallStatus } from '@/api/types';
+import * as sonner from 'sonner';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -242,6 +243,72 @@ describe('ServerInstallCard', () => {
 
       // Cleanup
       resolvePromise!();
+    });
+  });
+
+  describe('validation and error handling', () => {
+    it('shows error toast when installation fails', async () => {
+      const user = userEvent.setup();
+      const toastErrorSpy = vi.spyOn(sonner.toast, 'error');
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: () =>
+          Promise.resolve({
+            status: 'error',
+            error: 'Internal server error',
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ServerInstallCard isInstalling={false} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.type(screen.getByRole('textbox', { name: /server version/i }), '1.21.3');
+      await user.click(screen.getByRole('button', { name: /install server/i }));
+
+      // Wait for the error to be processed
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith('Failed to start installation', {
+          description: expect.any(String),
+        });
+      });
+
+      toastErrorSpy.mockRestore();
+    });
+
+    it('trims whitespace from version before installation', async () => {
+      const user = userEvent.setup();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Installation started' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ServerInstallCard isInstalling={false} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await user.type(screen.getByRole('textbox', { name: /server version/i }), '  1.21.3  ');
+      await user.click(screen.getByRole('button', { name: /install server/i }));
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://localhost:8080/api/v1alpha1/server/install',
+          expect.objectContaining({
+            method: 'POST',
+            body: JSON.stringify({ version: '1.21.3' }),
+          })
+        );
+      });
     });
   });
 });

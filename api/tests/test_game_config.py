@@ -850,3 +850,140 @@ class TestPasswordRedaction:
                 kwargs = call[1]
                 if "value" in kwargs:
                     assert kwargs["value"] == "***", "Password should be redacted as ***"
+
+
+# ==============================================================================
+# Additional coverage tests for missing lines
+# ==============================================================================
+
+
+class TestMissingCoverage:
+    """Tests to cover missing lines identified in coverage report."""
+
+    def test_setting_info_to_dict_includes_env_var(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """SettingInfo.to_dict() includes env_var when present (line 223)."""
+        with patch.dict(os.environ, {"VS_CFG_SERVER_NAME": "EnvServer"}):
+            response = game_config_service.get_settings()
+
+        server_name = next(s for s in response.settings if s.key == "ServerName")
+        result_dict = server_name.to_dict()
+
+        # Line 223: result["env_var"] = self.env_var
+        assert "env_var" in result_dict
+        assert result_dict["env_var"] == "VS_CFG_SERVER_NAME"
+
+    @pytest.mark.asyncio
+    async def test_validate_float_value(
+        self, temp_settings: Settings, config_file: Path, mock_server_service: MagicMock
+    ) -> None:
+        """Test float value type validation (lines 496-497)."""
+        # Create a float setting for testing
+        from vintagestory_api.services.game_config import LIVE_SETTINGS, ServerSetting
+
+        # Add a temporary float setting to test
+        LIVE_SETTINGS["TestFloat"] = ServerSetting(
+            key="TestFloat",
+            value_type="float",
+            console_command="/test {value}",
+            live_update=True,
+        )
+
+        try:
+            # Load config and add TestFloat
+            config = json.loads(config_file.read_text())
+            config["TestFloat"] = 1.5
+            config_file.write_text(json.dumps(config, indent=2))
+
+            service = GameConfigService(
+                settings=temp_settings,
+                server_service=mock_server_service,
+            )
+
+            # Test with int value (should convert to float) - lines 496-497
+            result = await service.update_setting("TestFloat", 42)
+            assert result.value == 42.0
+            assert isinstance(result.value, float)
+
+            # Test with float value
+            result = await service.update_setting("TestFloat", 3.14)
+            assert result.value == 3.14
+            assert isinstance(result.value, float)
+        finally:
+            # Clean up the temporary setting
+            if "TestFloat" in LIVE_SETTINGS:
+                del LIVE_SETTINGS["TestFloat"]
+
+    @pytest.mark.asyncio
+    async def test_execute_console_command_no_console_command(
+        self, game_config_service: GameConfigService
+    ) -> None:
+        """Test error when setting has no console command (line 630)."""
+        # Create a setting without a console command
+        from vintagestory_api.services.game_config import LIVE_SETTINGS, ServerSetting
+
+        LIVE_SETTINGS["TestNoCmd"] = ServerSetting(
+            key="TestNoCmd",
+            value_type="string",
+            console_command=None,  # No console command
+            live_update=True,
+        )
+
+        try:
+            # Load config and add TestNoCmd
+            config = json.loads(game_config_service.config_path.read_text())
+            config["TestNoCmd"] = "test"
+            game_config_service.config_path.write_text(json.dumps(config, indent=2))
+
+            # This should trigger line 630
+            with pytest.raises(SettingUpdateFailedError) as exc_info:
+                await game_config_service.update_setting("TestNoCmd", "value")
+
+            assert "No console command available" in str(exc_info.value)
+        finally:
+            # Clean up
+            if "TestNoCmd" in LIVE_SETTINGS:
+                del LIVE_SETTINGS["TestNoCmd"]
+
+    @pytest.mark.asyncio
+    async def test_execute_console_command_no_server_service(
+        self, temp_settings: Settings, config_file: Path
+    ) -> None:
+        """Test error when ServerService is not available (line 633)."""
+        # Create service without server_service but mock is_server_running to return True
+        service = GameConfigService(
+            settings=temp_settings,
+            server_service=None,
+        )
+
+        # Patch is_server_running to return True so it tries console command path
+        with patch.object(service, "is_server_running", return_value=True):
+            # Since server_service is None, line 633 should be triggered
+            with pytest.raises(SettingUpdateFailedError) as exc_info:
+                await service.update_setting("ServerName", "Test")
+
+            assert "ServerService not available" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_update_config_file_exception_handling(
+        self, temp_settings: Settings, config_file: Path, mock_server_service: MagicMock
+    ) -> None:
+        """Test exception handling in _update_config_file (lines 727-729)."""
+        mock_status = MagicMock()
+        mock_status.state = ServerState.INSTALLED
+        mock_server_service.get_server_status.return_value = mock_status
+
+        service = GameConfigService(
+            settings=temp_settings,
+            server_service=mock_server_service,
+        )
+
+        # Patch json.dumps to raise an exception to trigger error handling
+        with patch("vintagestory_api.services.game_config.json.dumps", side_effect=TypeError("Mock error")):
+            with pytest.raises(SettingUpdateFailedError) as exc_info:
+                await service.update_setting("ServerName", "Test")
+
+            # Lines 727-729: exception handling
+            assert exc_info.value.code == "SETTING_UPDATE_FAILED"
+            assert "ServerName" in str(exc_info.value)

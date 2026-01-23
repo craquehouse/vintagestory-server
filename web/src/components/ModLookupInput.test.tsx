@@ -488,5 +488,601 @@ describe('ModLookupInput', () => {
         expect(input.value).toBe('');
       });
     });
+
+    it('confirms and installs incompatible mod when user confirms', async () => {
+      const lookupFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockIncompatibleResponse),
+      });
+
+      const installFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'oldmod',
+              version: '1.0.0',
+              filename: 'oldmod-1.0.0.zip',
+              compatibility: 'incompatible',
+              pending_restart: true,
+            },
+          }),
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/lookup/')) {
+          return lookupFetch();
+        }
+        return installFetch();
+      });
+
+      const onInstalled = vi.fn();
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput onInstalled={onInstalled} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'oldmod' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+
+      // Click install - should show dialog
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('install-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('incompatible-dialog')).toBeInTheDocument();
+      });
+
+      // Confirm installation
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialog-confirm'));
+      });
+
+      await waitFor(() => {
+        expect(onInstalled).toHaveBeenCalledWith({
+          slug: 'oldmod',
+          version: '1.0.0',
+        });
+      });
+    });
+
+    it('shows install button as disabled while installing', async () => {
+      let resolveInstall: () => void;
+      const installPromise = new Promise<void>((resolve) => {
+        resolveInstall = resolve;
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockLookupResponse),
+          });
+        }
+        await installPromise;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                slug: 'smithingplus',
+                version: '1.5.0',
+                filename: 'smithingplus-1.5.0.zip',
+                compatibility: 'compatible',
+                pending_restart: true,
+              },
+            }),
+        });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('install-button'));
+      });
+
+      // Button should be disabled and show loading state
+      await waitFor(() => {
+        const installButton = screen.getByTestId('install-button');
+        expect(installButton).toBeDisabled();
+        expect(installButton).toHaveTextContent('Installing...');
+      });
+
+      // Resolve the install
+      await act(async () => {
+        resolveInstall!();
+      });
+    });
+  });
+
+  describe('URL parsing and slug extraction', () => {
+    it('extracts slug from full HTTPS URL', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, {
+          target: { value: 'https://mods.vintagestory.at/smithingplus' },
+        });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-preview-card')).toBeInTheDocument();
+      });
+    });
+
+    it('extracts slug from URL without protocol', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, {
+          target: { value: 'mods.vintagestory.at/smithingplus' },
+        });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-preview-card')).toBeInTheDocument();
+      });
+    });
+
+    it('extracts slug from URL with query parameters', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, {
+          target: { value: 'mods.vintagestory.at/smithingplus?tab=files' },
+        });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-preview-card')).toBeInTheDocument();
+      });
+    });
+
+    it('handles plain slug with uppercase converted to lowercase', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'SmithingPlus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+        const fetchUrl = mockFetch.mock.calls[0][0] as string;
+        expect(fetchUrl).toContain('/smithingplus');
+      });
+    });
+
+    it('does not trigger lookup for empty input', async () => {
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: '' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should not fetch for empty input
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('mod-preview-card')).not.toBeInTheDocument();
+    });
+
+    it('does not trigger lookup for whitespace-only input', async () => {
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: '   ' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should not fetch for whitespace-only input
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('mod-preview-card')).not.toBeInTheDocument();
+    });
+
+    it('does not trigger lookup for invalid characters', async () => {
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'invalid@slug!' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should not fetch for invalid slug characters
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('mod-preview-card')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('preview card content', () => {
+    it('displays mod logo when available', async () => {
+      const responseWithLogo = {
+        ...mockLookupResponse,
+        data: {
+          ...mockLookupResponse.data,
+          logoUrl: 'https://mods.vintagestory.at/logo.png',
+        },
+      };
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(responseWithLogo),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        const logo = screen.getByTestId('mod-logo');
+        expect(logo).toBeInTheDocument();
+        expect(logo).toHaveAttribute('src', 'https://mods.vintagestory.at/logo.png');
+        expect(logo).toHaveAttribute('alt', 'Smithing Plus logo');
+      });
+    });
+
+    it('does not display logo when not available', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-preview-card')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('mod-logo')).not.toBeInTheDocument();
+    });
+
+    it('displays mod description when available', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Enhanced smithing features/i)
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('displays formatted download count', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/10,000 downloads/i)).toBeInTheDocument();
+      });
+    });
+
+    it('displays mod side information', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('both')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('edge cases and special scenarios', () => {
+    it('handles rapid input changes correctly with debouncing', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      // Type rapidly
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'a' } });
+        vi.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'ab' } });
+        vi.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'abc' } });
+        vi.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should only fetch once for the final value
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('clears preview when input is cleared', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      // First, enter a valid slug
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-preview-card')).toBeInTheDocument();
+      });
+
+      // Clear the input
+      await act(async () => {
+        fireEvent.change(input, { target: { value: '' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Preview should disappear
+      await waitFor(() => {
+        expect(screen.queryByTestId('mod-preview-card')).not.toBeInTheDocument();
+      });
+    });
+
+    it('handles network errors gracefully', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'smithingplus' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Should show error state
+      await waitFor(() => {
+        expect(screen.getByTestId('lookup-error')).toBeInTheDocument();
+      });
+    });
+
+    it('closes incompatible dialog and clears input after successful installation', async () => {
+      const lookupFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockIncompatibleResponse),
+      });
+
+      const installFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'oldmod',
+              version: '1.0.0',
+              filename: 'oldmod-1.0.0.zip',
+              compatibility: 'incompatible',
+              pending_restart: true,
+            },
+          }),
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/lookup/')) {
+          return lookupFetch();
+        }
+        return installFetch();
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId(
+        'mod-search-input'
+      ) as HTMLInputElement;
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'oldmod' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+
+      // Click install
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('install-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('incompatible-dialog')).toBeInTheDocument();
+      });
+
+      // Confirm installation
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialog-confirm'));
+      });
+
+      // Dialog should close and input should be cleared
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('incompatible-dialog')
+        ).not.toBeInTheDocument();
+        expect(input.value).toBe('');
+      });
+    });
+
+    it('displays incompatibility message in dialog', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockIncompatibleResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'oldmod' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('install-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('incompatible-dialog')).toBeInTheDocument();
+        expect(
+          screen.getByText(/Requires server version 1.19.x or earlier/i)
+        ).toBeInTheDocument();
+      });
+    });
   });
 });

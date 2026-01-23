@@ -24,6 +24,18 @@ describe('parseDuration', () => {
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(0);
     });
+
+    it('parses large numbers', () => {
+      const result = parseDuration('999999');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(999999);
+    });
+
+    it('rejects decimal plain numbers (must have unit)', () => {
+      const result = parseDuration('3.5');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid duration format');
+    });
   });
 
   describe('seconds unit', () => {
@@ -39,6 +51,12 @@ describe('parseDuration', () => {
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(expected);
     });
+
+    it('parses zero seconds with unit', () => {
+      const result = parseDuration('0s');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(0);
+    });
   });
 
   describe('minutes unit', () => {
@@ -53,6 +71,12 @@ describe('parseDuration', () => {
       const result = parseDuration(input);
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(expected);
+    });
+
+    it('parses zero minutes with unit', () => {
+      const result = parseDuration('0m');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(0);
     });
   });
 
@@ -97,6 +121,30 @@ describe('parseDuration', () => {
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(expected);
     });
+
+    it('handles full compound with all units', () => {
+      const result = parseDuration('1d 2h 3m 4s');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(93784); // 86400 + 7200 + 180 + 4
+    });
+
+    it('allows duplicate units (accumulates)', () => {
+      const result = parseDuration('1h 2h');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(10800); // 3 hours total
+    });
+
+    it('handles decimal in compound durations', () => {
+      const result = parseDuration('1.5h 30m');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(7200); // 5400 + 1800
+    });
+
+    it('parses units in any order', () => {
+      const result = parseDuration('30m 1h');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(5400); // Same as 1h 30m
+    });
   });
 
   describe('decimal values', () => {
@@ -110,6 +158,18 @@ describe('parseDuration', () => {
       const result = parseDuration('2.5m');
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(150);
+    });
+
+    it('parses decimal days', () => {
+      const result = parseDuration('0.5d');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(43200); // 12 hours
+    });
+
+    it('rounds decimal results to whole seconds', () => {
+      const result = parseDuration('1.333m');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(80); // 79.98 rounded to 80
     });
   });
 
@@ -135,6 +195,12 @@ describe('parseDuration', () => {
 
     it('handles internal whitespace', () => {
       const result = parseDuration('1 h 30 m');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(5400);
+    });
+
+    it('handles multiple spaces between units', () => {
+      const result = parseDuration('1h    30m');
       expect(result.success).toBe(true);
       expect(result.seconds).toBe(5400);
     });
@@ -169,6 +235,42 @@ describe('parseDuration', () => {
       const result = parseDuration('about 5m');
       expect(result.success).toBe(false);
       expect(result.error).toContain('unexpected');
+    });
+
+    it('rejects text after valid duration', () => {
+      const result = parseDuration('5m xyz');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('unexpected');
+    });
+
+    it('rejects text between units', () => {
+      const result = parseDuration('5m and 30s');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('unexpected');
+    });
+
+    it('rejects negative numbers', () => {
+      const result = parseDuration('-5');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid duration format');
+    });
+
+    it('rejects negative numbers with units', () => {
+      const result = parseDuration('-5m');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid duration format');
+    });
+
+    it('rejects just a unit without number', () => {
+      const result = parseDuration('m');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid duration format');
+    });
+
+    it('rejects multiple unknown units', () => {
+      const result = parseDuration('5w 3x');
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Unknown unit');
     });
   });
 });
@@ -232,6 +334,52 @@ describe('formatDuration', () => {
       expect(formatDuration(30.7)).toBe('31s');
       expect(formatDuration(30.4)).toBe('30s');
     });
+
+    it('rounds at exactly 0.5', () => {
+      expect(formatDuration(30.5)).toBe('31s'); // Round half up
+    });
+  });
+
+  describe('complex compound durations', () => {
+    it('formats days + hours + minutes', () => {
+      expect(formatDuration(90060)).toBe('1d 1h 1m'); // 1d 1h 1m
+    });
+
+    it('formats days + hours + minutes + seconds', () => {
+      expect(formatDuration(90061)).toBe('1d 1h 1m 1s');
+    });
+
+    it('formats multiple days with time', () => {
+      expect(formatDuration(259200 + 3600 + 1800)).toBe('3d 1h 30m'); // 3d 1h 30m
+    });
+
+    it('omits zero components in middle', () => {
+      expect(formatDuration(86400 + 60)).toBe('1d 1m'); // 1d 0h 1m -> "1d 1m"
+    });
+
+    it('omits trailing zero seconds in compound', () => {
+      expect(formatDuration(90000)).toBe('1d 1h'); // 1d 1h 0m 0s -> "1d 1h"
+    });
+  });
+
+  describe('verbose mode edge cases', () => {
+    it('formats zero verbosely', () => {
+      expect(formatDuration(0, { verbose: true })).toBe('0 seconds');
+    });
+
+    it('formats negative verbosely', () => {
+      expect(formatDuration(-100, { verbose: true })).toBe('0 seconds');
+    });
+
+    it('formats compound durations verbosely', () => {
+      expect(formatDuration(90061, { verbose: true })).toBe('1 day 1 hour 1 minute 1 second');
+    });
+
+    it('uses plural forms correctly', () => {
+      expect(formatDuration(120, { verbose: true })).toBe('2 minutes');
+      expect(formatDuration(7200, { verbose: true })).toBe('2 hours');
+      expect(formatDuration(172800, { verbose: true })).toBe('2 days');
+    });
   });
 });
 
@@ -274,6 +422,33 @@ describe('formatDurationSimple', () => {
     it('handles negative values', () => {
       expect(formatDurationSimple(-100)).toBe('0s');
     });
+
+    it('handles NaN', () => {
+      expect(formatDurationSimple(NaN)).toBe('0s');
+    });
+
+    it('handles Infinity', () => {
+      expect(formatDurationSimple(Infinity)).toBe('0s');
+    });
+
+    it('handles -Infinity', () => {
+      expect(formatDurationSimple(-Infinity)).toBe('0s');
+    });
+
+    it('rounds fractional seconds', () => {
+      expect(formatDurationSimple(30.7)).toBe('31s');
+      expect(formatDurationSimple(30.4)).toBe('30s');
+    });
+  });
+
+  describe('large values', () => {
+    it('formats very large day values', () => {
+      expect(formatDurationSimple(8640000)).toBe('100d'); // 100 days exactly
+    });
+
+    it('formats very large hour values', () => {
+      expect(formatDurationSimple(360000)).toBe('100h'); // 100 hours exactly
+    });
   });
 });
 
@@ -293,5 +468,70 @@ describe('round-trip consistency', () => {
     const reparsed = parseDuration(formatted);
     expect(reparsed.success).toBe(true);
     expect(reparsed.seconds).toBe(parsed.seconds);
+  });
+});
+
+describe('additional edge cases', () => {
+  describe('parseDuration boundary conditions', () => {
+    it('handles very large numbers', () => {
+      const result = parseDuration('999d');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(86313600); // 999 * 86400
+    });
+
+    it('handles mixed case in compound', () => {
+      const result = parseDuration('1H 30M');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(5400);
+    });
+
+    it('handles all long-form unit names', () => {
+      const result = parseDuration('1 day 2 hours 3 minutes 4 seconds');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(93784);
+    });
+
+    it('rejects leading zeros in plain numbers', () => {
+      // JavaScript parseInt handles this, but verify behavior
+      const result = parseDuration('0300');
+      expect(result.success).toBe(true);
+      expect(result.seconds).toBe(300);
+    });
+  });
+
+  describe('formatDuration single value coverage', () => {
+    it('formats exactly 1 second', () => {
+      expect(formatDuration(1)).toBe('1s');
+    });
+
+    it('formats exactly 1 minute', () => {
+      expect(formatDuration(60)).toBe('1m');
+    });
+
+    it('formats exactly 1 hour', () => {
+      expect(formatDuration(3600)).toBe('1h');
+    });
+
+    it('formats exactly 1 day', () => {
+      expect(formatDuration(86400)).toBe('1d');
+    });
+  });
+
+  describe('formatDurationSimple boundary coverage', () => {
+    it('formats 1 second', () => {
+      expect(formatDurationSimple(1)).toBe('1s');
+    });
+
+    it('formats values just under a minute', () => {
+      expect(formatDurationSimple(59)).toBe('59s');
+    });
+
+    it('formats values just under an hour', () => {
+      expect(formatDurationSimple(3599)).toBe('59m 59s');
+    });
+
+    it('formats values just under a day', () => {
+      expect(formatDurationSimple(86399)).toBe('23h 59m 59s'); // Not divisible by any single unit
+    });
   });
 });

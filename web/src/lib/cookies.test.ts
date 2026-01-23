@@ -89,4 +89,60 @@ describe("cookies", () => {
       expect(getCookie("doesNotExist")).toBeNull();
     });
   });
+
+  describe("SSR compatibility", () => {
+    it("getCookie returns null when document is undefined", () => {
+      // Save original document
+      const originalDocument = global.document;
+
+      // Simulate SSR by removing document
+      // @ts-expect-error - Intentionally testing SSR scenario
+      delete global.document;
+
+      expect(getCookie("any")).toBeNull();
+
+      // Restore document
+      global.document = originalDocument;
+    });
+
+    it("setCookie does nothing when document is undefined", () => {
+      // Save original document
+      const originalDocument = global.document;
+
+      // Simulate SSR by removing document
+      // @ts-expect-error - Intentionally testing SSR scenario
+      delete global.document;
+
+      // Should not throw
+      setCookie("ssr-test", "value");
+
+      // Restore document
+      global.document = originalDocument;
+
+      // Cookie should not exist (wasn't set during SSR)
+      expect(getCookie("ssr-test")).toBeNull();
+    });
+
+    it("deleteCookie does nothing when document is undefined", () => {
+      // Set a cookie first
+      setCookie("ssr-delete-test", "value");
+      expect(getCookie("ssr-delete-test")).toBe("value");
+
+      // Save original document
+      const originalDocument = global.document;
+
+      // Simulate SSR by removing document
+      // @ts-expect-error - Intentionally testing SSR scenario
+      delete global.document;
+
+      // Should not throw
+      deleteCookie("ssr-delete-test");
+
+      // Restore document
+      global.document = originalDocument;
+
+      // Cookie should still exist (wasn't deleted during SSR)
+      expect(getCookie("ssr-delete-test")).toBe("value");
+    });
+  });
 });

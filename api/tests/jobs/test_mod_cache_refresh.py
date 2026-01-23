@@ -263,6 +263,77 @@ class TestModCacheRefreshErrorHandling:
             # since the update would have failed
 
     @pytest.mark.asyncio
+    async def test_refresh_mod_cache_handles_mod_not_found_in_api(
+        self, capsys: CaptureFixture[str]
+    ) -> None:
+        """refresh_mod_cache handles case when mod returns None (not found in API)."""
+        from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
+
+        mock_mods = [
+            make_mod_info("modA_1.0.0.zip", "modA", "1.0.0", name="Mod A"),
+        ]
+
+        with patch(
+            "vintagestory_api.jobs.mod_cache_refresh.get_mod_service"
+        ) as mock_get_service:
+            mock_service = MagicMock()
+            mock_service.list_mods.return_value = mock_mods
+            mock_service.api_client = AsyncMock()
+            # API returns None - mod not found
+            mock_service.api_client.get_mod = AsyncMock(return_value=None)
+            mock_get_service.return_value = mock_service
+
+            capsys.readouterr()  # Clear prior output
+            await refresh_mod_cache()
+            captured = capsys.readouterr()
+
+            # Should log warning for mod not found
+            assert "mod_cache_refresh_not_found" in captured.out
+            assert "modA" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_refresh_mod_cache_handles_unexpected_exception(
+        self, capsys: CaptureFixture[str]
+    ) -> None:
+        """refresh_mod_cache handles unexpected exceptions during mod refresh."""
+        from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
+
+        mock_mods = [
+            make_mod_info("modA_1.0.0.zip", "modA", "1.0.0", name="Mod A"),
+            make_mod_info("modB_2.0.0.zip", "modB", "2.0.0", name="Mod B"),
+        ]
+
+        call_count = 0
+
+        async def mock_get_mod(slug: str) -> dict[str, str] | None:
+            nonlocal call_count
+            call_count += 1
+            if slug == "modA":
+                raise ValueError("Unexpected error during processing")
+            return {"name": f"Mod {slug}", "modid": slug}
+
+        with patch(
+            "vintagestory_api.jobs.mod_cache_refresh.get_mod_service"
+        ) as mock_get_service:
+            mock_service = MagicMock()
+            mock_service.list_mods.return_value = mock_mods
+            mock_service.api_client = AsyncMock()
+            mock_service.api_client.get_mod = mock_get_mod
+            mock_get_service.return_value = mock_service
+
+            capsys.readouterr()  # Clear prior output
+            await refresh_mod_cache()
+            captured = capsys.readouterr()
+
+            # Should log unexpected error warning
+            assert "mod_cache_refresh_unexpected_error" in captured.out
+            assert "ValueError" in captured.out
+            # Should continue processing other mods
+            assert call_count == 2
+            # Should complete successfully
+            assert "mod_cache_refresh_completed" in captured.out
+
+    @pytest.mark.asyncio
     async def test_refresh_mod_cache_does_not_raise_on_exception(self) -> None:
         """refresh_mod_cache never raises exceptions (critical for scheduler)."""
         from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache

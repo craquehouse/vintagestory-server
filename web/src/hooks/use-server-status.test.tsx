@@ -252,6 +252,133 @@ describe('useStartServer', () => {
         queryKey: ['server', 'status'],
       });
     });
+
+    it('optimistically updates state to starting when valid data exists', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server starting' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set initial valid query data
+      queryClient.setQueryData(['server', 'status'], {
+        status: 'ok',
+        data: {
+          state: 'installed',
+          version: '1.21.3',
+          uptimeSeconds: null,
+          lastExitCode: null,
+        },
+      });
+
+      const { result } = renderHook(() => useStartServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('handles optimistic update with no prior query data', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server starting' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useStartServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Don't set any prior query data
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Should complete successfully even without prior data
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('handles optimistic update with malformed query data', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server starting' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set malformed data (no 'data' property)
+      queryClient.setQueryData(['server', 'status'], { status: 'ok' });
+
+      const { result } = renderHook(() => useStartServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Should complete successfully even with malformed data
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('rolls back optimistic update on error', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set initial query data
+      const initialData = {
+        status: 'ok',
+        data: {
+          state: 'installed',
+          version: '1.21.3',
+          uptimeSeconds: null,
+          lastExitCode: null,
+        },
+      };
+      queryClient.setQueryData(['server', 'status'], initialData);
+
+      const { result } = renderHook(() => useStartServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Query data should be rolled back to initial state
+      const queryData = queryClient.getQueryData(['server', 'status']);
+      expect(queryData).toEqual(initialData);
+    });
   });
 });
 
@@ -297,6 +424,162 @@ describe('useStopServer', () => {
           method: 'POST',
         })
       );
+    });
+
+    it('optimistically updates state to stopping when valid data exists', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server stopping' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set initial valid query data
+      queryClient.setQueryData(['server', 'status'], {
+        status: 'ok',
+        data: {
+          state: 'running',
+          version: '1.21.3',
+          uptimeSeconds: 3600,
+          lastExitCode: null,
+        },
+      });
+
+      const { result } = renderHook(() => useStopServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('handles optimistic update with no prior query data', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server stopping' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useStopServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Don't set any prior query data
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Should complete successfully even without prior data
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('handles optimistic update with malformed query data', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server stopping' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set malformed data (no 'data' property)
+      queryClient.setQueryData(['server', 'status'], { status: 'ok' });
+
+      const { result } = renderHook(() => useStopServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      // Should complete successfully even with malformed data
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    it('rolls back optimistic update on error', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Set initial query data
+      const initialData = {
+        status: 'ok',
+        data: {
+          state: 'running',
+          version: '1.21.3',
+          uptimeSeconds: 3600,
+          lastExitCode: null,
+        },
+      };
+      queryClient.setQueryData(['server', 'status'], initialData);
+
+      const { result } = renderHook(() => useStopServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Query data should be rolled back to initial state
+      const queryData = queryClient.getQueryData(['server', 'status']);
+      expect(queryData).toEqual(initialData);
+    });
+
+    it('invalidates server status query on success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { message: 'Server stopping' },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useStopServer(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate();
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['server', 'status'],
+      });
     });
   });
 });

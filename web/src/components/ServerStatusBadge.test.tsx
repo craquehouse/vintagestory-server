@@ -164,4 +164,17 @@ describe('ServerStatusBadge', () => {
       expect(badge).toHaveClass('mt-4');
     });
   });
+
+  describe('exhaustive check', () => {
+    it('handles invalid state value (exhaustive check coverage)', () => {
+      // This test covers the default case in getStateConfig (lines 114-115)
+      // In production, TypeScript prevents invalid states, but we need to test
+      // the exhaustive check for 100% coverage
+      const invalidState = 'invalid_state' as ServerState;
+
+      expect(() => {
+        render(<ServerStatusBadge state={invalidState} />);
+      }).toThrow();
+    });
+  });
 });

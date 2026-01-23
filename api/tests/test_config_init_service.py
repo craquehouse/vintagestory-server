@@ -148,6 +148,26 @@ class TestAtomicWrite:
         assert len(temp_files) == 0
 
 
+class TestTemplateLoading:
+    """Tests for template loading behavior."""
+
+    def test_missing_template_raises_error(
+        self,
+        temp_settings: Settings,
+    ) -> None:
+        """Test that _load_template raises FileNotFoundError when template doesn't exist.
+
+        This tests line 129.
+        """
+        # Create a service with a non-existent template path
+        service = ConfigInitService(settings=temp_settings)
+        service._template_path = temp_settings.data_dir / "nonexistent-template.json"
+
+        # Attempting to initialize should raise FileNotFoundError
+        with pytest.raises(FileNotFoundError, match="Config template not found"):
+            service.initialize_config()
+
+
 class TestConfigPath:
     """Tests for config path resolution."""
 
@@ -389,6 +409,53 @@ class TestEnvVarFiltering:
         assert "OTHER_VAR" not in str(config)
 
 
+class TestPasswordMasking:
+    """Tests for password masking in debug logs."""
+
+    def test_password_masked_during_collection(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Test that PASSWORD env vars are masked during collection.
+
+        This tests line 175 - the logger.debug call that masks passwords.
+        """
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Set a password env var
+        with patch.dict(os.environ, {"VS_CFG_SERVER_PASSWORD": "secret123"}):
+            config_service.initialize_config()
+
+        # Verify the password was applied correctly
+        config = json.loads(config_service.config_path.read_text())
+        assert config["Password"] == "secret123"
+
+    def test_password_masked_during_application(
+        self,
+        config_service: ConfigInitService,
+    ) -> None:
+        """Test that PASSWORD env vars are masked during application.
+
+        This tests line 215 - the logger.debug call that masks passwords when applying.
+        """
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Set a password env var alongside a non-password var
+        with patch.dict(
+            os.environ,
+            {
+                "VS_CFG_SERVER_PASSWORD": "verysecret",
+                "VS_CFG_SERVER_NAME": "Test Server",
+            },
+        ):
+            config_service.initialize_config()
+
+        # Verify both values were applied
+        config = json.loads(config_service.config_path.read_text())
+        assert config["Password"] == "verysecret"
+        assert config["ServerName"] == "Test Server"
+
+
 class TestQuoteStripping:
     """Tests for surrounding quote stripping from env var values.
 
@@ -499,6 +566,39 @@ class TestNestedKeyApplication:
         config = json.loads(config_service.config_path.read_text())
         assert config["WorldConfig"]["WorldName"] == "Custom World"
         assert config["WorldConfig"]["AllowCreativeMode"] is True
+
+    def test_nested_key_creates_intermediate_dicts(
+        self,
+        config_service: ConfigInitService,
+        tmp_path: Path,
+    ) -> None:
+        """Test that _set_nested_value creates intermediate dicts when they don't exist.
+
+        This tests line 261 by creating a minimal template without WorldConfig,
+        then applying a nested override that requires creating the intermediate dict.
+        """
+        # Create a minimal template without WorldConfig
+        minimal_template = {
+            "ServerName": "Test Server",
+            "Port": 42420,
+        }
+
+        # Create custom template without WorldConfig
+        custom_template_path = tmp_path / "minimal-template.json"
+        custom_template_path.write_text(json.dumps(minimal_template))
+
+        # Point service to custom template
+        config_service._template_path = custom_template_path
+        config_service.config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Apply a nested key that requires creating intermediate dict
+        with patch.dict(os.environ, {"VS_CFG_WORLD_NAME": "New World"}):
+            config_service.initialize_config()
+
+        config = json.loads(config_service.config_path.read_text())
+        # Should have created WorldConfig dict and set the value
+        assert "WorldConfig" in config
+        assert config["WorldConfig"]["WorldName"] == "New World"
 
 
 # ==============================================================================

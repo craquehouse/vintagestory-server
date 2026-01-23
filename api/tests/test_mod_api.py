@@ -12,11 +12,13 @@ from vintagestory_api.services.mod_api import (
     DownloadError,
     DownloadResult,
     ExternalApiError,
+    GameVersionNotFoundError,
     ModApiClient,
     ModNotFoundError,
     ModVersionNotFoundError,
     check_compatibility,
     extract_slug,
+    search_mods,
     sort_mods,
     validate_slug,
 )
@@ -180,6 +182,17 @@ class TestValidateSlug:
 # --- Tests for check_compatibility ---
 
 
+class TestExceptions:
+    """Tests for exception classes."""
+
+    def test_game_version_not_found_error(self) -> None:
+        """GameVersionNotFoundError stores version and has correct message."""
+        error = GameVersionNotFoundError("1.21.3")
+        assert error.version == "1.21.3"
+        assert "1.21.3" in str(error)
+        assert "not found" in str(error)
+
+
 class TestCheckCompatibility:
     """Tests for check_compatibility function."""
 
@@ -337,6 +350,37 @@ class TestModApiClientGetMod:
 
         assert "Could not connect" in str(exc_info.value)
 
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mod_unexpected_status(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mod() returns None for unexpected status codes."""
+        respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "500", "error": "Internal Server Error"},
+            )
+        )
+
+        result = await mod_api_client.get_mod("anymod")
+        assert result is None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mod_generic_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mod() raises ExternalApiError on generic HTTPError."""
+        respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
+            side_effect=httpx.HTTPError("Generic HTTP error")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mod("anymod")
+
+        assert "VintageStory mod API error" in str(exc_info.value)
+
     @pytest.mark.asyncio
     async def test_get_mod_invalid_slug(self, mod_api_client: ModApiClient) -> None:
         """get_mod() returns None for invalid slug."""
@@ -451,6 +495,8 @@ class TestModApiClientDownloadMod:
         self, mod_api_client: ModApiClient, cache_dir: Path
     ) -> None:
         """download_mod() cleans up temp file on download failure."""
+        from unittest.mock import AsyncMock, Mock, patch
+
         respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
             return_value=Response(
                 200,
@@ -458,18 +504,273 @@ class TestModApiClientDownloadMod:
             )
         )
 
-        # Mock download failure mid-transfer
-        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
-            side_effect=httpx.HTTPError("connection reset")
-        )
+        # Create async iterator that yields one chunk then fails
+        async def chunk_iterator(*args, **kwargs):
+            yield b"partial"
+            raise httpx.HTTPError("connection reset")
 
-        with pytest.raises(DownloadError):
-            await mod_api_client.download_mod("smithingplus")
+        # Mock response object
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        # Mock the client.stream context manager
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        # Patch the client's stream method
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with pytest.raises(DownloadError):
+                await mod_api_client.download_mod("smithingplus")
 
         # Verify no temp files left behind
         mods_cache = cache_dir / "mods"
         assert list(mods_cache.glob("*.tmp")) == []
         assert not (mods_cache / "smithingplus_1.8.3.zip").exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_timeout_cleans_up(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        """download_mod() cleans up temp file on timeout."""
+        from unittest.mock import AsyncMock, Mock, patch
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # Create async iterator that yields one chunk then times out
+        async def chunk_iterator(*args, **kwargs):
+            yield b"partial"
+            raise httpx.TimeoutException("timeout during download")
+
+        # Mock response object
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        # Mock the client.stream context manager
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        # Patch the client's stream method
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with pytest.raises(DownloadError) as exc_info:
+                await mod_api_client.download_mod("smithingplus")
+
+            assert "timed out" in str(exc_info.value)
+
+        # Verify no temp files left behind
+        mods_cache = cache_dir / "mods"
+        assert list(mods_cache.glob("*.tmp")) == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_io_error_cleans_up(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        """download_mod() cleans up temp file on IO error."""
+        from unittest.mock import AsyncMock, Mock, patch
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # Create async iterator that yields chunks
+        async def chunk_iterator(*args, **kwargs):
+            yield b"partial"
+            yield b"more data"
+
+        # Mock response object
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        # Mock the client.stream context manager
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        # Track call count for write
+        write_call_count = 0
+        original_open = open
+
+        def mock_open_func(path, mode):
+            nonlocal write_call_count
+            file_obj = original_open(path, mode)
+            original_write = file_obj.write
+
+            def write_with_error(data):
+                nonlocal write_call_count
+                write_call_count += 1
+                if write_call_count > 1:
+                    raise OSError("No space left on device")
+                return original_write(data)
+
+            file_obj.write = write_with_error
+            return file_obj
+
+        # Patch the client's stream method and open
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with patch("builtins.open", mock_open_func):
+                with pytest.raises(DownloadError) as exc_info:
+                    await mod_api_client.download_mod("smithingplus")
+
+                assert "IO error" in str(exc_info.value)
+
+        # Verify no temp files left behind
+        mods_cache = cache_dir / "mods"
+        assert list(mods_cache.glob("*.tmp")) == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_timeout_with_temp_file_exists(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        """download_mod() removes temp file when timeout occurs after file creation."""
+        from unittest.mock import AsyncMock, Mock, patch
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # Mock streaming to raise timeout during iteration
+        async def chunk_iterator(*args, **kwargs):
+            # Yield to make this an async generator, then raise during iteration
+            yield b"partial data"  # First chunk writes to file
+            raise httpx.TimeoutException("timeout during stream")
+
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with pytest.raises(DownloadError) as exc_info:
+                await mod_api_client.download_mod("smithingplus")
+
+            assert "timed out" in str(exc_info.value)
+
+        # Verify temp file was cleaned up
+        mods_cache = cache_dir / "mods"
+        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
+        assert not temp_path.exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_http_error_with_temp_file_exists(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        """download_mod() removes temp file when HTTPError occurs after file creation."""
+        from unittest.mock import AsyncMock, Mock, patch
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # Mock streaming to raise HTTP error during iteration
+        async def chunk_iterator(*args, **kwargs):
+            # Yield to make this an async generator, then raise during iteration
+            yield b"partial data"  # First chunk writes to file
+            raise httpx.HTTPError("connection reset by peer")
+
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with pytest.raises(DownloadError):
+                await mod_api_client.download_mod("smithingplus")
+
+        # Verify temp file was cleaned up
+        mods_cache = cache_dir / "mods"
+        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
+        assert not temp_path.exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_os_error_with_temp_file_exists(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        """download_mod() removes temp file when OSError occurs after file creation."""
+        from unittest.mock import AsyncMock, Mock, patch
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        # Mock streaming to raise OS error during iteration
+        async def chunk_iterator(*args, **kwargs):
+            # Yield to make this an async generator, then raise during iteration
+            yield b"partial data"  # First chunk writes to file
+            raise OSError("disk full")
+
+        mock_response = Mock()
+        mock_response.raise_for_status = Mock()
+        mock_response.aiter_bytes = chunk_iterator
+
+        mock_stream = AsyncMock()
+        mock_stream.__aenter__.return_value = mock_response
+
+        client = await mod_api_client._get_client()  # pyright: ignore[reportPrivateUsage]
+        with patch.object(client, "stream", return_value=mock_stream):
+            with pytest.raises(DownloadError) as exc_info:
+                await mod_api_client.download_mod("smithingplus")
+
+            assert "IO error" in str(exc_info.value)
+
+        # Verify temp file was cleaned up
+        mods_cache = cache_dir / "mods"
+        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
+        assert not temp_path.exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_mod_no_releases(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """download_mod() raises ModNotFoundError for mod with no releases."""
+        mod_without_releases = {
+            **SMITHINGPLUS_MOD,
+            "releases": [],
+        }
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": mod_without_releases},
+            )
+        )
+
+        with pytest.raises(ModNotFoundError) as exc_info:
+            await mod_api_client.download_mod("smithingplus")
+
+        assert exc_info.value.slug == "smithingplus"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -507,6 +808,48 @@ class TestModApiClientDownloadMod:
 
         assert result is not None
         assert result.version == "1.8.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_with_cache_eviction(self, cache_dir: Path) -> None:
+        """download_mod() triggers cache eviction when service is provided."""
+        from unittest.mock import MagicMock
+
+        from vintagestory_api.services.cache_eviction import EvictionResult
+
+        # Create mock cache eviction service
+        mock_eviction = MagicMock()
+        mock_eviction.evict_if_needed.return_value = EvictionResult(
+            files_evicted=2,
+            bytes_freed=1024 * 1024,
+            files_remaining=5,
+            bytes_remaining=5 * 1024 * 1024,
+        )
+
+        # Create client with cache eviction service
+        client = ModApiClient(
+            cache_dir=cache_dir,
+            cache_eviction_service=mock_eviction,
+        )
+
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(
+                200,
+                json={"statuscode": "200", "mod": SMITHINGPLUS_MOD},
+            )
+        )
+
+        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+            return_value=Response(200, content=b"content")
+        )
+
+        result = await client.download_mod("smithingplus")
+
+        assert result is not None
+        # Verify eviction was called
+        mock_eviction.evict_if_needed.assert_called_once()
+
+        await client.close()
 
 
 # --- Tests for ModApiClient lifecycle ---
@@ -711,6 +1054,135 @@ class TestSortMods:
         assert result == [{"urlalias": "single", "downloads": 100}]
 
 
+# --- Tests for search_mods ---
+
+
+class TestSearchMods:
+    """Tests for search_mods function."""
+
+    def test_search_empty_returns_all(self) -> None:
+        """Empty search returns all mods."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "")
+        assert len(result) == 3
+
+    def test_search_by_name(self) -> None:
+        """Searches mod names."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "smithing")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "smithingplus"
+
+    def test_search_by_author(self) -> None:
+        """Searches mod authors."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "jayu")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "smithingplus"
+
+    def test_search_by_summary(self) -> None:
+        """Searches mod summaries."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "trending")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "trendingnew"
+
+    def test_search_by_summary_only(self) -> None:
+        """Searches mod summaries when not in name or author."""
+        mods = [
+            {
+                "urlalias": "mod1",
+                "name": "Alpha Mod",
+                "author": "Bob",
+                "summary": "A mod with unique description",
+                "tags": ["tag1"],
+            },
+        ]
+        # Search for a term only in the summary
+        result = search_mods(mods, "unique")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "mod1"
+
+    def test_search_by_tag(self) -> None:
+        """Searches mod tags."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "qol")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "smithingplus"
+
+    def test_search_case_insensitive(self) -> None:
+        """Search is case insensitive."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "SMITHING")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "smithingplus"
+
+    def test_search_whitespace_trimmed(self) -> None:
+        """Whitespace is trimmed from search term."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "  smithing  ")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "smithingplus"
+
+    def test_search_no_matches(self) -> None:
+        """Returns empty list when no matches."""
+        mods = BROWSE_MODS_LIST.copy()
+        result = search_mods(mods, "nonexistent")
+        assert result == []
+
+    def test_search_with_none_summary(self) -> None:
+        """Handles mods with None summary."""
+        mods = [
+            {
+                "urlalias": "mod1",
+                "name": "Mod One",
+                "author": "author1",
+                "summary": None,  # None summary
+                "tags": ["tag1"],
+            },
+            {
+                "urlalias": "mod2",
+                "name": "Searchable Mod",
+                "author": "author2",
+                "summary": "Has searchable summary",
+                "tags": ["tag2"],
+            },
+        ]
+        result = search_mods(mods, "searchable")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "mod2"
+
+    def test_search_with_tags_containing_term(self) -> None:
+        """Searches within tag strings."""
+        mods = [
+            {
+                "urlalias": "mod1",
+                "name": "Mod One",
+                "author": "author1",
+                "summary": "Summary",
+                "tags": ["gameplay", "crafting"],
+            },
+        ]
+        result = search_mods(mods, "craft")
+        assert len(result) == 1
+        assert result[0]["urlalias"] == "mod1"
+
+    def test_search_stops_at_first_match(self) -> None:
+        """Returns mod on first field match (name takes priority)."""
+        mods = [
+            {
+                "urlalias": "mod1",
+                "name": "Test Name",
+                "author": "Test Author",
+                "summary": "Test Summary",
+                "tags": ["Test"],
+            },
+        ]
+        # Should find it in name first, but result is same
+        result = search_mods(mods, "test")
+        assert len(result) == 1
+
+
 # --- Tests for ModApiClient.get_all_mods ---
 
 
@@ -798,6 +1270,21 @@ class TestModApiClientGetAllMods:
             await mod_api_client.get_all_mods()
 
         assert "Could not connect" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_generic_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_all_mods() raises ExternalApiError on generic HTTPError."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=httpx.HTTPError("Generic HTTP error")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_all_mods()
+
+        assert "VintageStory mod API error" in str(exc_info.value)
 
     @respx.mock
     @pytest.mark.asyncio
@@ -983,6 +1470,66 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_get_game_versions_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on HTTP error status."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(503, content=b"Service Unavailable")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "HTTP 503" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_invalid_json(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on invalid JSON."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, content=b"<html>Not JSON</html>")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "invalid JSON" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_unexpected_status(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on unexpected status."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json={"statuscode": "500", "error": "Server error"})
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "unexpected status" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_generic_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_game_versions() raises ExternalApiError on generic HTTPError."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=httpx.HTTPError("Generic HTTP error")
+        )
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_game_versions()
+
+        assert "VintageStory mod API error" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_clear_gameversions_cache(
         self, mod_api_client: ModApiClient
     ) -> None:
@@ -1088,3 +1635,71 @@ class TestModApiClientModsByVersion:
             await mod_api_client.get_mods_by_version(version_tagid)
 
         assert "Could not connect" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on HTTP error status."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(500, content=b"Internal Server Error"))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "HTTP 500" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_invalid_json(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on invalid JSON."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(200, content=b"Not valid JSON"))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "invalid JSON" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_unexpected_status(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on unexpected status."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(200, json={"statuscode": "500", "error": "Server error"}))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "unexpected status" in str(exc_info.value)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_generic_http_error(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() raises ExternalApiError on generic HTTPError."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(side_effect=httpx.HTTPError("Generic HTTP error"))
+
+        with pytest.raises(ExternalApiError) as exc_info:
+            await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert "VintageStory mod API error" in str(exc_info.value)

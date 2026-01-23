@@ -157,6 +157,37 @@ class TestServerStartEndpoint:
         error = response.json()["detail"]
         assert error["code"] == "SERVER_ALREADY_RUNNING"
 
+    def test_start_unknown_error_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/start returns 500 with SERVER_START_FAILED for unknown errors."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (vsmanager_dir / "current_version").write_text("1.21.3")
+
+        # Mock start_server to raise an unknown error
+        test_service = integration_app.dependency_overrides[get_server_service]()
+
+        async def mock_start_error():
+            raise RuntimeError("SOME_UNKNOWN_ERROR")
+
+        test_service.start_server = mock_start_error
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/start",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_START_FAILED"
+        assert "SOME_UNKNOWN_ERROR" in error["message"]
+
 
 class TestServerStopEndpoint:
     """Tests for POST /api/v1alpha1/server/stop endpoint (AC: 2)."""
@@ -290,6 +321,37 @@ class TestServerStopEndpoint:
         assert data["status"] == "ok"
         assert data["data"]["action"] == "stop"
         assert data["data"]["new_state"] == "installed"
+
+    def test_stop_unknown_error_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/stop returns 500 with SERVER_STOP_FAILED for unknown errors."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (vsmanager_dir / "current_version").write_text("1.21.3")
+
+        # Mock stop_server to raise an unknown error
+        test_service = integration_app.dependency_overrides[get_server_service]()
+
+        async def mock_stop_error():
+            raise RuntimeError("SOME_UNKNOWN_ERROR")
+
+        test_service.stop_server = mock_stop_error
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/stop",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "SERVER_STOP_FAILED"
+        assert "SOME_UNKNOWN_ERROR" in error["message"]
 
 
 class TestServerRestartEndpoint:
@@ -548,6 +610,37 @@ class TestRestartEndpointErrorHandling:
         assert response.status_code == 500
         error = response.json()["detail"]
         assert error["code"] == "SERVER_START_FAILED"
+
+    def test_restart_unknown_error_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """POST /server/restart returns 500 with INTERNAL_ERROR for unknown errors."""
+        # Create server files
+        server_dir = temp_data_dir / "server"
+        vsmanager_dir = temp_data_dir / "vsmanager"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        vsmanager_dir.mkdir(parents=True, exist_ok=True)
+        (server_dir / "VintagestoryServer.dll").touch()
+        (server_dir / "VintagestoryLib.dll").touch()
+        (vsmanager_dir / "current_version").write_text("1.21.3")
+
+        # Mock restart_server to raise an unknown error
+        test_service = integration_app.dependency_overrides[get_server_service]()
+
+        async def mock_restart_error():
+            raise RuntimeError("SOME_UNKNOWN_ERROR")
+
+        test_service.restart_server = mock_restart_error
+
+        response = integration_client.post(
+            "/api/v1alpha1/server/restart",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "INTERNAL_ERROR"
+        assert "SOME_UNKNOWN_ERROR" in error["message"]
 
 
 class TestServerStatusEndpoint:
@@ -1262,3 +1355,51 @@ class TestServerUninstallEndpoint:
         assert "detail" in json_response
         assert "code" in json_response["detail"]
         assert "message" in json_response["detail"]
+
+    def test_uninstall_failed_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """DELETE /server returns 500 when uninstall operation fails."""
+        self._create_fake_installation(temp_data_dir, "1.21.3")
+
+        # Mock uninstall_server to raise UNINSTALL_FAILED error
+        test_service = integration_app.dependency_overrides[get_server_service]()
+
+        async def mock_uninstall_failed():
+            raise RuntimeError("UNINSTALL_FAILED")
+
+        test_service.uninstall_server = mock_uninstall_failed
+
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "UNINSTALL_FAILED"
+        assert "file permissions" in error["message"].lower()
+
+    def test_uninstall_unknown_error_returns_500(
+        self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
+    ) -> None:
+        """DELETE /server returns 500 with INTERNAL_ERROR for unknown errors."""
+        self._create_fake_installation(temp_data_dir, "1.21.3")
+
+        # Mock uninstall_server to raise an unknown error
+        test_service = integration_app.dependency_overrides[get_server_service]()
+
+        async def mock_uninstall_unknown():
+            raise RuntimeError("SOME_UNKNOWN_ERROR")
+
+        test_service.uninstall_server = mock_uninstall_unknown
+
+        response = integration_client.delete(
+            "/api/v1alpha1/server",
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 500
+        error = response.json()["detail"]
+        assert error["code"] == "INTERNAL_ERROR"
+        assert "SOME_UNKNOWN_ERROR" in error["message"]

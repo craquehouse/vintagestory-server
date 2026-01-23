@@ -249,6 +249,48 @@ describe('useSettingField', () => {
 
       expect(onSave).not.toHaveBeenCalled();
     });
+
+    it('uses valueOverride when provided to save', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: false,
+          settingKey: 'AllowPvP',
+          settingType: 'bool',
+          onSave,
+        })
+      );
+
+      // Save with override value (useful for boolean toggles)
+      await act(async () => {
+        await result.current.save(true);
+      });
+
+      expect(onSave).toHaveBeenCalledWith({
+        key: 'AllowPvP',
+        value: true,
+      });
+    });
+
+    it('handles non-Error objects in catch block', async () => {
+      const onSave = vi.fn().mockRejectedValue('String error');
+
+      const { result } = renderHook(() =>
+        useSettingField({
+          initialValue: 'value',
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+        })
+      );
+
+      await act(async () => {
+        await result.current.save();
+      });
+
+      expect(result.current.error).toBe('Failed to save setting');
+    });
   });
 
   describe('onBlur', () => {
@@ -642,6 +684,77 @@ describe('validators', () => {
         validators.range(1, 100)
       );
       expect(validate(50)).toBeNull();
+    });
+  });
+
+  describe('duration', () => {
+    it('returns error for non-string value', () => {
+      const validate = validators.duration();
+      expect(validate(123)).toBe('Duration must be a string');
+    });
+
+    it('returns error for invalid duration format', () => {
+      const validate = validators.duration();
+      const result = validate('invalid');
+      expect(result).toContain('Invalid duration format');
+    });
+
+    it('returns error for empty duration string', () => {
+      const validate = validators.duration();
+      expect(validate('')).toBe('Duration cannot be empty');
+    });
+
+    it('returns null for valid duration string', () => {
+      const validate = validators.duration();
+      expect(validate('4h')).toBeNull();
+      expect(validate('30m')).toBeNull();
+      expect(validate('1d')).toBeNull();
+    });
+
+    it('returns error when duration is below minimum', () => {
+      const validate = validators.duration({ min: 3600 }); // 1 hour minimum
+      expect(validate('30m')).toBe('Duration must be at least 3600 seconds');
+    });
+
+    it('uses custom minMessage when provided', () => {
+      const validate = validators.duration({
+        min: 3600,
+        minMessage: 'Must be at least 1 hour',
+      });
+      expect(validate('30m')).toBe('Must be at least 1 hour');
+    });
+
+    it('returns error when duration is above maximum', () => {
+      const validate = validators.duration({ max: 3600 }); // 1 hour maximum
+      expect(validate('2h')).toBe('Duration must be at most 3600 seconds');
+    });
+
+    it('uses custom maxMessage when provided', () => {
+      const validate = validators.duration({
+        max: 3600,
+        maxMessage: 'Must be at most 1 hour',
+      });
+      expect(validate('2h')).toBe('Must be at most 1 hour');
+    });
+
+    it('returns null when duration is within min and max range', () => {
+      const validate = validators.duration({ min: 1800, max: 7200 });
+      expect(validate('1h')).toBeNull(); // 3600 seconds
+    });
+
+    it('accepts duration at exact minimum', () => {
+      const validate = validators.duration({ min: 3600 });
+      expect(validate('1h')).toBeNull();
+    });
+
+    it('accepts duration at exact maximum', () => {
+      const validate = validators.duration({ max: 3600 });
+      expect(validate('1h')).toBeNull();
+    });
+
+    it('validates compound durations', () => {
+      const validate = validators.duration({ min: 3600, max: 10800 });
+      expect(validate('1h30m')).toBeNull(); // 5400 seconds
     });
   });
 });

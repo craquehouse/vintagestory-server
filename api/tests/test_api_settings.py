@@ -347,3 +347,237 @@ class TestSchedulerCallback:
         result = await service.update_setting("mod_list_refresh_interval", 1800)
 
         assert result["value"] == 1800
+
+
+class TestBooleanCoercion:
+    """Tests for additional boolean coercion edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_string_for_boolean(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting rejects invalid string values for boolean fields."""
+        # Lines 188-190: String value that can't be coerced to boolean
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("auto_start_server", "invalid")
+
+        assert "must be a boolean" in str(exc_info.value)
+        assert exc_info.value.key == "auto_start_server"
+
+    @pytest.mark.asyncio
+    async def test_coerces_string_variations_to_bool(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting coerces various string representations to boolean."""
+        # Test "1" -> True
+        result = await service.update_setting("auto_start_server", "1")
+        assert result["value"] is True
+
+        # Test "yes" -> True
+        result = await service.update_setting("auto_start_server", "yes")
+        assert result["value"] is True
+
+        # Test "0" -> False
+        result = await service.update_setting("auto_start_server", "0")
+        assert result["value"] is False
+
+        # Test "no" -> False
+        result = await service.update_setting("auto_start_server", "no")
+        assert result["value"] is False
+
+    @pytest.mark.asyncio
+    async def test_coerces_integer_to_bool(self, service: ApiSettingsService) -> None:
+        """update_setting coerces non-boolean integer values to boolean."""
+        # Lines 191-192: Integer (not boolean) coercion to bool
+        result = await service.update_setting("auto_start_server", 1)
+        assert result["value"] is True
+
+        result = await service.update_setting("auto_start_server", 0)
+        assert result["value"] is False
+
+        result = await service.update_setting("auto_start_server", 42)
+        assert result["value"] is True
+
+    @pytest.mark.asyncio
+    async def test_rejects_non_bool_non_int_non_str_for_boolean(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting rejects non-bool/non-int/non-str types for boolean."""
+        # Lines 193-194: Fallback for types that aren't bool/int/str
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("auto_start_server", [1, 2, 3])
+
+        assert "must be a boolean" in str(exc_info.value)
+
+
+class TestIntegerCoercion:
+    """Tests for additional integer coercion edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_rejects_non_bool_non_int_non_str_for_integer(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting rejects non-bool/non-int/non-str types for integer."""
+        # Lines 206-208: Fallback for types that aren't bool/int/str
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("mod_list_refresh_interval", {"key": "value"})
+
+        assert "must be an integer" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_rejects_list_for_integer(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting rejects list values for integer fields."""
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("mod_list_refresh_interval", [100])
+
+        assert "must be an integer" in str(exc_info.value)
+
+
+class TestOtherTypeHandling:
+    """Tests for handling field types other than bool and int."""
+
+    @pytest.mark.asyncio
+    async def test_handles_non_bool_non_int_field_types(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting handles fields with types other than bool/int."""
+        # Line 208: validated_value = value (else branch for non-bool, non-int types)
+        # This tests the fallback path for future field types (str, float, etc.)
+        from pydantic import Field
+        from pydantic.fields import FieldInfo
+        from unittest.mock import patch
+
+        # Create an extended model with a string field for testing
+        class ExtendedApiSettings(ApiSettings):
+            test_string_field: str = Field(default="default", description="Test string field")
+
+        # Mock both the model_fields dict AND the ApiSettings class itself
+        # to make the service think it's working with the extended model
+        mock_field = FieldInfo(annotation=str, default="default", description="Test string field")
+
+        # We need to patch at the module level where ApiSettingsService imports ApiSettings
+        import vintagestory_api.services.api_settings as api_settings_module
+
+        original_model = api_settings_module.ApiSettings
+
+        try:
+            # Replace ApiSettings with our extended model
+            api_settings_module.ApiSettings = ExtendedApiSettings
+
+            # Now update_setting will use ExtendedApiSettings
+            result = await service.update_setting("test_string_field", "custom_value")
+
+            # The value should be stored (line 208 will be executed for str type)
+            assert result["key"] == "test_string_field"
+            assert result["value"] == "custom_value"
+
+        finally:
+            # Restore the original model
+            api_settings_module.ApiSettings = original_model
+
+
+class TestSaveSettingsErrorHandling:
+    """Tests for _save_settings error handling."""
+
+    @pytest.mark.asyncio
+    async def test_handles_permission_error_during_save(
+        self, settings: Settings, tmp_path: Path
+    ) -> None:
+        """_save_settings handles permission errors and cleans up temp file."""
+        # Lines 269-281: OSError handling with temp file cleanup
+        service = ApiSettingsService(settings=settings)
+
+        # Create the settings file as read-only directory (causes write error)
+        service.settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write initial valid settings
+        await service.update_setting("auto_start_server", True)
+
+        # Make the settings file directory read-only to trigger OSError
+        import os
+        import stat
+
+        # Store original permissions
+        original_mode = service.settings_file.parent.stat().st_mode
+
+        try:
+            # Remove write permissions from parent directory
+            service.settings_file.parent.chmod(stat.S_IRUSR | stat.S_IXUSR)
+
+            # Attempt update should raise OSError
+            with pytest.raises(OSError):
+                await service.update_setting("auto_start_server", False)
+
+        finally:
+            # Restore permissions for cleanup
+            service.settings_file.parent.chmod(original_mode)
+
+    @pytest.mark.asyncio
+    async def test_cleans_up_temp_file_on_rename_failure(
+        self, settings: Settings, tmp_path: Path, monkeypatch
+    ) -> None:
+        """_save_settings cleans up temp file if rename fails."""
+        import os
+        from unittest.mock import Mock, patch
+
+        service = ApiSettingsService(settings=settings)
+        service.settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Mock Path.rename to raise OSError
+        original_rename = Path.rename
+
+        def mock_rename(self, target):
+            if str(self).endswith(".tmp"):
+                raise OSError("Simulated rename failure")
+            return original_rename(self, target)
+
+        with patch.object(Path, "rename", mock_rename):
+            with pytest.raises(OSError) as exc_info:
+                await service.update_setting("auto_start_server", True)
+
+            assert "Simulated rename failure" in str(exc_info.value)
+
+            # Verify temp file was cleaned up
+            temp_file = service.settings_file.with_suffix(".tmp")
+            assert not temp_file.exists(), "Temp file should be cleaned up"
+
+    @pytest.mark.asyncio
+    async def test_handles_unlink_failure_during_cleanup(
+        self, settings: Settings
+    ) -> None:
+        """_save_settings handles OSError when temp file unlink fails during cleanup."""
+        # Lines 279-280: Nested exception handler for unlink failure
+        from unittest.mock import Mock, patch
+
+        service = ApiSettingsService(settings=settings)
+        service.settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+        call_count = {"rename": 0, "unlink": 0}
+
+        original_rename = Path.rename
+        original_unlink = Path.unlink
+
+        def mock_rename(self, target):
+            call_count["rename"] += 1
+            if str(self).endswith(".tmp"):
+                raise OSError("Simulated rename failure")
+            return original_rename(self, target)
+
+        def mock_unlink(self, missing_ok=False):
+            call_count["unlink"] += 1
+            if str(self).endswith(".tmp"):
+                # Simulate unlink also failing
+                raise OSError("Simulated unlink failure")
+            return original_unlink(self, missing_ok=missing_ok)
+
+        with patch.object(Path, "rename", mock_rename):
+            with patch.object(Path, "unlink", mock_unlink):
+                # This should raise the rename OSError, not the unlink OSError
+                with pytest.raises(OSError) as exc_info:
+                    await service.update_setting("auto_start_server", True)
+
+                assert "Simulated rename failure" in str(exc_info.value)
+                # unlink should have been attempted despite failing
+                assert call_count["unlink"] >= 1

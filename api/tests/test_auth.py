@@ -8,7 +8,7 @@ from collections.abc import Generator
 
 import pytest
 from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
@@ -211,6 +211,120 @@ class TestUserRoleConstants:
     def test_monitor_role_value(self) -> None:
         """Monitor role has expected string value."""
         assert UserRole.MONITOR == "monitor"
+
+
+class TestGetClientIp:
+    """Tests for get_client_ip IP extraction logic."""
+
+    def test_x_forwarded_for_header(self, test_app: FastAPI) -> None:
+        """Extract client IP from X-Forwarded-For header (leftmost IP)."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip")
+        async def test_ip_endpoint(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get(
+            "/test-ip",
+            headers={"X-Forwarded-For": "203.0.113.1, 198.51.100.1, 192.0.2.1"},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"ip": "203.0.113.1"}
+
+    def test_x_forwarded_for_single_ip(self, test_app: FastAPI) -> None:
+        """Extract client IP from X-Forwarded-For header with single IP."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip-single")
+        async def test_ip_endpoint_single(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get(
+            "/test-ip-single",
+            headers={"X-Forwarded-For": "198.51.100.50"},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"ip": "198.51.100.50"}
+
+    def test_x_forwarded_for_with_spaces(self, test_app: FastAPI) -> None:
+        """Extract client IP from X-Forwarded-For header and strip whitespace."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip-spaces")
+        async def test_ip_endpoint_spaces(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get(
+            "/test-ip-spaces",
+            headers={"X-Forwarded-For": " 192.0.2.100 , 198.51.100.1"},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"ip": "192.0.2.100"}
+
+    def test_x_real_ip_header(self, test_app: FastAPI) -> None:
+        """Extract client IP from X-Real-IP header when no X-Forwarded-For."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip2")
+        async def test_ip_endpoint2(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get(
+            "/test-ip2",
+            headers={"X-Real-IP": "203.0.113.42"},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {"ip": "203.0.113.42"}
+
+    def test_fallback_to_direct_connection(self, test_app: FastAPI) -> None:
+        """Fallback to direct connection IP when no proxy headers present."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip3")
+        async def test_ip_endpoint3(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get("/test-ip3")
+
+        assert response.status_code == 200
+        # TestClient uses "testclient" as the default host
+        assert response.json()["ip"] == "testclient"
+
+    def test_x_forwarded_for_takes_precedence_over_x_real_ip(self, test_app: FastAPI) -> None:
+        """X-Forwarded-For takes priority when both headers are present."""
+        from vintagestory_api.middleware.auth import get_client_ip
+
+        client = TestClient(test_app)
+
+        @test_app.get("/test-ip-precedence")
+        async def test_ip_endpoint_precedence(request: Request) -> dict[str, str]:
+            return {"ip": get_client_ip(request)}
+
+        response = client.get(
+            "/test-ip-precedence",
+            headers={
+                "X-Forwarded-For": "10.0.0.1, 10.0.0.2",
+                "X-Real-IP": "10.0.0.99",
+            },
+        )
+
+        assert response.status_code == 200
+        # Should use X-Forwarded-For, not X-Real-IP
+        assert response.json() == {"ip": "10.0.0.1"}
 
 
 class TestAuthMeEndpointIntegration:
