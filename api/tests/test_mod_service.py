@@ -1600,3 +1600,116 @@ class TestModServiceLookupMod:
         assert "1.5.0" in message
         assert "not compatible with 1.21.3" in message
         assert "Installation may cause issues" in message
+
+
+class TestModServiceCleanup:
+    """Tests for mod service cleanup and shutdown."""
+
+    @pytest.mark.asyncio
+    async def test_close_mod_service_when_initialized(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """close_mod_service() closes and clears the global service instance."""
+        # Lines 109-111: Test close_mod_service cleanup function
+        from unittest.mock import AsyncMock
+        from vintagestory_api.services.mods import close_mod_service
+        import vintagestory_api.services.mods as mods_module
+
+        state_dir, mods_dir = temp_dirs
+
+        # Create a service instance directly
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+        service.close = AsyncMock()
+
+        # Set it as the global service
+        mods_module._mod_service = service
+
+        # Close the service
+        await close_mod_service()
+
+        # Verify close was called
+        service.close.assert_called_once()
+
+        # Verify the global service is cleared
+        assert mods_module._mod_service is None
+
+    @pytest.mark.asyncio
+    async def test_close_mod_service_when_not_initialized(self) -> None:
+        """close_mod_service() is safe to call when service was never initialized."""
+        # Lines 109-111: Test close_mod_service when _mod_service is None
+        from vintagestory_api.services.mods import close_mod_service
+        import vintagestory_api.services.mods as mods_module
+
+        # Store original state
+        original_service = mods_module._mod_service
+
+        try:
+            # Ensure service is not initialized
+            mods_module._mod_service = None
+
+            # Should not raise any errors
+            await close_mod_service()
+
+            # Service should still be None
+            assert mods_module._mod_service is None
+        finally:
+            # Restore original state
+            mods_module._mod_service = original_service
+
+
+class TestModServiceProperties:
+    """Tests for ModService property accessors."""
+
+    def test_restart_state_property_returns_correct_instance(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """restart_state property returns the PendingRestartState instance."""
+        # Line 226: Test restart_state property getter
+        state_dir, mods_dir = temp_dirs
+
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+
+        # Access the property
+        result = service.restart_state
+
+        # Verify it returns the same instance
+        assert result is restart_state
+        assert isinstance(result, PendingRestartState)
+
+    def test_restart_state_property_reflects_actual_state(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> None:
+        """restart_state property reflects the actual restart state."""
+        state_dir, mods_dir = temp_dirs
+
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+        )
+
+        # Modify restart state
+        restart_state.require_restart("test reason")
+
+        # Property should reflect the change
+        assert service.restart_state.pending_restart
+
+        # Clear restart state
+        restart_state.clear_restart()
+
+        # Property should reflect the change
+        assert not service.restart_state.pending_restart
