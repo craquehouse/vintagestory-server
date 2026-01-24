@@ -118,6 +118,46 @@ describe('StatCard', () => {
         'Healthy'
       );
     });
+
+    it('does not apply id to title when testId is not provided', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server Status"
+          value="Online"
+        />
+      );
+
+      const title = screen.getByText('Server Status');
+      expect(title).not.toHaveAttribute('id');
+    });
+
+    it('does not apply data-testid to value when testId is not provided', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server"
+          value="Online"
+        />
+      );
+
+      const value = screen.getByText('Online');
+      expect(value).not.toHaveAttribute('data-testid');
+    });
+
+    it('does not apply data-testid to subtitle when testId is not provided', () => {
+      render(
+        <StatCard
+          icon={Server}
+          title="Server"
+          value="Online"
+          subtitle="Healthy"
+        />
+      );
+
+      const subtitle = screen.getByText('Healthy');
+      expect(subtitle).not.toHaveAttribute('data-testid');
+    });
   });
 
   describe('custom content', () => {

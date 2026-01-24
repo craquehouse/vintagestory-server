@@ -998,4 +998,222 @@ describe('useLogStream', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('edge cases', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: { protocol: 'http:', host: 'localhost:8080' },
+        writable: true,
+      });
+    });
+
+    it('handles WebSocket error event', async () => {
+      renderHook(() => useLogStream({ filename: 'test.log' }));
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      // Simulate error event (should not crash)
+      act(() => {
+        MockWebSocket.instances[0]?.simulateError();
+      });
+
+      // Hook should still be functional
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+    });
+
+    it('does not connect when filename is empty', async () => {
+      renderHook(() => useLogStream({ filename: '', enabled: true }));
+
+      // Wait to ensure no connection happens
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      expect(mockRequestWebSocketToken).not.toHaveBeenCalled();
+      expect(MockWebSocket.instances).toHaveLength(0);
+    });
+
+    it('does not reconnect when filename changes to empty', async () => {
+      const { rerender, result } = renderHook(
+        ({ filename }) => useLogStream({ filename, enabled: true }),
+        { initialProps: { filename: 'test.log' } }
+      );
+
+      // Wait for initial connection
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      // Change filename to empty
+      rerender({ filename: '' });
+
+      // Call reconnect manually - should not create new connection
+      act(() => {
+        result.current.reconnect();
+      });
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      // Should still only have the initial connection
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('clears reconnect timeout when disconnect is called during reconnection', async () => {
+      vi.useFakeTimers();
+
+      const { result } = renderHook(() =>
+        useLogStream({
+          filename: 'test.log',
+          baseDelayMs: 1000,
+          maxRetries: 3,
+        })
+      );
+
+      // Flush promise for token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
+      // Trigger reconnect logic (unexpected close)
+      act(() => {
+        MockWebSocket.instances[0]?.simulateClose(1006);
+      });
+
+      // Call disconnect before reconnect timer fires
+      act(() => {
+        result.current.disconnect();
+      });
+
+      // Advance timers - no reconnection should happen
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+
+      // Only initial WebSocket instance
+      expect(MockWebSocket.instances).toHaveLength(1);
+      expect(result.current.connectionState).toBe('disconnected');
+
+      vi.useRealTimers();
+    });
+
+    it('does not log max retries when retries are exhausted', async () => {
+      vi.useFakeTimers();
+
+      renderHook(() =>
+        useLogStream({
+          filename: 'test.log',
+          baseDelayMs: 100,
+          maxRetries: 1,
+        })
+      );
+
+      // Flush promise for initial token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      const initialCount = MockWebSocket.instances.length;
+
+      // First close triggers reconnect
+      act(() => {
+        MockWebSocket.instances[0]?.simulateClose(1006);
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1200);
+      });
+
+      // Should have attempted first retry
+      expect(MockWebSocket.instances.length).toBe(initialCount + 1);
+
+      // Second close should NOT trigger retry (maxRetries = 1)
+      act(() => {
+        const lastInstance =
+          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        lastInstance?.simulateClose(1006);
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+
+      // No new WebSocket instance created (max retries reached)
+      expect(MockWebSocket.instances.length).toBe(initialCount + 1);
+
+      vi.useRealTimers();
+    });
+
+    it('closes existing connection before reconnecting', async () => {
+      const { result } = renderHook(() =>
+        useLogStream({ filename: 'test.log' })
+      );
+
+      // Wait for initial WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      const firstInstance = MockWebSocket.instances[0];
+
+      // Call reconnect manually
+      act(() => {
+        result.current.reconnect();
+      });
+
+      // Wait for new WebSocket after reconnect
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(1);
+      });
+
+      // First instance should have been closed
+      expect(firstInstance?.close).toHaveBeenCalledWith(LOG_WS_CLOSE_CODES.NORMAL);
+    });
+
+    it('clears existing reconnect timeout before creating new connection', async () => {
+      vi.useFakeTimers();
+
+      const { result } = renderHook(() =>
+        useLogStream({
+          filename: 'test.log',
+          baseDelayMs: 1000,
+          maxRetries: 3,
+        })
+      );
+
+      // Flush promise for initial token request
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+
+      // Trigger reconnect logic
+      act(() => {
+        MockWebSocket.instances[0]?.simulateClose(1006);
+      });
+
+      // Don't wait for reconnect, immediately call reconnect manually
+      act(() => {
+        result.current.reconnect();
+      });
+
+      // Wait for reconnect to complete
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      // Should have 2 instances: initial + manual reconnect
+      // The scheduled reconnect should have been cleared
+      expect(MockWebSocket.instances.length).toBe(2);
+
+      vi.useRealTimers();
+    });
+  });
 });

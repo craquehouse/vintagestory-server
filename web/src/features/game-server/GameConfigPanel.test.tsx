@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { GameConfigPanel } from './GameConfigPanel';
 
+// Mock sonner toast
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}));
+
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
   return new QueryClient({
@@ -151,6 +160,80 @@ describe('GameConfigPanel', () => {
       expect(screen.getByText('Player Settings')).toBeInTheDocument();
     });
 
+    it('skips rendering settings not available in API response', async () => {
+      // Mock config with only ServerName, missing other settings
+      const partialConfig = {
+        status: 'ok',
+        data: {
+          settings: [
+            {
+              key: 'ServerName',
+              value: 'Test Server',
+              type: 'string',
+              live_update: true,
+              env_managed: false,
+            },
+          ],
+          source_file: 'serverconfig.json',
+          last_modified: '2025-12-30T10:00:00Z',
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(partialConfig),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+
+      // ServerName should render
+      expect(screen.getByLabelText('Server Name')).toBeInTheDocument();
+
+      // ServerDescription, Password, etc. should not render
+      expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Max Players')).not.toBeInTheDocument();
+    });
+
+    it('skips rendering entire groups when no settings are available', async () => {
+      // Mock config with no settings at all
+      const emptyConfig = {
+        status: 'ok',
+        data: {
+          settings: [],
+          source_file: 'serverconfig.json',
+          last_modified: '2025-12-30T10:00:00Z',
+        },
+      };
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(emptyConfig),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+
+      // No groups should render
+      expect(screen.queryByText('Server Info')).not.toBeInTheDocument();
+      expect(screen.queryByText('Player Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('World Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Network')).not.toBeInTheDocument();
+    });
+
     it('renders individual settings with correct values', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -281,6 +364,87 @@ describe('GameConfigPanel', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Server name is required')).toBeInTheDocument();
+      });
+    });
+
+    it('handles API errors with Error objects', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/settings/')) {
+          return {
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            json: () => Promise.resolve({ detail: 'Server error' }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockGameConfig),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+
+      // Change server name to trigger save
+      const input = screen.getByLabelText('Server Name');
+      fireEvent.change(input, { target: { value: 'New Server Name' } });
+      fireEvent.blur(input);
+
+      // Wait for error to be shown
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/config/game/settings/ServerName'),
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
+    });
+
+    it('handles non-Error exceptions with default message', async () => {
+      // Create a mock mutation that throws a non-Error object
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/settings/')) {
+          // Simulate a non-Error exception (e.g., network error, string, etc.)
+          throw 'Network connection failed'; // Not an Error instance
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockGameConfig),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+
+      // Change server name to trigger save
+      const input = screen.getByLabelText('Server Name');
+      fireEvent.change(input, { target: { value: 'New Server Name' } });
+      fireEvent.blur(input);
+
+      // Wait for the fetch to be called
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/config/game/settings/ServerName'),
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
       });
     });
   });

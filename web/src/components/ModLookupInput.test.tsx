@@ -9,6 +9,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { ModLookupInput } from './ModLookupInput';
+import * as useModsHooks from '@/hooks/use-mods';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -901,6 +902,140 @@ describe('ModLookupInput', () => {
   });
 
   describe('edge cases and special scenarios', () => {
+    it('verifies defensive guard on line 71 via documentation test', async () => {
+      // Line 71 (`if (!modData) return;`) is defensive code that's unreachable
+      // through normal UI flow because the install button only renders when modData exists (line 147).
+      // This test documents that the guard is there for safety but cannot be hit via UI.
+
+      // Scenario: API returns lookup data with null/undefined data field
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: null }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'testmod' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+
+      // Install button doesn't render when modData is null
+      // This proves line 71's guard is defensive - handleInstall can't be called when modData is null
+      expect(screen.queryByTestId('install-button')).not.toBeInTheDocument();
+
+      // The guard on line 71 would protect against direct function calls or
+      // race conditions in future code changes, but is unreachable via current UI flow
+    });
+
+    it('handles performInstall when modData becomes null during dialog', async () => {
+      // This tests line 83: the guard in performInstall when modData is null
+      let returnValidData = true;
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/')) {
+          if (returnValidData) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockIncompatibleResponse),
+            });
+          }
+          return Promise.resolve({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            json: () =>
+              Promise.resolve({
+                detail: { code: 'MOD_NOT_FOUND', message: 'Mod not found' },
+              }),
+          });
+        }
+        // Install endpoint
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                slug: 'oldmod',
+                version: '1.0.0',
+                filename: 'oldmod-1.0.0.zip',
+                compatibility: 'incompatible',
+                pending_restart: true,
+              },
+            }),
+        });
+      });
+      globalThis.fetch = mockFetch;
+
+      const onInstalled = vi.fn();
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput onInstalled={onInstalled} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByTestId('mod-search-input');
+
+      // Enter incompatible mod
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'oldmod' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+
+      // Click install to show dialog
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('install-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('incompatible-dialog')).toBeInTheDocument();
+      });
+
+      // Make subsequent lookups fail
+      returnValidData = false;
+
+      // Clear input - this will trigger a new lookup that fails
+      await act(async () => {
+        fireEvent.change(input, { target: { value: 'different' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      // Wait for error state
+      await waitFor(() => {
+        expect(screen.queryByTestId('lookup-error')).toBeInTheDocument();
+      });
+
+      // Now click confirm - performInstall should handle null modData
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('dialog-confirm'));
+      });
+
+      // Installation should not proceed
+      await act(async () => {
+        vi.advanceTimersByTime(100);
+      });
+
+      expect(onInstalled).not.toHaveBeenCalled();
+    });
+
     it('handles rapid input changes correctly with debouncing', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,

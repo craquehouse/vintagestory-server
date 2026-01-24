@@ -947,4 +947,163 @@ describe('ConsolePanel', () => {
       expect(screen.getByTestId('source-selector')).toBeInTheDocument();
     });
   });
+
+  describe('font size controls', () => {
+    it('renders font size controls', () => {
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      expect(screen.getByTestId('font-size-controls')).toBeInTheDocument();
+      expect(screen.getByLabelText('Decrease font size')).toBeInTheDocument();
+      expect(screen.getByLabelText('Increase font size')).toBeInTheDocument();
+      expect(screen.getByTestId('console-font-size')).toBeInTheDocument();
+    });
+
+    it('increases font size when clicking increase button', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const increaseButton = screen.getByLabelText('Increase font size');
+      const fontSizeDisplay = screen.getByTestId('console-font-size');
+
+      // Get initial font size
+      const initialFontSize = fontSizeDisplay.textContent;
+
+      // Click increase button
+      await user.click(increaseButton);
+
+      // Font size should have increased
+      expect(fontSizeDisplay.textContent).not.toBe(initialFontSize);
+    });
+
+    it('decreases font size when clicking decrease button', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const decreaseButton = screen.getByLabelText('Decrease font size');
+      const fontSizeDisplay = screen.getByTestId('console-font-size');
+
+      // Get initial font size
+      const initialFontSize = fontSizeDisplay.textContent;
+
+      // Click decrease button
+      await user.click(decreaseButton);
+
+      // Font size should have decreased
+      expect(fontSizeDisplay.textContent).not.toBe(initialFontSize);
+    });
+
+    it('disables decrease button when at minimum font size', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const decreaseButton = screen.getByLabelText('Decrease font size');
+
+      // Click decrease button multiple times to reach minimum
+      for (let i = 0; i < 20; i++) {
+        if (decreaseButton.hasAttribute('disabled')) {
+          break;
+        }
+        await user.click(decreaseButton);
+      }
+
+      // Button should be disabled at minimum
+      expect(decreaseButton).toBeDisabled();
+    });
+
+    it('disables increase button when at maximum font size', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const increaseButton = screen.getByLabelText('Increase font size');
+
+      // Click increase button multiple times to reach maximum
+      for (let i = 0; i < 20; i++) {
+        if (increaseButton.hasAttribute('disabled')) {
+          break;
+        }
+        await user.click(increaseButton);
+      }
+
+      // Button should be disabled at maximum
+      expect(increaseButton).toBeDisabled();
+    });
+  });
+
+  describe('log connection states', () => {
+    it('maps log not_found state to disconnected for ConnectionStatus', async () => {
+      const user = userEvent.setup();
+      mockConfig.logFiles = {
+        data: {
+          data: {
+            files: [{ name: 'test.log', sizeBytes: 100, modifiedAt: '2026-01-24T00:00:00Z' }],
+          },
+        },
+        isLoading: false,
+        error: null,
+      };
+      mockConfig.logStream = {
+        connectionState: 'not_found',
+        isLoading: false,
+        error: null,
+      };
+
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Switch to log file mode
+      await user.click(screen.getByTestId('source-selector'));
+      await user.click(screen.getByText('test.log'));
+
+      // Should display as disconnected (not_found is mapped to disconnected)
+      expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    });
+
+    it('maps log invalid state to disconnected for ConnectionStatus', async () => {
+      const user = userEvent.setup();
+      mockConfig.logFiles = {
+        data: {
+          data: {
+            files: [{ name: 'test.log', sizeBytes: 100, modifiedAt: '2026-01-24T00:00:00Z' }],
+          },
+        },
+        isLoading: false,
+        error: null,
+      };
+      mockConfig.logStream = {
+        connectionState: 'invalid',
+        isLoading: false,
+        error: null,
+      };
+
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Switch to log file mode
+      await user.click(screen.getByTestId('source-selector'));
+      await user.click(screen.getByText('test.log'));
+
+      // Should display as disconnected (invalid is mapped to disconnected)
+      expect(screen.getByText('Disconnected')).toBeInTheDocument();
+    });
+  });
+
 });

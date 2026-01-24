@@ -2,6 +2,14 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Mock ResizeObserver for components like Recharts ResponsiveContainer
+class MockResizeObserver {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+
 // Mock localStorage
 class LocalStorageMock {
   store: Record<string, string>;

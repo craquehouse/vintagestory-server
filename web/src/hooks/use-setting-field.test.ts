@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   useSettingField,
   validators,
   coerceSettingValue,
 } from './use-setting-field';
+import * as durationUtils from '@/lib/duration-utils';
 
 describe('useSettingField', () => {
   describe('initial state', () => {
@@ -696,7 +697,18 @@ describe('validators', () => {
     it('returns error for invalid duration format', () => {
       const validate = validators.duration();
       const result = validate('invalid');
-      expect(result).toContain('Invalid duration format');
+      // parseDuration treats 'invalid' as having an unknown unit
+      expect(result).toBe('Invalid duration format: unexpected "invalid"');
+    });
+
+    it('returns specific error from parseDuration for unknown unit', () => {
+      const validate = validators.duration();
+      expect(validate('5xyz')).toBe('Unknown unit "xyz". Use s, m, h, or d');
+    });
+
+    it('returns specific error for duration with unexpected characters', () => {
+      const validate = validators.duration();
+      expect(validate('4h!!!30m')).toBe('Invalid duration format: unexpected "!!!"');
     });
 
     it('returns error for empty duration string', () => {
@@ -755,6 +767,21 @@ describe('validators', () => {
     it('validates compound durations', () => {
       const validate = validators.duration({ min: 3600, max: 10800 });
       expect(validate('1h30m')).toBeNull(); // 5400 seconds
+    });
+
+    it('uses fallback error message when parseDuration returns no error', () => {
+      // Mock parseDuration to return failure without error property
+      const parseDurationSpy = vi.spyOn(durationUtils, 'parseDuration');
+      parseDurationSpy.mockReturnValueOnce({
+        success: false,
+        seconds: 0,
+        // Intentionally omit error property to test fallback
+      } as any);
+
+      const validate = validators.duration();
+      expect(validate('test')).toBe('Invalid duration format');
+
+      parseDurationSpy.mockRestore();
     });
   });
 });

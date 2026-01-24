@@ -142,6 +142,7 @@ export function useConfigPendingRestart(): boolean {
   // as mods, so we can reuse the mods query for this check
   const { data } = useQuery({
     queryKey: queryKeys.mods.all,
+    queryFn: () => Promise.resolve(null), // Placeholder, never called
     enabled: false, // Don't fetch, just read from cache
   });
 

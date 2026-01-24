@@ -97,4 +97,59 @@ describe('SortControl', () => {
 
     expect(screen.getByRole('button', { name: /newest/i })).toBeInTheDocument();
   });
+
+  it('defaults to "Newest" label when value does not match any option', () => {
+    // @ts-expect-error Testing invalid value handling
+    render(<SortControl value="invalid-sort" onChange={mockOnChange} />);
+
+    expect(screen.getByRole('button', { name: /newest/i })).toBeInTheDocument();
+  });
+
+  it('calls onChange when selecting "recent" option', async () => {
+    const user = userEvent.setup();
+
+    render(<SortControl value="downloads" onChange={mockOnChange} />);
+
+    const sortButton = screen.getByRole('button');
+    await user.click(sortButton);
+
+    const recentOption = screen.getByRole('menuitem', { name: /newest/i });
+    await user.click(recentOption);
+
+    expect(mockOnChange).toHaveBeenCalledWith('recent');
+  });
+
+  it('calls onChange when selecting "trending" option', async () => {
+    const user = userEvent.setup();
+
+    render(<SortControl value="recent" onChange={mockOnChange} />);
+
+    const sortButton = screen.getByRole('button');
+    await user.click(sortButton);
+
+    const trendingOption = screen.getByRole('menuitem', { name: /trending/i });
+    await user.click(trendingOption);
+
+    expect(mockOnChange).toHaveBeenCalledWith('trending');
+  });
+
+  it('calls onChange when selecting "name" option', async () => {
+    const user = userEvent.setup();
+
+    render(<SortControl value="recent" onChange={mockOnChange} />);
+
+    const sortButton = screen.getByRole('button');
+    await user.click(sortButton);
+
+    const nameOption = screen.getByRole('menuitem', { name: /name.*a-z/i });
+    await user.click(nameOption);
+
+    expect(mockOnChange).toHaveBeenCalledWith('name');
+  });
+
+  it('displays "Name (A-Z)" label when value is "name"', () => {
+    render(<SortControl value="name" onChange={mockOnChange} />);
+
+    expect(screen.getByRole('button', { name: /name.*a-z/i })).toBeInTheDocument();
+  });
 });

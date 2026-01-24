@@ -247,6 +247,62 @@ describe('ServerInstallCard', () => {
   });
 
   describe('validation and error handling', () => {
+    it('disables install button when version is only whitespace', async () => {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      render(<ServerInstallCard isInstalling={false} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByRole('textbox', { name: /server version/i });
+      const installButton = screen.getByRole('button', { name: /install server/i });
+
+      // Type only whitespace
+      await user.type(input, '   ');
+
+      // Button should be disabled (which prevents handleInstall from being called)
+      await waitFor(() => {
+        expect(installButton).toBeDisabled();
+      });
+    });
+
+    it('shows validation error when install is attempted with empty version', async () => {
+      const toastErrorSpy = vi.spyOn(sonner.toast, 'error');
+      const queryClient = createTestQueryClient();
+
+      render(<ServerInstallCard isInstalling={false} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const input = screen.getByRole('textbox', { name: /server version/i });
+      const button = screen.getByRole('button', { name: /install server/i });
+
+      // Set input to whitespace - this sets the internal state but doesn't prevent us
+      // from programmatically accessing the button's onClick
+      fireEvent.change(input, { target: { value: '   ' } });
+
+      // Get the React fiber to access the onClick prop directly
+      // @ts-ignore - accessing React internal for testing
+      const fiberKey = Object.keys(button).find((key) => key.startsWith('__reactProps'));
+      if (fiberKey) {
+        // @ts-ignore
+        const props = button[fiberKey];
+        if (props?.onClick) {
+          // Call onClick directly, bypassing disabled state
+          props.onClick({ preventDefault: () => {}, stopPropagation: () => {} });
+        }
+      }
+
+      // Verify the validation error toast was shown
+      await waitFor(() => {
+        expect(toastErrorSpy).toHaveBeenCalledWith('Please enter a version', {
+          description: 'A version number is required to install the server.',
+        });
+      });
+
+      toastErrorSpy.mockRestore();
+    });
+
     it('shows error toast when installation fails', async () => {
       const user = userEvent.setup();
       const toastErrorSpy = vi.spyOn(sonner.toast, 'error');
