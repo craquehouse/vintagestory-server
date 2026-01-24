@@ -148,7 +148,10 @@ describe('Dialog', () => {
       // complex setup that's not practical in jsdom.
       render(
         <Dialog open={true}>
-          <DialogContent data-testid="dialog-content">Content</DialogContent>
+          <DialogContent data-testid="dialog-content">
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 
@@ -163,7 +166,10 @@ describe('Dialog', () => {
       // created when DialogContent is rendered.
       render(
         <Dialog open={true}>
-          <DialogContent data-testid="dialog-content">Content</DialogContent>
+          <DialogContent data-testid="dialog-content">
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 
@@ -176,6 +182,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogDescription>Description</DialogDescription>
             <div>Content</div>
           </DialogContent>
         </Dialog>
@@ -190,6 +197,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent>
+            <DialogDescription>Description</DialogDescription>
             <div data-testid="dialog-child">Test Content</div>
           </DialogContent>
         </Dialog>
@@ -201,7 +209,10 @@ describe('Dialog', () => {
     it('shows close button by default', () => {
       render(
         <Dialog open={true}>
-          <DialogContent data-testid="dialog-content">Content</DialogContent>
+          <DialogContent data-testid="dialog-content">
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 
@@ -212,7 +223,10 @@ describe('Dialog', () => {
     it('hides close button when showCloseButton is false', () => {
       render(
         <Dialog open={true}>
-          <DialogContent showCloseButton={false}>Content</DialogContent>
+          <DialogContent showCloseButton={false}>
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 
@@ -223,6 +237,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content" className="custom-content">
+            <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
         </Dialog>
@@ -234,7 +249,10 @@ describe('Dialog', () => {
     it('has correct positioning classes', () => {
       render(
         <Dialog open={true}>
-          <DialogContent data-testid="dialog-content">Content</DialogContent>
+          <DialogContent data-testid="dialog-content">
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 
@@ -539,7 +557,10 @@ describe('Dialog', () => {
     it('close button has sr-only text', () => {
       render(
         <Dialog open={true}>
-          <DialogContent>Content</DialogContent>
+          <DialogContent>
+            <DialogDescription>Description</DialogDescription>
+            Content
+          </DialogContent>
         </Dialog>
       );
 

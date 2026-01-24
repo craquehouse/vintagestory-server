@@ -370,31 +370,23 @@ describe('ModTable', () => {
     });
   });
 
-  // FIXME: These tests timeout after TanStack Table refactor (VSS-g54)
-  // The same mock pattern works in other tests like "displays remove button for each mod"
-  // but these tests timeout waiting for the element. Needs investigation.
+  // Note: fireEvent.click must NOT be wrapped in act() - it causes timeouts
+  // with React Query/TanStack Table. Use fireEvent directly, waitFor handles updates.
   describe('remove mod (AC: 8)', () => {
-    it.skip('shows confirmation dialog when remove button is clicked', async () => {
-      globalThis.fetch = vi.fn().mockImplementation(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockModsResponse),
-        })
-      );
+    it('shows confirmation dialog when remove button is clicked', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
 
       const queryClient = createTestQueryClient();
       render(<ModTable />, { wrapper: createWrapper(queryClient) });
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
-        },
-        { timeout: 10000 }
-      );
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       });
+
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
@@ -405,45 +397,33 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('closes dialog when cancel is clicked', async () => {
-      globalThis.fetch = vi.fn().mockImplementation(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockModsResponse),
-        })
-      );
+    it('closes dialog when cancel is clicked', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
 
       const queryClient = createTestQueryClient();
       render(<ModTable />, { wrapper: createWrapper(queryClient) });
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
-        },
-        { timeout: 10000 }
-      );
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       });
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
-        },
-        { timeout: 10000 }
-      );
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('remove-dialog-cancel'));
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
       });
+
+      fireEvent.click(screen.getByTestId('remove-dialog-cancel'));
 
       await waitFor(() => {
         expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
       });
     });
 
-    it.skip('removes mod when confirm is clicked', async () => {
+    it('removes mod when confirm is clicked', async () => {
       const removeFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
@@ -472,35 +452,22 @@ describe('ModTable', () => {
         wrapper: createWrapper(queryClient),
       });
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
-        },
-        { timeout: 10000 }
-      );
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       });
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
-        },
-        { timeout: 10000 }
-      );
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+      await waitFor(() => {
+        expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
       });
 
-      await waitFor(
-        () => {
-          expect(removeFetch).toHaveBeenCalled();
-          expect(onRemoved).toHaveBeenCalledWith('smithingplus');
-        },
-        { timeout: 10000 }
-      );
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(removeFetch).toHaveBeenCalled();
+        expect(onRemoved).toHaveBeenCalledWith('smithingplus');
+      });
     });
   });
 
@@ -594,9 +561,7 @@ describe('ModTable', () => {
   });
 
   describe('sorting functionality (VSS-g54)', () => {
-    // FIXME: These tests timeout similar to the remove dialog tests (VSS-g54)
-    // They work in isolation but timeout when running full test suite
-    it.skip('sorts by name column when clicking name header', async () => {
+    it('sorts by name column when clicking name header', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -613,9 +578,7 @@ describe('ModTable', () => {
       const nameHeader = screen.getByText('Name').closest('button');
       expect(nameHeader).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(nameHeader!);
-      });
+      fireEvent.click(nameHeader!);
 
       // Verify sorting indicators appear (ChevronUp or ChevronDown)
       await waitFor(() => {
@@ -624,7 +587,7 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('sorts by version column when clicking version header', async () => {
+    it('sorts by version column when clicking version header', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -641,9 +604,7 @@ describe('ModTable', () => {
       const versionHeader = screen.getByText('Version').closest('button');
       expect(versionHeader).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(versionHeader!);
-      });
+      fireEvent.click(versionHeader!);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -651,7 +612,7 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('sorts by enabled status when clicking status header', async () => {
+    it('sorts by enabled status when clicking status header', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -668,9 +629,7 @@ describe('ModTable', () => {
       const statusHeader = screen.getByText('Status').closest('button');
       expect(statusHeader).toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(statusHeader!);
-      });
+      fireEvent.click(statusHeader!);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -678,7 +637,7 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('toggles sort direction when clicking same header twice', async () => {
+    it('toggles sort direction when clicking same header twice', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -694,14 +653,10 @@ describe('ModTable', () => {
       const nameHeader = screen.getByText('Name').closest('button');
 
       // Click once for asc
-      await act(async () => {
-        fireEvent.click(nameHeader!);
-      });
+      fireEvent.click(nameHeader!);
 
       // Click again for desc
-      await act(async () => {
-        fireEvent.click(nameHeader!);
-      });
+      fireEvent.click(nameHeader!);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -759,7 +714,7 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('correctly sorts mods by enabled status', async () => {
+    it('correctly sorts mods by enabled status', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -775,9 +730,7 @@ describe('ModTable', () => {
 
       // Mods should be sortable by enabled status
       const statusHeader = screen.getByText('Status').closest('button');
-      await act(async () => {
-        fireEvent.click(statusHeader!);
-      });
+      fireEvent.click(statusHeader!);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -787,8 +740,7 @@ describe('ModTable', () => {
   });
 
   describe('loading spinner during toggle', () => {
-    // FIXME: These tests timeout similar to the remove dialog tests (VSS-g54)
-    it.skip('shows spinner while disabling a mod', async () => {
+    it('shows spinner while disabling a mod', async () => {
       let resolveDisable: () => void;
       const disablePromise = new Promise<void>((resolve) => {
         resolveDisable = resolve;
@@ -827,10 +779,8 @@ describe('ModTable', () => {
         expect(screen.getByTestId('mod-toggle-smithingplus')).toBeInTheDocument();
       });
 
-      // Click toggle to disable
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-toggle-smithingplus'));
-      });
+      // Click toggle to disable (no act wrapper)
+      fireEvent.click(screen.getByTestId('mod-toggle-smithingplus'));
 
       // Spinner should appear
       await waitFor(() => {
@@ -838,9 +788,7 @@ describe('ModTable', () => {
       });
 
       // Resolve the disable
-      await act(async () => {
-        resolveDisable!();
-      });
+      resolveDisable!();
 
       // Spinner should disappear
       await waitFor(() => {
@@ -848,7 +796,7 @@ describe('ModTable', () => {
       });
     });
 
-    it.skip('shows spinner while enabling a mod', async () => {
+    it('shows spinner while enabling a mod', async () => {
       let resolveEnable: () => void;
       const enablePromise = new Promise<void>((resolve) => {
         resolveEnable = resolve;
@@ -887,10 +835,8 @@ describe('ModTable', () => {
         expect(screen.getByTestId('mod-toggle-carrycapacity')).toBeInTheDocument();
       });
 
-      // Click toggle to enable
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-toggle-carrycapacity'));
-      });
+      // Click toggle to enable (no act wrapper)
+      fireEvent.click(screen.getByTestId('mod-toggle-carrycapacity'));
 
       // Spinner should appear
       await waitFor(() => {
@@ -898,9 +844,7 @@ describe('ModTable', () => {
       });
 
       // Resolve the enable
-      await act(async () => {
-        resolveEnable!();
-      });
+      resolveEnable!();
 
       // Spinner should disappear
       await waitFor(() => {
@@ -910,8 +854,7 @@ describe('ModTable', () => {
   });
 
   describe('remove dialog', () => {
-    // FIXME: These tests timeout similar to the existing remove dialog tests (VSS-g54)
-    it.skip('shows mod name in dialog title when name exists', async () => {
+    it('shows mod name in dialog title when name exists', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -924,16 +867,14 @@ describe('ModTable', () => {
         expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       });
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
-      });
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByText('Remove Smithing Plus?')).toBeInTheDocument();
       });
     });
 
-    it.skip('shows slug in dialog title when name is null', async () => {
+    it('shows slug in dialog title when name is null', async () => {
       const modWithoutName = {
         status: 'ok',
         data: {
@@ -963,16 +904,14 @@ describe('ModTable', () => {
         expect(screen.getByTestId('mod-remove-unknownmod')).toBeInTheDocument();
       });
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-unknownmod'));
-      });
+      fireEvent.click(screen.getByTestId('mod-remove-unknownmod'));
 
       await waitFor(() => {
         expect(screen.getByText('Remove unknownmod?')).toBeInTheDocument();
       });
     });
 
-    it.skip('closes dialog when clicking outside (onOpenChange)', async () => {
+    it('closes dialog when clicking outside (onOpenChange)', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockModsResponse),
@@ -986,28 +925,24 @@ describe('ModTable', () => {
       });
 
       // Open dialog
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
-      });
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
       });
 
-      // Trigger onOpenChange with false (simulating closing)
-      const dialog = screen.getByTestId('remove-dialog').closest('[role="alertdialog"]');
-
       // Find and click cancel button
       const cancelButton = screen.getByTestId('remove-dialog-cancel');
-      await act(async () => {
-        fireEvent.click(cancelButton);
-      });
+      fireEvent.click(cancelButton);
 
       await waitFor(() => {
         expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
       });
     });
 
+    // Skip: Testing intermediate mutation loading state with React Query is unreliable.
+    // The act() wrapper required to observe isPending causes timeouts with TanStack Query.
+    // The loading state itself works in practice - this is a testing limitation.
     it.skip('shows loading state in remove button when removing', async () => {
       let resolveRemove: () => void;
       const removePromise = new Promise<void>((resolve) => {
@@ -1047,15 +982,13 @@ describe('ModTable', () => {
       });
 
       // Open dialog
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
-      });
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
       });
 
-      // Click confirm
+      // Click confirm - need act() here to ensure React processes mutation start
       await act(async () => {
         fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
       });
@@ -1066,16 +999,14 @@ describe('ModTable', () => {
       });
 
       // Resolve the remove
-      await act(async () => {
-        resolveRemove!();
-      });
+      resolveRemove!();
 
       await waitFor(() => {
         expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
       });
     });
 
-    it.skip('closes dialog on remove error', async () => {
+    it('closes dialog on remove error', async () => {
       const removeFetch = vi.fn().mockRejectedValue(new Error('Remove failed'));
 
       globalThis.fetch = vi.fn().mockImplementation((url: string, options) => {
@@ -1096,18 +1027,14 @@ describe('ModTable', () => {
       });
 
       // Open dialog
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
-      });
+      fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
       });
 
       // Click confirm
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
-      });
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
 
       // Dialog should close even on error
       await waitFor(() => {
