@@ -30,14 +30,6 @@ import {
   CustomTooltip,
 } from './MetricsChart';
 
-// Mock ResizeObserver for ResponsiveContainer
-class MockResizeObserver {
-  observe = vi.fn();
-  unobserve = vi.fn();
-  disconnect = vi.fn();
-}
-globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-
 // Mock data with game server running
 const mockDataWithGame: MetricsSnapshot[] = [
   {

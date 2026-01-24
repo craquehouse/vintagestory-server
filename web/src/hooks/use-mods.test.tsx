@@ -10,6 +10,7 @@ import {
   useDisableMod,
   useRemoveMod,
   useModsCompatibility,
+  useModsPendingRestart,
 } from './use-mods';
 
 // Create a fresh QueryClient for each test
@@ -226,6 +227,24 @@ describe('useLookupMod', () => {
 
       const queryClient = createTestQueryClient();
       const { result } = renderHook(() => useLookupMod(''), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Should not be loading since query is disabled
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch when slug is null', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockLookupResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useLookupMod(null), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -666,6 +685,58 @@ describe('useEnableMod', () => {
         queryKey: ['mods'],
       });
     });
+
+    it('rolls back optimistic update on error', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/enable')) {
+          // Simulate API error
+          throw new Error('Network error');
+        }
+        return { ok: true, json: () => Promise.resolve(mockModsList) };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Pre-populate the cache with disabled mod
+      const initialData = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'testmod-1.0.0.zip',
+              slug: 'testmod',
+              version: '1.0.0',
+              enabled: false,
+              installedAt: '2025-01-01T00:00:00Z',
+              name: 'Test Mod',
+              authors: null,
+              description: null,
+            },
+          ],
+          pendingRestart: false,
+        },
+      };
+      queryClient.setQueryData(['mods'], initialData);
+
+      const { result } = renderHook(() => useEnableMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Trigger mutation
+      act(() => {
+        result.current.mutate('testmod');
+      });
+
+      // Wait for mutation to fail
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Verify rollback - mod should still be disabled
+      const cachedData = queryClient.getQueryData(['mods']) as {
+        data: { mods: { enabled: boolean }[] };
+      };
+      expect(cachedData.data.mods[0].enabled).toBe(false);
+    });
   });
 });
 
@@ -770,6 +841,91 @@ describe('useDisableMod', () => {
           data: { mods: { enabled: boolean }[] };
         };
         expect(cachedData.data.mods[0].enabled).toBe(false);
+      });
+    });
+
+    it('rolls back optimistic update on error', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/disable')) {
+          // Simulate API error
+          throw new Error('Network error');
+        }
+        return { ok: true, json: () => Promise.resolve(mockModsList) };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Pre-populate the cache with enabled mod
+      const initialData = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'testmod-1.0.0.zip',
+              slug: 'testmod',
+              version: '1.0.0',
+              enabled: true,
+              installedAt: '2025-01-01T00:00:00Z',
+              name: 'Test Mod',
+              authors: null,
+              description: null,
+            },
+          ],
+          pendingRestart: false,
+        },
+      };
+      queryClient.setQueryData(['mods'], initialData);
+
+      const { result } = renderHook(() => useDisableMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Trigger mutation
+      act(() => {
+        result.current.mutate('testmod');
+      });
+
+      // Wait for mutation to fail
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Verify rollback - mod should still be enabled
+      const cachedData = queryClient.getQueryData(['mods']) as {
+        data: { mods: { enabled: boolean }[] };
+      };
+      expect(cachedData.data.mods[0].enabled).toBe(true);
+    });
+
+    it('invalidates mods query on success', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'smithingplus',
+              enabled: false,
+              pending_restart: true,
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useDisableMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate('smithingplus');
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['mods'],
       });
     });
   });
@@ -920,6 +1076,126 @@ describe('useRemoveMod', () => {
         queryKey: ['mods'],
       });
     });
+
+    it('rolls back optimistic update on error', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/mods/testmod') && !url.includes('/lookup')) {
+          // Simulate API error
+          throw new Error('Network error');
+        }
+        return { ok: true, json: () => Promise.resolve(mockModsList) };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+
+      // Pre-populate the cache with two mods
+      const initialData = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'testmod-1.0.0.zip',
+              slug: 'testmod',
+              version: '1.0.0',
+              enabled: true,
+              installedAt: '2025-01-01T00:00:00Z',
+              name: 'Test Mod',
+              authors: null,
+              description: null,
+            },
+            {
+              filename: 'othermod-1.0.0.zip',
+              slug: 'othermod',
+              version: '1.0.0',
+              enabled: true,
+              installedAt: '2025-01-02T00:00:00Z',
+              name: 'Other Mod',
+              authors: null,
+              description: null,
+            },
+          ],
+          pendingRestart: false,
+        },
+      };
+      queryClient.setQueryData(['mods'], initialData);
+
+      const { result } = renderHook(() => useRemoveMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Trigger mutation
+      act(() => {
+        result.current.mutate('testmod');
+      });
+
+      // Wait for mutation to fail
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      // Verify rollback - both mods should still be in the list
+      const cachedData = queryClient.getQueryData(['mods']) as {
+        data: { mods: { slug: string }[] };
+      };
+      expect(cachedData.data.mods).toHaveLength(2);
+      expect(cachedData.data.mods[0].slug).toBe('testmod');
+      expect(cachedData.data.mods[1].slug).toBe('othermod');
+    });
+  });
+});
+
+describe('useModsPendingRestart', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('returns false when no data is available', async () => {
+    const mockFetch = vi.fn().mockImplementation(async () => {
+      // Delay the response to keep the hook in loading state
+      await new Promise((r) => setTimeout(r, 100));
+      return {
+        ok: true,
+        json: () => Promise.resolve(mockModsList),
+      };
+    });
+    globalThis.fetch = mockFetch;
+
+    const queryClient = createTestQueryClient();
+    const { result } = renderHook(() => useModsPendingRestart(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Before data is loaded, should return false
+    expect(result.current).toBe(false);
+  });
+
+  it('returns pending restart status from mods data', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            mods: [],
+            pending_restart: true,
+          },
+        }),
+    });
+    globalThis.fetch = mockFetch;
+
+    const queryClient = createTestQueryClient();
+    const { result } = renderHook(() => useModsPendingRestart(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current).toBe(true));
   });
 });
 
@@ -1160,6 +1436,69 @@ describe('useModsCompatibility', () => {
       // Should not have made additional fetch calls due to caching
       expect(mockFetch.mock.calls.length).toBe(fetchCountAfterFirst);
       expect(result2.current.compatibilityMap.get('cachedmod')).toBe('compatible');
+    });
+
+    it('extracts side information from mod lookup data', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/lookup/clientmod')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  slug: 'clientmod',
+                  name: 'Client Mod',
+                  side: 'Client',
+                  compatibility: {
+                    status: 'compatible',
+                    game_version: '1.21.3',
+                    mod_version: '1.0.0',
+                    message: 'Compatible',
+                  },
+                },
+              }),
+          };
+        }
+        if (url.includes('/lookup/servermod')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  slug: 'servermod',
+                  name: 'Server Mod',
+                  side: 'Server',
+                  compatibility: {
+                    status: 'compatible',
+                    game_version: '1.21.3',
+                    mod_version: '2.0.0',
+                    message: 'Compatible',
+                  },
+                },
+              }),
+          };
+        }
+        return { ok: false, status: 404 };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(
+        () => useModsCompatibility(['clientmod', 'servermod']),
+        {
+          wrapper: createWrapper(queryClient),
+        }
+      );
+
+      await waitFor(() => expect(result.current.isAllFetched).toBe(true));
+
+      // Verify both compatibility and side maps are populated
+      expect(result.current.compatibilityMap.get('clientmod')).toBe('compatible');
+      expect(result.current.compatibilityMap.get('servermod')).toBe('compatible');
+      expect(result.current.sideMap.get('clientmod')).toBe('Client');
+      expect(result.current.sideMap.get('servermod')).toBe('Server');
     });
   });
 });

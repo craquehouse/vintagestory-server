@@ -380,6 +380,85 @@ describe('Terminal Page', () => {
       expect(input).toHaveValue('');
     });
 
+    it('does not send command when input is whitespace only', async () => {
+      const user = userEvent.setup();
+      renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Command input')).not.toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      // Type only whitespace
+      await user.type(input, '   ');
+      await user.click(screen.getByRole('button', { name: 'Send' }));
+
+      // Should not have sent any command
+      expect(MockWebSocket.instances[0]?.send).not.toHaveBeenCalled();
+      // Input should still contain the whitespace (not cleared)
+      expect(input).toHaveValue('   ');
+    });
+
+    it('does not send command when server is not running even if connected', async () => {
+      const user = userEvent.setup();
+
+      // Mock server status as stopped
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { state: 'stopped', version: '1.21.3', uptime_seconds: 0 },
+          }),
+      });
+
+      renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      // Simulate connection
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      // Input should be disabled when server is not running
+      await waitFor(() => {
+        const input = screen.getByLabelText('Command input');
+        expect(input).toBeDisabled();
+      });
+
+      const input = screen.getByLabelText('Command input');
+      const button = screen.getByRole('button', { name: 'Send' });
+
+      // Button should be disabled
+      expect(button).toBeDisabled();
+
+      // Try to submit anyway by triggering the form
+      const form = button.closest('form');
+      if (form) {
+        act(() => {
+          form.dispatchEvent(
+            new Event('submit', { bubbles: true, cancelable: true })
+          );
+        });
+      }
+
+      // Should not have sent any command
+      expect(MockWebSocket.instances[0]?.send).not.toHaveBeenCalled();
+    });
+
     it('sends command on Enter key', async () => {
       const user = userEvent.setup();
       renderTerminal();
@@ -424,6 +503,36 @@ describe('Terminal Page', () => {
         expect(input).toHaveAttribute('placeholder', 'Enter command...');
       });
     });
+
+    it('shows "Server not running" placeholder when connected but server is stopped', async () => {
+      // Mock server status as stopped
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { state: 'stopped', version: '1.21.3', uptime_seconds: 0 },
+          }),
+      });
+
+      renderTerminal();
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      // Simulate connection
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      // Wait for server status to be fetched
+      await waitFor(() => {
+        const input = screen.getByLabelText('Command input');
+        expect(input).toHaveAttribute('placeholder', 'Server not running');
+      });
+    });
   });
 
   describe('accessibility', () => {
@@ -459,4 +568,107 @@ describe('Terminal Page', () => {
       expect(container).toHaveClass('flex', 'h-full', 'flex-col');
     });
   });
+
+  describe('message queuing before terminal ready', () => {
+    it('queues messages received before terminal initialization and flushes them when ready', async () => {
+      // This test verifies lines 34-38 (queuing) and lines 52-55 (flushing)
+      //
+      // Strategy: Use React's component lifecycle to create a race condition
+      // where WebSocket messages arrive before the TerminalView calls onReady.
+      // We'll control this by mocking TerminalView to delay onReady.
+
+      let capturedOnReady: ((terminal: any) => void) | undefined;
+      const { Terminal: MockTerminalClass } = await import('@xterm/xterm');
+
+      // Create a custom TerminalView mock that delays calling onReady
+      const DelayedTerminalView = ({
+        onReady,
+        onDispose,
+        className,
+      }: {
+        onReady?: (terminal: any) => void;
+        onDispose?: () => void;
+        className?: string;
+      }) => {
+        // Capture the callback but don't call it yet
+        capturedOnReady = onReady;
+        return (
+          <div
+            className={className}
+            role="application"
+            aria-label="Server console terminal"
+            data-testid="delayed-terminal"
+          />
+        );
+      };
+
+      // Temporarily mock the TerminalView module
+      vi.doMock('@/components/terminal/TerminalView', () => ({
+        TerminalView: DelayedTerminalView,
+      }));
+
+      // Need to re-import Terminal to pick up the new mock
+      vi.resetModules();
+      const { Terminal: TestTerminal } = await import('./Terminal');
+
+      // Render with the mocked TerminalView
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const PreferencesProvider = (await import('@/contexts/PreferencesContext'))
+        .PreferencesProvider;
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <PreferencesProvider>
+            <TestTerminal />
+          </PreferencesProvider>
+        </QueryClientProvider>
+      );
+
+      // Wait for WebSocket to be created
+      await waitFor(() => {
+        expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+      });
+
+      // Simulate WebSocket opening
+      act(() => {
+        MockWebSocket.instances[0]?.simulateOpen();
+      });
+
+      // Send messages while terminal is NOT ready - should be queued (lines 34-38)
+      act(() => {
+        MockWebSocket.instances[0]?.simulateMessage('Queued message 1');
+        MockWebSocket.instances[0]?.simulateMessage('Queued message 2');
+        MockWebSocket.instances[0]?.simulateMessage('Queued message 3');
+      });
+
+      // Create mock terminal and trigger onReady
+      const mockTerminalInstance = new MockTerminalClass();
+
+      // Now call onReady - should flush queued messages (lines 52-55)
+      expect(capturedOnReady).toBeDefined();
+      act(() => {
+        capturedOnReady!(mockTerminalInstance);
+      });
+
+      // Verify all queued messages were flushed
+      expect(mockTerminalInstance.writeln).toHaveBeenCalledTimes(3);
+      expect(mockTerminalInstance.writeln).toHaveBeenNthCalledWith(1, 'Queued message 1');
+      expect(mockTerminalInstance.writeln).toHaveBeenNthCalledWith(2, 'Queued message 2');
+      expect(mockTerminalInstance.writeln).toHaveBeenNthCalledWith(3, 'Queued message 3');
+
+      // Send another message after terminal is ready
+      act(() => {
+        MockWebSocket.instances[0]?.simulateMessage('Direct message');
+      });
+
+      // Should be written directly (4th call)
+      expect(mockTerminalInstance.writeln).toHaveBeenCalledTimes(4);
+      expect(mockTerminalInstance.writeln).toHaveBeenNthCalledWith(4, 'Direct message');
+
+      // Cleanup
+      vi.doUnmock('@/components/terminal/TerminalView');
+      vi.resetModules();
+    });
+  });
+
 });

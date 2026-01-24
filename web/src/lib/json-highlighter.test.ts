@@ -523,6 +523,30 @@ describe('json-highlighter', () => {
   });
 
   describe('edge cases from code review (AI-Review)', () => {
+    it('handles unknown characters via fallback (lines 122-124)', () => {
+      // Test the fallback case that handles characters not matching any pattern
+      // Use characters that don't match JSON syntax patterns
+      const line = '  @invalid!';
+      const tokens = tokenizeLine(line);
+
+      // Whitespace should be matched normally
+      expect(tokens[0]).toEqual({ type: 'punctuation', value: '  ' });
+
+      // The '@' and other invalid chars should be consumed as punctuation via fallback
+      expect(tokens).toContainEqual({ type: 'punctuation', value: '@' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'i' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'n' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'v' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'a' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'l' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'i' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: 'd' });
+      expect(tokens).toContainEqual({ type: 'punctuation', value: '!' });
+
+      // Should have consumed all characters (2 whitespace + 9 individual chars)
+      expect(tokens.length).toBe(10);
+    });
+
     it('tokenizes deeply nested arrays with string elements at line starts', () => {
       // String elements in arrays appear at line start after indentation
       const content = {

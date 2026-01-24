@@ -149,6 +149,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -167,6 +168,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -182,6 +184,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             <div>Content</div>
           </DialogContent>
@@ -197,6 +200,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent>
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             <div data-testid="dialog-child">Test Content</div>
           </DialogContent>
@@ -210,6 +214,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -224,6 +229,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent showCloseButton={false}>
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -237,6 +243,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content" className="custom-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -250,6 +257,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent data-testid="dialog-content">
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>
@@ -558,6 +566,7 @@ describe('Dialog', () => {
       render(
         <Dialog open={true}>
           <DialogContent>
+            <DialogTitle>Title</DialogTitle>
             <DialogDescription>Description</DialogDescription>
             Content
           </DialogContent>

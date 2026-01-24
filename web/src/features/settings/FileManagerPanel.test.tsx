@@ -130,6 +130,31 @@ describe('FileManagerPanel', () => {
       expect(screen.getByText('Failed to load files')).toBeInTheDocument();
     });
 
+    it('shows default error message when error has empty message', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: '',
+        json: () =>
+          Promise.resolve({
+            detail: {
+              code: 'INTERNAL_ERROR',
+              message: '',
+            },
+          }),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Failed to load files')).toBeInTheDocument();
+      expect(screen.getByText('Unable to load configuration files')).toBeInTheDocument();
+    });
+
     it('shows error in viewer when file content fails to load', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/files/serverconfig.json')) {
@@ -1496,11 +1521,31 @@ describe('FileManagerPanel', () => {
       });
     });
 
-    it('handles back button click when already at root (defensive)', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockFilesResponse),
+    it('handles concurrent back navigation clicks safely', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { directories: ['TestDir'] },
+              }),
+          };
+        }
+        if (url.includes('/config/files') && url.includes('directory=TestDir')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { files: ['test.json'] } }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockFilesResponse),
+        };
       });
+      globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
       render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
@@ -1509,13 +1554,28 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-list')).toBeInTheDocument();
       });
 
-      // Back button should not be visible at root
-      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      // Navigate into directory
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-TestDir'));
+      });
 
-      // If we could click it, it should do nothing (defensive check)
-      // This verifies the handleNavigateBack early return works
-      const fileList = screen.getByTestId('file-list');
-      expect(fileList).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+      });
+
+      // Simulate multiple rapid clicks without waiting for state updates
+      // This tests the guard clause's ability to handle race conditions
+      const backButton = screen.getByTestId('file-manager-back');
+      fireEvent.click(backButton);
+      fireEvent.click(backButton);
+      fireEvent.click(backButton);
+
+      // Should safely navigate to root without errors
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
     });
 
     it('shows loading state for directories separately from files', async () => {

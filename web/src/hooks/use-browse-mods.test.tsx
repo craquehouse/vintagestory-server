@@ -221,6 +221,11 @@ describe('filterModsByFilters', () => {
     expect(result).toHaveLength(3);
   });
 
+  it('filters out mods that do not match modType', () => {
+    const result = filterModsByFilters(mockMods, { modType: 'externaltool' });
+    expect(result).toHaveLength(0);
+  });
+
   // Game version filter disabled - API doesn't provide version compatibility data
   it.skip('filters by gameVersion - DISABLED (requires API enhancement)', () => {
     // lastReleased is a timestamp, not a version string

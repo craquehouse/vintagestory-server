@@ -117,6 +117,27 @@ describe('ApiSettingsPanel', () => {
 
       expect(screen.getByText('Failed to load settings')).toBeInTheDocument();
     });
+
+    it('shows fallback error message when error.message is empty', async () => {
+      // Mock an error without a statusText to create an error with empty message
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: '',
+        json: () => Promise.resolve({}),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Unable to load API settings')).toBeInTheDocument();
+    });
   });
 
   describe('rendering settings', () => {
@@ -139,6 +160,55 @@ describe('ApiSettingsPanel', () => {
       expect(screen.getByText('Server Behavior')).toBeInTheDocument();
       expect(screen.getByText('Environment Variables')).toBeInTheDocument();
       expect(screen.getByText('Refresh Intervals')).toBeInTheDocument();
+    });
+
+    it('uses default values when settings are undefined', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve({
+            status: 'ok',
+            data: {
+              settings: {
+                // All settings are undefined
+              },
+            },
+          }),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      // auto_start_server should default to false
+      const autoStartToggle = screen.getByLabelText('Auto-Start Server');
+      expect(autoStartToggle).toHaveAttribute('data-state', 'unchecked');
+
+      // block_env_managed_settings should default to true
+      const blockEnvToggle = screen.getByLabelText('Block Env-Managed Settings');
+      expect(blockEnvToggle).toHaveAttribute('data-state', 'checked');
+
+      // enforce_env_on_restart should default to true
+      const enforceEnvToggle = screen.getByLabelText('Enforce Env on Restart');
+      expect(enforceEnvToggle).toHaveAttribute('data-state', 'checked');
+
+      // mod_list_refresh_interval should default to 14400 (4h)
+      expect(screen.getByLabelText('Mod List Refresh')).toHaveValue('4h');
+
+      // server_versions_refresh_interval should default to 3600 (1h)
+      expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1h');
     });
 
     it('renders auto_start_server toggle', async () => {
@@ -355,6 +425,42 @@ describe('ApiSettingsPanel', () => {
           'Update failed',
           expect.objectContaining({
             description: 'Database connection failed',
+          })
+        );
+      });
+    });
+
+    it('shows fallback error toast when update fails with non-Error object', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (_url: string, options?: RequestInit) => {
+        if (options?.method === 'POST') {
+          // Reject with a non-Error object
+          return Promise.reject('Network timeout');
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      // Click the auto-start toggle
+      const toggle = screen.getByLabelText('Auto-Start Server');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Update failed',
+          expect.objectContaining({
+            description: 'Failed to update setting',
           })
         );
       });
@@ -927,6 +1033,48 @@ describe('ApiSettingsPanel', () => {
       });
     });
 
+    it('shows info toast when debug logging already disabled', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        if (url.includes('/debug/disable') && options?.method === 'POST') {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { debugEnabled: false, changed: false },
+              }),
+          };
+        }
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusEnabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(toast.info).toHaveBeenCalledWith('Debug logging was already disabled');
+      });
+    });
+
     it('shows error toast when debug toggle fails', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
         if (url.includes('/debug/enable') && options?.method === 'POST') {
@@ -967,6 +1115,52 @@ describe('ApiSettingsPanel', () => {
           'Update failed',
           expect.objectContaining({
             description: 'Failed to update logging config',
+          })
+        );
+      });
+
+      // Wait for all mutations to settle to prevent unhandled rejection warnings
+      await waitFor(() => {
+        expect(queryClient.isMutating()).toBe(0);
+      });
+    });
+
+    it('shows fallback error toast when debug toggle fails with non-Error object', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
+        if (url.includes('/debug/enable') && options?.method === 'POST') {
+          // Reject with a non-Error object
+          return Promise.reject('Connection lost');
+        }
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          'Update failed',
+          expect.objectContaining({
+            description: 'Failed to toggle debug logging',
           })
         );
       });
@@ -1040,6 +1234,84 @@ describe('ApiSettingsPanel', () => {
       await waitFor(() => {
         expect(toggle).not.toBeDisabled();
       });
+    });
+
+    it('shows skeleton while debug status is loading', async () => {
+      let resolveDebugPromise: (value: unknown) => void;
+      const pendingDebugPromise = new Promise((resolve) => {
+        resolveDebugPromise = resolve;
+      });
+
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          await pendingDebugPromise;
+          return {
+            ok: true,
+            json: () => Promise.resolve(mockDebugStatusDisabled),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      // Debug toggle should not be present yet, skeleton should be shown
+      await waitFor(() => {
+        expect(screen.queryByTestId('debug-logging-toggle')).not.toBeInTheDocument();
+      });
+
+      // Resolve the debug promise
+      resolveDebugPromise!({});
+
+      // Wait for toggle to appear
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+    });
+
+    it('displays undefined debugEnabled status as disabled', async () => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/debug')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({
+              status: 'ok',
+              data: {
+                // debugEnabled is missing
+              },
+            }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('debug-logging-toggle')).toBeInTheDocument();
+      });
+
+      const toggle = screen.getByTestId('debug-logging-toggle');
+      expect(toggle).toHaveAttribute('data-state', 'unchecked');
+      // Check the status text - should show "Disabled" when debugEnabled is undefined
+      const statusText = toggle.nextElementSibling;
+      expect(statusText).toHaveTextContent('Disabled');
     });
   });
 
