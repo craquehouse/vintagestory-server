@@ -36,7 +36,7 @@ RUN VITE_API_KEY="${VS_API_KEY}" VITE_API_BASE_URL="" bun run build
 # Base: .NET 8.0 runtime on Ubuntu 24.04 Noble (required for VintageStory)
 # Python 3.12 is native to Ubuntu 24.04
 # ==============================================================================
-FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
+FROM mcr.microsoft.com/dotnet/runtime:8.0.28-noble-amd64 AS final
 
 WORKDIR /app
 
