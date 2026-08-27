@@ -6,7 +6,7 @@
 # ==============================================================================
 # Stage 1: Build frontend
 # ==============================================================================
-FROM node:22-slim AS web-build
+FROM node:24-slim AS web-build
 
 # Build args - VS_API_KEY is mapped to VITE_API_KEY for Vite build
 # This allows using a single env var name across the stack
