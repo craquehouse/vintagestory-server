@@ -18,7 +18,7 @@ ARG VS_API_KEY=""
 WORKDIR /app
 
 # Install bun for faster builds (version pinned per Architecture/.mise.toml)
-RUN npm install -g bun@1.3.5
+RUN npm install -g bun@1.4.4
 
 # Copy dependency files first for layer caching
 COPY web/package.json web/bun.lock ./

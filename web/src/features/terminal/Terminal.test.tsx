@@ -409,8 +409,6 @@ describe('Terminal Page', () => {
     });
 
     it('does not send command when server is not running even if connected', async () => {
-      const user = userEvent.setup();
-
       // Mock server status as stopped
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -439,7 +437,6 @@ describe('Terminal Page', () => {
         expect(input).toBeDisabled();
       });
 
-      const input = screen.getByLabelText('Command input');
       const button = screen.getByRole('button', { name: 'Send' });
 
       // Button should be disabled
@@ -583,7 +580,6 @@ describe('Terminal Page', () => {
       // Create a custom TerminalView mock that delays calling onReady
       const DelayedTerminalView = ({
         onReady,
-        onDispose,
         className,
       }: {
         onReady?: (terminal: any) => void;

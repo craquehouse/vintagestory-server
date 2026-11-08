@@ -368,7 +368,7 @@ describe('TerminalView', () => {
   describe('resize error handling', () => {
     it('handles fit errors during resize gracefully', () => {
       // Store RAF callback
-      let rafCallback: FrameRequestCallback | null = null;
+      let rafCallback = null as FrameRequestCallback | null;
 
       // Mock requestAnimationFrame to capture the callback
       const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
@@ -377,7 +377,7 @@ describe('TerminalView', () => {
       });
 
       // Store the ResizeObserver callback
-      let resizeObserverCallback: ResizeObserverCallback | null = null;
+      let resizeObserverCallback = null as ResizeObserverCallback | null;
 
       // Override ResizeObserver to capture callback
       class TestMockResizeObserver {
@@ -412,7 +412,8 @@ describe('TerminalView', () => {
 
         // Now execute the RAF callback which should call fit() in a try-catch
         if (rafCallback) {
-          expect(() => rafCallback(0)).not.toThrow();
+          const frameCallback = rafCallback;
+          expect(() => frameCallback(0)).not.toThrow();
         }
 
         // Verify fit was attempted despite the error

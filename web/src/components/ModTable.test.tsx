@@ -33,8 +33,8 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
 });
 
 import { ModTable } from './ModTable';
-import { PreferencesProvider, type UserPreferences } from '@/contexts/PreferencesContext';
-import { getCookie, setCookie } from '@/lib/cookies';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { getCookie } from '@/lib/cookies';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -964,7 +964,7 @@ describe('ModTable', () => {
         };
       });
 
-      globalThis.fetch = vi.fn().mockImplementation((url: string, options) => {
+      globalThis.fetch = vi.fn().mockImplementation((_url: string, options) => {
         if (options?.method === 'DELETE') {
           return removeFetch();
         }
@@ -1009,7 +1009,7 @@ describe('ModTable', () => {
     it('closes dialog on remove error', async () => {
       const removeFetch = vi.fn().mockRejectedValue(new Error('Remove failed'));
 
-      globalThis.fetch = vi.fn().mockImplementation((url: string, options) => {
+      globalThis.fetch = vi.fn().mockImplementation((_url: string, options) => {
         if (options?.method === 'DELETE') {
           return removeFetch();
         }
