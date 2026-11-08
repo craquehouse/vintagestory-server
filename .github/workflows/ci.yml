@@ -22,7 +22,7 @@ jobs:
       # Placeholder required by the settings model; not a real credential.
       VS_API_KEY_ADMIN: ci-placeholder-key
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@v5
       - run: just build-api
       - run: just test-api
@@ -31,7 +31,7 @@ jobs:
     name: Web tests and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@v5
       - run: just install-web --frozen-lockfile
       - run: just test-web
@@ -41,7 +41,7 @@ jobs:
     name: Docker image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:
