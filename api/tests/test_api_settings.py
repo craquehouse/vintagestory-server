@@ -445,17 +445,12 @@ class TestOtherTypeHandling:
         """update_setting handles fields with types other than bool/int."""
         # Line 208: validated_value = value (else branch for non-bool, non-int types)
         # This tests the fallback path for future field types (str, float, etc.)
+
         from pydantic import Field
-        from pydantic.fields import FieldInfo
-        from unittest.mock import patch
 
         # Create an extended model with a string field for testing
         class ExtendedApiSettings(ApiSettings):
             test_string_field: str = Field(default="default", description="Test string field")
-
-        # Mock both the model_fields dict AND the ApiSettings class itself
-        # to make the service think it's working with the extended model
-        mock_field = FieldInfo(annotation=str, default="default", description="Test string field")
 
         # We need to patch at the module level where ApiSettingsService imports ApiSettings
         import vintagestory_api.services.api_settings as api_settings_module
@@ -496,7 +491,6 @@ class TestSaveSettingsErrorHandling:
         await service.update_setting("auto_start_server", True)
 
         # Make the settings file directory read-only to trigger OSError
-        import os
         import stat
 
         # Store original permissions
@@ -516,11 +510,10 @@ class TestSaveSettingsErrorHandling:
 
     @pytest.mark.asyncio
     async def test_cleans_up_temp_file_on_rename_failure(
-        self, settings: Settings, tmp_path: Path, monkeypatch
+        self, settings: Settings, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """_save_settings cleans up temp file if rename fails."""
-        import os
-        from unittest.mock import Mock, patch
+        from unittest.mock import patch
 
         service = ApiSettingsService(settings=settings)
         service.settings_file.parent.mkdir(parents=True, exist_ok=True)
@@ -528,7 +521,7 @@ class TestSaveSettingsErrorHandling:
         # Mock Path.rename to raise OSError
         original_rename = Path.rename
 
-        def mock_rename(self, target):
+        def mock_rename(self: Path, target: Path):
             if str(self).endswith(".tmp"):
                 raise OSError("Simulated rename failure")
             return original_rename(self, target)
@@ -549,7 +542,7 @@ class TestSaveSettingsErrorHandling:
     ) -> None:
         """_save_settings handles OSError when temp file unlink fails during cleanup."""
         # Lines 279-280: Nested exception handler for unlink failure
-        from unittest.mock import Mock, patch
+        from unittest.mock import patch
 
         service = ApiSettingsService(settings=settings)
         service.settings_file.parent.mkdir(parents=True, exist_ok=True)
@@ -559,13 +552,13 @@ class TestSaveSettingsErrorHandling:
         original_rename = Path.rename
         original_unlink = Path.unlink
 
-        def mock_rename(self, target):
+        def mock_rename(self: Path, target: Path):
             call_count["rename"] += 1
             if str(self).endswith(".tmp"):
                 raise OSError("Simulated rename failure")
             return original_rename(self, target)
 
-        def mock_unlink(self, missing_ok=False):
+        def mock_unlink(self: Path, missing_ok: bool = False):
             call_count["unlink"] += 1
             if str(self).endswith(".tmp"):
                 # Simulate unlink also failing
@@ -747,6 +740,7 @@ class TestLoggingVerification:
         """update_setting logs the setting change with old and new values."""
         # Lines 235-241: Test logger.info call with old/new values
         from unittest.mock import patch
+
         import vintagestory_api.services.api_settings as api_settings_module
 
         # Set initial value
@@ -767,6 +761,7 @@ class TestLoggingVerification:
     ) -> None:
         """get_settings logs debug message when file not found."""
         from unittest.mock import patch
+
         import vintagestory_api.services.api_settings as api_settings_module
 
         with patch.object(api_settings_module.logger, "debug") as mock_logger:
@@ -782,6 +777,7 @@ class TestLoggingVerification:
     ) -> None:
         """get_settings logs debug message when settings loaded successfully."""
         from unittest.mock import patch
+
         import vintagestory_api.services.api_settings as api_settings_module
 
         # Create settings file

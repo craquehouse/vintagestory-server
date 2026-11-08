@@ -1,6 +1,6 @@
 """FastAPI application entry point."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -87,7 +87,7 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup and shutdown."""
     global scheduler_service
 

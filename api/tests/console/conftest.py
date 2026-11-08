@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 import respx
-from httpx import Response
 
 # pyright: reportPrivateUsage=false
 # Note: Tests need access to private members to verify internal state
@@ -14,6 +13,7 @@ from httpx import Response
 from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from vintagestory_api.config import Settings
 from vintagestory_api.main import app

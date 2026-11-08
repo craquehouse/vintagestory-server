@@ -1019,7 +1019,6 @@ class TestModServiceInstallMod:
     ) -> None:
         """install_mod() cleans up temp file if rename fails after copy succeeds."""
         # This tests line 736: temp_path.unlink() when temp_path.exists()
-        import shutil
 
         import respx
         from httpx import Response
@@ -1044,7 +1043,6 @@ class TestModServiceInstallMod:
 
             # Track whether we're in the mods_dir context (not cache_dir)
             original_rename = Path.rename
-            rename_count = {"count": 0}
 
             def selective_failing_rename(self: Path, target: Path) -> Path:
                 # Only fail on the second rename (in mods_dir, not cache_dir)
@@ -1614,8 +1612,9 @@ class TestModServiceCleanup:
         """close_mod_service() closes and clears the global service instance."""
         # Lines 109-111: Test close_mod_service cleanup function
         from unittest.mock import AsyncMock
-        from vintagestory_api.services.mods import close_mod_service
+
         import vintagestory_api.services.mods as mods_module
+        from vintagestory_api.services.mods import close_mod_service
 
         state_dir, mods_dir = temp_dirs
 
@@ -1643,8 +1642,8 @@ class TestModServiceCleanup:
     async def test_close_mod_service_when_not_initialized(self) -> None:
         """close_mod_service() is safe to call when service was never initialized."""
         # Lines 109-111: Test close_mod_service when _mod_service is None
-        from vintagestory_api.services.mods import close_mod_service
         import vintagestory_api.services.mods as mods_module
+        from vintagestory_api.services.mods import close_mod_service
 
         # Store original state
         original_service = mods_module._mod_service

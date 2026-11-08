@@ -3141,7 +3141,8 @@ class TestGameVersionsParsing:
 
         # Versions should be sorted newest first with proper handling of rc/pre/alpha
         assert len(versions) == 6
-        # Exact order depends on the parsing logic, but stable releases should come before pre-releases
+        # Exact order depends on the parsing logic,
+        # but stable releases should come before pre-releases
         assert "1.22.0" in versions
         assert "1.22.0-rc1" in versions
         assert "1.21.3" in versions
