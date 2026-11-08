@@ -12,13 +12,12 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import structlog
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from vintagestory_api.main import (
-    CORSLoggingMiddleware,
     STATIC_DIR,
+    CORSLoggingMiddleware,
     app,
     get_scheduler_service,
 )
@@ -390,9 +389,7 @@ class TestLifespanAutoStart:
         mock_server_service = MagicMock()
         mock_status = ServerStatus(
             state=ServerState.INSTALLED,
-            container_id=None,
             uptime_seconds=0,
-            message="Server installed",
         )
         mock_server_service.get_server_status.return_value = mock_status
         mock_server_service.start_server = AsyncMock()
@@ -455,9 +452,7 @@ class TestLifespanAutoStart:
         mock_server_service = MagicMock()
         mock_status = ServerStatus(
             state=ServerState.NOT_INSTALLED,
-            container_id=None,
             uptime_seconds=0,
-            message="Server not installed",
         )
         mock_server_service.get_server_status.return_value = mock_status
         mock_server_service.start_server = AsyncMock()
@@ -519,9 +514,7 @@ class TestLifespanAutoStart:
         mock_server_service = MagicMock()
         mock_status = ServerStatus(
             state=ServerState.RUNNING,
-            container_id="abc123",
             uptime_seconds=100,
-            message="Server running",
         )
         mock_server_service.get_server_status.return_value = mock_status
         mock_server_service.start_server = AsyncMock()
@@ -699,7 +692,6 @@ class TestStaticFileServingLogic:
     @pytest.mark.asyncio
     async def test_serve_spa_returns_existing_file(self, tmp_path: Path) -> None:
         """Test serve_spa returns existing file when it exists."""
-        from vintagestory_api.main import STATIC_DIR
 
         # Create a temporary static directory structure
         static_dir = tmp_path / "static"
@@ -864,7 +856,6 @@ class TestStaticFileServingLogic:
 
     def test_spa_serve_function_with_real_app(self, tmp_path: Path) -> None:
         """Test the actual serve_spa function execution (lines 225-238)."""
-        from importlib import reload
 
         import vintagestory_api.main as main_module
 
@@ -897,7 +888,6 @@ class TestStaticFileServingLogic:
 
             # Create a fresh app with the patched STATIC_DIR
             # We need to rebuild the app to trigger the static file setup
-            from contextlib import asynccontextmanager
 
             from fastapi import FastAPI
             from fastapi.responses import FileResponse

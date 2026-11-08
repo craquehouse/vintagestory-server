@@ -980,7 +980,10 @@ class TestMissingCoverage:
         )
 
         # Patch json.dumps to raise an exception to trigger error handling
-        with patch("vintagestory_api.services.game_config.json.dumps", side_effect=TypeError("Mock error")):
+        with patch(
+            "vintagestory_api.services.game_config.json.dumps",
+            side_effect=TypeError("Mock error"),
+        ):
             with pytest.raises(SettingUpdateFailedError) as exc_info:
                 await service.update_setting("ServerName", "Test")
 

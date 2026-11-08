@@ -61,13 +61,10 @@ class TestSaveOSErrorCleanup:
         # Pre-create the temp file to ensure cleanup path is exercised
         temp_file = temp_state_dir / "mods.json.tmp"
 
-        # Mock write_text to succeed (creates temp file)
-        original_write_text = Path.write_text
-
         # Mock rename to raise OSError AFTER temp file is written
         original_rename = Path.rename
 
-        def raise_os_error_on_rename(self: Path, target: Any) -> None:
+        def raise_os_error_on_rename(self: Path, target: Any) -> Path:
             if str(self).endswith(".tmp"):
                 # File should exist at this point from write_text
                 if not self.exists():
@@ -124,7 +121,7 @@ class TestCacheModinfoPathTraversal:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() returns early for '..' in slug (lines 331-336)."""
-        modinfo_data = {"modid": "../evil", "name": "Evil", "version": "1.0.0"}
+        modinfo_data: dict[str, object] = {"modid": "../evil", "name": "Evil", "version": "1.0.0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("../evil", "1.0.0", modinfo_data)
@@ -141,7 +138,11 @@ class TestCacheModinfoPathTraversal:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() returns early for '..' in version (lines 331-336)."""
-        modinfo_data = {"modid": "testmod", "name": "Test", "version": "../1.0.0"}
+        modinfo_data: dict[str, object] = {
+            "modid": "testmod",
+            "name": "Test",
+            "version": "../1.0.0",
+        }
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("testmod", "../1.0.0", modinfo_data)
@@ -155,7 +156,7 @@ class TestCacheModinfoPathTraversal:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() returns early for '/' in slug (lines 331-336)."""
-        modinfo_data = {"modid": "evil/mod", "name": "Evil", "version": "1.0.0"}
+        modinfo_data: dict[str, object] = {"modid": "evil/mod", "name": "Evil", "version": "1.0.0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("evil/mod", "1.0.0", modinfo_data)
@@ -167,7 +168,7 @@ class TestCacheModinfoPathTraversal:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() returns early for '/' in version (lines 331-336)."""
-        modinfo_data = {"modid": "testmod", "name": "Test", "version": "1/0/0"}
+        modinfo_data: dict[str, object] = {"modid": "testmod", "name": "Test", "version": "1/0/0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("testmod", "1/0/0", modinfo_data)

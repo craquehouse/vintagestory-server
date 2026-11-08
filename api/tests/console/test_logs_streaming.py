@@ -7,15 +7,16 @@ Tests for real-time log file streaming, including:
 - Error handling during streaming
 """
 
-import asyncio
 import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from vintagestory_api.config import Settings
+
+from .ws_helpers import receive_text_within
 
 
 class TestLogsWebSocketStreaming:
@@ -24,37 +25,30 @@ class TestLogsWebSocketStreaming:
     def test_logs_ws_ignores_client_messages(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that client messages are ignored during streaming (line 578)."""
+        """Client messages get no reply and do not interrupt the stream."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create log file
         log_file = logs_dir / "server-main.log"
         log_file.write_text("Initial content\n")
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=server-main.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive initial history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Send a message to the server (should be ignored)
             websocket.send_text("ping")
+            with open(log_file, "a") as f:
+                f.write("After ping\n")
 
-            # Connection should still be open - verify by timing out
-            # (no response expected since message is ignored)
-            with pytest.raises(Exception):  # Timeout or similar
-                # This should timeout since server doesn't respond
-                websocket.receive_text(timeout=0.5)
+            assert receive_text_within(websocket) == "After ping"
 
     @pytest.mark.asyncio
     async def test_logs_ws_timeout_error_handling(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that TimeoutError during receive is handled (line 580-582)."""
-        # This tests the asyncio.wait_for timeout path
-        # The timeout is part of normal operation (polling)
+        """Streaming continues after idle polling cycles."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
@@ -65,28 +59,17 @@ class TestLogsWebSocketStreaming:
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=server-main.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            history = websocket.receive_text()
-            assert "Line 1" in history
+            assert receive_text_within(websocket) == "Line 1"
 
-            # Wait a bit - the server will be polling with timeouts
-            # If we append new content, it should be detected
-            time.sleep(1.5)  # Wait longer than poll interval
+            time.sleep(1.5)  # Longer than the poll interval, so at least one poll times out
             log_file.write_text("Line 1\nLine 2\n")
 
-            # Should eventually receive the new line (within a few seconds)
-            try:
-                new_line = websocket.receive_text(timeout=5)
-                assert "Line 2" in new_line
-            except Exception:
-                # TestClient WebSocket implementation may not support long-lived connections
-                # This is expected in test environment
-                pass
+            assert receive_text_within(websocket) == "Line 2"
 
     def test_logs_ws_detects_file_rotation(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that file rotation/truncation is detected (lines 593-602)."""
+        """Truncation is reported as rotation, then the new content is streamed."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
@@ -97,30 +80,18 @@ class TestLogsWebSocketStreaming:
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=server-main.log&api_key={admin_key}&history_lines=2"
         ) as websocket:
-            # Receive history (last 2 lines)
-            websocket.receive_text()
-            websocket.receive_text()
+            receive_text_within(websocket)
+            receive_text_within(websocket)
 
-            # Truncate/rotate the file (new content smaller than old)
-            time.sleep(0.5)
             log_file.write_text("New content after rotation\n")
 
-            # Server should detect rotation and send marker
-            # Then send the new content
-            try:
-                # Try to receive the rotation marker or new content
-                # (timing is tricky in tests)
-                msg1 = websocket.receive_text(timeout=5)
-                # Could be rotation marker or new content
-                assert msg1 is not None
-            except Exception:
-                # TestClient WebSocket may not handle long polling well
-                pass
+            assert receive_text_within(websocket) == "--- Log file rotated ---"
+            assert receive_text_within(websocket) == "New content after rotation"
 
     def test_logs_ws_handles_file_deletion(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that file deletion during streaming is handled (lines 625-629)."""
+        """Deleting the log sends a marker and closes the connection with 4004."""
         import os
 
         admin_key = test_settings.api_key_admin
@@ -133,23 +104,14 @@ class TestLogsWebSocketStreaming:
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=server-main.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Delete the file
             os.remove(log_file)
-            time.sleep(1.5)  # Wait for polling
 
-            # Server should detect deletion and close
-            try:
-                # Should receive deletion marker or close
-                msg = websocket.receive_text(timeout=5)
-                if "deleted" in msg.lower():
-                    # Received deletion marker
-                    pass
-            except Exception:
-                # Connection closed or timeout - both acceptable
-                pass
+            assert receive_text_within(websocket) == "--- Log file was deleted ---"
+            with pytest.raises(WebSocketDisconnect) as closed:
+                receive_text_within(websocket)
+            assert closed.value.code == 4004
 
     def test_logs_ws_handles_oserror_during_streaming(
         self, ws_client: TestClient, test_settings: Settings, monkeypatch: pytest.MonkeyPatch
@@ -178,7 +140,7 @@ class TestLogsWebSocketStreaming:
     def test_logs_ws_reads_new_content_in_chunks(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that new content is read and sent to client (lines 605-623)."""
+        """New content is read from the last position and sent to the client."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
@@ -190,22 +152,11 @@ class TestLogsWebSocketStreaming:
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=server-main.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            history = websocket.receive_text()
-            assert "Line 1" in history
+            assert receive_text_within(websocket) == "Line 1"
 
-            # Append new content
-            time.sleep(0.5)
             log_file.write_text(initial_content + "Line 2\n")
 
-            # Should receive new line after polling
-            try:
-                new_line = websocket.receive_text(timeout=5)
-                assert "Line 2" in new_line
-            except Exception:
-                # TestClient WebSocket may timeout - that's ok
-                # The important part is the code path exists
-                pass
+            assert receive_text_within(websocket) == "Line 2"
 
 
 class TestLogsWebSocketPathValidation:
@@ -237,7 +188,7 @@ class TestLogsWebSocketPathValidation:
         ) as websocket:
             # Should receive close with 4005 (invalid path)
             try:
-                data = websocket.receive()
+                websocket.receive()
                 # Should be closed or receive close message
             except Exception:
                 pass
@@ -268,7 +219,7 @@ class TestLogsWebSocketPathValidation:
         ) as websocket:
             # Should receive close with 4005 (invalid path)
             try:
-                data = websocket.receive()
+                websocket.receive()
                 # Should be closed or receive close message
             except Exception:
                 pass
@@ -280,37 +231,29 @@ class TestLogsWebSocketLargeFiles:
     def test_logs_ws_limits_chunk_size_to_1mb(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that chunk size is limited to prevent memory exhaustion (lines 606-608)."""
+        """New content is read and sent in chunks of at most 1MB."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         log_file = logs_dir / "large.log"
-        # Create a file with initial content
         log_file.write_text("Initial\n")
+        max_chunk_size = 1024 * 1024
+        appended_size = 2 * max_chunk_size
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=large.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Append more than 1MB of new content
-            # The streaming code should limit reads to 1MB chunks
-            large_content = "X" * (2 * 1024 * 1024)  # 2MB
-            time.sleep(0.5)
             with open(log_file, "a") as f:
-                f.write(large_content)
+                f.write("X" * appended_size)
 
-            # The server should read in 1MB chunks
-            # We can't easily verify the chunking in integration test,
-            # but we can verify the connection doesn't crash
-            try:
-                # Try to receive some data
-                websocket.receive_text(timeout=5)
-            except Exception:
-                # Timeout is ok - the important thing is we don't crash
-                pass
+            chunks: list[str] = []
+            while sum(len(chunk) for chunk in chunks) < appended_size:
+                chunks.append(receive_text_within(websocket))
 
-            websocket.close()
+            assert len(chunks) >= 2
+            assert all(len(chunk) <= max_chunk_size for chunk in chunks)
+            assert sum(len(chunk) for chunk in chunks) == appended_size
 

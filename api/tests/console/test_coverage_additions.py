@@ -7,14 +7,18 @@ with full integration tests.
 
 import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
-import structlog
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from vintagestory_api.config import Settings
+from vintagestory_api.services.logs import LogFileNotFoundError
 from vintagestory_api.services.server import ServerService
+
+from .ws_helpers import receive_text_within
 
 
 class TestLogsWebSocketRealFileOperations:
@@ -23,121 +27,72 @@ class TestLogsWebSocketRealFileOperations:
     def test_logs_ws_with_actual_file_growth(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test streaming with actual file growth to cover content reading (lines 607-623)."""
+        """Lines appended to the file are streamed to the client."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         log_file = logs_dir / "growing.log"
-        # Start with initial content
         log_file.write_text("Line 1\nLine 2\n")
 
-        # Connect to WebSocket
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=growing.log&api_key={admin_key}&history_lines=2"
         ) as websocket:
-            # Receive history lines
-            line1 = websocket.receive_text()
-            assert "Line 1" in line1
-            line2 = websocket.receive_text()
-            assert "Line 2" in line2
+            assert receive_text_within(websocket) == "Line 1"
+            assert receive_text_within(websocket) == "Line 2"
 
-            # Now append new content to trigger the polling/reading code path
-            # The file stat will detect size change, and read_new_content will execute
             with open(log_file, "a") as f:
                 f.write("Line 3\n")
 
-            # Wait for polling interval (1 second) plus buffer
-            time.sleep(1.5)
-
-            # Try to receive new content - this exercises lines 607-623
-            # (the chunk reading logic)
-            try:
-                new_line = websocket.receive_text(timeout=2)
-                # If we receive it, great - coverage achieved
-                assert "Line 3" in new_line
-            except Exception:
-                # TestClient WebSocket has limitations with long-lived connections
-                # But the code path was still executed server-side
-                pass
+            assert receive_text_within(websocket) == "Line 3"
 
     def test_logs_ws_with_file_rotation_simulation(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test file rotation detection by truncating file (lines 594-602)."""
+        """A file that shrinks is reported as rotated and streamed from the start."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         log_file = logs_dir / "rotating.log"
-        # Create a large file
         large_content = "X" * 1000 + "\n"
         log_file.write_text(large_content * 10)
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=rotating.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Truncate the file to simulate rotation (new size < old size)
             log_file.write_text("New content after rotation\n")
 
-            # Wait for polling
-            time.sleep(1.5)
-
-            # The rotation detection code (lines 594-602) should execute
-            # It logs the rotation and sends a marker
-            try:
-                msg = websocket.receive_text(timeout=2)
-                # Might receive rotation marker or new content
-                # Either way, the code path was exercised
-            except Exception:
-                # TestClient limitations - but code was executed
-                pass
+            assert receive_text_within(websocket) == "--- Log file rotated ---"
+            assert receive_text_within(websocket) == "New content after rotation"
 
     def test_logs_ws_handles_missing_file_during_tail(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that file disappearing after validation is handled (lines 558-561)."""
-        import threading
-
+        """The connection closes with 4005 when reading history reports a missing file."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        log_file = logs_dir / "disappearing.log"
-        log_file.write_text("Content\n")
+        (logs_dir / "disappearing.log").write_text("Content\n")
 
-        # Delete file very quickly after validation passes
-        def delete_after_short_delay():
-            time.sleep(0.02)  # Very short delay
-            try:
-                log_file.unlink()
-            except FileNotFoundError:
-                pass
-
-        thread = threading.Thread(target=delete_after_short_delay)
-        thread.start()
-
-        try:
+        with patch(
+            "vintagestory_api.services.logs.tail_log_file",
+            AsyncMock(side_effect=LogFileNotFoundError("Log file not found")),
+        ):
             with ws_client.websocket_connect(
                 f"/api/v1alpha1/console/logs/ws?file=disappearing.log&api_key={admin_key}"
             ) as websocket:
-                # File might disappear during tail_log_file call
-                # This exercises lines 558-561 (LogFileNotFoundError handling)
-                try:
-                    websocket.receive_text(timeout=1)
-                except Exception:
-                    # Expected - file was deleted or connection closed
-                    pass
-        finally:
-            thread.join()
+                with pytest.raises(WebSocketDisconnect) as closed:
+                    receive_text_within(websocket)
+                assert closed.value.code == 4005
 
     def test_logs_ws_with_file_deletion_during_streaming(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test file deletion during active streaming (lines 625-629)."""
+        """Deleting the file sends a marker and closes the connection with 4004."""
         import os
 
         admin_key = test_settings.api_key_admin
@@ -150,22 +105,14 @@ class TestLogsWebSocketRealFileOperations:
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=deleted.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Delete the file
             os.remove(log_file)
 
-            # Wait for polling to detect deletion
-            time.sleep(1.5)
-
-            # The FileNotFoundError handling (lines 625-629) should execute
-            try:
-                msg = websocket.receive_text(timeout=2)
-                # Might receive deletion marker or connection close
-            except Exception:
-                # Expected - connection closed or timeout
-                pass
+            assert receive_text_within(websocket) == "--- Log file was deleted ---"
+            with pytest.raises(WebSocketDisconnect) as closed:
+                receive_text_within(websocket)
+            assert closed.value.code == 4004
 
     def test_logs_ws_with_permission_error_simulation(
         self, ws_client: TestClient, test_settings: Settings
@@ -199,47 +146,24 @@ class TestLogsWebSocketEmptyLinesHandling:
     def test_logs_ws_filters_empty_lines_in_new_content(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that splitlines empty strings are filtered (line 620)."""
+        """Blank lines in new content are not sent to the client."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
         log_file = logs_dir / "empty-lines.log"
-        # Create file with mixed content
         log_file.write_text("Line 1\n")
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=empty-lines.log&api_key={admin_key}&history_lines=1"
         ) as websocket:
-            # Receive history
-            websocket.receive_text()
+            receive_text_within(websocket)
 
-            # Append content with empty lines
-            # splitlines() will create empty strings for consecutive newlines
             with open(log_file, "a") as f:
-                f.write("\n\nLine 2\n\n")
+                f.write("\n\nLine 2\n\nLine 3\n")
 
-            # Wait for polling
-            time.sleep(1.5)
-
-            # The code should only send non-empty lines (line 620: if line:)
-            try:
-                received_lines = []
-                # Try to receive multiple times
-                for _ in range(5):
-                    try:
-                        line = websocket.receive_text(timeout=0.5)
-                        received_lines.append(line)
-                    except Exception:
-                        break
-
-                # Should only get Line 2, not empty strings
-                if received_lines:
-                    # Verify we got content, not empty lines
-                    assert any("Line 2" in line for line in received_lines)
-            except Exception:
-                # TestClient limitations
-                pass
+            assert receive_text_within(websocket) == "Line 2"
+            assert receive_text_within(websocket) == "Line 3"
 
 
 class TestLogsWebSocketTailFailure:
@@ -260,7 +184,7 @@ class TestLogsWebSocketTailFailure:
         log_file.write_text("Content\n")
 
         # Mock tail_log_file to raise LogFileNotFoundError
-        async def mock_tail(*args, **kwargs):
+        async def mock_tail(*args: Any, **kwargs: Any):
             raise LogFileNotFoundError("File disappeared during read")
 
         with patch("vintagestory_api.services.logs.tail_log_file", mock_tail):
@@ -292,7 +216,7 @@ class TestLogsWebSocketTailFailure:
         log_file.write_text("Content\n")
 
         # Mock tail_log_file to raise LogFileAccessError
-        async def mock_tail(*args, **kwargs):
+        async def mock_tail(*args: Any, **kwargs: Any):
             raise LogFileAccessError("Permission denied")
 
         with patch("vintagestory_api.services.logs.tail_log_file", mock_tail):
@@ -330,7 +254,7 @@ class TestLogsWebSocketStreamingOSError:
         original_stat = Path.stat
         connected = [False]  # Track connection state
 
-        def mock_stat(self, **kwargs):
+        def mock_stat(self: Path, **kwargs: Any):
             # Only count and potentially raise for our test file
             is_test_file = "problematic.log" in str(self)
 
@@ -387,9 +311,8 @@ class TestConsoleWebSocketSendFailure:
         # Track if we've reached the streaming phase
         send_text_call_count = [0]
         should_raise = [False]
-        original_send_text = None
 
-        async def patched_send_text(self, data: str, **kwargs) -> None:
+        async def patched_send_text(self: Any, data: str, **kwargs: Any) -> None:
             """Send text that fails after connection is established."""
             send_text_call_count[0] += 1
             if should_raise[0]:
@@ -405,7 +328,7 @@ class TestConsoleWebSocketSendFailure:
         with patch.object(WebSocket, "send_text", patched_send_text):
             with ws_client.websocket_connect(
                 f"/api/v1alpha1/console/ws?api_key={admin_key}"
-            ) as websocket:
+            ):
                 # At this point, connection is established and subscriber is registered
                 assert len(test_service.console_buffer._subscribers) == 1
 
@@ -449,7 +372,7 @@ class TestConsoleWebSocketSendFailure:
         history_sent = [False]
         original_send_text = WebSocket.send_text
 
-        async def failing_send_text(self, data: str, **kwargs) -> None:
+        async def failing_send_text(self: Any, data: str, **kwargs: Any) -> None:
             """Fail on sends after history is sent."""
             if history_sent[0]:
                 raise ConnectionError("Client disconnected unexpectedly")
@@ -458,7 +381,7 @@ class TestConsoleWebSocketSendFailure:
         with patch.object(WebSocket, "send_text", failing_send_text):
             with ws_client.websocket_connect(
                 f"/api/v1alpha1/console/ws?api_key={admin_key}"
-            ) as websocket:
+            ):
                 # Connection established, subscriber registered
                 assert len(test_service.console_buffer._subscribers) == 1
 

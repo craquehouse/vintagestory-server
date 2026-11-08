@@ -270,7 +270,9 @@ class TestDiskSpaceThreshold:
     def test_disk_space_threshold_negative_rejected(self) -> None:
         """Negative disk space threshold is rejected."""
         with patch.dict(os.environ, {"VS_DISK_SPACE_WARNING_THRESHOLD_GB": "-1.0"}):
-            with pytest.raises(ValueError, match="VS_DISK_SPACE_WARNING_THRESHOLD_GB must be non-negative"):
+            with pytest.raises(
+                ValueError, match="VS_DISK_SPACE_WARNING_THRESHOLD_GB must be non-negative"
+            ):
                 Settings()
 
 
@@ -315,7 +317,9 @@ class TestCorsOriginsValidation:
     def test_cors_origins_all_whitespace_entries_rejected(self) -> None:
         """CORS origins with only whitespace entries after split is rejected."""
         with patch.dict(os.environ, {"VS_CORS_ORIGINS": " , , "}):
-            with pytest.raises(ValueError, match="VS_CORS_ORIGINS must contain at least one valid origin"):
+            with pytest.raises(
+                ValueError, match="VS_CORS_ORIGINS must contain at least one valid origin"
+            ):
                 Settings()
 
     def test_cors_origins_invalid_url_rejected(self) -> None:

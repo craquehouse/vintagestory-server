@@ -171,7 +171,7 @@ class TestServerInstallEndpoint:
         respx.head(head_url).mock(return_value=Response(200))
 
         # Create mock tarball
-        tarball_bytes, actual_md5 = create_mock_server_tarball(Path("/tmp"))
+        tarball_bytes, _ = create_mock_server_tarball(Path("/tmp"))
 
         # Mock the actual download
         download_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz"
@@ -457,7 +457,6 @@ class TestServerInstallErrorPaths:
         This can happen if the version validation regex differs from Pydantic validation,
         or in edge cases where the resolved version doesn't match expected format.
         """
-        from unittest.mock import patch
 
         # Mock validate_version to return False for a specific version
         # This simulates the case where validation fails after Pydantic passes

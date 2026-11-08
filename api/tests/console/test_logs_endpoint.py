@@ -2,11 +2,16 @@
 
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from vintagestory_api.config import Settings
+from vintagestory_api.services import logs as logs_service
+
+from .ws_helpers import receive_text_within
 
 
 class TestListLogFilesEndpoint:
@@ -191,7 +196,8 @@ class TestListLogFilesEndpoint:
         original_stat = Path.stat
         call_count = {"count": 0}
 
-        # Mock stat to fail for bad.log on the second call (first is is_file check, second is explicit stat)
+        # Mock stat to fail for bad.log on the second call
+        # (first is is_file check, second is explicit stat)
         def mock_stat(self: Path, *, follow_symlinks: bool = True):
             if self.name == "bad.log":
                 call_count["count"] += 1
@@ -386,44 +392,27 @@ class TestLogsWebSocket:
     def test_logs_ws_handles_tail_file_not_found_error(
         self, ws_client: TestClient, test_settings: Settings
     ) -> None:
-        """Test that LogFileNotFoundError during tail is handled (lines 558-561)."""
-        # This tests the case where a file exists during validation but disappears
-        # before tail_log_file is called. We simulate this by deleting the file
-        # after a brief delay.
-        import threading
-
+        """A file deleted after validation but before tailing closes the connection with 4005."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create log file
         log_file = logs_dir / "disappearing.log"
         log_file.write_text("content")
 
-        def delete_file():
-            import time
-            time.sleep(0.05)  # Small delay to let validation pass
-            try:
-                log_file.unlink()
-            except FileNotFoundError:
-                pass
+        real_tail_log_file = logs_service.tail_log_file
 
-        # Start thread to delete file
-        thread = threading.Thread(target=delete_file)
-        thread.start()
+        async def delete_then_tail(logs_dir: Path, filename: str, lines: int = 100) -> list[str]:
+            log_file.unlink()
+            return await real_tail_log_file(logs_dir, filename, lines)
 
-        try:
+        with patch("vintagestory_api.services.logs.tail_log_file", delete_then_tail):
             with ws_client.websocket_connect(
                 f"/api/v1alpha1/console/logs/ws?file=disappearing.log&api_key={admin_key}"
             ) as websocket:
-                # Should receive close with 4005 after file disappears
-                try:
-                    websocket.receive_text(timeout=1)
-                except Exception:
-                    # Expected - connection closes due to missing file
-                    pass
-        finally:
-            thread.join()
+                with pytest.raises(WebSocketDisconnect) as closed:
+                    receive_text_within(websocket)
+                assert closed.value.code == 4005
 
     def test_logs_ws_handles_tail_file_access_error(
         self, ws_client: TestClient, test_settings: Settings
@@ -440,7 +429,7 @@ class TestLogsWebSocket:
         ) as websocket:
             # Should receive close with 4004 (file not found)
             try:
-                data = websocket.receive()
+                websocket.receive()
                 # Connection should close
             except Exception:
                 pass

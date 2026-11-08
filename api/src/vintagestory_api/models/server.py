@@ -1,14 +1,14 @@
 """Pydantic models for server installation and lifecycle."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from vintagestory_api.models.responses import DiskSpaceData
 
 
-class InstallationStage(str, Enum):
+class InstallationStage(StrEnum):
     """Stages during server installation process."""
 
     DOWNLOADING = "downloading"
@@ -16,7 +16,7 @@ class InstallationStage(str, Enum):
     CONFIGURING = "configuring"
 
 
-class ServerState(str, Enum):
+class ServerState(StrEnum):
     """Overall server installation and runtime state."""
 
     NOT_INSTALLED = "not_installed"
@@ -77,7 +77,7 @@ class VersionInfo(BaseModel):
     channel: str = "stable"
 
 
-class LifecycleAction(str, Enum):
+class LifecycleAction(StrEnum):
     """Server lifecycle actions."""
 
     START = "start"

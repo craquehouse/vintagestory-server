@@ -505,7 +505,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Create async iterator that yields one chunk then fails
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             yield b"partial"
             raise httpx.HTTPError("connection reset")
 
@@ -545,7 +545,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Create async iterator that yields one chunk then times out
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             yield b"partial"
             raise httpx.TimeoutException("timeout during download")
 
@@ -586,7 +586,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Create async iterator that yields chunks
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             yield b"partial"
             yield b"more data"
 
@@ -603,12 +603,12 @@ class TestModApiClientDownloadMod:
         write_call_count = 0
         original_open = open
 
-        def mock_open_func(path, mode):
+        def mock_open_func(path: Any, mode: str):
             nonlocal write_call_count
             file_obj = original_open(path, mode)
             original_write = file_obj.write
 
-            def write_with_error(data):
+            def write_with_error(data: Any):
                 nonlocal write_call_count
                 write_call_count += 1
                 if write_call_count > 1:
@@ -647,7 +647,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Mock streaming to raise timeout during iteration
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             # Yield to make this an async generator, then raise during iteration
             yield b"partial data"  # First chunk writes to file
             raise httpx.TimeoutException("timeout during stream")
@@ -687,7 +687,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Mock streaming to raise HTTP error during iteration
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             # Yield to make this an async generator, then raise during iteration
             yield b"partial data"  # First chunk writes to file
             raise httpx.HTTPError("connection reset by peer")
@@ -725,7 +725,7 @@ class TestModApiClientDownloadMod:
         )
 
         # Mock streaming to raise OS error during iteration
-        async def chunk_iterator(*args, **kwargs):
+        async def chunk_iterator(*args: Any, **kwargs: Any):
             # Yield to make this an async generator, then raise during iteration
             yield b"partial data"  # First chunk writes to file
             raise OSError("disk full")

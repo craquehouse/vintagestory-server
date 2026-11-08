@@ -235,7 +235,7 @@ class TestModStateManagerSave:
         # Mock rename to raise OSError
         original_rename = Path.rename
 
-        def raise_os_error(self: Path, target: Any) -> None:
+        def raise_os_error(self: Path, target: Any) -> Path:
             if ".tmp" in str(self):
                 # Ensure temp file exists to test cleanup
                 self.touch()
@@ -901,7 +901,7 @@ class TestCacheModinfo:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() blocks path traversal in slug parameter."""
-        modinfo_data = {"modid": "../evil", "name": "Evil", "version": "1.0.0"}
+        modinfo_data: dict[str, object] = {"modid": "../evil", "name": "Evil", "version": "1.0.0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("../evil", "1.0.0", modinfo_data)
@@ -914,7 +914,11 @@ class TestCacheModinfo:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() blocks path traversal in version parameter."""
-        modinfo_data = {"modid": "testmod", "name": "Test", "version": "../1.0.0"}
+        modinfo_data: dict[str, object] = {
+            "modid": "testmod",
+            "name": "Test",
+            "version": "../1.0.0",
+        }
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("testmod", "../1.0.0", modinfo_data)
@@ -927,7 +931,7 @@ class TestCacheModinfo:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() blocks slash in slug parameter."""
-        modinfo_data = {"modid": "evil/mod", "name": "Evil", "version": "1.0.0"}
+        modinfo_data: dict[str, object] = {"modid": "evil/mod", "name": "Evil", "version": "1.0.0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("evil/mod", "1.0.0", modinfo_data)
@@ -940,7 +944,7 @@ class TestCacheModinfo:
         self, state_manager: ModStateManager, temp_state_dir: Path
     ) -> None:
         """_cache_modinfo() blocks slash in version parameter."""
-        modinfo_data = {"modid": "testmod", "name": "Test", "version": "1/0/0"}
+        modinfo_data: dict[str, object] = {"modid": "testmod", "name": "Test", "version": "1/0/0"}
 
         # Should not raise, but should not create cache
         state_manager._cache_modinfo("testmod", "1/0/0", modinfo_data)

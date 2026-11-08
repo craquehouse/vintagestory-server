@@ -1,6 +1,6 @@
 """API response models and envelopes."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer
@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class GameServerStatus(str, Enum):
+class GameServerStatus(StrEnum):
     """Possible states of the game server process."""
 
     NOT_INSTALLED = "not_installed"

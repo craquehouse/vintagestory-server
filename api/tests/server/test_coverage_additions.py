@@ -18,7 +18,7 @@ from httpx import Response
 
 from vintagestory_api.config import Settings
 from vintagestory_api.models.errors import ErrorCode
-from vintagestory_api.models.server import ServerState
+from vintagestory_api.models.server import InstallationStage, ServerState
 from vintagestory_api.services.server import (
     VS_CDN_BASE,
     VS_STABLE_API,
@@ -670,11 +670,12 @@ class TestInstallEndpointValidation:
         This tests the case where an alias resolves to an invalid version format,
         which is caught by validate_version() in the router.
         """
+        from conftest import TEST_ADMIN_KEY
+        from fastapi.testclient import TestClient
+
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
         from vintagestory_api.services.server import get_server_service
-        from fastapi.testclient import TestClient
-        from conftest import TEST_ADMIN_KEY
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -730,11 +731,12 @@ class TestInstallEndpointValidation:
 
         This tests the router's check for concurrent installation attempts.
         """
+        from conftest import TEST_ADMIN_KEY
+        from fastapi.testclient import TestClient
+
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
         from vintagestory_api.services.server import get_server_service
-        from fastapi.testclient import TestClient
-        from conftest import TEST_ADMIN_KEY
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -745,8 +747,7 @@ class TestInstallEndpointValidation:
         # Create a test service and set it to INSTALLING state
         test_service = ServerService(test_settings)
         test_service._install_state = ServerState.INSTALLING
-        test_service._install_stage = "downloading"
-        test_service._install_version = "1.21.3"
+        test_service._install_stage = InstallationStage.DOWNLOADING
 
         # Override dependency
         app.dependency_overrides[get_settings] = lambda: test_settings
