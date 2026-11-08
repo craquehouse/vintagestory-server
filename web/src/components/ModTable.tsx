@@ -12,11 +12,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Trash2, Loader2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  flexRender,
   createColumnHelper,
+  createSortedRowModel,
+  flexRender,
+  rowSortingFeature,
+  sortFns,
+  tableFeatures,
+  useTable,
   type SortingState,
 } from '@tanstack/react-table';
 import {
@@ -57,7 +59,13 @@ interface ModTableRow extends ModInfo {
   compatibilityStatus: CompatibilityStatus;
 }
 
-const columnHelper = createColumnHelper<ModTableRow>();
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns,
+});
+
+const columnHelper = createColumnHelper<typeof features, ModTableRow>();
 
 /**
  * Sortable column header component with chevron indicators.
@@ -197,7 +205,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
 
   // Define columns with TanStack Table
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = useMemo(() => [
+  const columns = useMemo(() => columnHelper.columns([
     columnHelper.accessor('name', {
       header: ({ column }) => (
         <SortableHeader
@@ -232,7 +240,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           </div>
         );
       },
-      sortingFn: (rowA, rowB) => {
+      sortFn: (rowA, rowB) => {
         const a = (rowA.original.name || rowA.original.slug).toLowerCase();
         const b = (rowB.original.name || rowB.original.slug).toLowerCase();
         return a.localeCompare(b);
@@ -290,7 +298,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
         );
       },
       // Sort enabled mods first when ascending
-      sortingFn: (rowA, rowB) => {
+      sortFn: (rowA, rowB) => {
         const a = rowA.original.enabled ? 1 : 0;
         const b = rowB.original.enabled ? 1 : 0;
         return a - b;
@@ -315,15 +323,14 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       },
       meta: { className: 'w-[80px]' },
     }),
-  ], [handleToggle, handleRemoveClick, isTogglingMod]);
+  ]), [handleToggle, handleRemoveClick, isTogglingMod]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: tableData,
     columns,
     state: { sorting },
     onSortingChange,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   if (isLoading) {
@@ -369,7 +376,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
         <TableBody>
           {table.getRowModel().rows.map((row) => (
             <TableRow key={row.id} data-testid={`mod-row-${row.original.slug}`}>
-              {row.getVisibleCells().map((cell) => (
+              {row.getAllCells().map((cell) => (
                 <TableCell key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>

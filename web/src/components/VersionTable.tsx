@@ -14,10 +14,12 @@
 import { useState, useMemo } from 'react';
 import {
   createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
+  createSortedRowModel,
   flexRender,
+  rowSortingFeature,
+  sortFns,
+  tableFeatures,
+  useTable,
   type SortingState,
 } from '@tanstack/react-table';
 import { Check, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
@@ -106,7 +108,13 @@ interface VersionRowData extends VersionInfo {
   isInstalled: boolean;
 }
 
-const columnHelper = createColumnHelper<VersionRowData>();
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns,
+});
+
+const columnHelper = createColumnHelper<typeof features, VersionRowData>();
 
 /**
  * Sort indicator component for sortable column headers.
@@ -124,7 +132,7 @@ function SortIndicator({ direction }: { direction: 'asc' | 'desc' | false }) {
  * Create columns with access to onVersionSelect callback.
  */
 function createColumns(onVersionSelect?: (version: string) => void) {
-  return [
+  return columnHelper.columns([
     columnHelper.accessor('version', {
       header: 'Version',
       cell: (info) => {
@@ -150,7 +158,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           </span>
         );
       },
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
     }),
     columnHelper.accessor('channel', {
       header: 'Channel',
@@ -167,7 +175,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           </Badge>
         );
       },
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
     }),
     columnHelper.accessor('filesize', {
       header: 'Size',
@@ -179,7 +187,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           {info.getValue()}
         </span>
       ),
-      sortingFn: 'alphanumeric',
+      sortFn: 'alphanumeric',
       meta: {
         className: 'hidden sm:table-cell',
       },
@@ -236,7 +244,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
         );
       },
     }),
-  ];
+  ]);
 }
 
 /**
@@ -310,13 +318,12 @@ export function VersionTable({
     [versions, installedVersion]
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: rowData,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   if (isLoading) {
@@ -396,7 +403,7 @@ export function VersionTable({
               className={cn(isNewer && 'bg-primary/5')}
               data-testid={`version-table-row-${row.original.version}`}
             >
-              {row.getVisibleCells().map((cell) => {
+              {row.getAllCells().map((cell) => {
                 const cellMeta = cell.column.columnDef.meta as { className?: string } | undefined;
                 return (
                   <TableCell key={cell.id} className={cellMeta?.className}>

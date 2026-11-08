@@ -11,9 +11,9 @@
 
 import {
   createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
   flexRender,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 import { Clock } from 'lucide-react';
 import {
@@ -32,7 +32,9 @@ interface JobsTableProps {
   jobs: JobInfo[];
 }
 
-const columnHelper = createColumnHelper<JobInfo>();
+const features = tableFeatures({});
+
+const columnHelper = createColumnHelper<typeof features, JobInfo>();
 
 /**
  * Format a job's next run time for display.
@@ -68,7 +70,7 @@ function formatSchedule(details: string): string {
   return details;
 }
 
-const columns = [
+const columns = columnHelper.columns([
   columnHelper.accessor('id', {
     header: 'Job Name',
     cell: (info) => (
@@ -106,7 +108,7 @@ const columns = [
       </Badge>
     ),
   }),
-];
+]);
 
 /**
  * Table displaying scheduled jobs with TanStack Table.
@@ -115,10 +117,10 @@ const columns = [
  * <JobsTable jobs={jobs} />
  */
 export function JobsTable({ jobs }: JobsTableProps) {
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: jobs,
     columns,
-    getCoreRowModel: getCoreRowModel(),
   });
 
   if (jobs.length === 0) {
@@ -155,7 +157,7 @@ export function JobsTable({ jobs }: JobsTableProps) {
       <TableBody>
         {table.getRowModel().rows.map((row) => (
           <TableRow key={row.id} data-testid={`job-row-${row.original.id}`}>
-            {row.getVisibleCells().map((cell) => (
+            {row.getAllCells().map((cell) => (
               <TableCell key={cell.id}>
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>
