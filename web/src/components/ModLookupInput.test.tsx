@@ -9,7 +9,6 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { ModLookupInput } from './ModLookupInput';
-import * as useModsHooks from '@/hooks/use-mods';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {

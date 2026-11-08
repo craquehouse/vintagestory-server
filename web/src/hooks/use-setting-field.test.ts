@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   useSettingField,
@@ -255,7 +255,7 @@ describe('useSettingField', () => {
       const onSave = vi.fn().mockResolvedValue({});
 
       const { result } = renderHook(() =>
-        useSettingField({
+        useSettingField<boolean>({
           initialValue: false,
           settingKey: 'AllowPvP',
           settingType: 'bool',
