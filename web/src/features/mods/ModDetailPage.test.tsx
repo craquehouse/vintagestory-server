@@ -168,6 +168,25 @@ describe('ModDetailPage', () => {
     });
   });
 
+  describe('incomplete API data (UI-063)', () => {
+    it.each([
+      ['an empty object', {}],
+      ['missing compatibility', { ...mockMinimalResponse.data, compatibility: undefined }],
+      ['missing tags', { ...mockMinimalResponse.data, tags: undefined }],
+      ['missing releases', { ...mockMinimalResponse.data, releases: undefined }],
+    ])('shows an error instead of crashing for %s', async (_label, data) => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/simplemod' });
+
+      expect(await screen.findByTestId('mod-detail-error')).toBeInTheDocument();
+      expect(screen.getByText('The server returned incomplete mod details')).toBeInTheDocument();
+    });
+  });
+
   describe('header section (Subtask 2.2)', () => {
     it('renders mod name and author', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({

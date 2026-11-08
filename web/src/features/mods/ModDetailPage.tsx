@@ -356,6 +356,15 @@ export function ModDetailPage() {
     );
   }
 
+  // The API contract guarantees these fields, but a malformed response must not crash the page
+  if (!mod.compatibility || !Array.isArray(mod.tags) || !Array.isArray(mod.releases)) {
+    return (
+      <div className="container mx-auto py-6 max-w-4xl">
+        <ModDetailError message="The server returned incomplete mod details" />
+      </div>
+    );
+  }
+
   // Sanitize HTML description for safe rendering
   const sanitizedDescription = mod.description
     ? DOMPurify.sanitize(mod.description)

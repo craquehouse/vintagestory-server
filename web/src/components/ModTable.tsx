@@ -331,6 +331,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     columns,
     state: { sorting },
     onSortingChange,
+    // The sort preference always names a column, so toggling must never clear it
+    enableSortingRemoval: false,
   });
 
   if (isLoading) {

@@ -664,6 +664,36 @@ describe('ModTable', () => {
       });
     });
 
+    it('returns to ascending when clicking a descending column again (UI-062)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-row-carrycapacity')).toBeInTheDocument();
+      });
+
+      const rowIds = () =>
+        screen.getAllByTestId(/^mod-row-/).map((row) => row.getAttribute('data-testid'));
+      const nameHeader = screen.getByText('Name').closest('button');
+
+      expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
+
+      fireEvent.click(nameHeader!);
+      await waitFor(() => {
+        expect(rowIds()).toEqual(['mod-row-smithingplus', 'mod-row-carrycapacity']);
+      });
+
+      fireEvent.click(nameHeader!);
+      await waitFor(() => {
+        expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
+      });
+    });
+
     it('correctly sorts mods by name (case-insensitive)', async () => {
       const modsWithVariedNames = {
         status: 'ok',
