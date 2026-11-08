@@ -40,7 +40,9 @@ See the skill at `.claude/skills/sprint-status-yaml/SKILL.md` for complete docum
 
 ### Issue Tracking (Beads)
 
-This project uses [beads](https://github.com/steveyegge/beads) (`bd` CLI) for issue tracking. Issues are stored in `.beads/issues.jsonl` and committed to git. Items are labeled by category (UI, API, INFRA, TOOLS, CICD) and effort (size-s, size-m, size-l).
+This project uses [beads](https://github.com/steveyegge/beads) (`bd` CLI) for issue tracking. Issues live in a local embedded Dolt database and sync through `refs/dolt/data` on the git remote. `.beads/issues.jsonl` is a passive export, not the source of truth or a sync mechanism. Items are labeled by category (UI, API, INFRA, TOOLS, CICD) and effort (size-s, size-m, size-l).
+
+Run `bd prime` for the full workflow context and command reference. Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files.
 
 **NEVER edit `.beads/` files directly.** Use the `bd` CLI instead:
 
@@ -48,8 +50,10 @@ This project uses [beads](https://github.com/steveyegge/beads) (`bd` CLI) for is
 bd ready                                  # Show unblocked tasks
 bd list                                   # List all open issues
 bd list --label API                       # Filter by category
+bd show VSS-abc                           # View issue details
 bd create "[UI-NNN] Description" -t task -p 1 -l UI,size-m  # Create issue
-bd update VSS-abc --status in_progress    # Update status
+bd update VSS-abc --claim                 # Claim work
+bd sync                                   # Pull and push issues via the Dolt remote
 ```
 
 **Completing Issues - AAR Required:**
@@ -77,6 +81,14 @@ bd sync
 ```
 
 See `.claude/skills/beads/SKILL.md` lines 144-282 for full/abbreviated AAR templates and examples.
+
+**Ending a Beads work session:** explicit user or orchestrator instructions override these steps.
+
+1. File issues for any remaining work
+2. Run quality gates if code changed (tests, linters, builds)
+3. Update issue status, closing finished work with an AAR
+4. Do not commit or push without clear authority from the current request; otherwise report `git status` and the proposed commands
+5. Hand off with a summary of changes, validation, issue status, and any blocked step, including the exact command and error
 
 ## Architecture
 
