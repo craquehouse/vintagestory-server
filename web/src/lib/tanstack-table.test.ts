@@ -7,13 +7,18 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  columnFilteringFeature,
   createColumnHelper,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
+  createCoreRowModel,
+  createFilteredRowModel,
+  createSortedRowModel,
+  filterFns,
   flexRender,
+  rowSortingFeature,
+  sortFns,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
-import { useReactTable } from '@tanstack/react-table';
 import { renderHook } from '@testing-library/react';
 
 // Sample data type for testing
@@ -23,19 +28,28 @@ interface TestMod {
   enabled: boolean;
 }
 
+const features = tableFeatures({
+  rowSortingFeature,
+  columnFilteringFeature,
+  sortedRowModel: createSortedRowModel(),
+  filteredRowModel: createFilteredRowModel(),
+  sortFns,
+  filterFns,
+});
+
 describe('TanStack Table Integration', () => {
   describe('dependency installation', () => {
     it('can import core table functions', () => {
       expect(createColumnHelper).toBeDefined();
-      expect(getCoreRowModel).toBeDefined();
-      expect(getSortedRowModel).toBeDefined();
-      expect(getFilteredRowModel).toBeDefined();
+      expect(createCoreRowModel).toBeDefined();
+      expect(createSortedRowModel).toBeDefined();
+      expect(createFilteredRowModel).toBeDefined();
     });
   });
 
   describe('column helper usage', () => {
     it('can create column definitions with columnHelper', () => {
-      const columnHelper = createColumnHelper<TestMod>();
+      const columnHelper = createColumnHelper<typeof features, TestMod>();
 
       // Column definitions created with columnHelper
       const nameColumn = columnHelper.accessor('name', {
@@ -60,25 +74,25 @@ describe('TanStack Table Integration', () => {
   });
 
   describe('row model functions', () => {
-    it('getCoreRowModel returns a function', () => {
-      const rowModel = getCoreRowModel();
+    it('createCoreRowModel returns a function', () => {
+      const rowModel = createCoreRowModel();
       expect(typeof rowModel).toBe('function');
     });
 
-    it('getSortedRowModel returns a function', () => {
-      const rowModel = getSortedRowModel();
+    it('createSortedRowModel returns a function', () => {
+      const rowModel = createSortedRowModel();
       expect(typeof rowModel).toBe('function');
     });
 
-    it('getFilteredRowModel returns a function', () => {
-      const rowModel = getFilteredRowModel();
+    it('createFilteredRowModel returns a function', () => {
+      const rowModel = createFilteredRowModel();
       expect(typeof rowModel).toBe('function');
     });
   });
 
   describe('type safety', () => {
     it('column helper enforces type safety on accessors', () => {
-      const columnHelper = createColumnHelper<TestMod>();
+      const columnHelper = createColumnHelper<typeof features, TestMod>();
 
       // This compiles because 'name' is a valid key of TestMod
       const nameColumn = columnHelper.accessor('name', {
@@ -90,26 +104,26 @@ describe('TanStack Table Integration', () => {
     });
   });
 
-  describe('useReactTable integration', () => {
+  describe('useTable integration', () => {
     const sampleData: TestMod[] = [
       { name: 'CarryCapacity', version: '1.2.0', enabled: true },
       { name: 'ProspectTogether', version: '2.0.1', enabled: false },
       { name: 'AutoMap', version: '0.5.3', enabled: true },
     ];
 
-    const columnHelper = createColumnHelper<TestMod>();
-    const columns = [
+    const columnHelper = createColumnHelper<typeof features, TestMod>();
+    const columns = columnHelper.columns([
       columnHelper.accessor('name', { header: 'Mod Name' }),
       columnHelper.accessor('version', { header: 'Version' }),
       columnHelper.accessor('enabled', { header: 'Status' }),
-    ];
+    ]);
 
-    it('can create a table instance with useReactTable', () => {
+    it('can create a table instance with useTable', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
+          features,
         })
       );
 
@@ -119,10 +133,10 @@ describe('TanStack Table Integration', () => {
 
     it('returns correct header groups', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
+          features,
         })
       );
 
@@ -133,10 +147,10 @@ describe('TanStack Table Integration', () => {
 
     it('can access cell values from rows', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
+          features,
         })
       );
 
@@ -148,13 +162,12 @@ describe('TanStack Table Integration', () => {
       expect(firstRow.original.enabled).toBe(true);
     });
 
-    it('supports sorting with getSortedRowModel', () => {
+    it('supports sorting with createSortedRowModel', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
-          getSortedRowModel: getSortedRowModel(),
+          features,
           initialState: {
             sorting: [{ id: 'name', desc: false }],
           },
@@ -168,13 +181,12 @@ describe('TanStack Table Integration', () => {
       expect(rows[2].original.name).toBe('ProspectTogether');
     });
 
-    it('supports filtering with getFilteredRowModel', () => {
+    it('supports filtering with createFilteredRowModel', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
-          getFilteredRowModel: getFilteredRowModel(),
+          features,
           initialState: {
             columnFilters: [{ id: 'enabled', value: true }],
           },
@@ -189,10 +201,10 @@ describe('TanStack Table Integration', () => {
 
     it('flexRender can render cell content', () => {
       const { result } = renderHook(() =>
-        useReactTable({
+        useTable({
           data: sampleData,
           columns,
-          getCoreRowModel: getCoreRowModel(),
+          features,
         })
       );
 
