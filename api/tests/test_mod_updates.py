@@ -21,7 +21,9 @@ def fixture_releases(name: str) -> list[StoredRelease]:
 
 
 def release(version: str, tags: list[str], modid: str = "demo") -> StoredRelease:
-    return StoredRelease(modversion=version, modidstr=modid, tags=tags, fileid=1, filename=f"{version}.zip")
+    return StoredRelease(
+        modversion=version, modidstr=modid, tags=tags, fileid=1, filename=f"{version}.zip"
+    )
 
 
 class TestVersionHelpers:
@@ -58,7 +60,7 @@ class TestCarryOn:
         assert result.offered is not None
         assert result.offered.modversion == "2.0.0-rc.1"
 
-    def test_prerelease_install_skips_lower_base_stable_even_when_only_it_is_compatible(self) -> None:
+    def test_prerelease_install_skips_stable_with_lower_base(self) -> None:
         # pre.8 is not tagged for 1.22.7, rc.1 is; 1.14.3 is tagged but has a lower base.
         result = evaluate_update("carryon", "2.0.0-pre.7", fixture_releases("carryon"), "1.22.7")
 
