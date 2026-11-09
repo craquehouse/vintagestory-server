@@ -1,17 +1,19 @@
 """Tests for mod update detection (Story 14.1)."""
 
+import asyncio
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, get_args
 
 import httpx
 import pytest
 import respx
 from httpx import Response
 
-from vintagestory_api.models.mod_updates import StoredModRecord, StoredRelease
+from vintagestory_api.models.mod_updates import Compatibility, StoredModRecord, StoredRelease
 from vintagestory_api.models.mods import ModInfo
-from vintagestory_api.services.mod_api import ModApiClient
+from vintagestory_api.services.mod_api import CompatibilityStatus, ModApiClient
 from vintagestory_api.services.mod_updates import (
     ModUpdateCheckInProgressError,
     ModUpdateService,
@@ -395,12 +397,28 @@ class TestModUpdateCheck:
         assert refreshed.error is None
 
     @pytest.mark.asyncio
-    async def test_concurrent_check_is_rejected(self, tmp_path: Path) -> None:
-        service, _ = make_service(tmp_path, [])
+    async def test_overlapping_check_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service, _ = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        started = asyncio.Event()
+        release_lookup = asyncio.Event()
 
-        async with service._check_lock:
-            with pytest.raises(ModUpdateCheckInProgressError):
-                await service.check()
+        async def slow_get_mod(slug: str) -> None:
+            started.set()
+            await release_lookup.wait()
+
+        source = service._mod_source
+        monkeypatch.setattr(source.api_client, "get_mod", slow_get_mod)
+        first = asyncio.create_task(service.check())
+        await started.wait()
+
+        with pytest.raises(ModUpdateCheckInProgressError):
+            await service.check()
+
+        release_lookup.set()
+        summary = await first
+        assert summary.checked == 1
 
     def test_status_uses_installed_game_version_and_handles_no_server(self, tmp_path: Path) -> None:
         service, store = make_service(tmp_path, [installed("carryon", "1.14.1")], game_version=None)
@@ -410,4 +428,119 @@ class TestModUpdateCheck:
 
         assert service.game_version() == ""
         assert item.offered_compatibility == "not_verified"
+
+
+MALFORMED_PAYLOADS: list[Any] = [
+    {
+        "statuscode": "200",
+        "mod": {"releases": [{"modversion": "1", "modidstr": "bad", "fileid": "abc"}]},
+    },
+    {"statuscode": "200", "mod": {"releases": ["oops"]}},
+    {"statuscode": "200", "mod": {"releases": {"a": 1}}},
+    {"statuscode": "200", "mod": [1, 2]},
+    {"statuscode": "200", "mod": {"releases": [{"modversion": "1", "created": {"x": 1}}]}},
+]
+
+
+class TestCheckRobustness:
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("payload", MALFORMED_PAYLOADS)
+    async def test_malformed_payload_fails_that_mod_only(
+        self, tmp_path: Path, payload: Any
+    ) -> None:
+        respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, json=payload))
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        service, _ = make_service(
+            tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")]
+        )
+
+        summary = await service.check()
+
+        assert summary.failed_slugs == ["bad"]
+        assert ModUpdateStore(tmp_path / "state").get("carryon") is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_failure_for_never_checked_mod_is_on_its_status(self, tmp_path: Path) -> None:
+        route = respx.get(MOD_URL.format("carryon"))
+        route.mock(side_effect=httpx.ConnectError("down"))
+        service, _ = make_service(tmp_path, [installed("carryon", "1.14.1")])
+
+        await service.check()
+
+        item = service.get_status()[0]
+        assert item.reason == "not_checked"
+        assert item.error is not None
+        reloaded = ModUpdateStore(tmp_path / "state")
+        assert reloaded.lookup_error("carryon") is not None
+
+        route.mock(return_value=fixture_response("carryon"))
+        await service.check()
+
+        assert service.get_status()[0].error is None
+        assert service.store.lookup_error("carryon") is None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_last_full_check_is_only_set_when_every_lookup_succeeds(
+        self, tmp_path: Path
+    ) -> None:
+        good = respx.get(MOD_URL.format("carryon"))
+        good.mock(return_value=fixture_response("carryon"))
+        bad = respx.get(MOD_URL.format("broken"))
+        bad.mock(side_effect=httpx.ConnectError("down"))
+        service, store = make_service(
+            tmp_path, [installed("carryon", "1.14.1"), installed("broken", "1.0.0")]
+        )
+
+        await service.check()
+        assert store.last_full_check is None
+
+        bad.mock(return_value=fixture_response("not_found"))
+        await service.check()
+        assert store.last_full_check is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_save_failure_still_returns_results(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+
+        def fail_save() -> None:
+            raise PermissionError("read-only")
+
+        monkeypatch.setattr(store, "save", fail_save)
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        assert service.get_status()[0].offered_version == "1.14.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_records_for_uninstalled_mods_are_removed(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        store.set("removed", record([]))
+        store.set_lookup_error("removed-too", "earlier failure")
+
+        await service.check()
+
+        reloaded = ModUpdateStore(tmp_path / "state")
+        assert reloaded.get("removed") is None
+        assert reloaded.lookup_error("removed-too") is None
+        assert reloaded.get("carryon") is not None
+
+
+class TestModelHardening:
+    def test_string_tags_are_one_tag(self) -> None:
+        stored = StoredRelease.from_api({"modversion": "1", "modidstr": "x", "tags": "1.22.0"})
+
+        assert stored.tags == ["1.22.0"]
+
+    def test_compatibility_literal_matches_mod_api(self) -> None:
+        assert get_args(Compatibility) == get_args(CompatibilityStatus)
 

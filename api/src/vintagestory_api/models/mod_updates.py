@@ -4,7 +4,7 @@ See _bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md, ADR-1 a
 """
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel
 
@@ -39,16 +39,28 @@ class StoredRelease(BaseModel):
     created: str | None = None
 
     @classmethod
-    def from_api(cls, release: dict[str, Any]) -> StoredRelease:
-        """Build from a release object in a mod database response."""
-        tags: list[Any] = release.get("tags") or []
+    def from_api(cls, release: object) -> StoredRelease:
+        """Build from a release object in a mod database response.
+
+        Raises:
+            TypeError: If the release is not an object.
+            ValueError: If a field has an unusable value (pydantic's ValidationError
+                is a ValueError).
+        """
+        if not isinstance(release, dict):
+            raise TypeError("release is not an object")
+        data = cast(dict[str, Any], release)
+        raw_tags: object = data.get("tags") or []
+        if isinstance(raw_tags, str):
+            raw_tags = [raw_tags]
+        tags = [str(tag) for tag in cast(list[Any], raw_tags)] if isinstance(raw_tags, list) else []
         return cls(
-            modversion=str(release.get("modversion") or ""),
-            modidstr=str(release.get("modidstr") or ""),
-            tags=[str(tag) for tag in tags],
-            fileid=int(release.get("fileid") or 0),
-            filename=str(release.get("filename") or ""),
-            created=release.get("created"),
+            modversion=str(data.get("modversion") or ""),
+            modidstr=str(data.get("modidstr") or ""),
+            tags=tags,
+            fileid=int(data.get("fileid") or 0),
+            filename=str(data.get("filename") or ""),
+            created=data.get("created"),
         )
 
 
@@ -69,7 +81,10 @@ class ModUpdatesFile(BaseModel):
 
     schema_version: int = 1
     last_full_check: datetime | None = None
+    """When the last check in which every lookup succeeded finished."""
     mods: dict[str, StoredModRecord] = {}
+    lookup_errors: dict[str, str] = {}
+    """Last lookup failure for installed mods that have no stored record yet."""
 
 
 class ModUpdateStatusItem(BaseModel):

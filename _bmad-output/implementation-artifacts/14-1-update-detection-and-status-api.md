@@ -94,15 +94,15 @@ so that **I know what can be updated without checking each mod**.
 
 ### Review Follow-ups (AI)
 
-- [ ] [AI-Review][Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
-- [ ] [AI-Review][Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
-- [ ] [AI-Review][Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
-- [ ] [AI-Review][Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
-- [ ] [AI-Review][Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
-- [ ] [AI-Review][Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
-- [ ] [AI-Review][Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
-- [ ] [AI-Review][Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
-- [ ] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
+- [x] [AI-Review][Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
+- [x] [AI-Review][Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
+- [x] [AI-Review][Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
+- [x] [AI-Review][Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
+- [x] [AI-Review][Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
+- [x] [AI-Review][Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
+- [x] [AI-Review][Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
+- [x] [AI-Review][Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
+- [x] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
 
 ## Dev Notes
 
@@ -269,15 +269,15 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 
 ### Action Items
 
-- [ ] [Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
-- [ ] [Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
-- [ ] [Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
-- [ ] [Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
-- [ ] [Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
-- [ ] [Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
-- [ ] [Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
-- [ ] [Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
-- [ ] [Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
+- [x] [Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
+- [x] [Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
+- [x] [Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
+- [x] [Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
+- [x] [Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
+- [x] [Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
+- [x] [Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
+- [x] [Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
+- [x] [Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
 
 ## Dev Agent Record
 
@@ -298,6 +298,15 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 5: `just check` passes: Ruff and Pyright clean (0 errors), 1879 API tests (46 new), 2911 web tests.
 - Lint failed after the Task 1 commit (two long lines in the new tests); fixed in `eebeb97`, and later commits were gated on lint and tests passing.
+- ✅ Resolved review finding [Medium]: Parsing now runs inside the guarded lookup via `_record_from_payload`; `ValueError` (including pydantic validation) and `TypeError` become a per-mod failure. 5 parametrized payload shapes tested; the good mod is still stored and saved.
+- ✅ Resolved review finding [Medium]: The store keeps `lookup_errors` for mods with no record; status shows the error with reason `not_checked`; a later successful lookup clears it. Tested, including persistence.
+- ✅ Resolved review finding [Low]: `evaluate_update` docstring states the first (newest) occurrence is the installed release.
+- ✅ Resolved review finding [Low]: `last_full_check` now means the last check in which every lookup succeeded; tested for partial failure then success.
+- ✅ Resolved review finding [Low]: `OSError` on save is logged (`mod_update_store_save_failed`) and the check returns its results, which stay available in memory until restart. Tested.
+- ✅ Resolved review finding [Low]: A string `tags` value becomes a one-element list; non-object releases raise `TypeError`. Tested.
+- ✅ Resolved review finding [Low]: Replaced with a behavioral test that blocks a real check on a pending lookup and asserts a second check is rejected.
+- ✅ Resolved review finding [Low]: Test pins `Compatibility` to `mod_api.CompatibilityStatus`.
+- ✅ Resolved review finding [Low]: `check()` prunes records and lookup errors for mods no longer installed. Tested.
 
 ### File List
 

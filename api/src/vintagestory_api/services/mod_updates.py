@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 import structlog
 from pydantic import ValidationError
@@ -85,6 +85,9 @@ def evaluate_update(
         installed_version: The installed mod's version.
         releases: The mod database entry's releases, newest first.
         game_version: The installed game version, or "" if no server is installed.
+
+    If a modid lists the same version more than once, the first (newest) occurrence is
+    treated as the installed release.
     """
     own = [r for r in releases if r.modidstr == modid]
     installed_index = next(
@@ -145,6 +148,22 @@ class ModUpdateStore:
     def set(self, modid: str, record: StoredModRecord) -> None:
         self._data.mods[modid] = record
 
+    def lookup_error(self, modid: str) -> str | None:
+        """The last lookup failure for a mod that has no stored record."""
+        return self._data.lookup_errors.get(modid)
+
+    def set_lookup_error(self, modid: str, error: str) -> None:
+        self._data.lookup_errors[modid] = error
+
+    def clear_lookup_error(self, modid: str) -> None:
+        self._data.lookup_errors.pop(modid, None)
+
+    def prune(self, keep: set[str]) -> None:
+        """Drop records and lookup errors for modids not in `keep`."""
+        for mods in (self._data.mods, self._data.lookup_errors):
+            for modid in [m for m in mods if m not in keep]:
+                del mods[modid]
+
     def save(self) -> None:
         """Write the store atomically: temp file, then rename."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -170,6 +189,7 @@ def _status_item(
     reason: UnknownReason | None = None,
     offered: StoredRelease | None = None,
     compatibility: CompatibilityStatus | None = None,
+    error: str | None = None,
 ) -> ModUpdateStatusItem:
     return ModUpdateStatusItem(
         slug=mod.slug,
@@ -181,7 +201,7 @@ def _status_item(
         offered_compatibility=compatibility,
         offered_prerelease=is_prerelease(offered.modversion) if offered else None,
         checked_at=record.checked_at if record else None,
-        error=record.error if record else None,
+        error=record.error if record else error,
     )
 
 
@@ -193,7 +213,8 @@ def build_status_items(
     for mod in mods:
         record = store.get(mod.slug)
         if record is None:
-            items.append(_status_item(mod, "unknown", reason="not_checked"))
+            error = store.lookup_error(mod.slug)
+            items.append(_status_item(mod, "unknown", reason="not_checked", error=error))
         elif not record.found:
             items.append(_status_item(mod, "unknown", record=record, reason="not_in_database"))
         else:
@@ -263,6 +284,8 @@ class ModUpdateService:
         """Refresh release data for every installed mod from the mod database.
 
         A failed lookup keeps that mod's previous data and records the error.
+        `last_full_check` is only updated when every lookup succeeds. Records for
+        mods that are no longer installed are removed.
 
         Raises:
             ModUpdateCheckInProgressError: If a check is already running.
@@ -276,8 +299,16 @@ class ModUpdateService:
             for mod in mods:
                 if not await self._check_one(mod.slug):
                     failed.append(mod.slug)
-            self._store.last_full_check = datetime.now(UTC)
-            self._store.save()
+            self._store.prune({mod.slug for mod in mods})
+            if not failed:
+                self._store.last_full_check = datetime.now(UTC)
+            try:
+                self._store.save()
+            except OSError as e:
+                # Results stay available in memory until restart.
+                logger.error(
+                    "mod_update_store_save_failed", path=str(self._store.path), error=str(e)
+                )
             logger.info("mod_update_check_complete", checked=len(mods), failed=len(failed))
             return CheckSummary(checked=len(mods), failed=len(failed), failed_slugs=failed)
 
@@ -285,22 +316,40 @@ class ModUpdateService:
         """Refresh one mod. Returns False if the lookup failed."""
         try:
             data = await self._mod_source.api_client.get_mod(slug)
-        except (ExternalApiError, ValueError) as e:
-            # ValueError: the mod database returned a body that is not JSON.
+            record = _record_from_payload(data)
+        except (ExternalApiError, ValueError, TypeError) as e:
+            # ValueError covers a non-JSON body and pydantic validation errors;
+            # TypeError covers payloads with the wrong shape.
             logger.warning("mod_update_lookup_failed", slug=slug, error=str(e))
             previous = self._store.get(slug)
             if previous is not None:
                 self._store.set(slug, previous.model_copy(update={"error": str(e)}))
+            else:
+                self._store.set_lookup_error(slug, str(e))
             return False
 
-        now = datetime.now(UTC)
-        if data is None:
-            self._store.set(slug, StoredModRecord(checked_at=now, found=False))
-        else:
-            raw_releases: list[dict[str, object]] = data.get("releases") or []
-            releases = [StoredRelease.from_api(dict(r)) for r in raw_releases]
-            self._store.set(slug, StoredModRecord(checked_at=now, found=True, releases=releases))
+        self._store.set(slug, record)
+        self._store.clear_lookup_error(slug)
         return True
+
+
+def _record_from_payload(data: object) -> StoredModRecord:
+    """Build a stored record from a get_mod() result (None means not found).
+
+    Raises:
+        TypeError: If the payload or its release list has the wrong shape.
+        ValueError: If a release has unusable field values.
+    """
+    now = datetime.now(UTC)
+    if data is None:
+        return StoredModRecord(checked_at=now, found=False)
+    if not isinstance(data, dict):
+        raise TypeError("mod payload is not an object")
+    raw_releases: object = cast(dict[str, Any], data).get("releases") or []
+    if not isinstance(raw_releases, list):
+        raise TypeError("mod releases is not a list")
+    releases = [StoredRelease.from_api(r) for r in cast(list[object], raw_releases)]
+    return StoredModRecord(checked_at=now, found=True, releases=releases)
 
 
 _mod_update_service: ModUpdateService | None = None
