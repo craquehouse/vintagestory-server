@@ -1,6 +1,6 @@
 # Story 14.0: Epic 14 Technical Preparation
 
-Status: review
+Status: in-progress
 
 <!-- API spike story (template-api-spike). Complete before Stories 14.1-14.6: their designs rest on the assumptions this story verifies. -->
 
@@ -78,6 +78,9 @@ so that **update logic rests on confirmed behavior**.
 - [x] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
 - [x] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
 - [x] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
+- [ ] [AI-Review][Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
+- [ ] [AI-Review][Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
+- [ ] [AI-Review][Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
 
 ## Dev Notes
 
@@ -189,6 +192,20 @@ From Discord's webhook documentation and client libraries:
 
 - Task 2 container experiment (Docker not permitted in the review)
 - Task 1 aggregate statistics and the spike scripts (not committed)
+
+## Senior Developer Review (AI): Follow-up
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of commits `c8a076f`..`0b1cf30`
+**Outcome:** Changes Requested
+
+**Summary:** All eight earlier findings verified resolved, with consistent wording across ADRs, stories and PRD; BMAD bookkeeping correct; `stats.py` reproduces every quoted figure; no secrets in `14-0-spike/`; `just check` passed (1833 API, 2911 web). One new Medium design gap and two Low documentation issues.
+
+### Action Items
+
+- [ ] [Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
+- [ ] [Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
+- [ ] [Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
 
 ## Dev Agent Record
 
