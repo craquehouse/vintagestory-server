@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
+from vintagestory_api import jobs as jobs_module
 from vintagestory_api import main as main_module
 from vintagestory_api.main import (
     CORSLoggingMiddleware,
@@ -329,7 +330,7 @@ class TestLifespanAutoStart:
                 return_value=mock_server_service,
             ),
             patch("vintagestory_api.main.SchedulerService", return_value=mock_scheduler),
-            patch("vintagestory_api.jobs.register_default_jobs"),
+            patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             # Execute lifespan
@@ -391,7 +392,7 @@ class TestLifespanAutoStart:
                 return_value=mock_server_service,
             ),
             patch("vintagestory_api.main.SchedulerService", return_value=mock_scheduler),
-            patch("vintagestory_api.jobs.register_default_jobs"),
+            patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             async with lifespan(test_app):
@@ -453,7 +454,7 @@ class TestLifespanAutoStart:
                 return_value=mock_server_service,
             ),
             patch("vintagestory_api.main.SchedulerService", return_value=mock_scheduler),
-            patch("vintagestory_api.jobs.register_default_jobs"),
+            patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             async with lifespan(test_app):
@@ -513,7 +514,7 @@ class TestLifespanAutoStart:
                 return_value=mock_server_service,
             ),
             patch("vintagestory_api.main.SchedulerService", return_value=mock_scheduler),
-            patch("vintagestory_api.jobs.register_default_jobs"),
+            patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             # Should not raise - errors are caught and logged
@@ -558,7 +559,7 @@ class TestLifespanAutoStart:
                 return_value=mock_api_settings_service,
             ),
             patch("vintagestory_api.main.SchedulerService", return_value=mock_scheduler),
-            patch("vintagestory_api.jobs.register_default_jobs"),
+            patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             async with lifespan(test_app):
