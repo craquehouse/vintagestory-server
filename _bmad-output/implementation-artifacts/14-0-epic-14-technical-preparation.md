@@ -46,11 +46,11 @@ so that **update logic rests on confirmed behavior**.
   - [x] 1.4: Download 2 or 3 releases per mod and compare the archive's `modinfo.json` `modid` and `version` with the release's `modidstr` and `modversion`
   - [x] 1.5: Record releases with empty `tags`, and how `check_compatibility` classifies them
 
-- [ ] Task 2: Test replacing a mod while the server runs (AC: 2)
-  - [ ] 2.1: Run the image in a throwaway container with no host volume (never the repo's `./data`)
-  - [ ] 2.2: Install a 1.22 game server and an older release of a small mod, then start the server
-  - [ ] 2.3: Swap in a newer release (copy to a temporary name, rename over); record server log output before and after a restart
-  - [ ] 2.4: With the server stopped, place two versions of the same mod in the mods directory and record what the server does at startup
+- [x] Task 2: Test replacing a mod while the server runs (AC: 2)
+  - [x] 2.1: Run the image in a throwaway container with no host volume (never the repo's `./data`)
+  - [x] 2.2: Install a 1.22 game server and an older release of a small mod, then start the server
+  - [x] 2.3: Swap in a newer release (copy to a temporary name, rename over); record server log output before and after a restart
+  - [x] 2.4: With the server stopped, place two versions of the same mod in the mods directory and record what the server does at startup
 
 - [ ] Task 3: Define the webhook payload (AC: 3)
   - [ ] 3.1: Confirm against Discord's own documentation: 2000-character `content` limit, `allowed_mentions: {"parse": []}`, 429 handling with `retry_after`, and whether unknown top-level fields are accepted
@@ -174,6 +174,18 @@ Claude Opus 5.5 (claude-opus-5-5)
 | Filenames | 70 of 464 contain spaces; none contain path separators. CDN URLs add a hash, the `filename` does not |
 
 **Pre-existing risk found:** `mod_api.py:366-367` and `mods.py:712` build file paths directly from the ModDB-supplied `filename` without sanitizing it.
+
+**Release order is not version order.** CarryOn lists `2.0.0-rc.1`, then `1.14.3`, then `2.0.0-pre.8`: a 1.x maintenance release was published after a 2.0 pre-release. Under ADR-1 as written, a user on stable `1.14.3` would be offered `2.0.0-rc.1`. Pre-release mod versions (`-rc`, `-pre`, `-dev`) are common among compatible releases.
+
+**Task 2: Replacing a mod under a running server (2026-11-09).** Throwaway container from this branch's image, VintageStory 1.22.7, code mod Auto Map Markers (`egocaribautomapmarkers`). Script and full log: session scratchpad, `spike/swap_test.py` and `spike/swap_test.log`.
+
+| Step | Result |
+|---|---|
+| Boot with 5.0.2 | Loaded: "Mods, sorted by dependency: game, egocaribautomapmarkers, creative, survival" |
+| Swap to 5.0.3 while running (temp file, rename into place, delete old) | Server kept running; no errors or reload in the 30 seconds after; only an emulation "tick took 582ms" warning |
+| Restart | Loaded `Auto Map Markers 5.0.3 - Vintage Story 1.22.zip` with no errors |
+| Both versions present at startup | Warning: "Multiple mods share the mod ID 'egocaribautomapmarkers' (…5.0.2…, …5.0.3…)". Only 5.0.3 loaded. The log line was truncated by the capture filter, so whether the game picks by version or by filename order is unconfirmed |
+| API view with both files present | `GET /mods` listed only 5.0.2: the API and the game disagreed about the installed version |
 
 ### API Quirks Discovered
 
