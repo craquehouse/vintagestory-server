@@ -1,6 +1,6 @@
 # Story 14.0: Epic 14 Technical Preparation
 
-Status: review
+Status: in-progress
 
 <!-- API spike story (template-api-spike). Complete before Stories 14.1-14.6: their designs rest on the assumptions this story verifies. -->
 
@@ -67,6 +67,17 @@ so that **update logic rests on confirmed behavior**.
   - [x] 5.2: Mark each ADR in `architecture/epic-14-mod-updates.md` as confirmed or changed, with evidence
   - [x] 5.3: If an assumption failed, record the decision; update the affected Epic 14 stories in `epics.md`, or create a bead for follow-up work
   - [x] 5.4: Run `just check` to confirm nothing broke
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
+- [ ] [AI-Review][Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
+- [ ] [AI-Review][Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
+- [ ] [AI-Review][Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
+- [ ] [AI-Review][Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
+- [ ] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
+- [ ] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
+- [ ] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
 
 ## Dev Notes
 
@@ -147,6 +158,37 @@ From Discord's webhook documentation and client libraries:
 - [Source: _bmad-output/implementation-artifacts/13-0-epic-13-technical-preparation.md] previous preparation story
 - [Source: project-context.md] Security Patterns §3 "Never Log Sensitive Data"; Critical Rules §6 "Atomic File Writes"
 - [Discord: Webhook resource](https://docs.discord.com/developers/resources/webhook)
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review
+**Outcome:** Changes Requested
+
+**Summary:** The spike work is well evidenced. Fixtures match their README and the live API (8 spot-checks), Discord documentation claims were confirmed, and `just check` passed (1833 API, 2911 web). The plans it produced leave Story 14.2 open to guesswork in three places.
+
+### Action Items
+
+- [ ] [Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
+- [ ] [Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
+- [ ] [Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
+- [ ] [Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
+- [ ] [Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
+- [ ] [Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
+- [ ] [Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
+- [ ] [Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
+
+### Verified Correct
+
+- Fixtures: valid JSON, 26 B to 10,408 B, trimmed as documented, order preserved; every claimed case present
+- Live API: CarryOn order, `urlalias` not a lookup key, repeated filenames, removed-mod 404 shape, instruments modid span
+- Code claims: unsanitized `filename` paths (VSS-432), `check_compatibility` empty-tag behavior, ADR-5 interval and gating
+- Discord documentation claims; story File List matches the git diff
+
+### Not Checked by the Reviewer
+
+- Task 2 container experiment (Docker not permitted in the review)
+- Task 1 aggregate statistics and the spike scripts (not committed)
 
 ## Dev Agent Record
 
