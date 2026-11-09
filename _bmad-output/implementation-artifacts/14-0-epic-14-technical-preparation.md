@@ -75,7 +75,7 @@ so that **update logic rests on confirmed behavior**.
 - [x] [AI-Review][Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
 - [x] [AI-Review][Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
 - [x] [AI-Review][Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
-- [ ] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
+- [x] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
 - [x] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
 - [x] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
 
@@ -174,7 +174,7 @@ From Discord's webhook documentation and client libraries:
 - [x] [Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
 - [x] [Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
 - [x] [Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
-- [ ] [Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
+- [x] [Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
 - [x] [Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
 - [x] [Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
 
@@ -219,7 +219,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 **Release order is not version order.** CarryOn lists `2.0.0-rc.1`, then `1.14.3`, then `2.0.0-pre.8`: a 1.x maintenance release was published after a 2.0 pre-release. Under ADR-1 as written, a user on stable `1.14.3` would be offered `2.0.0-rc.1`. Pre-release mod versions (`-rc`, `-pre`, `-dev`) are common among compatible releases.
 
-**Task 2: Replacing a mod under a running server (2026-11-09).** Throwaway container from this branch's image, VintageStory 1.22.7, code mod Auto Map Markers (`egocaribautomapmarkers`). Script and full log: session scratchpad, `spike/swap_test.py` and `spike/swap_test.log`.
+**Task 2: Replacing a mod under a running server (2026-11-09).** Throwaway container from this branch's image, VintageStory 1.22.7, code mod Auto Map Markers (`egocaribautomapmarkers`). Script and full log: `14-0-spike/swap_test.py` and `14-0-spike/swap_test.log`.
 
 | Step | Result |
 |---|---|
@@ -240,7 +240,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 | 429 body: `message`, `retry_after` (float seconds), `global`, optional `code`; `Retry-After` and `X-RateLimit-*` headers | [Rate limits](https://docs.discord.com/developers/topics/rate-limits) |
 | Separate Slack-compatible (`/slack`) and GitHub-compatible (`/github`) execute endpoints exist | Webhook resource |
 
-Because Discord does not document how it treats extra fields, a single combined payload relies on unspecified behavior. Prototype (`spike/webhook_probe.py`) sends a receiver-specific payload instead:
+Because Discord does not document how it treats extra fields, a single combined payload relies on unspecified behavior. Prototype (`14-0-spike/webhook_probe.py`) sends a receiver-specific payload instead:
 
 - **Discord URL** (host `discord.com`, `discordapp.com`, `ptb.discord.com` or `canary.discord.com`, path starting `/api/webhooks/`): `{"content": <summary>, "allowed_mentions": {"parse": []}}`
 - **Any other URL:** `{"event": "mod_updates_available", "content": <summary>, "updates": [{"slug", "name", "installed", "offered", "compatibility"}]}`
@@ -283,7 +283,7 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - Task 3: Confirmed Discord's limits from its own documentation; prototyped a receiver-specific payload and verified it against a local receiver (204, redirect not followed, 429 `retry_after` read, truncation to 1,950 characters, mention suppression, look-alike hosts rejected). Not tested against a live Discord webhook; none was provided.
 - Task 4: Added four fixtures (largest 10.4 KB) and a README covering each case.
 - Task 5: Documented release behavior, marked all six ADRs, updated three stories, filed `VSS-432`. `just check` passes: 1833 API tests, 2911 web tests.
-- Spike scripts (`moddb_probe.py`, `swap_test.py`, `webhook_probe.py`) were run from the session scratchpad and are not committed.
+- Spike scripts, trimmed sampled data and logs are in `_bmad-output/implementation-artifacts/14-0-spike/`; `stats.py` reproduces the aggregate figures.
 - ✅ Resolved review finding [Medium]: Story 14.2 and FR141 require confirmation for a pre-release when the installed version is stable; Story 14.3 lists the warning; ADR-2 and `MOD_CONFIRMATION_REQUIRED` state the same conditions.
 - ✅ Resolved review finding [Medium]: ADR-2 step 1 and Story 14.2 resolve the target only among releases with the installed modid and reject other modids; Story 14.2 requires tests with the instruments and CarryOn fixtures. The same flaw in today's install path is filed as `VSS-jhf` [API-062].
 - ✅ Resolved review finding [Medium]: ADR-1 defines newer and older as position in the release list for the installed modid; Story 14.2 and FR141 use that definition.
@@ -291,6 +291,7 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - ✅ Resolved review finding [Low]: FR130 now states the pre-release rule and points to Epic 14 ADR-1.
 - ✅ Resolved review finding [Low]: ADR-1 records the `1.0.0-hotfix-2` limitation and that no such version was sampled.
 - ✅ Resolved review finding [Low]: Story 14.6 tasks add tests replaying Discord `204` and `429` responses and a manual check against a test Discord webhook.
+- ✅ Resolved review finding [Low]: Committed the scripts, trimmed sampled data, logs and a README in `_bmad-output/implementation-artifacts/14-0-spike/`; `stats.py` reproduces every aggregate figure from committed data.
 
 ### File List
 
@@ -304,6 +305,8 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - Modified: `_bmad-output/planning-artifacts/epics.md`
 - Modified: `_bmad-output/implementation-artifacts/14-0-epic-14-technical-preparation.md`
 - Modified: `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- Modified: `_bmad-output/planning-artifacts/prd.md` (FR130, FR141; review follow-ups)
+- Created: `_bmad-output/implementation-artifacts/14-0-spike/` (`README.md`, `moddb_probe.py`, `probe-findings.json`, `sampled-releases.json`, `stats.py`, `stats.txt`, `swap_test.py`, `swap_test.log`, `webhook_probe.py`)
 
 ## Change Log
 
