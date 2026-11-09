@@ -3,6 +3,7 @@
 See _bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md, ADR-1 and ADR-4.
 """
 
+import re
 from datetime import datetime
 from typing import Any, Literal, cast
 
@@ -26,6 +27,14 @@ UnknownReason = Literal[
     "installed_release_not_listed",
     "version_unparsable",
 ]
+
+
+_SURROGATES = re.compile("[\ud800-\udfff]")
+
+
+def _clean_text(value: object) -> str:
+    """Convert to str, replacing each lone surrogate (not encodable as UTF-8) with U+FFFD."""
+    return _SURROGATES.sub("\ufffd", str(value))
 
 
 class StoredRelease(BaseModel):
@@ -53,14 +62,19 @@ class StoredRelease(BaseModel):
         raw_tags: object = data.get("tags") or []
         if isinstance(raw_tags, str):
             raw_tags = [raw_tags]
-        tags = [str(tag) for tag in cast(list[Any], raw_tags)] if isinstance(raw_tags, list) else []
+        tags = (
+            [_clean_text(tag) for tag in cast(list[Any], raw_tags)]
+            if isinstance(raw_tags, list)
+            else []
+        )
+        created = data.get("created")
         return cls(
-            modversion=str(data.get("modversion") or ""),
-            modidstr=str(data.get("modidstr") or ""),
+            modversion=_clean_text(data.get("modversion") or ""),
+            modidstr=_clean_text(data.get("modidstr") or ""),
             tags=tags,
             fileid=int(data.get("fileid") or 0),
-            filename=str(data.get("filename") or ""),
-            created=data.get("created"),
+            filename=_clean_text(data.get("filename") or ""),
+            created=_clean_text(created) if isinstance(created, str) else created,
         )
 
 

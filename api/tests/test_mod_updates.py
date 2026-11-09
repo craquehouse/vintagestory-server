@@ -568,6 +568,16 @@ class TestCheckRobustness:
 
 
 class TestModelHardening:
+    def test_lone_surrogates_are_replaced(self) -> None:
+        stored = StoredRelease.from_api(
+            {"modversion": "1.0\ud800", "modidstr": "x\udfff", "tags": ["1.22\ud800"]}
+        )
+
+        assert stored.modversion == "1.0\ufffd"
+        assert stored.modidstr == "x\ufffd"
+        assert stored.tags == ["1.22\ufffd"]
+        stored.model_dump_json()
+
     def test_string_tags_are_one_tag(self) -> None:
         stored = StoredRelease.from_api({"modversion": "1", "modidstr": "x", "tags": "1.22.0"})
 

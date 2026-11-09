@@ -138,6 +138,24 @@ class TestCheckModUpdates:
         assert data["checked_at"] is not None
         assert data["mods"][0]["offered_version"] == "1.14.3"
 
+    @respx.mock
+    def test_upstream_lone_surrogate_does_not_break_responses(self, client: TestClient) -> None:
+        body = (
+            b'{"statuscode": "200", "mod": {"releases": ['
+            b'{"modversion": "1.14.9\\ud800", "modidstr": "carryon", "tags": ["1.22.7"]},'
+            b'{"modversion": "1.14.1", "modidstr": "carryon", "tags": ["1.22.7"]}]}}'
+        )
+        respx.get("https://mods.vintagestory.at/api/mod/carryon").mock(
+            return_value=Response(200, content=body)
+        )
+
+        checked = client.post(CHECK_URL, headers=ADMIN)
+        status = client.get(UPDATES_URL, headers=ADMIN)
+
+        assert checked.status_code == 200
+        assert status.status_code == 200
+        assert status.json()["data"]["mods"][0]["offered_version"] == "1.14.9\ufffd"
+
     def test_monitor_cannot_check(self, client: TestClient) -> None:
         assert client.post(CHECK_URL, headers=MONITOR).status_code == 403
 

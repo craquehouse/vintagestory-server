@@ -105,7 +105,7 @@ so that **I know what can be updated without checking each mod**.
 - [x] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
 - [x] [AI-Review][Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
 - [x] [AI-Review][Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
-- [ ] [AI-Review][Low] A lone surrogate in a release's `modversion` reaches `offered_version` and makes `GET /mods/updates` and `POST /mods/updates/check` fail during response serialization (500) [models/mod_updates.py `StoredRelease.from_api`]
+- [x] [AI-Review][Low] A lone surrogate in a release's `modversion` reaches `offered_version` and makes `GET /mods/updates` and `POST /mods/updates/check` fail during response serialization (500) [models/mod_updates.py `StoredRelease.from_api`]
 
 ## Dev Notes
 
@@ -305,7 +305,7 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 
 ### Action Items
 
-- [ ] [Low] A lone surrogate in a release's `modversion` reaches `offered_version` and makes `GET /mods/updates` and `POST /mods/updates/check` fail during response serialization (500) [models/mod_updates.py `StoredRelease.from_api`]
+- [x] [Low] A lone surrogate in a release's `modversion` reaches `offered_version` and makes `GET /mods/updates` and `POST /mods/updates/check` fail during response serialization (500) [models/mod_updates.py `StoredRelease.from_api`]
 
 ## Dev Agent Record
 
@@ -337,6 +337,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - ✅ Resolved review finding [Low]: `check()` prunes records and lookup errors for mods no longer installed. Tested.
 - ✅ Resolved review finding [Medium]: `_check_one` also catches `KeyError` and `AttributeError` raised inside `get_mod()`; `mod_api` unchanged. Tested with a top-level JSON array and a body with no `mod` key.
 - ✅ Resolved review finding [Low]: The save guard catches `ValueError` as well as `OSError`. Tested with a lone surrogate in a release filename.
+- ✅ Resolved review finding [Low]: `StoredRelease.from_api` replaces each lone surrogate with U+FFFD in every stored text field, so neither the store nor responses can carry one. Tested at the model and end to end through `POST /mods/updates/check` and `GET /mods/updates`.
 
 ### File List
 
