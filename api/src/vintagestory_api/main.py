@@ -219,20 +219,38 @@ app.include_router(api_v1)
 app.include_router(console.ws_router, prefix="/api/v1alpha1")
 
 
-# Static file serving for frontend SPA
-# Mount assets directory for JS, CSS, and other static files
-if STATIC_DIR.exists():
-    assets_dir = STATIC_DIR / "assets"
+def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
+    """Return the file to serve for a request path, or index.html for client-side routing.
+
+    The request path is untrusted and may be absolute or contain traversal segments, so a
+    file is served only if its real path is inside static_root.
+    """
+    index = static_root / "index.html"
+    try:
+        candidate = (static_root / requested).resolve()
+    except ValueError:  # For example, an embedded null byte
+        return index
+    if candidate.is_relative_to(static_root) and candidate.is_file():
+        return candidate
+    return index
+
+
+def register_frontend(target: FastAPI, static_dir: Path) -> None:
+    """Serve the built frontend from static_dir on the given app."""
+    static_root = static_dir.resolve()
+
+    # Mount assets directory for JS, CSS, and other static files
+    assets_dir = static_dir / "assets"
     if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+        target.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
     # SPA fallback - serve index.html for all non-API, non-health routes
-    @app.get("/{full_path:path}")
+    @target.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
         """Serve static files or fall back to index.html for client-side routing."""
-        # Check if it's a static file that exists
-        file_path = STATIC_DIR / full_path
-        if file_path.exists() and file_path.is_file():
-            return FileResponse(file_path)
-        # Otherwise serve index.html for client-side routing
-        return FileResponse(STATIC_DIR / "index.html")
+        return FileResponse(_resolve_frontend_file(static_root, full_path))
+
+
+# Static file serving for frontend SPA
+if STATIC_DIR.exists():
+    register_frontend(app, STATIC_DIR)
