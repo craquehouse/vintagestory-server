@@ -3291,7 +3291,7 @@ So that **I know what can be updated without checking each mod**.
 
 **Given** an installed mod has newer releases
 **When** update status is determined
-**Then** release order from the mod database identifies them, without comparing version strings
+**Then** release order from the mod database identifies them, without comparing version strings (apart from the base-version check below)
 **And** the offered update is the newest compatible release, or if none, the newest not-verified release
 
 *(Covers FR129, FR130)*
@@ -3304,8 +3304,8 @@ So that **I know what can be updated without checking each mod**.
 **Given** the installed version is stable
 **When** a newer release is a pre-release (its version contains `-`)
 **Then** it is not offered as an update
-**And** a mod already on a pre-release can be offered a newer release only if its base version (the numeric `major.minor.patch` before any `-`) is at least the installed base version
-**And** if either base version cannot be parsed, no update is offered for that mod
+**And** a mod already on a pre-release can be offered a newer release only if its base version (the dot-separated numeric part before any `-`) is at least the installed base version
+**And** a newer release whose base version cannot be parsed is not eligible, and if the installed base version cannot be parsed, no update is offered for that mod
 
 **Given** every newer release is incompatible with the current game version
 **When** update status is determined

@@ -1,6 +1,6 @@
 # Story 14.0: Epic 14 Technical Preparation
 
-Status: review
+Status: done
 
 <!-- API spike story (template-api-spike). Complete before Stories 14.1-14.6: their designs rest on the assumptions this story verifies. -->
 
@@ -279,7 +279,7 @@ Recorded in `architecture/epic-14-mod-updates.md`, each ADR now marked with its 
 
 | ADR | Status | Change |
 |---|---|---|
-| ADR-1 Detection | Changed | Filter releases to the installed modid; identify the installed release by modid and version; stable installs are offered only stable releases (user decision 2026-11-09); mods on a pre-release can be offered any newer release |
+| ADR-1 Detection | Changed | Filter releases to the installed modid; identify the installed release by modid and version; stable installs are offered only stable releases (user decision 2026-11-09); mods on a pre-release can be offered a newer release only if its base version is not lower (follow-up review) |
 | ADR-2 Version change | Changed | Validate archive modid **and** version; use only the final path component of `filename`; failing to delete the old file rolls the change back |
 | ADR-3 Rollback source | Changed | Reuse a cached file only after it validates as the target release |
 | ADR-4 Status store | Confirmed | Store `modidstr` with each release |
@@ -311,7 +311,7 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - ✅ Resolved review finding [Low]: Committed the scripts, trimmed sampled data, logs and a README in `_bmad-output/implementation-artifacts/14-0-spike/`; `stats.py` reproduces every aggregate figure from committed data.
 - ✅ Resolved review finding [Medium]: ADR-1, FR129, FR130 and Story 14.1 add a base-version check for mods on a pre-release (numeric part before `-`, compared component by component; no offer if unparsable). Story 14.1 requires CarryOn fixture tests proving `2.0.0-pre.8` is offered `2.0.0-rc.1` but never `1.14.3`.
 - ✅ Resolved review finding [Low]: FR140 now limits switching to releases for the installed mod's modid.
-- ✅ Resolved review finding [Low]: README states 10 downloads from 12 attempts and documents the `findings.json` rename.
+- ✅ Resolved review finding [Low]: README states 10 downloads, two from each of five mods (the sixth mod's lookup returns 404), and documents the `findings.json` rename.
 
 ### File List
 
@@ -333,3 +333,4 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - 2026-11-09: Completed the Epic 14 API spike. Verified ModDB release behavior and live mod replacement, defined the webhook payload, added fixtures, and updated ADR-1 to ADR-6 and Stories 14.1, 14.2 and 14.6 with the findings.
 - 2026-11-09: Addressed code review findings - 8 items resolved (3 Medium, 5 Low). Story 14.2 and ADR-2 now restrict version changes to the installed modid and require confirmation for pre-releases and older releases; ADR-1 defines older by release order; ADR-6 names the `slug` field; FR130 and FR141 updated; Story 14.6 adds Discord checks; spike evidence committed. Filed `VSS-jhf` for the same modid flaw in the existing install path.
 - 2026-11-09: Addressed follow-up review findings - 3 items resolved (1 Medium, 2 Low). Mods on a pre-release are only offered releases whose base version is not lower (ADR-1, FR129, FR130, Story 14.1); FR140 limited to the installed modid; spike README corrected.
+- 2026-11-09: Second follow-up review approved. Clarified per-release versus installed parse failure in ADR-1 and Story 14.1, recorded the stable-install base-version limitation in ADR-1, and corrected the story's own summary row and README note. Story marked done.
