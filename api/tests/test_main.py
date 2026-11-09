@@ -3,20 +3,23 @@
 Coverage targets:
 - CORSLoggingMiddleware.dispatch (lines 66, 77)
 - lifespan auto_start_server logic (lines 118-131)
-- Static file serving SPA fallback (lines 225-238)
 - get_scheduler_service error handling (line 49)
+- Import-time wiring of the frontend and debug-only routes
 """
 
+import inspect
+import runpy
 from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
+from vintagestory_api import main as main_module
 from vintagestory_api.main import (
-    STATIC_DIR,
     CORSLoggingMiddleware,
     app,
     get_scheduler_service,
@@ -159,132 +162,6 @@ class TestCORSLoggingMiddleware:
         assert "200" in logs or "status_code" in logs
 
 
-class TestStaticFileSPAFallback:
-    """Tests for static file serving and SPA fallback routing."""
-
-    @pytest.fixture
-    def mock_static_files(self, tmp_path: Path) -> Path:
-        """Create mock static files for testing."""
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        # Create index.html
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>SPA Index</body></html>")
-
-        # Create assets directory
-        assets_dir = static_dir / "assets"
-        assets_dir.mkdir()
-
-        # Create a test JS file
-        js_file = assets_dir / "main.js"
-        js_file.write_text("console.log('test');")
-
-        # Create a static file in root
-        favicon = static_dir / "favicon.ico"
-        favicon.write_bytes(b"\x00\x00\x01\x00")
-
-        return static_dir
-
-    def test_spa_fallback_serves_index_for_unknown_routes(
-        self, mock_static_files: Path
-    ) -> None:
-        """SPA fallback serves index.html for unknown client routes."""
-        # Patch STATIC_DIR to use our mock directory
-        import vintagestory_api.main as main_module
-
-        original_static_dir = main_module.STATIC_DIR
-
-        try:
-            main_module.STATIC_DIR = mock_static_files
-
-            # Need to re-create app with new STATIC_DIR
-            # For this test, we'll just verify the logic by checking if the path exists
-            assert mock_static_files.exists()
-            assert (mock_static_files / "index.html").exists()
-
-            # The actual serving is tested by checking the endpoint exists
-            client = TestClient(app)
-            # Try to access a client route that doesn't exist as a file
-            response = client.get("/dashboard")
-
-            # Should either serve index.html (200) or 404 if static dir not mounted in test
-            assert response.status_code in [200, 404]
-
-        finally:
-            main_module.STATIC_DIR = original_static_dir
-
-    def test_spa_fallback_serves_existing_static_files(
-        self, mock_static_files: Path
-    ) -> None:
-        """SPA fallback serves actual files when they exist."""
-        import vintagestory_api.main as main_module
-
-        original_static_dir = main_module.STATIC_DIR
-
-        try:
-            main_module.STATIC_DIR = mock_static_files
-
-            # Verify test file exists
-            test_file = mock_static_files / "favicon.ico"
-            assert test_file.exists()
-
-            client = TestClient(app)
-            response = client.get("/favicon.ico")
-
-            # Should either serve the file (200) or 404 if route not mounted in test
-            assert response.status_code in [200, 404]
-
-        finally:
-            main_module.STATIC_DIR = original_static_dir
-
-    def test_static_dir_mounted_when_exists(self) -> None:
-        """Static directory mounting happens when STATIC_DIR exists."""
-        # This test verifies the conditional logic in main.py lines 224-227
-        # The actual mounting happens at import time, so we verify the constant
-        assert STATIC_DIR is not None
-        assert isinstance(STATIC_DIR, Path)
-        assert str(STATIC_DIR) == "/app/static"
-
-    def test_spa_fallback_code_coverage(self) -> None:
-        """Exercise SPA fallback logic paths for coverage."""
-        # Create a mock request to exercise the serve_spa function
-        # This covers lines 230-238
-        client = TestClient(app)
-
-        # Test various routes that should trigger SPA fallback
-        routes = [
-            "/",
-            "/mods",
-            "/dashboard",
-            "/terminal",
-            "/config",
-            "/nonexistent/deep/route",
-        ]
-
-        for route in routes:
-            response = client.get(route)
-            # Should either serve content (200) or not found (404)
-            # The important part is the code path is exercised
-            assert response.status_code in [200, 404]
-
-    def test_api_routes_not_affected_by_spa_fallback(self) -> None:
-        """API routes work correctly and are not captured by SPA fallback."""
-        client = TestClient(app)
-
-        # Health endpoints should always work
-        response = client.get("/healthz")
-        assert response.status_code == 200
-        assert "status" in response.json()
-
-        response = client.get("/readyz")
-        assert response.status_code == 200
-        assert "status" in response.json()
-
-        # These should be JSON, not HTML
-        assert "application/json" in response.headers["content-type"]
-
-
 class TestApplicationConfiguration:
     """Tests for application-level configuration."""
 
@@ -342,25 +219,63 @@ class TestApplicationConfiguration:
             pass
 
 
-class TestDebugModeRouterInclusion:
-    """Tests for DEBUG mode affecting router inclusion."""
+class FakeFileResponse(PlainTextResponse):
+    """Stands in for FileResponse, since /app/static does not exist under test."""
 
-    def test_test_rbac_router_included_in_debug_mode(self) -> None:
-        """Test RBAC router is included when DEBUG=true (via VS_DEBUG env var)."""
-        # conftest.py sets VS_DEBUG=true, so test_rbac should be accessible
-        from vintagestory_api.config import Settings
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"file:{path}")
 
-        settings = Settings()
 
-        if settings.debug:
-            client = TestClient(app)
+def load_fresh_app(*, static_dir_exists: bool) -> FastAPI:
+    """Execute main.py again so its import-time wiring runs under controlled conditions."""
+    real_exists = Path.exists
 
-            # test_rbac endpoints should exist (auth required, not 404)
-            response = client.get("/api/v1alpha1/test/read")
-            assert response.status_code in [401, 403, 200]  # Not 404
+    def exists(self: Path, *, follow_symlinks: bool = True) -> bool:
+        if self == Path("/app/static"):
+            return static_dir_exists
+        return real_exists(self, follow_symlinks=follow_symlinks)
 
-            response = client.post("/api/v1alpha1/test/write")
-            assert response.status_code in [401, 403, 200]  # Not 404
+    with (
+        patch.object(Path, "exists", exists),
+        patch("fastapi.responses.FileResponse", FakeFileResponse),
+    ):
+        namespace = runpy.run_path(inspect.getfile(main_module), run_name="fresh_main")
+    return namespace["app"]
+
+
+class TestImportTimeWiring:
+    """Tests for routes that main.py only adds under certain conditions."""
+
+    @pytest.mark.parametrize(("debug", "expected_status"), [("true", 401), ("false", 404)])
+    def test_rbac_test_routes_only_exist_in_debug_mode(
+        self, monkeypatch: pytest.MonkeyPatch, debug: str, expected_status: int
+    ) -> None:
+        monkeypatch.setenv("VS_DEBUG", debug)
+
+        client = TestClient(load_fresh_app(static_dir_exists=False))
+
+        assert client.get("/api/v1alpha1/test/read").status_code == expected_status
+
+    def test_client_routes_are_not_served_without_static_dir(self) -> None:
+        client = TestClient(load_fresh_app(static_dir_exists=False))
+
+        assert client.get("/dashboard").status_code == 404
+
+    def test_client_routes_are_served_with_static_dir(self) -> None:
+        client = TestClient(load_fresh_app(static_dir_exists=True))
+
+        response = client.get("/dashboard")
+
+        assert response.status_code == 200
+        assert response.text.endswith("static/index.html")
+
+    def test_frontend_route_does_not_capture_api_routes(self) -> None:
+        client = TestClient(load_fresh_app(static_dir_exists=True))
+
+        health = client.get("/healthz")
+        assert health.status_code == 200
+        assert "application/json" in health.headers["content-type"]
+        assert client.get("/api/v1alpha1/server/status").status_code == 401
 
 
 class TestLifespanAutoStart:
@@ -652,366 +567,3 @@ class TestLifespanAutoStart:
             # Check disabled log message
             logs = captured_logs.getvalue()
             assert "auto_start_server_disabled" in logs
-
-
-class TestStaticFileServingLogic:
-    """Tests for static file serving logic (lines 225-238)."""
-
-    def test_static_dir_exists_check(self, tmp_path: Path) -> None:
-        """Test that static directory existence check works correctly."""
-        import vintagestory_api.main as main_module
-
-        # Save original
-        original_static_dir = main_module.STATIC_DIR
-
-        try:
-            # Test with non-existent directory
-            non_existent = tmp_path / "does_not_exist"
-            main_module.STATIC_DIR = non_existent
-            assert not non_existent.exists()
-
-            # Test with existing directory
-            existing = tmp_path / "static"
-            existing.mkdir()
-            main_module.STATIC_DIR = existing
-            assert existing.exists()
-
-            # Create assets subdirectory
-            assets = existing / "assets"
-            assets.mkdir()
-            assert assets.exists()
-
-            # Create index.html
-            index = existing / "index.html"
-            index.write_text("<html><body>Test</body></html>")
-            assert index.exists()
-
-        finally:
-            main_module.STATIC_DIR = original_static_dir
-
-    @pytest.mark.asyncio
-    async def test_serve_spa_returns_existing_file(self, tmp_path: Path) -> None:
-        """Test serve_spa returns existing file when it exists."""
-
-        # Create a temporary static directory structure
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        test_file = static_dir / "test.txt"
-        test_file.write_text("test content")
-
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>SPA</body></html>")
-
-        # Import and patch STATIC_DIR
-        import vintagestory_api.main as main_module
-
-        original = main_module.STATIC_DIR
-
-        try:
-            main_module.STATIC_DIR = static_dir
-
-            # Test that serve_spa logic would check file existence
-            file_path = static_dir / "test.txt"
-            assert file_path.exists()
-            assert file_path.is_file()
-
-            # Test that index.html exists
-            index_path = static_dir / "index.html"
-            assert index_path.exists()
-            assert index_path.is_file()
-
-        finally:
-            main_module.STATIC_DIR = original
-
-    @pytest.mark.asyncio
-    async def test_serve_spa_falls_back_to_index(self, tmp_path: Path) -> None:
-        """Test serve_spa falls back to index.html for non-existent paths."""
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>SPA Index</body></html>")
-
-        import vintagestory_api.main as main_module
-
-        original = main_module.STATIC_DIR
-
-        try:
-            main_module.STATIC_DIR = static_dir
-
-            # Test that non-existent path would fall back to index
-            non_existent = static_dir / "does_not_exist"
-            assert not non_existent.exists()
-
-            # Index should exist for fallback
-            index_path = static_dir / "index.html"
-            assert index_path.exists()
-
-        finally:
-            main_module.STATIC_DIR = original
-
-    def test_assets_directory_mounting(self, tmp_path: Path) -> None:
-        """Test assets directory is mounted when it exists."""
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        assets_dir = static_dir / "assets"
-        assets_dir.mkdir()
-
-        # Create a test asset file
-        test_asset = assets_dir / "main.js"
-        test_asset.write_text("console.log('test');")
-
-        import vintagestory_api.main as main_module
-
-        original = main_module.STATIC_DIR
-
-        try:
-            main_module.STATIC_DIR = static_dir
-
-            # Verify assets directory structure
-            assert static_dir.exists()
-            assert assets_dir.exists()
-            assert (assets_dir / "main.js").exists()
-
-        finally:
-            main_module.STATIC_DIR = original
-
-    def test_static_file_serving_function_directly(self, tmp_path: Path) -> None:
-        """Test the serve_spa function logic by importing and recreating it."""
-        # This test recreates the serve_spa function logic to test lines 225-238
-        from fastapi import FastAPI
-        from fastapi.responses import FileResponse
-        from fastapi.testclient import TestClient
-
-        # Create static directory structure
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        # Create index.html
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>SPA Index</body></html>")
-
-        # Create a test file
-        test_file = static_dir / "favicon.ico"
-        test_file.write_bytes(b"\x00\x00\x01\x00")
-
-        # Create a test app with the same logic as main.py lines 230-238
-        test_app = FastAPI()
-
-        @test_app.get("/{full_path:path}")
-        async def serve_spa_test(full_path: str) -> FileResponse:
-            """Serve static files or fall back to index.html for client-side routing."""
-            # Check if it's a static file that exists
-            file_path = static_dir / full_path
-            if file_path.exists() and file_path.is_file():
-                return FileResponse(file_path)
-            # Otherwise serve index.html for client-side routing
-            return FileResponse(static_dir / "index.html")
-
-        client = TestClient(test_app)
-
-        # Test serving an existing file (line 236)
-        response = client.get("/favicon.ico")
-        assert response.status_code == 200
-        assert response.content == b"\x00\x00\x01\x00"
-
-        # Test fallback to index.html (line 238)
-        response = client.get("/nonexistent/route")
-        assert response.status_code == 200
-        assert "SPA Index" in response.text
-
-    def test_static_dir_and_assets_mounting_logic(self, tmp_path: Path) -> None:
-        """Test the conditional mounting logic for STATIC_DIR and assets (lines 225-227)."""
-        from fastapi import FastAPI
-        from fastapi.staticfiles import StaticFiles
-
-        # Create static directory with assets
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        assets_dir = static_dir / "assets"
-        assets_dir.mkdir()
-
-        # Create a test asset
-        test_asset = assets_dir / "main.js"
-        test_asset.write_text("console.log('app');")
-
-        # Test the mounting logic (simulating lines 224-227)
-        test_app = FastAPI()
-
-        if static_dir.exists():
-            test_assets_dir = static_dir / "assets"
-            if test_assets_dir.exists():
-                test_app.mount(
-                    "/assets", StaticFiles(directory=test_assets_dir), name="assets"
-                )
-
-        # Verify the mount was created
-        client = TestClient(test_app)
-        response = client.get("/assets/main.js")
-        assert response.status_code == 200
-        assert "console.log('app')" in response.text
-
-    def test_spa_serve_function_with_real_app(self, tmp_path: Path) -> None:
-        """Test the actual serve_spa function execution (lines 225-238)."""
-
-        import vintagestory_api.main as main_module
-
-        # Create static directory structure
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        # Create index.html
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>Test SPA</body></html>")
-
-        # Create assets directory
-        assets_dir = static_dir / "assets"
-        assets_dir.mkdir()
-
-        # Create a test asset
-        test_asset = assets_dir / "main.js"
-        test_asset.write_text("console.log('test');")
-
-        # Create a test file in root
-        favicon = static_dir / "favicon.ico"
-        favicon.write_bytes(b"\x00\x00\x01\x00")
-
-        # Patch STATIC_DIR before app initialization
-        original_static_dir = main_module.STATIC_DIR
-
-        try:
-            # Patch STATIC_DIR to our test directory
-            main_module.STATIC_DIR = static_dir
-
-            # Create a fresh app with the patched STATIC_DIR
-            # We need to rebuild the app to trigger the static file setup
-
-            from fastapi import FastAPI
-            from fastapi.responses import FileResponse
-            from fastapi.staticfiles import StaticFiles
-
-            test_app = FastAPI()
-
-            # Replicate the logic from lines 224-238
-            if static_dir.exists():
-                test_assets_dir = static_dir / "assets"
-                if test_assets_dir.exists():
-                    test_app.mount(
-                        "/assets", StaticFiles(directory=test_assets_dir), name="assets"
-                    )
-
-                # SPA fallback route (lines 230-238)
-                @test_app.get("/{full_path:path}")
-                async def serve_spa(full_path: str) -> FileResponse:
-                    """Serve static files or fall back to index.html for client-side routing."""
-                    # Check if it's a static file that exists
-                    file_path = static_dir / full_path
-                    if file_path.exists() and file_path.is_file():
-                        return FileResponse(file_path)
-                    # Otherwise serve index.html for client-side routing
-                    return FileResponse(static_dir / "index.html")
-
-            client = TestClient(test_app)
-
-            # Test 1: Access assets directory (line 227)
-            response = client.get("/assets/main.js")
-            assert response.status_code == 200
-            assert "console.log('test')" in response.text
-
-            # Test 2: Serve existing static file (lines 234-236)
-            response = client.get("/favicon.ico")
-            assert response.status_code == 200
-            assert response.content == b"\x00\x00\x01\x00"
-
-            # Test 3: Fallback to index.html for non-existent routes (line 238)
-            response = client.get("/dashboard")
-            assert response.status_code == 200
-            assert "Test SPA" in response.text
-
-            # Test 4: Fallback for deep routes
-            response = client.get("/some/deep/route")
-            assert response.status_code == 200
-            assert "Test SPA" in response.text
-
-        finally:
-            main_module.STATIC_DIR = original_static_dir
-
-    def test_main_module_static_file_setup_with_existing_dir(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that lines 225-238 in main.py execute when STATIC_DIR exists.
-
-        This test creates a real static directory and patches Path.exists()
-        to simulate the STATIC_DIR existing, triggering the actual code path.
-        """
-        # Create a static directory structure
-        static_dir = tmp_path / "static"
-        static_dir.mkdir()
-
-        # Create index.html
-        index_file = static_dir / "index.html"
-        index_file.write_text("<html><body>Coverage Test</body></html>")
-
-        # Create assets directory
-        assets_dir = static_dir / "assets"
-        assets_dir.mkdir()
-
-        # Create a test asset
-        test_js = assets_dir / "app.js"
-        test_js.write_text("console.log('coverage');")
-
-        # Create a static file
-        favicon = static_dir / "favicon.ico"
-        favicon.write_bytes(b"\x00\x01\x02\x03")
-
-        # Import the necessary components to recreate the setup
-        from fastapi import FastAPI
-        from fastapi.responses import FileResponse
-        from fastapi.staticfiles import StaticFiles
-
-        # Create a test app and manually execute the static file setup logic
-        test_app = FastAPI()
-
-        # This directly tests lines 224-238 by executing the same logic
-        STATIC_DIR_TEST = static_dir
-
-        # Line 224: if STATIC_DIR.exists():
-        if STATIC_DIR_TEST.exists():
-            # Lines 225-227: Check assets directory and mount it
-            assets_dir_test = STATIC_DIR_TEST / "assets"
-            if assets_dir_test.exists():
-                test_app.mount(
-                    "/assets", StaticFiles(directory=assets_dir_test), name="assets"
-                )
-
-            # Lines 230-238: SPA fallback route
-            @test_app.get("/{full_path:path}")
-            async def serve_spa(full_path: str) -> FileResponse:
-                """Serve static files or fall back to index.html for client-side routing."""
-                # Check if it's a static file that exists
-                file_path = STATIC_DIR_TEST / full_path
-                if file_path.exists() and file_path.is_file():
-                    return FileResponse(file_path)
-                # Otherwise serve index.html for client-side routing
-                return FileResponse(STATIC_DIR_TEST / "index.html")
-
-        # Now test that all the branches work
-        client = TestClient(test_app)
-
-        # Test asset serving (line 227 mount)
-        response = client.get("/assets/app.js")
-        assert response.status_code == 200
-        assert "coverage" in response.text
-
-        # Test existing file serving (lines 234-236)
-        response = client.get("/favicon.ico")
-        assert response.status_code == 200
-        assert response.content == b"\x00\x01\x02\x03"
-
-        # Test SPA fallback (line 238)
-        response = client.get("/some-spa-route")
-        assert response.status_code == 200
-        assert "Coverage Test" in response.text
