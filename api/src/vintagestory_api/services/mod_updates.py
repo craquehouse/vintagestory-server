@@ -15,6 +15,7 @@ from typing import Protocol
 import structlog
 from pydantic import ValidationError
 
+from vintagestory_api.config import Settings
 from vintagestory_api.models.mod_updates import (
     ModUpdatesFile,
     ModUpdateStatusItem,
@@ -300,4 +301,29 @@ class ModUpdateService:
             releases = [StoredRelease.from_api(dict(r)) for r in raw_releases]
             self._store.set(slug, StoredModRecord(checked_at=now, found=True, releases=releases))
         return True
+
+
+_mod_update_service: ModUpdateService | None = None
+
+
+def _installed_game_version() -> str | None:
+    # Imported here: services/server.py imports the mods module lazily, so a top-level
+    # import would risk a cycle.
+    from vintagestory_api.services.server import get_server_service
+
+    return get_server_service().get_installed_version()
+
+
+def get_mod_update_service() -> ModUpdateService:
+    """Get or create the mod update service singleton."""
+    global _mod_update_service
+    if _mod_update_service is None:
+        from vintagestory_api.services.mods import get_mod_service
+
+        _mod_update_service = ModUpdateService(
+            store=ModUpdateStore(Settings().state_dir),
+            mod_source=get_mod_service(),
+            game_version_provider=_installed_game_version,
+        )
+    return _mod_update_service
 

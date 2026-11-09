@@ -1,7 +1,7 @@
 """Mod management API endpoints."""
 
 import math
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -25,6 +25,11 @@ from vintagestory_api.services.mod_api import (
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
+)
+from vintagestory_api.services.mod_updates import (
+    ModUpdateCheckInProgressError,
+    ModUpdateService,
+    get_mod_update_service,
 )
 from vintagestory_api.services.mods import (
     InvalidSlugError,
@@ -75,6 +80,61 @@ async def list_mods(
             "pending_restart": pending_restart,
         },
     )
+
+
+def _mod_updates_payload(service: ModUpdateService) -> dict[str, Any]:
+    items = service.get_status()
+    last_check = service.store.last_full_check
+    return {
+        "game_version": service.game_version() or None,
+        "checked_at": last_check.isoformat().replace("+00:00", "Z") if last_check else None,
+        "update_count": sum(1 for item in items if item.status == "update_available"),
+        "mods": [item.model_dump(mode="json") for item in items],
+    }
+
+
+@router.get("/updates", response_model=ApiResponse, summary="Get mod update status")
+async def get_mod_updates(
+    _: RequireAuth,
+    service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Get update status for every installed mod (Admin or Monitor).
+
+    Status is computed from the last check's stored data against the installed game
+    version; this endpoint makes no calls to the mod database.
+    """
+    return ApiResponse(status="ok", data=_mod_updates_payload(service))
+
+
+@router.post("/updates/check", response_model=ApiResponse, summary="Check for mod updates")
+async def check_mod_updates(
+    _: RequireAdmin,
+    service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Refresh release data for installed mods from the mod database (Admin only).
+
+    Lookups that fail keep the mod's previous data and are listed in `check.failed_slugs`.
+
+    Raises:
+        HTTPException: 409 if a check is already running.
+    """
+    try:
+        summary = await service.check()
+    except ModUpdateCheckInProgressError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_UPDATE_CHECK_IN_PROGRESS,
+                "message": "A mod update check is already running",
+            },
+        ) from None
+    data = _mod_updates_payload(service)
+    data["check"] = {
+        "checked": summary.checked,
+        "failed": summary.failed,
+        "failed_slugs": summary.failed_slugs,
+    }
+    return ApiResponse(status="ok", data=data)
 
 
 def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:

@@ -56,6 +56,7 @@ class ErrorCode:
 
     # Mod Installation
     MOD_VERSION_NOT_FOUND = "MOD_VERSION_NOT_FOUND"
+    MOD_UPDATE_CHECK_IN_PROGRESS = "MOD_UPDATE_CHECK_IN_PROGRESS"
 
     # Server installation
     INVALID_VERSION = "INVALID_VERSION"

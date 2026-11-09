@@ -82,11 +82,11 @@ so that **I know what can be updated without checking each mod**.
   - [x] 3.4: Get the game version from `ServerService.get_installed_version()` via a lazy import; never use `Settings.game_version`
   - [x] 3.5: Tests with `respx` and the fixtures: success, 404, API failure preserving prior data, mixed results, concurrency, and no server installed
 
-- [ ] Task 4: Add the endpoints and dependency + tests (AC: 6, 7)
-  - [ ] 4.1: Add `get_mod_update_service()` singleton and register it as a FastAPI dependency
-  - [ ] 4.2: Add `GET /mods/updates` (Admin or Monitor) and `POST /mods/updates/check` (Admin) to `routers/mods.py`, declared directly after `list_mods`
-  - [ ] 4.3: Add `MOD_UPDATE_CHECK_IN_PROGRESS` to `models/errors.py`; map it to 409
-  - [ ] 4.4: Router tests: response shape and envelope, 401, Monitor 200 on GET and 403 on POST, 409, and that `/mods/updates` is not captured by any `/{slug}` route
+- [x] Task 4: Add the endpoints and dependency + tests (AC: 6, 7)
+  - [x] 4.1: Add `get_mod_update_service()` singleton and register it as a FastAPI dependency
+  - [x] 4.2: Add `GET /mods/updates` (Admin or Monitor) and `POST /mods/updates/check` (Admin) to `routers/mods.py`, declared directly after `list_mods`
+  - [x] 4.3: Add `MOD_UPDATE_CHECK_IN_PROGRESS` to `models/errors.py`; map it to 409
+  - [x] 4.4: Router tests: response shape and envelope, 401, Monitor 200 on GET and 403 on POST, 409, and that `/mods/updates` is not captured by any `/{slug}` route
 
 - [ ] Task 5: Final validation (AC: all)
   - [ ] 5.1: Run `just check`
@@ -262,8 +262,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 3: Added `ModUpdateService` (`get_status`, `check`, `game_version`) behind an `InstalledModSource` protocol, with an `asyncio.Lock` guard (`ModUpdateCheckInProgressError`). Lookups that raise `ExternalApiError`, or `ValueError` for a non-JSON reply (which `get_mod` does not catch), keep previous data and record the error; a successful lookup clears it. A failed lookup for a never-checked mod is reported in the check result only, since there is no stored record to attach it to; the mod stays `unknown` / `not_checked`. 6 tests.
 
+- Task 4: Added `get_mod_update_service()` (game version from `ServerService.get_installed_version()` via a lazy import), `MOD_UPDATE_CHECK_IN_PROGRESS`, and `GET /mods/updates` (Admin or Monitor) and `POST /mods/updates/check` (Admin, 409 when busy) directly after `list_mods`. Timestamps serialize with a `Z` suffix. 6 router tests cover the payload shape, roles, 401, 403 and 409; the GET and POST tests also show neither path is captured by a `/{slug}` route.
+
 ### File List
 
 - Created: `api/src/vintagestory_api/models/mod_updates.py`
 - Created: `api/src/vintagestory_api/services/mod_updates.py`
 - Created: `api/tests/test_mod_updates.py`
+- Created: `api/tests/test_mod_updates_router.py`
+- Modified: `api/src/vintagestory_api/routers/mods.py`
+- Modified: `api/src/vintagestory_api/models/errors.py`
