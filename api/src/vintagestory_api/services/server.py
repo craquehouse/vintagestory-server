@@ -1134,7 +1134,23 @@ class ServerService:
 
         except Exception as e:
             logger.error("server_stop_failed", error=str(e))
+            self._settle_state_after_failed_stop(self._process)
             raise RuntimeError(ErrorCode.SERVER_STOP_FAILED) from e
+
+    def _settle_state_after_failed_stop(self, process: asyncio.subprocess.Process) -> None:
+        """Report the process's real state after a stop fails partway through.
+
+        The monitor leaves the state alone during a stop, so nothing else would clear STOPPING.
+        """
+        if process.returncode is None:
+            # Still alive. If it exits later, the monitor handles it like any other exit.
+            self._server_state = ServerState.RUNNING
+            return
+
+        self._last_exit_code = process.returncode
+        self._server_state = ServerState.INSTALLED
+        self._server_start_time = None
+        self._update_mod_service_server_state(False)
 
     async def restart_server(self, timeout: float = 10.0) -> LifecycleResponse:
         """Restart the game server (stop then start).
