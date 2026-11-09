@@ -3357,7 +3357,7 @@ So that **a failed update never leaves me without a working mod**.
 
 **Acceptance Criteria:**
 
-**Given** an installed mod and a release listed in the mod database
+**Given** an installed mod and a release listed in the mod database with the installed mod's modid
 **When** I request `PUT /api/v1alpha1/mods/{slug}/version`
 **Then** the release is obtained from cache if present, otherwise downloaded
 **And** the installed file is replaced only after the new file is validated
@@ -3396,7 +3396,11 @@ So that **a failed update never leaves me without a working mod**.
 
 *(Covers FR139)*
 
-**Given** the target release is not verified, incompatible or older than the installed version
+**Given** a release whose modid differs from the installed mod's, even within the same mod database entry
+**When** a version change to it is requested
+**Then** the request is rejected and the mod is unchanged
+
+**Given** the target release is not verified, incompatible, a pre-release while the installed version is stable, or older than the installed release (later in the mod database's release list)
 **When** the request does not include explicit confirmation
 **Then** the request is rejected with the compatibility details
 
@@ -3412,6 +3416,7 @@ So that **a failed update never leaves me without a working mod**.
 - [ ] Add error codes to `models/errors.py`
 - [ ] Add the endpoint, Admin only
 - [ ] Add tests for failure at each stage, disabled mods and concurrency
+- [ ] Add tests using `api/tests/fixtures/moddb/mod_instruments.json` (version `1.0.1` under two modids) and `mod_carryon.json` (publish order differs from version order)
 
 ---
 
@@ -3446,7 +3451,7 @@ So that **I can manage versions without touching files**.
 **Given** an installed mod
 **When** I open its detail page
 **Then** the Update button succeeds
-**And** I can select any listed release, with warnings for not-verified, incompatible or older releases
+**And** I can select any release listed for the installed mod's modid, with warnings for not-verified, incompatible, pre-release (when the installed version is stable) or older releases
 
 *(Covers FR79, FR140, FR141)*
 

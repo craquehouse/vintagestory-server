@@ -70,9 +70,9 @@ so that **update logic rests on confirmed behavior**.
 
 ### Review Follow-ups (AI)
 
-- [ ] [AI-Review][Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
-- [ ] [AI-Review][Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
-- [ ] [AI-Review][Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
+- [x] [AI-Review][Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
+- [x] [AI-Review][Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
+- [x] [AI-Review][Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
 - [ ] [AI-Review][Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
 - [ ] [AI-Review][Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
 - [ ] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
@@ -169,9 +169,9 @@ From Discord's webhook documentation and client libraries:
 
 ### Action Items
 
-- [ ] [Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
-- [ ] [Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
-- [ ] [Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
+- [x] [Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
+- [x] [Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
+- [x] [Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
 - [ ] [Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
 - [ ] [Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
 - [ ] [Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
@@ -274,6 +274,7 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 ### Backlog Items Created
 
 - `VSS-432` [API-061] (P1, bug): sanitize ModDB-supplied release filenames in the existing install path
+- `VSS-jhf` [API-062] (P2, bug): mod install can pick a release from a different modid in the same ModDB entry (found in code review)
 
 ### Completion Notes List
 
@@ -283,6 +284,9 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - Task 4: Added four fixtures (largest 10.4 KB) and a README covering each case.
 - Task 5: Documented release behavior, marked all six ADRs, updated three stories, filed `VSS-432`. `just check` passes: 1833 API tests, 2911 web tests.
 - Spike scripts (`moddb_probe.py`, `swap_test.py`, `webhook_probe.py`) were run from the session scratchpad and are not committed.
+- ✅ Resolved review finding [Medium]: Story 14.2 and FR141 require confirmation for a pre-release when the installed version is stable; Story 14.3 lists the warning; ADR-2 and `MOD_CONFIRMATION_REQUIRED` state the same conditions.
+- ✅ Resolved review finding [Medium]: ADR-2 step 1 and Story 14.2 resolve the target only among releases with the installed modid and reject other modids; Story 14.2 requires tests with the instruments and CarryOn fixtures. The same flaw in today's install path is filed as `VSS-jhf` [API-062].
+- ✅ Resolved review finding [Medium]: ADR-1 defines newer and older as position in the release list for the installed modid; Story 14.2 and FR141 use that definition.
 
 ### File List
 

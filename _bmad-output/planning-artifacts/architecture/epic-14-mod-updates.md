@@ -16,6 +16,7 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 - Only releases whose `modidstr` equals the installed mod's modid are considered.
 - The installed release is the one matching both `modidstr` and `modversion`; these matched the archive's `modinfo.json` in every sampled release.
 - A version is a pre-release if its `modversion` contains `-` (for example `2.0.0-rc.1`). A stable install is only offered stable releases. A mod already on a pre-release is offered any newer release. Pre-releases remain available through version switching (ADR-2), with a warning.
+- "Newer" and "older" always mean position in this list for the installed modid: a release earlier in the list is newer, a later one is older. Version strings are never compared.
 - The offered release is the newest newer eligible compatible release, then the newest newer eligible not-verified release, otherwise none (`blocked`).
 
 **Consequences:** If the installed release is not in the list, or the mod returns `"404"` (removed from ModDB), the status is `unknown`. Mods are looked up by their installed modid; `urlalias` does not resolve as a lookup key.
@@ -27,12 +28,14 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 **Decision:** Update and rollback use one `ModService` operation that moves a mod to a given listed release. It replaces the Epic 5 `update(slug)` sequence, which removed the old version before installing the new one.
 
 **Sequence:**
-1. Resolve the release from the mod database
+1. Resolve the release among releases whose `modidstr` equals the installed mod's modid. A release for any other modid, even in the same mod database entry, is rejected
 2. Use the cached file in `vsmanager/cache/mods/` if present and valid (ADR-3), otherwise download it there. Use only the final path component of ModDB's `filename`, and reject empty, `.` or `..` names
 3. Validate the archive and confirm its `modinfo.json` `modid` and `version` match the requested release
 4. Copy into the mods directory under a temporary name, then rename into place, keeping `.disabled` if the mod is disabled
 5. Update and save mod state, then delete the old file if its name differs. Deleting it is required: if it fails, remove the new file, restore the original state, and report the change as failed
 6. Mark a restart as pending if the server is running
+
+Explicit confirmation (`confirm: true`) is required when the target release is not verified, incompatible, a pre-release while the installed version is stable, or older than the installed release (ADR-1).
 
 A failure before step 4 completes leaves the original file and state untouched. Changes are serialized per mod; a concurrent request for the same mod returns 409.
 
@@ -88,7 +91,7 @@ A failure before step 4 completes leaves the original file and state untouched. 
 Literal routes are declared before `/{slug}` routes.
 
 **New error codes:**
-- `MOD_CONFIRMATION_REQUIRED`: the target is not verified, incompatible or older, and `confirm` is false
+- `MOD_CONFIRMATION_REQUIRED`: the target is not verified, incompatible, a pre-release while the installed version is stable, or older, and `confirm` is false
 - `MOD_VERSION_CHANGE_IN_PROGRESS`: 409
 - `MOD_VALIDATION_FAILED`: the archive is invalid or its modid doesn't match
 

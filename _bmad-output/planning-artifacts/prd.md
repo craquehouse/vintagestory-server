@@ -580,7 +580,7 @@ If trivial to implement:
 #### Version Switching
 
 - FR140: Admin can switch an installed mod to any release listed in the mod database, including older releases
-- FR141: Switching shows the target release's compatibility and warns before installing a not-verified or incompatible release, or a release older than the installed one
+- FR141: Switching shows the target release's compatibility and warns before installing a not-verified or incompatible release, a pre-release when the installed version is stable, or a release older than the installed one (by the mod database's release order)
 - FR142: Switching uses a cached copy of the release when available and downloads it otherwise
 
 #### Update All
