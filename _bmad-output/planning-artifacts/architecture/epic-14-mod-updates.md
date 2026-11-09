@@ -6,7 +6,7 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 
 **Status:** Changed by Story 14.0
 
-**Decision:** A release is newer than the installed one if it appears earlier in the mod database's release list, which is ordered newest first. Version strings are never compared.
+**Decision:** A release is newer than the installed one if it appears earlier in the mod database's release list, which is ordered newest first. Version strings are not compared, except for the base-version check that applies to mods already on a pre-release (Rules below).
 
 **Rationale:** Mod versions are free-form. The detail page's current `!==` comparison reports any non-latest version as outdated, including a deliberate rollback.
 
@@ -15,8 +15,8 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 **Rules:**
 - Only releases whose `modidstr` equals the installed mod's modid are considered.
 - The installed release is the one matching both `modidstr` and `modversion`; these matched the archive's `modinfo.json` in every sampled release.
-- A version is a pre-release if its `modversion` contains `-` (for example `2.0.0-rc.1`). A stable install is only offered stable releases. A mod already on a pre-release is offered any newer release. Pre-releases remain available through version switching (ADR-2), with a warning. Known limitation: a stable version string that contains `-` (for example `1.0.0-hotfix-2`) is treated as a pre-release; no such version appeared in the sampled data.
-- "Newer" and "older" always mean position in this list for the installed modid: a release earlier in the list is newer, a later one is older. Version strings are never compared.
+- A version is a pre-release if its `modversion` contains `-` (for example `2.0.0-rc.1`). A stable install is only offered stable releases. A mod already on a pre-release is offered a newer release only if that release's base version is at least the installed base version. The base version is the part of `modversion` before any `-`, read as dot-separated integers and compared component by component, with missing components treated as 0 (`2.0.0-pre.8` has base `2.0.0`). If either base version cannot be parsed, no update is offered for that mod. This stops a pre-release install from being offered a stable release from an older line: a mod on `2.0.0-pre.8` is never offered `1.14.3`, even though CarryOn published `1.14.3` later. Pre-releases remain available through version switching (ADR-2), with a warning. Known limitation: a stable version string that contains `-` (for example `1.0.0-hotfix-2`) is treated as a pre-release; no such version appeared in the sampled data.
+- "Newer" and "older" always mean position in this list for the installed modid: a release earlier in the list is newer, a later one is older. Apart from the base-version check above, version strings are never compared.
 - The offered release is the newest newer eligible compatible release, then the newest newer eligible not-verified release, otherwise none (`blocked`).
 
 **Consequences:** If the installed release is not in the list, or the mod returns `"404"` (removed from ModDB), the status is `unknown`. Mods are looked up by their installed modid; `urlalias` does not resolve as a lookup key.

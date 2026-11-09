@@ -78,9 +78,9 @@ so that **update logic rests on confirmed behavior**.
 - [x] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
 - [x] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
 - [x] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
-- [ ] [AI-Review][Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
-- [ ] [AI-Review][Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
-- [ ] [AI-Review][Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
+- [x] [AI-Review][Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
+- [x] [AI-Review][Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
+- [x] [AI-Review][Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
 
 ## Dev Notes
 
@@ -203,9 +203,9 @@ From Discord's webhook documentation and client libraries:
 
 ### Action Items
 
-- [ ] [Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
-- [ ] [Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
-- [ ] [Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
+- [x] [Medium] ADR-1 lets a mod on a pre-release be offered a list-newer but version-older stable release (CarryOn `2.0.0-pre.8` would be offered `1.14.3`) [architecture/epic-14-mod-updates.md ADR-1; prd.md FR130; epics.md Story 14.1]
+- [x] [Low] FR140 is not annotated with the installed-modid restriction [prd.md FR140]
+- [x] [Low] Spike README says the probe downloads 12 releases (10 succeed) and does not mention the `findings.json` rename [14-0-spike/README.md]
 
 ## Dev Agent Record
 
@@ -309,6 +309,9 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - ✅ Resolved review finding [Low]: ADR-1 records the `1.0.0-hotfix-2` limitation and that no such version was sampled.
 - ✅ Resolved review finding [Low]: Story 14.6 tasks add tests replaying Discord `204` and `429` responses and a manual check against a test Discord webhook.
 - ✅ Resolved review finding [Low]: Committed the scripts, trimmed sampled data, logs and a README in `_bmad-output/implementation-artifacts/14-0-spike/`; `stats.py` reproduces every aggregate figure from committed data.
+- ✅ Resolved review finding [Medium]: ADR-1, FR129, FR130 and Story 14.1 add a base-version check for mods on a pre-release (numeric part before `-`, compared component by component; no offer if unparsable). Story 14.1 requires CarryOn fixture tests proving `2.0.0-pre.8` is offered `2.0.0-rc.1` but never `1.14.3`.
+- ✅ Resolved review finding [Low]: FR140 now limits switching to releases for the installed mod's modid.
+- ✅ Resolved review finding [Low]: README states 10 downloads from 12 attempts and documents the `findings.json` rename.
 
 ### File List
 

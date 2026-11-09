@@ -3304,7 +3304,8 @@ So that **I know what can be updated without checking each mod**.
 **Given** the installed version is stable
 **When** a newer release is a pre-release (its version contains `-`)
 **Then** it is not offered as an update
-**And** a mod already on a pre-release can be offered any newer release
+**And** a mod already on a pre-release can be offered a newer release only if its base version (the numeric `major.minor.patch` before any `-`) is at least the installed base version
+**And** if either base version cannot be parsed, no update is offered for that mod
 
 **Given** every newer release is incompatible with the current game version
 **When** update status is determined
@@ -3346,6 +3347,7 @@ So that **I know what can be updated without checking each mod**.
 - [ ] Persist update status with atomic writes
 - [ ] Add status and check endpoints with role enforcement
 - [ ] Add tests for each status outcome and API failure
+- [ ] Add tests using `api/tests/fixtures/moddb/mod_carryon.json`: a `2.0.0-pre.8` install is offered `2.0.0-rc.1` but never `1.14.3`, and a `1.14.3` install is never offered a pre-release
 
 ---
 

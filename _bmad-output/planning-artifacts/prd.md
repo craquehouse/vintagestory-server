@@ -562,8 +562,8 @@ If trivial to implement:
 
 #### Update Detection
 
-- FR129: System determines whether a newer release exists for each installed mod using the mod database's release order, not by comparing version strings
-- FR130: The offered update is the newest newer release compatible with the current game version, or if none exists, the newest newer release that is not verified. A stable installed version is only offered stable releases; a mod already on a pre-release can be offered any newer release (Epic 14 ADR-1)
+- FR129: System determines whether a newer release exists for each installed mod using the mod database's release order, not by comparing version strings (except the base-version check for mods on a pre-release in FR130)
+- FR130: The offered update is the newest newer release compatible with the current game version, or if none exists, the newest newer release that is not verified. A stable installed version is only offered stable releases; a mod already on a pre-release can be offered a newer release only if its base version (the numeric part before any `-`) is not lower than the installed one (Epic 14 ADR-1)
 - FR131: No update is offered when every newer release is incompatible with the current game version
 - FR132: A mod not found in the mod database, or whose installed version is not listed there, shows its update status as unknown rather than up to date
 - FR133: Admin and Monitor can view update status for installed mods, including offered version, its compatibility, and when it was last checked
@@ -579,7 +579,7 @@ If trivial to implement:
 
 #### Version Switching
 
-- FR140: Admin can switch an installed mod to any release listed in the mod database, including older releases
+- FR140: Admin can switch an installed mod to any release listed in the mod database for the installed mod's modid, including older releases
 - FR141: Switching shows the target release's compatibility and warns before installing a not-verified or incompatible release, a pre-release when the installed version is stable, or a release older than the installed one (by the mod database's release order)
 - FR142: Switching uses a cached copy of the release when available and downloads it otherwise
 
