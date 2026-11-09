@@ -164,9 +164,9 @@ development_status:
   13-6-server-uninstall-api: done
   13-7-server-uninstall-ui: done
   epic-13-retrospective: done
-  epic-14: backlog
+  epic-14: in-progress
   epic-14-retrospective: optional
-  14-0-epic-14-technical-preparation: backlog
+  14-0-epic-14-technical-preparation: ready-for-dev
   14-1-update-detection-and-status-api: backlog
   14-2-version-change-api: backlog
   14-3-update-and-version-switching-ui: backlog
