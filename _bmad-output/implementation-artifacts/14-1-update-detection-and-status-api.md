@@ -1,6 +1,6 @@
 # Story 14.1: Update Detection and Status API
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -338,3 +338,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-09: Implemented update detection (ADR-1 rules), the persistent update store (`mod-updates.json`), the update check service, and `GET /mods/updates` and `POST /mods/updates/check`. 46 tests.
 - 2026-11-09: Addressed code review findings - 9 items resolved (2 Medium, 7 Low). Malformed payloads are per-mod failures; never-checked failures appear on status; `last_full_check` only after a fully successful check; save errors no longer fail the check; stale records pruned. 57 tests in the two update test files; `just check` passes with 1890 API tests.
+- 2026-11-09: Addressed follow-up review findings - 2 items resolved (1 Medium, 1 Low). Payload errors raised inside `get_mod()` and save serialization errors no longer abort a check. 60 tests in the two update test files.
