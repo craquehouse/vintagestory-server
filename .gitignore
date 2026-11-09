@@ -1,5 +1,6 @@
 # Local development files
 .local/
+conductor-playground/
 
 # Node.js
 node_modules/
