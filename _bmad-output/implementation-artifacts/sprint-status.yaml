@@ -167,7 +167,7 @@ development_status:
   epic-14: in-progress
   epic-14-retrospective: optional
   14-0-epic-14-technical-preparation: done
-  14-1-update-detection-and-status-api: in-progress
+  14-1-update-detection-and-status-api: review
   14-2-version-change-api: backlog
   14-3-update-and-version-switching-ui: backlog
   14-4-update-all: backlog
