@@ -3590,5 +3590,6 @@ So that **I find out without opening the UI**.
 - [ ] Add the webhook setting with redacted reads
 - [ ] Add a settings UI field
 - [ ] Send alerts without following redirects, and record what was sent
-- [ ] Add tests for deduplication, redaction and failure
+- [ ] Add tests for deduplication, redaction and failure, including replayed Discord `204` and `429` responses
+- [ ] Verify delivery against a test Discord webhook during manual verification
 - [ ] Manual browser verification

@@ -73,11 +73,11 @@ so that **update logic rests on confirmed behavior**.
 - [x] [AI-Review][Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
 - [x] [AI-Review][Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
 - [x] [AI-Review][Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
-- [ ] [AI-Review][Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
-- [ ] [AI-Review][Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
+- [x] [AI-Review][Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
+- [x] [AI-Review][Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
 - [ ] [AI-Review][Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
-- [ ] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
-- [ ] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
+- [x] [AI-Review][Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
+- [x] [AI-Review][Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
 
 ## Dev Notes
 
@@ -172,11 +172,11 @@ From Discord's webhook documentation and client libraries:
 - [x] [Medium] Story 14.2 omits ADR-1's warning for switching a stable install to a pre-release; a pre-release tagged for the current game version would switch without confirmation [epics.md Story 14.2; architecture/epic-14-mod-updates.md ADR-1]
 - [x] [Medium] Story 14.2 and ADR-2 do not restrict the target release to the installed mod's modid; existing selection picks by version across all modids (instruments `1.0.1` exists under two modids) [epics.md Story 14.2; mod_api.py:352-358]
 - [x] [Medium] "Older than the installed version" is undefined under the publish-order rule (CarryOn `2.0.0-pre.8` → `1.14.3`) [epics.md Story 14.2; prd.md FR141]
-- [ ] [Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
-- [ ] [Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
+- [x] [Low] Webhook `updates` field `slug` does not name which identifier it carries [architecture/epic-14-mod-updates.md ADR-6]
+- [x] [Low] PRD FR130 is not annotated with the pre-release narrowing [prd.md FR130]
 - [ ] [Low] Spike scripts and raw data are not committed; the story cites a scratchpad path [story Dev Agent Record, Task 2]
-- [ ] [Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
-- [ ] [Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
+- [x] [Low] The `-` pre-release heuristic misclassifies a stable version such as `1.0.0-hotfix-2`; not acknowledged [architecture/epic-14-mod-updates.md ADR-1]
+- [x] [Low] Discord delivery verified only against documentation and a local receiver; Story 14.6 has no live or replayed check [epics.md Story 14.6]
 
 ### Verified Correct
 
@@ -287,6 +287,10 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 - ✅ Resolved review finding [Medium]: Story 14.2 and FR141 require confirmation for a pre-release when the installed version is stable; Story 14.3 lists the warning; ADR-2 and `MOD_CONFIRMATION_REQUIRED` state the same conditions.
 - ✅ Resolved review finding [Medium]: ADR-2 step 1 and Story 14.2 resolve the target only among releases with the installed modid and reject other modids; Story 14.2 requires tests with the instruments and CarryOn fixtures. The same flaw in today's install path is filed as `VSS-jhf` [API-062].
 - ✅ Resolved review finding [Medium]: ADR-1 defines newer and older as position in the release list for the installed modid; Story 14.2 and FR141 use that definition.
+- ✅ Resolved review finding [Low]: ADR-6 states that `slug` is the installed mod's modid, the identifier used in `/mods/{slug}`.
+- ✅ Resolved review finding [Low]: FR130 now states the pre-release rule and points to Epic 14 ADR-1.
+- ✅ Resolved review finding [Low]: ADR-1 records the `1.0.0-hotfix-2` limitation and that no such version was sampled.
+- ✅ Resolved review finding [Low]: Story 14.6 tasks add tests replaying Discord `204` and `429` responses and a manual check against a test Discord webhook.
 
 ### File List
 

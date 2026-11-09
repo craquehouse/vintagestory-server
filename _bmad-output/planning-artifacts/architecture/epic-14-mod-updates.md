@@ -15,7 +15,7 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 **Rules:**
 - Only releases whose `modidstr` equals the installed mod's modid are considered.
 - The installed release is the one matching both `modidstr` and `modversion`; these matched the archive's `modinfo.json` in every sampled release.
-- A version is a pre-release if its `modversion` contains `-` (for example `2.0.0-rc.1`). A stable install is only offered stable releases. A mod already on a pre-release is offered any newer release. Pre-releases remain available through version switching (ADR-2), with a warning.
+- A version is a pre-release if its `modversion` contains `-` (for example `2.0.0-rc.1`). A stable install is only offered stable releases. A mod already on a pre-release is offered any newer release. Pre-releases remain available through version switching (ADR-2), with a warning. Known limitation: a stable version string that contains `-` (for example `1.0.0-hotfix-2`) is treated as a pre-release; no such version appeared in the sampled data.
 - "Newer" and "older" always mean position in this list for the installed modid: a release earlier in the list is newer, a later one is older. Version strings are never compared.
 - The offered release is the newest newer eligible compatible release, then the newest newer eligible not-verified release, otherwise none (`blocked`).
 
@@ -72,7 +72,7 @@ A failure before step 4 completes leaves the original file and state untouched. 
 - **Sending:** http or https only, a 10 second timeout, and no redirects followed.
 - **Payload:** receiver-specific, because Discord does not document how it treats extra fields.
   - Discord URL (host `discord.com`, `discordapp.com`, `ptb.discord.com` or `canary.discord.com`, path starting `/api/webhooks/`): `{"content": <summary>, "allowed_mentions": {"parse": []}}`
-  - Any other URL: `{"event": "mod_updates_available", "content": <summary>, "updates": [{"slug", "name", "installed", "offered", "compatibility"}]}`
+  - Any other URL: `{"event": "mod_updates_available", "content": <summary>, "updates": [{"slug", "name", "installed", "offered", "compatibility"}]}`. `slug` is the installed mod's modid, the same identifier the API uses in `/mods/{slug}`
   - Summary: one line per mod, `- {name}: {installed} → {offered} ({compatibility})`, truncated with "…and N more" to stay within Discord's 2000-character `content` limit. Mentions are suppressed because mod names come from ModDB.
 - **Deduplication:** one alert per mod and version, recorded in the status store only after a 2xx response, so a failed delivery is retried on the next check. A 429 is not retried within the same check.
 - **Failure:** delivery failures are logged without the URL and never fail the job.
