@@ -970,3 +970,144 @@ class TestModServiceIntegration:
             response = await installed_service.start_server()
 
             assert response.new_state == ServerState.RUNNING
+
+
+class TestLifecycleStateTransitions:
+    """Tests for the state left behind by process exits and failed operations."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("returncode", "expected_event"),
+        [
+            (0, "server_exited_normally"),
+            (1, "server_crashed"),
+            (-9, "server_crashed"),
+        ],
+    )
+    async def test_unrequested_exit_returns_to_installed(
+        self,
+        installed_service: ServerService,
+        capsys: pytest.CaptureFixture[str],
+        returncode: int,
+        expected_event: str,
+    ) -> None:
+        """Monitor resets state itself when the process exits outside of a stop."""
+        process = AsyncMock()
+        process.wait = AsyncMock(return_value=returncode)
+        installed_service._process = process
+        installed_service._server_state = ServerState.RUNNING
+        installed_service._server_start_time = 123.0
+
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
+            await installed_service._monitor_process()
+
+        assert installed_service._server_state == ServerState.INSTALLED
+        assert installed_service._last_exit_code == returncode
+        assert installed_service._server_start_time is None
+        mod_service = mock_get_module.return_value.get_mod_service.return_value
+        mod_service.set_server_running.assert_called_once_with(False)
+        assert expected_event in capsys.readouterr().out
+
+    @pytest.mark.asyncio
+    async def test_exit_during_stop_leaves_transition_to_stop(
+        self, installed_service: ServerService
+    ) -> None:
+        """Monitor records the exit but does not take over a stop in progress."""
+        process = AsyncMock()
+        process.wait = AsyncMock(return_value=0)
+        installed_service._process = process
+        installed_service._server_state = ServerState.STOPPING
+        installed_service._server_start_time = 123.0
+
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
+            await installed_service._monitor_process()
+
+        assert installed_service._server_state == ServerState.STOPPING
+        assert installed_service._last_exit_code == 0
+        assert installed_service._server_start_time is None
+        mock_get_module.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_start_clears_previous_exit_code(
+        self, installed_service: ServerService, mock_subprocess: tuple[MagicMock, AsyncMock]
+    ) -> None:
+        """A new run does not report the exit code of the previous one."""
+        del mock_subprocess  # Fixture sets up mock, not inspected
+        installed_service._last_exit_code = 137
+
+        await installed_service.start_server()
+
+        assert installed_service._last_exit_code is None
+
+    @pytest.mark.asyncio
+    async def test_failed_spawn_restores_installed_state(
+        self, installed_service: ServerService
+    ) -> None:
+        """A process that cannot be spawned leaves the server stopped, with no monitor."""
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=OSError("Cannot spawn process")),
+            patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module,
+            pytest.raises(RuntimeError, match=ErrorCode.SERVER_START_FAILED),
+        ):
+            await installed_service.start_server()
+
+        assert installed_service._server_state == ServerState.INSTALLED
+        assert installed_service._server_start_time is None
+        assert installed_service._monitor_task is None
+        mock_get_module.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_background_tasks(self, installed_service: ServerService) -> None:
+        """Stop does not leave the monitor or console readers running."""
+        never = asyncio.Event()
+        wait_calls = 0
+
+        async def wait() -> int:
+            nonlocal wait_calls
+            wait_calls += 1
+            if wait_calls == 1:  # The monitor's wait blocks until it is cancelled.
+                await never.wait()
+            process.returncode = 0
+            return 0
+
+        async def readline() -> bytes:
+            await never.wait()
+            return b""
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock()
+            process.wait = AsyncMock(side_effect=wait)
+            _configure_stream_mocks(process)
+            process.stdout.readline = AsyncMock(side_effect=readline)
+            process.stderr.readline = AsyncMock(side_effect=readline)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+            await asyncio.sleep(0)  # Let the background tasks reach their blocking calls.
+            monitor = installed_service._monitor_task
+            stdout = installed_service._stdout_task
+            stderr = installed_service._stderr_task
+            assert monitor is not None and stdout is not None and stderr is not None
+            assert not (monitor.done() or stdout.done() or stderr.done())
+
+            await installed_service.stop_server()
+
+        assert monitor.done() and stdout.done() and stderr.done()
+
+    @pytest.mark.asyncio
+    async def test_failed_restart_keeps_pending_restart(
+        self, installed_service: ServerService
+    ) -> None:
+        """Pending mod changes still need a restart if the restart did not succeed."""
+        with (
+            patch("asyncio.create_subprocess_exec", side_effect=OSError("Cannot spawn process")),
+            patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module,
+            pytest.raises(RuntimeError, match=ErrorCode.SERVER_START_FAILED),
+        ):
+            await installed_service.restart_server()
+
+        restart_state = mock_get_module.return_value.get_restart_state.return_value
+        restart_state.clear_restart.assert_not_called()
