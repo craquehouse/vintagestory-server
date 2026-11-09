@@ -1,0 +1,410 @@
+{
+  "statuscode": "200",
+  "mod": {
+    "modid": 253,
+    "assetid": 797,
+    "name": "Auto Map Markers",
+    "author": "egocarib",
+    "urlalias": "automapmarkers",
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2026-06-07 20:34:34",
+    "releases": [
+      {
+        "releaseid": 40495,
+        "modversion": "5.0.3",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 5.0.3 - Vintage Story 1.22.zip",
+        "fileid": 90054,
+        "downloads": 87429,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-05-04 21:56:53"
+      },
+      {
+        "releaseid": 39440,
+        "modversion": "5.0.2",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 5.0.2 - Vintage Story 1.22.zip",
+        "fileid": 87789,
+        "downloads": 7965,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-04-27 01:15:14"
+      },
+      {
+        "releaseid": 37840,
+        "modversion": "5.0.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 5.0.1 - Vintage Story 1.22.zip",
+        "fileid": 84118,
+        "downloads": 8902,
+        "tags": [
+          "1.22.0-rc.1",
+          "1.22.0-rc.2",
+          "1.22.0-rc.3",
+          "1.22.0-rc.4",
+          "1.22.0-rc.5",
+          "1.22.0-rc.6",
+          "1.22.0-rc.7",
+          "1.22.0-rc.8",
+          "1.22.0-rc.9",
+          "1.22.0-rc.10",
+          "1.22.0"
+        ],
+        "created": "2026-04-09 04:44:26"
+      },
+      {
+        "releaseid": 36428,
+        "modversion": "4.1.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.1.0 - Vintagestory 1.22.zip",
+        "fileid": 80420,
+        "downloads": 3202,
+        "tags": [
+          "1.22.0-rc.1",
+          "1.22.0-rc.2",
+          "1.22.0-rc.3",
+          "1.22.0-rc.4",
+          "1.22.0-rc.5",
+          "1.22.0-rc.6"
+        ],
+        "created": "2026-03-14 04:54:18"
+      },
+      {
+        "releaseid": 36426,
+        "modversion": "4.0.4",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.0.4 - Vintagestory 1.21.zip",
+        "fileid": 80418,
+        "downloads": 12062,
+        "tags": [
+          "1.21.0",
+          "1.21.1-rc.1",
+          "1.21.1-rc.2",
+          "1.21.1",
+          "1.21.2-rc.1",
+          "1.21.2-rc.2",
+          "1.21.2-rc.3",
+          "1.21.2",
+          "1.21.3",
+          "1.21.4",
+          "1.21.5",
+          "1.21.6-rc.1",
+          "1.21.6",
+          "1.21.7"
+        ],
+        "created": "2026-03-14 04:27:33"
+      },
+      {
+        "releaseid": 22438,
+        "modversion": "4.0.3",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.0.3 - Vintagestory 1.21-rc.zip",
+        "fileid": 49192,
+        "downloads": 83067,
+        "tags": [
+          "1.21.0",
+          "1.21.1-rc.1",
+          "1.21.1-rc.2",
+          "1.21.1",
+          "1.21.2-rc.1",
+          "1.21.2-rc.2",
+          "1.21.2-rc.3",
+          "1.21.2",
+          "1.21.3",
+          "1.21.4",
+          "1.21.5",
+          "1.21.6-rc.1",
+          "1.21.6",
+          "1.21.7"
+        ],
+        "created": "2025-07-31 23:59:55"
+      },
+      {
+        "releaseid": 19340,
+        "modversion": "4.0.2",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.0.2 (Vintagestory 1.20).zip",
+        "fileid": 41790,
+        "downloads": 38870,
+        "tags": [
+          "1.20.0",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4-rc.1",
+          "1.20.4-rc.2",
+          "1.20.4-rc.3",
+          "1.20.4-rc.4",
+          "1.20.4",
+          "1.20.5-rc.1",
+          "1.20.5-rc.2",
+          "1.20.5-rc.3",
+          "1.20.5",
+          "1.20.6",
+          "1.20.7",
+          "1.20.8-rc.1",
+          "1.20.8-rc.2",
+          "1.20.8",
+          "1.20.9",
+          "1.20.10",
+          "1.20.11-rc.1",
+          "1.20.11",
+          "1.20.12"
+        ],
+        "created": "2025-04-25 23:43:04"
+      },
+      {
+        "releaseid": 14653,
+        "modversion": "4.0.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.0.1 (Vintagestory 1.20).zip",
+        "fileid": 30488,
+        "downloads": 29107,
+        "tags": [
+          "1.20.0",
+          "1.20.1"
+        ],
+        "created": "2025-01-18 04:56:54"
+      },
+      {
+        "releaseid": 12142,
+        "modversion": "4.0.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 4.0.0 (Vintagestory 1.20).zip",
+        "fileid": 25453,
+        "downloads": 7976,
+        "tags": [
+          "1.20.0-pre.0"
+        ],
+        "created": "2024-09-22 15:06:56"
+      },
+      {
+        "releaseid": 8287,
+        "modversion": "3.1.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.19).zip",
+        "fileid": 17937,
+        "downloads": 25027,
+        "tags": [
+          "1.19.0",
+          "1.19.1",
+          "1.19.2",
+          "1.19.3",
+          "1.19.4-rc.1",
+          "1.19.4-rc.2",
+          "1.19.4-rc.3",
+          "1.19.4",
+          "1.19.5-rc.1",
+          "1.19.5-rc.2",
+          "1.19.5-rc.3",
+          "1.19.5",
+          "1.19.6",
+          "1.19.7",
+          "1.19.8"
+        ],
+        "created": "2024-01-21 02:17:02"
+      },
+      {
+        "releaseid": 8174,
+        "modversion": "3.0.2",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "egocaribautomapmarkers_3.0.2.zip",
+        "fileid": 17733,
+        "downloads": 1476,
+        "tags": [
+          "1.19.0",
+          "1.19.1"
+        ],
+        "created": "2024-01-17 19:37:56"
+      },
+      {
+        "releaseid": 8173,
+        "modversion": "2.9.10",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "egocaribautomapmarkers_2.9.10.zip",
+        "fileid": 17732,
+        "downloads": 627,
+        "tags": [
+          "1.18.15"
+        ],
+        "created": "2024-01-17 19:36:29"
+      },
+      {
+        "releaseid": 7965,
+        "modversion": "2.9.9",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.18.15).zip",
+        "fileid": 17342,
+        "downloads": 1237,
+        "tags": [
+          "1.18.15"
+        ],
+        "created": "2024-01-04 14:08:22"
+      },
+      {
+        "releaseid": 7960,
+        "modversion": "3.0.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.19).zip",
+        "fileid": 17439,
+        "downloads": 1114,
+        "tags": [
+          "1.19.0-rc.5"
+        ],
+        "created": "2024-01-04 06:27:26"
+      },
+      {
+        "releaseid": 5718,
+        "modversion": "2.6.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.18.6 ).zip",
+        "fileid": 12321,
+        "downloads": 8557,
+        "tags": [
+          "1.18.6",
+          "1.18.7",
+          "1.18.8-rc.1",
+          "1.18.8",
+          "1.18.9-rc.1",
+          "1.18.9",
+          "1.18.10",
+          "1.18.11",
+          "1.18.12",
+          "1.18.13",
+          "1.18.14"
+        ],
+        "created": "2023-06-25 18:16:12"
+      },
+      {
+        "releaseid": 2741,
+        "modversion": "2.4.0-pre.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.17.0-pre.1).zip",
+        "fileid": 6301,
+        "downloads": 4835,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3",
+          "1.17.4",
+          "1.17.5",
+          "1.17.6",
+          "1.17.7",
+          "1.17.8",
+          "1.17.9",
+          "1.17.10",
+          "1.17.11",
+          "1.17.12"
+        ],
+        "created": "2022-06-25 18:44:22"
+      },
+      {
+        "releaseid": 1621,
+        "modversion": "2.3.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers.zip",
+        "fileid": 4052,
+        "downloads": 3226,
+        "tags": [
+          "1.16.0"
+        ],
+        "created": "2022-01-22 16:47:11"
+      },
+      {
+        "releaseid": 626,
+        "modversion": "2.2.2",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers.zip",
+        "fileid": 1790,
+        "downloads": 2118,
+        "tags": [
+          "1.15.1"
+        ],
+        "created": "2021-07-14 16:21:54"
+      },
+      {
+        "releaseid": 625,
+        "modversion": "2.2.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers.zip",
+        "fileid": 1791,
+        "downloads": 776,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-07-14 16:21:19"
+      },
+      {
+        "releaseid": 620,
+        "modversion": "2.0.9",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers.zip",
+        "fileid": 1782,
+        "downloads": 772,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-07-13 13:19:52"
+      },
+      {
+        "releaseid": 614,
+        "modversion": "2.1.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers.zip",
+        "fileid": 1783,
+        "downloads": 794,
+        "tags": [
+          "1.15.0-rc.2"
+        ],
+        "created": "2021-07-13 01:55:44"
+      },
+      {
+        "releaseid": 557,
+        "modversion": "2.0.1",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "egocaribautomapmarkers_v2.0.1 (1.15.pre11).zip",
+        "fileid": 1666,
+        "downloads": 884,
+        "tags": [
+          "1.15.0-rc.2"
+        ],
+        "created": "2021-07-02 12:31:38"
+      },
+      {
+        "releaseid": 556,
+        "modversion": "2.0.0",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "egocaribautomapmarkers_v2.0.0 (1.14.10).zip",
+        "fileid": 1664,
+        "downloads": 800,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-07-02 12:30:04"
+      },
+      {
+        "releaseid": 544,
+        "modversion": "1.0.0",
+        "modidstr": "egocaribresinmapmarkers",
+        "filename": "egocaribresinmapmarkers_v1.0.0.zip",
+        "fileid": 1631,
+        "downloads": 786,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-06-27 01:11:10"
+      }
+    ]
+  }
+}

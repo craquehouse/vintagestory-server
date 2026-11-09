@@ -1,0 +1,204 @@
+{
+  "statuscode": "200",
+  "mod": {
+    "modid": 890,
+    "assetid": 4405,
+    "name": "Carry On",
+    "author": "NerdScurvy",
+    "urlalias": "carryon",
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2026-10-14 14:48:50",
+    "releases": [
+      {
+        "releaseid": 61180,
+        "modversion": "2.0.0-rc.1",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-rc.1.zip",
+        "fileid": 130071,
+        "downloads": 8024,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3",
+          "1.22.4",
+          "1.22.5",
+          "1.22.6",
+          "1.22.7"
+        ],
+        "created": "2026-10-14 13:43:04"
+      },
+      {
+        "releaseid": 52086,
+        "modversion": "1.14.3",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v1.14.3.zip",
+        "fileid": 113014,
+        "downloads": 75023,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3",
+          "1.22.4",
+          "1.22.5",
+          "1.22.6",
+          "1.22.7"
+        ],
+        "created": "2026-08-07 10:22:05"
+      },
+      {
+        "releaseid": 50130,
+        "modversion": "2.0.0-pre.8",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.8.zip",
+        "fileid": 109190,
+        "downloads": 38648,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3",
+          "1.22.4",
+          "1.22.5",
+          "1.22.6"
+        ],
+        "created": "2026-07-22 09:32:32"
+      },
+      {
+        "releaseid": 47994,
+        "modversion": "2.0.0-pre.7",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.7.zip",
+        "fileid": 104947,
+        "downloads": 10363,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-07-04 07:45:20"
+      },
+      {
+        "releaseid": 47802,
+        "modversion": "2.0.0-pre.6",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.6.zip",
+        "fileid": 104572,
+        "downloads": 1551,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-07-02 15:00:37"
+      },
+      {
+        "releaseid": 47581,
+        "modversion": "2.0.0-pre.5",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.5.zip",
+        "fileid": 104121,
+        "downloads": 1723,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-06-30 11:28:06"
+      },
+      {
+        "releaseid": 45302,
+        "modversion": "2.0.0-pre.4",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.4.zip",
+        "fileid": 99604,
+        "downloads": 13638,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-06-10 07:09:26"
+      },
+      {
+        "releaseid": 44613,
+        "modversion": "2.0.0-pre.3",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.3.zip",
+        "fileid": 98205,
+        "downloads": 6217,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-06-04 14:29:35"
+      },
+      {
+        "releaseid": 44162,
+        "modversion": "2.0.0-pre.2",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.2.zip",
+        "fileid": 97226,
+        "downloads": 3615,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-06-01 01:34:35"
+      },
+      {
+        "releaseid": 43194,
+        "modversion": "2.0.0-pre.1",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-pre.1.zip",
+        "fileid": 95224,
+        "downloads": 4140,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2"
+        ],
+        "created": "2026-05-25 12:53:16"
+      },
+      {
+        "releaseid": 42603,
+        "modversion": "1.14.2",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v1.14.2.zip",
+        "fileid": 94053,
+        "downloads": 97654,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-05-21 09:53:48"
+      },
+      {
+        "releaseid": 42233,
+        "modversion": "1.14.1",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v1.14.1.zip",
+        "fileid": 93412,
+        "downloads": 8021,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2"
+        ],
+        "created": "2026-05-18 11:42:34"
+      }
+    ]
+  }
+}

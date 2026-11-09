@@ -57,10 +57,10 @@ so that **update logic rests on confirmed behavior**.
   - [x] 3.2: Draft the payload: `content` summary plus a structured `updates` list; define truncation for long lists
   - [x] 3.3: Verify the payload against a local HTTP receiver; if the user provides a Discord test webhook, verify there too
 
-- [ ] Task 4: Create test fixtures (AC: 4)
-  - [ ] 4.1: Create `api/tests/fixtures/moddb/` and save 3 trimmed `/api/mod/{slug}` responses
-  - [ ] 4.2: Remove `text`, `screenshots` and long `changelog` HTML; keep release order, `modversion`, `filename`, `fileid`, `tags`, `modidstr`, `created`
-  - [ ] 4.3: Add a short README in that directory naming each fixture's source mod, capture date and the cases it covers
+- [x] Task 4: Create test fixtures (AC: 4)
+  - [x] 4.1: Create `api/tests/fixtures/moddb/` and save 3 trimmed `/api/mod/{slug}` responses
+  - [x] 4.2: Remove `text`, `screenshots` and long `changelog` HTML; keep release order, `modversion`, `filename`, `fileid`, `tags`, `modidstr`, `created`
+  - [x] 4.3: Add a short README in that directory naming each fixture's source mod, capture date and the cases it covers
 
 - [ ] Task 5: Record findings and update plans (AC: 5)
   - [ ] 5.1: Add a "Release behavior" section to `agentdocs/vintagestory-modapi.md`
