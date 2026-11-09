@@ -103,8 +103,8 @@ so that **I know what can be updated without checking each mod**.
 - [x] [AI-Review][Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
 - [x] [AI-Review][Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
 - [x] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
-- [ ] [AI-Review][Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
-- [ ] [AI-Review][Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
+- [x] [AI-Review][Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
+- [x] [AI-Review][Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
 
 ## Dev Notes
 
@@ -291,8 +291,8 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 
 ### Action Items
 
-- [ ] [Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
-- [ ] [Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
+- [x] [Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
+- [x] [Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
 
 ## Dev Agent Record
 
@@ -322,6 +322,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - ✅ Resolved review finding [Low]: Replaced with a behavioral test that blocks a real check on a pending lookup and asserts a second check is rejected.
 - ✅ Resolved review finding [Low]: Test pins `Compatibility` to `mod_api.CompatibilityStatus`.
 - ✅ Resolved review finding [Low]: `check()` prunes records and lookup errors for mods no longer installed. Tested.
+- ✅ Resolved review finding [Medium]: `_check_one` also catches `KeyError` and `AttributeError` raised inside `get_mod()`; `mod_api` unchanged. Tested with a top-level JSON array and a body with no `mod` key.
+- ✅ Resolved review finding [Low]: The save guard catches `ValueError` as well as `OSError`. Tested with a lone surrogate in a release filename.
 
 ### File List
 

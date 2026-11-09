@@ -462,6 +462,38 @@ class TestCheckRobustness:
 
     @respx.mock
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("raw_body", [b"[1, 2]", b'{"statuscode": "200"}'])
+    async def test_payload_rejected_inside_get_mod_fails_that_mod_only(
+        self, tmp_path: Path, raw_body: bytes
+    ) -> None:
+        respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, content=raw_body))
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        service, _ = make_service(
+            tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")]
+        )
+
+        summary = await service.check()
+
+        assert summary.failed_slugs == ["bad"]
+        assert ModUpdateStore(tmp_path / "state").get("carryon") is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_unserializable_data_does_not_fail_the_check(self, tmp_path: Path) -> None:
+        body = (
+            b'{"statuscode": "200", "mod": {"releases": '
+            b'[{"modversion": "1", "modidstr": "odd", "filename": "\\ud800.zip"}]}}'
+        )
+        respx.get(MOD_URL.format("odd")).mock(return_value=Response(200, content=body))
+        service, _ = make_service(tmp_path, [installed("odd", "1")])
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        assert service.get_status()[0].status == "up_to_date"
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_failure_for_never_checked_mod_is_on_its_status(self, tmp_path: Path) -> None:
         route = respx.get(MOD_URL.format("carryon"))
         route.mock(side_effect=httpx.ConnectError("down"))

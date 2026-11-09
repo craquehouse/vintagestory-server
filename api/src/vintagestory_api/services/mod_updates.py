@@ -304,8 +304,9 @@ class ModUpdateService:
                 self._store.last_full_check = datetime.now(UTC)
             try:
                 self._store.save()
-            except OSError as e:
-                # Results stay available in memory until restart.
+            except (OSError, ValueError) as e:
+                # ValueError: pydantic cannot serialize the data (for example a lone
+                # surrogate from upstream). Results stay available in memory until restart.
                 logger.error(
                     "mod_update_store_save_failed", path=str(self._store.path), error=str(e)
                 )
@@ -317,9 +318,10 @@ class ModUpdateService:
         try:
             data = await self._mod_source.api_client.get_mod(slug)
             record = _record_from_payload(data)
-        except (ExternalApiError, ValueError, TypeError) as e:
-            # ValueError covers a non-JSON body and pydantic validation errors;
-            # TypeError covers payloads with the wrong shape.
+        except (ExternalApiError, ValueError, TypeError, KeyError, AttributeError) as e:
+            # ValueError: a non-JSON body, or pydantic validation errors. TypeError: payloads
+            # with the wrong shape. KeyError and AttributeError: raised inside get_mod() for
+            # a body that is not an object or has no "mod" key.
             logger.warning("mod_update_lookup_failed", slug=slug, error=str(e))
             previous = self._store.get(slug)
             if previous is not None:
