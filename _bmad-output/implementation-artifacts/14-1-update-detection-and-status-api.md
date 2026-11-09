@@ -65,10 +65,10 @@ so that **I know what can be updated without checking each mod**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement update evaluation rules + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] 1.1: Create `api/src/vintagestory_api/services/mod_updates.py` with pure functions: `is_prerelease(version)`, `parse_base_version(version)`, and `evaluate_update(modid, installed_version, releases, game_version)` returning status, offered release, compatibility and reason
-  - [ ] 1.2: Reuse `check_compatibility()` from `services/mod_api.py`; do not reimplement it
-  - [ ] 1.3: Write tests in `api/tests/test_mod_updates.py` using the ModDB fixtures (see Testing Requirements for the required cases)
+- [x] Task 1: Implement update evaluation rules + tests (AC: 1, 2, 3, 4, 5)
+  - [x] 1.1: Create `api/src/vintagestory_api/services/mod_updates.py` with pure functions: `is_prerelease(version)`, `parse_base_version(version)`, and `evaluate_update(modid, installed_version, releases, game_version)` returning status, offered release, compatibility and reason
+  - [x] 1.2: Reuse `check_compatibility()` from `services/mod_api.py`; do not reimplement it
+  - [x] 1.3: Write tests in `api/tests/test_mod_updates.py` using the ModDB fixtures (see Testing Requirements for the required cases)
 
 - [ ] Task 2: Add status models and the persistent store + tests (AC: 5, 8)
   - [ ] 2.1: Add models in `api/src/vintagestory_api/models/mod_updates.py`: stored per-mod record and the API status item (fields under Dev Notes)
@@ -251,8 +251,15 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Task 1: Added `evaluate_update`, `is_prerelease` and `parse_base_version` implementing ADR-1, and the `StoredRelease` model. 26 tests cover every required rule case using the ModDB fixtures and inline release lists.
 ### File List
+
+- Created: `api/src/vintagestory_api/models/mod_updates.py`
+- Created: `api/src/vintagestory_api/services/mod_updates.py`
+- Created: `api/tests/test_mod_updates.py`
