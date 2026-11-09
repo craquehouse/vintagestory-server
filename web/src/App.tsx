@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
@@ -5,12 +6,39 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { EmptyServerState } from "@/components/EmptyServerState";
-import { Dashboard } from "@/features/dashboard/Dashboard";
-import { ModsPage, InstalledTab, BrowseTab, ModDetailPage } from "@/features/mods";
-import { VersionPage, SettingsPage as GameServerSettingsPage, ConsolePage } from "@/features/game-server";
-import { SettingsPage } from "@/features/settings";
 import { useServerStatus } from "@/hooks/use-server-status";
 import { isServerInstalled } from "@/lib/server-utils";
+
+// Each page loads on demand, so a first visit doesn't download every page's dependencies.
+// The mods views share one chunk so switching between their tabs doesn't show a fallback.
+const loadMods = () => import("@/features/mods");
+const ModsPage = lazy(() => loadMods().then((m) => ({ default: m.ModsPage })));
+const InstalledTab = lazy(() => loadMods().then((m) => ({ default: m.InstalledTab })));
+const BrowseTab = lazy(() => loadMods().then((m) => ({ default: m.BrowseTab })));
+const ModDetailPage = lazy(() => loadMods().then((m) => ({ default: m.ModDetailPage })));
+const Dashboard = lazy(() =>
+  import("@/features/dashboard/Dashboard").then((m) => ({ default: m.Dashboard })),
+);
+const VersionPage = lazy(() =>
+  import("@/features/game-server/VersionPage").then((m) => ({ default: m.VersionPage })),
+);
+const GameServerSettingsPage = lazy(() =>
+  import("@/features/game-server/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+);
+const ConsolePage = lazy(() =>
+  import("@/features/game-server/ConsolePage").then((m) => ({ default: m.ConsolePage })),
+);
+const SettingsPage = lazy(() =>
+  import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+);
+
+function PageLoading() {
+  return (
+    <p className="p-4 text-muted-foreground" role="status" data-testid="page-loading">
+      Loading...
+    </p>
+  );
+}
 
 /**
  * Placeholder component for Game Server sub-pages.
@@ -79,6 +107,7 @@ function App() {
         <SidebarProvider>
         <BrowserRouter>
           <Layout>
+            <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               {/* Game Server nested routes - Story 11.6: Default to /version (Installation page) */}
@@ -100,6 +129,7 @@ function App() {
               {/* Story 11.4: Redirect legacy /mods/* routes to /game-server/mods/* */}
               <Route path="/mods/*" element={<ModsRedirect />} />
             </Routes>
+            </Suspense>
           </Layout>
         </BrowserRouter>
         <Toaster />
