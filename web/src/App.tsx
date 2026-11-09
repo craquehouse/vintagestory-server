@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { EmptyServerState } from "@/components/EmptyServerState";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useServerStatus } from "@/hooks/use-server-status";
 import { isServerInstalled } from "@/lib/server-utils";
 
@@ -107,6 +108,7 @@ function App() {
         <SidebarProvider>
         <BrowserRouter>
           <Layout>
+            <PageErrorBoundary>
             <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -130,6 +132,7 @@ function App() {
               <Route path="/mods/*" element={<ModsRedirect />} />
             </Routes>
             </Suspense>
+            </PageErrorBoundary>
           </Layout>
         </BrowserRouter>
         <Toaster />
