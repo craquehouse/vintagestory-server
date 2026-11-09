@@ -52,10 +52,10 @@ so that **update logic rests on confirmed behavior**.
   - [x] 2.3: Swap in a newer release (copy to a temporary name, rename over); record server log output before and after a restart
   - [x] 2.4: With the server stopped, place two versions of the same mod in the mods directory and record what the server does at startup
 
-- [ ] Task 3: Define the webhook payload (AC: 3)
-  - [ ] 3.1: Confirm against Discord's own documentation: 2000-character `content` limit, `allowed_mentions: {"parse": []}`, 429 handling with `retry_after`, and whether unknown top-level fields are accepted
-  - [ ] 3.2: Draft the payload: `content` summary plus a structured `updates` list; define truncation for long lists
-  - [ ] 3.3: Verify the payload against a local HTTP receiver; if the user provides a Discord test webhook, verify there too
+- [x] Task 3: Define the webhook payload (AC: 3)
+  - [x] 3.1: Confirm against Discord's own documentation: 2000-character `content` limit, `allowed_mentions: {"parse": []}`, 429 handling with `retry_after`, and whether unknown top-level fields are accepted
+  - [x] 3.2: Draft the payload: `content` summary plus a structured `updates` list; define truncation for long lists
+  - [x] 3.3: Verify the payload against a local HTTP receiver; if the user provides a Discord test webhook, verify there too
 
 - [ ] Task 4: Create test fixtures (AC: 4)
   - [ ] 4.1: Create `api/tests/fixtures/moddb/` and save 3 trimmed `/api/mod/{slug}` responses
@@ -186,6 +186,25 @@ Claude Opus 5.5 (claude-opus-5-5)
 | Restart | Loaded `Auto Map Markers 5.0.3 - Vintage Story 1.22.zip` with no errors |
 | Both versions present at startup | Warning: "Multiple mods share the mod ID 'egocaribautomapmarkers' (…5.0.2…, …5.0.3…)". Only 5.0.3 loaded. The log line was truncated by the capture filter, so whether the game picks by version or by filename order is unconfirmed |
 | API view with both files present | `GET /mods` listed only 5.0.2: the API and the game disagreed about the installed version |
+
+**Task 3: Webhook payload (2026-11-09).** Discord facts from its own documentation:
+
+| Fact | Source |
+|---|---|
+| `content` "up to 2000 characters"; at least one of `content`, `embeds`, `components`, `file`, `poll` required | [Webhook resource](https://docs.discord.com/developers/resources/webhook) |
+| Guidance: use `allowed_mentions` "to prevent unexpected mentions" | Same page |
+| Success: `204 No Content` unless `wait=true` | Same page |
+| Unknown top-level fields: **not specified** | Same page |
+| 429 body: `message`, `retry_after` (float seconds), `global`, optional `code`; `Retry-After` and `X-RateLimit-*` headers | [Rate limits](https://docs.discord.com/developers/topics/rate-limits) |
+| Separate Slack-compatible (`/slack`) and GitHub-compatible (`/github`) execute endpoints exist | Webhook resource |
+
+Because Discord does not document how it treats extra fields, a single combined payload relies on unspecified behavior. Prototype (`spike/webhook_probe.py`) sends a receiver-specific payload instead:
+
+- **Discord URL** (host `discord.com`, `discordapp.com`, `ptb.discord.com` or `canary.discord.com`, path starting `/api/webhooks/`): `{"content": <summary>, "allowed_mentions": {"parse": []}}`
+- **Any other URL:** `{"event": "mod_updates_available", "content": <summary>, "updates": [{"slug", "name", "installed", "offered", "compatibility"}]}`
+- **Summary:** one line per mod, `- {name}: {installed} → {offered} ({compatibility})`, truncated with "…and N more" to stay under 2000 characters
+
+Verified against a local receiver with httpx (`follow_redirects=False`): generic delivery returned 204 with all three fields; a 302 response was not followed; a 429 body's `retry_after` was read; 80 updates produced 1,950 characters ending "…and 49 more"; mod names containing `@everyone` stay as text with mentions suppressed; look-alike hosts (`discord.com.evil.example`, a `/discord.com/` path) were not treated as Discord. **Not verified against a live Discord webhook**: none was provided.
 
 ### API Quirks Discovered
 
