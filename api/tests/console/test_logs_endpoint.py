@@ -1,5 +1,6 @@
 """API tests for log file listing and streaming endpoints."""
 
+import threading
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -353,6 +354,42 @@ class TestLogsWebSocket:
             assert "Line 1" in lines
             assert "Line 2" in lines
             assert "Line 3" in lines
+
+    def test_logs_ws_keeps_streaming_after_read_error(
+        self, ws_client: TestClient, test_settings: Settings
+    ) -> None:
+        """A temporary filesystem error does not end the log stream."""
+        admin_key = test_settings.api_key_admin
+        logs_dir = test_settings.serverdata_dir / "Logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        log_file = logs_dir / "server-main.log"
+        log_file.write_text("history\n")
+
+        original_stat = Path.stat
+        failing = threading.Event()
+        failed = threading.Event()
+
+        def flaky_stat(self: Path, *, follow_symlinks: bool = True):
+            if failing.is_set() and self.name == log_file.name:
+                failed.set()
+                raise PermissionError("temporarily unavailable")
+            return original_stat(self, follow_symlinks=follow_symlinks)
+
+        with (
+            patch.object(Path, "stat", flaky_stat),
+            ws_client.websocket_connect(
+                f"/api/v1alpha1/console/logs/ws?file={log_file.name}&api_key={admin_key}"
+            ) as websocket,
+        ):
+            assert receive_text_within(websocket) == "history"
+
+            failing.set()
+            assert failed.wait(timeout=5)
+            with log_file.open("a") as f:
+                f.write("after the error\n")
+            failing.clear()
+
+            assert receive_text_within(websocket) == "after the error"
 
     def test_logs_ws_rejects_symlink_attack(
         self, ws_client: TestClient, test_settings: Settings
