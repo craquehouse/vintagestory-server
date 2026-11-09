@@ -44,10 +44,10 @@ def _get_mod_service_module():
 logger = structlog.get_logger()
 
 # Module-level service instance (singleton pattern for state tracking)
-_server_service: "ServerService | None" = None
+_server_service: ServerService | None = None
 
 
-def get_server_service() -> "ServerService":
+def get_server_service() -> ServerService:
     """Get or create the server service singleton.
 
     Returns:

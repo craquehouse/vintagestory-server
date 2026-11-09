@@ -44,7 +44,7 @@ logger = structlog.get_logger()
 UNKNOWN_VERSION = "stable"
 
 # Module-level service instance (singleton pattern)
-_mod_service: "ModService | None" = None
+_mod_service: ModService | None = None
 
 # Shared restart state (shared with other services that may need it)
 _restart_state: PendingRestartState | None = None
@@ -58,7 +58,7 @@ def get_restart_state() -> PendingRestartState:
     return _restart_state
 
 
-def get_mod_service() -> "ModService":
+def get_mod_service() -> ModService:
     """Get or create the mod service singleton.
 
     Uses paths from Settings:

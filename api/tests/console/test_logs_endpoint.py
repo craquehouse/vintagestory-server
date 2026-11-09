@@ -194,16 +194,11 @@ class TestListLogFilesEndpoint:
         (logs_dir / "bad.log").write_text("content")
 
         original_stat = Path.stat
-        call_count = {"count": 0}
 
-        # Mock stat to fail for bad.log on the second call
-        # (first is is_file check, second is explicit stat)
+        # Path.is_file() does not go through Path.stat(), so only the explicit call fails.
         def mock_stat(self: Path, *, follow_symlinks: bool = True):
             if self.name == "bad.log":
-                call_count["count"] += 1
-                # Fail on the second call (the explicit stat() for size/mtime)
-                if call_count["count"] >= 2:
-                    raise OSError("Cannot stat file")
+                raise OSError("Cannot stat file")
             return original_stat(self, follow_symlinks=follow_symlinks)
 
         monkeypatch.setattr(Path, "stat", mock_stat)

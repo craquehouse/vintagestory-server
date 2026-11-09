@@ -226,7 +226,7 @@ class TestMetricsService:
     """Tests for MetricsService."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> Generator[None, None, None]:
+    def reset_singleton(self) -> Generator[None]:
         """Reset metrics service singleton before each test."""
         reset_metrics_service()
         yield
@@ -420,7 +420,7 @@ class TestMetricsServiceSingleton:
     """Tests for metrics service singleton pattern."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> Generator[None, None, None]:
+    def reset_singleton(self) -> Generator[None]:
         """Reset metrics service singleton before and after each test."""
         reset_metrics_service()
         yield

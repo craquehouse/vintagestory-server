@@ -17,7 +17,7 @@ from vintagestory_api.middleware.auth import UserRole, get_settings
 
 
 @pytest.fixture
-def integration_app() -> Generator[FastAPI, None, None]:
+def integration_app() -> Generator[FastAPI]:
     """Create app with overridden settings for integration testing.
 
     NOTE: DEBUG mode is enabled for these tests so that test_rbac

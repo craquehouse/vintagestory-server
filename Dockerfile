@@ -1,7 +1,7 @@
 # VintageStory Server Manager
 # Multi-stage build: Build frontend, then create production image
-# Base: .NET 10 runtime on Ubuntu 24.04 Noble (required for VintageStory 1.22+)
-# Python 3.12 installed from Ubuntu apt (native to Noble)
+# Base: .NET 10 runtime on Ubuntu 26.04 Resolute (required for VintageStory 1.22+)
+# Python 3.14 installed from Ubuntu apt (native to Resolute)
 
 # ==============================================================================
 # Stage 1: Build frontend
@@ -33,22 +33,22 @@ RUN VITE_API_KEY="${VS_API_KEY}" VITE_API_BASE_URL="" bun run build
 
 # ==============================================================================
 # Stage 2: Production image
-# Base: .NET 10 runtime on Ubuntu 24.04 Noble (required for VintageStory 1.22+)
-# Python 3.12 is native to Ubuntu 24.04
+# Base: .NET 10 runtime on Ubuntu 26.04 Resolute (required for VintageStory 1.22+)
+# Python 3.14 is native to Ubuntu 26.04
 # ==============================================================================
-FROM mcr.microsoft.com/dotnet/runtime:10.0.14-noble-amd64 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64 AS final
 
 WORKDIR /app
 
-# Update system packages for security fixes, then install Python 3.12
+# Update system packages for security fixes, then install Python 3.14
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-    python3.12 \
+    python3.14 \
     python3-pip \
     && rm -rf /var/lib/apt/lists/* \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python
+    && ln -sf /usr/bin/python3.14 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.14 /usr/bin/python
 
 # Install uv for fast Python dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv

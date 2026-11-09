@@ -69,7 +69,7 @@ MOCK_UNSTABLE_API_RESPONSE = {
 
 
 @pytest.fixture
-def temp_data_dir() -> Generator[Path, None, None]:
+def temp_data_dir() -> Generator[Path]:
     """Create a temporary data directory for tests."""
     temp_dir = tempfile.mkdtemp()
     yield Path(temp_dir)
@@ -88,7 +88,7 @@ def test_settings(temp_data_dir: Path) -> Settings:
 @pytest.fixture
 async def server_service(
     test_settings: Settings,
-) -> AsyncGenerator[ServerService, None]:
+) -> AsyncGenerator[ServerService]:
     """Create a server service for testing."""
     service = ServerService(test_settings)
     yield service
@@ -119,7 +119,7 @@ def installed_settings(temp_data_dir: Path) -> Settings:
 @pytest.fixture
 async def installed_service(
     installed_settings: Settings,
-) -> AsyncGenerator[ServerService, None]:
+) -> AsyncGenerator[ServerService]:
     """Create server service with installed server state."""
     service = ServerService(installed_settings)
     yield service

@@ -385,19 +385,12 @@ class TestLogging:
 
         service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
 
-        # Track which Path objects have been checked with is_file
-        # so we can fail on the second call (the actual stat() call)
-        checked_paths = set()
+        # Path.is_file() does not go through Path.stat(), so only the explicit call fails.
         original_stat = Path.stat
 
         def mock_stat(self: Path, *, follow_symlinks: bool = True) -> object:
-            path_str = str(self)
-            # If we've already successfully called stat on this path (from is_file),
-            # then fail on the next call (the explicit stat() call)
-            if self.name == "normal_mod.zip" and path_str in checked_paths:
+            if self.name == "normal_mod.zip":
                 raise OSError("File stat failed")
-            # Mark this path as checked and allow the call to succeed
-            checked_paths.add(path_str)
             return original_stat(self, follow_symlinks=follow_symlinks)
 
         with patch.object(Path, "stat", mock_stat):
@@ -422,17 +415,11 @@ class TestLogging:
 
         service = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100)
 
-        # Mock stat to raise PermissionError for restricted file
-        call_count = {}
+        # Path.is_file() does not go through Path.stat(), so only the explicit call fails.
         original_stat = Path.stat
 
         def mock_stat(self: Path, *, follow_symlinks: bool = True) -> object:
-            # Count calls per path
-            path_str = str(self)
-            call_count[path_str] = call_count.get(path_str, 0) + 1
-
-            # Fail on the explicit stat() call (second call) for restricted.zip
-            if self.name == "restricted.zip" and call_count[path_str] > 1:
+            if self.name == "restricted.zip":
                 raise OSError("[Errno 13] Permission denied")
             return original_stat(self, follow_symlinks=follow_symlinks)
 

@@ -87,7 +87,7 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan handler for startup and shutdown."""
     global scheduler_service
 

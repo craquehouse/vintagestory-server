@@ -35,7 +35,7 @@ class TestServerStartEndpoint:
     """Tests for POST /api/v1alpha1/server/start endpoint (AC: 1)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -193,7 +193,7 @@ class TestServerStopEndpoint:
     """Tests for POST /api/v1alpha1/server/stop endpoint (AC: 2)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -358,7 +358,7 @@ class TestServerRestartEndpoint:
     """Tests for POST /api/v1alpha1/server/restart endpoint (AC: 3)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -520,7 +520,7 @@ class TestRestartEndpointErrorHandling:
     """Tests for /restart endpoint error handling (API level)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -654,7 +654,7 @@ class TestServerStatusEndpoint:
     """
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -1050,7 +1050,7 @@ class TestServerStatusVersionFields:
     """
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -1075,7 +1075,7 @@ class TestServerStatusVersionFields:
         return TestClient(integration_app)
 
     @pytest.fixture(autouse=True)
-    def reset_versions_cache(self) -> Generator[None, None, None]:
+    def reset_versions_cache(self) -> Generator[None]:
         """Reset versions cache before and after each test."""
         from vintagestory_api.services.versions_cache import reset_versions_cache
 
@@ -1212,7 +1212,7 @@ class TestServerUninstallEndpoint:
     """Tests for DELETE /api/v1alpha1/server endpoint."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings

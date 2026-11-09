@@ -26,7 +26,7 @@ class TestCollectMetricsJob:
     """Tests for collect_metrics() job function."""
 
     @pytest.fixture(autouse=True)
-    def reset_service(self) -> Generator[None, None, None]:
+    def reset_service(self) -> Generator[None]:
         """Reset metrics service singleton before each test."""
         reset_metrics_service()
         yield
@@ -107,7 +107,7 @@ class TestCollectMetricsJobIntegration:
     """Integration tests for metrics collection job."""
 
     @pytest.fixture(autouse=True)
-    def reset_service(self) -> Generator[None, None, None]:
+    def reset_service(self) -> Generator[None]:
         """Reset metrics service singleton before each test."""
         reset_metrics_service()
         yield

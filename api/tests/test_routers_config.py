@@ -120,7 +120,7 @@ def integration_app(
     config_file: Path,
     mock_server_service: MagicMock,
     mock_pending_restart: PendingRestartState,
-) -> Generator[FastAPI, None, None]:
+) -> Generator[FastAPI]:
     """Create app with overridden dependencies for integration testing."""
 
     def get_test_settings() -> Settings:
@@ -245,7 +245,7 @@ class TestGetGameSettingsConfigNotFound:
     @pytest.fixture
     def app_without_config(
         self, temp_settings: Settings, mock_server_service: MagicMock
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app without config file."""
 
         def get_test_settings() -> Settings:
@@ -549,7 +549,7 @@ class TestGameSettingsResponseFormat:
 def api_settings_app(
     temp_settings: Settings,
     mock_server_service: MagicMock,
-) -> Generator[FastAPI, None, None]:
+) -> Generator[FastAPI]:
     """Create app with overridden dependencies for API settings testing."""
 
     def get_test_settings() -> Settings:
@@ -823,7 +823,7 @@ def config_files_app(
     temp_settings: Settings,
     config_file: Path,
     mock_server_service: MagicMock,
-) -> Generator[FastAPI, None, None]:
+) -> Generator[FastAPI]:
     """Create app with overridden dependencies for config files testing."""
 
     def get_test_settings() -> Settings:

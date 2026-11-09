@@ -26,7 +26,7 @@ class TestDebugModeGating:
     """
 
     @pytest.fixture
-    def production_app(self) -> Generator[FastAPI, None, None]:
+    def production_app(self) -> Generator[FastAPI]:
         """Create test app with DEBUG=false (production mode).
 
         Note: This fixture overrides Settings() but cannot remove routers

@@ -241,7 +241,7 @@ class TestMetricsServiceEdgeCases:
     """Edge case tests for MetricsService."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> Generator[None, None, None]:
+    def reset_singleton(self) -> Generator[None]:
         """Reset metrics service singleton before each test."""
         reset_metrics_service()
         yield
@@ -468,7 +468,7 @@ class TestMetricsServiceSingletonEdgeCases:
     """Edge case tests for metrics service singleton pattern."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self) -> Generator[None, None, None]:
+    def reset_singleton(self) -> Generator[None]:
         """Reset metrics service singleton before and after each test."""
         reset_metrics_service()
         yield

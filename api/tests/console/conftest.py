@@ -62,7 +62,7 @@ def test_service(test_settings: Settings) -> ServerService:
 
 
 @pytest.fixture
-def test_token_service() -> Generator[WebSocketTokenService, None, None]:
+def test_token_service() -> Generator[WebSocketTokenService]:
     """Create fresh WebSocketTokenService for each test."""
     reset_ws_token_service()
     service = get_ws_token_service()
@@ -73,7 +73,7 @@ def test_token_service() -> Generator[WebSocketTokenService, None, None]:
 @pytest.fixture
 def integration_app(
     test_settings: Settings, test_service: ServerService
-) -> Generator[FastAPI, None, None]:
+) -> Generator[FastAPI]:
     """Create app with test settings for integration testing."""
     app.dependency_overrides[get_settings] = lambda: test_settings
     app.dependency_overrides[get_server_service] = lambda: test_service
@@ -91,7 +91,7 @@ def client(integration_app: FastAPI) -> TestClient:
 @pytest.fixture
 def ws_client(
     test_settings: Settings, test_service: ServerService, test_token_service: WebSocketTokenService
-) -> Generator[TestClient, None, None]:
+) -> Generator[TestClient]:
     """Create test client with overrides for WebSocket testing.
 
     Uses Starlette's synchronous TestClient which properly handles WebSockets.
@@ -107,7 +107,7 @@ def ws_client(
 
 
 @pytest.fixture(autouse=True)
-def mock_vintagestory_api() -> Generator[respx.MockRouter, None, None]:
+def mock_vintagestory_api() -> Generator[respx.MockRouter]:
     """Mock VintageStory API calls to prevent network access during tests."""
     with respx.mock(assert_all_called=False) as mock:
         # Mock the stable versions API
