@@ -3296,6 +3296,16 @@ So that **I know what can be updated without checking each mod**.
 
 *(Covers FR129, FR130)*
 
+**Given** a ModDB entry contains releases for several modids
+**When** update status is determined
+**Then** only releases with the installed mod's modid are considered
+**And** the installed release is identified by both modid and version
+
+**Given** the installed version is stable
+**When** a newer release is a pre-release (its version contains `-`)
+**Then** it is not offered as an update
+**And** a mod already on a pre-release can be offered any newer release
+
 **Given** every newer release is incompatible with the current game version
 **When** update status is determined
 **Then** no update is offered
@@ -3360,6 +3370,19 @@ So that **a failed update never leaves me without a working mod**.
 **And** a specific error code is returned
 
 *(Covers FR137)*
+
+**Given** a cached or downloaded archive whose modid or version differs from the requested release
+**When** it is validated
+**Then** a cached copy is replaced by a fresh download, and a downloaded copy fails the change
+**And** the original file and state are unchanged
+
+**Given** ModDB's filename for the release
+**When** it is used to name a file
+**Then** only its final path component is used, and empty, `.` or `..` names are rejected
+
+**Given** the old file cannot be deleted after the swap
+**When** the change completes
+**Then** the new file is removed, the original remains, and the change is reported as failed
 
 **Given** the mod is disabled
 **When** its version changes
@@ -3545,10 +3568,16 @@ So that **I find out without opening the UI**.
 
 *(Covers FR150)*
 
+**Given** the webhook URL is a Discord webhook
+**When** an alert is sent
+**Then** the payload contains only `content` and `allowed_mentions`, with mentions suppressed and `content` within 2000 characters
+**And** any other receiver gets `event`, `content` and an `updates` list
+
 **Given** webhook delivery fails or times out
 **When** the job continues
 **Then** a failure is logged without the URL
 **And** update checks are unaffected
+**And** the alert is retried on the next check
 
 *(Covers FR151)*
 

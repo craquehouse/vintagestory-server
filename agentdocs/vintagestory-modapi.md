@@ -485,10 +485,11 @@ download_mod('smithingplus', '1.8.2')
 
 ```json
 {
-  "statuscode": "404",
-  "mod": null
+  "statuscode": "404"
 }
 ```
+
+Verified 2026-11-09: a not-found response has no `mod` key at all, so check `statuscode` rather than `mod`.
 
 ---
 
@@ -712,3 +713,25 @@ Example:
 ```
 smithingplus_1.8.3_bf7bd5e910297357976548542a40fe9a.zip
 ```
+
+---
+
+## Release Behavior
+
+_Verified against the live API on 2026-11-09 for Story 14.0 (10 mods, 464 releases, 10 archives parsed). Fixtures: `api/tests/fixtures/moddb/`._
+
+| Behavior | Detail |
+|---|---|
+| Order | `releases` are newest first by both `created` and `releaseid` |
+| History | Old releases stay listed (up to 89 per mod, back to 1.15-era versions) |
+| Publish order is not version order | CarryOn lists `2.0.0-rc.1`, then `1.14.3`, then `2.0.0-pre.8`: maintenance releases on an older line can follow a pre-release |
+| Pre-release mod versions | Common; they carry a `-` suffix such as `-rc.1`, `-pre.8` or `-dev.17` |
+| Several modids per entry | 225 of 4,852 entries; release `modidstr` varies (`instruments` spans `instruments`, `vsinstruments`, `vsinstrumentsbase`) |
+| `modversion` uniqueness | Not unique within an entry; can repeat under different modids |
+| `filename` uniqueness | Not unique within an entry (`Auto Map Markers.zip` repeats); names often contain spaces |
+| Archive contents | Release `modidstr` and `modversion` matched the archive's `modinfo.json` `modid` and `version` in 10 of 10 archives |
+| Lookup keys | `/api/mod/{key}` resolves any release `modidstr` or the numeric ModDB `modid`; `urlalias` does not resolve |
+| Removed mods | Return `{"statuscode": "404"}` under every key |
+| Game version tags | No empty `tags` seen; pre-release game tags such as `1.22.0-rc.1` are common |
+
+**Implications:** filter releases to the installed modid; identify the installed release by `modidstr` and `modversion`; never key a downloaded file by `filename` alone; treat `filename` as untrusted input.

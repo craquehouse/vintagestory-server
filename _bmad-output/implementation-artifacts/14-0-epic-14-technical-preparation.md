@@ -1,6 +1,6 @@
 # Story 14.0: Epic 14 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 <!-- API spike story (template-api-spike). Complete before Stories 14.1-14.6: their designs rest on the assumptions this story verifies. -->
 
@@ -62,11 +62,11 @@ so that **update logic rests on confirmed behavior**.
   - [x] 4.2: Remove `text`, `screenshots` and long `changelog` HTML; keep release order, `modversion`, `filename`, `fileid`, `tags`, `modidstr`, `created`
   - [x] 4.3: Add a short README in that directory naming each fixture's source mod, capture date and the cases it covers
 
-- [ ] Task 5: Record findings and update plans (AC: 5)
-  - [ ] 5.1: Add a "Release behavior" section to `agentdocs/vintagestory-modapi.md`
-  - [ ] 5.2: Mark each ADR in `architecture/epic-14-mod-updates.md` as confirmed or changed, with evidence
-  - [ ] 5.3: If an assumption failed, record the decision; update the affected Epic 14 stories in `epics.md`, or create a bead for follow-up work
-  - [ ] 5.4: Run `just check` to confirm nothing broke
+- [x] Task 5: Record findings and update plans (AC: 5)
+  - [x] 5.1: Add a "Release behavior" section to `agentdocs/vintagestory-modapi.md`
+  - [x] 5.2: Mark each ADR in `architecture/epic-14-mod-updates.md` as confirmed or changed, with evidence
+  - [x] 5.3: If an assumption failed, record the decision; update the affected Epic 14 stories in `epics.md`, or create a bead for follow-up work
+  - [x] 5.4: Run `just check` to confirm nothing broke
 
 ## Dev Notes
 
@@ -208,10 +208,53 @@ Verified against a local receiver with httpx (`follow_redirects=False`): generic
 
 ### API Quirks Discovered
 
+- A not-found response is `{"statuscode": "404"}` with no `mod` key (the API doc showed `"mod": null`; corrected)
+- `urlalias` is not a lookup key; any release `modidstr` and the numeric ModDB `modid` are
+- Publish order is not version order; maintenance releases can follow a pre-release
+- One ModDB entry can hold several modids; `modversion` and `filename` repeat within an entry
+- Release `filename` is author-chosen text, often with spaces
+
 ### Architecture Decisions Made
+
+Recorded in `architecture/epic-14-mod-updates.md`, each ADR now marked with its status:
+
+| ADR | Status | Change |
+|---|---|---|
+| ADR-1 Detection | Changed | Filter releases to the installed modid; identify the installed release by modid and version; stable installs are offered only stable releases (user decision 2026-11-09); mods on a pre-release can be offered any newer release |
+| ADR-2 Version change | Changed | Validate archive modid **and** version; use only the final path component of `filename`; failing to delete the old file rolls the change back |
+| ADR-3 Rollback source | Changed | Reuse a cached file only after it validates as the target release |
+| ADR-4 Status store | Confirmed | Store `modidstr` with each release |
+| ADR-5 Scheduled checks | Confirmed | No change |
+| ADR-6 Webhook | Changed | Receiver-specific payload; mentions suppressed; mark alerts sent only after a 2xx response |
+
+Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule), 14.2 (archive version check, filename rule, failed delete), 14.6 (payload, retry on next check). PRD FR130 still reads "newest newer release compatible…"; the pre-release rule narrows it and lives in ADR-1 and Story 14.1.
 
 ### Backlog Items Created
 
+- `VSS-432` [API-061] (P1, bug): sanitize ModDB-supplied release filenames in the existing install path
+
 ### Completion Notes List
 
+- Task 1: Sampled 10 mods (464 releases) from the live API and parsed 10 archives with the project's own extractor. Release order and `modversion`/`modidstr` agreement held; several modids per entry, repeated filenames and versions, and publish-order versus version-order did not.
+- Task 2: In a throwaway container with no host volume, replaced Auto Map Markers 5.0.2 with 5.0.3 under a running 1.22.7 server without errors; 5.0.3 loaded on restart. Two copies of one modid produce a warning and only one loads, while the API reports the other.
+- Task 3: Confirmed Discord's limits from its own documentation; prototyped a receiver-specific payload and verified it against a local receiver (204, redirect not followed, 429 `retry_after` read, truncation to 1,950 characters, mention suppression, look-alike hosts rejected). Not tested against a live Discord webhook; none was provided.
+- Task 4: Added four fixtures (largest 10.4 KB) and a README covering each case.
+- Task 5: Documented release behavior, marked all six ADRs, updated three stories, filed `VSS-432`. `just check` passes: 1833 API tests, 2911 web tests.
+- Spike scripts (`moddb_probe.py`, `swap_test.py`, `webhook_probe.py`) were run from the session scratchpad and are not committed.
+
 ### File List
+
+- Created: `api/tests/fixtures/moddb/README.md`
+- Created: `api/tests/fixtures/moddb/mod_carryon.json`
+- Created: `api/tests/fixtures/moddb/mod_instruments.json`
+- Created: `api/tests/fixtures/moddb/mod_egocaribautomapmarkers.json`
+- Created: `api/tests/fixtures/moddb/mod_not_found.json`
+- Modified: `agentdocs/vintagestory-modapi.md`
+- Modified: `_bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md`
+- Modified: `_bmad-output/planning-artifacts/epics.md`
+- Modified: `_bmad-output/implementation-artifacts/14-0-epic-14-technical-preparation.md`
+- Modified: `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+## Change Log
+
+- 2026-11-09: Completed the Epic 14 API spike. Verified ModDB release behavior and live mod replacement, defined the webhook payload, added fixtures, and updated ADR-1 to ADR-6 and Stories 14.1, 14.2 and 14.6 with the findings.
