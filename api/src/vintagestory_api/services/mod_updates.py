@@ -5,9 +5,12 @@ ADR-1. "Newer" means earlier in the mod database's release list (newest first); 
 strings are only compared for the base-version check on mods already on a pre-release.
 """
 
-from dataclasses import dataclass
-from datetime import datetime
+import asyncio
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 import structlog
 from pydantic import ValidationError
@@ -21,7 +24,12 @@ from vintagestory_api.models.mod_updates import (
     UpdateState,
 )
 from vintagestory_api.models.mods import ModInfo
-from vintagestory_api.services.mod_api import CompatibilityStatus, check_compatibility
+from vintagestory_api.services.mod_api import (
+    CompatibilityStatus,
+    ExternalApiError,
+    ModApiClient,
+    check_compatibility,
+)
 
 logger = structlog.get_logger()
 
@@ -200,3 +208,96 @@ def build_status_items(
                 )
             )
     return items
+
+
+class InstalledModSource(Protocol):
+    """What the update service needs from ModService."""
+
+    @property
+    def api_client(self) -> ModApiClient: ...
+
+    def list_mods(self) -> list[ModInfo]: ...
+
+
+class ModUpdateCheckInProgressError(Exception):
+    """Raised when a check is requested while another is running."""
+
+
+@dataclass(frozen=True)
+class CheckSummary:
+    """Outcome of one update check."""
+
+    checked: int
+    failed: int
+    failed_slugs: list[str] = field(default_factory=lambda: list[str]())
+
+
+class ModUpdateService:
+    """Checks the mod database for updates and reports update status (Story 14.1)."""
+
+    def __init__(
+        self,
+        store: ModUpdateStore,
+        mod_source: InstalledModSource,
+        game_version_provider: Callable[[], str | None],
+    ) -> None:
+        self._store = store
+        self._mod_source = mod_source
+        self._game_version_provider = game_version_provider
+        self._check_lock = asyncio.Lock()
+
+    @property
+    def store(self) -> ModUpdateStore:
+        return self._store
+
+    def game_version(self) -> str:
+        """The installed game version, or "" if no server is installed."""
+        return self._game_version_provider() or ""
+
+    def get_status(self) -> list[ModUpdateStatusItem]:
+        """Update status for every installed mod, computed from stored data."""
+        return build_status_items(self._mod_source.list_mods(), self._store, self.game_version())
+
+    async def check(self) -> CheckSummary:
+        """Refresh release data for every installed mod from the mod database.
+
+        A failed lookup keeps that mod's previous data and records the error.
+
+        Raises:
+            ModUpdateCheckInProgressError: If a check is already running.
+        """
+        if self._check_lock.locked():
+            raise ModUpdateCheckInProgressError()
+        async with self._check_lock:
+            mods = self._mod_source.list_mods()
+            logger.info("mod_update_check_started", mod_count=len(mods))
+            failed: list[str] = []
+            for mod in mods:
+                if not await self._check_one(mod.slug):
+                    failed.append(mod.slug)
+            self._store.last_full_check = datetime.now(UTC)
+            self._store.save()
+            logger.info("mod_update_check_complete", checked=len(mods), failed=len(failed))
+            return CheckSummary(checked=len(mods), failed=len(failed), failed_slugs=failed)
+
+    async def _check_one(self, slug: str) -> bool:
+        """Refresh one mod. Returns False if the lookup failed."""
+        try:
+            data = await self._mod_source.api_client.get_mod(slug)
+        except (ExternalApiError, ValueError) as e:
+            # ValueError: the mod database returned a body that is not JSON.
+            logger.warning("mod_update_lookup_failed", slug=slug, error=str(e))
+            previous = self._store.get(slug)
+            if previous is not None:
+                self._store.set(slug, previous.model_copy(update={"error": str(e)}))
+            return False
+
+        now = datetime.now(UTC)
+        if data is None:
+            self._store.set(slug, StoredModRecord(checked_at=now, found=False))
+        else:
+            raw_releases: list[dict[str, object]] = data.get("releases") or []
+            releases = [StoredRelease.from_api(dict(r)) for r in raw_releases]
+            self._store.set(slug, StoredModRecord(checked_at=now, found=True, releases=releases))
+        return True
+

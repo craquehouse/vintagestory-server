@@ -4,11 +4,17 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import httpx
 import pytest
+import respx
+from httpx import Response
 
 from vintagestory_api.models.mod_updates import StoredModRecord, StoredRelease
 from vintagestory_api.models.mods import ModInfo
+from vintagestory_api.services.mod_api import ModApiClient
 from vintagestory_api.services.mod_updates import (
+    ModUpdateCheckInProgressError,
+    ModUpdateService,
     ModUpdateStore,
     build_status_items,
     evaluate_update,
@@ -291,3 +297,117 @@ class TestBuildStatusItems:
         assert item.error == "mod database unavailable"
         assert item.offered_version == "2.0.0-rc.1"
         assert item.offered_prerelease is True
+
+
+MOD_URL = "https://mods.vintagestory.at/api/mod/{}"
+
+
+def fixture_response(name: str) -> Response:
+    return Response(200, json=json.loads((FIXTURES / f"mod_{name}.json").read_text()))
+
+
+class FakeModSource:
+    """Installed mods plus a real ModApiClient, standing in for ModService."""
+
+    def __init__(self, mods: list[ModInfo], cache_dir: Path) -> None:
+        self._mods = mods
+        self.api_client = ModApiClient(cache_dir=cache_dir)
+
+    def list_mods(self) -> list[ModInfo]:
+        return self._mods
+
+
+def make_service(
+    tmp_path: Path, mods: list[ModInfo], game_version: str | None = "1.22.7"
+) -> tuple[ModUpdateService, ModUpdateStore]:
+    store = ModUpdateStore(tmp_path / "state")
+    service = ModUpdateService(
+        store=store,
+        mod_source=FakeModSource(mods, tmp_path / "cache"),
+        game_version_provider=lambda: game_version,
+    )
+    return service, store
+
+
+class TestModUpdateCheck:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_check_stores_found_and_missing_mods(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        respx.get(MOD_URL.format("gone")).mock(return_value=fixture_response("not_found"))
+        service, store = make_service(
+            tmp_path, [installed("carryon", "1.14.1"), installed("gone", "1.0.0")]
+        )
+
+        summary = await service.check()
+
+        assert (summary.checked, summary.failed, summary.failed_slugs) == (2, 0, [])
+        assert store.last_full_check is not None
+        statuses = {item.slug: item for item in service.get_status()}
+        assert statuses["carryon"].offered_version == "1.14.3"
+        assert statuses["gone"].reason == "not_in_database"
+        reloaded = ModUpdateStore(tmp_path / "state")
+        assert reloaded.get("carryon") is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_api_failure_keeps_previous_data_and_reports_it(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(side_effect=httpx.ConnectError("down"))
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        store.set("carryon", record(fixture_releases("carryon")))
+
+        summary = await service.check()
+
+        assert (summary.checked, summary.failed, summary.failed_slugs) == (1, 1, ["carryon"])
+        kept = store.get("carryon")
+        assert kept is not None
+        assert len(kept.releases) == len(fixture_releases("carryon"))
+        assert kept.error is not None
+        item = service.get_status()[0]
+        assert item.offered_version == "1.14.3"
+        assert item.error is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_non_json_reply_is_a_failure_not_a_crash(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(return_value=Response(200, text="<html>oops"))
+        respx.get(MOD_URL.format("smithingplus")).mock(return_value=fixture_response("carryon"))
+        service, _ = make_service(
+            tmp_path, [installed("carryon", "1.14.1"), installed("smithingplus", "1.0.0")]
+        )
+
+        summary = await service.check()
+
+        assert summary.failed_slugs == ["carryon"]
+        assert summary.checked == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_successful_lookup_clears_a_previous_error(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        store.set("carryon", record([], error="earlier failure"))
+
+        await service.check()
+
+        refreshed = store.get("carryon")
+        assert refreshed is not None
+        assert refreshed.error is None
+
+    @pytest.mark.asyncio
+    async def test_concurrent_check_is_rejected(self, tmp_path: Path) -> None:
+        service, _ = make_service(tmp_path, [])
+
+        async with service._check_lock:
+            with pytest.raises(ModUpdateCheckInProgressError):
+                await service.check()
+
+    def test_status_uses_installed_game_version_and_handles_no_server(self, tmp_path: Path) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")], game_version=None)
+        store.set("carryon", record(fixture_releases("carryon")))
+
+        item = service.get_status()[0]
+
+        assert service.game_version() == ""
+        assert item.offered_compatibility == "not_verified"
+

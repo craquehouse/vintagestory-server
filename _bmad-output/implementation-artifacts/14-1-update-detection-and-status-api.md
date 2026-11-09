@@ -75,12 +75,12 @@ so that **I know what can be updated without checking each mod**.
   - [x] 2.2: Implement a store for `{state_dir}/mod-updates.json` with atomic writes (temp file, then rename), a `schema_version` field, and tolerant loading (missing or corrupt file logs a warning and starts empty)
   - [x] 2.3: Tests: round trip, a new store instance reads data written by another (restart), corrupt file, and that status is computed at read time against the game version passed in
 
-- [ ] Task 3: Implement the check + tests (AC: 7, 9)
-  - [ ] 3.1: Add `ModUpdateService` with `get_status()` and `async check()`; fetch each installed mod with `ModService.api_client.get_mod(slug)`, sequentially
-  - [ ] 3.2: A `None` result (404) stores an empty release list with reason `not_in_database`; an `ExternalApiError` keeps the previous record and sets its error; the check returns counts and the failed slugs
-  - [ ] 3.3: Guard `check()` with an `asyncio.Lock`; a second concurrent check raises a dedicated error (409 at the API)
-  - [ ] 3.4: Get the game version from `ServerService.get_installed_version()` via a lazy import; never use `Settings.game_version`
-  - [ ] 3.5: Tests with `respx` and the fixtures: success, 404, API failure preserving prior data, mixed results, concurrency, and no server installed
+- [x] Task 3: Implement the check + tests (AC: 7, 9)
+  - [x] 3.1: Add `ModUpdateService` with `get_status()` and `async check()`; fetch each installed mod with `ModService.api_client.get_mod(slug)`, sequentially
+  - [x] 3.2: A `None` result (404) stores an empty release list with reason `not_in_database`; an `ExternalApiError` keeps the previous record and sets its error; the check returns counts and the failed slugs
+  - [x] 3.3: Guard `check()` with an `asyncio.Lock`; a second concurrent check raises a dedicated error (409 at the API)
+  - [x] 3.4: Get the game version from `ServerService.get_installed_version()` via a lazy import; never use `Settings.game_version`
+  - [x] 3.5: Tests with `respx` and the fixtures: success, 404, API failure preserving prior data, mixed results, concurrency, and no server installed
 
 - [ ] Task 4: Add the endpoints and dependency + tests (AC: 6, 7)
   - [ ] 4.1: Add `get_mod_update_service()` singleton and register it as a FastAPI dependency
@@ -259,6 +259,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: Added `evaluate_update`, `is_prerelease` and `parse_base_version` implementing ADR-1, and the `StoredRelease` model. 26 tests cover every required rule case using the ModDB fixtures and inline release lists.
 - Task 2: Added `StoredModRecord`, `ModUpdatesFile` and `ModUpdateStatusItem` models, the atomic `ModUpdateStore` (`{state_dir}/mod-updates.json`, schema version 1, tolerant of missing or corrupt files) and `build_status_items`, which computes status at read time. 8 tests cover restart persistence, atomic writes, corrupt files and read-time game version.
+
+- Task 3: Added `ModUpdateService` (`get_status`, `check`, `game_version`) behind an `InstalledModSource` protocol, with an `asyncio.Lock` guard (`ModUpdateCheckInProgressError`). Lookups that raise `ExternalApiError`, or `ValueError` for a non-JSON reply (which `get_mod` does not catch), keep previous data and record the error; a successful lookup clears it. A failed lookup for a never-checked mod is reported in the check result only, since there is no stored record to attach it to; the mod stays `unknown` / `not_checked`. 6 tests.
 
 ### File List
 
