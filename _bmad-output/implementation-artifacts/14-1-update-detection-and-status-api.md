@@ -1,6 +1,6 @@
 # Story 14.1: Update Detection and Status API
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -103,6 +103,8 @@ so that **I know what can be updated without checking each mod**.
 - [x] [AI-Review][Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
 - [x] [AI-Review][Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
 - [x] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
+- [ ] [AI-Review][Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
+- [ ] [AI-Review][Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
 
 ## Dev Notes
 
@@ -278,6 +280,19 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 - [x] [Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
 - [x] [Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
 - [x] [Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
+
+## Senior Developer Review (AI): Follow-up
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `105b093`..`006b6f8`
+**Outcome:** Changes Requested
+
+**Summary:** All nine earlier findings verified resolved (original probes re-run, 12 further malformed shapes contained), backward compatibility of pre-`lookup_errors` files confirmed, no suppressions, bookkeeping complete, `just check` passed. Two residual escape paths remain.
+
+### Action Items
+
+- [ ] [Medium] `get_mod` raises `AttributeError` (top-level JSON array) or `KeyError` (no `mod` key) before parsing; these escape `check()` and abort it [services/mod_updates.py `_check_one`]
+- [ ] [Low] A lone surrogate from upstream makes `save()` raise `PydanticSerializationError` (a `ValueError`), which the `OSError` guard misses [services/mod_updates.py `check`]
 
 ## Dev Agent Record
 
