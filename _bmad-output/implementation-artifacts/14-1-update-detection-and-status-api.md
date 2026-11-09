@@ -1,6 +1,6 @@
 # Story 14.1: Update Detection and Status API
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -91,6 +91,18 @@ so that **I know what can be updated without checking each mod**.
 - [x] Task 5: Final validation (AC: all)
   - [x] 5.1: Run `just check`
   - [x] 5.2: Update this story's Dev Agent Record and File List
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
+- [ ] [AI-Review][Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
+- [ ] [AI-Review][Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
+- [ ] [AI-Review][Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
+- [ ] [AI-Review][Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
+- [ ] [AI-Review][Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
+- [ ] [AI-Review][Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
+- [ ] [AI-Review][Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
+- [ ] [AI-Review][Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
 
 ## Dev Notes
 
@@ -246,6 +258,26 @@ Fixture tags are 1.22-era. Use a game version such as `"1.22.0"` for compatible 
 - [Source: _bmad-output/planning-artifacts/prd.md] FR129-FR134, FR147
 - [Source: _bmad-output/implementation-artifacts/14-0-epic-14-technical-preparation.md] findings
 - [Source: project-context.md] §3 API Response Envelope, §4 JSON Field Naming Boundary, §6 Atomic File Writes, Security Patterns §5 RBAC
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `dd12072`..`105b093`
+**Outcome:** Changes Requested
+
+**Summary:** ADR-1 rules are implemented in exact order and well tested (probes covered `1.0`, `1.0.0.1`, `01.2`, unicode digits, cross-modid versions); persistence is atomic and tolerant; the API matches the contract; no suppressions; `just check` passed. AC 1-8 pass, AC 9 partial.
+
+### Action Items
+
+- [ ] [Medium] Malformed mod database payloads (bad `fileid`, non-list `releases`, non-object `mod`) raise during parsing outside the guarded lookup, aborting the whole check with a 500 and saving nothing [services/mod_updates.py `_check_one`]
+- [ ] [Medium] AC 9: a failed lookup for a never-checked mod is not reported on that mod's status [services/mod_updates.py `_check_one`, `build_status_items`]
+- [ ] [Low] Duplicate `modversion` within one modid: first occurrence wins, undocumented [services/mod_updates.py `evaluate_update`]
+- [ ] [Low] `last_full_check` is stamped even when every lookup failed [services/mod_updates.py `check`]
+- [ ] [Low] A store save error escapes `check()` as a 500 after successful lookups [services/mod_updates.py `check`]
+- [ ] [Low] `StoredRelease.from_api` splits a string `tags` value into characters [models/mod_updates.py `from_api`]
+- [ ] [Low] Concurrency tests reach into the private lock and monkeypatch `check` rather than exercising a real overlapping check [tests/test_mod_updates.py]
+- [ ] [Low] The `Compatibility` literal duplicates `CompatibilityStatus` with nothing pinning them together [models/mod_updates.py]
+- [ ] [Low] Records for uninstalled mods are never pruned from `mod-updates.json` [services/mod_updates.py `check`]
 
 ## Dev Agent Record
 
