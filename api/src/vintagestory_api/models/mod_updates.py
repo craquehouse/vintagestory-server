@@ -3,9 +3,13 @@
 See _bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md, ADR-1 and ADR-4.
 """
 
+from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+
+Compatibility = Literal["compatible", "not_verified", "incompatible"]
+"""Compatibility of a release with the installed game version (see mod_api.check_compatibility)."""
 
 UpdateState = Literal["update_available", "up_to_date", "blocked", "unknown"]
 """Update status of an installed mod.
@@ -29,7 +33,7 @@ class StoredRelease(BaseModel):
 
     modversion: str
     modidstr: str
-    tags: list[str] = Field(default_factory=list)
+    tags: list[str] = []
     fileid: int = 0
     filename: str = ""
     created: str | None = None
@@ -46,3 +50,39 @@ class StoredRelease(BaseModel):
             filename=str(release.get("filename") or ""),
             created=release.get("created"),
         )
+
+
+class StoredModRecord(BaseModel):
+    """Mod database data for one installed modid, as of its last check."""
+
+    checked_at: datetime
+    found: bool
+    """False when the mod database returned not found."""
+    releases: list[StoredRelease] = []
+    """Releases for the whole mod database entry, newest first."""
+    error: str | None = None
+    """The last check's failure for this mod, if it failed; earlier data is kept."""
+
+
+class ModUpdatesFile(BaseModel):
+    """Contents of the mod update store file."""
+
+    schema_version: int = 1
+    last_full_check: datetime | None = None
+    mods: dict[str, StoredModRecord] = {}
+
+
+class ModUpdateStatusItem(BaseModel):
+    """Update status of one installed mod, as returned by the API."""
+
+    slug: str
+    name: str
+    installed_version: str
+    status: UpdateState
+    offered_version: str | None = None
+    offered_compatibility: Compatibility | None = None
+    offered_prerelease: bool | None = None
+    reason: UnknownReason | None = None
+    checked_at: datetime | None = None
+    error: str | None = None
+

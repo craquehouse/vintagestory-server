@@ -70,10 +70,10 @@ so that **I know what can be updated without checking each mod**.
   - [x] 1.2: Reuse `check_compatibility()` from `services/mod_api.py`; do not reimplement it
   - [x] 1.3: Write tests in `api/tests/test_mod_updates.py` using the ModDB fixtures (see Testing Requirements for the required cases)
 
-- [ ] Task 2: Add status models and the persistent store + tests (AC: 5, 8)
-  - [ ] 2.1: Add models in `api/src/vintagestory_api/models/mod_updates.py`: stored per-mod record and the API status item (fields under Dev Notes)
-  - [ ] 2.2: Implement a store for `{state_dir}/mod-updates.json` with atomic writes (temp file, then rename), a `schema_version` field, and tolerant loading (missing or corrupt file logs a warning and starts empty)
-  - [ ] 2.3: Tests: round trip, a new store instance reads data written by another (restart), corrupt file, and that status is computed at read time against the game version passed in
+- [x] Task 2: Add status models and the persistent store + tests (AC: 5, 8)
+  - [x] 2.1: Add models in `api/src/vintagestory_api/models/mod_updates.py`: stored per-mod record and the API status item (fields under Dev Notes)
+  - [x] 2.2: Implement a store for `{state_dir}/mod-updates.json` with atomic writes (temp file, then rename), a `schema_version` field, and tolerant loading (missing or corrupt file logs a warning and starts empty)
+  - [x] 2.3: Tests: round trip, a new store instance reads data written by another (restart), corrupt file, and that status is computed at read time against the game version passed in
 
 - [ ] Task 3: Implement the check + tests (AC: 7, 9)
   - [ ] 3.1: Add `ModUpdateService` with `get_status()` and `async check()`; fetch each installed mod with `ModService.api_client.get_mod(slug)`, sequentially
@@ -258,6 +258,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Completion Notes List
 
 - Task 1: Added `evaluate_update`, `is_prerelease` and `parse_base_version` implementing ADR-1, and the `StoredRelease` model. 26 tests cover every required rule case using the ModDB fixtures and inline release lists.
+- Task 2: Added `StoredModRecord`, `ModUpdatesFile` and `ModUpdateStatusItem` models, the atomic `ModUpdateStore` (`{state_dir}/mod-updates.json`, schema version 1, tolerant of missing or corrupt files) and `build_status_items`, which computes status at read time. 8 tests cover restart persistence, atomic writes, corrupt files and read-time game version.
+
 ### File List
 
 - Created: `api/src/vintagestory_api/models/mod_updates.py`

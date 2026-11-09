@@ -6,9 +6,26 @@ strings are only compared for the base-version check on mods already on a pre-re
 """
 
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
-from vintagestory_api.models.mod_updates import StoredRelease, UnknownReason, UpdateState
+import structlog
+from pydantic import ValidationError
+
+from vintagestory_api.models.mod_updates import (
+    ModUpdatesFile,
+    ModUpdateStatusItem,
+    StoredModRecord,
+    StoredRelease,
+    UnknownReason,
+    UpdateState,
+)
+from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import CompatibilityStatus, check_compatibility
+
+logger = structlog.get_logger()
+
+STORE_FILENAME = "mod-updates.json"
 
 
 def is_prerelease(version: str) -> bool:
@@ -88,3 +105,98 @@ def evaluate_update(
                     "update_available", offered=candidate, offered_compatibility=wanted
                 )
     return UpdateEvaluation("blocked")
+
+
+class ModUpdateStore:
+    """Persistent mod database data for update detection (ADR-4).
+
+    Stores release data rather than final statuses, so status is computed at read
+    time against the current installed mods and game version.
+    """
+
+    def __init__(self, state_dir: Path) -> None:
+        self._path = state_dir / STORE_FILENAME
+        self._data = self._load()
+
+    @property
+    def path(self) -> Path:
+        return self._path
+
+    @property
+    def last_full_check(self) -> datetime | None:
+        return self._data.last_full_check
+
+    @last_full_check.setter
+    def last_full_check(self, value: datetime | None) -> None:
+        self._data.last_full_check = value
+
+    def get(self, modid: str) -> StoredModRecord | None:
+        return self._data.mods.get(modid)
+
+    def set(self, modid: str, record: StoredModRecord) -> None:
+        self._data.mods[modid] = record
+
+    def save(self) -> None:
+        """Write the store atomically: temp file, then rename."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        temp = self._path.with_suffix(".tmp")
+        temp.write_text(self._data.model_dump_json(indent=2))
+        temp.rename(self._path)
+
+    def _load(self) -> ModUpdatesFile:
+        if not self._path.exists():
+            return ModUpdatesFile()
+        try:
+            return ModUpdatesFile.model_validate_json(self._path.read_text())
+        except (OSError, ValidationError) as e:
+            logger.warning("mod_update_store_unreadable", path=str(self._path), error=str(e))
+            return ModUpdatesFile()
+
+
+def _status_item(
+    mod: ModInfo,
+    status: UpdateState,
+    *,
+    record: StoredModRecord | None = None,
+    reason: UnknownReason | None = None,
+    offered: StoredRelease | None = None,
+    compatibility: CompatibilityStatus | None = None,
+) -> ModUpdateStatusItem:
+    return ModUpdateStatusItem(
+        slug=mod.slug,
+        name=mod.name,
+        installed_version=mod.version,
+        status=status,
+        reason=reason,
+        offered_version=offered.modversion if offered else None,
+        offered_compatibility=compatibility,
+        offered_prerelease=is_prerelease(offered.modversion) if offered else None,
+        checked_at=record.checked_at if record else None,
+        error=record.error if record else None,
+    )
+
+
+def build_status_items(
+    mods: list[ModInfo], store: ModUpdateStore, game_version: str
+) -> list[ModUpdateStatusItem]:
+    """Compute update status for each installed mod from stored mod database data."""
+    items: list[ModUpdateStatusItem] = []
+    for mod in mods:
+        record = store.get(mod.slug)
+        if record is None:
+            items.append(_status_item(mod, "unknown", reason="not_checked"))
+        elif not record.found:
+            items.append(_status_item(mod, "unknown", record=record, reason="not_in_database"))
+        else:
+            result = evaluate_update(mod.slug, mod.version, record.releases, game_version)
+            items.append(
+                _status_item(
+                    mod,
+                    result.status,
+                    record=record,
+                    reason=result.reason,
+                    offered=result.offered,
+                    compatibility=result.offered_compatibility,
+                )
+            )
+    return items

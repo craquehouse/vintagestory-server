@@ -1,12 +1,16 @@
 """Tests for mod update detection (Story 14.1)."""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from vintagestory_api.models.mod_updates import StoredRelease
+from vintagestory_api.models.mod_updates import StoredModRecord, StoredRelease
+from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_updates import (
+    ModUpdateStore,
+    build_status_items,
     evaluate_update,
     is_prerelease,
     parse_base_version,
@@ -178,3 +182,112 @@ class TestUnparsableVersions:
 
         assert result.offered is not None
         assert result.offered.modversion == "2.0.0-rc.2"
+
+
+
+def installed(slug: str, version: str, name: str = "Demo") -> ModInfo:
+    return ModInfo(
+        filename=f"{slug}_{version}.zip",
+        slug=slug,
+        version=version,
+        enabled=True,
+        installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        name=name,
+    )
+
+
+def record(
+    releases: list[StoredRelease], *, found: bool = True, error: str | None = None
+) -> StoredModRecord:
+    return StoredModRecord(
+        checked_at=datetime(2026, 11, 9, 12, 0, tzinfo=UTC),
+        found=found,
+        releases=releases,
+        error=error,
+    )
+
+
+class TestModUpdateStore:
+    def test_missing_file_starts_empty(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+
+        assert store.get("carryon") is None
+        assert store.last_full_check is None
+
+    def test_data_survives_a_new_instance(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+        store.set("carryon", record(fixture_releases("carryon")))
+        store.last_full_check = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
+        store.save()
+
+        reloaded = ModUpdateStore(tmp_path)
+
+        stored = reloaded.get("carryon")
+        assert stored is not None
+        assert [r.modversion for r in stored.releases] == [
+            r.modversion for r in fixture_releases("carryon")
+        ]
+        assert reloaded.last_full_check == datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
+
+    def test_file_is_versioned_and_written_atomically(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+        store.set("demo", record([]))
+        store.save()
+
+        data = json.loads((tmp_path / "mod-updates.json").read_text())
+        assert data["schema_version"] == 1
+        assert "demo" in data["mods"]
+        assert not list(tmp_path.glob("*.tmp"))
+
+    def test_corrupt_file_starts_empty(self, tmp_path: Path) -> None:
+        (tmp_path / "mod-updates.json").write_text("{not json")
+
+        store = ModUpdateStore(tmp_path)
+
+        assert store.get("carryon") is None
+
+
+class TestBuildStatusItems:
+    def test_never_checked_mod_is_unknown(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+
+        items = build_status_items([installed("carryon", "1.14.1")], store, "1.22.7")
+
+        assert items[0].status == "unknown"
+        assert items[0].reason == "not_checked"
+        assert items[0].checked_at is None
+
+    def test_mod_missing_from_database_is_unknown(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+        store.set("gone", record([], found=False))
+
+        items = build_status_items([installed("gone", "1.0.0")], store, "1.22.7")
+
+        assert items[0].status == "unknown"
+        assert items[0].reason == "not_in_database"
+
+    def test_status_reflects_the_game_version_passed_at_read_time(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+        store.set("carryon", record(fixture_releases("carryon")))
+        mods = [installed("carryon", "1.14.1", name="Carry On")]
+
+        on_server = build_status_items(mods, store, "1.22.7")[0]
+        no_server = build_status_items(mods, store, "")[0]
+
+        assert on_server.status == "update_available"
+        assert on_server.name == "Carry On"
+        assert on_server.installed_version == "1.14.1"
+        assert on_server.offered_version == "1.14.3"
+        assert on_server.offered_compatibility == "compatible"
+        assert on_server.offered_prerelease is False
+        assert no_server.offered_compatibility == "not_verified"
+
+    def test_last_check_error_is_reported_with_kept_data(self, tmp_path: Path) -> None:
+        store = ModUpdateStore(tmp_path)
+        store.set("carryon", record(fixture_releases("carryon"), error="mod database unavailable"))
+
+        item = build_status_items([installed("carryon", "2.0.0-pre.8")], store, "1.22.0")[0]
+
+        assert item.error == "mod database unavailable"
+        assert item.offered_version == "2.0.0-rc.1"
+        assert item.offered_prerelease is True
