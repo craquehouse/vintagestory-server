@@ -16,7 +16,7 @@ Scripts and data behind the findings in `../14-0-epic-14-technical-preparation.m
 From the repository root:
 
 - `python3 _bmad-output/implementation-artifacts/14-0-spike/stats.py`: no network needed.
-- `api/.venv/bin/python _bmad-output/implementation-artifacts/14-0-spike/moddb_probe.py <out_dir>`: calls the live ModDB API (about 25 requests) and downloads 10 small releases (12 are attempted; one sampled mod has since been removed from ModDB). Set `VS_API_KEY_ADMIN` to any value so the settings model loads.
+- `api/.venv/bin/python _bmad-output/implementation-artifacts/14-0-spike/moddb_probe.py <out_dir>`: calls the live ModDB API (about 25 requests) and downloads 10 small releases: two from each of five mods. A sixth mod chosen for downloads has since been removed from ModDB, so its lookup returns 404 and nothing is downloaded for it. Set `VS_API_KEY_ADMIN` to any value so the settings model loads.
 - `api/.venv/bin/python _bmad-output/implementation-artifacts/14-0-spike/webhook_probe.py`: local only.
 - `swap_test.py`: needs an image built with `docker build --platform linux/amd64 -t vss-spike .`. It runs a container named `vss-spike` on `127.0.0.1:18080` with no host volume, installs VintageStory and a mod over the network, and removes the container when done. Its API key is a throwaway for that container.
 

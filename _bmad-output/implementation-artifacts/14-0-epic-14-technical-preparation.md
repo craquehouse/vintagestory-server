@@ -1,6 +1,6 @@
 # Story 14.0: Epic 14 Technical Preparation
 
-Status: in-progress
+Status: review
 
 <!-- API spike story (template-api-spike). Complete before Stories 14.1-14.6: their designs rest on the assumptions this story verifies. -->
 
@@ -332,3 +332,4 @@ Epic 14 stories updated in `epics.md`: 14.1 (modid filtering, pre-release rule),
 
 - 2026-11-09: Completed the Epic 14 API spike. Verified ModDB release behavior and live mod replacement, defined the webhook payload, added fixtures, and updated ADR-1 to ADR-6 and Stories 14.1, 14.2 and 14.6 with the findings.
 - 2026-11-09: Addressed code review findings - 8 items resolved (3 Medium, 5 Low). Story 14.2 and ADR-2 now restrict version changes to the installed modid and require confirmation for pre-releases and older releases; ADR-1 defines older by release order; ADR-6 names the `slug` field; FR130 and FR141 updated; Story 14.6 adds Discord checks; spike evidence committed. Filed `VSS-jhf` for the same modid flaw in the existing install path.
+- 2026-11-09: Addressed follow-up review findings - 3 items resolved (1 Medium, 2 Low). Mods on a pre-release are only offered releases whose base version is not lower (ADR-1, FR129, FR130, Story 14.1); FR140 limited to the installed modid; spike README corrected.
