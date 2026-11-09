@@ -1,6 +1,6 @@
 # VintageStory Server Manager
 # Multi-stage build: Build frontend, then create production image
-# Base: .NET 8 runtime on Ubuntu 24.04 Noble (required for VintageStory)
+# Base: .NET 10 runtime on Ubuntu 24.04 Noble (required for VintageStory 1.22+)
 # Python 3.12 installed from Ubuntu apt (native to Noble)
 
 # ==============================================================================
@@ -33,10 +33,10 @@ RUN VITE_API_KEY="${VS_API_KEY}" VITE_API_BASE_URL="" bun run build
 
 # ==============================================================================
 # Stage 2: Production image
-# Base: .NET 8.0 runtime on Ubuntu 24.04 Noble (required for VintageStory)
+# Base: .NET 10 runtime on Ubuntu 24.04 Noble (required for VintageStory 1.22+)
 # Python 3.12 is native to Ubuntu 24.04
 # ==============================================================================
-FROM mcr.microsoft.com/dotnet/runtime:8.0.33-noble-amd64 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-noble-amd64 AS final
 
 WORKDIR /app
 

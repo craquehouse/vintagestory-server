@@ -30,7 +30,7 @@ class TestServerServiceConsoleIntegration:
         # Create required server files to mark as "installed"
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         return tmp_path
 

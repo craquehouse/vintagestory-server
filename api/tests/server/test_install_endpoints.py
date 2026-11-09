@@ -58,7 +58,7 @@ class TestServerInstallEndpoint:
         """POST /server/install requires API key (AC: 5.4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/install",
-            json={"version": "1.21.3"},
+            json={"version": "1.22.3"},
         )
 
         assert response.status_code == 401
@@ -67,7 +67,7 @@ class TestServerInstallEndpoint:
         """POST /server/install requires Admin role (AC: 5.4)."""
         response = integration_client.post(
             "/api/v1alpha1/server/install",
-            json={"version": "1.21.3"},
+            json={"version": "1.22.3"},
             headers={"X-API-Key": TEST_MONITOR_KEY},
         )
 
@@ -129,11 +129,11 @@ class TestServerInstallEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         response = integration_client.post(
             "/api/v1alpha1/server/install",
-            json={"version": "1.21.6"},
+            json={"version": "1.22.6"},
             headers={"X-API-Key": TEST_ADMIN_KEY},
         )
 
@@ -150,14 +150,14 @@ class TestServerInstallEndpoint:
 
         # Mock stable.json API response
         mock_api_response = {
-            "1.21.6": {
+            "1.22.6": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.6.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123def456",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
-                        "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.21.6.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz",
+                        "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.22.6.tar.gz",
                     },
                     "latest": True,
                 }
@@ -167,14 +167,14 @@ class TestServerInstallEndpoint:
         respx.get(VS_STABLE_API).mock(return_value=Response(200, json=mock_api_response))
 
         # Mock HEAD request for version availability check
-        head_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz"
+        head_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz"
         respx.head(head_url).mock(return_value=Response(200))
 
         # Create mock tarball
         tarball_bytes, _ = create_mock_server_tarball(Path("/tmp"))
 
         # Mock the actual download
-        download_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz"
+        download_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz"
         respx.get(download_url).mock(
             return_value=Response(
                 200,
@@ -191,7 +191,7 @@ class TestServerInstallEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["data"]["version"] == "1.21.6"
+        assert data["data"]["version"] == "1.22.6"
 
     @respx.mock
     def test_install_alias_not_found_returns_404(
@@ -226,8 +226,8 @@ class TestServerInstallEndpoint:
         3. Status endpoint shows "installed" state
         4. Server files exist on disk
         """
-        # Use version 1.21.6 which exists in our mock stable.json response
-        version = "1.21.6"
+        # Use version 1.22.6 which exists in our mock stable.json response
+        version = "1.22.6"
 
         # Create mock tarball and get its actual MD5
         tarball_bytes, actual_md5 = create_mock_server_tarball(Path("/tmp"))
@@ -360,7 +360,7 @@ class TestServerInstallStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/install/status",
@@ -371,7 +371,7 @@ class TestServerInstallStatusEndpoint:
         data = response.json()
         assert data["status"] == "ok"
         assert data["data"]["state"] == "installed"
-        assert data["data"]["version"] == "1.21.3"
+        assert data["data"]["version"] == "1.22.3"
 
     def test_status_follows_envelope_format(self, integration_client: TestClient) -> None:
         """GET /server/install/status follows standard API envelope."""
@@ -464,7 +464,7 @@ class TestServerInstallErrorPaths:
         original_validate = test_service.validate_version
 
         def mock_validate(version: str) -> bool:
-            if version == "1.21.3":
+            if version == "1.22.3":
                 return False  # Simulate invalid version
             return original_validate(version)
 
@@ -472,14 +472,14 @@ class TestServerInstallErrorPaths:
 
         response = integration_client.post(
             "/api/v1alpha1/server/install",
-            json={"version": "1.21.3"},
+            json={"version": "1.22.3"},
             headers={"X-API-Key": TEST_ADMIN_KEY},
         )
 
         assert response.status_code == 422
         error = response.json()["detail"]
         assert error["code"] == "INVALID_VERSION"
-        assert "1.21.3" in error["message"]
+        assert "1.22.3" in error["message"]
         assert "X.Y.Z" in error["message"]
 
     def test_install_while_installation_in_progress_returns_409(
@@ -494,11 +494,11 @@ class TestServerInstallErrorPaths:
         # Get the service and set installation state to INSTALLING
         test_service = integration_app.dependency_overrides[get_server_service]()
         test_service._install_state = ServerState.INSTALLING
-        test_service._installing_version = "1.21.6"
+        test_service._installing_version = "1.22.6"
 
         response = integration_client.post(
             "/api/v1alpha1/server/install",
-            json={"version": "1.21.3"},
+            json={"version": "1.22.3"},
             headers={"X-API-Key": TEST_ADMIN_KEY},
         )
 

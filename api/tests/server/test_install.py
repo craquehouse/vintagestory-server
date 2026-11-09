@@ -74,13 +74,13 @@ class TestInstallProgress:
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (test_settings.server_dir / "VintagestoryServer.dll").touch()
         (test_settings.server_dir / "VintagestoryLib.dll").touch()
-        (test_settings.vsmanager_dir / "current_version").write_text("1.21.3")
+        (test_settings.vsmanager_dir / "current_version").write_text("1.22.3")
 
         service = ServerService(test_settings)
         progress = service.get_install_progress()
 
         assert progress.state.value == "installed"
-        assert progress.version == "1.21.3"
+        assert progress.version == "1.22.3"
 
 
 class TestServerInstallation:
@@ -95,10 +95,10 @@ class TestServerInstallation:
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (test_settings.server_dir / "VintagestoryServer.dll").touch()
         (test_settings.server_dir / "VintagestoryLib.dll").touch()
-        (test_settings.vsmanager_dir / "current_version").write_text("1.21.3")
+        (test_settings.vsmanager_dir / "current_version").write_text("1.22.3")
 
         service = ServerService(test_settings)
-        progress = await service.install_server("1.21.6")
+        progress = await service.install_server("1.22.6")
 
         assert progress.state.value == "error"
         assert progress.error is not None
@@ -199,9 +199,9 @@ class TestServerInstallation:
 
         # Start 3 concurrent install requests
         results = await asyncio.gather(
-            service.install_server("1.21.3"),
-            service.install_server("1.21.4"),
-            service.install_server("1.21.5"),
+            service.install_server("1.22.3"),
+            service.install_server("1.22.4"),
+            service.install_server("1.22.5"),
             return_exceptions=True,
         )
 
@@ -235,7 +235,7 @@ class TestDownloadServer:
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         tarball_bytes, _ = create_mock_server_tarball(test_settings.server_dir)
 
-        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.3.tar.gz"
+        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.3.tar.gz"
         respx.get(url).mock(
             return_value=Response(
                 200,
@@ -245,11 +245,11 @@ class TestDownloadServer:
         )
 
         service = ServerService(test_settings)
-        tarball_path = await service.download_server("1.21.3", "stable")
+        tarball_path = await service.download_server("1.22.3", "stable")
         await service.close()
 
         assert tarball_path.exists()
-        assert tarball_path.name == "vs_server_linux-x64_1.21.3.tar.gz"
+        assert tarball_path.name == "vs_server_linux-x64_1.22.3.tar.gz"
         assert tarball_path.read_bytes() == tarball_bytes
 
     @respx.mock
@@ -259,7 +259,7 @@ class TestDownloadServer:
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         tarball_bytes, _ = create_mock_server_tarball(test_settings.server_dir)
 
-        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.3.tar.gz"
+        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.3.tar.gz"
         respx.get(url).mock(
             return_value=Response(
                 200,
@@ -274,7 +274,7 @@ class TestDownloadServer:
             progress_values.append(pct)
 
         service = ServerService(test_settings)
-        await service.download_server("1.21.3", "stable", progress_callback=track_progress)
+        await service.download_server("1.22.3", "stable", progress_callback=track_progress)
         await service.close()
 
         # Progress should end at 100%
@@ -288,7 +288,7 @@ class TestDownloadServer:
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         tarball_bytes, _ = create_mock_server_tarball(test_settings.server_dir)
 
-        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.3.tar.gz"
+        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.3.tar.gz"
         respx.get(url).mock(
             return_value=Response(
                 200,
@@ -298,7 +298,7 @@ class TestDownloadServer:
         )
 
         service = ServerService(test_settings)
-        await service.download_server("1.21.3", "stable")
+        await service.download_server("1.22.3", "stable")
 
         # Stage should be downloading (or later)
         assert service._install_stage == InstallationStage.DOWNLOADING
@@ -490,7 +490,7 @@ class TestCleanupOnFailure:
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         tarball_bytes, _ = create_mock_server_tarball(test_settings.server_dir)
 
-        tarball_path = test_settings.server_dir / "vs_server_linux-x64_1.21.3.tar.gz"
+        tarball_path = test_settings.server_dir / "vs_server_linux-x64_1.22.3.tar.gz"
         tarball_path.write_bytes(tarball_bytes)
 
         service = ServerService(test_settings)
