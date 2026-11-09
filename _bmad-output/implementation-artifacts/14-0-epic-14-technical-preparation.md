@@ -39,12 +39,12 @@ so that **update logic rests on confirmed behavior**.
 
 <!-- Research story: no application code changes. Tasks produce documentation and fixtures. -->
 
-- [ ] Task 1: Verify mod release behavior against the live API (AC: 1)
-  - [ ] 1.1: Choose at least 5 mods, including one with many releases, one whose `urlalias` differs from `modidstrs[0]`, and one with pre-release game version tags
-  - [ ] 1.2: Compare release list order with each release's `created` timestamp; record any mismatch
-  - [ ] 1.3: Record whether old releases stay listed, and whether any `modversion` or `filename` repeats within one mod
-  - [ ] 1.4: Download 2 or 3 releases per mod and compare the archive's `modinfo.json` `modid` and `version` with the release's `modidstr` and `modversion`
-  - [ ] 1.5: Record releases with empty `tags`, and how `check_compatibility` classifies them
+- [x] Task 1: Verify mod release behavior against the live API (AC: 1)
+  - [x] 1.1: Choose at least 5 mods, including one with many releases, one whose `urlalias` differs from `modidstrs[0]`, and one with pre-release game version tags
+  - [x] 1.2: Compare release list order with each release's `created` timestamp; record any mismatch
+  - [x] 1.3: Record whether old releases stay listed, and whether any `modversion` or `filename` repeats within one mod
+  - [x] 1.4: Download 2 or 3 releases per mod and compare the archive's `modinfo.json` `modid` and `version` with the release's `modidstr` and `modversion`
+  - [x] 1.5: Record releases with empty `tags`, and how `check_compatibility` classifies them
 
 - [ ] Task 2: Test replacing a mod while the server runs (AC: 2)
   - [ ] 2.1: Run the image in a throwaway container with no host volume (never the repo's `./data`)
@@ -152,7 +152,28 @@ From Discord's webhook documentation and client libraries:
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Findings Summary
+
+**Task 1: ModDB release behavior (live API, 2026-11-09).** 10 mods sampled (464 releases); 10 releases downloaded and parsed with `ModStateManager._extract_modinfo_from_zip`.
+
+| Question | Finding |
+|---|---|
+| Release order | Newest first in all 10 mods, by both `created` and `releaseid` |
+| Old releases stay listed | Yes; up to 89 releases per mod, back to 1.15-era versions |
+| `modversion` equals archive `modinfo.json` version | Yes, 10 of 10 |
+| `modidstr` equals archive `modid` | Yes, 10 of 10 |
+| One modid per ModDB entry | **No.** 225 of 4,852 entries list several modids. `instruments` spans `instruments`, `vsinstruments`, `vsinstrumentsbase`; `hudclock` includes `hudclockserver` releases |
+| `modversion` unique within an entry | **No.** `instruments` repeats `1.0.1` under different modids |
+| `filename` unique within an entry | **No.** `egocaribautomapmarkers` reuses `Auto Map Markers.zip` and `Auto Map Markers (1.19).zip` |
+| Lookup keys | `/api/mod/{key}` resolves any release `modidstr` or the numeric ModDB `modid`; **not** `urlalias` |
+| Removed mods | `maltiezfirearms` (in the January export) now returns `"404"` under every key |
+| Empty `tags` | None seen. Pre-release tags (for example `1.22.0-rc.1`) are common; against 1.22.7 they classify as `not_verified` |
+| Compatibility against 1.22.7 | Most popular mods have only 2-8 `compatible` releases, often only `not_verified` ones |
+| Filenames | 70 of 464 contain spaces; none contain path separators. CDN URLs add a hash, the `filename` does not |
+
+**Pre-existing risk found:** `mod_api.py:366-367` and `mods.py:712` build file paths directly from the ModDB-supplied `filename` without sanitizing it.
 
 ### API Quirks Discovered
 
