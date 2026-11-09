@@ -455,6 +455,108 @@ class TestStopServer:
             status = installed_service.get_server_status()
             assert status.last_exit_code == 0
 
+    @pytest.mark.asyncio
+    async def test_failed_stop_of_live_process_stays_running(
+        self, installed_service: ServerService
+    ) -> None:
+        """A stop that could not signal a live process reports it as still running."""
+
+        async def blocking_wait() -> int:
+            await asyncio.Event().wait()
+            return 0
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock(side_effect=OSError("Permission denied"))
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            _configure_stream_mocks(process)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            with pytest.raises(RuntimeError, match=ErrorCode.SERVER_STOP_FAILED):
+                await installed_service.stop_server()
+
+            assert installed_service.get_server_status().state == ServerState.RUNNING
+
+    @pytest.mark.asyncio
+    async def test_failed_stop_of_exited_process_returns_to_installed(
+        self, installed_service: ServerService
+    ) -> None:
+        """A stop that fails because the process already exited leaves it stopped."""
+
+        async def blocking_wait() -> int:
+            await asyncio.Event().wait()
+            return 0
+
+        def send_signal(_: int) -> None:
+            process.returncode = 3
+            raise ProcessLookupError("process already exited")
+
+        with (
+            patch("asyncio.create_subprocess_exec") as mock_exec,
+            patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module,
+        ):
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock(side_effect=send_signal)
+            process.wait = AsyncMock(side_effect=blocking_wait)
+            _configure_stream_mocks(process)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+
+            with pytest.raises(RuntimeError, match=ErrorCode.SERVER_STOP_FAILED):
+                await installed_service.stop_server()
+
+            status = installed_service.get_server_status()
+            assert status.state == ServerState.INSTALLED
+            assert status.last_exit_code == 3
+            assert installed_service._server_start_time is None
+            mod_service = mock_get_module.return_value.get_mod_service.return_value
+            mod_service.set_server_running.assert_called_with(False)
+
+    @pytest.mark.asyncio
+    async def test_process_exit_after_failed_stop_returns_to_installed(
+        self, installed_service: ServerService
+    ) -> None:
+        """If the process exits after a failed stop, the monitor still settles the state."""
+        exited = asyncio.Event()
+
+        async def wait() -> int:
+            await exited.wait()
+            process.returncode = 0
+            return 0
+
+        def send_signal(_: int) -> None:
+            exited.set()
+            raise ProcessLookupError("process already exited")
+
+        with patch("asyncio.create_subprocess_exec") as mock_exec:
+            process = AsyncMock()
+            process.pid = 12345
+            process.returncode = None
+            process.send_signal = MagicMock(side_effect=send_signal)
+            process.wait = AsyncMock(side_effect=wait)
+            _configure_stream_mocks(process)
+            mock_exec.return_value = process
+
+            await installed_service.start_server()
+            monitor = installed_service._monitor_task
+            assert monitor is not None
+            await asyncio.sleep(0)  # Let the monitor reach its wait.
+
+            with pytest.raises(RuntimeError, match=ErrorCode.SERVER_STOP_FAILED):
+                await installed_service.stop_server()
+            await monitor
+
+            status = installed_service.get_server_status()
+            assert status.state == ServerState.INSTALLED
+            assert status.last_exit_code == 0
+
 
 class TestRestartServer:
     """Tests for restart_server() method (Subtask 2.1, AC: 3)."""
