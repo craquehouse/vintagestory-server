@@ -334,7 +334,7 @@ class TestAuthMeEndpointIntegration:
     """
 
     @pytest.fixture
-    def integration_app(self) -> Generator[FastAPI, None, None]:
+    def integration_app(self) -> Generator[FastAPI]:
         """Create app with overridden settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings

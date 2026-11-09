@@ -8,7 +8,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| Python | >= 3.12 | Use minimum version, not exact pin |
+| Python | >= 3.14 | Use minimum version, not exact pin |
 | FastAPI | 0.127.1+ | Includes Uvicorn via `fastapi[standard]` |
 | React | 19.2 | Security-patched version |
 | TypeScript | 5.x | Strict mode enabled |
@@ -18,9 +18,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 | TanStack Query | v5 | Server state management |
 | structlog | latest | Structured logging |
 
-**Base Container:** `mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64`
-- Ubuntu 24.04 Noble with .NET 8 (required for VintageStory server)
-- Python 3.12 available via apt
+**Base Container:** `mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64`
+- Ubuntu 26.04 Resolute with .NET 10 (required for VintageStory 1.22+)
+- Python 3.14 available via apt
 
 ---
 
@@ -211,7 +211,7 @@ This prevents corruption if the process crashes mid-write.
 ### 7. Version Specifications in Architecture
 
 When documenting or requiring versions:
-- **Use minimum versions** (e.g., `Python >= 3.12`) unless there's a specific reason to pin
+- **Use minimum versions** (e.g., `Python >= 3.14`) unless there's a specific reason to pin
 - **Document rationale** for any exact version pins
 - **Consider external dependencies** when specifying infrastructure (e.g., VintageStory requires .NET)
 

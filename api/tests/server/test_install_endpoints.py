@@ -29,7 +29,7 @@ class TestServerInstallEndpoint:
     """Tests for POST /api/v1alpha1/server/install endpoint (AC: 1-5)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -307,7 +307,7 @@ class TestServerInstallStatusEndpoint:
     """Tests for GET /api/v1alpha1/server/install/status endpoint (AC: 2)."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings
@@ -424,7 +424,7 @@ class TestServerInstallErrorPaths:
     """Tests for error handling paths in POST /server/install endpoint."""
 
     @pytest.fixture
-    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI, None, None]:
+    def integration_app(self, temp_data_dir: Path) -> Generator[FastAPI]:
         """Create app with test settings for integration testing."""
         from vintagestory_api.main import app
         from vintagestory_api.middleware.auth import get_settings

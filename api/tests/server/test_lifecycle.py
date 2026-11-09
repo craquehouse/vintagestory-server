@@ -33,7 +33,7 @@ def _configure_stream_mocks(process: AsyncMock) -> None:
 
 
 @pytest.fixture
-def mock_subprocess() -> Generator[tuple[MagicMock, AsyncMock], None, None]:
+def mock_subprocess() -> Generator[tuple[MagicMock, AsyncMock]]:
     """Mock asyncio.create_subprocess_exec for testing.
 
     Uses an Event to simulate blocking wait that can be unblocked for stop tests.

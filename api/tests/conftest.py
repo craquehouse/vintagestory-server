@@ -22,7 +22,7 @@ TEST_MONITOR_KEY = "test-monitor-key-67890"
 
 
 @pytest.fixture(autouse=True)
-def reset_structlog_for_tests() -> Generator[None, None, None]:
+def reset_structlog_for_tests() -> Generator[None]:
     """Reset structlog configuration before each test for consistent behavior.
 
     This autouse fixture ensures that structlog is configured to write to stdout
@@ -70,7 +70,7 @@ def monitor_headers() -> dict[str, str]:
 
 
 @pytest.fixture
-def captured_logs() -> Generator[StringIO, None, None]:
+def captured_logs() -> Generator[StringIO]:
     """Configure structlog to capture logs to a StringIO for testing.
 
     This fixture ensures consistent log capture across tests, regardless of

@@ -44,7 +44,7 @@ def _create_snapshot(
 
 
 @pytest.fixture
-def integration_app() -> Generator[FastAPI, None, None]:
+def integration_app() -> Generator[FastAPI]:
     """Create app with overridden settings for integration testing."""
     test_settings = Settings(
         api_key_admin=TEST_ADMIN_KEY,
@@ -64,7 +64,7 @@ def client(integration_app: FastAPI) -> TestClient:
 
 
 @pytest.fixture
-def mock_metrics_service() -> Generator[MagicMock, None, None]:
+def mock_metrics_service() -> Generator[MagicMock]:
     """Create a mock metrics service with configurable buffer."""
     mock_service = MagicMock(spec=MetricsService)
     mock_buffer = MagicMock(spec=MetricsBuffer)
@@ -78,7 +78,7 @@ def mock_metrics_service() -> Generator[MagicMock, None, None]:
 
 
 @pytest.fixture(autouse=True)
-def reset_service() -> Generator[None, None, None]:
+def reset_service() -> Generator[None]:
     """Reset metrics service singleton before each test."""
     reset_metrics_service()
     yield

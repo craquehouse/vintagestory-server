@@ -52,7 +52,7 @@ def settings(temp_data_dir: Path) -> Settings:
 
 
 @pytest.fixture
-def client(settings: Settings) -> Generator[TestClient, None, None]:
+def client(settings: Settings) -> Generator[TestClient]:
     service = ServerService(settings)
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_server_service] = lambda: service

@@ -23,7 +23,7 @@ from vintagestory_api.middleware.auth import get_settings
 
 
 @pytest.fixture
-def integration_app() -> Generator[FastAPI, None, None]:
+def integration_app() -> Generator[FastAPI]:
     """Create app with overridden settings for integration testing."""
     test_settings = Settings(
         api_key_admin=TEST_ADMIN_KEY,

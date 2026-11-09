@@ -85,7 +85,7 @@ class TestInstallModEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -347,7 +347,7 @@ class TestLookupModEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -575,7 +575,7 @@ class TestEnableModEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -733,7 +733,7 @@ class TestDisableModEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -896,7 +896,7 @@ class TestRemoveModEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1092,7 +1092,7 @@ class TestListModsEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1373,7 +1373,7 @@ class TestBrowseModsEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1931,7 +1931,7 @@ class TestGameVersionsEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2123,7 +2123,7 @@ class TestModTagsEndpoint:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2290,7 +2290,7 @@ class TestBrowseItemSlugUrlalias:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2565,7 +2565,7 @@ class TestBrowseModsFilters:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2883,7 +2883,7 @@ class TestInstallModVersionNotFound:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2990,7 +2990,7 @@ class TestEnableDisableRemoveInvalidSlug:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -3092,7 +3092,7 @@ class TestGameVersionsParsing:
     @pytest.fixture
     def test_app(
         self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI, None, None]:
+    ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
