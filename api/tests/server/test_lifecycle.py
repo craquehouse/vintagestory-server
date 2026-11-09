@@ -109,10 +109,10 @@ class TestServerStateManagement:
         """get_installed_version returns version from file."""
         test_settings.server_dir.mkdir(parents=True, exist_ok=True)
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
-        (test_settings.vsmanager_dir / "current_version").write_text("1.21.6")
+        (test_settings.vsmanager_dir / "current_version").write_text("1.22.6")
 
         service = ServerService(test_settings)
-        assert service.get_installed_version() == "1.21.6"
+        assert service.get_installed_version() == "1.22.6"
 
     def test_save_installed_version(self, test_settings: Settings) -> None:
         """save_installed_version persists version to file."""
@@ -120,11 +120,11 @@ class TestServerStateManagement:
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
-        service._save_installed_version("1.21.6")
+        service._save_installed_version("1.22.6")
 
         version_file = test_settings.vsmanager_dir / "current_version"
         assert version_file.exists()
-        assert version_file.read_text() == "1.21.6"
+        assert version_file.read_text() == "1.22.6"
 
     def test_save_installed_version_atomic(self, test_settings: Settings) -> None:
         """save_installed_version uses atomic write (no .tmp file left)."""
@@ -132,7 +132,7 @@ class TestServerStateManagement:
         test_settings.vsmanager_dir.mkdir(parents=True, exist_ok=True)
 
         service = ServerService(test_settings)
-        service._save_installed_version("1.21.6")
+        service._save_installed_version("1.22.6")
 
         tmp_file = test_settings.vsmanager_dir / "current_version.tmp"
         assert not tmp_file.exists()
@@ -555,7 +555,7 @@ class TestServerStatus:
         status = installed_service.get_server_status()
 
         assert status.state == ServerState.INSTALLED
-        assert status.version == "1.21.3"
+        assert status.version == "1.22.3"
         assert status.uptime_seconds is None
 
     @pytest.mark.asyncio

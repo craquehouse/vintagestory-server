@@ -67,6 +67,11 @@ VS_CDN_BASE = "https://cdn.vintagestory.at/gamefiles"
 # and optional build metadata (+build.123)
 VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+(?:\.\d+)?)?(?:\+[a-zA-Z0-9.]+)?$")
 
+# Oldest supported (major, minor) release. VintageStory 1.22 is the first release that
+# runs on .NET 10, the only runtime in the container image.
+MIN_SUPPORTED_VERSION = (1, 22)
+MIN_SUPPORTED_VERSION_TEXT = "1.22"
+
 # Channel aliases that resolve to the latest version in that channel
 VERSION_ALIASES = {"stable", "unstable"}
 
@@ -266,6 +271,22 @@ class ServerService:
         """
         return VERSION_PATTERN.match(version) is not None
 
+    def is_version_supported(self, version: str) -> bool:
+        """Check whether a version meets the minimum supported release.
+
+        Pre-releases of the minimum release are supported, since they use the same runtime.
+
+        Args:
+            version: Version string in X.Y.Z format (e.g., "1.22.0-pre.1")
+
+        Returns:
+            True if the version is at or above the minimum, False otherwise.
+        """
+        if not self.validate_version(version):
+            return False
+        major, minor = version.split(".")[:2]
+        return (int(major), int(minor)) >= MIN_SUPPORTED_VERSION
+
     def is_version_alias(self, version: str) -> bool:
         """Check if version string is an alias (e.g., "stable", "unstable").
 
@@ -374,6 +395,11 @@ class ServerService:
                     channel=channel,
                 )
 
+        versions = {
+            version: info
+            for version, info in versions.items()
+            if self.is_version_supported(version)
+        }
         logger.info("versions_fetched", channel=channel, count=len(versions))
         return versions
 
@@ -742,6 +768,14 @@ class ServerService:
             )
             return self.get_install_progress()
 
+        if not self.is_version_supported(version):
+            self._set_install_error(
+                f"Version {version} is not supported: {MIN_SUPPORTED_VERSION_TEXT} or newer "
+                "is required",
+                ErrorCode.VERSION_NOT_SUPPORTED,
+            )
+            return self.get_install_progress()
+
         if self.is_installed() and not force:
             installed_ver = self.get_installed_version()
             self._set_install_error(
@@ -927,6 +961,15 @@ class ServerService:
         if not self.is_installed():
             logger.warning("start_server_failed", reason="not_installed")
             raise RuntimeError(ErrorCode.SERVER_NOT_INSTALLED)
+
+        installed_version = self.get_installed_version()
+        if installed_version is not None and not self.is_version_supported(installed_version):
+            logger.warning(
+                "start_server_failed",
+                reason="version_not_supported",
+                installed_version=installed_version,
+            )
+            raise RuntimeError(ErrorCode.VERSION_NOT_SUPPORTED)
 
         if previous_state == ServerState.RUNNING:
             logger.warning("start_server_failed", reason="already_running")

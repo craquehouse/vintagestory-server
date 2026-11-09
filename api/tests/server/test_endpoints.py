@@ -92,7 +92,7 @@ class TestServerStartEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -136,7 +136,7 @@ class TestServerStartEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Get the service and manually set state to running
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -168,7 +168,7 @@ class TestServerStartEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Mock start_server to raise an unknown error
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -251,7 +251,7 @@ class TestServerStopEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         response = integration_client.post(
             "/api/v1alpha1/server/stop",
@@ -271,7 +271,7 @@ class TestServerStopEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -333,7 +333,7 @@ class TestServerStopEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Mock stop_server to raise an unknown error
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -416,7 +416,7 @@ class TestServerRestartEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             process = AsyncMock()
@@ -460,7 +460,7 @@ class TestServerRestartEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Get the service and manually set state to running
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -555,7 +555,7 @@ class TestRestartEndpointErrorHandling:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Get the service and set up a running state
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -596,7 +596,7 @@ class TestRestartEndpointErrorHandling:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Server is not running, so restart will just try to start
         with patch("asyncio.create_subprocess_exec") as mock_exec:
@@ -622,7 +622,7 @@ class TestRestartEndpointErrorHandling:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         # Mock restart_server to raise an unknown error
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -735,7 +735,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -746,7 +746,7 @@ class TestServerStatusEndpoint:
         data = response.json()
         assert data["status"] == "ok"
         assert data["data"]["state"] == "installed"
-        assert data["data"]["version"] == "1.21.3"
+        assert data["data"]["version"] == "1.22.3"
         assert data["data"]["uptime_seconds"] is None
 
     def test_status_returns_running_with_uptime(self, temp_data_dir: Path) -> None:
@@ -767,7 +767,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -799,7 +799,7 @@ class TestServerStatusEndpoint:
             data = response.json()
             assert data["status"] == "ok"
             assert data["data"]["state"] == "running"
-            assert data["data"]["version"] == "1.21.3"
+            assert data["data"]["version"] == "1.22.3"
             # Uptime should be at least 60 seconds (with some tolerance)
             assert data["data"]["uptime_seconds"] is not None
             assert data["data"]["uptime_seconds"] >= 59
@@ -839,7 +839,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -878,7 +878,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -922,7 +922,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -964,7 +964,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -1004,7 +1004,7 @@ class TestServerStatusEndpoint:
         vsmanager_dir.mkdir(parents=True, exist_ok=True)
         (server_dir / "VintagestoryServer.dll").touch()
         (server_dir / "VintagestoryLib.dll").touch()
-        (vsmanager_dir / "current_version").write_text("1.21.3")
+        (vsmanager_dir / "current_version").write_text("1.22.3")
 
         test_settings = Settings(
             api_key_admin=TEST_ADMIN_KEY,
@@ -1110,7 +1110,7 @@ class TestServerStatusVersionFields:
 
         # Pre-populate cache
         cache = get_versions_cache()
-        cache.set_latest_versions(stable="1.21.3")
+        cache.set_latest_versions(stable="1.22.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -1119,7 +1119,7 @@ class TestServerStatusVersionFields:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_stable_version"] == "1.22.3"
         assert data["data"]["version_last_checked"] is not None
 
     def test_status_includes_cached_unstable_version(
@@ -1149,7 +1149,7 @@ class TestServerStatusVersionFields:
 
         # Pre-populate cache with both versions
         cache = get_versions_cache()
-        cache.set_latest_versions(stable="1.21.3", unstable="1.22.0-pre.1")
+        cache.set_latest_versions(stable="1.22.3", unstable="1.22.0-pre.1")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -1158,7 +1158,7 @@ class TestServerStatusVersionFields:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_stable_version"] == "1.22.3"
         assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
         assert data["data"]["version_last_checked"] is not None
 
@@ -1170,7 +1170,7 @@ class TestServerStatusVersionFields:
 
         # Pre-populate cache
         cache = get_versions_cache()
-        cache.set_latest_versions(stable="1.21.3", unstable="1.22.0-pre.1")
+        cache.set_latest_versions(stable="1.22.3", unstable="1.22.0-pre.1")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -1181,7 +1181,7 @@ class TestServerStatusVersionFields:
         data = response.json()
         # Should be not_installed but still have version info
         assert data["data"]["state"] == "not_installed"
-        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_stable_version"] == "1.22.3"
         assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
 
     def test_status_versions_accessible_by_monitor(
@@ -1191,7 +1191,7 @@ class TestServerStatusVersionFields:
         from vintagestory_api.services.versions_cache import get_versions_cache
 
         cache = get_versions_cache()
-        cache.set_latest_versions(stable="1.21.3")
+        cache.set_latest_versions(stable="1.22.3")
 
         response = integration_client.get(
             "/api/v1alpha1/server/status",
@@ -1200,7 +1200,7 @@ class TestServerStatusVersionFields:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["data"]["available_stable_version"] == "1.21.3"
+        assert data["data"]["available_stable_version"] == "1.22.3"
 
 
 # ============================================
@@ -1280,7 +1280,7 @@ class TestServerUninstallEndpoint:
         self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
         """DELETE /server returns 409 when server is running."""
-        self._create_fake_installation(temp_data_dir, "1.21.3")
+        self._create_fake_installation(temp_data_dir, "1.22.3")
 
         # Get the test service and simulate running server
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -1302,7 +1302,7 @@ class TestServerUninstallEndpoint:
         self, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
         """DELETE /server succeeds when server is stopped."""
-        self._create_fake_installation(temp_data_dir, "1.21.3")
+        self._create_fake_installation(temp_data_dir, "1.22.3")
 
         response = integration_client.delete(
             "/api/v1alpha1/server",
@@ -1319,7 +1319,7 @@ class TestServerUninstallEndpoint:
         self, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
         """DELETE /server preserves serverdata directory."""
-        self._create_fake_installation(temp_data_dir, "1.21.3")
+        self._create_fake_installation(temp_data_dir, "1.22.3")
 
         # Create test files in serverdata
         serverdata_dir = temp_data_dir / "serverdata"
@@ -1360,7 +1360,7 @@ class TestServerUninstallEndpoint:
         self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
         """DELETE /server returns 500 when uninstall operation fails."""
-        self._create_fake_installation(temp_data_dir, "1.21.3")
+        self._create_fake_installation(temp_data_dir, "1.22.3")
 
         # Mock uninstall_server to raise UNINSTALL_FAILED error
         test_service = integration_app.dependency_overrides[get_server_service]()
@@ -1384,7 +1384,7 @@ class TestServerUninstallEndpoint:
         self, integration_app: FastAPI, integration_client: TestClient, temp_data_dir: Path
     ) -> None:
         """DELETE /server returns 500 with INTERNAL_ERROR for unknown errors."""
-        self._create_fake_installation(temp_data_dir, "1.21.3")
+        self._create_fake_installation(temp_data_dir, "1.22.3")
 
         # Mock uninstall_server to raise an unknown error
         test_service = integration_app.dependency_overrides[get_server_service]()

@@ -11,7 +11,11 @@ from vintagestory_api.models.server import (
     InstallRequest,
     ServerState,
 )
-from vintagestory_api.services.server import ServerService, get_server_service
+from vintagestory_api.services.server import (
+    MIN_SUPPORTED_VERSION_TEXT,
+    ServerService,
+    get_server_service,
+)
 
 logger = structlog.get_logger()
 
@@ -67,6 +71,18 @@ async def install_server(
             detail={
                 "code": ErrorCode.INVALID_VERSION,
                 "message": f"Version must be in format X.Y.Z or X.Y.Z-pre.N, got: {version}",
+            },
+        )
+
+    if not service.is_version_supported(version):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.VERSION_NOT_SUPPORTED,
+                "message": (
+                    f"Version {version} is not supported: "
+                    f"{MIN_SUPPORTED_VERSION_TEXT} or newer is required"
+                ),
             },
         )
 
@@ -214,6 +230,17 @@ async def start_server(
                 detail={
                     "code": ErrorCode.SERVER_NOT_INSTALLED,
                     "message": "No server is installed. Install a server version first.",
+                },
+            )
+        elif error_code == ErrorCode.VERSION_NOT_SUPPORTED:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": ErrorCode.VERSION_NOT_SUPPORTED,
+                    "message": (
+                        f"The installed server version is not supported. "
+                        f"Install {MIN_SUPPORTED_VERSION_TEXT} or newer."
+                    ),
                 },
             )
         elif error_code == ErrorCode.SERVER_ALREADY_RUNNING:

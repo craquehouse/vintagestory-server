@@ -30,10 +30,10 @@ class TestGetAvailableVersions:
         versions = await server_service.get_available_versions("stable")
 
         assert len(versions) == 2
-        assert "1.21.6" in versions
-        assert "1.21.5" in versions
-        assert versions["1.21.6"].is_latest is True
-        assert versions["1.21.5"].is_latest is False
+        assert "1.22.6" in versions
+        assert "1.22.5" in versions
+        assert versions["1.22.6"].is_latest is True
+        assert versions["1.22.5"].is_latest is False
 
     @respx.mock
     @pytest.mark.asyncio
@@ -54,10 +54,10 @@ class TestGetAvailableVersions:
         respx.get(VS_STABLE_API).mock(return_value=Response(200, json=MOCK_STABLE_API_RESPONSE))
 
         versions = await server_service.get_available_versions("stable")
-        version = versions["1.21.6"]
+        version = versions["1.22.6"]
 
-        assert version.version == "1.21.6"
-        assert version.filename == "vs_server_linux-x64_1.21.6.tar.gz"
+        assert version.version == "1.22.6"
+        assert version.filename == "vs_server_linux-x64_1.22.6.tar.gz"
         assert version.filesize == "40.2 MB"
         assert version.md5 == "abc123def456"
         assert "cdn.vintagestory.at" in version.cdn_url
@@ -80,10 +80,10 @@ class TestCheckVersionAvailable:
     @pytest.mark.asyncio
     async def test_stable_version_available(self, server_service: ServerService) -> None:
         """Version available in stable channel returns True with channel."""
-        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.3.tar.gz"
+        url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.3.tar.gz"
         respx.head(url).mock(return_value=Response(200))
 
-        available, channel = await server_service.check_version_available("1.21.3")
+        available, channel = await server_service.check_version_available("1.22.3")
 
         assert available is True
         assert channel == "stable"
@@ -138,10 +138,10 @@ class TestGetVersionInfo:
         """Get version info for stable version."""
         respx.get(VS_STABLE_API).mock(return_value=Response(200, json=MOCK_STABLE_API_RESPONSE))
 
-        info = await server_service.get_version_info("1.21.6")
+        info = await server_service.get_version_info("1.22.6")
 
         assert info is not None
-        assert info.version == "1.21.6"
+        assert info.version == "1.22.6"
         assert info.md5 == "abc123def456"
 
     @respx.mock

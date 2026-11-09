@@ -91,26 +91,26 @@ class TestResolveVersionAliasEdgeCases:
         """resolve_version_alias uses fallback when no version marked as latest (lines 308-315)."""
         # Mock API response with no version marked as latest
         mock_response = {
-            "1.21.6": {
+            "1.22.6": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.6.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
-                        "local": "https://local.example.com/1.21.6.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz",
+                        "local": "https://local.example.com/1.22.6.tar.gz",
                     },
                     "latest": False,  # NOT marked as latest
                 }
             },
-            "1.21.5": {
+            "1.22.5": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.5.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.5.tar.gz",
                     "filesize": "40.1 MB",
                     "md5": "def456",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.5.tar.gz",
-                        "local": "https://local.example.com/1.21.5.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.5.tar.gz",
+                        "local": "https://local.example.com/1.22.5.tar.gz",
                     },
                     "latest": False,  # NOT marked as latest
                 }
@@ -122,7 +122,7 @@ class TestResolveVersionAliasEdgeCases:
         result = await server_service.resolve_version_alias("stable")
 
         # Should return highest version as fallback (lines 308-315)
-        assert result == "1.21.6"
+        assert result == "1.22.6"
 
     @respx.mock
     @pytest.mark.asyncio
@@ -149,26 +149,26 @@ class TestGetAvailableVersionsEdgeCases:
     ) -> None:
         """get_available_versions skips versions with missing CDN URL (lines 357-364)."""
         mock_response = {
-            "1.21.6": {
+            "1.22.6": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.6.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
-                        "local": "https://local.example.com/1.21.6.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz",
+                        "local": "https://local.example.com/1.22.6.tar.gz",
                     },
                     "latest": True,
                 }
             },
-            "1.21.5": {
+            "1.22.5": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.5.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.5.tar.gz",
                     "filesize": "40.1 MB",
                     "md5": "def456",
                     "urls": {
                         # Missing CDN URL - should skip this version
-                        "local": "https://local.example.com/1.21.5.tar.gz",
+                        "local": "https://local.example.com/1.22.5.tar.gz",
                     },
                     "latest": False,
                 }
@@ -179,10 +179,10 @@ class TestGetAvailableVersionsEdgeCases:
 
         versions = await server_service.get_available_versions("stable")
 
-        # Should only include 1.21.6, skip 1.21.5 (lines 357-364)
+        # Should only include 1.22.6, skip 1.22.5 (lines 357-364)
         assert len(versions) == 1
-        assert "1.21.6" in versions
-        assert "1.21.5" not in versions
+        assert "1.22.6" in versions
+        assert "1.22.5" not in versions
 
     @respx.mock
     @pytest.mark.asyncio
@@ -191,13 +191,13 @@ class TestGetAvailableVersionsEdgeCases:
     ) -> None:
         """get_available_versions skips versions with missing local URL (lines 357-364)."""
         mock_response = {
-            "1.21.6": {
+            "1.22.6": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.6.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz",
                         # Missing local URL - should skip this version
                     },
                     "latest": True,
@@ -209,7 +209,7 @@ class TestGetAvailableVersionsEdgeCases:
 
         versions = await server_service.get_available_versions("stable")
 
-        # Should skip 1.21.6 (lines 357-364)
+        # Should skip 1.22.6 (lines 357-364)
         assert len(versions) == 0
 
 
@@ -227,13 +227,13 @@ class TestCheckVersionAvailableEdgeCases:
             raise httpx.ConnectError("Connection failed")
 
         # First channel raises error, second succeeds
-        stable_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.3.tar.gz"
-        unstable_url = f"{VS_CDN_BASE}/unstable/vs_server_linux-x64_1.21.3.tar.gz"
+        stable_url = f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.3.tar.gz"
+        unstable_url = f"{VS_CDN_BASE}/unstable/vs_server_linux-x64_1.22.3.tar.gz"
 
         respx.head(stable_url).mock(side_effect=raise_error)
         respx.head(unstable_url).mock(return_value=Response(200))
 
-        available, channel = await server_service.check_version_available("1.21.3")
+        available, channel = await server_service.check_version_available("1.22.3")
 
         # Should handle error gracefully and try unstable (lines 405-406)
         assert available is True
@@ -254,14 +254,14 @@ class TestGetVersionInfoEdgeCases:
 
         # Unstable succeeds
         mock_unstable = {
-            "1.21.3": {
+            "1.22.3": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.3.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.3.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/unstable/vs_server_linux-x64_1.21.3.tar.gz",
-                        "local": "https://local.example.com/1.21.3.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/unstable/vs_server_linux-x64_1.22.3.tar.gz",
+                        "local": "https://local.example.com/1.22.3.tar.gz",
                     },
                     "latest": True,
                 }
@@ -269,11 +269,11 @@ class TestGetVersionInfoEdgeCases:
         }
         respx.get(VS_UNSTABLE_API).mock(return_value=Response(200, json=mock_unstable))
 
-        info = await server_service.get_version_info("1.21.3")
+        info = await server_service.get_version_info("1.22.3")
 
         # Should handle stable error and try unstable (lines 434-435)
         assert info is not None
-        assert info.version == "1.21.3"
+        assert info.version == "1.22.3"
         assert info.channel == "unstable"
 
 
@@ -285,14 +285,14 @@ class TestInstallServerVersionAlias:
     async def test_install_server_resolves_stable_alias(self, test_settings: Settings) -> None:
         """install_server resolves 'stable' alias to actual version (lines 727-735)."""
         mock_stable = {
-            "1.21.6": {
+            "1.22.6": {
                 "linuxserver": {
-                    "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+                    "filename": "vs_server_linux-x64_1.22.6.tar.gz",
                     "filesize": "40.2 MB",
                     "md5": "abc123",
                     "urls": {
-                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.21.6.tar.gz",
-                        "local": "https://local.example.com/1.21.6.tar.gz",
+                        "cdn": f"{VS_CDN_BASE}/stable/vs_server_linux-x64_1.22.6.tar.gz",
+                        "local": "https://local.example.com/1.22.6.tar.gz",
                     },
                     "latest": True,
                 }
@@ -319,9 +319,9 @@ class TestInstallServerVersionAlias:
         progress = await service.install_server("stable")
 
         # Should resolve the alias then fail during installation (lines 727-735)
-        # The key is that it tried to resolve "stable" to "1.21.6"
+        # The key is that it tried to resolve "stable" to "1.22.6"
         assert progress.state == ServerState.ERROR
-        assert progress.version == "1.21.6"  # Proves alias was resolved
+        assert progress.version == "1.22.6"  # Proves alias was resolved
 
         await service.close()
 
@@ -359,7 +359,7 @@ class TestInstallServerEdgeCases:
         # Manually set state to INSTALLING
         service._install_state = ServerState.INSTALLING
 
-        progress = await service.install_server("1.21.3")
+        progress = await service.install_server("1.22.3")
 
         # Should return error about installation in progress (lines 755-759)
         assert progress.state == ServerState.ERROR
@@ -397,7 +397,7 @@ class TestInstallServerEdgeCases:
         respx.get(VS_UNSTABLE_API).mock(return_value=Response(200, json={}))
 
         service = ServerService(test_settings)
-        progress = await service.install_server("1.21.3")
+        progress = await service.install_server("1.22.3")
 
         # Should fail verification (lines 796-800)
         assert progress.state == ServerState.ERROR
@@ -430,7 +430,7 @@ class TestInstallServerEdgeCases:
         respx.get(VS_UNSTABLE_API).mock(return_value=Response(200, json={}))
 
         service = ServerService(test_settings)
-        progress = await service.install_server("1.21.3")
+        progress = await service.install_server("1.22.3")
 
         # Should handle exception and set error (lines 816-820)
         assert progress.state == ServerState.ERROR
@@ -635,7 +635,7 @@ class TestUninstallServerEdgeCases:
         (test_settings.server_dir / "VintagestoryServer.dll").touch()
         (test_settings.server_dir / "VintagestoryLib.dll").touch()
         version_file = test_settings.vsmanager_dir / "current_version"
-        version_file.write_text("1.21.3")
+        version_file.write_text("1.22.3")
 
         service = ServerService(test_settings)
 
@@ -662,13 +662,12 @@ class TestInstallEndpointValidation:
     """Tests for install endpoint validation in routers/server.py (lines 65, 86)."""
 
     @respx.mock
-    def test_install_invalid_version_after_alias_resolution_returns_422(
+    def test_install_alias_with_only_malformed_versions_returns_404(
         self, temp_data_dir: Path
     ) -> None:
-        """POST /server/install returns 422 when resolved alias version is invalid (line 65).
+        """POST /server/install returns 404 when a channel lists only malformed versions.
 
-        This tests the case where an alias resolves to an invalid version format,
-        which is caught by validate_version() in the router.
+        Malformed versions are dropped from the version list, so the alias resolves to nothing.
         """
         from conftest import TEST_ADMIN_KEY
         from fastapi.testclient import TestClient
@@ -716,11 +715,10 @@ class TestInstallEndpointValidation:
                 headers={"X-API-Key": TEST_ADMIN_KEY},
             )
 
-            # Should return 422 with INVALID_VERSION error (line 65)
-            assert response.status_code == 422
+            assert response.status_code == 404
             error = response.json()["detail"]
-            assert error["code"] == ErrorCode.INVALID_VERSION
-            assert "X.Y.Z" in error["message"]
+            assert error["code"] == ErrorCode.VERSION_NOT_FOUND
+            assert "stable" in error["message"]
         finally:
             app.dependency_overrides.clear()
 
@@ -757,7 +755,7 @@ class TestInstallEndpointValidation:
             client = TestClient(app)
             response = client.post(
                 "/api/v1alpha1/server/install",
-                json={"version": "1.21.6"},
+                json={"version": "1.22.6"},
                 headers={"X-API-Key": TEST_ADMIN_KEY},
             )
 

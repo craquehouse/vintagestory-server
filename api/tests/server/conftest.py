@@ -25,27 +25,27 @@ __all__ = ["TEST_ADMIN_KEY", "TEST_MONITOR_KEY"]
 
 # Mock VintageStory API response
 MOCK_STABLE_API_RESPONSE = {
-    "1.21.6": {
+    "1.22.6": {
         "linuxserver": {
-            "filename": "vs_server_linux-x64_1.21.6.tar.gz",
+            "filename": "vs_server_linux-x64_1.22.6.tar.gz",
             "filesize": "40.2 MB",
             "md5": "abc123def456",
             "urls": {
-                "cdn": "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_1.21.6.tar.gz",
-                "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.21.6.tar.gz",
+                "cdn": "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_1.22.6.tar.gz",
+                "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.22.6.tar.gz",
             },
             "latest": True,
         },
         "windowsserver": {},
     },
-    "1.21.5": {
+    "1.22.5": {
         "linuxserver": {
-            "filename": "vs_server_linux-x64_1.21.5.tar.gz",
+            "filename": "vs_server_linux-x64_1.22.5.tar.gz",
             "filesize": "40.1 MB",
             "md5": "xyz789abc",
             "urls": {
-                "cdn": "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_1.21.5.tar.gz",
-                "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.21.5.tar.gz",
+                "cdn": "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_1.22.5.tar.gz",
+                "local": "https://vintagestory.at/api/gamefiles/stable/vs_server_linux-x64_1.22.5.tar.gz",
             },
             "latest": False,
         },
@@ -108,7 +108,7 @@ def installed_settings(temp_data_dir: Path) -> Settings:
     # Create marker files
     (server_dir / "VintagestoryServer.dll").touch()
     (server_dir / "VintagestoryLib.dll").touch()
-    (vsmanager_dir / "current_version").write_text("1.21.3")
+    (vsmanager_dir / "current_version").write_text("1.22.3")
 
     return Settings(
         data_dir=temp_data_dir,
