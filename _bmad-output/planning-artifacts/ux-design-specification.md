@@ -593,10 +593,10 @@ Through collaborative discovery, we explored visual approaches balancing:
 
 - Mod (name + slug)
 - Installed (current version)
-- Available (latest version with update indicator)
+- Available (offered update with Update action, or "Up to date", "Unknown", or "No compatible update")
 - Compatibility (badge)
 - Status (enabled/disabled + restart required)
-- Actions (disable, remove)
+- Actions (disable, remove; version switching is on the mod detail page)
 
 ## User Journey Flows
 
@@ -649,35 +649,55 @@ flowchart TD
 
 ### Mod Update Flow
 
-**Entry Point:**
+**Entry Points:**
 
-- Mods table → "Update" badge on Available column
+- Game Server → Mods → Installed tab: Update action in the Available column
+- Update count badge on the Dashboard and Mods navigation (links to the Installed tab)
 
 **Flow Diagram:**
 
 ```mermaid
 flowchart TD
-    A[User sees outdated version in table] --> B[Available column shows new version + Update badge]
-    B --> C[User clicks Update badge]
-    C --> D{Check new version compatibility}
-    D -->|Compatible| E[Download new version]
+    A[Installed tab shows offered version + Update action] --> C[User clicks Update]
+    C --> D{Offered release compatibility}
+    D -->|Compatible| E[Download and validate]
     D -->|Not verified| F[Show warning modal]
     F --> G{User confirms?}
     G -->|No| H[Cancel update]
     G -->|Yes| E
-    E --> I{Download successful?}
-    I -->|No| J[Show error toast]
-    I -->|Yes| K[Replace mod file]
+    E --> I{Valid?}
+    I -->|No| J[Show error toast; mod unchanged]
+    I -->|Yes| K[Swap in new file; old file kept until now]
     K --> L[Show success toast]
-    L --> M[Add restart badge]
-    M --> N[Update Installed column to match]
+    L --> M{Server running?}
+    M -->|Yes| N[Add restart badge]
+    M -->|No| O[Update Installed column]
+    N --> O
 ```
+
+Incompatible newer releases are never offered as updates. They remain selectable on the detail page with a warning.
 
 **Success Criteria:**
 
 - Update discoverable at a glance (version columns)
 - One-click for compatible updates
 - Warning before not-verified updates
+- A failed update never leaves the mod broken
+- An unknown status is never shown as up to date
+
+### Update All Flow
+
+- Entry: "Update All" button on the Installed tab, shown when compatible updates exist
+- Confirmation lists the mods to update and those skipped as not verified
+- Mods update one at a time; one failure doesn't stop the rest
+- Result summary per mod (updated, skipped, failed), then a single restart prompt
+
+### Version Switch Flow
+
+- Entry: mod detail page, release selector next to the installed version
+- Each release shows its compatibility badge
+- Older releases show a downgrade warning; not-verified and incompatible releases show the matching warning modal
+- After switching, the same success, error and restart feedback as an update
 
 ### Crash Recovery Flow
 
@@ -883,8 +903,13 @@ flowchart TD
 **VersionCell**
 
 - Purpose: Table cell showing installed vs available mod versions
-- Anatomy: Installed version + Available version + Update badge when outdated
+- Anatomy: Installed version + offered version + Update action, or a status label (Up to date, Unknown, No compatible update)
 - Implementation: Custom table cell with conditional Update button
+
+**UpdateCountBadge**
+
+- Purpose: Count of mods with updates, on the Dashboard and Mods navigation
+- Implementation: Informational (blue) Badge, hidden when the count is 0
 
 **PendingRestartBanner**
 
@@ -960,14 +985,14 @@ flowchart TD
 **Phase 2 - Full Features:**
 
 - TerminalView - Shell tab
-- VersionCell with inline update
+- VersionCell with inline update (Epic 14)
 - VersionMismatchAlert
 - Console search (xterm-addon-search)
 
 **Phase 3 - Enhancement:**
 
 - Sortable table headers
-- Version selector dropdown
+- Version selector dropdown (Epic 14, mod detail page)
 
 ## UX Consistency Patterns
 
@@ -1133,7 +1158,10 @@ flowchart TD
 |----------|-----------|
 | Not verified mod | Yellow badge, install allowed |
 | Incompatible mod | Red badge, warning modal before install |
-| Update to unverified | Warning modal with "Install Anyway" option |
+| Update to not-verified release | Warning modal with "Update Anyway" option |
+| Switch to an older release | Warning modal noting the downgrade |
+| Switch to an incompatible release | Red warning modal before switching |
+| Update all | Confirmation listing updates and skipped mods |
 
 **Warning Modal Content:**
 
@@ -1142,6 +1170,10 @@ flowchart TD
 - "Install Anyway" / "Continue" as primary (user's intent)
 
 ### Mobile-Specific Patterns
+
+**Mod Cards:**
+
+- Mod cards show the Update action and status label
 
 **Touch Targets:**
 

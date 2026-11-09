@@ -110,6 +110,7 @@ ModService
 │   └── Set pending_restart flag
 │
 ├── update(slug) → Result
+│   ├── NOTE: Superseded by Epic 14 ADR-2 (epic-14-mod-updates.md)
 │   ├── disable outdated mod file (unlink)
 │   ├── Remove from mod state
 │   ├── Install current version

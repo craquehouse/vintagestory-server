@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-01-10'
+lastUpdated: '2026-11-09'
 updates:
+  - date: '2026-11-09'
+    description: 'Added FR129-FR151 for Epic 14 (Mod Updates)'
   - date: '2026-01-10'
     description: 'Added FR86-FR128 for Epic 11 (GameServer Navigation), Epic 12 (Enhanced Dashboard), Epic 13 (Version Browser)'
   - date: '2026-01-03'
@@ -120,8 +122,8 @@ Two core capabilities define this product:
 
 ### Growth Features (Post-MVP)
 
-- Scheduled mod update checks with notifications
-- Mod version switching (rollback to previous versions)
+- Scheduled mod update checks with notifications (Epic 14)
+- Mod version switching (rollback to previous versions) (Epic 14)
 - Backup management (create, restore, download)
 - Renovate integration for automated dependency updates
 - SBOM generation and security scanning in CI
@@ -190,7 +192,7 @@ RESTful API with WebSocket support for real-time console streaming. Follows Kube
 |----------|-----------|---------|
 | **Server Lifecycle** | `/server/start`, `/server/stop`, `/server/restart`, `/server/status` | POST, GET |
 | **Console** | `/console` (WebSocket), `/console/command` | WS, POST |
-| **Mods** | `/mods`, `/mods/{slug}`, `/mods/{slug}/update`, `/mods/{slug}/enable`, `/mods/{slug}/disable`, `/mods/check-updates` | GET, POST, PUT, DELETE |
+| **Mods** | `/mods`, `/mods/{slug}`, `/mods/updates`, `/mods/updates/check`, `/mods/updates/apply-all`, `/mods/{slug}/version`, `/mods/{slug}/enable`, `/mods/{slug}/disable` | GET, POST, PUT, DELETE |
 | **Game Config** | `/config/files`, `/config/files/{filename}` | GET, PUT |
 | **Settings** | `/settings`, `/settings/whitelist` | GET, PUT |
 | **Backups** | `/backups`, `/backups/{id}`, `/backups/{id}/restore`, `/backups/{id}/download` | GET, POST, DELETE |
@@ -258,8 +260,8 @@ If trivial to implement:
 
 **Phase 2 - Growth:**
 
-- Mod update detection and one-click updates
-- Mod version switching (rollback capability)
+- Mod update detection and one-click updates (Epic 14)
+- Mod version switching (rollback capability) (Epic 14)
 - Backup management (create, restore, download)
 - Prometheus `/metrics` endpoint
 - Renovate integration for dependency updates
@@ -555,3 +557,43 @@ If trivial to implement:
 - FR126: Installation progress is displayed with stage and percentage
 - FR127: "Install Latest Stable" quick action available when no server installed
 - FR128: "Update to Latest" quick action available when update exists
+
+### Epic 14: Mod Updates
+
+#### Update Detection
+
+- FR129: System determines whether a newer release exists for each installed mod using the mod database's release order, not by comparing version strings
+- FR130: The offered update is the newest newer release compatible with the current game version, or if none exists, the newest newer release that is not verified
+- FR131: No update is offered when every newer release is incompatible with the current game version
+- FR132: A mod not found in the mod database, or whose installed version is not listed there, shows its update status as unknown rather than up to date
+- FR133: Admin and Monitor can view update status for installed mods, including offered version, its compatibility, and when it was last checked
+- FR134: Admin can trigger an update check on demand
+
+#### One-Click Update
+
+- FR135: Admin can update a mod to its offered version with a single action
+- FR136: Updating to a not-verified release requires confirming a warning
+- FR137: The installed version stays in place until the new version is downloaded and validated; a failed update leaves the mod unchanged
+- FR138: Updating or switching versions preserves the mod's enabled or disabled state
+- FR139: If the game server is running, updating or switching versions marks a restart as pending
+
+#### Version Switching
+
+- FR140: Admin can switch an installed mod to any release listed in the mod database, including older releases
+- FR141: Switching shows the target release's compatibility and warns before installing a not-verified or incompatible release, or a release older than the installed one
+- FR142: Switching uses a cached copy of the release when available and downloads it otherwise
+
+#### Update All
+
+- FR143: Admin can update every mod that has a compatible update in a single action
+- FR144: Update all skips mods whose offered update is not verified and reports them for individual review
+- FR145: A failure updating one mod does not stop the others; results are reported per mod
+
+#### Scheduled Checks and Alerts
+
+- FR146: System checks for mod updates on the existing mod refresh interval; an interval of 0 disables scheduled checks
+- FR147: Update status remains available after an API restart, without waiting for the next scheduled check
+- FR148: Dashboard and Mods navigation show a count of mods with updates available
+- FR149: Admin can configure an outbound webhook URL for update alerts; the URL is treated as a secret, is Admin-only, and is never logged or exposed to Monitor
+- FR150: A webhook alert is sent once for each newly available update, not repeated on every check
+- FR151: A webhook delivery failure is logged and does not affect update checks
