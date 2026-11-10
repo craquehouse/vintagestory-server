@@ -1,6 +1,6 @@
 # Story 14.5: Scheduled Checks and Update Badges
 
-Status: review
+Status: done
 
 ## Story
 
@@ -57,6 +57,16 @@ so that **I notice them without checking**.
   - [x] 4.1: Throwaway container with a short `mod_list_refresh_interval` and a mod with an update: without clicking Check, the job records status and the badge and notice appear; following them opens the Installed tab; check the browser console
   - [x] 4.2: Run `just check`; update the Dev Agent Record and File List
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] In the collapsed sidebar the badge's screen reader text replaces the destination ("2 mod updates available" without "Mods" or "Game Server"); the expanded parent announces the count before its label [components/layout/ExpandableNavItem.tsx]
+- [x] [AI-Review][Low] The dot on a closed group in the expanded sidebar has no tooltip [components/layout/ExpandableNavItem.tsx]
+- [x] [AI-Review][Low] The test count in the completion notes does not reconcile (corrected)
+- [x] [AI-Review][Low] Collapsed-sidebar tooltips are untested [components/layout/ExpandableNavItem.test.tsx]
+- [x] [AI-Review][Low] The Sidebar polls the update status every 60 s on every page (accepted: one shared query, no mod database calls, same pattern as server status)
+- [x] [AI-Review][Low] The skip-path job test monkeypatches `check` instead of holding the lock (accepted: the lock is tested in `test_mod_updates.py`)
+- [x] [AI-Review][Low] An empty installed list prunes the store on every scheduled run (accepted: pre-existing Story 14.1 behavior, in-memory list, self-healing)
+
 ## Dev Notes
 
 ### Scope
@@ -103,11 +113,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Completion Notes List
 
-- Task 1: `refresh_mod_cache` now runs `ModUpdateService.check()` (ADR-5) and logs `checked`, `failed`, `failed_slugs` and `updates_available`; an on-demand check in progress makes it log `mod_cache_refresh_skipped` and return. Its old loop called `get_mod` per installed mod only to log reachability, so the request count per interval is unchanged. The job tests were rewritten for the new behavior (status recorded per mod with one failing lookup, skip while a check runs, no mods, `safe_job` contract); the old tests asserted the removed loop. API test count drops from 1978 to 1972 accordingly.
+- Task 1: `refresh_mod_cache` now runs `ModUpdateService.check()` (ADR-5) and logs `checked`, `failed`, `failed_slugs` and `updates_available`; an on-demand check in progress makes it log `mod_cache_refresh_skipped` and return. Its old loop called `get_mod` per installed mod only to log reachability, so the request count per interval is unchanged. The job tests were rewritten for the new behavior (status recorded per mod with one failing lookup, skip while a check runs, no mods, `safe_job` contract); the old tests asserted the removed loop. The rewrite removed 9 job tests (14 to 5), so the API count went from 1981 (after the Story 14.4 review fixes) to 1972.
 - Task 2: `SubNavItem.badge` and `badgeLabel`: a count pill on the item, a dot plus "(N)" tooltip in the icon-only sidebar, and a dot on the parent icon while the group is closed. The count is `aria-hidden`; screen readers get the label (the Mods link reads "Mods, 2 mod updates available"). `Sidebar` takes the count from `useModUpdates()`. 7 tests.
 - Task 3: `ModUpdatesNotice` on the installed-server Dashboard: "N mod updates available … Review", linking to `/game-server/mods/installed`; nothing when the count is 0 or not loaded. 5 tests.
 - Task 4: Browser check in a throwaway container (Carry On 1.14.1 and Auto Map Markers 5.0.2): with the interval at 30 s and no manual check, the job recorded both updates (`mod_cache_refresh_summary checked=2 failed=0 updates_available=2`); the Dashboard notice and the Mods badge showed 2; the notice opened the Installed tab; no console errors. The first layout put a count pill on the closed Game Server group, which pushed its chevron out of the 160 px sidebar; it is now a dot on the icon (fixed and rechecked).
 - Found, not fixed (filed as `VSS-8bl`): changing `mod_list_refresh_interval` through the settings API does not reschedule the job until the API restarts (`get_api_settings_service` never passes the scheduler callback, an Epic 7 TODO). The check above restarted the container to apply 30 s.
+
+- Review: verdict Approve. Fixed: the count dot is visual only, and every badged item's accessible name now starts with its destination ("Mods, 2 mod updates available", "Game Server, 2 mod updates available") in the expanded, closed-group and collapsed layouts; a closed group in the expanded sidebar shows a "Game Server (2)" tooltip like the collapsed sidebar; tests assert the names and the tooltips; test count corrected. Accepted L4–L6 as recorded above.
 
 ### File List
 
@@ -120,3 +132,23 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-09: Scheduled update checks in the mod refresh job, update count in the navigation and on the Dashboard. Browser-verified; fixed the closed-group badge layout. `just check` passes with 1972 API tests and 2990 web tests.
+- 2026-11-09: Code review (GLM-5.3-Flash, Approve). Applied M1 and L1–L3, status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `4bee01d`^..`a9b8e5c`
+**Outcome:** Approve
+
+**Summary:** All five acceptance criteria pass. The job reproduces the old loop's requests one to one and the removed log events are referenced nowhere; busy, store failure, no server and no mods all behave; scheduled checks, on-demand checks and update all do not interfere. No suppressions.
+
+### Action Items
+
+- [x] [Medium] Collapsed-sidebar accessible names omit the destination
+- [x] [Low] Expanded-sidebar group dot has no tooltip
+- [x] [Low] Test count arithmetic (corrected)
+- [x] [Low] Collapsed tooltips untested
+- [x] [Low] Global 60 s polling (accepted)
+- [x] [Low] Skip-path test bypasses the lock (accepted)
+- [x] [Low] Empty installed list prunes the store (accepted)
+
