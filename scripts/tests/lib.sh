@@ -32,16 +32,16 @@ assert_contains() {
     if [[ $3 == *"$2"* ]]; then pass; else fail "$1" "'$2' not in: $3"; fi
 }
 
-# A fresh temporary directory, removed when the test file exits
-make_tmp() {
-    local dir
-    dir=$(mktemp -d)
-    TMP_DIRS+=("$dir")
-    echo "$dir"
-}
-TMP_DIRS=()
-cleanup_tmp() { ((${#TMP_DIRS[@]})) && rm -rf "${TMP_DIRS[@]}"; return 0; }
+# One root per test file, removed on exit. make_tmp creates directories inside it, so
+# callers can use $(make_tmp) even though command substitution runs in a subshell.
+TEST_TMP_ROOT=$(mktemp -d)
+cleanup_tmp() { [[ -n ${TEST_TMP_ROOT:-} && -d $TEST_TMP_ROOT ]] && rm -rf "$TEST_TMP_ROOT"; return 0; }
 trap cleanup_tmp EXIT
+
+# A fresh temporary directory inside the test file's root
+make_tmp() {
+    mktemp -d "$TEST_TMP_ROOT/tmp.XXXXXX"
+}
 
 finish() {
     echo "$(basename "$0"): $((TESTS_RUN - TESTS_FAILED))/$TESTS_RUN passed"

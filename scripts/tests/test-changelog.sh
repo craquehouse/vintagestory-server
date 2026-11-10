@@ -5,6 +5,13 @@ set -uo pipefail
 # shellcheck source=scripts/tests/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+# The fixtures run git-cliff from temporary directories, where a mise shim cannot resolve
+# the pinned version; `mise exec` (just test-scripts) puts the real binary on PATH.
+(cd "$(make_tmp)" && git-cliff --version) >/dev/null 2>&1 || {
+    echo "$(basename "$0"): git-cliff does not run outside the repository; use just test-scripts" >&2
+    exit 1
+}
+
 CONFIG="$SCRIPTS_DIR/../cliff.toml"
 LINK="https://github.com/craquehouse/vintagestory-server/commit"
 
@@ -12,7 +19,7 @@ LINK="https://github.com/craquehouse/vintagestory-server/commit"
 g() {
     local repo=$1
     shift
-    git -C "$repo" -c user.name=test -c user.email=test@example.invalid \
+    GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null git -C "$repo" -c user.name=test -c user.email=test@example.invalid \
         -c commit.gpgsign=false -c tag.gpgsign=false -c core.hooksPath=/dev/null "$@"
 }
 
@@ -64,6 +71,8 @@ g "$repo" merge -q --no-ff topic -m "Merge pull request #1 from example/topic"
 commit "$repo" "feat!: drop the legacy widget API"
 commit "$repo" "fix: rename the widget setting" "BREAKING CHANGE: the old setting name is gone"
 commit "$repo" "refactor!: remove the old config loader"
+# Breaking beats the preparation-story skip: the breaking parser must stay first
+commit "$repo" "feat(story-2.0/task-1)!: replace the widget store"
 
 notes=$(cliff "$repo" --unreleased --strip header)
 entries=$(grep '^- ' <<<"$notes" | sed 's/ (\[.*//')
@@ -76,6 +85,7 @@ assert_eq "unreleased heading" "## Unreleased" "$(grep '^## ' <<<"$notes")"
 expected="- Drop the legacy widget API
 - Rename the widget setting
 - Remove the old config loader
+- Replace the widget store
 - Add widget listing
 - **api:** Expose the widget endpoint
 - **web:** Show widgets on the dashboard
@@ -119,5 +129,9 @@ rc_notes=$(cliff "$repo" --unreleased --strip header)
 assert_contains "notes since the last stable tag include commits before the rc" "Breaking change" "$rc_notes"
 assert_contains "notes include commits after the rc" "After the release candidate" "$rc_notes"
 assert_eq "explicit patch bump" "v0.2.1" "$(cliff "$repo" --bump patch --bumped-version)"
+heading=$(cliff "$repo" --unreleased --tag v0.3.0 --strip header | head -1)
+if [[ $heading =~ ^##\ \[0\.3\.0\]\ -\ [0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then pass; else
+    fail "release heading is '## [X.Y.Z] - YYYY-MM-DD'" "got: $heading"
+fi
 
 finish
