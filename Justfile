@@ -128,7 +128,7 @@ build-web:
 # =============================================================================
 
 # Run all linters
-lint: lint-api lint-web
+lint: lint-api lint-web lint-scripts lint-workflows
 
 # Lint API (Ruff) - accepts optional ruff args
 lint-api *ARGS:
@@ -137,6 +137,14 @@ lint-api *ARGS:
 # Lint web (TypeScript type checking)
 lint-web:
     mise exec -C web -- bun run lint
+
+# Lint the bash scripts (ShellCheck); sprint-status.sh is not yet clean (VSS-1eb)
+lint-scripts:
+    mise exec -- shellcheck -x scripts/version.sh scripts/release.sh scripts/release-notes.sh scripts/worktree-setup.sh scripts/tests/*.sh
+
+# Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
+lint-workflows:
+    mise exec -- actionlint
 
 # =============================================================================
 # TYPE CHECKING

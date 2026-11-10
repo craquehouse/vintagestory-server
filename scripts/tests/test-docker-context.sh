@@ -16,4 +16,9 @@ dockerfile="$SCRIPTS_DIR/../Dockerfile"
 if grep -qE '^ARG .*API_KEY' "$dockerfile"; then fail "Dockerfile declares no API key build argument"; else pass; fi
 assert_contains "web build sets VITE_API_KEY empty" 'VITE_API_KEY=""' "$(<"$dockerfile")"
 
+# Every action in every workflow is pinned to a full commit SHA (NFR17)
+unpinned=$(grep -hE '^\s*-?\s*uses:' "$SCRIPTS_DIR"/../.github/workflows/*.yml |
+    grep -vE 'uses:\s*[^@[:space:]]+@[0-9a-f]{40}(\s|$)' || true)
+assert_eq "workflow actions are pinned to commit SHAs" "" "$unpinned"
+
 finish

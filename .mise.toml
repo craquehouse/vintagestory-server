@@ -5,6 +5,8 @@ bun = "1.4.4"
 yq = "4.54.2"
 just = "1.59.0"
 git-cliff = "2.14.2"
+actionlint = "1.7.12"
+shellcheck = "0.11.0"
 
 [settings]
 env_file = ".env"
