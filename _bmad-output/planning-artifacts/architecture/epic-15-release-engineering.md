@@ -72,7 +72,7 @@ The GitHub release is created last, so a failed build publishes no release. Acti
 
 **Consequences:** The first push creates the GHCR package. Making it public is a one-time manual step in the organization's package settings; the `org.opencontainers.image.source` label links it to the repository. Users verify with `gh attestation verify oci://ghcr.io/craquehouse/vintagestory-server:X.Y.Z --owner craquehouse`.
 
-**Status (15.0): Confirmed, with changes.** `actions/attest` replaces `actions/attest-build-provenance` (now a wrapper) and `actions/attest-sbom` (deprecated); it needs `artifact-metadata: write`. buildx's default provenance is turned off so the signed GitHub attestations are the only ones and the image index has no attestation manifests. Tag rules come from the metadata-action README; the release-candidate run in Story 15.5 confirms them. Pinned versions and the draft workflow (passes `actionlint`) are in the spike.
+**Status (15.0): Confirmed, with changes.** `actions/attest` replaces `actions/attest-build-provenance` (now a wrapper) and `actions/attest-sbom` (deprecated); it needs `artifact-metadata: write`. buildx's default provenance is turned off so the signed GitHub attestations are the only ones and the image index has no attestation manifests. Tag rules come from the metadata-action README; the release-candidate run in Story 15.5 confirms them. Pinned versions and the draft workflow (passes `actionlint`; runnable once Stories 15.1, 15.3 and 15.4 add `just version`, git-cliff in `.mise.toml`, `cliff.toml` and `CHANGELOG.md`) are in the spike.
 
 ## ADR-5: Runtime Web Configuration
 

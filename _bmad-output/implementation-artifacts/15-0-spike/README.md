@@ -6,8 +6,10 @@ Evidence for `architecture/epic-15-release-engineering.md`. Run on 2026-11-10 wi
 |---|---|
 | `cliff.toml` | Draft git-cliff configuration; Story 15.3 moves it to the repository root |
 | `sample-notes-epic-14.md` | Notes generated for Epic 14 (`e9358b9..f32fc26`) with `cliff.toml` |
-| `bump_test.sh` | Builds a throwaway repository and records `--bumped-version` and notes for each case |
+| `bump_test.sh` | Builds a throwaway repository (in `mktemp -d`) and records `--bumped-version` and notes for each case |
 | `bump_test.out` | Output of `bump_test.sh` |
+| `version_check.sh` | AC3: version-file commands on scratch copies; with `--image`, package metadata and start-up behavior inside a throwaway image |
+| `version_check.out` | Output of `version_check.sh --image` |
 | `release.yml` | Draft release workflow; passes `actionlint`; not installed in `.github/workflows/` |
 
 Rerun:
@@ -15,13 +17,14 @@ Rerun:
 ```bash
 SP=_bmad-output/implementation-artifacts/15-0-spike
 mise exec git-cliff@2.14.2 -- git cliff --config $SP/cliff.toml e9358b9..f32fc26 > $SP/sample-notes-epic-14.md
-$SP/bump_test.sh $SP/cliff.toml "$TMPDIR/bumprepo" > $SP/bump_test.out
+$SP/bump_test.sh $SP/cliff.toml > $SP/bump_test.out
+$SP/version_check.sh --image > $SP/version_check.out   # then: docker image rm vss-150-spike
 mise exec actionlint@1.7.12 -- actionlint $SP/release.yml
 ```
 
 ## 1. Changelog from this history (ADR-2)
 
-- Scopes are hidden in the template, not by a preprocessor, so commit parsers can still see them. Shown only for the allowlist `api`, `web`, `docker`. Other scopes are inconsistent (`ui`, `frontend`, `container`, `deps`, `VSS`, `auth`) or BMAD bookkeeping (`story-*`: 270 of the ~420 `feat`/`fix` commits).
+- Scopes are hidden in the template, not by a preprocessor, so commit parsers can still see them. Shown only for the allowlist `api`, `web`, `docker`. History uses component scopes inconsistently (`api` 20, `web` 14, `ui` 9, `container` 4, `frontend` 2, `docker` 1), and the rest are not components (`deps`, `VSS`, `auth`) or BMAD bookkeeping (`story-*`: 270 of the ~420 `feat`/`fix` commits). The allowlist is forward-looking: it names one scope per shipped part (API, web UI, image), and the release guide (Story 15.6) states it; older `ui`/`container` commits simply render without a scope.
 - Epic 14 range: 58 `feat`/`fix` commits. With the type and scope rules alone, all 58 appear, and about 15 are process entries ("Validate and move story 14.2 to review", "Record spike findings…", "Resolve low-severity review findings in ADRs…").
 - Two safety-net parsers drop bookkeeping: scope `story-N.0` (preparation stories are research and docs) and messages matching `move story X.Y to review`. Result: 43 entries (`sample-notes-epic-14.md`). Remaining noise: "Fix line length in update rule tests", "Resolve code review findings for update checks".
 - **Root cause:** the `dev-story` workflow (`_bmad/bmm/workflows/4-implementation/dev-story/instructions.xml` step 8) and `project-context.md` require every task commit to match `feat(story-X.Y/task-N)`, whatever the change. Filters cannot tell a user-facing task from a bookkeeping one. Readable notes need task commits typed by user impact (`feat`/`fix`/`perf` only for user-visible changes; `docs`, `test`, `chore`, `refactor` otherwise). This is a process decision for the maintainer.
@@ -44,13 +47,15 @@ From `bump_test.out`, with `features_always_bump_minor = true`, `breaking_always
 | `v0.2.0` | explicit `--bump patch` / `minor` / `major` | `v0.2.1` / `v0.3.0` / `v1.0.0` |
 
 - **Nothing to release:** `--bumped-version` returns the current tag unchanged. The release command must treat "next equals last tag" as nothing to release.
-- **Pre-release tags:** with the default tag pattern, a `v0.3.0-rc.1` tag becomes the base: the next fix computes `v0.3.0-rc.2` and stable notes cover only commits after the rc. With `tag_pattern = "^v[0-9]+\.[0-9]+\.[0-9]+$"`, pre-release tags are invisible: bumps and `--unreleased` notes run from the last stable tag, so `v0.3.0`'s notes include everything since `v0.2.0`. `--ignore-tags` does not achieve this for `--unreleased`.
-- `--latest` uses the newest matching tag in the repository, not `HEAD`; the workflow should take notes from `CHANGELOG.md` at the tag instead.
+- **Pre-release tags:** with git-cliff's default tag pattern, a `v0.3.0-rc.1` tag becomes the base: the next fix computes `v0.3.0-rc.2` (recorded in `bump_test.out`) and stable notes cover only commits after the rc. With `tag_pattern = "^v[0-9]+\.[0-9]+\.[0-9]+$"`, pre-release tags are invisible: bumps and `--unreleased` notes run from the last stable tag, so `v0.3.0`'s notes include everything since `v0.2.0`. `--ignore-tags` does not achieve this for `--unreleased`.
+- `--latest` renders the newest matching tag's section, not `HEAD`: with one commit after `v0.3.0`, it prints the `v0.3.0` section without that commit (`bump_test.out`). The workflow takes stable notes from `CHANGELOG.md` at the tag instead.
 
 ## 3. Version files and package metadata (ADR-1, ADR-3)
 
+All results below are recorded in `version_check.out`.
+
 - **Inside the image** (`docker build --target final`, amd64 under emulation): `importlib.metadata.version("vintagestory-api")` returns `0.1.0`, both with `uv run --no-sync` and after `uv run`'s own sync. ADR-1 holds.
-- **Bug found (`VSS-flj`):** the build-time `uv sync --frozen --no-dev` runs before `src/` is copied, so the project is not importable from the build-time install, and the CMD `uv run uvicorn …` re-syncs at every container start using the default groups, which include `dev`. It reinstalls the project and downloads pytest, playwright, coverage, respx and other dev packages from PyPI. With `--network none`, start-up fails with a DNS error (`respx … was included because vintagestory-api:dev depends on respx`). The image needs network access to start, starts slower, and runs with dev packages installed.
+- **Bug found (`VSS-flj`):** the build-time `uv sync --frozen --no-dev` runs before `src/` is copied, so the project is not importable from the build-time install, and the CMD `uv run uvicorn …` re-syncs at every container start using the default groups, which include `dev`. It reinstalls the project and adds 20 dev packages from PyPI (coverage, playwright, pyright, pytest and plugins, respx, ruff and their dependencies). With `--network none`, `uv run` exits 2 with a DNS error (`… was included because vintagestory-api:dev depends on …`). The image needs network access to start, starts slower, and runs with dev packages installed.
 - **`uv version X.Y.Z --no-sync`** sets `[project].version` and the matching `uv.lock` entry; on a scratch copy the diff was exactly those two lines (no dependency changes). It normalizes to PEP 440: `0.2.0-rc.1` is written as `0.2.0rc1`, and package metadata reports `0.2.0rc1`.
 - **`bun pm version X.Y.Z --no-git-tag-version`** sets `web/package.json` only; no commit, no tag, `bun.lock` unchanged. It keeps SemVer form (`0.2.0-rc.1`).
 - Consequence: for pre-releases the two files hold different spellings of one version. Version checks must compare the PEP 440 normalization (SemVer `-alpha.N`, `-beta.N`, `-rc.N` → `aN`, `bN`, `rcN`); the API reports the PEP 440 form.
@@ -78,4 +83,4 @@ Latest releases and commit SHAs on 2026-11-10 (for pinning):
 - **buildx attestations:** on a public repository build-push-action adds `mode=max` provenance by default and no SBOM. The draft sets `provenance: false` and `sbom: false` so the signed GitHub attestations are the single source, and the image index carries no attestation manifests.
 - **SBOM:** `anchore/sbom-action` with `image: <image>@<digest>`, `format: spdx-json`, `output-file`, and `upload-artifact: false`, `upload-release-assets: false` (it would otherwise try to upload on its own); the workflow attests the file and attaches it to the release.
 - **Package visibility:** a package first published from a workflow with `GITHUB_TOKEN` is private and linked to the workflow's repository automatically. Making it public is a manual step: package settings → Danger Zone → Change visibility → Public (irreversible). If a package of the same name already exists unlinked, `GITHUB_TOKEN` cannot push to it. Verify on GHCR before the first release (the earlier `gh api` lookup returned 404 for this package, but that token lacked `read:packages`).
-- **Draft workflow:** `release.yml` runs verify → image → release, each with its own least-privilege permissions, all actions SHA-pinned; `actionlint` reports no issues.
+- **Draft workflow:** `release.yml` runs verify → image → release, each with its own least-privilege permissions, all actions SHA-pinned; `actionlint` reports no issues. It is a shape check, not runnable today: it needs `just version` (Story 15.1), git-cliff pinned in `.mise.toml` and `cliff.toml` at the root (Story 15.3), and `CHANGELOG.md` (Story 15.4/15.6). The notes extraction matches the `## [X.Y.Z]` heading exactly, never as a regex.

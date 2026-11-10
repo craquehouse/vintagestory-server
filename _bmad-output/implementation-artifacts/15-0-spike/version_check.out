@@ -1,0 +1,33 @@
+== uv version on a scratch copy of api/ ==
+vintagestory-api 0.1.0 => 0.2.0rc1
+ api/pyproject.toml | 2 +-
+ api/uv.lock        | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+-version = "0.1.0"
++version = "0.2.0rc1"
+-version = "0.1.0"
++version = "0.2.0rc1"
+short: 0.2.0rc1
+== bun pm version on a scratch copy of web/ ==
+v0.2.0-rc.1
+ web/package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  "version": "0.0.0",
++  "version": "0.2.0-rc.1",
+commits: 1, tags: []
+== image: build (linux/amd64, final stage) ==
+-- metadata without syncing --
+0.1.0
+-- project importable from the build-time install? --
+ModuleNotFoundError: No module named 'vintagestory_api'
+-- uv run (as in CMD), no network --
+  cause: failed to lookup address information: Try again
+
+hint: `pytest-timeout` (v2.4.0) was included because `vintagestory-api:dev` (v0.1.0) depends on `pytest-timeout`
+uv run exit=2
+-- uv run (as in CMD), with network: packages added at start --
+Uninstalled 1 package in 3ms
+Installed 21 packages in 188ms
+version 0.1.0
+added:
+coverage greenlet httpx-ws iniconfig nodeenv packaging playwright pluggy pyee pyright pytest pytest-asyncio pytest-cov pytest-playwright pytest-timeout python-slugify respx ruff text-unidecode wsproto 

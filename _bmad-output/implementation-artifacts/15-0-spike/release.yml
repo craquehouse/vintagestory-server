@@ -40,7 +40,8 @@ jobs:
             git cliff --unreleased --tag "$TAG" --strip all > notes.md
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
-            awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
+            # Exact heading match: the version is never used as a regex
+            awk -v h="## [$version]" 'index($0, h) == 1 && substr($0, length(h) + 1, 1) ~ /^( |$)/ {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
             [ -s notes.md ] || { echo "::error::CHANGELOG.md has no section for $version"; exit 1; }
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
