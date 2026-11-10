@@ -60,6 +60,15 @@ so that **I can deploy and upgrade predictably**.
   - [ ] 6.1: Maintainer runs `just release 0.1.0` from `main`
   - [ ] 6.2: Verify the release, tags `0.1.0`, `0.1`, `latest`, attestations, and the image with `docker-compose.yaml`; make the package public if not already
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] "Fix the workflow on `main`, then re-run failed jobs" cannot work: a re-run uses the tagged commit's workflow and code. Recovery now separates transient failures (re-run) from bugs (fix on `main`, cut the next version)
+- [x] [AI-Review][Medium] "Re-running is safe" was wrong for the release job: `gh release create` fails if the release already exists. The guide says how to finish or delete a partial release before re-running
+- [ ] [AI-Review][Low] README says MIT but there is no `LICENSE` file (maintainer decision; open)
+- [x] [AI-Review][Low] `CLAUDE.md` said a release publishes a "public image"; the image is private until the visibility step: now "pushes the image to GHCR"
+- [x] [AI-Review][Low] `VS_API_KEY` "must equal" a role key: README now says other values log a warning and the UI cannot sign in
+- [x] [AI-Review][Info] The Installation nav item reads "Version" once a server is installed: noted in the README
+
 ## Dev Notes
 
 ### Scope
@@ -105,3 +114,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-10: Story created.
 - 2026-11-10: Tasks 1-5 done; `just check` passes. Status review; Task 6 follows the merge and the release-candidate run.
+- 2026-11-10: Code review (GLM-5.3-Flash, Changes Requested). Fixed both Mediums and two Lows; `LICENSE` left to the maintainer. Code review complete; the story stays in review until Task 6 (`v0.1.0`).
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `7275d7f`..`82be309`
+**Outcome:** Changes Requested → resolved (one Low left to the maintainer)
+
+**Summary:** Every command, path, variable and behavior claim in the README and release guide was checked against the Justfile, `.mise.toml`, the scripts, `cliff.toml`, the workflow and the API; the SPDX predicate type was confirmed in `actions/attest`'s source; the `CHANGELOG.md` summary was traced to shipped code (no overclaims). The recovery section misdescribed re-runs.
+
+### Action Items
+
+- [x] [Medium] Re-runs use the tagged commit's workflow
+- [x] [Medium] Partial GitHub release on re-run
+- [ ] [Low] `LICENSE` file (maintainer)
+- [x] [Low] "Public image" wording
+- [x] [Low] `VS_API_KEY` enforcement wording
