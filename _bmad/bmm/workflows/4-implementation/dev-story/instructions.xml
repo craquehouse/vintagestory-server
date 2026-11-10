@@ -283,7 +283,7 @@
 
     <!-- MANDATORY GATE 1: Git Commit Verification (Epic 5/6 retro enforcement) -->
     <action>MANDATORY: Verify git commit exists for this task BEFORE marking complete</action>
-    <action>Check commit message format EXACTLY matches: feat(story-X.Y/task-N): description</action>
+    <action>Check commit message format EXACTLY matches: type(story-X.Y/task-N): description, where type is a conventional commit type chosen by user impact per project-context.md "Commit Message Format" (feat/fix/perf only for user-visible changes; docs, test, chore, refactor otherwise)</action>
     <check if="commit missing or format incorrect">
       <action>ERROR: Task cannot be marked complete without proper git commit</action>
       <action>Create commit NOW with correct format before proceeding</action>
@@ -347,7 +347,8 @@
 
       <!-- Git Workflow: Commit completed task per project-context.md -->
       <action>IMPORTANT: Per project-context.md Git Workflow, commit the completed task:
-        git add [changed files] &amp;&amp; git commit -m "feat(story-X.Y/task-N): description"
+        git add [changed files] &amp;&amp; git commit -m "type(story-X.Y/task-N): description"
+        Choose type by user impact: feat/fix/perf subjects become release notes (Epic 15), so use them only for user-visible changes
         Use suffixes: /task-N (normal), /ad-hoc (discovered fixes), /user (user-directed)
       </action>
     </check>
