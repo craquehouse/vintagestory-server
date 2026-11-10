@@ -149,6 +149,8 @@ class TestApplyAll:
             DownloadError("alpha", "connection reset"),
             ExternalApiError("mod database unavailable"),
             OSError("read-only file system"),
+            ValueError("state could not be serialized"),
+            TypeError("unexpected release data"),
         ],
     )
     async def test_one_failure_does_not_stop_the_rest(

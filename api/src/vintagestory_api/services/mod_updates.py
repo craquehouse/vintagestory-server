@@ -382,6 +382,10 @@ class ModUpdateService:
                     ModVersionChangeFailedError,
                     ModVersionChangeInProgressError,
                     OSError,
+                    # Unexpected data or state errors from one mod must not abort the run
+                    # and hide which mods were already changed.
+                    ValueError,
+                    TypeError,
                 ) as e:
                     logger.warning("mod_update_all_item_failed", slug=item.slug, error=str(e))
                     results.append(_update_all_item(item, offered, "failed", error=str(e)))

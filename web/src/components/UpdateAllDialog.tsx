@@ -81,7 +81,7 @@ export function UpdateAllDialog({ open, onOpenChange, updates, gameVersion }: Up
           <>
             <DialogHeader>
               <DialogTitle>Update all finished</DialogTitle>
-              <DialogDescription data-testid="update-all-counts">
+              <DialogDescription aria-live="polite" data-testid="update-all-counts">
                 {summary.updated} updated, {summary.skipped} skipped, {summary.failed} failed
               </DialogDescription>
             </DialogHeader>

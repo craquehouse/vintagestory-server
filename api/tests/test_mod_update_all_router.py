@@ -147,6 +147,27 @@ class TestApplyAllEndpoint:
         assert state.version == "1.14.3"
 
     @respx.mock
+    def test_offer_no_longer_compatible_is_skipped_not_confirmed(
+        self, client: TestClient, mod_service: ModService
+    ) -> None:
+        live = carryon()
+        for release in live["mod"]["releases"]:
+            if release["modversion"] == "1.14.3":
+                release["tags"] = ["1.22.0"]  # same minor as 1.22.7: not verified
+        respx.get(MOD_URL).mock(return_value=Response(200, json=live))
+        download = respx.get(DOWNLOAD_URL).mock(return_value=Response(500))
+
+        response = client.post(URL, headers=ADMIN)
+
+        assert response.status_code == 200
+        result = response.json()["data"]["results"][0]
+        assert (result["outcome"], result["reasons"]) == ("skipped", ["not_verified"])
+        assert not download.called
+        state = mod_service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.version == "1.14.1"
+
+    @respx.mock
     def test_failed_lookup_is_reported(self, client: TestClient) -> None:
         respx.get(MOD_URL).mock(return_value=Response(500))
 

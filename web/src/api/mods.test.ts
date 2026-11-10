@@ -1080,4 +1080,3 @@ describe('mod update API', () => {
     expect(result.data.pendingRestart).toBe(true);
   });
 });
-

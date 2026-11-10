@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -207,4 +207,55 @@ describe('UpdateAllDialog', () => {
 
     expect(screen.getByTestId('update-all-confirm')).toBeDisabled();
   });
+
+  it('announces the finished run to screen readers', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(summaryResponse(false));
+    renderDialog();
+
+    fireEvent.click(screen.getByTestId('update-all-confirm'));
+
+    expect(await screen.findByTestId('update-all-counts')).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('cannot be closed while running', async () => {
+    let resolve: (value: unknown) => void = () => {};
+    globalThis.fetch = vi.fn().mockReturnValue(new Promise((r) => (resolve = r)));
+    const onOpenChange = renderDialog();
+
+    fireEvent.click(screen.getByTestId('update-all-confirm'));
+    await waitFor(() => expect(screen.getByTestId('update-all-confirm')).toBeDisabled());
+    fireEvent.keyDown(screen.getByTestId('update-all-dialog'), { key: 'Escape' });
+
+    expect(onOpenChange).not.toHaveBeenCalled();
+    resolve(summaryResponse(false));
+    await screen.findByTestId('update-all-results');
+  });
+
+  it('starts from the confirm step when reopened after a run', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(summaryResponse(false));
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen(true)}>reopen</button>
+          <UpdateAllDialog
+            open={open}
+            onOpenChange={setOpen}
+            updates={updates}
+            gameVersion="1.22.7"
+          />
+        </>
+      );
+    }
+    render(<Harness />, { wrapper });
+
+    fireEvent.click(screen.getByTestId('update-all-confirm'));
+    fireEvent.click(await screen.findByTestId('update-all-close'));
+    await waitFor(() => expect(screen.queryByTestId('update-all-dialog')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByText('reopen'));
+
+    expect(await screen.findByTestId('update-all-planned')).toBeInTheDocument();
+    expect(screen.queryByTestId('update-all-results')).not.toBeInTheDocument();
+  });
 });
+
