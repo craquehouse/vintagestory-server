@@ -1,6 +1,6 @@
 # Story 15.1: Single Version Source and Version Display
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -33,31 +33,31 @@ so that **I can tell whether I am up to date and report problems accurately**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Install the project at image build time and start without syncing (AC: 4)
-  - [ ] 1.1: Dockerfile: `uv sync --frozen --no-dev --no-install-project` before copying `src/`, then `uv sync --frozen --no-dev` after it, so the project is installed at build time
-  - [ ] 1.2: Start without syncing: `CMD ["uv", "run", "--no-sync", "uvicorn", ...]` (or the venv's `uvicorn`); keep the HEALTHCHECK as is
-  - [ ] 1.3: Build the image and verify with `--network none`: the API starts, `/healthz` answers, no dev packages are installed (`uv pip list` shows no pytest/ruff/pyright)
+- [x] Task 1: Install the project at image build time and start without syncing (AC: 4)
+  - [x] 1.1: Dockerfile: `uv sync --frozen --no-dev --no-install-project` before copying `src/`, then `uv sync --frozen --no-dev` after it, so the project is installed at build time
+  - [x] 1.2: Start without syncing: `CMD ["uv", "run", "--no-sync", "uvicorn", ...]` (or the venv's `uvicorn`); keep the HEALTHCHECK as is
+  - [x] 1.3: Build the image and verify with `--network none`: the API starts, `/healthz` answers, no dev packages are installed (`uv pip list` shows no pytest/ruff/pyright)
 
-- [ ] Task 2: API version from package metadata (AC: 1)
-  - [ ] 2.1: `vintagestory_api/__init__.py`: `__version__ = importlib.metadata.version("vintagestory-api")`
-  - [ ] 2.2: `main.py`: `FastAPI(version=__version__)`
-  - [ ] 2.3: `HealthData.version: str` (description: manager version); `/healthz` sets it
-  - [ ] 2.4: Tests: `__version__` equals `[project].version` read from `pyproject.toml` with `tomllib`; OpenAPI `info.version`; `/healthz` `data.version`; a grep-style test that no file under `src/` contains the literal version string
+- [x] Task 2: API version from package metadata (AC: 1)
+  - [x] 2.1: `vintagestory_api/__init__.py`: `__version__ = importlib.metadata.version("vintagestory-api")`
+  - [x] 2.2: `main.py`: `FastAPI(version=__version__)`
+  - [x] 2.3: `HealthData.version: str` (description: manager version); `/healthz` sets it
+  - [x] 2.4: Tests: `__version__` equals `[project].version` read from `pyproject.toml` with `tomllib`; OpenAPI `info.version`; `/healthz` `data.version`; a grep-style test that no file under `src/` contains the literal version string
 
-- [ ] Task 3: Web version from `package.json` (AC: 2)
-  - [ ] 3.1: Set `web/package.json` `version` to `0.1.0` (matches `pyproject.toml`)
-  - [ ] 3.2: Inject `__APP_VERSION__` with Vite `define` from `package.json` in both `vite.config.ts` and `vitest.config.ts`; declare it in a `src/globals.d.ts`; expose it as `APP_VERSION` from `src/lib/version.ts`
-  - [ ] 3.3: Sidebar footer renders `v{APP_VERSION}`; update `Sidebar.test.tsx` to use `APP_VERSION` instead of the literal
+- [x] Task 3: Web version from `package.json` (AC: 2)
+  - [x] 3.1: Set `web/package.json` `version` to `0.1.0` (matches `pyproject.toml`)
+  - [x] 3.2: Inject `__APP_VERSION__` with Vite `define` from `package.json` in both `vite.config.ts` and `vitest.config.ts`; declare it in a `src/globals.d.ts`; expose it as `APP_VERSION` from `src/lib/version.ts`
+  - [x] 3.3: Sidebar footer renders `v{APP_VERSION}`; update `Sidebar.test.tsx` to use `APP_VERSION` instead of the literal
 
-- [ ] Task 4: `just version` (AC: 3)
-  - [ ] 4.1: `scripts/version.sh`: read `web/package.json` `.version`, `api/pyproject.toml` `.project.version` and the `vintagestory-api` entry in `api/uv.lock` with `yq`; validate SemVer `X.Y.Z` with optional `-alpha.N`, `-beta.N` or `-rc.N`; convert to PEP 440 (`aN`, `bN`, `rcN`); fail with a clear message naming the files if any disagree; print the SemVer version
-  - [ ] 4.2: `just version` recipe calling the script
-  - [ ] 4.3: Tests in `scripts/tests/test-version.sh` (plain bash with a small assert helper, run against temporary copies): equal stable versions, equal pre-release versions in both spellings, mismatch, `uv.lock` mismatch, invalid version, unsupported pre-release form
-  - [ ] 4.4: `just test-scripts` runs `scripts/tests/test-*.sh`; `just test` includes it; CI runs it
+- [x] Task 4: `just version` (AC: 3)
+  - [x] 4.1: `scripts/version.sh`: read `web/package.json` `.version`, `api/pyproject.toml` `.project.version` and the `vintagestory-api` entry in `api/uv.lock` with `yq`; validate SemVer `X.Y.Z` with optional `-alpha.N`, `-beta.N` or `-rc.N`; convert to PEP 440 (`aN`, `bN`, `rcN`); fail with a clear message naming the files if any disagree; print the SemVer version
+  - [x] 4.2: `just version` recipe calling the script
+  - [x] 4.3: Tests in `scripts/tests/test-version.sh` (plain bash with a small assert helper, run against temporary copies): equal stable versions, equal pre-release versions in both spellings, mismatch, `uv.lock` mismatch, invalid version, unsupported pre-release form
+  - [x] 4.4: `just test-scripts` runs `scripts/tests/test-*.sh`; `just test` includes it; CI runs it
 
-- [ ] Task 5: Verification and validation (AC: all)
-  - [ ] 5.1: Run the built image with `--network none`, open the UI in a browser: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`; check the browser console
-  - [ ] 5.2: `just check`; update the Dev Agent Record and File List
+- [x] Task 5: Verification and validation (AC: all)
+  - [x] 5.1: Run the built image with `--network none`, open the UI in a browser: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`; check the browser console
+  - [x] 5.2: `just check`; update the Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -96,10 +96,30 @@ FR152-FR154 and `VSS-flj`. Out of scope: the release command (15.4), changelog (
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
+### Debug Log References
+
+- Browser screenshot kept locally only (`.playwright-mcp/story-15-1-sidebar-version.png`, git-ignored).
+
 ### Completion Notes List
 
+- Task 1 (`VSS-flj`): the Dockerfile installs dependencies with `--no-install-project`, copies `src/`, then installs the project; the CMD is `uv run --no-sync uvicorn …`. Verified with `--network none`: the container reports healthy, `/healthz` answers, and `uv pip list` shows none of pytest, ruff, pyright, playwright, respx or coverage. The only log warnings are the expected game-version lookups failing without DNS.
+- Task 2: `__version__` comes from `importlib.metadata.version("vintagestory-api")`, with no fallback (the project is always installed: `uv sync` locally, the build in the image). `FastAPI(version=__version__)`; `HealthData.version` is required and set by `/healthz`. 4 tests in `test_version.py`, including one that fails if any file under `src/` contains the version literal.
+- Task 3: `web/package.json` is `0.1.0`. `__APP_VERSION__` is injected by Vite `define` from `package.json` in both `vite.config.ts` and `vitest.config.ts`, declared in `src/globals.d.ts` and exposed as `APP_VERSION` from `src/lib/version.ts`. The sidebar renders `v{APP_VERSION}`. 2 new tests (version equals `package.json`; sidebar shows it when expanded); the collapsed test uses `APP_VERSION`.
+- Task 4: `scripts/version.sh` reads the three files with `yq`, accepts `X.Y.Z` and `-alpha.N`/`-beta.N`/`-rc.N`, compares `pyproject.toml` and `uv.lock` with the PEP 440 form, and names the file that disagrees. `just version` runs it; `just test-scripts` runs bash tests in `scripts/tests/` (19 assertions, small `lib.sh` helper, temporary directories cleaned on exit); `just test` includes it; CI has a "Release scripts" job running both. Shellcheck is clean (one `source=` path hint so it can follow `lib.sh`); `actionlint` passes on `ci.yml`.
+- Task 5: image built and run on port 8081: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`. Console: only `404 /api/v1alpha1/config/game`, which is existing behavior with no game server installed. `just check` passes: 2052 API tests (+4), 3001 web tests (+2), 19 script assertions.
+
 ### File List
+
+- Modified: `Dockerfile`, `Justfile`, `.github/workflows/ci.yml`
+- Modified: `api/src/vintagestory_api/__init__.py`, `api/src/vintagestory_api/main.py`, `api/src/vintagestory_api/models/responses.py`, `api/src/vintagestory_api/routers/health.py`
+- Created: `api/tests/test_version.py`
+- Modified: `web/package.json`, `web/vite.config.ts`, `web/vitest.config.ts`, `web/src/components/layout/Sidebar.tsx`, `web/src/components/layout/Sidebar.test.tsx`
+- Created: `web/src/globals.d.ts`, `web/src/lib/version.ts`, `web/src/lib/version.test.ts`
+- Created: `scripts/version.sh`, `scripts/tests/lib.sh`, `scripts/tests/run.sh`, `scripts/tests/test-version.sh`
 
 ## Change Log
 
 - 2026-11-10: Story created.
+- 2026-11-10: Implemented; image starts offline (`VSS-flj`); browser-verified. `just check` passes. Status review.
