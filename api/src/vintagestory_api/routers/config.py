@@ -274,7 +274,8 @@ async def get_api_settings(
         HTTPException: 403 if not Admin role
     """
     settings = service.get_settings()
-    return ApiResponse(status="ok", data={"settings": settings.model_dump()})
+    # Secrets such as the mod update webhook are reported only as configured (FR149)
+    return ApiResponse(status="ok", data={"settings": settings.redacted()})
 
 
 @router.post(

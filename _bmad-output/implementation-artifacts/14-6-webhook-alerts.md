@@ -1,6 +1,6 @@
 # Story 14.6: Webhook Alerts
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -38,10 +38,10 @@ so that **I find out without opening the UI**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Webhook setting with redacted reads + tests (AC: 1)
-  - [ ] 1.1: `ApiSettings.mod_update_webhook_url: str | None` with validation: http or https, a host, at most 2048 characters; `""` or `null` clears it; error messages never include the value
-  - [ ] 1.2: `GET /config/api` returns `mod_update_webhook_configured` instead of the URL; `POST /config/api/settings/mod_update_webhook_url` returns `{key, configured}` and logs `configured`, never the value
-  - [ ] 1.3: Tests: set, clear, invalid scheme, too long, redacted read and update response, no URL in logs, Monitor 403
+- [x] Task 1: Webhook setting with redacted reads + tests (AC: 1)
+  - [x] 1.1: `ApiSettings.mod_update_webhook_url: str | None` with validation: http or https, a host, at most 2048 characters; `""` or `null` clears it; error messages never include the value
+  - [x] 1.2: `GET /config/api` returns `mod_update_webhook_configured` instead of the URL; `POST /config/api/settings/mod_update_webhook_url` returns `{key, configured}` and logs `configured`, never the value
+  - [x] 1.3: Tests: set, clear, invalid scheme, too long, redacted read and update response, no URL in logs, Monitor 403
 
 - [ ] Task 2: Alert delivery + tests (AC: 3, 4)
   - [ ] 2.1: `services/mod_update_alerts.py`: Discord detection (ADR-6 hosts and `/api/webhooks/` path), payloads, summary lines `- {name}: {installed} → {offered} ({compatibility})` truncated with "…and N more" to 2000 characters

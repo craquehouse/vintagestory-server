@@ -844,3 +844,65 @@ class TestDirectoryCreation:
         # Should still succeed
         persisted = service.get_settings()
         assert persisted.auto_start_server is False
+
+
+WEBHOOK = "https://discord.com/api/webhooks/123/secret-token"
+
+
+class TestModUpdateWebhookSetting:
+    """Story 14.6 (FR149): the webhook URL is stored but never logged or read back."""
+
+    def test_defaults_to_not_configured(self) -> None:
+        settings = ApiSettings()
+        assert settings.mod_update_webhook_url is None
+        assert settings.redacted()["mod_update_webhook_configured"] is False
+        assert "mod_update_webhook_url" not in settings.redacted()
+
+    def test_redacted_reports_configured(self) -> None:
+        redacted = ApiSettings(mod_update_webhook_url=WEBHOOK).redacted()
+        assert redacted["mod_update_webhook_configured"] is True
+        assert WEBHOOK not in json.dumps(redacted)
+
+    @pytest.mark.asyncio
+    async def test_set_and_clear(
+        self, service: ApiSettingsService, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        result = await service.update_setting("mod_update_webhook_url", WEBHOOK)
+
+        assert result == {"key": "mod_update_webhook_url", "configured": True}
+        assert service.get_settings().mod_update_webhook_url == WEBHOOK
+
+        result = await service.update_setting("mod_update_webhook_url", "")
+
+        assert result == {"key": "mod_update_webhook_url", "configured": False}
+        assert service.get_settings().mod_update_webhook_url is None
+        assert "secret-token" not in capsys.readouterr().out
+
+    @pytest.mark.asyncio
+    async def test_null_clears(self, service: ApiSettingsService) -> None:
+        await service.update_setting("mod_update_webhook_url", WEBHOOK)
+        await service.update_setting("mod_update_webhook_url", None)
+        assert service.get_settings().mod_update_webhook_url is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "ftp://example.com/hook-secret",
+            "file:///etc/hook-secret",
+            "https:///no-host-secret",
+            "not a url secret",
+            "https://example.com/" + "a" * 2048,
+            123,
+        ],
+    )
+    async def test_rejects_invalid_values_without_echoing_them(
+        self, service: ApiSettingsService, value: object
+    ) -> None:
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting("mod_update_webhook_url", value)
+
+        assert "secret" not in exc_info.value.message
+        assert "aaaa" not in exc_info.value.message
+        assert service.get_settings().mod_update_webhook_url is None
+

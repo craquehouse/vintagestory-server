@@ -615,6 +615,51 @@ class TestGetApiSettings:
         assert settings["server_versions_refresh_interval"] == 86400
 
 
+class TestModUpdateWebhookRedaction:
+    """Story 14.6 (FR149): reads and updates never return the webhook URL."""
+
+    URL = "https://discord.com/api/webhooks/1/redaction-token"
+
+    def test_update_and_read_report_only_configured(
+        self, api_settings_client: TestClient
+    ) -> None:
+        headers = {"X-API-Key": TEST_ADMIN_KEY}
+
+        update = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/mod_update_webhook_url",
+            json={"value": self.URL},
+            headers=headers,
+        )
+        read = api_settings_client.get("/api/v1alpha1/config/api", headers=headers)
+
+        assert update.status_code == 200
+        assert update.json()["data"] == {"key": "mod_update_webhook_url", "configured": True}
+        assert read.status_code == 200
+        settings = read.json()["data"]["settings"]
+        assert settings["mod_update_webhook_configured"] is True
+        assert "mod_update_webhook_url" not in settings
+        assert "redaction-token" not in update.text + read.text
+
+    def test_monitor_cannot_set_the_webhook(self, api_settings_client: TestClient) -> None:
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/mod_update_webhook_url",
+            json={"value": self.URL},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+
+    def test_invalid_url_is_rejected_without_echo(self, api_settings_client: TestClient) -> None:
+        response = api_settings_client.post(
+            "/api/v1alpha1/config/api/settings/mod_update_webhook_url",
+            json={"value": "ftp://example.com/redaction-token"},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        assert "redaction-token" not in response.text
+
+
 class TestGetApiSettingsRBAC:
     """Tests for GET /config/api RBAC - Story 6.3 AC 4."""
 

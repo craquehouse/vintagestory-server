@@ -13,9 +13,10 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import structlog
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from vintagestory_api.config import Settings
 
@@ -52,6 +53,35 @@ class ApiSettings(BaseModel):
         ge=0,
         description="Seconds between metrics collection (0 = disabled)",
     )
+    mod_update_webhook_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Webhook for mod update alerts (Story 14.6). Secret: never logged or read back",
+    )
+
+    @field_validator("mod_update_webhook_url")
+    @classmethod
+    def _validate_webhook_url(cls, value: str | None) -> str | None:
+        # Messages must not include the value: it is a secret.
+        if value is None or value == "":
+            return None
+        try:
+            parts = urlsplit(value)
+        except ValueError:
+            raise ValueError("must be an http or https URL") from None
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            raise ValueError("must be an http or https URL with a host")
+        return value
+
+    def redacted(self) -> dict[str, Any]:
+        """Settings for API responses: secrets replaced by whether they are configured."""
+        data = self.model_dump(exclude=set(SECRET_SETTINGS))
+        data["mod_update_webhook_configured"] = self.mod_update_webhook_url is not None
+        return data
+
+
+SECRET_SETTINGS = frozenset({"mod_update_webhook_url"})
+"""Settings whose values are never logged or returned (FR149)."""
 
 
 class ApiSettingUnknownError(Exception):
@@ -231,6 +261,17 @@ class ApiSettingsService:
         if key in interval_settings:
             if self._scheduler_callback:
                 self._scheduler_callback(key, validated_value)
+
+        if key in SECRET_SETTINGS:
+            configured = getattr(updated, key) is not None
+            logger.info(
+                "api_setting_updated",
+                key=key,
+                configured=configured,
+                was_configured=old_value is not None,
+                source="api",
+            )
+            return {"key": key, "configured": configured}
 
         logger.info(
             "api_setting_updated",
