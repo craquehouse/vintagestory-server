@@ -1,6 +1,6 @@
 # Story 14.4: Update All
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -42,12 +42,12 @@ so that **routine updates take a single action**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Update all in the service + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] 1.1: `ModUpdateService.apply_all(change_version)` in `services/mod_updates.py`: take status items with `status == "update_available"`; skip `offered_compatibility != "compatible"` with reasons `[offered_compatibility]`; otherwise call `change_version(slug, offered_version)` (no confirm) sequentially
-  - [ ] 1.2: Map `ModConfirmationRequiredError` → skipped with its reasons; known errors (version change, lookup, download, validation, `OSError`) → failed with the message; continue in every case
-  - [ ] 1.3: Lock: a second call while running raises `ModUpdateAllInProgressError`
-  - [ ] 1.4: Result types: `UpdateAllItem(slug, name, from_version, to_version, outcome, reasons, error)` and `UpdateAllSummary(results, updated, skipped, failed, pending_restart)`
-  - [ ] 1.5: Tests with a fake `change_version`: mixed outcomes, skip not-verified without calling, confirmation-required becomes skipped, one failure does not stop the rest, order, lock
+- [x] Task 1: Update all in the service + tests (AC: 1, 2, 3, 4, 5)
+  - [x] 1.1: `ModUpdateService.apply_all(change_version)` in `services/mod_updates.py`: take status items with `status == "update_available"`; skip `offered_compatibility != "compatible"` with reasons `[offered_compatibility]`; otherwise call `change_version(slug, offered_version)` (no confirm) sequentially
+  - [x] 1.2: Map `ModConfirmationRequiredError` → skipped with its reasons; known errors (version change, lookup, download, validation, `OSError`) → failed with the message; continue in every case
+  - [x] 1.3: Lock: a second call while running raises `ModUpdateAllInProgressError`
+  - [x] 1.4: Result types: `UpdateAllItem(slug, name, from_version, to_version, outcome, reasons, error)` and `UpdateAllSummary(results, updated, skipped, failed, pending_restart)`
+  - [x] 1.5: Tests with a fake `change_version`: mixed outcomes, skip not-verified without calling, confirmation-required becomes skipped, one failure does not stop the rest, order, lock
 
 - [ ] Task 2: Endpoint + tests (AC: 1, 5)
   - [ ] 2.1: Error code `MOD_UPDATE_ALL_IN_PROGRESS`

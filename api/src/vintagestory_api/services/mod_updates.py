@@ -6,11 +6,11 @@ strings are only compared for the base-version check on mods already on a pre-re
 """
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
 import structlog
 from pydantic import ValidationError
@@ -29,8 +29,12 @@ from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ExternalApiError,
     ModApiClient,
+    ModApiError,
     check_compatibility,
 )
+
+if TYPE_CHECKING:
+    from vintagestory_api.services.mods import VersionChangeResult
 
 logger = structlog.get_logger()
 
@@ -245,6 +249,41 @@ class ModUpdateCheckInProgressError(Exception):
     """Raised when a check is requested while another is running."""
 
 
+class ModUpdateAllInProgressError(Exception):
+    """Raised when update all is requested while another run is in progress."""
+
+
+UpdateAllOutcome = Literal["updated", "skipped", "failed"]
+
+ChangeVersion = Callable[[str, str], Awaitable["VersionChangeResult"]]
+"""Changes an installed mod to a version without confirmation (ModService.change_version)."""
+
+
+@dataclass(frozen=True)
+class UpdateAllItem:
+    """Outcome of update all for one mod (Story 14.4)."""
+
+    slug: str
+    name: str
+    from_version: str
+    to_version: str
+    outcome: UpdateAllOutcome
+    reasons: list[str] = field(default_factory=lambda: list[str]())
+    """Why a mod was skipped: confirmation reasons such as "not_verified"."""
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class UpdateAllSummary:
+    """Outcome of one update all run."""
+
+    results: list[UpdateAllItem]
+    updated: int
+    skipped: int
+    failed: int
+    pending_restart: bool
+
+
 @dataclass(frozen=True)
 class CheckSummary:
     """Outcome of one update check."""
@@ -252,6 +291,24 @@ class CheckSummary:
     checked: int
     failed: int
     failed_slugs: list[str] = field(default_factory=lambda: list[str]())
+
+
+def _update_all_item(
+    item: ModUpdateStatusItem,
+    offered: str,
+    outcome: UpdateAllOutcome,
+    reasons: list[str] | None = None,
+    error: str | None = None,
+) -> UpdateAllItem:
+    return UpdateAllItem(
+        slug=item.slug,
+        name=item.name,
+        from_version=item.installed_version,
+        to_version=offered,
+        outcome=outcome,
+        reasons=reasons or [],
+        error=error,
+    )
 
 
 class ModUpdateService:
@@ -267,6 +324,7 @@ class ModUpdateService:
         self._mod_source = mod_source
         self._game_version_provider = game_version_provider
         self._check_lock = asyncio.Lock()
+        self._apply_lock = asyncio.Lock()
 
     @property
     def store(self) -> ModUpdateStore:
@@ -279,6 +337,72 @@ class ModUpdateService:
     def get_status(self) -> list[ModUpdateStatusItem]:
         """Update status for every installed mod, computed from stored data."""
         return build_status_items(self._mod_source.list_mods(), self._store, self.game_version())
+
+    async def apply_all(self, change_version: ChangeVersion) -> UpdateAllSummary:
+        """Update every mod whose offered update is compatible, one at a time (Story 14.4).
+
+        Offers that are not compatible are skipped with their compatibility as the reason.
+        Each change runs without confirmation, so an offer that a fresh lookup no longer
+        finds compatible is skipped with the reasons it reports. A failure is recorded
+        and the remaining mods are still processed.
+
+        Raises:
+            ModUpdateAllInProgressError: Another run is in progress.
+        """
+        # services.mods imports this module; import its errors here to avoid a cycle.
+        from vintagestory_api.services.mods import (
+            ModConfirmationRequiredError,
+            ModNotFoundError,
+            ModValidationError,
+            ModVersionChangeFailedError,
+            ModVersionChangeInProgressError,
+        )
+
+        if self._apply_lock.locked():
+            raise ModUpdateAllInProgressError()
+        async with self._apply_lock:
+            results: list[UpdateAllItem] = []
+            pending_restart = False
+            for item in self.get_status():
+                if item.status != "update_available" or item.offered_version is None:
+                    continue
+                offered = item.offered_version
+                if item.offered_compatibility != "compatible":
+                    reason = item.offered_compatibility or "not_verified"
+                    results.append(_update_all_item(item, offered, "skipped", reasons=[reason]))
+                    continue
+                try:
+                    change = await change_version(item.slug, offered)
+                except ModConfirmationRequiredError as e:
+                    results.append(_update_all_item(item, offered, "skipped", reasons=e.reasons))
+                except (
+                    ModApiError,
+                    ModNotFoundError,
+                    ModValidationError,
+                    ModVersionChangeFailedError,
+                    ModVersionChangeInProgressError,
+                    OSError,
+                ) as e:
+                    logger.warning("mod_update_all_item_failed", slug=item.slug, error=str(e))
+                    results.append(_update_all_item(item, offered, "failed", error=str(e)))
+                else:
+                    pending_restart = pending_restart or change.pending_restart
+                    results.append(_update_all_item(item, offered, "updated"))
+
+            summary = UpdateAllSummary(
+                results=results,
+                updated=sum(1 for r in results if r.outcome == "updated"),
+                skipped=sum(1 for r in results if r.outcome == "skipped"),
+                failed=sum(1 for r in results if r.outcome == "failed"),
+                pending_restart=pending_restart,
+            )
+            logger.info(
+                "mod_update_all_complete",
+                updated=summary.updated,
+                skipped=summary.skipped,
+                failed=summary.failed,
+            )
+            return summary
 
     async def check(self) -> CheckSummary:
         """Refresh release data for every installed mod from the mod database.
