@@ -28,6 +28,7 @@ from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
 )
 from vintagestory_api.services.mod_updates import (
+    ModUpdateAllInProgressError,
     ModUpdateCheckInProgressError,
     ModUpdateService,
     get_mod_update_service,
@@ -140,6 +141,35 @@ async def check_mod_updates(
         "failed_slugs": summary.failed_slugs,
     }
     return ApiResponse(status="ok", data=data)
+
+
+@router.post(
+    "/updates/apply-all", response_model=ApiResponse, summary="Apply all compatible mod updates"
+)
+async def apply_all_mod_updates(
+    _: RequireAdmin,
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+    mod_service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Update every mod whose offered update is compatible, one at a time (Admin only).
+
+    Not verified offers are skipped for individual review; a mod that fails does not stop
+    the others. Each result is `updated`, `skipped` (with reasons) or `failed` (with error).
+
+    Raises:
+        HTTPException: 409 if update all is already running.
+    """
+    try:
+        summary = await update_service.apply_all(mod_service.change_version)
+    except ModUpdateAllInProgressError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_UPDATE_ALL_IN_PROGRESS,
+                "message": "Update all is already running",
+            },
+        ) from None
+    return ApiResponse(status="ok", data=asdict(summary))
 
 
 def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:

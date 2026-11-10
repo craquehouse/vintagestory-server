@@ -49,10 +49,10 @@ so that **routine updates take a single action**.
   - [x] 1.4: Result types: `UpdateAllItem(slug, name, from_version, to_version, outcome, reasons, error)` and `UpdateAllSummary(results, updated, skipped, failed, pending_restart)`
   - [x] 1.5: Tests with a fake `change_version`: mixed outcomes, skip not-verified without calling, confirmation-required becomes skipped, one failure does not stop the rest, order, lock
 
-- [ ] Task 2: Endpoint + tests (AC: 1, 5)
-  - [ ] 2.1: Error code `MOD_UPDATE_ALL_IN_PROGRESS`
-  - [ ] 2.2: `POST /mods/updates/apply-all` (Admin), declared before `/{slug}` routes; passes `ModService.change_version`; returns the summary; 409 on the lock
-  - [ ] 2.3: Router tests: success payload with real fixtures (respx), 409, 403 Monitor, 401
+- [x] Task 2: Endpoint + tests (AC: 1, 5)
+  - [x] 2.1: Error code `MOD_UPDATE_ALL_IN_PROGRESS`
+  - [x] 2.2: `POST /mods/updates/apply-all` (Admin), declared before `/{slug}` routes; passes `ModService.change_version`; returns the summary; 409 on the lock
+  - [x] 2.3: Router tests: success payload with real fixtures (respx), 409, 403 Monitor, 401
 
 - [ ] Task 3: Web API layer + tests (AC: 6)
   - [ ] 3.1: Types `ModUpdateAllItem`, `ModUpdateAllData`; `applyAllModUpdates()`; hook `useApplyAllModUpdates()` (skips the global error toast like the other update hooks; invalidates `['mods']` when settled, since mods may have changed even on a failed request)
