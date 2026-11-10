@@ -1,6 +1,6 @@
 # Story 15.2: Runtime API Key for the Web UI
 
-Status: review
+Status: done
 
 ## Story
 
@@ -50,6 +50,14 @@ so that **one image works for every deployment and no key is baked into it**.
   - [x] 4.2: Run the image with `VS_API_KEY_ADMIN` only, then with a different `VS_API_KEY`; in a browser the UI loads data both times and requests carry the expected key (check the request header, not just the page); console clean apart from known errors
   - [x] 4.3: `just dev-web` against `just dev-api` still authenticates with `web/.env` (or confirm with a Vite dev server smoke check)
   - [x] 4.4: `just check`; update the Dev Agent Record and File List
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] `/config.js` is a classic script, which skips CORS, so other sites' pages could include it and read the key (the old module bundle could not be read that way): added `Cross-Origin-Resource-Policy: same-origin` and `X-Content-Type-Options: nosniff`; verified in a browser that a page on another origin is blocked (`ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`) and the UI still works
+- [x] [AI-Review][Low] A `VS_API_KEY` matching neither role key gives a UI that fails every request silently: start-up logs `web_api_key_matches_no_role` (without the key); verified in a container
+- [x] [AI-Review][Low] `.env.example` documented the unused `VITE_API_KEY` and a misspelled `VITE_BASE_URL`: replaced with `VS_API_KEY` and a pointer to `web/.env.example`
+- [x] [AI-Review][Low] Built `index.html` puts the module script before `config.js`: comment explains execution order is still correct
+- [x] [AI-Review][Low] `.dockerignore` fix had no regression guard: `scripts/tests/test-docker-context.sh` checks the patterns and the Dockerfile
 
 ## Dev Notes
 
@@ -107,10 +115,32 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Modified: `api/src/vintagestory_api/config.py`, `api/src/vintagestory_api/main.py`
 - Modified: `api/tests/test_config.py`, `api/tests/test_frontend_routes.py`
 - Modified: `web/index.html`, `web/src/api/client.ts`, `web/src/api/client.test.ts`, `web/src/globals.d.ts`
-- Created: `web/public/config.js`
+- Created: `web/public/config.js`, `scripts/tests/test-docker-context.sh`
+- Modified: `.env.example`
 - Modified: `Dockerfile`, `.dockerignore`, `docker-compose.yaml`, `docker-compose.dev.yaml`
 
 ## Change Log
 
 - 2026-11-10: Story created.
 - 2026-11-10: Implemented; fixed `.dockerignore` letting `web/.env` into the build; verified in the image and a browser. `just check` passes. Status review.
+- 2026-11-10: Code review (GLM-5.3-Flash, Changes Requested). Fixed M1 and L1-L4. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `5367325`..`6260cef`
+**Outcome:** Changes Requested → resolved
+
+**Summary:** The reviewer built the image with both `.env` files present and found no key in history, environment or filesystem (count-only comparisons), confirmed the served key works and the Admin fallback, round-tripped a hostile key through `json.dumps`, checked route ordering, caching headers, logging and every key consumer (WebSockets exchange the key through `apiClient`), and ran all gates. It found that a classic script is cross-origin includable.
+
+### Action Items
+
+- [x] [Medium] Block cross-origin inclusion of `/config.js`
+- [x] [Low] Warn when `VS_API_KEY` matches no role
+- [x] [Low] Update `.env.example`
+- [x] [Low] Comment on built script order
+- [x] [Low] Guard the `.dockerignore` fix
+
+### Note
+
+The reviewer's transcript echoed one value from the local `.env` (`VS_API_KEY`, a development placeholder) before it switched to count-only output. The maintainer may want to rotate it if it is used anywhere beyond local development.

@@ -76,7 +76,7 @@ The GitHub release is created last, so a failed build publishes no release. Acti
 
 ## ADR-5: Runtime Web Configuration
 
-**Decision:** The API serves `GET /config.js`, unauthenticated, as `application/javascript` with `Cache-Control: no-store`:
+**Decision:** The API serves `GET /config.js`, unauthenticated, as `application/javascript` with `Cache-Control: no-store`, `Cross-Origin-Resource-Policy: same-origin` and `X-Content-Type-Options: nosniff`:
 
 ```js
 window.__VSM_CONFIG__ = {"apiKey": "..."};
@@ -92,3 +92,5 @@ window.__VSM_CONFIG__ = {"apiKey": "..."};
 **Consequences:** Exposure is unchanged from today: anyone who can load the page receives the key. The README states this; deployments should stay on a trusted network or behind authentication. The image itself no longer contains a key. The key is never logged.
 
 **Status (15.0):** No assumption to verify; Story 15.2 checks it in a browser.
+
+**Status (15.2): Confirmed, with one addition.** A classic `<script src>` skips CORS, so without a header any other site's page could include `/config.js` and read the key, which the old module bundle (CORS-mode) did not allow. `Cross-Origin-Resource-Policy: same-origin` blocks that (verified in a browser: `ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`). A `VS_API_KEY` that matches neither role key logs `web_api_key_matches_no_role` at start-up.
