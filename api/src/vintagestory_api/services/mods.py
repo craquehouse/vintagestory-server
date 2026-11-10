@@ -7,13 +7,16 @@ and PendingRestartState for restart tracking.
 """
 
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import structlog
 
 from vintagestory_api.config import Settings
+from vintagestory_api.models.mod_updates import StoredRelease
 from vintagestory_api.models.mods import (
     CompatibilityInfo,
     DisableResult,
@@ -27,15 +30,19 @@ from vintagestory_api.models.mods import (
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
+    ExternalApiError,
     ModApiClient,
+    ModVersionNotFoundError,
     check_compatibility,
     extract_slug,
+    safe_release_filename,
     validate_slug,
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
 )
 from vintagestory_api.services.mod_state import ModStateManager
+from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 logger = structlog.get_logger()
@@ -136,6 +143,38 @@ class InvalidSlugError(Exception):
         super().__init__(f"Invalid mod slug: '{slug}'")
 
 
+class ModConfirmationRequiredError(Exception):
+    """Raised when a version change needs explicit confirmation (ADR-2)."""
+
+    def __init__(
+        self, slug: str, version: str, reasons: list[str], compatibility: CompatibilityStatus
+    ) -> None:
+        self.slug = slug
+        self.version = version
+        self.reasons = reasons
+        self.compatibility = compatibility
+        super().__init__(
+            f"Changing '{slug}' to {version} needs confirmation: {', '.join(reasons)}"
+        )
+
+
+class ModValidationError(Exception):
+    """Raised when a release archive is unusable or does not match the requested release."""
+
+    def __init__(self, slug: str, message: str) -> None:
+        self.slug = slug
+        super().__init__(f"Release for mod '{slug}' failed validation: {message}")
+
+
+@dataclass(frozen=True)
+class PreparedVersionChange:
+    """A resolved, confirmed and validated version change, ready to apply."""
+
+    target: StoredRelease
+    archive: Path
+    compatibility: CompatibilityStatus
+
+
 @dataclass
 class InstallResult:
     """Result of a mod installation operation."""
@@ -180,6 +219,7 @@ class ModService:
         cache_dir: Path | None = None,
         game_version: str = "stable",
         mod_cache_max_size_mb: int = 500,
+        game_version_provider: Callable[[], str | None] | None = None,
     ) -> None:
         """Initialize the mod service.
 
@@ -191,6 +231,8 @@ class ModService:
                        state_dir.parent / "cache" if not provided.
             game_version: Game version for compatibility checking (e.g., "1.21.3").
             mod_cache_max_size_mb: Maximum cache size in MB (0 to disable eviction).
+            game_version_provider: Returns the installed game version for version
+                changes (Epic 14). Defaults to the installed server version.
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
@@ -209,6 +251,7 @@ class ModService:
         )
 
         self._game_version = game_version
+        self._game_version_provider = game_version_provider or installed_game_version
         self._mod_api_client: ModApiClient | None = None
 
     @property
@@ -660,6 +703,91 @@ class ModService:
             await self._mod_api_client.close()
             self._mod_api_client = None
             logger.debug("mod_api_client_closed")
+
+    async def _prepare_version_change(
+        self, slug: str, version: str, *, confirm: bool
+    ) -> PreparedVersionChange:
+        """Resolve, confirm and fetch the release a version change targets (ADR-1, ADR-2).
+
+        Confirmation reasons are checked before anything is downloaded.
+
+        Raises:
+            ModNotFoundError: The mod is not installed.
+            ApiModNotFoundError: The mod is not in the mod database.
+            ModVersionNotFoundError: No release with this version for the installed modid.
+            ModConfirmationRequiredError: Confirmation is needed and `confirm` is false.
+            ModValidationError: The archive is unusable or is not the requested release.
+            ExternalApiError, DownloadError: The mod database or download failed.
+        """
+        state = self._state_manager.get_mod_by_slug(slug)
+        if state is None:
+            raise ModNotFoundError(slug)
+
+        mod = await self.api_client.get_mod(slug)
+        if mod is None:
+            raise ApiModNotFoundError(slug)
+        try:
+            raw_releases: object = mod.get("releases") or []
+            if not isinstance(raw_releases, list):
+                raise TypeError("mod releases is not a list")
+            releases = [StoredRelease.from_api(r) for r in cast(list[object], raw_releases)]
+        except (TypeError, ValueError) as e:
+            raise ExternalApiError(f"Unexpected mod database response: {e}") from e
+
+        own = [r for r in releases if r.modidstr == slug]
+        target_index = next((i for i, r in enumerate(own) if r.modversion == version), None)
+        if target_index is None:
+            raise ModVersionNotFoundError(slug, version)
+        target = own[target_index]
+        installed_index = next(
+            (i for i, r in enumerate(own) if r.modversion == state.version), None
+        )
+
+        compatibility = check_compatibility(
+            {"tags": target.tags}, self._game_version_provider() or ""
+        )
+        reasons: list[str] = []
+        if compatibility != "compatible":
+            reasons.append(compatibility)
+        if is_prerelease(target.modversion) and not is_prerelease(state.version):
+            reasons.append("prerelease")
+        if installed_index is not None and target_index > installed_index:
+            reasons.append("older")
+        if reasons and not confirm:
+            raise ModConfirmationRequiredError(slug, version, reasons, compatibility)
+
+        archive = await self._acquire_release_archive(slug, target)
+        return PreparedVersionChange(target=target, archive=archive, compatibility=compatibility)
+
+    async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
+        """Return a validated archive for the release: a valid cached copy, or a download."""
+        try:
+            safe_name = safe_release_filename(target.filename)
+        except ValueError as e:
+            raise ModValidationError(slug, str(e)) from e
+
+        cached = self._cache_dir / "mods" / safe_name
+        if cached.exists():
+            if self._archive_matches(cached, slug, target.modversion):
+                logger.debug("mod_release_cache_hit", slug=slug, version=target.modversion)
+                return cached
+            cached.unlink(missing_ok=True)
+
+        path = await self.api_client.download_release_file(slug, target.fileid, target.filename)
+        if not self._archive_matches(path, slug, target.modversion):
+            path.unlink(missing_ok=True)
+            raise ModValidationError(
+                slug, f"archive does not contain {slug} version {target.modversion}"
+            )
+        return path
+
+    def _archive_matches(self, path: Path, slug: str, version: str) -> bool:
+        metadata = self._state_manager.read_modinfo(path)
+        return (
+            metadata is not None
+            and metadata.modid.lower() == slug.lower()
+            and metadata.version == version
+        )
 
     async def install_mod(
         self,

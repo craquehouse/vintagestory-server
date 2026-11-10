@@ -75,11 +75,11 @@ so that **a failed update never leaves me without a working mod**.
   - [x] 2.1: Add `ModStateManager.read_modinfo(zip_path) -> ModMetadata | None`: parse `modinfo.json` with the existing safe extractor and **no caching or fallback**; `None` when missing or invalid
   - [x] 2.2: Tests: valid archive, missing `modinfo.json`, corrupt zip, invalid JSON, wrong field types
 
-- [ ] Task 3: Implement version resolution, confirmation and archive acquisition + tests (AC: 1, 2, 3, 8, 10)
-  - [ ] 3.1: Add `ModService.change_version(slug, version, confirm)`: installed check (`ModNotFoundError`), no-op when already at the version, fresh `get_mod(slug)`, filter releases to `modidstr == slug`, find `modversion == version` (else `ModVersionNotFoundError`)
-  - [ ] 3.2: Compute confirmation reasons before any download (see Dev Notes); raise `ModConfirmationRequiredError(reasons, compatibility)` when any apply and `confirm` is false
-  - [ ] 3.3: Acquire the archive: reuse `{cache}/mods/{safe name}` only if `read_modinfo` matches modid and version, otherwise download with `download_release_file` and validate; a mismatch after download deletes the cached file and raises `ModValidationError`
-  - [ ] 3.4: Tests using `mod_carryon.json` and `mod_instruments.json` (see Testing Requirements)
+- [x] Task 3: Implement version resolution, confirmation and archive acquisition + tests (AC: 1, 2, 3, 8, 10)
+  - [x] 3.1: Add `ModService.change_version(slug, version, confirm)`: installed check (`ModNotFoundError`), no-op when already at the version, fresh `get_mod(slug)`, filter releases to `modidstr == slug`, find `modversion == version` (else `ModVersionNotFoundError`)
+  - [x] 3.2: Compute confirmation reasons before any download (see Dev Notes); raise `ModConfirmationRequiredError(reasons, compatibility)` when any apply and `confirm` is false
+  - [x] 3.3: Acquire the archive: reuse `{cache}/mods/{safe name}` only if `read_modinfo` matches modid and version, otherwise download with `download_release_file` and validate; a mismatch after download deletes the cached file and raises `ModValidationError`
+  - [x] 3.4: Tests using `mod_carryon.json` and `mod_instruments.json` (see Testing Requirements)
 
 - [ ] Task 4: Swap files and state safely + tests (AC: 1, 5, 6, 7, 9)
   - [ ] 4.1: Per-mod `asyncio.Lock`; a busy mod raises `ModVersionChangeInProgressError`
@@ -237,8 +237,12 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: Added `safe_release_filename` (raises `ValueError`; `download_release_file` converts it to `DownloadError`) and extracted `ModApiClient.download_release_file`, which `download_mod` now uses, so the install path also gets sanitized names (`VSS-432`). The temp file is now `<name>.tmp` rather than a swapped suffix, so a release named `x.tmp` cannot collide with its own temp file. 15 tests; existing `test_mod_api.py`, `test_mod_service.py` and `test_mods_router.py` pass unchanged.
 - Task 2: Added `ModStateManager.read_modinfo` (no caching, no fallback, case-insensitive top-level keys as VintageStory reads them). The shared extractor now accepts a UTF-8 byte-order mark, returns `None` for undecodable bytes (previously an uncaught `UnicodeDecodeError`) and for JSON that is not an object; this also benefits `import_mod`. 10 tests; existing mod state and service suites pass.
 
+- Task 3: Added `ModService._prepare_version_change` (installed check, fresh lookup, releases parsed with `StoredRelease.from_api` and filtered to the installed modid, confirmation reasons `not_verified`/`incompatible`/`prerelease`/`older` evaluated before any download) and `_acquire_release_archive` (valid cached copy reused, otherwise downloaded; a mismatched download is deleted and raises `ModValidationError`; an unusable filename raises `ModValidationError`). `ModService` takes an optional `game_version_provider`, defaulting to the installed server version; `installed_game_version` is now public in `mod_updates.py`. A malformed release list raises `ExternalApiError`. 13 tests.
+
 ### File List
 
 - Created: `api/tests/test_mod_version_change.py`
 - Modified: `api/src/vintagestory_api/services/mod_api.py`
 - Modified: `api/src/vintagestory_api/services/mod_state.py`
+- Modified: `api/src/vintagestory_api/services/mods.py`
+- Modified: `api/src/vintagestory_api/services/mod_updates.py`

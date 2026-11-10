@@ -357,7 +357,8 @@ def _record_from_payload(data: object) -> StoredModRecord:
 _mod_update_service: ModUpdateService | None = None
 
 
-def _installed_game_version() -> str | None:
+def installed_game_version() -> str | None:
+    """The installed server version, or None if no server is installed."""
     # Imported here: services/server.py imports the mods module lazily, so a top-level
     # import would risk a cycle.
     from vintagestory_api.services.server import get_server_service
@@ -374,7 +375,7 @@ def get_mod_update_service() -> ModUpdateService:
         _mod_update_service = ModUpdateService(
             store=ModUpdateStore(Settings().state_dir),
             mod_source=get_mod_service(),
-            game_version_provider=_installed_game_version,
+            game_version_provider=installed_game_version,
         )
     return _mod_update_service
 

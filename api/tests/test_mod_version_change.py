@@ -3,14 +3,29 @@
 import io
 import json
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 import respx
 from httpx import Response
 
-from vintagestory_api.services.mod_api import DownloadError, ModApiClient, safe_release_filename
+from vintagestory_api.models.mods import ModState
+from vintagestory_api.services.mod_api import (
+    DownloadError,
+    ModApiClient,
+    ModVersionNotFoundError,
+    safe_release_filename,
+)
 from vintagestory_api.services.mod_state import ModStateManager
+from vintagestory_api.services.mods import (
+    ModConfirmationRequiredError,
+    ModNotFoundError,
+    ModService,
+    ModValidationError,
+)
+from vintagestory_api.services.pending_restart import PendingRestartState
 
 MOD_URL = "https://mods.vintagestory.at/api/mod/{}"
 DOWNLOAD_URL = "https://mods.vintagestory.at/download"
@@ -171,4 +186,205 @@ class TestReadModinfo:
             zf.writestr("modinfo.json", b"\xff\xfe\x00bad")
 
         assert manager.read_modinfo(self.write(tmp_path, buffer.getvalue())) is None
+
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+
+def fixture_json(name: str) -> dict[str, Any]:
+    return json.loads((FIXTURES / f"mod_{name}.json").read_text())
+
+
+def fixture_release(name: str, modid: str, version: str) -> dict[str, Any]:
+    releases: list[dict[str, Any]] = fixture_json(name)["mod"]["releases"]
+    return next(r for r in releases if r["modidstr"] == modid and r["modversion"] == version)
+
+
+def make_service(tmp_path: Path, game_version: str | None = "1.22.7") -> ModService:
+    return ModService(
+        state_dir=tmp_path / "state",
+        mods_dir=tmp_path / "mods",
+        restart_state=PendingRestartState(),
+        cache_dir=tmp_path / "cache",
+        game_version_provider=lambda: game_version,
+    )
+
+
+def install_existing(
+    service: ModService, slug: str, version: str, filename: str, *, enabled: bool = True
+) -> Path:
+    mods_dir = service.state_manager.mods_dir
+    mods_dir.mkdir(parents=True, exist_ok=True)
+    name = filename if enabled else f"{filename}.disabled"
+    path = mods_dir / name
+    path.write_bytes(mod_zip_bytes({"modid": slug, "name": slug, "version": version}))
+    service.state_manager.set_mod_state(
+        name,
+        ModState(
+            filename=name,
+            slug=slug,
+            version=version,
+            enabled=enabled,
+            installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            asset_id=1,
+        ),
+    )
+    service.state_manager.save()
+    return path
+
+
+def mock_lookup(name: str, slug: str) -> None:
+    respx.get(MOD_URL.format(slug)).mock(return_value=Response(200, json=fixture_json(name)))
+
+
+def mock_download(release: dict[str, Any], modinfo: dict[str, Any] | None = None) -> respx.Route:
+    content = mod_zip_bytes(
+        modinfo
+        or {"modid": release["modidstr"], "name": "x", "version": release["modversion"]}
+    )
+    return respx.get(DOWNLOAD_URL, params={"fileid": str(release["fileid"])}).mock(
+        return_value=Response(200, content=content)
+    )
+
+
+class TestPrepareVersionChange:
+    @pytest.mark.asyncio
+    async def test_mod_not_installed(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+
+        with pytest.raises(ModNotFoundError):
+            await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_of_another_modid_is_not_found(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path, game_version="1.21.6")
+        install_existing(service, "instruments", "1.0.1", "instruments_1.0.1.zip")
+        mock_lookup("instruments", "instruments")
+
+        with pytest.raises(ModVersionNotFoundError):
+            await service._prepare_version_change("instruments", "2.0.7", confirm=True)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("game", "installed", "target", "reasons"),
+        [
+            ("1.22.2", "1.14.3", "1.14.1", ["older"]),
+            ("1.22.2", "1.14.3", "2.0.0-rc.1", ["prerelease"]),
+            ("1.22.7", "2.0.0-pre.6", "2.0.0-pre.7", ["not_verified"]),
+            ("1.22.7", "1.14.3", "1.14.1", ["not_verified", "older"]),
+        ],
+    )
+    async def test_confirmation_reasons_block_before_download(
+        self, tmp_path: Path, game: str, installed: str, target: str, reasons: list[str]
+    ) -> None:
+        service = make_service(tmp_path, game_version=game)
+        install_existing(service, "carryon", installed, f"carryon_{installed}.zip")
+        mock_lookup("carryon", "carryon")
+        download = mock_download(fixture_release("carryon", "carryon", target))
+
+        with pytest.raises(ModConfirmationRequiredError) as raised:
+            await service._prepare_version_change("carryon", target, confirm=False)
+
+        assert raised.value.reasons == reasons
+        assert not download.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_confirmed_change_downloads_and_validates(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.3", "carryon_1.14.3.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.1")
+        download = mock_download(release)
+
+        prepared = await service._prepare_version_change("carryon", "1.14.1", confirm=True)
+
+        assert download.called
+        assert prepared.target.modversion == "1.14.1"
+        assert prepared.archive == tmp_path / "cache" / "mods" / release["filename"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_valid_cached_archive_is_reused(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "1.14.3"}))
+        download = mock_download(release)
+
+        prepared = await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+        assert prepared.archive == cached
+        assert not download.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_cached_archive_for_another_version_is_downloaded_again(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "0.0.1"}))
+        download = mock_download(release)
+
+        prepared = await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+        assert download.called
+        assert service.state_manager.read_modinfo(prepared.archive) is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_downloaded_archive_for_another_mod_fails(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        mock_download(release, modinfo={"modid": "someothermod", "name": "x", "version": "1.14.3"})
+
+        with pytest.raises(ModValidationError):
+            await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+        assert not (tmp_path / "cache" / "mods" / release["filename"]).exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_failure_propagates(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        respx.get(DOWNLOAD_URL, params={"fileid": str(release["fileid"])}).mock(
+            return_value=Response(500)
+        )
+
+        with pytest.raises(DownloadError):
+            await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_unusable_release_filename_fails_validation(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "demo_1.0.0.zip")
+        body = {
+            "statuscode": "200",
+            "mod": {
+                "releases": [
+                    {"modversion": "1.1.0", "modidstr": "demo", "fileid": 5, "filename": ".."},
+                    {"modversion": "1.0.0", "modidstr": "demo", "fileid": 4, "filename": "d.zip"},
+                ]
+            },
+        }
+        respx.get(MOD_URL.format("demo")).mock(return_value=Response(200, json=body))
+
+        with pytest.raises(ModValidationError):
+            await service._prepare_version_change("demo", "1.1.0", confirm=True)
 
