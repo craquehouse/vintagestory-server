@@ -36,8 +36,16 @@ if [[ -n ${section//[[:space:]]/} ]]; then
     printf '%s\n' "$section" | sed -e '/./,$!d'
 elif [[ $version == *-* ]]; then
     command -v git-cliff >/dev/null 2>&1 || die "git-cliff not found; run through mise"
-    git cliff --config "$ROOT/cliff.toml" --unreleased --tag "v$version" --strip all 2>/dev/null |
-        sed -e '1{/^## /d;}' -e '/./,$!d'
+    errors=$(mktemp)
+    trap 'rm -f "$errors"' EXIT
+    generated=$(git cliff --config "$ROOT/cliff.toml" --unreleased --tag "v$version" --strip all \
+        2>"$errors") || die "git cliff failed: $(<"$errors")"
+    generated=$(printf '%s\n' "$generated" | sed -e '1{/^## /d;}' -e '/./,$!d')
+    if [[ -n ${generated//[[:space:]]/} ]]; then
+        printf '%s\n' "$generated"
+    else
+        echo "No user-facing changes since the last stable release."
+    fi
 else
     die "CHANGELOG.md has no section for $version; stable releases are cut with just release"
 fi

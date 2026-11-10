@@ -72,7 +72,7 @@ The first push creates the `vintagestory-server` package as **private**, linked 
 
 ## When something goes wrong
 
-- **A job failed for a transient reason** (registry or network errors, a runner problem): **Re-run failed jobs** on the run. Image tags and attestations are simply pushed again. If the **release** job fails after `gh release create` already created the release (for example while uploading the SBOM), a re-run fails with "already exists": finish it by hand (`gh release upload vX.Y.Z sbom.spdx.json`, `gh release edit vX.Y.Z --notes-file notes.md`) or delete the release (`gh release delete vX.Y.Z`) and then re-run.
+- **A job failed for a transient reason** (registry or network errors, a runner problem): **Re-run failed jobs** on the run. Image tags and attestations are pushed again, and the release job updates a release it already created and re-uploads the SBOM.
 - **A job failed because of a bug in the workflow or the code:** a re-run uses the workflow file and code of the tagged commit, so a fix pushed to `main` does not reach it. Fix it on `main`, then cut the next version (a new patch or pre-release) instead of reusing the tag.
 - **A broken release must be withdrawn:** delete the GitHub release (`gh release delete vX.Y.Z`) and, if needed, the package version on GHCR. Do not reuse the version: tags are cached by users and mirrors. Cut the next patch version with the fix.
 - **The tag was pushed but `CHANGELOG.md` is wrong:** fix `CHANGELOG.md` in a normal commit; edit the GitHub release notes with `gh release edit vX.Y.Z --notes-file …`.

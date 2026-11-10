@@ -68,6 +68,12 @@ assert_contains "pre-release: generated notes" "- After 0.2.0" "$OUT"
 assert_contains "pre-release: generated notes" "- Another fix" "$OUT"
 assert_eq "pre-release: starts at the first group (no version heading)" "### Features" "$(head -1 <<<"$OUT")"
 
+g tag -a v0.3.0 -m v0.3.0
+notes 0.4.0-rc.1
+assert_eq "pre-release with nothing new: placeholder" \
+    "No user-facing changes since the last stable release." "$OUT"
+g tag -d v0.3.0 >/dev/null
+
 notes 0.4.0
 assert_eq "stable without a section: exit" 1 "$STATUS"
 assert_contains "stable without a section: message" "no section for 0.4.0" "$ERR"
