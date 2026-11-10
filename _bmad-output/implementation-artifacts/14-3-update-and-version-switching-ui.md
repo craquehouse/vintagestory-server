@@ -69,11 +69,11 @@ so that **I can manage versions without touching files**.
   - [x] 3.2: "Check for updates" button and "Last checked …" text in `InstalledTab`; spinner while running; error toast on failure (including 409 when a check is already running)
   - [x] 3.3: Component tests for each status, the check button and last-checked text
 
-- [ ] Task 4: Version change flow with confirmation + tests (AC: 2, 3, 4, 7)
-  - [ ] 4.1: Shared `useVersionChangeFlow()` hook or component: call `changeModVersion` without `confirm`; on `MOD_CONFIRMATION_REQUIRED` open `VersionChangeConfirmDialog` listing reasons; on confirm retry with `confirm: true`
-  - [ ] 4.2: `VersionChangeConfirmDialog` (AlertDialog): title "Update {name} to v{version}?" or "Switch {name} to v{version}?", one line per reason, primary "Update anyway" / "Switch anyway", "Cancel" secondary (UX spec Compatibility Warnings)
-  - [ ] 4.3: Update action in the Available column uses the flow; per-row spinner; success and error toasts (restart wording when the server is running)
-  - [ ] 4.4: Tests: compatible update (no dialog), each reason rendered, confirm retries with `confirm: true`, cancel makes no second call, error toast
+- [x] Task 4: Version change flow with confirmation + tests (AC: 2, 3, 4, 7)
+  - [x] 4.1: Shared `useVersionChangeFlow()` hook or component: call `changeModVersion` without `confirm`; on `MOD_CONFIRMATION_REQUIRED` open `VersionChangeConfirmDialog` listing reasons; on confirm retry with `confirm: true`
+  - [x] 4.2: `VersionChangeConfirmDialog` (AlertDialog): title "Update {name} to v{version}?" or "Switch {name} to v{version}?", one line per reason, primary "Update anyway" / "Switch anyway", "Cancel" secondary (UX spec Compatibility Warnings)
+  - [x] 4.3: Update action in the Available column uses the flow; per-row spinner; success and error toasts (restart wording when the server is running)
+  - [x] 4.4: Tests: compatible update (no dialog), each reason rendered, confirm retries with `confirm: true`, cancel makes no second call, error toast
 
 - [ ] Task 5: Version switching on the mod detail page + tests (AC: 6)
   - [ ] 5.1: In `InstallSection`, when installed: offered update from `useModUpdates()`; version list filtered to `release.modidstr === installed slug`; the action button switches versions through the Task 4 flow

@@ -5,6 +5,7 @@
  * - Displays mod name, version, compatibility status
  * - Enable/disable toggle with optimistic updates
  * - Remove button with confirmation dialog
+ * - Available column with update action and confirmation (Story 14.3)
  * - Sortable columns with persistent sort preference (VSS-g54)
  * - Empty state when no mods installed
  */
@@ -44,6 +45,8 @@ import {
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
 import { ModUpdateCell } from '@/components/ModUpdateCell';
+import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
+import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import {
   useMods,
   useEnableMod,
@@ -121,6 +124,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: disableMod, isPending: isDisabling, variables: disablingSlug } = useDisableMod();
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
+  const versionChange = useVersionChangeFlow();
+  const { start: startVersionChange, pendingSlug: changingSlug } = versionChange;
 
   const mods = modsData?.data?.mods ?? [];
 
@@ -192,6 +197,19 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       });
     }
   }, [disableMod, enableMod, onToggled]);
+
+  // Story 14.3: apply the offered update through the confirmation flow
+  const handleUpdate = useCallback((mod: ModTableRow) => {
+    const offered = mod.updateStatus?.offeredVersion;
+    if (!offered) return;
+    startVersionChange({
+      slug: mod.slug,
+      name: mod.name || mod.slug,
+      version: offered,
+      installedVersion: mod.version,
+      kind: 'update',
+    });
+  }, [startVersionChange]);
 
   const handleRemoveClick = useCallback((mod: ModInfo) => {
     setModToRemove(mod);
@@ -281,7 +299,12 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       id: 'available',
       header: 'Available',
       cell: ({ row }) => (
-        <ModUpdateCell status={row.original.updateStatus} gameVersion={gameVersion} />
+        <ModUpdateCell
+          status={row.original.updateStatus}
+          gameVersion={gameVersion}
+          onUpdate={() => handleUpdate(row.original)}
+          isUpdating={changingSlug === row.original.slug}
+        />
       ),
     }),
     columnHelper.accessor('side', {
@@ -349,7 +372,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       },
       meta: { className: 'w-[80px]' },
     }),
-  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion]);
+  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, changingSlug]);
 
   const table = useTable({
     features,
@@ -413,6 +436,13 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           ))}
         </TableBody>
       </Table>
+
+      <VersionChangeConfirmDialog
+        confirmation={versionChange.confirmation}
+        gameVersion={gameVersion}
+        onConfirm={versionChange.confirm}
+        onCancel={versionChange.cancel}
+      />
 
       {/* Remove confirmation dialog */}
       <AlertDialog
