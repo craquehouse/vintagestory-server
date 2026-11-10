@@ -64,7 +64,7 @@ so that **I can deploy and upgrade predictably**.
 
 - [x] [AI-Review][Medium] "Fix the workflow on `main`, then re-run failed jobs" cannot work: a re-run uses the tagged commit's workflow and code. Recovery now separates transient failures (re-run) from bugs (fix on `main`, cut the next version)
 - [x] [AI-Review][Medium] "Re-running is safe" was wrong for the release job: `gh release create` fails if the release already exists. The guide says how to finish or delete a partial release before re-running
-- [ ] [AI-Review][Low] README says MIT but there is no `LICENSE` file (maintainer decision; open)
+- [x] [AI-Review][Low] README says MIT but there is no `LICENSE` file: maintainer chose MIT; `LICENSE` added
 - [x] [AI-Review][Low] `CLAUDE.md` said a release publishes a "public image"; the image is private until the visibility step: now "pushes the image to GHCR"
 - [x] [AI-Review][Low] `VS_API_KEY` "must equal" a role key: README now says other values log a warning and the UI cannot sign in
 - [x] [AI-Review][Info] The Installation nav item reads "Version" once a server is installed: noted in the README
@@ -99,7 +99,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - **Review scope:** Tasks 1-5 are complete. Task 6 (cutting `v0.1.0`) is the maintainer's, after the merge and Story 15.5's release-candidate run.
 - Task 1: README rewritten: what it is, delivered features (Epics 1-14), installation from a pinned GHCR release, security note on the runtime key (and the read-only Monitor option), upgrading, verifying provenance and the SBOM attestation (`--predicate-type https://spdx.dev/Document/v2.3`, the SPDX 2.3 predicate `actions/attest` uses for SPDX JSON; Story 15.5's release-candidate run confirms it), a configuration table, development setup from `.mise.toml`, the real commands (`just docker start`, `just test-e2e-api`, `just test-e2e-web`), and a link to `RELEASING.md`. The old README's "Features (Planned)", Python 3.13 and `just docker-start`/`just test-e2e` are gone.
 - **Found:** `VS_GAME_VERSION` is no longer read by the API since `VSS-tpe` (nothing uses `Settings.game_version`), though compose files and `.env.example` still set it. The README does not document it; filed `VSS-ms0`.
-- **Found:** there is no `LICENSE` file although the README says MIT; left for the maintainer to decide.
+- **Found:** there was no `LICENSE` file although the README says MIT; the maintainer chose MIT and `LICENSE` was added.
 - Task 2: `RELEASING.md`: versions and 0.x bump rules, pre-release forms and their PEP 440 spelling, which commits become notes (types, breaking markers, hidden scopes, the `api`/`web`/`docker` allowlist, the invalid `feat!(api):` spelling), `just changelog`, `just release` (preconditions, steps, rollback, hooks skipped, hand-written sections, `uv.lock` revision churn), what the workflow publishes, the one-time package visibility step, and recovery (re-run failed jobs, withdrawing a release, fixing notes).
 - Task 3: `CLAUDE.md` commands (scripts, workflows, releases) and a rule never to run a real release or push a tag unless asked; Git Workflow rule that commit types are release notes. `AGENTS.md` gets the same rule. `docker-compose.yaml` comments on pinning a version.
 - Task 4: `CHANGELOG.md` with the `cliff.toml` header and a hand-written `## [0.1.0] - 2026-11-10` summary. A dry run of `release.sh 0.1.0` in a temporary clone uses this section, and `release-notes.sh 0.1.0` prints it. **If `v0.1.0` is cut on a later day, update the date in the heading first.**
@@ -107,7 +107,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### File List
 
-- Created: `RELEASING.md`, `CHANGELOG.md`
+- Created: `RELEASING.md`, `CHANGELOG.md`, `LICENSE`
 - Modified: `README.md`, `CLAUDE.md`, `AGENTS.md`, `docker-compose.yaml`
 
 ## Change Log
@@ -115,12 +115,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 - 2026-11-10: Story created.
 - 2026-11-10: Tasks 1-5 done; `just check` passes. Status review; Task 6 follows the merge and the release-candidate run.
 - 2026-11-10: Code review (GLM-5.3-Flash, Changes Requested). Fixed both Mediums and two Lows; `LICENSE` left to the maintainer. Code review complete; the story stays in review until Task 6 (`v0.1.0`).
+- 2026-11-10: Maintainer chose MIT; `LICENSE` added.
 
 ## Senior Developer Review (AI)
 
 **Date:** 2026-11-10
 **Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `7275d7f`..`82be309`
-**Outcome:** Changes Requested → resolved (one Low left to the maintainer)
+**Outcome:** Changes Requested → resolved
 
 **Summary:** Every command, path, variable and behavior claim in the README and release guide was checked against the Justfile, `.mise.toml`, the scripts, `cliff.toml`, the workflow and the API; the SPDX predicate type was confirmed in `actions/attest`'s source; the `CHANGELOG.md` summary was traced to shipped code (no overclaims). The recovery section misdescribed re-runs.
 
@@ -128,6 +129,6 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - [x] [Medium] Re-runs use the tagged commit's workflow
 - [x] [Medium] Partial GitHub release on re-run
-- [ ] [Low] `LICENSE` file (maintainer)
+- [x] [Low] `LICENSE` file (maintainer chose MIT)
 - [x] [Low] "Public image" wording
 - [x] [Low] `VS_API_KEY` enforcement wording

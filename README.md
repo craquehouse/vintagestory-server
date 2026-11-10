@@ -120,4 +120,4 @@ Commit messages become release notes, and releases are cut with `just release`. 
 
 ## License
 
-MIT
+MIT, see [`LICENSE`](LICENSE).
