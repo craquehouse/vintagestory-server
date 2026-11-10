@@ -173,6 +173,15 @@ development_status:
   14-4-update-all: done
   14-5-scheduled-checks-and-update-badges: done
   14-6-webhook-alerts: done
+  epic-15: backlog
+  epic-15-retrospective: optional
+  15-0-epic-15-technical-preparation: backlog
+  15-1-single-version-source-and-version-display: backlog
+  15-2-runtime-api-key-for-the-web-ui: backlog
+  15-3-changelog-generation: backlog
+  15-4-release-command: backlog
+  15-5-release-workflow: backlog
+  15-6-release-documentation-and-first-release: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

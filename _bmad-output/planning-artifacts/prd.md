@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-09'
+lastUpdated: '2026-11-10'
 updates:
+  - date: '2026-11-10'
+    description: 'Added FR152-FR166 and NFR17-NFR18 for Epic 15 (Release Engineering)'
   - date: '2026-11-09'
     description: 'Added FR129-FR151 for Epic 14 (Mod Updates)'
   - date: '2026-01-10'
@@ -126,7 +128,8 @@ Two core capabilities define this product:
 - Mod version switching (rollback to previous versions) (Epic 14)
 - Backup management (create, restore, download)
 - Renovate integration for automated dependency updates
-- SBOM generation and security scanning in CI
+- SBOM generation (Epic 15) and security scanning in CI
+- Versioned GitHub releases with changelogs and published images (Epic 15)
 - Prometheus metrics endpoint (`/metrics`)
 - Enhanced API documentation (OpenAPI UI)
 
@@ -265,7 +268,8 @@ If trivial to implement:
 - Backup management (create, restore, download)
 - Prometheus `/metrics` endpoint
 - Renovate integration for dependency updates
-- SBOM generation and security scanning
+- SBOM generation (Epic 15) and security scanning
+- Versioned GitHub releases with changelogs and published images (Epic 15)
 
 **Phase 3 - Vision:**
 
@@ -379,6 +383,11 @@ If trivial to implement:
 - NFR14: API server logs are structured (JSON) for easy parsing; game server logs remain in their native format
 - NFR15: Health endpoints differentiate between "API healthy" and "game server healthy"
 - NFR16: Errors include sufficient context for debugging without exposing sensitive data
+
+### Release & Supply Chain
+
+- NFR17: Release automation uses least-privilege token permissions per job and actions pinned to commit SHAs
+- NFR18: Published images carry OCI labels recording their version, source revision and repository
 
 ---
 
@@ -597,3 +606,35 @@ If trivial to implement:
 - FR149: Admin can configure an outbound webhook URL for update alerts; the URL is treated as a secret, is Admin-only, and is never logged or exposed to Monitor
 - FR150: A webhook alert is sent once for each newly available update, not repeated on every check
 - FR151: A webhook delivery failure is logged and does not affect update checks
+
+### Epic 15: Release Engineering
+
+#### Versioning
+
+- FR152: The API, web UI and container image share one Semantic Versioning version, kept in the project files a release updates and hard-coded nowhere else
+- FR153: The API reports its version in the OpenAPI document and the `/healthz` response
+- FR154: The web UI shows the running version
+
+#### Changelog
+
+- FR155: The changelog is generated from conventional commit messages, listing features, fixes, performance improvements and breaking changes grouped by type; other commit types, merge commits and non-conventional messages are left out
+- FR156: Changelog entries omit internal planning scopes (story, task and review identifiers)
+- FR157: Developer can preview the changelog for unreleased changes without making a release
+
+#### Cutting a Release
+
+- FR158: Developer can cut a release with one command that uses the version computed from commits since the last release, or an explicit bump or version, then updates the version files and CHANGELOG.md, commits, tags and pushes
+- FR159: The release command refuses to run unless on an up-to-date `main` with a clean working tree, and refuses a version that is already tagged or not newer than the last release
+- FR160: The release command offers a dry run that shows the version and notes without changing anything
+
+#### Publishing
+
+- FR161: Pushing a version tag publishes a GitHub release whose notes are that version's changelog section
+- FR162: Pushing a version tag publishes the image to GHCR as `X.Y.Z`, `X.Y` and `latest`; a pre-release version (e.g. `0.2.0-rc.1`) gets only its full tag and is marked as a pre-release on GitHub
+- FR163: Publishing stops before anything is published if the tag does not match the repository's version
+- FR164: Each published image has an SBOM and signed build provenance that users can verify; the SBOM is attached to the GitHub release
+
+#### Runtime Configuration and Documentation
+
+- FR165: The published image contains no API key; the web UI receives its API key from the server's configuration at runtime, so one image works for every deployment
+- FR166: Documentation explains installing and upgrading to a specific release, verifying an image, writing commits that become release notes, and cutting a release
