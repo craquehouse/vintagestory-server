@@ -1,6 +1,6 @@
 # Story 14.6: Webhook Alerts
 
-Status: review
+Status: done
 
 ## Story
 
@@ -73,6 +73,7 @@ so that **I find out without opening the UI**.
 - [x] [AI-Review][Low] A first line too long for the limit produced an alert naming no mod; a newline in a mod name forged summary lines [services/mod_update_alerts.py]
 - [x] [AI-Review][Low] A mod downgraded below an already-alerted version is not alerted again (accepted: ADR-6 "one alert per mod and version")
 - [x] [AI-Review][Low] The configured status is not part of the input's accessible description [ModUpdateWebhookSetting.tsx]
+- [x] [AI-Review][Low] (follow-up) A settings file that is valid JSON but not an object, or not UTF-8, raises from `get_settings()` and stops the API from starting [services/api_settings.py]
 
 ## Dev Notes
 
@@ -130,6 +131,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Review: verdict Changes Requested (M1). Fixed: settings load failures log field names and messages only (`errors(include_input=False)`), tested with a short and an over-long invalid URL; the summary always names at least one mod (an oversized first line is shortened) and mod database text is put on one line; `updateApiSetting` refuses secret keys and the generic hook never caches them; the doc comment is back on `updateApiSetting`; the input's description starts with Configured / Not configured. Accepted L1 and L5 as recorded above. 7 tests added; `just check` passes with 2023 API and 2999 web tests.
 
+- Follow-up review: verdict Approve; every earlier finding verified resolved, including hostile settings files probed for any trace of the URL. Fixed its new Low: a non-object or non-UTF-8 `api-settings.json` now falls back to defaults with a value-free log line instead of raising (6 tests). `just test-api` passes with 2029 tests.
+
 ### File List
 
 - Created: `api/src/vintagestory_api/services/mod_update_alerts.py`, `api/tests/test_mod_update_alerts.py`
@@ -162,4 +165,17 @@ Claude Opus 5.5 (claude-opus-5-5)
 - [x] [Low] Summary could name no mod; newlines forge lines
 - [x] [Low] No re-alert after a downgrade (accepted)
 - [x] [Low] Configured status not in the input's description
+- 2026-11-09: Follow-up review (GLM-5.3-Flash, Approve). Fixed its Low, status done.
+
+## Senior Developer Review (AI): Follow-up
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `42189f7` and `2583e04`
+**Outcome:** Approve
+
+**Summary:** M1, L2, L3, L4 and L6 resolved. Hostile settings files (wrong types, nested objects, unicode, 5000-character URLs, extra keys, truncated JSON, invalid UTF-8) put no part of the URL into any log line, escaping exception or response; the summary stays within 2000 characters and always names a mod across a 20,000-case property probe. No suppressions.
+
+### Action Items
+
+- [x] [Low] Non-object or non-UTF-8 settings file escapes `get_settings()` and blocks startup
 
