@@ -181,7 +181,7 @@ development_status:
   15-3-changelog-generation: done
   15-4-release-command: done
   15-5-release-workflow: review
-  15-6-release-documentation-and-first-release: ready-for-dev
+  15-6-release-documentation-and-first-release: review
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

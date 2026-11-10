@@ -1,6 +1,6 @@
 # Story 15.6: Release Documentation and First Release
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -31,30 +31,30 @@ so that **I can deploy and upgrade predictably**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: README (AC: 1, 3)
-  - [ ] 1.1: Installation from a pinned release (`ghcr.io/craquehouse/vintagestory-server:X.Y.Z` in `docker-compose.yaml`), configuration (`.env` from `.env.example`), first start
-  - [ ] 1.2: Upgrading (change the tag, `docker compose pull && docker compose up -d`; data lives in the volume), and where release notes are (GitHub releases, `CHANGELOG.md`)
-  - [ ] 1.3: Verifying an image: `gh attestation verify oci://ghcr.io/craquehouse/vintagestory-server:X.Y.Z --owner craquehouse`, and the SBOM attestation (`--predicate-type https://spdx.dev/Document/v2.3`)
-  - [ ] 1.4: Security note: the web UI receives `VS_API_KEY` (or the Admin key) at runtime, so anyone who can load the UI has that key; keep the port on a trusted network or behind authentication; `VS_API_KEY` set to the Monitor key gives a read-only UI
-  - [ ] 1.5: Accuracy pass: delivered features (Epics 1-14), components, development setup (tool versions from `.mise.toml`), commands from the Justfile (`just docker start`, `just test-e2e-api`, `just test-e2e-web`, …), link to `RELEASING.md`
+- [x] Task 1: README (AC: 1, 3)
+  - [x] 1.1: Installation from a pinned release (`ghcr.io/craquehouse/vintagestory-server:X.Y.Z` in `docker-compose.yaml`), configuration (`.env` from `.env.example`), first start
+  - [x] 1.2: Upgrading (change the tag, `docker compose pull && docker compose up -d`; data lives in the volume), and where release notes are (GitHub releases, `CHANGELOG.md`)
+  - [x] 1.3: Verifying an image: `gh attestation verify oci://ghcr.io/craquehouse/vintagestory-server:X.Y.Z --owner craquehouse`, and the SBOM attestation (`--predicate-type https://spdx.dev/Document/v2.3`)
+  - [x] 1.4: Security note: the web UI receives `VS_API_KEY` (or the Admin key) at runtime, so anyone who can load the UI has that key; keep the port on a trusted network or behind authentication; `VS_API_KEY` set to the Monitor key gives a read-only UI
+  - [x] 1.5: Accuracy pass: delivered features (Epics 1-14), components, development setup (tool versions from `.mise.toml`), commands from the Justfile (`just docker start`, `just test-e2e-api`, `just test-e2e-web`, …), link to `RELEASING.md`
 
-- [ ] Task 2: Release guide `RELEASING.md` (AC: 2)
-  - [ ] 2.1: Versioning (one SemVer version; 0.x rules; pre-releases `-alpha.N`/`-beta.N`/`-rc.N`), which commits become notes (types, `!`/`BREAKING CHANGE`, hidden scopes, the `api`/`web`/`docker` allowlist, `feat!(api):` is not valid and is dropped), `just changelog`
-  - [ ] 2.2: Cutting a release: `just release --dry-run`, `just release [patch|minor|major|X.Y.Z[-pre]]`, preconditions, confirmation, rollback, repository hooks skipped, pre-releases leave `CHANGELOG.md` alone, hand-written sections are kept, `uv.lock` `revision` churn after a Renovate uv bump
-  - [ ] 2.3: What the workflow publishes (GitHub release, GHCR tags, SBOM, provenance) and how to watch it; one-time GHCR package visibility step; recovering from a failed run (re-run failed jobs; deleting a broken tag and release)
+- [x] Task 2: Release guide `RELEASING.md` (AC: 2)
+  - [x] 2.1: Versioning (one SemVer version; 0.x rules; pre-releases `-alpha.N`/`-beta.N`/`-rc.N`), which commits become notes (types, `!`/`BREAKING CHANGE`, hidden scopes, the `api`/`web`/`docker` allowlist, `feat!(api):` is not valid and is dropped), `just changelog`
+  - [x] 2.2: Cutting a release: `just release --dry-run`, `just release [patch|minor|major|X.Y.Z[-pre]]`, preconditions, confirmation, rollback, repository hooks skipped, pre-releases leave `CHANGELOG.md` alone, hand-written sections are kept, `uv.lock` `revision` churn after a Renovate uv bump
+  - [x] 2.3: What the workflow publishes (GitHub release, GHCR tags, SBOM, provenance) and how to watch it; one-time GHCR package visibility step; recovering from a failed run (re-run failed jobs; deleting a broken tag and release)
 
-- [ ] Task 3: Agent and compose docs (AC: 2)
-  - [ ] 3.1: `CLAUDE.md`: commands (`just version`, `just changelog`, `just release`, `just test-scripts`, `just lint-scripts`, `just lint-workflows`); Git Workflow: `feat`/`fix`/`perf` subjects become release notes
-  - [ ] 3.2: `AGENTS.md`: the same commit-message rule for other agents
-  - [ ] 3.3: `docker-compose.yaml`: comment on pinning a version tag instead of `latest`
+- [x] Task 3: Agent and compose docs (AC: 2)
+  - [x] 3.1: `CLAUDE.md`: commands (`just version`, `just changelog`, `just release`, `just test-scripts`, `just lint-scripts`, `just lint-workflows`); Git Workflow: `feat`/`fix`/`perf` subjects become release notes
+  - [x] 3.2: `AGENTS.md`: the same commit-message rule for other agents
+  - [x] 3.3: `docker-compose.yaml`: comment on pinning a version tag instead of `latest`
 
-- [ ] Task 4: Seed `CHANGELOG.md` (AC: 4)
-  - [ ] 4.1: `CHANGELOG.md` with the header from `cliff.toml` and a hand-written `## [0.1.0] - YYYY-MM-DD` summary of the product (Story 15.4 keeps it; `release-notes.sh` publishes it)
-  - [ ] 4.2: `just release --dry-run 0.1.0` in a temporary clone shows the hand-written notes
+- [x] Task 4: Seed `CHANGELOG.md` (AC: 4)
+  - [x] 4.1: `CHANGELOG.md` with the header from `cliff.toml` and a hand-written `## [0.1.0] - YYYY-MM-DD` summary of the product (Story 15.4 keeps it; `release-notes.sh` publishes it)
+  - [x] 4.2: `just release --dry-run 0.1.0` in a temporary clone shows the hand-written notes
 
-- [ ] Task 5: Validation (AC: 1-3)
-  - [ ] 5.1: Check every command and path in the README and guide against the Justfile and repository
-  - [ ] 5.2: `just check`; update the Dev Agent Record and File List
+- [x] Task 5: Validation (AC: 1-3)
+  - [x] 5.1: Check every command and path in the README and guide against the Justfile and repository
+  - [x] 5.2: `just check`; update the Dev Agent Record and File List
 
 - [ ] Task 6: First release, cut by the maintainer (AC: 4) — after Story 15.5's release-candidate run
   - [ ] 6.1: Maintainer runs `just release 0.1.0` from `main`
@@ -83,10 +83,25 @@ FR166 and the first release. **The maintainer cuts every release and approves ev
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Completion Notes List
 
+- **Review scope:** Tasks 1-5 are complete. Task 6 (cutting `v0.1.0`) is the maintainer's, after the merge and Story 15.5's release-candidate run.
+- Task 1: README rewritten: what it is, delivered features (Epics 1-14), installation from a pinned GHCR release, security note on the runtime key (and the read-only Monitor option), upgrading, verifying provenance and the SBOM attestation (`--predicate-type https://spdx.dev/Document/v2.3`, the SPDX 2.3 predicate `actions/attest` uses for SPDX JSON; Story 15.5's release-candidate run confirms it), a configuration table, development setup from `.mise.toml`, the real commands (`just docker start`, `just test-e2e-api`, `just test-e2e-web`), and a link to `RELEASING.md`. The old README's "Features (Planned)", Python 3.13 and `just docker-start`/`just test-e2e` are gone.
+- **Found:** `VS_GAME_VERSION` is no longer read by the API since `VSS-tpe` (nothing uses `Settings.game_version`), though compose files and `.env.example` still set it. The README does not document it; filed `VSS-ms0`.
+- **Found:** there is no `LICENSE` file although the README says MIT; left for the maintainer to decide.
+- Task 2: `RELEASING.md`: versions and 0.x bump rules, pre-release forms and their PEP 440 spelling, which commits become notes (types, breaking markers, hidden scopes, the `api`/`web`/`docker` allowlist, the invalid `feat!(api):` spelling), `just changelog`, `just release` (preconditions, steps, rollback, hooks skipped, hand-written sections, `uv.lock` revision churn), what the workflow publishes, the one-time package visibility step, and recovery (re-run failed jobs, withdrawing a release, fixing notes).
+- Task 3: `CLAUDE.md` commands (scripts, workflows, releases) and a rule never to run a real release or push a tag unless asked; Git Workflow rule that commit types are release notes. `AGENTS.md` gets the same rule. `docker-compose.yaml` comments on pinning a version.
+- Task 4: `CHANGELOG.md` with the `cliff.toml` header and a hand-written `## [0.1.0] - 2026-11-10` summary. A dry run of `release.sh 0.1.0` in a temporary clone uses this section, and `release-notes.sh 0.1.0` prints it. **If `v0.1.0` is cut on a later day, update the date in the heading first.**
+- Task 5: every `just` recipe and file link in the README and guide checked against the Justfile and repository. `just check` passes.
+
 ### File List
+
+- Created: `RELEASING.md`, `CHANGELOG.md`
+- Modified: `README.md`, `CLAUDE.md`, `AGENTS.md`, `docker-compose.yaml`
 
 ## Change Log
 
 - 2026-11-10: Story created.
+- 2026-11-10: Tasks 1-5 done; `just check` passes. Status review; Task 6 follows the merge and the release-candidate run.
