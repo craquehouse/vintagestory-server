@@ -180,7 +180,7 @@ development_status:
   15-2-runtime-api-key-for-the-web-ui: done
   15-3-changelog-generation: done
   15-4-release-command: done
-  15-5-release-workflow: backlog
+  15-5-release-workflow: ready-for-dev
   15-6-release-documentation-and-first-release: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
