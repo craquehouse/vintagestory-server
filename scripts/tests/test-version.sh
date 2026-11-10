@@ -68,4 +68,18 @@ script version.sh "$dir" >/dev/null 2>"$dir/err"
 assert_eq "uv.lock without the project: exit" 1 "$?"
 assert_contains "uv.lock without the project: explains" "api/uv.lock has ''" "$(<"$dir/err")"
 
+dir=$(make_tmp)
+version_files "$dir" 0.1.0 0.1.0 0.1.0
+rm "$dir/api/uv.lock"
+script version.sh "$dir" >/dev/null 2>"$dir/err"
+assert_eq "missing uv.lock: exit" 1 "$?"
+assert_contains "missing uv.lock: names the file" "api/uv.lock not found" "$(<"$dir/err")"
+
+dir=$(make_tmp)
+version_files "$dir" 0.1.0 0.1.0 0.1.0
+printf '[project\nversion = \n' > "$dir/api/pyproject.toml"
+script version.sh "$dir" >/dev/null 2>"$dir/err"
+assert_eq "unparseable pyproject.toml: exit" 1 "$?"
+assert_contains "unparseable pyproject.toml: names the file" "cannot parse api/pyproject.toml" "$(<"$dir/err")"
+
 finish

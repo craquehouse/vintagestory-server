@@ -22,9 +22,20 @@ die() {
 
 command -v yq >/dev/null 2>&1 || die "yq not found; run through mise (just version)"
 
-semver=$(yq -oy '.version // ""' "$ROOT/web/package.json")
-pyproject=$(yq -p toml -oy '.project.version // ""' "$ROOT/api/pyproject.toml")
-lock=$(yq -p toml -oy '[.package[] | select(.name == "vintagestory-api") | .version][0] // ""' "$ROOT/api/uv.lock")
+for file in web/package.json api/pyproject.toml api/uv.lock; do
+    [[ -f $ROOT/$file ]] || die "$file not found under $ROOT"
+done
+
+# read <file> [yq args...]: a field from a version file, naming the file if it cannot be parsed
+read_field() {
+    local file=$1
+    shift
+    yq "$@" "$ROOT/$file" 2>/dev/null || die "cannot parse $file"
+}
+
+semver=$(read_field web/package.json -oy '.version // ""')
+pyproject=$(read_field api/pyproject.toml -p toml -oy '.project.version // ""')
+lock=$(read_field api/uv.lock -p toml -oy '[.package[] | select(.name == "vintagestory-api") | .version][0] // ""')
 
 pattern='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$'
 [[ $semver =~ $pattern ]] ||
