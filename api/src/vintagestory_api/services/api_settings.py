@@ -166,10 +166,14 @@ class ApiSettingsService:
         try:
             content = self._settings_file.read_text()
             data = json.loads(content)
-            settings = ApiSettings(**data)
+            if not isinstance(data, dict):
+                raise ValueError("settings file is not a JSON object")
+            settings = ApiSettings.model_validate(data)
             logger.debug("api_settings_loaded", path=str(self._settings_file))
             return settings
-        except (json.JSONDecodeError, ValidationError) as e:
+        except (ValidationError, ValueError) as e:
+            # ValueError covers json.JSONDecodeError, UnicodeDecodeError (bytes that are
+            # not UTF-8) and a top level that is not an object.
             # Graceful degradation: return defaults on corrupt/invalid file rather than
             # failing the request. This ensures the API remains operational even if the
             # settings file is manually edited incorrectly. The warning log allows

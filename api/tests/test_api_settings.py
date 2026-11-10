@@ -926,3 +926,16 @@ class TestModUpdateWebhookSetting:
         assert "leaked-secret-token" not in out
         assert "mod_update_webhook_url" in out  # the field is named, its value is not
 
+    @pytest.mark.parametrize(
+        "raw",
+        [b"[]", b'"a string"', b"42", b"null", b"true", b"\xff\xfe not utf-8"],
+    )
+    def test_settings_file_of_the_wrong_shape_falls_back_to_defaults(
+        self, service: ApiSettingsService, capsys: pytest.CaptureFixture[str], raw: bytes
+    ) -> None:
+        """A hand-edited file must not stop the API from starting (review follow-up)."""
+        service.settings_file.write_bytes(raw)
+
+        assert service.get_settings() == ApiSettings()
+        assert "api_settings_load_failed" in capsys.readouterr().out
+
