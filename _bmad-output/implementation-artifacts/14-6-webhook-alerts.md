@@ -1,6 +1,6 @@
 # Story 14.6: Webhook Alerts
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -59,10 +59,10 @@ so that **I find out without opening the UI**.
   - [x] 4.2: "Update Alerts" group in `ApiSettingsPanel`: Configured / Not configured, a URL input (never prefilled) with Save, and Clear when configured; client-side http/https check; toasts
   - [x] 4.3: Tests
 
-- [ ] Task 5: Manual verification and final validation (AC: all)
-  - [ ] 5.1: Throwaway container: set the webhook from the UI, run a check, confirm one Discord message, run another check and confirm no repeat; confirm the URL appears in no container log line and no API response
-  - [ ] 5.2: Obtain the test Discord webhook URL only through the private secret prompt; never write it to the repo, story, logs or chat
-  - [ ] 5.3: Run `just check`; update the Dev Agent Record and File List
+- [x] Task 5: Manual verification and final validation (AC: all)
+  - [x] 5.1: Throwaway container: set the webhook from the UI, run a check, confirm one Discord message, run another check and confirm no repeat; confirm the URL appears in no container log line and no API response
+  - [x] 5.2: Obtain the test Discord webhook URL only through the private secret prompt; never write it to the repo, story, logs or chat
+  - [x] 5.3: Run `just check`; update the Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -104,8 +104,30 @@ FR149–FR151 (ADR-6). Alerts follow the update check, so scheduled checks (Stor
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Browser verification screenshots were kept locally only (`.playwright-mcp/`, git-ignored). The Discord URL was never typed in the browser or written to any file in the repo.
 
 ### Completion Notes List
 
+- Task 1: `ApiSettings.mod_update_webhook_url` (`str | None`, max 2048) with a validator for http or https and a host; `""` or `null` clears it. Validation messages never include the value. `ApiSettings.redacted()` replaces it with `mod_update_webhook_configured` for `GET /config/api`; updating it returns `{key, configured}` and logs `configured` and `was_configured` instead of values (`SECRET_SETTINGS`). 13 tests.
+- Task 2: `services/mod_update_alerts.py`: Discord detection (ADR-6 hosts, case-insensitive, `/api/webhooks/` path), summary lines with compatibility labels, cut with "…and N more" to 2000 characters for every receiver, receiver-specific payloads, and `send_update_alert` (10 s timeout, no redirects, True only for 2xx; failures logged by status code or exception type, never the URL or exception text). 26 tests, including replayed Discord 204, 429 and 404 bodies and a 302 that is not followed.
+- Task 3: `ModUpdatesFile.notified` (modid → offered version alerted) with store accessors and pruning. `ModUpdateService.check()` sends one alert for update_available mods whose offered version is not recorded, inside the check lock and after saving, and records them only after a 2xx. The webhook URL comes from API settings on each check (`webhook_url_provider`). 9 tests.
+- Task 4: `ModUpdateWebhookSetting` in a new "Update Alerts" group: Configured / Not configured, a URL input that is never prefilled, Save (client-side http/https check) and Clear. It uses its own `useSetModUpdateWebhook` mutation, which is not optimistic, so the URL is never written into the cached settings. 8 tests.
+- Task 5: Throwaway container (Carry On 1.14.1 and Auto Map Markers 5.0.2, both with updates). Set a local receiver URL from the UI ("Webhook saved", status Configured, field empty); two checks produced exactly one alert with the generic payload (`event`, `content`, `updates` with installed modids) and recorded both versions as notified. Then cleared `notified` in the container's state file and restarted it, and set a real Discord webhook through the settings API from a file obtained through the private secret prompt: the check logged `mod_update_alert_sent receiver=discord updates=2`, a second check sent nothing, and no `mod_update_alert_failed`. Searched for the URL: 0 container log lines, 0 API responses, only `api-settings.json` (ADR-6); `httpx` printed no request lines. Clear from the UI showed "Not configured" and removed the URL from the container's state. No browser console errors.
+
 ### File List
+
+- Created: `api/src/vintagestory_api/services/mod_update_alerts.py`, `api/tests/test_mod_update_alerts.py`
+- Created: `web/src/features/settings/ModUpdateWebhookSetting.tsx`, `web/src/features/settings/ModUpdateWebhookSetting.test.tsx`
+- Modified: `api/src/vintagestory_api/services/api_settings.py`, `api/src/vintagestory_api/routers/config.py`
+- Modified: `api/src/vintagestory_api/models/mod_updates.py`, `api/src/vintagestory_api/services/mod_updates.py`
+- Modified: `api/tests/test_api_settings.py`, `api/tests/test_routers_config.py`
+- Modified: `web/src/api/types.ts`, `web/src/api/config.ts`, `web/src/api/config.test.ts`, `web/src/hooks/use-api-settings.ts`
+- Modified: `web/src/features/settings/ApiSettingsPanel.tsx`, `web/src/features/settings/ApiSettingsPanel.test.tsx`
+
+## Change Log
+
+- 2026-11-09: Webhook alerts for mod updates: Admin-only redacted setting, receiver-specific delivery without redirects, one alert per mod and version recorded after a 2xx, and the settings UI. Verified against a local receiver and a real Discord webhook. `just check` passes with 2020 API tests and 2997 web tests.
