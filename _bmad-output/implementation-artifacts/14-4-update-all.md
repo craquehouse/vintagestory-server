@@ -1,6 +1,6 @@
 # Story 14.4: Update All
 
-Status: review
+Status: done
 
 ## Story
 
@@ -67,6 +67,15 @@ so that **routine updates take a single action**.
 - [x] Task 5: Manual browser verification and final validation (AC: all)
   - [x] 5.1: Throwaway container with a real server and mods with compatible, not-verified and no updates; run Update all; check the summary, restart banner and mods directory; check the browser console
   - [x] 5.2: Run `just check`; update the Dev Agent Record and File List
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] No behavioral test pins that update all never confirms on the user's behalf [tests/test_mod_update_all_router.py]
+- [x] [AI-Review][Low] A `ValueError` or `TypeError` from one mod aborts the run [services/mod_updates.py `apply_all`]
+- [x] [AI-Review][Low] `UpdateAllDialog` uses `ui/dialog`, not the AlertDialog named in Dev Notes (documented below)
+- [x] [AI-Review][Low] Run completion is not announced to assistive technology [components/UpdateAllDialog.tsx]
+- [x] [AI-Review][Low] Close-while-running and reopen-after-summary are untested [components/UpdateAllDialog.test.tsx]
+- [x] [AI-Review][Low] Task 4.1 says the button shows for any update; it shows only for compatible ones (documented below)
 
 ## Dev Notes
 
@@ -140,6 +149,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 4: `UpdateAllDialog`: confirm step lists "Will update" (installed → offered) and "Skipped: not verified for game version …"; confirm runs the request; the summary shows counts, each mod's outcome (reasons or error) and the restart message once. A failed request closes the dialog with an error toast. `InstalledTab` shows "Update all (N)" when N compatible updates exist. 8 tests.
 - Task 5: Browser check in a throwaway container (VintageStory 1.22.7 running; Carry On 1.14.1 with a compatible 1.14.3; Auto Map Markers 5.0.2 with a not verified 5.0.3): "Update all (1)", the confirmation listed Carry On to update and Auto Map Markers as skipped; the summary showed "1 updated, 1 skipped, 0 failed", one restart line and the restart banner; the button then disappeared, Carry On showed v1.14.3 "Up to date", Auto Map Markers kept its individual Update action; the mods directory held one file per mod; no browser console errors.
 
+- Review: verdict Approve. Fixed: a router test with the real service now proves an offer that a fresh lookup finds not verified is skipped with `not_verified`, nothing is downloaded and the mod is unchanged; `ValueError` and `TypeError` are recorded per mod instead of aborting the run; the summary counts are `aria-live="polite"`; tests for close-while-running and reopen-after-summary. Documented: `UpdateAllDialog` uses `ui/dialog` because the confirm and summary steps share one controlled dialog that must stay open while running, which AlertDialog's auto-closing action does not allow; the Update all button appears only when at least one offer is compatible (AC 6 and the epic say "when compatible updates exist"), since otherwise the dialog would have nothing to update. Not changed: a mod changed by someone else mid-run is reported as updated from the version the run started with (cosmetic). 6 tests added.
+
 ### File List
 
 - Created: `api/tests/test_mod_update_all.py`, `api/tests/test_mod_update_all_router.py`
@@ -152,3 +163,22 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-09: Implemented update all (service, endpoint, web hook, confirmation and summary dialog) and fixed `get_mod` error handling (`VSS-d15`). Browser-verified in a throwaway container. `just check` passes with 1978 API tests and 2975 web tests.
+- 2026-11-09: Code review (GLM-5.3-Flash, Approve). Applied the follow-ups, status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `ea94b7d`^..`ffa6276`
+**Outcome:** Approve
+
+**Summary:** All six acceptance criteria pass. Update all never confirms on the user's behalf, the run lock cannot leak, per-mod failures are isolated, and the `get_mod` change (`VSS-d15`) improves every caller, including ending the update check's loss of stored releases on mod database errors. No suppressions.
+
+### Action Items
+
+- [x] [Medium] No behavioral test that update all never confirms
+- [x] [Low] Data errors from one mod abort the run
+- [x] [Low] Dialog component differs from Dev Notes (documented)
+- [x] [Low] Completion not announced to assistive technology
+- [x] [Low] Dialog lifecycle untested
+- [x] [Low] Button visibility differs from Task 4.1 wording (documented)
+

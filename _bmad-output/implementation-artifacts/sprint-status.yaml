@@ -170,7 +170,7 @@ development_status:
   14-1-update-detection-and-status-api: done
   14-2-version-change-api: done
   14-3-update-and-version-switching-ui: done
-  14-4-update-all: review
+  14-4-update-all: done
   14-5-scheduled-checks-and-update-badges: backlog
   14-6-webhook-alerts: backlog
 # RETRO ACTION ITEMS
