@@ -8,12 +8,8 @@
 # ==============================================================================
 FROM node:26-slim AS web-build
 
-# Build args - VS_API_KEY is mapped to VITE_API_KEY for Vite build
-# This allows using a single env var name across the stack
-# Note: This key is intentionally baked into the frontend bundle - it's a
-# client-side API key that will be visible in the browser JS anyway.
-# hadolint ignore=DL3044
-ARG VS_API_KEY=""
+# No API key is built in: the API serves it at runtime from /config.js (Epic 15 ADR-5),
+# so one image works for every deployment.
 
 WORKDIR /app
 
@@ -26,10 +22,10 @@ COPY web/package.json web/bun.lock ./
 # Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy source and build - map VS_API_KEY to VITE_API_KEY for Vite
-# VITE_API_BASE_URL is empty for same-origin requests in Docker
+# Copy source and build. VITE_API_BASE_URL is empty for same-origin requests in Docker;
+# VITE_API_KEY is empty so no key reaches the bundle (.dockerignore also keeps web/.env out)
 COPY web/ ./
-RUN VITE_API_KEY="${VS_API_KEY}" VITE_API_BASE_URL="" bun run build
+RUN VITE_API_KEY="" VITE_API_BASE_URL="" bun run build
 
 # ==============================================================================
 # Stage 2: Production image
