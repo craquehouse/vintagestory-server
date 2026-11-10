@@ -375,12 +375,15 @@ export function useModUpdates() {
  * Hook to run an update check against the mod database (Admin).
  *
  * Invalidates all mod queries, including the update status, when it settles.
+ * Errors are not toasted globally; pass `onError` to `mutate` to report them.
  */
 export function useCheckModUpdates() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => checkModUpdates(),
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
     },
@@ -392,6 +395,7 @@ export function useCheckModUpdates() {
  *
  * A risky change rejects with ApiError code MOD_CONFIRMATION_REQUIRED and
  * `details.reasons`; call again with `confirm: true` after the user agrees.
+ * Errors are not toasted globally; useVersionChangeFlow reports them.
  */
 export function useChangeModVersion() {
   const queryClient = useQueryClient();
@@ -406,6 +410,9 @@ export function useChangeModVersion() {
       version: string;
       confirm?: boolean;
     }) => changeModVersion(slug, version, confirm),
+    // The caller reports errors, and a confirmation request (409) is not a failure;
+    // skip the global toast.
+    onError: () => {},
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
     },

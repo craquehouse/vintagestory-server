@@ -1601,4 +1601,46 @@ describe('mod update hooks', () => {
     expect(result.current.data?.data.pendingRestart).toBe(true);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
   });
+
+  function conflictWithGlobalHandler() {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: () =>
+        Promise.resolve({
+          detail: { code: 'MOD_CONFIRMATION_REQUIRED', message: 'Confirm', details: {} },
+        }),
+    });
+    const globalOnError = vi.fn();
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false, onError: globalOnError } },
+    });
+    return { globalOnError, wrapper: createWrapper(queryClient) };
+  }
+
+  it('useCheckModUpdates leaves error reporting to its caller', async () => {
+    const { globalOnError, wrapper } = conflictWithGlobalHandler();
+    const { result } = renderHook(() => useCheckModUpdates(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(globalOnError).not.toHaveBeenCalled();
+  });
+
+  it('useChangeModVersion leaves error reporting to its caller', async () => {
+    const { globalOnError, wrapper } = conflictWithGlobalHandler();
+    const { result } = renderHook(() => useChangeModVersion(), { wrapper });
+
+    await act(async () => {
+      result.current.mutate({ slug: 'carryon', version: '1.14.0' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(globalOnError).not.toHaveBeenCalled();
+  });
 });
+
