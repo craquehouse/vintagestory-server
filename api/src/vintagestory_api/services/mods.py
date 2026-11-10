@@ -89,7 +89,8 @@ def get_mod_service() -> ModService:
             mods_dir=mods_dir,
             cache_dir=cache_dir,
             restart_state=get_restart_state(),
-            game_version=settings.game_version,
+            # No game_version: compatibility follows the installed server, not
+            # VS_GAME_VERSION (the install channel). VSS-tpe.
             mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
@@ -248,7 +249,7 @@ class ModService:
         mods_dir: Path,
         restart_state: PendingRestartState,
         cache_dir: Path | None = None,
-        game_version: str = "stable",
+        game_version: str | None = None,
         mod_cache_max_size_mb: int = 500,
         game_version_provider: Callable[[], str | None] | None = None,
     ) -> None:
@@ -260,10 +261,13 @@ class ModService:
             restart_state: Shared PendingRestartState for restart tracking.
             cache_dir: Directory for caching downloaded mods. Defaults to
                        state_dir.parent / "cache" if not provided.
-            game_version: Game version for compatibility checking (e.g., "1.21.3").
+            game_version: A fixed game version for compatibility checks (tests and
+                tools). Ignored when `game_version_provider` is given.
             mod_cache_max_size_mb: Maximum cache size in MB (0 to disable eviction).
-            game_version_provider: Returns the installed game version for version
-                changes (Epic 14). Defaults to the installed server version.
+            game_version_provider: Returns the game version that lookups, installs and
+                version changes check compatibility against. Defaults to the installed
+                server version, read on each call (VSS-tpe); never VS_GAME_VERSION,
+                which only chooses what to install.
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
@@ -281,10 +285,23 @@ class ModService:
             max_size_mb=mod_cache_max_size_mb,
         )
 
-        self._game_version = game_version
-        self._game_version_provider = game_version_provider or installed_game_version
+        if game_version_provider is None:
+            if game_version is not None:
+                fixed: str = game_version
+
+                def fixed_version() -> str:
+                    return fixed
+
+                game_version_provider = fixed_version
+            else:
+                game_version_provider = installed_game_version
+        self._game_version_provider = game_version_provider
         self._mod_api_client: ModApiClient | None = None
         self._version_locks: dict[str, asyncio.Lock] = {}
+
+    def game_version(self) -> str | None:
+        """The game version compatibility is checked against (installed server by default)."""
+        return self._game_version_provider()
 
     @property
     def state_manager(self) -> ModStateManager:
@@ -464,8 +481,8 @@ class ModService:
         latest_release = releases[0]
         mod_version = latest_release.get("modversion", "unknown")
 
-        # Check compatibility with current game version
-        game_version = self._game_version
+        # Check compatibility with the installed game version (VSS-tpe)
+        game_version = self.game_version()
         if not game_version or game_version == UNKNOWN_VERSION:
             # Server not installed or version unknown
             status: CompatibilityStatus = "not_verified"
@@ -921,7 +938,7 @@ class ModService:
         )
 
         compatibility = check_compatibility(
-            {"tags": target.tags}, self._game_version_provider() or ""
+            {"tags": target.tags}, self.game_version() or ""
         )
         reasons: list[str] = []
         if compatibility != "compatible":
@@ -1022,7 +1039,7 @@ class ModService:
             raise ApiModNotFoundError(slug)
 
         # Check compatibility with game version
-        compatibility = check_compatibility(download_result.release, self._game_version)
+        compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename

@@ -2,6 +2,7 @@
 
 import json
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1765,3 +1766,100 @@ class TestModServiceProperties:
 
         # Property should reflect the change
         assert not service.restart_state.pending_restart
+
+
+class TestCompatibilityUsesInstalledServerVersion:
+    """VSS-tpe: lookup and install check compatibility against the installed server,
+    not VS_GAME_VERSION (the install channel, e.g. "stable" or an old pin)."""
+
+    @staticmethod
+    def make(
+        tmp_path: Path, game_version_provider: Callable[[], str | None] | None = None
+    ) -> ModService:
+        return ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+            game_version_provider=game_version_provider,
+        )
+
+    @pytest.mark.asyncio
+    async def test_lookup_uses_the_installed_version_on_each_call(self, tmp_path: Path) -> None:
+        import respx
+        from httpx import Response
+
+        installed = {"version": "1.21.0"}
+        service = self.make(tmp_path, game_version_provider=lambda: installed["version"])
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE})
+            )
+            first = await service.lookup_mod("smithingplus")
+            installed["version"] = "1.21.3"  # server upgraded
+            second = await service.lookup_mod("smithingplus")
+
+        assert (first.compatibility.game_version, first.compatibility.status) == (
+            "1.21.0",
+            "compatible",
+        )
+        assert (second.compatibility.game_version, second.compatibility.status) == (
+            "1.21.3",
+            "compatible",
+        )
+
+    @pytest.mark.asyncio
+    async def test_default_reads_the_installed_server(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import respx
+        from httpx import Response
+
+        import vintagestory_api.services.mods as mods_module
+
+        monkeypatch.setattr(mods_module, "installed_game_version", lambda: "1.21.3")
+        service = self.make(tmp_path)
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE})
+            )
+            result = await service.lookup_mod("smithingplus")
+
+        assert result.compatibility.game_version == "1.21.3"
+        assert result.compatibility.status == "compatible"
+
+    def test_mod_service_singleton_does_not_pin_vs_game_version(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import vintagestory_api.services.mods as mods_module
+
+        monkeypatch.setenv("VS_GAME_VERSION", "1.21.6")
+        monkeypatch.setattr(mods_module, "_mod_service", None)
+        monkeypatch.setattr(mods_module, "installed_game_version", lambda: "1.22.7")
+
+        service = mods_module.get_mod_service()
+
+        assert service.game_version() == "1.22.7"
+
+    @pytest.mark.asyncio
+    async def test_install_uses_the_installed_version(self, tmp_path: Path) -> None:
+        import respx
+        from httpx import Response
+
+        service = self.make(tmp_path, game_version_provider=lambda: "1.21.3")
+        mod_zip = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip)
+            )
+            result = await service.install_mod("smithingplus")
+
+        assert result.compatibility == "compatible"
