@@ -17,6 +17,9 @@ from vintagestory_api.models.mods import ModMetadata, ModState
 
 logger = structlog.get_logger()
 
+FALLBACK_VERSION = "unknown"
+"""Version recorded when a mod's modinfo.json cannot be read (filename fallback)."""
+
 
 class ModStateManager:
     """Manages mod state persistence to the state index file.
@@ -232,7 +235,7 @@ class ModStateManager:
         metadata = ModMetadata(
             modid=fallback_name,
             name=fallback_name,
-            version="unknown",
+            version=FALLBACK_VERSION,
         )
         logger.warning(
             "mod_imported_with_fallback",
@@ -402,6 +405,53 @@ class ModStateManager:
                 error=str(e),
             )
             return None
+
+    def repair_fallback_entries(self) -> list[str]:
+        """Re-read mods whose stored metadata came from the filename fallback.
+
+        Older builds stored a filename-derived slug and version "unknown" when they could
+        not read a modinfo.json (for example `"side": "Universal"`). Each such entry whose
+        archive now yields real metadata gets its slug and version updated; its enabled
+        state, install time and asset id are kept. An entry is left alone if its file is
+        missing, its archive is still unreadable, or the repaired slug belongs to another
+        installed mod. Saves only when something changed.
+
+        Returns:
+            Filenames of the repaired entries.
+        """
+        repaired: list[str] = []
+        for filename, entry in list(self._state.items()):
+            if entry.version != FALLBACK_VERSION:
+                continue
+            path = self._mods_dir / filename
+            if not path.is_file():
+                continue
+            metadata = self.import_mod(path)
+            if metadata.version == FALLBACK_VERSION:
+                continue
+            other = self.get_mod_by_slug(metadata.modid)
+            if other is not None and other.filename != filename:
+                logger.warning(
+                    "mod_state_repair_skipped_duplicate",
+                    filename=filename,
+                    slug=metadata.modid,
+                    existing=other.filename,
+                )
+                continue
+            self._state[filename] = entry.model_copy(
+                update={"slug": metadata.modid, "version": metadata.version}
+            )
+            repaired.append(filename)
+            logger.info(
+                "mod_state_repaired",
+                filename=filename,
+                old_slug=entry.slug,
+                slug=metadata.modid,
+                version=metadata.version,
+            )
+        if repaired:
+            self.save()
+        return repaired
 
     def scan_mods_directory(self) -> list[str]:
         """Scan the mods directory for mod zip files.

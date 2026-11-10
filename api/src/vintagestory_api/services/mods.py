@@ -94,8 +94,10 @@ def get_mod_service() -> ModService:
             mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
-        # Load existing state
+        # Load existing state, then re-read mods that older builds imported with
+        # filename fallback metadata (for example modinfo side "Universal")
         _mod_service.state_manager.load()
+        _mod_service.state_manager.repair_fallback_entries()
 
         logger.info(
             "mod_service_initialized",

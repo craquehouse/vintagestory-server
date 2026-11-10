@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModNotFoundError,
@@ -694,6 +695,34 @@ class TestGetModServiceDependency:
 
             assert service.state_manager.state_dir == custom_state / "state"
             assert service.state_manager.mods_dir == custom_serverdata / "Mods"
+
+    def test_get_mod_service_repairs_fallback_entries_after_loading(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Mods imported with fallback metadata by older builds are re-read at startup."""
+        import vintagestory_api.services.mods as mods_module
+
+        calls: list[str] = []
+
+        def load(self: ModStateManager) -> None:
+            calls.append("load")
+
+        def repair(self: ModStateManager) -> list[str]:
+            calls.append("repair")
+            return []
+
+        monkeypatch.setattr(mods_module, "_mod_service", None)
+        monkeypatch.setattr(ModStateManager, "load", load)
+        monkeypatch.setattr(ModStateManager, "repair_fallback_entries", repair)
+
+        with patch.object(mods_module, "Settings") as mock_settings:
+            mock_settings.return_value.vsmanager_dir = tmp_path / "state"
+            mock_settings.return_value.serverdata_dir = tmp_path / "serverdata"
+            mock_settings.return_value.cache_dir = tmp_path / "cache"
+
+            get_mod_service()
+
+        assert calls == ["load", "repair"]
 
 
 # --- Tests for ModService.install_mod ---
