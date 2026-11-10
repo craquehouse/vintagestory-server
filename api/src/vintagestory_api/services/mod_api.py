@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 from urllib.parse import urlparse
 
 import httpx
@@ -278,7 +278,8 @@ class ModApiClient:
             Mod dictionary if found, None if not found.
 
         Raises:
-            ExternalApiError: If the mod API is unavailable.
+            ExternalApiError: If the mod API is unavailable, or answers with a body that is
+                not a JSON object or an unexpected status (VSS-d15).
         """
         # Extract slug from URL if needed
         slug = extract_slug(slug)
@@ -291,7 +292,18 @@ class ModApiClient:
         client = await self._get_client()
         try:
             response = await client.get(f"{self.BASE_URL}/mod/{slug}")
-            data = response.json()
+            try:
+                payload: object = response.json()
+            except ValueError as e:
+                logger.error("mod_api_invalid_body", slug=slug, http_status=response.status_code)
+                raise ExternalApiError(
+                    f"VintageStory mod API returned an unreadable response "
+                    f"(HTTP {response.status_code})"
+                ) from e
+            if not isinstance(payload, dict):
+                logger.error("mod_api_invalid_body", slug=slug, http_status=response.status_code)
+                raise ExternalApiError("VintageStory mod API returned an unexpected response")
+            data = cast(ModDict, payload)
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
@@ -302,13 +314,16 @@ class ModApiClient:
                 logger.debug("mod_not_found", slug=slug)
                 return None
 
-            # Unexpected status
+            # Unexpected status: raise, as the other fetchers do. Returning None would
+            # read as "not found" to callers (VSS-d15).
             logger.warning(
                 "unexpected_api_status",
                 slug=slug,
                 statuscode=data.get("statuscode"),
             )
-            return None
+            raise ExternalApiError(
+                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+            )
 
         except httpx.TimeoutException as e:
             logger.error("mod_api_timeout", slug=slug)
