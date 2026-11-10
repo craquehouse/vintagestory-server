@@ -8,7 +8,7 @@
 #
 #   (no version)   next version computed from the commits since the last stable release
 #   patch|minor|major
-#                  bump the last stable release
+#                  bump the last stable release (from 0.0.0 when there is none)
 #   X.Y.Z[-pre]    exactly this version; pre-releases must be explicit and leave
 #                  CHANGELOG.md alone (it lists stable releases only)
 #   --dry-run      show the version and notes, change nothing
@@ -121,8 +121,13 @@ case "$request" in
             die "nothing to release: no feat, fix, perf or breaking commits since v$last_stable"
         ;;
     patch | minor | major)
-        version=$(cliff --bump "$request" --bumped-version)
-        version=${version#v}
+        # Computed here: git-cliff does not bump when nothing is releasable
+        semver_parts "${last_stable:-0.0.0}"
+        case "$request" in
+            patch) version="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+            minor) version="$MAJOR.$((MINOR + 1)).0" ;;
+            major) version="$((MAJOR + 1)).0.0" ;;
+        esac
         ;;
     *) version=${request#v} ;;
 esac
@@ -186,7 +191,7 @@ rollback() {
 trap rollback EXIT
 
 output=$(cd api && uv version "$version" --no-sync 2>&1) || die "uv version $version failed: $output"
-output=$(cd web && bun pm version "$version" --no-git-tag-version 2>&1) ||
+output=$(cd web && bun pm version "$version" --no-git-tag-version --allow-same-version 2>&1) ||
     die "bun pm version $version failed: $output"
 [[ $("$SCRIPT_DIR/version.sh" "$ROOT") == "$version" ]] || die "version files do not agree on $version"
 
@@ -204,7 +209,9 @@ if ! $prerelease && [[ -z $existing_section ]]; then
 fi
 
 git add -- "${files[@]}"
-git commit --quiet -m "chore(release): $tag" || die "commit failed"
+# --allow-empty: releasing the version already in the files with a hand-written section
+# (v0.1.0) changes nothing, but every release still gets its own commit for the tag
+git commit --quiet --allow-empty -m "chore(release): $tag" || die "commit failed"
 git tag -a "$tag" -m "$tag" || die "tag failed"
 
 echo "Committed $(git rev-parse --short HEAD) chore(release): $tag and tagged $tag."
