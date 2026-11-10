@@ -347,6 +347,58 @@ class TestPrepareVersionChange:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_stale_cache_file_that_cannot_be_deleted_is_replaced(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "0.0.1"}))
+        mock_download(release)
+        real_unlink = Path.unlink
+
+        def unlink(self: Path, missing_ok: bool = False) -> None:
+            if self == cached:
+                raise PermissionError("locked")
+            real_unlink(self, missing_ok=missing_ok)
+
+        monkeypatch.setattr(Path, "unlink", unlink)
+
+        prepared = await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+        assert prepared.archive == cached
+        metadata = service.state_manager.read_modinfo(cached)
+        assert metadata is not None
+        assert metadata.version == "1.14.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_invalid_download_that_cannot_be_deleted_still_fails_validation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        mock_download(release, modinfo={"modid": "someothermod", "name": "x", "version": "1.14.3"})
+        cached = tmp_path / "cache" / "mods" / release["filename"]
+        real_unlink = Path.unlink
+
+        def unlink(self: Path, missing_ok: bool = False) -> None:
+            if self == cached:
+                raise PermissionError("locked")
+            real_unlink(self, missing_ok=missing_ok)
+
+        monkeypatch.setattr(Path, "unlink", unlink)
+
+        with pytest.raises(ModValidationError):
+            await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_downloaded_archive_for_another_mod_fails(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
@@ -462,6 +514,27 @@ class TestChangeVersion:
 
         assert result.changed is False
         assert result.filename == "carryon_1.14.1.zip"
+        assert not respx.calls
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_confirmed_prerelease_change(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "2.0.0-rc.1")
+        mock_download(release)
+
+        with pytest.raises(ModConfirmationRequiredError):
+            await service.change_version("carryon", "2.0.0-rc.1")
+        result = await service.change_version("carryon", "2.0.0-rc.1", confirm=True)
+
+        assert result.changed is True
+        assert result.version == "2.0.0-rc.1"
+        assert installed_version_on_disk(service, release["filename"]) == "2.0.0-rc.1"
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.version == "2.0.0-rc.1"
 
     @respx.mock
     @pytest.mark.asyncio

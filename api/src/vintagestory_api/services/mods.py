@@ -947,15 +947,26 @@ class ModService:
             if self._archive_matches(cached, slug, target.modversion):
                 logger.debug("mod_release_cache_hit", slug=slug, version=target.modversion)
                 return cached
-            cached.unlink(missing_ok=True)
+            self._discard_cached_archive(cached, slug)
 
         path = await self.api_client.download_release_file(slug, target.fileid, target.filename)
         if not self._archive_matches(path, slug, target.modversion):
-            path.unlink(missing_ok=True)
+            self._discard_cached_archive(path, slug)
             raise ModValidationError(
                 slug, f"archive does not contain {slug} version {target.modversion}"
             )
         return path
+
+    def _discard_cached_archive(self, path: Path, slug: str) -> None:
+        """Delete a cache file that failed validation.
+
+        A failed delete is logged, not raised: the download replaces the file by rename,
+        and a file that stays behind is validated again before any later use.
+        """
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning("mod_cache_discard_failed", slug=slug, path=str(path), error=str(e))
 
     def _archive_matches(self, path: Path, slug: str, version: str) -> bool:
         metadata = self._state_manager.read_modinfo(path)
@@ -1014,7 +1025,7 @@ class ModService:
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
-        temp_path = dest_path.with_suffix(".tmp")
+        temp_path = dest_path.with_name(dest_path.name + ".tmp")
 
         # Ensure mods directory exists
         self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)

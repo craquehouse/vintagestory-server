@@ -793,6 +793,35 @@ class TestModServiceInstallMod:
         assert mod_state.enabled is True
 
     @pytest.mark.asyncio
+    async def test_install_mod_temp_file_does_not_clobber_same_stem_file(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() stages its copy under name + ".tmp", not a suffix swap."""
+        import respx
+        from httpx import Response
+
+        _state_dir, mods_dir = temp_dirs
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        unrelated = mods_dir / "smithingplus_1.8.3.tmp"
+        unrelated.write_bytes(b"not ours")
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            await install_service.install_mod("smithingplus")
+
+        assert unrelated.read_bytes() == b"not ours"
+        assert (mods_dir / "smithingplus_1.8.3.zip").exists()
+
+    @pytest.mark.asyncio
     async def test_install_mod_specific_version(
         self, install_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
