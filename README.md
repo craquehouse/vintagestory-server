@@ -30,7 +30,7 @@ Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with
    docker compose up -d
    ```
 
-5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version. Game data, mods and manager state live in `./data`.
+5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version (the item is called **Version** once a server is installed). Game data, mods and manager state live in `./data`.
 
 ### Security
 
@@ -72,7 +72,7 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 |---|---|---|
 | `VS_API_KEY_ADMIN` | Yes | Admin API key (full access) |
 | `VS_API_KEY_MONITOR` | No | Read-only API key |
-| `VS_API_KEY` | No | Key the web UI uses; must equal the Admin or Monitor key (default: Admin) |
+| `VS_API_KEY` | No | Key the web UI uses (default: the Admin key). Set it to the Admin or Monitor key; any other value logs a warning at start-up and the UI cannot sign in |
 | `VS_DEBUG` | No | Verbose, human-readable logs (`false`) |
 | `VS_CORS_ORIGINS` | No | Allowed browser origins for a separately hosted UI |
 

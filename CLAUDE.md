@@ -169,7 +169,7 @@ just changelog                               # Preview release notes for unrelea
 just release --dry-run                       # Show the next version and notes; changes nothing
 ```
 
-**Never run `just release` (without `--dry-run`) or push a tag unless the user explicitly asks in this session:** it publishes a GitHub release and a public image.
+**Never run `just release` (without `--dry-run`) or push a tag unless the user explicitly asks in this session:** it publishes a GitHub release and pushes the image to GHCR.
 
 Run `just` with no arguments to see all available commands.
 
