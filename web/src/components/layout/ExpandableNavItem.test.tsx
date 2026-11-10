@@ -384,13 +384,13 @@ describe("ExpandableNavItem badges (Story 14.5)", () => {
     expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
   });
 
-  it("marks the parent while the group is closed", () => {
+  it("marks the parent while the group is closed, label first", async () => {
     renderBadged({ isExpanded: false });
 
-    expect(screen.getByTestId("nav-parent-badge")).toHaveTextContent("3 mod updates available");
-    expect(
-      screen.getByRole("button", { name: /Parent Item.*3 mod updates available|3 mod updates available.*Parent Item/ })
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("nav-parent-badge")).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    await userEvent.hover(toggle);
+    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
   });
 
   it("shows no badge when the count is 0", () => {
@@ -403,16 +403,21 @@ describe("ExpandableNavItem badges (Story 14.5)", () => {
     expect(screen.queryByTestId("nav-badge-Mods")).not.toBeInTheDocument();
   });
 
-  it("marks the item in the collapsed sidebar", () => {
+  it("names the item and its updates in the collapsed sidebar", async () => {
     renderBadged({ isExpanded: true, isCollapsed: true });
 
-    expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("3 mod updates available");
+    const link = screen.getByRole("link", { name: "Mods, 3 mod updates available" });
+    expect(link).toHaveAttribute("href", "/parent/mods");
+    await userEvent.hover(link);
+    expect((await screen.findAllByText("Mods (3)")).length).toBeGreaterThan(0);
   });
 
-  it("marks the parent in the collapsed sidebar while closed", () => {
+  it("names the parent and its updates in the collapsed sidebar while closed", async () => {
     renderBadged({ isExpanded: false, isCollapsed: true });
 
-    expect(screen.getByTestId("nav-parent-badge")).toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    await userEvent.hover(trigger);
+    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
   });
 });
 
