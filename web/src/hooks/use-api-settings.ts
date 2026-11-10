@@ -9,7 +9,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
-import { fetchApiSettings, setModUpdateWebhook, updateApiSetting } from '@/api/config';
+import {
+  SECRET_API_SETTINGS,
+  fetchApiSettings,
+  setModUpdateWebhook,
+  updateApiSetting,
+} from '@/api/config';
 import type { ApiResponse, ApiSettingsData } from '@/api/types';
 
 /**
@@ -87,8 +92,8 @@ export function useUpdateApiSetting() {
         queryKeys.config.api
       );
 
-      // Optimistically update to the new value
-      if (previous) {
+      // Optimistically update to the new value; never cache a secret value (Story 14.6)
+      if (previous && !SECRET_API_SETTINGS.has(key)) {
         // Map API key (snake_case) to camelCase settings key
         const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 

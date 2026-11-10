@@ -607,3 +607,13 @@ describe('api/config', () => {
     });
   });
 });
+
+describe('updateApiSetting secret keys (Story 14.6)', () => {
+  it('refuses the webhook key without sending it', async () => {
+    await expect(
+      updateApiSetting('mod_update_webhook_url', 'https://discord.com/api/webhooks/1/t')
+    ).rejects.toThrow('setModUpdateWebhook');
+    expect(apiClient).not.toHaveBeenCalled();
+  });
+});
+

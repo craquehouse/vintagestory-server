@@ -60,6 +60,7 @@ export function ModUpdateWebhookSetting({ configured }: ModUpdateWebhookSettingP
           Webhook URL
         </label>
         <span
+          id="mod_update_webhook_url-status"
           className="text-sm text-muted-foreground"
           data-testid="mod-update-webhook-status"
         >
@@ -80,7 +81,7 @@ export function ModUpdateWebhookSetting({ configured }: ModUpdateWebhookSettingP
             setError(null);
           }}
           aria-invalid={error !== null}
-          aria-describedby="mod_update_webhook_url-desc"
+          aria-describedby="mod_update_webhook_url-status mod_update_webhook_url-desc"
           className="min-w-0 flex-1"
           data-testid="mod-update-webhook-input"
         />

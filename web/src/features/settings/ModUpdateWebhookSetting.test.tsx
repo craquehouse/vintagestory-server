@@ -48,6 +48,9 @@ describe('ModUpdateWebhookSetting', () => {
 
     expect(screen.getByTestId('mod-update-webhook-status')).toHaveTextContent('Configured');
     expect(screen.getByTestId('mod-update-webhook-input')).toHaveValue('');
+    expect(screen.getByTestId('mod-update-webhook-input')).toHaveAccessibleDescription(
+      /^Configured Sends one message/
+    );
     expect(screen.getByTestId('mod-update-webhook-clear')).toBeInTheDocument();
   });
 

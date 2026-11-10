@@ -413,3 +413,38 @@ describe('useUpdateApiSetting', () => {
     });
   });
 });
+
+describe('useUpdateApiSetting with a secret key (Story 14.6)', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('never writes the webhook URL into the cached settings', async () => {
+    const mockFetch = vi.fn();
+    globalThis.fetch = mockFetch;
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(['config', 'api'], {
+      status: 'ok',
+      data: { settings: { autoStartServer: false, modUpdateWebhookConfigured: false } },
+    });
+    const { result } = renderHook(() => useUpdateApiSetting(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({
+        key: 'mod_update_webhook_url',
+        value: 'https://discord.com/api/webhooks/1/cache-token',
+      });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(JSON.stringify(queryClient.getQueryData(['config', 'api']))).not.toContain(
+      'cache-token'
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
