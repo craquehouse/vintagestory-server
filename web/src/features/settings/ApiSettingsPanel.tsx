@@ -6,6 +6,7 @@
  *
  * Story 6.4: Settings UI - AC6
  * VSS-c9o: Debug logging toggle
+ * Story 14.6: Mod update webhook
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useApiSettings, useUpdateApiSetting } from '@/hooks/use-api-settings';
 import { useDebugStatus, useToggleDebug } from '@/hooks/use-debug';
+import { ModUpdateWebhookSetting } from './ModUpdateWebhookSetting';
 import { type SettingValue } from '@/hooks/use-setting-field';
 
 /**
@@ -168,6 +170,14 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
             description="How often to check for new game server versions"
             onSave={handleSave}
           />
+        </SettingGroup>
+
+        {/* Mod update alerts (Story 14.6) */}
+        <SettingGroup
+          title="Update Alerts"
+          description="Get notified in chat when mod updates are found"
+        >
+          <ModUpdateWebhookSetting configured={settings?.modUpdateWebhookConfigured ?? false} />
         </SettingGroup>
 
         {/* Debug Logging (VSS-c9o) */}

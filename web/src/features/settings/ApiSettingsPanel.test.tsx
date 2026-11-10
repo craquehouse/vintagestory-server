@@ -51,6 +51,7 @@ const mockApiSettingsCamelCase = {
       enforceEnvOnRestart: true,
       modListRefreshInterval: 300,
       serverVersionsRefreshInterval: 3600,
+      modUpdateWebhookConfigured: true,
     },
   },
 };
@@ -209,6 +210,21 @@ describe('ApiSettingsPanel', () => {
 
       // server_versions_refresh_interval should default to 3600 (1h)
       expect(screen.getByLabelText('Server Versions Refresh')).toHaveValue('1h');
+    });
+
+    it('renders the Update Alerts group with the webhook status (Story 14.6)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockApiSettingsCamelCase),
+      });
+
+      render(<ApiSettingsPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Update Alerts')).toBeInTheDocument();
+      expect(screen.getByTestId('mod-update-webhook-status')).toHaveTextContent('Configured');
     });
 
     it('renders auto_start_server toggle', async () => {

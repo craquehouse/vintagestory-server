@@ -229,6 +229,7 @@ describe('api/config', () => {
             enforceEnvOnRestart: false,
             modListRefreshInterval: 300,
             serverVersionsRefreshInterval: 3600,
+            modUpdateWebhookConfigured: false,
           },
         },
       };
@@ -251,6 +252,7 @@ describe('api/config', () => {
             enforceEnvOnRestart: true,
             modListRefreshInterval: 600,
             serverVersionsRefreshInterval: 7200,
+            modUpdateWebhookConfigured: false,
           },
         },
       };

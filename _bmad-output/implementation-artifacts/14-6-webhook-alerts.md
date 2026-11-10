@@ -54,10 +54,10 @@ so that **I find out without opening the UI**.
   - [x] 3.3: Webhook URL from API settings via an injectable provider
   - [x] 3.4: Tests: alert once, no repeat across checks or a reloaded store, newer version alerts again, failure retried next check, no webhook sends nothing, check summary unchanged when delivery fails
 
-- [ ] Task 4: Settings UI + tests (AC: 5)
-  - [ ] 4.1: Web types: `modUpdateWebhookConfigured`; update response `configured`
-  - [ ] 4.2: "Update Alerts" group in `ApiSettingsPanel`: Configured / Not configured, a URL input (never prefilled) with Save, and Clear when configured; client-side http/https check; toasts
-  - [ ] 4.3: Tests
+- [x] Task 4: Settings UI + tests (AC: 5)
+  - [x] 4.1: Web types: `modUpdateWebhookConfigured`; update response `configured`
+  - [x] 4.2: "Update Alerts" group in `ApiSettingsPanel`: Configured / Not configured, a URL input (never prefilled) with Save, and Clear when configured; client-side http/https check; toasts
+  - [x] 4.3: Tests
 
 - [ ] Task 5: Manual verification and final validation (AC: all)
   - [ ] 5.1: Throwaway container: set the webhook from the UI, run a check, confirm one Discord message, run another check and confirm no repeat; confirm the URL appears in no container log line and no API response

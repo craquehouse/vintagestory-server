@@ -265,7 +265,18 @@ export interface ApiSettingsData {
     enforceEnvOnRestart: boolean;
     modListRefreshInterval: number;
     serverVersionsRefreshInterval: number;
+    /** Story 14.6: whether a mod update webhook is set; the URL is never returned */
+    modUpdateWebhookConfigured: boolean;
   };
+}
+
+/**
+ * Response from setting the mod update webhook (Story 14.6). Reports only whether one
+ * is configured; the URL is never returned.
+ */
+export interface ModUpdateWebhookUpdateData {
+  key: string;
+  configured: boolean;
 }
 
 /**

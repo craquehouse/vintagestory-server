@@ -15,6 +15,7 @@ import type {
   GameSettingUpdateData,
   ApiSettingsData,
   ApiSettingUpdateData,
+  ModUpdateWebhookUpdateData,
   ConfigDirectoryListData,
   ConfigFileListData,
   ConfigFileContentData,
@@ -75,6 +76,23 @@ export async function fetchApiSettings(): Promise<ApiResponse<ApiSettingsData>> 
  *
  * Requires Admin role.
  */
+/**
+ * Set or clear the mod update webhook (Story 14.6). `null` clears it.
+ *
+ * Requires Admin role. The response reports only whether a webhook is configured.
+ */
+export async function setModUpdateWebhook(
+  url: string | null
+): Promise<ApiResponse<ModUpdateWebhookUpdateData>> {
+  return apiClient<ApiResponse<ModUpdateWebhookUpdateData>>(
+    `${API_PREFIX}/api/settings/mod_update_webhook_url`,
+    {
+      method: 'POST',
+      body: { value: url },
+    }
+  );
+}
+
 export async function updateApiSetting(
   key: string,
   value: string | number | boolean
