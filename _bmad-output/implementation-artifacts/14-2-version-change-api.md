@@ -1,6 +1,6 @@
 # Story 14.2: Version Change API
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -93,9 +93,9 @@ so that **a failed update never leaves me without a working mod**.
   - [x] 5.2: Add `PUT /mods/{slug}/version` (Admin) with body `{version: str, confirm: bool = false}`; map errors as listed in Dev Notes
   - [x] 5.3: Router tests: success payload, each error mapping, 401 and 403
 
-- [ ] Task 6: Final validation (AC: all)
-  - [ ] 6.1: Run `just check`
-  - [ ] 6.2: Update this story's Dev Agent Record and File List; add the AAR to `VSS-432` and close it
+- [x] Task 6: Final validation (AC: all)
+  - [x] 6.1: Run `just check`
+  - [x] 6.2: Update this story's Dev Agent Record and File List; add the AAR to `VSS-432` and close it
 
 ## Dev Notes
 
@@ -243,13 +243,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 5: Added `MOD_CONFIRMATION_REQUIRED`, `MOD_VERSION_CHANGE_IN_PROGRESS`, `MOD_VALIDATION_FAILED` and `MOD_VERSION_CHANGE_FAILED`, and `PUT /mods/{slug}/version` (Admin) mapping each service error to the status in Dev Notes; confirmation errors carry `details.reasons` and `details.compatibility`. 14 router tests. The test helper reads responses as `Any` because the TestClient response type comes from a different httpx package than `httpx.Response`.
 
+- Task 6: `just check` passes (see Change Log for counts). ADR-2 updated with the same-filename `.bak` step. `VSS-432` closed with an AAR: the shared `download_release_file` sanitizes filenames for installs too.
+
 ### File List
 
 - Created: `api/tests/test_mod_version_change.py`
 - Created: `api/tests/test_mod_version_change_router.py`
 - Modified: `api/src/vintagestory_api/routers/mods.py`
 - Modified: `api/src/vintagestory_api/models/errors.py`
+- Modified: `_bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md` (ADR-2)
 - Modified: `api/src/vintagestory_api/services/mod_api.py`
 - Modified: `api/src/vintagestory_api/services/mod_state.py`
 - Modified: `api/src/vintagestory_api/services/mods.py`
 - Modified: `api/src/vintagestory_api/services/mod_updates.py`
+
+## Change Log
+
+- 2026-11-09: Implemented filename sanitizing in a shared download step (fixes the install path too), strict archive validation, version change resolution with confirmation, the atomic swap with rollback, and `PUT /mods/{slug}/version`. 61 new tests; `just check` passes with 1956 API tests and 2911 web tests.

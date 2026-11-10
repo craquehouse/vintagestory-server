@@ -35,6 +35,8 @@ _Added during the Epic 14 course correction (2026-11-09). Story 14.0 verified ea
 5. Update and save mod state, then delete the old file if its name differs. Deleting it is required: if it fails, remove the new file, restore the original state, and report the change as failed
 6. Mark a restart as pending if the server is running
 
+When the release reuses the installed file's name, step 4 first moves the old file to `<name>.bak` (ignored by the game and the mods scan) so it can be restored if a later step fails; it is deleted once state is saved (Story 14.2).
+
 Explicit confirmation (`confirm: true`) is required when the target release is not verified, incompatible, a pre-release while the installed version is stable, or older than the installed release (ADR-1).
 
 A failure before step 4 completes leaves the original file and state untouched. Changes are serialized per mod; a concurrent request for the same mod returns 409.
