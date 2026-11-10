@@ -1,0 +1,67 @@
+no tags, chore only                                     -> v0.1.0
+no tags, one feat                                       -> v0.1.0
+tag v0.1.0, nothing new                                 -> v0.1.0
+v0.1.0 + docs                                           -> v0.1.0
+v0.1.0 + fix                                            -> v0.1.1
+v0.1.0 + fix + perf                                     -> v0.1.1
+v0.1.0 + fix + perf + feat                              -> v0.2.0
+v0.1.0 + ... + refactor! (breaking)                     -> v0.2.0
+v0.2.0 + fix + feat w/ BREAKING CHANGE footer           -> v0.3.0
+v0.3.0-rc.1 tagged, nothing new                         -> v0.3.0
+v0.3.0-rc.1 + fix                                       -> v0.3.0
+explicit --bump patch                                   -> v0.2.1
+explicit --bump minor                                   -> v0.3.0
+explicit --bump major                                   -> v1.0.0
+
+== unreleased notes since v0.3.0-rc.1 ==
+## Unreleased
+
+### Breaking Changes
+
+- Z
+
+### Fixes
+
+- X
+- After rc
+== pre-release notes: unreleased tagged v0.3.0-rc.2 (since last stable) ==
+## [0.3.0-rc.2] - 2026-11-10
+
+### Breaking Changes
+
+- Z
+
+### Fixes
+
+- X
+- After rc
+== notes for v0.1.0..v0.2.0 ==
+## [0.2.0] - 2026-11-10
+
+### Breaking Changes
+
+- Drop old endpoint
+
+### Features
+
+- **web:** A feature
+
+### Fixes
+
+- **api:** A fix
+
+### Performance
+
+- Faster
+v0.3.0 tagged after rc                                  -> v0.3.0
+== --latest at v0.3.0 ==
+## [0.3.0] - 2026-11-10
+
+### Breaking Changes
+
+- Z
+
+### Fixes
+
+- X
+- After rc
