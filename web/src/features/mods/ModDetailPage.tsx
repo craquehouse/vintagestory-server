@@ -272,7 +272,7 @@ function InstalledVersionSection({
   const offeredVersion =
     updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
   const selectedVersion = picked ?? offeredVersion ?? installedVersion;
-  const isChanging = versionChange.pendingSlug === slug;
+  const isChanging = versionChange.isPending(slug);
 
   const handleChange = () => {
     versionChange.start({

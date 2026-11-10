@@ -198,8 +198,60 @@ describe('useVersionChangeFlow', () => {
 
     act(() => result.current.start(update));
 
-    await waitFor(() => expect(result.current.pendingSlug).toBe('carryon'));
+    await waitFor(() => expect(result.current.isPending('carryon')).toBe(true));
     await act(async () => resolve(ok({})));
-    await waitFor(() => expect(result.current.pendingSlug).toBeUndefined());
+    await waitFor(() => expect(result.current.isPending('carryon')).toBe(false));
+  });
+
+  it('does not reopen the confirmation when the confirmed retry asks again', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(conflict('MOD_CONFIRMATION_REQUIRED', { reasons: ['older'] }));
+    globalThis.fetch = mockFetch;
+    const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
+
+    act(() => result.current.start(update));
+    await waitFor(() => expect(result.current.confirmation).not.toBeNull());
+    act(() => result.current.confirm());
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to update Carry On', {
+        description: 'MOD_CONFIRMATION_REQUIRED message',
+      });
+    });
+    expect(result.current.confirmation).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports every change when two run at once', async () => {
+    const resolvers: Array<(value: unknown) => void> = [];
+    const mockFetch = vi
+      .fn()
+      .mockImplementation(() => new Promise((r) => resolvers.push(r)));
+    globalThis.fetch = mockFetch;
+    const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
+
+    act(() => result.current.start(update));
+    act(() =>
+      result.current.start({ ...update, slug: 'demo', name: 'Demo', version: '1.1.0' })
+    );
+
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+    expect(result.current.isPending('carryon')).toBe(true);
+    expect(result.current.isPending('demo')).toBe(true);
+
+    await act(async () => resolvers[0](ok({})));
+    await waitFor(() => expect(result.current.isPending('carryon')).toBe(false));
+    expect(result.current.isPending('demo')).toBe(true);
+    expect(toast.success).toHaveBeenCalledWith('Updated Carry On to v1.14.3', {
+      description: undefined,
+    });
+
+    await act(async () =>
+      resolvers[1](conflict('MOD_CONFIRMATION_REQUIRED', { reasons: ['older'] }))
+    );
+    await waitFor(() => expect(result.current.confirmation?.slug).toBe('demo'));
+    expect(result.current.isPending('demo')).toBe(false);
   });
 });
+

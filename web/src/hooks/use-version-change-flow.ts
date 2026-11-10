@@ -48,45 +48,62 @@ function confirmationReasons(error: unknown): VersionChangeReason[] | null {
 }
 
 export function useVersionChangeFlow() {
-  const { mutate, isPending, variables } = useChangeModVersion();
+  // mutateAsync, not mutate: TanStack runs per-call mutate callbacks only for the
+  // latest call, so a second change started before the first settles would drop
+  // the first one's toast or confirmation.
+  const { mutateAsync } = useChangeModVersion();
   const [confirmation, setConfirmation] = useState<VersionChangeConfirmation | null>(null);
+  const [pendingSlugs, setPendingSlugs] = useState<ReadonlySet<string>>(new Set());
+
+  const setPending = useCallback((slug: string, pending: boolean) => {
+    setPendingSlugs((current) => {
+      const next = new Set(current);
+      if (pending) next.add(slug);
+      else next.delete(slug);
+      return next;
+    });
+  }, []);
 
   const run = useCallback(
-    (request: VersionChangeRequest, confirm: boolean) => {
+    async (request: VersionChangeRequest, confirm: boolean) => {
       const verb = request.kind === 'update' ? 'update' : 'switch';
-      mutate(
-        { slug: request.slug, version: request.version, confirm },
-        {
-          onSuccess: (response) => {
-            const result = response.data;
-            if (!result.changed) {
-              toast.info(`${request.name} is already at v${result.version}`);
-              return;
-            }
-            const done = request.kind === 'update' ? 'Updated' : 'Switched';
-            toast.success(`${done} ${request.name} to v${result.version}`, {
-              description: result.pendingRestart ? RESTART_REQUIRED : undefined,
-            });
-          },
-          onError: (error) => {
-            const reasons = confirm ? null : confirmationReasons(error);
-            if (reasons) {
-              setConfirmation({ ...request, reasons });
-              return;
-            }
-            toast.error(`Failed to ${verb} ${request.name}`, { description: error.message });
-          },
+      setPending(request.slug, true);
+      try {
+        const response = await mutateAsync({
+          slug: request.slug,
+          version: request.version,
+          confirm,
+        });
+        const result = response.data;
+        if (!result.changed) {
+          toast.info(`${request.name} is already at v${result.version}`);
+          return;
         }
-      );
+        const done = request.kind === 'update' ? 'Updated' : 'Switched';
+        toast.success(`${done} ${request.name} to v${result.version}`, {
+          description: result.pendingRestart ? RESTART_REQUIRED : undefined,
+        });
+      } catch (error) {
+        // A confirmed retry that asks again is reported as an error, not reopened.
+        const reasons = confirm ? null : confirmationReasons(error);
+        if (reasons) {
+          setConfirmation({ ...request, reasons });
+          return;
+        }
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+        toast.error(`Failed to ${verb} ${request.name}`, { description: message });
+      } finally {
+        setPending(request.slug, false);
+      }
     },
-    [mutate]
+    [mutateAsync, setPending]
   );
 
   /** Start an update or switch; may open the confirmation instead of changing. */
   const start = useCallback(
     (request: VersionChangeRequest) => {
       setConfirmation(null);
-      run(request, false);
+      void run(request, false);
     },
     [run]
   );
@@ -95,18 +112,14 @@ export function useVersionChangeFlow() {
   const confirm = useCallback(() => {
     if (!confirmation) return;
     setConfirmation(null);
-    run(confirmation, true);
+    void run(confirmation, true);
   }, [confirmation, run]);
 
   /** Drop the held change without a request. */
   const cancel = useCallback(() => setConfirmation(null), []);
 
-  return {
-    start,
-    confirm,
-    cancel,
-    confirmation,
-    /** Slug of the change in flight, if any */
-    pendingSlug: isPending ? variables?.slug : undefined,
-  };
+  /** Whether a change for this mod is in flight. */
+  const isPending = useCallback((slug: string) => pendingSlugs.has(slug), [pendingSlugs]);
+
+  return { start, confirm, cancel, confirmation, isPending };
 }

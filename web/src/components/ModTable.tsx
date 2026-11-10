@@ -125,7 +125,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
   const versionChange = useVersionChangeFlow();
-  const { start: startVersionChange, pendingSlug: changingSlug } = versionChange;
+  const { start: startVersionChange, isPending: isChangingVersion } = versionChange;
 
   const mods = modsData?.data?.mods ?? [];
 
@@ -303,7 +303,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           status={row.original.updateStatus}
           gameVersion={gameVersion}
           onUpdate={() => handleUpdate(row.original)}
-          isUpdating={changingSlug === row.original.slug}
+          isUpdating={isChangingVersion(row.original.slug)}
         />
       ),
     }),
@@ -372,7 +372,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       },
       meta: { className: 'w-[80px]' },
     }),
-  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, changingSlug]);
+  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, isChangingVersion]);
 
   const table = useTable({
     features,
