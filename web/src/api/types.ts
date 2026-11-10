@@ -577,3 +577,27 @@ export interface ModVersionChangeData {
   changed: boolean;
   pendingRestart: boolean;
 }
+
+/** Outcome of update all for one mod (Story 14.4). */
+export type ModUpdateAllOutcome = 'updated' | 'skipped' | 'failed';
+
+/** One mod's result from POST /mods/updates/apply-all. */
+export interface ModUpdateAllItem {
+  slug: string;
+  name: string;
+  fromVersion: string;
+  toVersion: string;
+  outcome: ModUpdateAllOutcome;
+  /** Why it was skipped, e.g. 'not_verified' */
+  reasons: string[];
+  error: string | null;
+}
+
+/** Response data from POST /api/v1alpha1/mods/updates/apply-all. */
+export interface ModUpdateAllData {
+  results: ModUpdateAllItem[];
+  updated: number;
+  skipped: number;
+  failed: number;
+  pendingRestart: boolean;
+}

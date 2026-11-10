@@ -12,6 +12,7 @@ import {
   fetchModUpdates,
   checkModUpdates,
   changeModVersion,
+  applyAllModUpdates,
 } from './mods';
 import type {
   ApiResponse,
@@ -1047,4 +1048,36 @@ describe('mod update API', () => {
     const [, options] = mockFetch.mock.calls[0];
     expect(JSON.parse(options.body)).toEqual({ version: '1.14.3', confirm: false });
   });
+
+  it('applyAllModUpdates posts to the apply-all endpoint', async () => {
+    const mockFetch = mockOk({
+      status: 'ok',
+      data: {
+        results: [
+          {
+            slug: 'carryon',
+            name: 'Carry On',
+            from_version: '1.14.1',
+            to_version: '1.14.3',
+            outcome: 'updated',
+            reasons: [],
+            error: null,
+          },
+        ],
+        updated: 1,
+        skipped: 0,
+        failed: 0,
+        pending_restart: true,
+      },
+    });
+
+    const result = await applyAllModUpdates();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/updates/apply-all');
+    expect(options.method).toBe('POST');
+    expect(result.data.results[0].fromVersion).toBe('1.14.1');
+    expect(result.data.pendingRestart).toBe(true);
+  });
 });
+

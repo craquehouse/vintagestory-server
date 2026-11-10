@@ -14,6 +14,7 @@ import {
   useModUpdates,
   useCheckModUpdates,
   useChangeModVersion,
+  useApplyAllModUpdates,
 } from './use-mods';
 
 // Create a fresh QueryClient for each test
@@ -1667,6 +1668,28 @@ describe('mod update hooks', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
+  });
+
+  it('useApplyAllModUpdates posts and refetches mod queries even on failure', async () => {
+    const { globalOnError } = conflictWithGlobalHandler();
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false, onError: globalOnError } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useApplyAllModUpdates(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    const [url, options] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/updates/apply-all');
+    expect(options.method).toBe('POST');
+    expect(globalOnError).not.toHaveBeenCalled();
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
   });
 

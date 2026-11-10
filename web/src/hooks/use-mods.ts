@@ -18,6 +18,7 @@ import {
   fetchModUpdates,
   checkModUpdates,
   changeModVersion,
+  applyAllModUpdates,
 } from '@/api/mods';
 import type { ApiResponse, ModsListData, CompatibilityStatus, ModSide } from '@/api/types';
 
@@ -421,6 +422,24 @@ export function useChangeModVersion() {
       if (!(error instanceof ApiError && error.code === 'MOD_CONFIRMATION_REQUIRED')) {
         queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
       }
+    },
+  });
+}
+
+/**
+ * Hook to apply every compatible update (Admin, Story 14.4).
+ *
+ * Refetches all mod queries when it settles: some mods may have changed even if the
+ * request failed. Errors are not toasted globally; pass `onError` to `mutate`.
+ */
+export function useApplyAllModUpdates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => applyAllModUpdates(),
+    onError: () => {},
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
     },
   });
 }

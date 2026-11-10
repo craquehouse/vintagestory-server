@@ -20,6 +20,7 @@ import type {
   ModUpdatesData,
   ModUpdateCheckData,
   ModVersionChangeData,
+  ModUpdateAllData,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/mods';
@@ -243,4 +244,17 @@ export async function changeModVersion(
     `${API_PREFIX}/${encodeURIComponent(slug)}/version`,
     { method: 'PUT', body: { version, confirm } }
   );
+}
+
+/**
+ * Update every mod whose offered update is compatible, one at a time (Story 14.4).
+ *
+ * Not verified offers are skipped for individual review; one failure does not stop
+ * the rest. Requires Admin role. Fails with 409 MOD_UPDATE_ALL_IN_PROGRESS when a
+ * run is in progress.
+ */
+export async function applyAllModUpdates(): Promise<ApiResponse<ModUpdateAllData>> {
+  return apiClient<ApiResponse<ModUpdateAllData>>(`${API_PREFIX}/updates/apply-all`, {
+    method: 'POST',
+  });
 }

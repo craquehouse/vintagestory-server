@@ -54,9 +54,9 @@ so that **routine updates take a single action**.
   - [x] 2.2: `POST /mods/updates/apply-all` (Admin), declared before `/{slug}` routes; passes `ModService.change_version`; returns the summary; 409 on the lock
   - [x] 2.3: Router tests: success payload with real fixtures (respx), 409, 403 Monitor, 401
 
-- [ ] Task 3: Web API layer + tests (AC: 6)
-  - [ ] 3.1: Types `ModUpdateAllItem`, `ModUpdateAllData`; `applyAllModUpdates()`; hook `useApplyAllModUpdates()` (skips the global error toast like the other update hooks; invalidates `['mods']` when settled, since mods may have changed even on a failed request)
-  - [ ] 3.2: Tests
+- [x] Task 3: Web API layer + tests (AC: 6)
+  - [x] 3.1: Types `ModUpdateAllItem`, `ModUpdateAllData`; `applyAllModUpdates()`; hook `useApplyAllModUpdates()` (skips the global error toast like the other update hooks; invalidates `['mods']` when settled, since mods may have changed even on a failed request)
+  - [x] 3.2: Tests
 
 - [ ] Task 4: Update All action, confirmation and summary + tests (AC: 6)
   - [ ] 4.1: "Update all" button in `InstalledTab`, shown when any status is `update_available`; disabled while running
