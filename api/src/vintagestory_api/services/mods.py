@@ -6,6 +6,7 @@ ModStateManager for state persistence, ModApiClient for external API access,
 and PendingRestartState for restart tracking.
 """
 
+import asyncio
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -166,6 +167,36 @@ class ModValidationError(Exception):
         super().__init__(f"Release for mod '{slug}' failed validation: {message}")
 
 
+class ModVersionChangeInProgressError(Exception):
+    """Raised when a version change is requested while one is running for the same mod."""
+
+    def __init__(self, slug: str) -> None:
+        self.slug = slug
+        super().__init__(f"A version change for mod '{slug}' is already in progress")
+
+
+class ModVersionChangeFailedError(Exception):
+    """Raised when placing the new file or updating state fails; the change is rolled back."""
+
+    def __init__(self, slug: str, message: str) -> None:
+        self.slug = slug
+        super().__init__(f"Version change for mod '{slug}' failed: {message}")
+
+
+@dataclass(frozen=True)
+class VersionChangeResult:
+    """Outcome of a version change."""
+
+    slug: str
+    previous_version: str
+    version: str
+    filename: str
+    compatibility: CompatibilityStatus | None
+    """Compatibility of the new version; None when nothing changed."""
+    changed: bool
+    pending_restart: bool
+
+
 @dataclass(frozen=True)
 class PreparedVersionChange:
     """A resolved, confirmed and validated version change, ready to apply."""
@@ -253,6 +284,7 @@ class ModService:
         self._game_version = game_version
         self._game_version_provider = game_version_provider or installed_game_version
         self._mod_api_client: ModApiClient | None = None
+        self._version_locks: dict[str, asyncio.Lock] = {}
 
     @property
     def state_manager(self) -> ModStateManager:
@@ -703,6 +735,150 @@ class ModService:
             await self._mod_api_client.close()
             self._mod_api_client = None
             logger.debug("mod_api_client_closed")
+
+    async def change_version(
+        self, slug: str, version: str, *, confirm: bool = False
+    ) -> VersionChangeResult:
+        """Move an installed mod to another listed release: update or rollback (ADR-2).
+
+        The installed file is replaced only after the new archive is validated, and any
+        failure afterwards restores the original file and state.
+
+        Raises:
+            ModVersionChangeInProgressError: A change for this mod is already running.
+            ModVersionChangeFailedError: Placing the file or saving state failed.
+            See `_prepare_version_change` for lookup, confirmation and validation errors.
+        """
+        lock = self._version_locks.setdefault(slug, asyncio.Lock())
+        if lock.locked():
+            raise ModVersionChangeInProgressError(slug)
+        async with lock:
+            state = self._state_manager.get_mod_by_slug(slug)
+            if state is None:
+                raise ModNotFoundError(slug)
+            if state.version == version:
+                return VersionChangeResult(
+                    slug=slug,
+                    previous_version=state.version,
+                    version=version,
+                    filename=state.filename,
+                    compatibility=None,
+                    changed=False,
+                    pending_restart=False,
+                )
+
+            prepared = await self._prepare_version_change(slug, version, confirm=confirm)
+            filename = self._apply_version_change(state, prepared)
+
+            pending_restart = False
+            if self._server_running:
+                self._restart_state.require_restart(
+                    f"Mod '{slug}' changed from {state.version} to {version}"
+                )
+                pending_restart = True
+            logger.info(
+                "mod_version_changed",
+                slug=slug,
+                previous_version=state.version,
+                version=version,
+                filename=filename,
+                pending_restart=pending_restart,
+            )
+            return VersionChangeResult(
+                slug=slug,
+                previous_version=state.version,
+                version=version,
+                filename=filename,
+                compatibility=prepared.compatibility,
+                changed=True,
+                pending_restart=pending_restart,
+            )
+
+    def _apply_version_change(self, state: ModState, prepared: PreparedVersionChange) -> str:
+        """Swap the validated archive into the mods directory and update state.
+
+        Returns the new filename. On failure, restores the original file and state.
+        """
+        slug = state.slug
+        mods_dir = self._state_manager.mods_dir
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        new_name = prepared.archive.name if state.enabled else f"{prepared.archive.name}.disabled"
+        old_path = mods_dir / state.filename
+        new_path = mods_dir / new_name
+        same_file = new_name == state.filename
+        if new_path.exists() and not same_file:
+            raise ModVersionChangeFailedError(
+                slug, f"{new_name} already exists in the mods directory"
+            )
+
+        temp_path = new_path.with_name(new_path.name + ".tmp")
+        # A reused filename would be overwritten by the rename, so keep the old file aside.
+        backup_path = old_path.with_name(old_path.name + ".bak") if same_file else None
+        try:
+            shutil.copy2(prepared.archive, temp_path)
+            if backup_path is not None:
+                old_path.rename(backup_path)
+            temp_path.rename(new_path)
+        except OSError as e:
+            temp_path.unlink(missing_ok=True)
+            if backup_path is not None and backup_path.exists() and not old_path.exists():
+                backup_path.rename(old_path)
+            raise ModVersionChangeFailedError(slug, f"could not place the new file: {e}") from e
+
+        old_state = state.model_copy()
+        new_state = ModState(
+            filename=new_name,
+            slug=slug,
+            version=prepared.target.modversion,
+            enabled=state.enabled,
+            installed_at=state.installed_at,
+            asset_id=state.asset_id,
+        )
+        try:
+            self._state_manager.remove_mod(state.filename)
+            self._state_manager.set_mod_state(new_name, new_state)
+            self._state_manager.save()
+            if not same_file:
+                # Required: with two copies of a modid the game loads one and the API
+                # reports the other (Story 14.0).
+                old_path.unlink()
+        except OSError as e:
+            self._rollback_version_change(old_state, new_name, new_path, backup_path)
+            raise ModVersionChangeFailedError(slug, f"could not update state or files: {e}") from e
+
+        if backup_path is not None:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError as e:
+                logger.warning(
+                    "mod_version_backup_not_removed", path=str(backup_path), error=str(e)
+                )
+        try:
+            self._state_manager.import_mod(new_path)
+        except OSError as e:
+            logger.warning("mod_version_metadata_not_cached", slug=slug, error=str(e))
+        return new_name
+
+    def _rollback_version_change(
+        self, old_state: ModState, new_name: str, new_path: Path, backup_path: Path | None
+    ) -> None:
+        """Restore the original file and state after a failed swap."""
+        self._state_manager.remove_mod(new_name)
+        self._state_manager.set_mod_state(old_state.filename, old_state)
+        try:
+            self._state_manager.save()
+        except OSError as e:
+            logger.error("mod_version_rollback_state_not_saved", slug=old_state.slug, error=str(e))
+        try:
+            if backup_path is not None:
+                backup_path.replace(new_path)
+            else:
+                new_path.unlink(missing_ok=True)
+        except OSError as e:
+            logger.error(
+                "mod_version_rollback_file_not_restored", slug=old_state.slug, error=str(e)
+            )
+        logger.warning("mod_version_change_rolled_back", slug=old_state.slug)
 
     async def _prepare_version_change(
         self, slug: str, version: str, *, confirm: bool

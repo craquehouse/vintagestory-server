@@ -81,12 +81,12 @@ so that **a failed update never leaves me without a working mod**.
   - [x] 3.3: Acquire the archive: reuse `{cache}/mods/{safe name}` only if `read_modinfo` matches modid and version, otherwise download with `download_release_file` and validate; a mismatch after download deletes the cached file and raises `ModValidationError`
   - [x] 3.4: Tests using `mod_carryon.json` and `mod_instruments.json` (see Testing Requirements)
 
-- [ ] Task 4: Swap files and state safely + tests (AC: 1, 5, 6, 7, 9)
-  - [ ] 4.1: Per-mod `asyncio.Lock`; a busy mod raises `ModVersionChangeInProgressError`
-  - [ ] 4.2: Copy into the mods directory as a temp file, rename into place (keep `.disabled` when disabled), update and save state, cache metadata via `import_mod`, then delete the old file when its name differs; on delete failure remove the new file, restore the old state entry and raise `ModVersionChangeFailedError`
-  - [ ] 4.3: Same-filename case: when old and new names match, the rename replaces the old file atomically and no delete is needed
-  - [ ] 4.4: Mark a pending restart when the server is running
-  - [ ] 4.5: Tests for every failure point leaving the original intact, disabled mods, same filename, pending restart, and an overlapping change
+- [x] Task 4: Swap files and state safely + tests (AC: 1, 5, 6, 7, 9)
+  - [x] 4.1: Per-mod `asyncio.Lock`; a busy mod raises `ModVersionChangeInProgressError`
+  - [x] 4.2: Copy into the mods directory as a temp file, rename into place (keep `.disabled` when disabled), update and save state, cache metadata via `import_mod`, then delete the old file when its name differs; on delete failure remove the new file, restore the old state entry and raise `ModVersionChangeFailedError`
+  - [x] 4.3: Same-filename case: when old and new names match, the rename replaces the old file atomically and no delete is needed
+  - [x] 4.4: Mark a pending restart when the server is running
+  - [x] 4.5: Tests for every failure point leaving the original intact, disabled mods, same filename, pending restart, and an overlapping change
 
 - [ ] Task 5: Add the endpoint + tests (AC: 8, 9, 11)
   - [ ] 5.1: Add error codes `MOD_CONFIRMATION_REQUIRED`, `MOD_VERSION_CHANGE_IN_PROGRESS`, `MOD_VALIDATION_FAILED`, `MOD_VERSION_CHANGE_FAILED` to `models/errors.py`
@@ -238,6 +238,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: Added `ModStateManager.read_modinfo` (no caching, no fallback, case-insensitive top-level keys as VintageStory reads them). The shared extractor now accepts a UTF-8 byte-order mark, returns `None` for undecodable bytes (previously an uncaught `UnicodeDecodeError`) and for JSON that is not an object; this also benefits `import_mod`. 10 tests; existing mod state and service suites pass.
 
 - Task 3: Added `ModService._prepare_version_change` (installed check, fresh lookup, releases parsed with `StoredRelease.from_api` and filtered to the installed modid, confirmation reasons `not_verified`/`incompatible`/`prerelease`/`older` evaluated before any download) and `_acquire_release_archive` (valid cached copy reused, otherwise downloaded; a mismatched download is deleted and raises `ModValidationError`; an unusable filename raises `ModValidationError`). `ModService` takes an optional `game_version_provider`, defaulting to the installed server version; `installed_game_version` is now public in `mod_updates.py`. A malformed release list raises `ExternalApiError`. 13 tests.
+
+- Task 4: Added `ModService.change_version` (per-mod `asyncio.Lock`, no-op when already at the version, pending restart when the server runs) and `_apply_version_change`: copy to a temp file, rename into place keeping `.disabled`, update and save state, then delete the old file. A failure restores the original file and state. When the release reuses the old filename, the old file is first moved to `<name>.bak` (ignored by the game and the mods scan) so it can be restored; ADR-2 did not cover this case. An existing file of another mod at the new name is never overwritten. 10 tests.
 
 ### File List
 

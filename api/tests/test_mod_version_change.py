@@ -1,5 +1,6 @@
 """Tests for mod version changes (Story 14.2)."""
 
+import asyncio
 import io
 import json
 import zipfile
@@ -18,12 +19,15 @@ from vintagestory_api.services.mod_api import (
     ModVersionNotFoundError,
     safe_release_filename,
 )
+from vintagestory_api.services.mod_api import ModNotFoundError as ApiModNotFoundError
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     ModConfirmationRequiredError,
     ModNotFoundError,
     ModService,
     ModValidationError,
+    ModVersionChangeFailedError,
+    ModVersionChangeInProgressError,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -387,4 +391,213 @@ class TestPrepareVersionChange:
 
         with pytest.raises(ModValidationError):
             await service._prepare_version_change("demo", "1.1.0", confirm=True)
+
+
+def demo_mod(filename_new: str, filename_old: str) -> dict[str, Any]:
+    return {
+        "statuscode": "200",
+        "mod": {
+            "releases": [
+                {"modversion": "1.1.0", "modidstr": "demo", "fileid": 11, "filename": filename_new,
+                 "tags": ["1.22.7"]},
+                {"modversion": "1.0.0", "modidstr": "demo", "fileid": 10, "filename": filename_old,
+                 "tags": ["1.22.7"]},
+            ]
+        },
+    }
+
+
+def mock_demo(filename_new: str, filename_old: str) -> None:
+    respx.get(MOD_URL.format("demo")).mock(
+        return_value=Response(200, json=demo_mod(filename_new, filename_old))
+    )
+    respx.get(DOWNLOAD_URL, params={"fileid": "11"}).mock(
+        return_value=Response(
+            200, content=mod_zip_bytes({"modid": "demo", "name": "Demo", "version": "1.1.0"})
+        )
+    )
+
+
+def installed_version_on_disk(service: ModService, filename: str) -> str | None:
+    metadata = service.state_manager.read_modinfo(service.state_manager.mods_dir / filename)
+    return metadata.version if metadata else None
+
+
+class TestChangeVersion:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_update_replaces_file_and_state(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        old_file = install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        mock_download(release)
+
+        result = await service.change_version("carryon", "1.14.3")
+
+        assert result.previous_version == "1.14.1"
+        assert result.version == "1.14.3"
+        assert result.changed is True
+        assert result.filename == release["filename"]
+        assert result.compatibility == "compatible"
+        assert result.pending_restart is False
+        assert not old_file.exists()
+        assert installed_version_on_disk(service, release["filename"]) == "1.14.3"
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.version == "1.14.3"
+        assert state.filename == release["filename"]
+        assert state.enabled is True
+        assert service.state_manager.get_cached_metadata("carryon", "1.14.3") is not None
+        leftovers = [p.name for p in service.state_manager.mods_dir.iterdir()]
+        assert leftovers == [release["filename"]]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_same_version_is_a_no_op(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+
+        result = await service.change_version("carryon", "1.14.1")
+
+        assert result.changed is False
+        assert result.filename == "carryon_1.14.1.zip"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_disabled_mod_stays_disabled(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip", enabled=False)
+        mock_demo("Demo-1.1.0.zip", "Demo-1.0.0.zip")
+
+        result = await service.change_version("demo", "1.1.0")
+
+        assert result.filename == "Demo-1.1.0.zip.disabled"
+        state = service.state_manager.get_mod_by_slug("demo")
+        assert state is not None
+        assert state.enabled is False
+        assert installed_version_on_disk(service, "Demo-1.1.0.zip.disabled") == "1.1.0"
+        assert not (service.state_manager.mods_dir / "Demo-1.0.0.zip.disabled").exists()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_reused_filename_is_replaced_in_place(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo.zip")
+        mock_demo("Demo.zip", "Demo.zip")
+
+        result = await service.change_version("demo", "1.1.0")
+
+        assert result.filename == "Demo.zip"
+        assert installed_version_on_disk(service, "Demo.zip") == "1.1.0"
+        assert [p.name for p in service.state_manager.mods_dir.iterdir()] == ["Demo.zip"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_old_file_delete_failure_rolls_back(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        old_file = install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        mock_demo("Demo-1.1.0.zip", "Demo-1.0.0.zip")
+        real_unlink = Path.unlink
+
+        def unlink(self: Path, missing_ok: bool = False) -> None:
+            if self == old_file:
+                raise PermissionError("locked")
+            real_unlink(self, missing_ok=missing_ok)
+
+        monkeypatch.setattr(Path, "unlink", unlink)
+
+        with pytest.raises(ModVersionChangeFailedError):
+            await service.change_version("demo", "1.1.0")
+
+        assert installed_version_on_disk(service, "Demo-1.0.0.zip") == "1.0.0"
+        assert not (service.state_manager.mods_dir / "Demo-1.1.0.zip").exists()
+        reloaded = ModStateManager(state_dir=tmp_path / "state", mods_dir=tmp_path / "mods")
+        reloaded.load()
+        state = reloaded.get_mod_by_slug("demo")
+        assert state is not None
+        assert (state.version, state.filename) == ("1.0.0", "Demo-1.0.0.zip")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("new_name", ["Demo.zip", "Demo-1.1.0.zip"])
+    async def test_state_save_failure_rolls_back(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, new_name: str
+    ) -> None:
+        service = make_service(tmp_path)
+        old_name = "Demo.zip"
+        install_existing(service, "demo", "1.0.0", old_name)
+        mock_demo(new_name, old_name)
+        real_save = service.state_manager.save
+        calls = {"n": 0}
+
+        def failing_save() -> None:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise OSError("disk full")
+            real_save()
+
+        monkeypatch.setattr(service.state_manager, "save", failing_save)
+
+        with pytest.raises(ModVersionChangeFailedError):
+            await service.change_version("demo", "1.1.0")
+
+        assert installed_version_on_disk(service, old_name) == "1.0.0"
+        assert sorted(p.name for p in service.state_manager.mods_dir.iterdir()) == [old_name]
+        state = service.state_manager.get_mod_by_slug("demo")
+        assert state is not None
+        assert state.version == "1.0.0"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_existing_file_of_another_mod_is_not_overwritten(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        other = install_existing(service, "other", "3.0.0", "Demo-1.1.0.zip")
+        mock_demo("Demo-1.1.0.zip", "Demo-1.0.0.zip")
+
+        with pytest.raises(ModVersionChangeFailedError):
+            await service.change_version("demo", "1.1.0")
+
+        assert installed_version_on_disk(service, other.name) == "3.0.0"
+        assert installed_version_on_disk(service, "Demo-1.0.0.zip") == "1.0.0"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_running_server_marks_restart_pending(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        service.set_server_running(True)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        mock_demo("Demo-1.1.0.zip", "Demo-1.0.0.zip")
+
+        result = await service.change_version("demo", "1.1.0")
+
+        assert result.pending_restart is True
+        assert service.restart_state.pending_restart is True
+
+    @pytest.mark.asyncio
+    async def test_overlapping_change_for_same_mod_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        started = asyncio.Event()
+        release_lookup = asyncio.Event()
+
+        async def slow_get_mod(slug: str) -> None:
+            started.set()
+            await release_lookup.wait()
+
+        monkeypatch.setattr(service.api_client, "get_mod", slow_get_mod)
+        first = asyncio.create_task(service.change_version("demo", "1.1.0"))
+        await started.wait()
+
+        with pytest.raises(ModVersionChangeInProgressError):
+            await service.change_version("demo", "1.1.0")
+
+        release_lookup.set()
+        with pytest.raises(ApiModNotFoundError):
+            await first
 
