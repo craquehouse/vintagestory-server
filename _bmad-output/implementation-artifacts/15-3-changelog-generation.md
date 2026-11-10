@@ -1,6 +1,6 @@
 # Story 15.3: Changelog Generation
 
-Status: review
+Status: done
 
 ## Story
 
@@ -46,6 +46,15 @@ so that **each release describes its changes without manual assembly**.
 - [x] Task 4: Validation (AC: all)
   - [x] 4.1: Run `just changelog e9358b9..f32fc26` and compare with `15-0-spike/sample-notes-epic-14.md` (header aside)
   - [x] 4.2: `just check`; update the Dev Agent Record and File List
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] `just changelog v0.1.0..HEAD` example prints nothing once tags exist (`--unreleased` plus a range): example is now `just changelog --tag v0.2.0`
+- [x] [AI-Review][Low] Parser order (breaking before the preparation-story skip) was not pinned: fixture adds `feat(story-2.0/task-1)!:`, expected under Breaking Changes
+- [x] [AI-Review][Low] A missing or unrunnable git-cliff gave confusing failures: the test exits early unless git-cliff runs from a temporary directory (a mise shim outside `mise exec` cannot resolve the version there, which explained the 8/23 run outside mise)
+- [x] [AI-Review][Low] Git isolation missed settings such as `tag.forceSignAnnotated`: fixture git runs with `GIT_CONFIG_GLOBAL=/dev/null` and `GIT_CONFIG_SYSTEM=/dev/null`
+- [x] [AI-Review][Low] Release heading format unasserted: test checks `## [0.3.0] - YYYY-MM-DD`
+- [x] [Dev, found while fixing] `make_tmp` leaked every temporary directory: callers use `$(make_tmp)`, a subshell, so the parent never recorded them for cleanup (17 per run). `lib.sh` now creates one root per test file and removes it on exit; verified no leak. 263 leaked fixture directories from earlier runs removed (matched by fixture content only).
 
 ## Dev Notes
 
@@ -98,3 +107,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-10: Story created.
 - 2026-11-10: Implemented; `just check` passes. Status review.
+- 2026-11-10: Code review (GLM-5.3-Flash, Approve with Lows). Fixed all five Lows and a temp-directory leak found while fixing. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `cb93aba`..`b184e7c`
+**Outcome:** Approve (all findings Low)
+
+**Summary:** Verified live with git-cliff 2.14.2: ACs, exact Epic 14 output, bump rules, edge cases (breaking commit in a preparation story kept, `fix!` and footers, reverts and uppercase types dropped, multi-scope, body lines cannot create entries, tag pattern, tag on HEAD gives an empty Unreleased section), and fit for Story 15.4 (`--prepend` keeps the header when `--strip header` is not used) and 15.5 (pre-release headings). Informational: `feat!(api):` is silently dropped (for the release guide in Story 15.6); Story 15.4 must prepend without `--strip header`.
+
+### Action Items
+
+- [x] [Low] Range example in `just changelog`
+- [x] [Low] Pin parser order
+- [x] [Low] Guard against a missing git-cliff
+- [x] [Low] Full git isolation
+- [x] [Low] Assert the release heading
