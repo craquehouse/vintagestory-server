@@ -32,9 +32,11 @@ function withError(text: string, status: ModUpdateStatus): string {
 }
 
 function StatusLabel({ label, title, testId }: { label: string; title?: string; testId: string }) {
+  // The tooltip is not reachable by keyboard or touch; repeat it for screen readers.
   return (
     <span className="text-sm text-muted-foreground" title={title} data-testid={testId}>
       {label}
+      {title && <span className="sr-only">{` ${title}`}</span>}
     </span>
   );
 }

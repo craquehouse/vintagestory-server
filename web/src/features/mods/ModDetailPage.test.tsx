@@ -925,6 +925,31 @@ describe('ModDetailPage', () => {
         expect(putBodies(mockFetch)).toHaveLength(1);
       });
 
+      it('lists a re-uploaded version once', async () => {
+        const user = userEvent.setup();
+        const [latest, older] = mockModDetailResponse.data.releases;
+        globalThis.fetch = mockInstalled({
+          detail: {
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              releases: [latest, older, { ...older, file_id: 1, filename: 'reupload.zip' }],
+            },
+          },
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('up_to_date'),
+        });
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+
+        const options = await screen.findAllByRole('option');
+        expect(options.map((o) => o.textContent)).toEqual([
+          'v1.8.3 (Latest)',
+          'v1.8.2 (Installed)',
+        ]);
+      });
+
       it('explains when no release has the installed mod ID', async () => {
         globalThis.fetch = mockInstalled({
           detail: {

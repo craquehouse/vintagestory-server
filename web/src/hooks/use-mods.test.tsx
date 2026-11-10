@@ -1549,7 +1549,7 @@ describe('mod update hooks', () => {
     expect(queryClient.getQueryData(['mods', '@updates'])).toBeDefined();
   });
 
-  it('useCheckModUpdates posts and invalidates mod queries', async () => {
+  it('useCheckModUpdates posts and invalidates only the update status', async () => {
     const mockFetch = mockOk({
       game_version: '1.22.7',
       checked_at: '2026-11-09T00:00:00Z',
@@ -1570,7 +1570,8 @@ describe('mod update hooks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockFetch.mock.calls[0][1].method).toBe('POST');
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods', '@updates'] });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['mods'] });
   });
 
   it('useChangeModVersion puts the version and invalidates mod queries', async () => {
@@ -1629,6 +1630,44 @@ describe('mod update hooks', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(globalOnError).not.toHaveBeenCalled();
+  });
+
+  it('useChangeModVersion does not refetch after a confirmation request', async () => {
+    conflictWithGlobalHandler(); // mocks a 409 MOD_CONFIRMATION_REQUIRED response
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useChangeModVersion(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ slug: 'carryon', version: '1.14.0' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('useChangeModVersion refetches after a failed change', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () =>
+        Promise.resolve({ detail: { code: 'MOD_VERSION_CHANGE_FAILED', message: 'disk' } }),
+    });
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(() => useChangeModVersion(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ slug: 'carryon', version: '1.14.0' });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
   });
 
   it('useChangeModVersion leaves error reporting to its caller', async () => {

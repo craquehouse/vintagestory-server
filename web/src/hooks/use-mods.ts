@@ -7,6 +7,7 @@
 
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
+import { ApiError } from '@/api/errors';
 import {
   fetchMods,
   lookupMod,
@@ -374,7 +375,7 @@ export function useModUpdates() {
 /**
  * Hook to run an update check against the mod database (Admin).
  *
- * Invalidates all mod queries, including the update status, when it settles.
+ * Invalidates the update status when it settles.
  * Errors are not toasted globally; pass `onError` to `mutate` to report them.
  */
 export function useCheckModUpdates() {
@@ -384,8 +385,9 @@ export function useCheckModUpdates() {
     mutationFn: () => checkModUpdates(),
     // The caller reports errors; skip the global toast so they are not shown twice.
     onError: () => {},
+    // A check changes only the stored update data.
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.updateStatus });
     },
   });
 }
@@ -410,11 +412,15 @@ export function useChangeModVersion() {
       version: string;
       confirm?: boolean;
     }) => changeModVersion(slug, version, confirm),
-    // The caller reports errors, and a confirmation request (409) is not a failure;
-    // skip the global toast.
-    onError: () => {},
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+    // The caller reports errors, so skip the global toast. A confirmation request
+    // (409) changed nothing; after any other failure, refetch to show server state.
+    onError: (error) => {
+      if (!(error instanceof ApiError && error.code === 'MOD_CONFIRMATION_REQUIRED')) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+      }
     },
   });
 }

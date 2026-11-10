@@ -267,7 +267,14 @@ function InstalledVersionSection({
   const versionChange = useVersionChangeFlow();
   const [picked, setPicked] = useState<string | null>(null);
 
-  const ownReleases = releases.filter((release) => release.modidstr === slug);
+  // Releases with the installed mod ID; a re-uploaded version keeps its first
+  // (newest) listing, as the update check and version change API do.
+  const seenVersions = new Set<string>();
+  const ownReleases = releases.filter((release) => {
+    if (release.modidstr !== slug || seenVersions.has(release.version)) return false;
+    seenVersions.add(release.version);
+    return true;
+  });
   const updateStatus = updatesData?.data?.mods.find((item) => item.slug === slug);
   const offeredVersion =
     updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;

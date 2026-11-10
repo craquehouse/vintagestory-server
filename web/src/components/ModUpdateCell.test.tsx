@@ -115,4 +115,13 @@ describe('ModUpdateCell', () => {
 
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  it('gives screen readers the reason as text, not only as a tooltip', () => {
+    render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_in_database' })} />);
+
+    const reason = screen.getByText('Not found in the mod database.');
+    expect(reason).toHaveClass('sr-only');
+    expect(screen.getByTestId('mod-update-carryon')).toContainElement(reason);
+  });
 });
+
