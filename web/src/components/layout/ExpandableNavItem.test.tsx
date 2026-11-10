@@ -346,3 +346,71 @@ describe("ExpandableNavItem", () => {
     });
   });
 });
+
+describe("ExpandableNavItem badges (Story 14.5)", () => {
+  const badged: SubNavItem[] = [
+    { to: "/parent/version", icon: Home, label: "Version" },
+    {
+      to: "/parent/mods",
+      icon: Package,
+      label: "Mods",
+      badge: 3,
+      badgeLabel: "3 mod updates available",
+    },
+  ];
+
+  function renderBadged(options: { isExpanded: boolean; isCollapsed?: boolean; items?: SubNavItem[] }) {
+    return render(
+      <MemoryRouter initialEntries={["/"]}>
+        <ExpandableNavItem
+          {...defaultProps}
+          subItems={options.items ?? badged}
+          isExpanded={options.isExpanded}
+          onExpandedChange={vi.fn()}
+          isCollapsed={options.isCollapsed ?? false}
+        />
+      </MemoryRouter>
+    );
+  }
+
+  it("shows the count on the sub-item with a screen reader label", () => {
+    renderBadged({ isExpanded: true });
+
+    expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("3");
+    expect(screen.getByRole("link", { name: /Mods.*3 mod updates available/ })).toHaveAttribute(
+      "href",
+      "/parent/mods"
+    );
+    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
+  });
+
+  it("shows the total on the parent while the group is closed", () => {
+    renderBadged({ isExpanded: false });
+
+    expect(screen.getByTestId("nav-parent-badge")).toHaveTextContent("3");
+    expect(screen.getByTestId("nav-parent-badge")).toHaveTextContent("3 mod updates available");
+  });
+
+  it("shows no badge when the count is 0", () => {
+    renderBadged({
+      isExpanded: false,
+      items: [{ to: "/parent/mods", icon: Package, label: "Mods", badge: 0 }],
+    });
+
+    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("nav-badge-Mods")).not.toBeInTheDocument();
+  });
+
+  it("marks the item in the collapsed sidebar", () => {
+    renderBadged({ isExpanded: true, isCollapsed: true });
+
+    expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("3 mod updates available");
+  });
+
+  it("marks the parent in the collapsed sidebar while closed", () => {
+    renderBadged({ isExpanded: false, isCollapsed: true });
+
+    expect(screen.getByTestId("nav-parent-badge")).toBeInTheDocument();
+  });
+});
+
