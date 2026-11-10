@@ -1,6 +1,6 @@
 # Story 14.4: Update All
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -64,9 +64,9 @@ so that **routine updates take a single action**.
   - [x] 4.3: Error toast if the request itself fails (including 409)
   - [x] 4.4: Component tests: button visibility, confirmation lists, summary rendering, restart line once, cancel sends nothing
 
-- [ ] Task 5: Manual browser verification and final validation (AC: all)
-  - [ ] 5.1: Throwaway container with a real server and mods with compatible, not-verified and no updates; run Update all; check the summary, restart banner and mods directory; check the browser console
-  - [ ] 5.2: Run `just check`; update the Dev Agent Record and File List
+- [x] Task 5: Manual browser verification and final validation (AC: all)
+  - [x] 5.1: Throwaway container with a real server and mods with compatible, not-verified and no updates; run Update all; check the summary, restart banner and mods directory; check the browser console
+  - [x] 5.2: Run `just check`; update the Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -126,8 +126,29 @@ Delivers FR143–FR145 on top of Stories 14.1–14.3. **Out of scope:** schedule
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Browser verification screenshots were kept locally only (`.playwright-mcp/`, git-ignored).
 
 ### Completion Notes List
 
+- Task 1: `ModUpdateService.apply_all(change_version)` walks the status items with an offered update in order, skips offers that are not `compatible` (reason = offered compatibility), and calls `change_version(slug, offered)` without confirmation. `ModConfirmationRequiredError` → skipped with its reasons; mod database, lookup, validation, version change and `OSError` errors → failed with the message; the run continues. A second run raises `ModUpdateAllInProgressError`. `services.mods` imports `mod_updates`, so its error types are imported inside the method (the module's existing lazy-import pattern) and `VersionChangeResult` only under `TYPE_CHECKING`. 9 tests with a fake `change_version`.
+- Task 2: `POST /mods/updates/apply-all` (Admin) returns the summary via `asdict`; 409 `MOD_UPDATE_ALL_IN_PROGRESS`. 5 router tests use the real `ModService` with the Carry On fixture. Writing the failed-lookup test exposed that `ModApiClient.get_mod` raised a bare `JSONDecodeError` for an HTTP error with an empty body (aborting the whole run) and returned None, read as "not found", for an unexpected `statuscode`. It now raises `ExternalApiError` for both, like the other fetchers (`VSS-d15`, closed with an AAR; 4 tests).
+- Task 3: Types, `applyAllModUpdates()` and `useApplyAllModUpdates()` (no global error toast; refetches `['mods']` when settled, since some mods may have changed even if the request failed). 2 tests.
+- Task 4: `UpdateAllDialog`: confirm step lists "Will update" (installed → offered) and "Skipped: not verified for game version …"; confirm runs the request; the summary shows counts, each mod's outcome (reasons or error) and the restart message once. A failed request closes the dialog with an error toast. `InstalledTab` shows "Update all (N)" when N compatible updates exist. 8 tests.
+- Task 5: Browser check in a throwaway container (VintageStory 1.22.7 running; Carry On 1.14.1 with a compatible 1.14.3; Auto Map Markers 5.0.2 with a not verified 5.0.3): "Update all (1)", the confirmation listed Carry On to update and Auto Map Markers as skipped; the summary showed "1 updated, 1 skipped, 0 failed", one restart line and the restart banner; the button then disappeared, Carry On showed v1.14.3 "Up to date", Auto Map Markers kept its individual Update action; the mods directory held one file per mod; no browser console errors.
+
 ### File List
+
+- Created: `api/tests/test_mod_update_all.py`, `api/tests/test_mod_update_all_router.py`
+- Created: `web/src/components/UpdateAllDialog.tsx`, `web/src/components/UpdateAllDialog.test.tsx`
+- Modified: `api/src/vintagestory_api/services/mod_updates.py`, `api/src/vintagestory_api/routers/mods.py`, `api/src/vintagestory_api/models/errors.py`
+- Modified: `api/src/vintagestory_api/services/mod_api.py`, `api/tests/test_mod_api.py` (`VSS-d15`)
+- Modified: `web/src/api/types.ts`, `web/src/api/mods.ts`, `web/src/api/mods.test.ts`, `web/src/hooks/use-mods.ts`, `web/src/hooks/use-mods.test.tsx`
+- Modified: `web/src/features/mods/InstalledTab.tsx`, `web/src/features/mods/InstalledTab.test.tsx`
+
+## Change Log
+
+- 2026-11-09: Implemented update all (service, endpoint, web hook, confirmation and summary dialog) and fixed `get_mod` error handling (`VSS-d15`). Browser-verified in a throwaway container. `just check` passes with 1978 API tests and 2975 web tests.
