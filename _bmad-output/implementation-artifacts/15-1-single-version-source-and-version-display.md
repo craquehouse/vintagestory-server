@@ -1,6 +1,6 @@
 # Story 15.1: Single Version Source and Version Display
 
-Status: review
+Status: done
 
 ## Story
 
@@ -59,6 +59,14 @@ so that **I can tell whether I am up to date and report problems accurately**.
   - [x] 5.1: Run the built image with `--network none`, open the UI in a browser: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`; check the browser console
   - [x] 5.2: `just check`; update the Dev Agent Record and File List
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] The production `define` in `vite.config.ts` was pinned by no test (tests use `vitest.config.ts`); `version.test.ts` now checks both configs inject `__APP_VERSION__` from `package.json`
+- [x] [AI-Review][Low] The hard-coded-version test only caught double-quoted literals: it now matches the bare version in any context (not inside a longer version); the `HealthData.version` example uses `1.2.3`
+- [x] [AI-Review][Low] AC4 wording vs start-up network attempts (accepted: the app still tries its existing game-version lookups and logs warnings offline; AC4 is about installing and downloading packages, which no longer happens)
+- [x] [AI-Review][Low] `version.sh` gave bare yq errors for missing or unparseable files: now names the file; 4 new assertions
+- [x] [AI-Review][Low] `run.sh` resolved path arguments relative to `scripts/tests/`: arguments are reduced to file names
+
 ## Dev Notes
 
 ### Scope
@@ -108,7 +116,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: `__version__` comes from `importlib.metadata.version("vintagestory-api")`, with no fallback (the project is always installed: `uv sync` locally, the build in the image). `FastAPI(version=__version__)`; `HealthData.version` is required and set by `/healthz`. 4 tests in `test_version.py`, including one that fails if any file under `src/` contains the version literal.
 - Task 3: `web/package.json` is `0.1.0`. `__APP_VERSION__` is injected by Vite `define` from `package.json` in both `vite.config.ts` and `vitest.config.ts`, declared in `src/globals.d.ts` and exposed as `APP_VERSION` from `src/lib/version.ts`. The sidebar renders `v{APP_VERSION}`. 2 new tests (version equals `package.json`; sidebar shows it when expanded); the collapsed test uses `APP_VERSION`.
 - Task 4: `scripts/version.sh` reads the three files with `yq`, accepts `X.Y.Z` and `-alpha.N`/`-beta.N`/`-rc.N`, compares `pyproject.toml` and `uv.lock` with the PEP 440 form, and names the file that disagrees. `just version` runs it; `just test-scripts` runs bash tests in `scripts/tests/` (19 assertions, small `lib.sh` helper, temporary directories cleaned on exit); `just test` includes it; CI has a "Release scripts" job running both. Shellcheck is clean (one `source=` path hint so it can follow `lib.sh`); `actionlint` passes on `ci.yml`.
-- Task 5: image built and run on port 8081: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`. Console: only `404 /api/v1alpha1/config/game`, which is existing behavior with no game server installed. `just check` passes: 2052 API tests (+4), 3001 web tests (+2), 19 script assertions.
+- Task 5: image built and run on port 8081: sidebar shows `v0.1.0`, `/healthz` and `/openapi.json` report `0.1.0`. Console: only `404 /api/v1alpha1/config/game`, which is existing behavior with no game server installed. `just check` passes: 2052 API tests (+4), 3001 web tests (+2), 19 script assertions (23 after review).
 
 ### File List
 
@@ -123,3 +131,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-10: Story created.
 - 2026-11-10: Implemented; image starts offline (`VSS-flj`); browser-verified. `just check` passes. Status review.
+- 2026-11-10: Code review (GLM-5.3-Flash, Changes Requested). Fixed M1, L1, L3, L4; accepted L2. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `d5483d7`..`b8a9235`
+**Outcome:** Changes Requested → resolved
+
+**Summary:** The reviewer built the image and ran it with `--network none` (healthy in 12 s, no sync, no dev packages), confirmed `/healthz` and `/openapi.json` report `0.1.0` and the bundle carries the version, ran all suites, shellcheck and actionlint, ran the scripts under macOS bash 3.2, verified the PEP 440 normalization against real uv for alpha and beta, and proved the script tests fail on a sabotaged normalization (17/19 failing).
+
+### Action Items
+
+- [x] [Medium] Test the production `define`
+- [x] [Low] Broaden the hard-coded-version check
+- [x] [Low] Start-up network attempts (accepted)
+- [x] [Low] Name missing or unparseable version files
+- [x] [Low] `run.sh` path arguments
