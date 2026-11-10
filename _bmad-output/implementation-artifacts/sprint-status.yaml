@@ -175,7 +175,7 @@ development_status:
   14-6-webhook-alerts: done
   epic-15: in-progress
   epic-15-retrospective: optional
-  15-0-epic-15-technical-preparation: ready-for-dev
+  15-0-epic-15-technical-preparation: review
   15-1-single-version-source-and-version-display: backlog
   15-2-runtime-api-key-for-the-web-ui: backlog
   15-3-changelog-generation: backlog

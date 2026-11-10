@@ -1,6 +1,6 @@
 # Story 15.0: Epic 15 Technical Preparation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Spike story (template-api-spike). Complete before Stories 15.1-15.6: their designs rest on the assumptions this story verifies. Nothing is published in this story. -->
 
@@ -39,37 +39,37 @@ so that **the release stories rest on confirmed behavior**.
 
 <!-- Research story: no application code changes. Tasks produce documentation and spike scripts under 15-0-spike/. -->
 
-- [ ] Task 1: Changelog generation against real history (AC: 1)
-  - [ ] 1.1: Install git-cliff through mise without changing `.mise.toml` (e.g. `mise exec git-cliff@<version> -- git cliff ...`); record the latest version
-  - [ ] 1.2: Draft `15-0-spike/cliff.toml` per ADR-2: conventional commits only, merge commits dropped, groups Breaking Changes / Features / Fixes / Performance, commit links, scopes hidden except an allowlist
-  - [ ] 1.3: Tally scopes on `feat`/`fix`/`perf` commits and choose the allowlist
-  - [ ] 1.4: Generate notes for a recent range (Epic 14: from the planning commit `e9358b9` to the merge `f32fc26`) and save the output; review it for unreadable entries and adjust the rules
-  - [ ] 1.5: Confirm how breaking changes are detected (`!` and `BREAKING CHANGE` footer) and that a breaking commit of an otherwise skipped type (e.g. `refactor!:`) is kept
+- [x] Task 1: Changelog generation against real history (AC: 1)
+  - [x] 1.1: Install git-cliff through mise without changing `.mise.toml` (e.g. `mise exec git-cliff@<version> -- git cliff ...`); record the latest version
+  - [x] 1.2: Draft `15-0-spike/cliff.toml` per ADR-2: conventional commits only, merge commits dropped, groups Breaking Changes / Features / Fixes / Performance, commit links, scopes hidden except an allowlist
+  - [x] 1.3: Tally scopes on `feat`/`fix`/`perf` commits and choose the allowlist
+  - [x] 1.4: Generate notes for a recent range (Epic 14: from the planning commit `e9358b9` to the merge `f32fc26`) and save the output; review it for unreadable entries and adjust the rules
+  - [x] 1.5: Confirm how breaking changes are detected (`!` and `BREAKING CHANGE` footer) and that a breaking commit of an otherwise skipped type (e.g. `refactor!:`) is kept
 
-- [ ] Task 2: Version bump rules (AC: 2)
-  - [ ] 2.1: In a throwaway repository under the scratchpad, tag `v0.1.0`, then add `fix`, `feat` and breaking commits in turn and record `git cliff --bumped-version` after each
-  - [ ] 2.2: Record the `[bump]` settings that give feat→minor, fix→patch, breaking→minor on 0.x; record behavior with no releasable commits
-  - [ ] 2.3: Check how a pre-release tag (e.g. `v0.2.0-rc.1`) affects the next computed version
+- [x] Task 2: Version bump rules (AC: 2)
+  - [x] 2.1: In a throwaway repository under the scratchpad, tag `v0.1.0`, then add `fix`, `feat` and breaking commits in turn and record `git cliff --bumped-version` after each
+  - [x] 2.2: Record the `[bump]` settings that give feat→minor, fix→patch, breaking→minor on 0.x; record behavior with no releasable commits
+  - [x] 2.3: Check how a pre-release tag (e.g. `v0.2.0-rc.1`) affects the next computed version
 
-- [ ] Task 3: Version files and package metadata (AC: 3)
-  - [ ] 3.1: Build the image (`docker build --target final`, a throwaway tag) and run `python -c "import importlib.metadata as m; print(m.version('vintagestory-api'))"` inside it with the image's environment; record the result
-  - [ ] 3.2: On a scratch copy of `api/`, verify the uv command that sets the project version and updates `uv.lock` (e.g. `uv version X.Y.Z`), and that it does not upgrade dependencies
-  - [ ] 3.3: On a scratch copy of `web/package.json`, verify a command that sets the version without creating a git commit or tag (e.g. `bun pm version X.Y.Z --no-git-tag-version`, or `yq`/`jq`); record the one chosen
-  - [ ] 3.4: Remove the throwaway image afterwards (ask the user if the removal safety check blocks it)
+- [x] Task 3: Version files and package metadata (AC: 3)
+  - [x] 3.1: Build the image (`docker build --target final`, a throwaway tag) and run `python -c "import importlib.metadata as m; print(m.version('vintagestory-api'))"` inside it with the image's environment; record the result
+  - [x] 3.2: On a scratch copy of `api/`, verify the uv command that sets the project version and updates `uv.lock` (e.g. `uv version X.Y.Z`), and that it does not upgrade dependencies
+  - [x] 3.3: On a scratch copy of `web/package.json`, verify a command that sets the version without creating a git commit or tag (e.g. `bun pm version X.Y.Z --no-git-tag-version`, or `yq`/`jq`); record the one chosen
+  - [x] 3.4: Remove the throwaway image afterwards (ask the user if the removal safety check blocks it)
 
-- [ ] Task 4: GHCR publishing, tags and attestations (AC: 4)
-  - [ ] 4.1: From current documentation, record the latest release and commit SHA of `docker/login-action`, `docker/metadata-action`, `docker/setup-buildx-action`, `docker/build-push-action`, `actions/attest-build-provenance` (or its successor), `actions/attest-sbom` (or its successor) and an SBOM generator (e.g. `anchore/sbom-action`)
-  - [ ] 4.2: Confirm `docker/metadata-action` tag output for `v0.1.0`, `v0.2.3` and `v0.2.0-rc.1` with patterns `{{version}}` and `{{major}}.{{minor}}` and `latest=auto`: which tags each gets, and whether `{{major}}` would produce `0` (ADR-4 excludes it)
-  - [ ] 4.3: Record the permissions each job needs, how `push-to-registry` attestations appear in GHCR, and the `gh attestation verify` command users run
-  - [ ] 4.4: Record how a GHCR package created by `GITHUB_TOKEN` gets its visibility and repository link, and the manual step to make it public
-  - [ ] 4.5: Record whether buildx's own `provenance`/`sbom` attestations should be disabled to avoid duplicate or unknown-platform manifests
-  - [ ] 4.6: Validate a draft `15-0-spike/release.yml` with `actionlint` (via `mise exec`) if available; do not add it to `.github/workflows/`
+- [x] Task 4: GHCR publishing, tags and attestations (AC: 4)
+  - [x] 4.1: From current documentation, record the latest release and commit SHA of `docker/login-action`, `docker/metadata-action`, `docker/setup-buildx-action`, `docker/build-push-action`, `actions/attest-build-provenance` (or its successor), `actions/attest-sbom` (or its successor) and an SBOM generator (e.g. `anchore/sbom-action`)
+  - [x] 4.2: Confirm `docker/metadata-action` tag output for `v0.1.0`, `v0.2.3` and `v0.2.0-rc.1` with patterns `{{version}}` and `{{major}}.{{minor}}` and `latest=auto`: which tags each gets, and whether `{{major}}` would produce `0` (ADR-4 excludes it)
+  - [x] 4.3: Record the permissions each job needs, how `push-to-registry` attestations appear in GHCR, and the `gh attestation verify` command users run
+  - [x] 4.4: Record how a GHCR package created by `GITHUB_TOKEN` gets its visibility and repository link, and the manual step to make it public
+  - [x] 4.5: Record whether buildx's own `provenance`/`sbom` attestations should be disabled to avoid duplicate or unknown-platform manifests
+  - [x] 4.6: Validate a draft `15-0-spike/release.yml` with `actionlint` (via `mise exec`) if available; do not add it to `.github/workflows/`
 
-- [ ] Task 5: Record findings and update plans (AC: 5)
-  - [ ] 5.1: Write `15-0-spike/README.md`: what each script and output is, how to rerun it
-  - [ ] 5.2: Mark each ADR in `architecture/epic-15-release-engineering.md` confirmed or changed, with evidence
-  - [ ] 5.3: If an assumption failed, record the decision; update the affected stories in `epics.md`, or create a bead
-  - [ ] 5.4: Run `just check` to confirm nothing broke
+- [x] Task 5: Record findings and update plans (AC: 5)
+  - [x] 5.1: Write `15-0-spike/README.md`: what each script and output is, how to rerun it
+  - [x] 5.2: Mark each ADR in `architecture/epic-15-release-engineering.md` confirmed or changed, with evidence
+  - [x] 5.3: If an assumption failed, record the decision; update the affected stories in `epics.md`, or create a bead
+  - [x] 5.4: Run `just check` to confirm nothing broke
 
 ## Dev Notes
 
@@ -122,16 +122,42 @@ so that **the release stories rest on confirmed behavior**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Findings Summary
+
+Full evidence: `15-0-spike/README.md`.
+
+1. **Changelog (AC1):** git-cliff 2.14.2 with the draft `cliff.toml` produces grouped notes with commit links; scopes are hidden in the template except `api`, `web`, `docker`. Epic 14 yields 58 `feat`/`fix` entries; two safety-net parsers (preparation stories, "move story to review") cut that to 43. The remaining noise comes from the `dev-story` rule that every task commit is `feat(story-X.Y/task-N)`.
+2. **Bumps (AC2):** confirmed on a throwaway repository: feat → minor, fix/perf → patch, breaking (`!` or footer, including `refactor!`) → minor, explicit `--bump` works. With nothing releasable the computed version equals the last tag. A stable-only `tag_pattern` makes pre-release tags invisible, so stable notes cover everything since the last stable release.
+3. **Version files and metadata (AC3):** package metadata returns the `pyproject.toml` version inside the image. `uv version X --no-sync` and `bun pm version X --no-git-tag-version` change only the version lines. uv writes pre-releases in PEP 440 form (`0.2.0rc1`). Found `VSS-flj`: the image's `uv run` CMD downloads dev dependencies at every start and fails offline.
+4. **GHCR and attestations (AC4):** `actions/attest` v4.2.2 replaces `attest-build-provenance`/`attest-sbom` and needs `artifact-metadata: write`; attestations work for public repositories on every plan; `gh attestation verify oci://… --owner craquehouse`; metadata-action tag rules from its README; first publish creates a private package linked to the repository, made public by hand. Draft `release.yml` passes `actionlint`.
+5. **Plans (AC5):** every ADR marked with its status; Stories 15.1, 15.4 and 15.5 updated in `epics.md`.
 
 ### Architecture Decisions Made
 
+- ADR-1: version check compares PEP 440 normalization for pre-releases; image installs the project at build time and starts without syncing (Story 15.1).
+- ADR-2: template-level scope allowlist, safety-net parsers, stable-only `tag_pattern`; **maintainer decision:** task commits are typed by user impact (`project-context.md`, `dev-story/instructions.xml` updated).
+- ADR-3: exact version-file commands; "nothing to release" detection; pre-releases explicit and outside `CHANGELOG.md`.
+- ADR-4: `actions/attest` for provenance and SBOM, `artifact-metadata: write`, buildx `provenance`/`sbom` off, pre-release notes from git-cliff.
+
 ### Backlog Items Created
+
+- `VSS-flj` [INFRA-003] Container start re-syncs uv and downloads dev dependencies; API cannot start offline (fixed in Story 15.1).
 
 ### Completion Notes List
 
+- Nothing was published: no tags, images, workflows or releases. Tools ran through `mise exec` with `.mise.toml` unchanged.
+- The throwaway image `vss-150-spike` is still present: `docker image rm` is blocked by the removal safety check, so the maintainer removes it.
+- `just check` passes: 2048 API tests, 2999 web tests.
+
 ### File List
+
+- Created: `_bmad-output/implementation-artifacts/15-0-spike/` (`README.md`, `cliff.toml`, `sample-notes-epic-14.md`, `bump_test.sh`, `bump_test.out`, `release.yml`)
+- Modified: `_bmad-output/planning-artifacts/architecture/epic-15-release-engineering.md`, `_bmad-output/planning-artifacts/epics.md`
+- Modified: `project-context.md`, `_bmad/bmm/workflows/4-implementation/dev-story/instructions.xml`
 
 ## Change Log
 
 - 2026-11-10: Story created.
+- 2026-11-10: Spike complete; ADRs and Stories 15.1, 15.4, 15.5 updated; commit-type rule changed by maintainer decision; `VSS-flj` filed. Status review.
