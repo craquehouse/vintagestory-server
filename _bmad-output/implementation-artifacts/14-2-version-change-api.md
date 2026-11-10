@@ -1,6 +1,6 @@
 # Story 14.2: Version Change API
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -96,6 +96,16 @@ so that **a failed update never leaves me without a working mod**.
 - [x] Task 6: Final validation (AC: all)
   - [x] 6.1: Run `just check`
   - [x] 6.2: Update this story's Dev Agent Record and File List; add the AAR to `VSS-432` and close it
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] `VSS-432` closure not visible in the tracker (the review read the stale `.beads/beads.db`; `bd show VSS-432` shows it closed with the AAR)
+- [x] [AI-Review][Low] Version change is not serialized against install, enable, disable or remove (filed as `VSS-8wg`)
+- [x] [AI-Review][Low] The same-version no-op test does not assert that no request is made [tests/test_mod_version_change.py]
+- [x] [AI-Review][Low] No service-level test of a confirmed pre-release change [tests/test_mod_version_change.py]
+- [x] [AI-Review][Low] `install_mod` stages its copy with `with_suffix(".tmp")`, which can overwrite an unrelated same-stem `.tmp` file [services/mods.py `install_mod`]
+- [x] [AI-Review][Low] An `OSError` from deleting an invalid cache file in `_acquire_release_archive` escapes unmapped [services/mods.py]
+- [x] [AI-Review][Low] `read_modinfo` matches keys case-insensitively but `import_mod` does not (filed as `VSS-0jl`, related to `VSS-jhf`)
 
 ## Dev Notes
 
@@ -245,6 +255,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 6: `just check` passes (see Change Log for counts). ADR-2 updated with the same-filename `.bak` step. `VSS-432` closed with an AAR: the shared `download_release_file` sanitizes filenames for installs too.
 
+- Review: verdict Approve with follow-ups. M1 was a tracker read of the stale SQLite file. Fixed: the no-op test asserts no requests; a confirmed pre-release change is tested at service level; `install_mod` stages under `<name>.tmp`; a failed delete of an invalid cache file is logged, not raised (the download replaces the file by rename and every later use validates it again). L2 and L7 filed as `VSS-8wg` and `VSS-0jl`. 4 tests added.
+
 ### File List
 
 - Created: `api/tests/test_mod_version_change.py`
@@ -255,8 +267,28 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Modified: `api/src/vintagestory_api/services/mod_api.py`
 - Modified: `api/src/vintagestory_api/services/mod_state.py`
 - Modified: `api/src/vintagestory_api/services/mods.py`
+- Modified: `api/tests/test_mod_service.py` (review follow-up)
 - Modified: `api/src/vintagestory_api/services/mod_updates.py`
 
 ## Change Log
 
 - 2026-11-09: Implemented filename sanitizing in a shared download step (fixes the install path too), strict archive validation, version change resolution with confirmation, the atomic swap with rollback, and `PUT /mods/{slug}/version`. 61 new tests; `just check` passes with 1956 API tests and 2911 web tests.
+- 2026-11-09: Code review (GLM-5.3-Flash, Approve). Applied the small follow-ups, filed `VSS-8wg` and `VSS-0jl`, status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `f4394e8`^..`cccc4fa`
+**Outcome:** Approve
+
+**Summary:** All 11 acceptance criteria pass. Failure injection at five points in the swap restored the original file and state each time with no stray `.tmp` or `.bak`; hostile filenames stayed in the cache; the install path did not regress.
+
+### Action Items
+
+- [x] [Medium] `VSS-432` closure not verifiable in the tracker (stale database read; verified closed)
+- [x] [Low] No shared per-mod lock across mutating operations (`VSS-8wg`)
+- [x] [Low] No-op test lacks a no-request assertion
+- [x] [Low] Confirmed pre-release change untested at service level
+- [x] [Low] `install_mod` temp name collision
+- [x] [Low] Unmapped `OSError` on cache discard
+- [x] [Low] Case-sensitive keys in `import_mod` (`VSS-0jl`)
