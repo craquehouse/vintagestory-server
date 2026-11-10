@@ -11,6 +11,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_VERSION } from "@/lib/version";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -213,7 +214,7 @@ export function Sidebar({ className }: SidebarProps) {
             >
               <GithubIcon className="h-4 w-4" />
             </a>
-            {!isCollapsed && <span>v0.1.0</span>}
+            {!isCollapsed && <span>v{APP_VERSION}</span>}
           </div>
         </div>
       </aside>

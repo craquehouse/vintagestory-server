@@ -1,10 +1,19 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'fs';
 import path from 'path';
+
+const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8')) as {
+  version: string;
+};
 
 export default defineConfig({
   plugins: [react()],
+  // Same as vite.config.ts, so components can render the version under test
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   test: {
     environment: 'jsdom',
     globals: true,
