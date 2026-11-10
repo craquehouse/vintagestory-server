@@ -1,0 +1,89 @@
+# Story 15.3: Changelog Generation
+
+Status: ready-for-dev
+
+## Story
+
+As a **maintainer**,
+I want **release notes generated from commit messages**,
+so that **each release describes its changes without manual assembly**.
+
+## Acceptance Criteria
+
+1. **Given** conventional commits since the last release
+   **When** `just changelog` runs
+   **Then** it prints the unreleased notes grouped into breaking changes, features, fixes and performance improvements
+   **And** each entry links to its commit
+   *(FR155, FR157)*
+
+2. **Given** `docs`, `chore`, `test`, `ci`, `build`, `refactor`, `style` or review commits, merge commits, or non-conventional messages
+   **When** notes are generated
+   **Then** they are left out
+   *(FR155)*
+
+3. **Given** a commit scoped to a story, task or review (e.g. `feat(story-14.2/task-6): ...`)
+   **When** notes are generated
+   **Then** the entry shows the description without that scope
+   *(FR156)*
+
+## Tasks / Subtasks
+
+- [ ] Task 1: Pin git-cliff and add the configuration (AC: 1, 2, 3)
+  - [ ] 1.1: Add `git-cliff = "2.14.2"` to `.mise.toml` `[tools]`
+  - [ ] 1.2: Add `cliff.toml` at the repository root from `15-0-spike/cliff.toml`: header with `header_marker` (Story 15.4 prepends below it), template with groups, commit links and the scope allowlist (`api`, `web`, `docker`), parsers (breaking first, safety-net skips for `story-N.0` scopes and "move story X.Y to review", then `feat`/`fix`/`perf`, everything else skipped), `protect_breaking_commits`, `filter_unconventional`, stable-only `tag_pattern`, `[bump]` rules for 0.x
+  - [ ] 1.3: Keep scopes in the template, not a preprocessor, so parsers can still match them
+
+- [ ] Task 2: `just changelog` (AC: 1)
+  - [ ] 2.1: Recipe printing unreleased notes to stdout (`git cliff --unreleased --strip header`), accepting extra git-cliff arguments (e.g. a range)
+  - [ ] 2.2: No file is written and nothing is committed
+
+- [ ] Task 3: Tests against a fixture history (AC: 1, 2, 3)
+  - [ ] 3.1: `scripts/tests/test-changelog.sh`: build a temporary repository with commits covering every rule (each excluded type, merge commit, non-conventional message, story/task/review/`ad-hoc` scopes, allowlisted scope, `type!:` and `BREAKING CHANGE:` footer, `refactor!:`, `story-N.0` scope, "move story to review") and run the repository's `cliff.toml` against it
+  - [ ] 3.2: Assert group headings and order, included and excluded entries, scope display, commit links (full SHA in the URL, 7-character text)
+  - [ ] 3.3: Assert bump rules on 0.x (`--bumped-version`): fix→patch, feat→minor, breaking→minor, nothing releasable→unchanged; pre-release tags ignored by notes and bumps
+  - [ ] 3.4: CI's "Release scripts" job runs them (git-cliff comes from `.mise.toml` through `mise-action`)
+
+- [ ] Task 4: Validation (AC: all)
+  - [ ] 4.1: Run `just changelog e9358b9..f32fc26` and compare with `15-0-spike/sample-notes-epic-14.md` (header aside)
+  - [ ] 4.2: `just check`; update the Dev Agent Record and File List
+
+## Dev Notes
+
+### Scope
+
+FR155-FR157, Epic 15 ADR-2. Out of scope: writing `CHANGELOG.md` and computing the release version (Story 15.4); seeding `CHANGELOG.md` with the `v0.1.0` summary (Story 15.6).
+
+### Current state
+
+- `15-0-spike/cliff.toml` is the reviewed draft; `15-0-spike/bump_test.sh` and `bump_test.out` show the expected behavior; `sample-notes-epic-14.md` is the expected Epic 14 output.
+- No tags exist yet, so `just changelog` lists the project's whole history until `v0.1.0` is tagged. That is expected.
+- `scripts/tests/lib.sh` provides `assert_eq`, `assert_contains`, `make_tmp`, `script`, `pass`/`fail`, `finish`; `just test-scripts` runs `scripts/tests/test-*.sh`; CI job "Release scripts" runs `just version` and `just test-scripts` after `jdx/mise-action`.
+- Commit types follow user impact since Story 15.0 (`project-context.md`), so task commits for this story are `chore`/`test`/`docs` (tooling), not `feat`.
+
+### Rules
+
+- ADR-2 (with Story 15.0 status): groups Breaking Changes, Features, Fixes, Performance; scopes hidden except `api`, `web`, `docker`; stable-only `tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"`; `features_always_bump_minor = true`, `breaking_always_bump_major = false`, `initial_tag = "v0.1.0"`.
+- The fixture repository must not inherit the developer's git config in ways that change output (set `user.name`/`user.email` locally; commit with fixed dates if dates appear in assertions).
+- No lint suppressions; shellcheck-clean scripts.
+
+### Testing Requirements
+
+- Bash tests in `scripts/tests/`, run by `just test-scripts` and CI.
+
+### References
+
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 15.3]
+- [Source: _bmad-output/planning-artifacts/architecture/epic-15-release-engineering.md] ADR-2
+- [Source: _bmad-output/implementation-artifacts/15-0-spike/README.md] §1-§2
+
+## Dev Agent Record
+
+### Agent Model Used
+
+### Completion Notes List
+
+### File List
+
+## Change Log
+
+- 2026-11-10: Story created.
