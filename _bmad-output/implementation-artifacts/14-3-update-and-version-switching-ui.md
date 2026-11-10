@@ -1,6 +1,6 @@
 # Story 14.3: Update and Version Switching UI
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -85,6 +85,17 @@ so that **I can manage versions without touching files**.
   - [x] 6.1: Build the image, run it in a throwaway container with a real server and a mod at an older version: update, roll back with confirmation, check for updates; check browser console for errors
   - [x] 6.2: Run `just check`; update this story's Dev Agent Record and File List
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] A version listed twice for the installed mod ID gives duplicate Select items and React keys [features/mods/ModDetailPage.tsx]
+- [x] [AI-Review][Low] `pendingSlug` reflects only the latest mutation, so a second change clears the first row's spinner [hooks/use-version-change-flow.ts]
+- [x] [AI-Review][Low] Status reasons are only in `title` tooltips; the mobile card layout from the epic AC is not built (mobile layout filed as `VSS-rr5`)
+- [x] [AI-Review][Low] Overriding the global `onError` drops the "Authentication Failed" / "Access Denied" wording for these two actions (accepted: the flow's toast carries the API message)
+- [x] [AI-Review][Low] `onSettled` refetches mods, update status and compatibility lookups even after a confirmation request [hooks/use-mods.ts]
+- [x] [AI-Review][Low] The `@updates` key relies on mod IDs never containing `@`; the detail page misses an installed mod whose ID is not the entry's first (filed as `VSS-ywb`)
+- [x] [AI-Review][Low] The pre-existing `eslint-disable` in `ModTable.tsx` may now be stale (not changed: the project's `lint` script runs only `tsc`, so ESLint cannot confirm it)
+- [x] [AI-Review][Low] No test for a confirmed retry that answers 409 again [hooks/use-version-change-flow.test.tsx]
+
 ## Dev Notes
 
 ### Scope
@@ -164,6 +175,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 6: Browser check in a throwaway container (VintageStory 1.22.7 running, Auto Map Markers 5.0.2 and Carry On installed): Check for updates offered 5.0.3 for Auto Map Markers and "Up to date" for Carry On; Update opened the dialog ("Not verified for game version 1.22.7") and Update anyway installed 5.0.3 with the restart toast and banner; the detail page listed only that mod ID's releases and Switch to 5.0.2 showed both `not_verified` and `older` and rolled back; Cancel changed nothing; the mods directory held one file per mod each time. Found and fixed: the global mutation error handler also toasted the expected 409 (and check errors), so `useCheckModUpdates` and `useChangeModVersion` now override `onError` and leave reporting to their callers (2 tests). The only console entry left is the browser's network log of that 409.
 - Found, not fixed (out of scope): installing without a version took Carry On `2.0.0-rc.1`, because install takes `releases[0]`; filed `VSS-43b`. The installed table remounts its cells on each `InstalledTab` render because `onToggled` is a new function each time (pre-existing).
 
+- Review: verdict Approve, Lows only. Fixed: re-uploaded versions are deduped (first listing wins, as in the API); the flow uses `mutateAsync` and tracks pending changes per mod (`isPending(slug)`), because TanStack runs per-call `mutate` callbacks only for the latest call, so a second change also dropped the first change's toast or confirmation, which the review did not mention; status reasons are repeated as screen-reader text; a check now invalidates only the update status, and a version change refetches on success or on failure other than a confirmation request; added the confirmed-retry-409 test. Filed `VSS-rr5` (mobile layout) and `VSS-ywb` (detail page installed detection). Accepted the 401/403 wording change. 8 tests added; `just check` passes with 1961 API and 2965 web tests.
+
 ### File List
 
 - Created: `web/src/components/ModUpdateCell.tsx`, `web/src/components/ModUpdateCell.test.tsx`
@@ -180,3 +193,24 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-09: Implemented the update and version switching UI (Available column, check for updates, confirmation flow, detail page version switching) and release mod IDs in lookups. Browser-verified in a throwaway container; fixed a duplicate error toast found there. `just check` passes with 1961 API tests and 2959 web tests.
+- 2026-11-09: Code review (GLM-5.3-Flash, Approve). Applied the Low fixes, filed `VSS-rr5` and `VSS-ywb`, status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `a77be34`^..`9c1bff7`
+**Outcome:** Approve
+
+**Summary:** All seven acceptance criteria pass with test evidence; the confirm, retry and cancel flow is correct, including the guard against reopening on a second 409; the duplicate-toast fix is proven by tests; no suppressions were added. Tests assert real URLs, methods and request bodies.
+
+### Action Items
+
+- [x] [Low] Duplicate version in one mod ID breaks the version Select
+- [x] [Low] Pending state tracks only the latest mutation
+- [x] [Low] Status reasons only in tooltips; no mobile layout (`VSS-rr5`)
+- [x] [Low] 401/403 wording no longer from the global handler (accepted)
+- [x] [Low] Invalidation after a confirmation request
+- [x] [Low] Unenforced key and detail-page slug assumptions (`VSS-ywb`)
+- [x] [Low] Possibly stale `eslint-disable` (pre-existing, not changed)
+- [x] [Low] Missing test for a 409 on the confirmed retry
+
