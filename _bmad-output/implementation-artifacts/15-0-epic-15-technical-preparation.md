@@ -1,6 +1,6 @@
 # Story 15.0: Epic 15 Technical Preparation
 
-Status: review
+Status: done
 
 <!-- Spike story (template-api-spike). Complete before Stories 15.1-15.6: their designs rest on the assumptions this story verifies. Nothing is published in this story. -->
 
@@ -70,6 +70,18 @@ so that **the release stories rest on confirmed behavior**.
   - [x] 5.2: Mark each ADR in `architecture/epic-15-release-engineering.md` confirmed or changed, with evidence
   - [x] 5.3: If an assumption failed, record the decision; update the affected stories in `epics.md`, or create a bead
   - [x] 5.4: Run `just check` to confirm nothing broke
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][High] `VSS-flj` reported as never filed (rejected: it exists in the Dolt store, `bd show VSS-flj`; the reviewer read `.beads/issues.jsonl`, a passive export last committed in January)
+- [x] [AI-Review][Medium] AC3 evidence was prose only: added `version_check.sh` and its captured output `version_check.out`
+- [x] [AI-Review][Medium] Draft `release.yml` prerequisites not named: README and ADR-4 now list `just version`, git-cliff in `.mise.toml`, root `cliff.toml`, `CHANGELOG.md`
+- [x] [AI-Review][Low] Default-pattern pre-release bump not in `bump_test.out`: added the case
+- [x] [AI-Review][Low] Notes extraction used the version as a regex: exact heading match
+- [x] [AI-Review][Low] Scope allowlist rationale read backwards: reworded with the real tallies; the allowlist stays forward-looking
+- [x] [AI-Review][Low] `--latest` claim not demonstrated: test now adds a commit after the tag
+- [x] [AI-Review][Low] Current-state tallies differ from the reviewer's (accepted: they reproduce with `git log --no-merges --format=%s main | grep -cE '^feat(\(|!|:)'` → 269, docs 162; counting-method difference)
+- [x] [AI-Review][Low] `bump_test.sh` ran `rm -rf` on a caller-supplied path: now uses `mktemp -d` with cleanup on exit
 
 ## Dev Notes
 
@@ -148,12 +160,12 @@ Full evidence: `15-0-spike/README.md`.
 ### Completion Notes List
 
 - Nothing was published: no tags, images, workflows or releases. Tools ran through `mise exec` with `.mise.toml` unchanged.
-- The throwaway image `vss-150-spike` is still present: `docker image rm` is blocked by the removal safety check, so the maintainer removes it.
+- The throwaway image `vss-150-spike` is removed by the maintainer (`docker image rm` is blocked by the removal safety check); rerunning `version_check.sh --image` recreates it.
 - `just check` passes: 2048 API tests, 2999 web tests.
 
 ### File List
 
-- Created: `_bmad-output/implementation-artifacts/15-0-spike/` (`README.md`, `cliff.toml`, `sample-notes-epic-14.md`, `bump_test.sh`, `bump_test.out`, `release.yml`)
+- Created: `_bmad-output/implementation-artifacts/15-0-spike/` (`README.md`, `cliff.toml`, `sample-notes-epic-14.md`, `bump_test.sh`, `bump_test.out`, `version_check.sh`, `version_check.out`, `release.yml`)
 - Modified: `_bmad-output/planning-artifacts/architecture/epic-15-release-engineering.md`, `_bmad-output/planning-artifacts/epics.md`
 - Modified: `project-context.md`, `_bmad/bmm/workflows/4-implementation/dev-story/instructions.xml`
 
@@ -161,3 +173,24 @@ Full evidence: `15-0-spike/README.md`.
 
 - 2026-11-10: Story created.
 - 2026-11-10: Spike complete; ADRs and Stories 15.1, 15.4, 15.5 updated; commit-type rule changed by maintainer decision; `VSS-flj` filed. Status review.
+- 2026-11-10: Code review (GLM-5.3-Flash, Changes Requested). Rejected H1 (bead exists), fixed M1, M2, L1-L4, L6, accepted L5. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `0edcf72`^..`b4e8104`
+**Outcome:** Changes Requested → resolved
+
+**Summary:** The reviewer regenerated `sample-notes-epic-14.md` and `bump_test.out` byte-identically, re-ran `actionlint`, verified all ten SHA pins against upstream, the per-job permissions, release-after-image ordering and quoted tag handling, and confirmed the `actions/attest` and metadata-action claims from their READMEs. It could not check the Docker, uv and bun claims without a build, which `version_check.sh` now records.
+
+### Action Items
+
+- [x] [High] `VSS-flj` not filed (rejected: exists in Dolt; the JSONL export is stale by design)
+- [x] [Medium] Capture AC3 evidence in a script
+- [x] [Medium] Name the draft workflow's prerequisites
+- [x] [Low] Record the default-pattern pre-release bump
+- [x] [Low] Exact-match the CHANGELOG heading
+- [x] [Low] Reword the scope allowlist rationale
+- [x] [Low] Demonstrate `--latest` behavior
+- [x] [Low] Tallies differ (accepted)
+- [x] [Low] Guard `rm -rf` in `bump_test.sh`
