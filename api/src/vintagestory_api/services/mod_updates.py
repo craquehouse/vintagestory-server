@@ -32,6 +32,7 @@ from vintagestory_api.services.mod_api import (
     ModApiError,
     check_compatibility,
 )
+from vintagestory_api.services.mod_update_alerts import send_update_alert
 
 if TYPE_CHECKING:
     from vintagestory_api.services.mods import VersionChangeResult
@@ -162,9 +163,16 @@ class ModUpdateStore:
     def clear_lookup_error(self, modid: str) -> None:
         self._data.lookup_errors.pop(modid, None)
 
+    def notified_version(self, modid: str) -> str | None:
+        """Offered version a webhook alert was last delivered for (Story 14.6)."""
+        return self._data.notified.get(modid)
+
+    def mark_notified(self, modid: str, version: str) -> None:
+        self._data.notified[modid] = version
+
     def prune(self, keep: set[str]) -> None:
-        """Drop records and lookup errors for modids not in `keep`."""
-        for mods in (self._data.mods, self._data.lookup_errors):
+        """Drop records, lookup errors and alert records for modids not in `keep`."""
+        for mods in (self._data.mods, self._data.lookup_errors, self._data.notified):
             for modid in [m for m in mods if m not in keep]:
                 del mods[modid]
 
@@ -319,10 +327,12 @@ class ModUpdateService:
         store: ModUpdateStore,
         mod_source: InstalledModSource,
         game_version_provider: Callable[[], str | None],
+        webhook_url_provider: Callable[[], str | None] | None = None,
     ) -> None:
         self._store = store
         self._mod_source = mod_source
         self._game_version_provider = game_version_provider
+        self._webhook_url_provider = webhook_url_provider
         self._check_lock = asyncio.Lock()
         self._apply_lock = asyncio.Lock()
 
@@ -439,7 +449,37 @@ class ModUpdateService:
                     "mod_update_store_save_failed", path=str(self._store.path), error=str(e)
                 )
             logger.info("mod_update_check_complete", checked=len(mods), failed=len(failed))
+            await self._send_alerts()
             return CheckSummary(checked=len(mods), failed=len(failed), failed_slugs=failed)
+
+    async def _send_alerts(self) -> None:
+        """Alert the configured webhook about updates not alerted yet (Story 14.6, ADR-6).
+
+        One alert per mod and offered version. Versions are recorded only after the
+        receiver answers 2xx, so a failed delivery is retried on the next check. Delivery
+        failures are logged by `send_update_alert` and never affect the check.
+        """
+        url = self._webhook_url_provider() if self._webhook_url_provider else None
+        if not url:
+            return
+        new = [
+            item
+            for item in self.get_status()
+            if item.status == "update_available"
+            and item.offered_version is not None
+            and self._store.notified_version(item.slug) != item.offered_version
+        ]
+        if not new or not await send_update_alert(url, new):
+            return
+        for item in new:
+            if item.offered_version is not None:
+                self._store.mark_notified(item.slug, item.offered_version)
+        try:
+            self._store.save()
+        except (OSError, ValueError) as e:
+            logger.error(
+                "mod_update_store_save_failed", path=str(self._store.path), error=str(e)
+            )
 
     async def _check_one(self, slug: str) -> bool:
         """Refresh one mod. Returns False if the lookup failed."""
@@ -494,6 +534,13 @@ def installed_game_version() -> str | None:
     return get_server_service().get_installed_version()
 
 
+def _configured_webhook_url() -> str | None:
+    """The mod update webhook from API settings, read on each check (Story 14.6)."""
+    from vintagestory_api.services.api_settings import ApiSettingsService
+
+    return ApiSettingsService().get_settings().mod_update_webhook_url
+
+
 def get_mod_update_service() -> ModUpdateService:
     """Get or create the mod update service singleton."""
     global _mod_update_service
@@ -504,6 +551,7 @@ def get_mod_update_service() -> ModUpdateService:
             store=ModUpdateStore(Settings().state_dir),
             mod_source=get_mod_service(),
             game_version_provider=installed_game_version,
+            webhook_url_provider=_configured_webhook_url,
         )
     return _mod_update_service
 

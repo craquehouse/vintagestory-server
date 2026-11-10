@@ -99,6 +99,8 @@ class ModUpdatesFile(BaseModel):
     mods: dict[str, StoredModRecord] = {}
     lookup_errors: dict[str, str] = {}
     """Last lookup failure for installed mods that have no stored record yet."""
+    notified: dict[str, str] = {}
+    """Offered version last alerted per installed modid (Story 14.6, ADR-6)."""
 
 
 class ModUpdateStatusItem(BaseModel):

@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -10,6 +11,8 @@ import respx
 from httpx import Response
 
 from vintagestory_api.models.mod_updates import Compatibility, ModUpdateStatusItem
+from vintagestory_api.models.mods import ModInfo
+from vintagestory_api.services.mod_api import ModApiClient
 from vintagestory_api.services.mod_update_alerts import (
     CONTENT_LIMIT,
     build_payload,
@@ -17,6 +20,7 @@ from vintagestory_api.services.mod_update_alerts import (
     send_update_alert,
     summarize,
 )
+from vintagestory_api.services.mod_updates import ModUpdateService, ModUpdateStore
 
 DISCORD = "https://discord.com/api/webhooks/123/discord-secret-token"
 OTHER = "https://hooks.example.com/alerts/other-secret-token"
@@ -210,3 +214,161 @@ class TestSend:
     @pytest.mark.asyncio
     async def test_nothing_to_send(self) -> None:
         assert await send_update_alert(DISCORD, []) is True
+
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+MOD_URL = "https://mods.vintagestory.at/api/mod/carryon"
+
+
+class FakeModSource:
+    def __init__(self, cache_dir: Path) -> None:
+        self.api_client = ModApiClient(cache_dir=cache_dir)
+        self.version = "1.14.1"
+
+    def list_mods(self) -> list[ModInfo]:
+        return [
+            ModInfo(
+                filename="carryon.zip",
+                slug="carryon",
+                version=self.version,
+                enabled=True,
+                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+                name="Carry On",
+            )
+        ]
+
+
+def make_service(tmp_path: Path, webhook: str | None = DISCORD) -> ModUpdateService:
+    return ModUpdateService(
+        store=ModUpdateStore(tmp_path / "state"),
+        mod_source=FakeModSource(tmp_path / "cache"),
+        game_version_provider=lambda: "1.22.7",
+        webhook_url_provider=lambda: webhook,
+    )
+
+
+def carryon(newest_first: list[str] | None = None) -> dict[str, object]:
+    data = json.loads((FIXTURES / "mod_carryon.json").read_text())
+    if newest_first:
+        template = dict(data["mod"]["releases"][0])
+        extra = [
+            {**template, "modversion": v, "fileid": 900 + i, "tags": ["1.22.7"]}
+            for i, v in enumerate(newest_first)
+        ]
+        data["mod"]["releases"] = extra + data["mod"]["releases"]
+    return data
+
+
+class TestAlertsAfterCheck:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_alerts_once_per_mod_and_version(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        hook = respx.post(DISCORD).mock(return_value=Response(204))
+        service = make_service(tmp_path)
+
+        await service.check()
+        await service.check()
+
+        assert hook.call_count == 1
+        assert service.store.notified_version("carryon") == "1.14.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_no_repeat_after_restart(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        hook = respx.post(DISCORD).mock(return_value=Response(204))
+        await make_service(tmp_path).check()
+
+        await make_service(tmp_path).check()  # new service and store: as after a restart
+
+        assert hook.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_newer_offered_version_alerts_again(self, tmp_path: Path) -> None:
+        lookup = respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        requests: list[httpx.Request] = []
+        respx.post(DISCORD).mock(side_effect=capture(requests, Response(204)))
+        service = make_service(tmp_path)
+        await service.check()
+
+        lookup.mock(return_value=Response(200, json=carryon(["1.14.4"])))
+        await service.check()
+
+        assert len(requests) == 2
+        assert "1.14.4" in json.loads(requests[1].content)["content"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [Response(429, json={"retry_after": 2}), Response(500)])
+    async def test_failed_delivery_is_retried_next_check(
+        self, tmp_path: Path, failure: Response
+    ) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        hook = respx.post(DISCORD).mock(side_effect=[failure, Response(204)])
+        service = make_service(tmp_path)
+
+        summary = await service.check()
+
+        assert hook.call_count == 1  # a 429 is not retried within the same check
+        assert service.store.notified_version("carryon") is None
+        assert (summary.checked, summary.failed) == (1, 0)
+
+        await service.check()
+
+        assert hook.call_count == 2
+        assert service.store.notified_version("carryon") == "1.14.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_delivery_timeout_does_not_affect_the_check(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        respx.post(DISCORD).mock(side_effect=httpx.ConnectTimeout("timed out"))
+        service = make_service(tmp_path)
+
+        summary = await service.check()
+
+        assert (summary.checked, summary.failed) == (1, 0)
+        assert service.get_status()[0].offered_version == "1.14.3"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_no_webhook_sends_nothing(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        hook = respx.post(DISCORD).mock(return_value=Response(204))
+
+        await make_service(tmp_path, webhook=None).check()
+
+        assert not hook.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_up_to_date_mods_are_not_alerted(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        hook = respx.post(DISCORD).mock(return_value=Response(204))
+        source = FakeModSource(tmp_path / "cache")
+        source.version = "1.14.3"
+        service = ModUpdateService(
+            store=ModUpdateStore(tmp_path / "state"),
+            mod_source=source,
+            game_version_provider=lambda: "1.22.7",
+            webhook_url_provider=lambda: DISCORD,
+        )
+
+        await service.check()
+
+        assert not hook.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_records_are_pruned_with_uninstalled_mods(self, tmp_path: Path) -> None:
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        respx.post(DISCORD).mock(return_value=Response(204))
+        service = make_service(tmp_path)
+        await service.check()
+
+        service.store.prune(set())
+
+        assert service.store.notified_version("carryon") is None
+

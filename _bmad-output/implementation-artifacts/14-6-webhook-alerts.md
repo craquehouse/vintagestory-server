@@ -48,11 +48,11 @@ so that **I find out without opening the UI**.
   - [x] 2.2: `send_update_alert(url, items)`: POST JSON with a 10 s timeout and `follow_redirects=False`; True only for 2xx; failures logged with status or error type, never the URL or exception text
   - [x] 2.3: Tests with respx: Discord 204 and 429, other receiver payload, 302 not followed, timeout, connection error, truncation, URL absent from captured logs
 
-- [ ] Task 3: Deduplicated alerts after each check + tests (AC: 2, 4)
-  - [ ] 3.1: Store: `ModUpdatesFile.notified` (modid → offered version alerted), with store accessors; pruned with uninstalled mods
-  - [ ] 3.2: `ModUpdateService.check()` sends one alert for update_available mods whose offered version is not yet recorded, after saving the check; records them only after a 2xx and saves; never raises from alerting
-  - [ ] 3.3: Webhook URL from API settings via an injectable provider
-  - [ ] 3.4: Tests: alert once, no repeat across checks or a reloaded store, newer version alerts again, failure retried next check, no webhook sends nothing, check summary unchanged when delivery fails
+- [x] Task 3: Deduplicated alerts after each check + tests (AC: 2, 4)
+  - [x] 3.1: Store: `ModUpdatesFile.notified` (modid → offered version alerted), with store accessors; pruned with uninstalled mods
+  - [x] 3.2: `ModUpdateService.check()` sends one alert for update_available mods whose offered version is not yet recorded, after saving the check; records them only after a 2xx and saves; never raises from alerting
+  - [x] 3.3: Webhook URL from API settings via an injectable provider
+  - [x] 3.4: Tests: alert once, no repeat across checks or a reloaded store, newer version alerts again, failure retried next check, no webhook sends nothing, check summary unchanged when delivery fails
 
 - [ ] Task 4: Settings UI + tests (AC: 5)
   - [ ] 4.1: Web types: `modUpdateWebhookConfigured`; update response `configured`
