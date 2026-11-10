@@ -38,10 +38,10 @@ so that **I notice them without checking**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Scheduled checks in the refresh job + tests (AC: 1, 2, 3)
-  - [ ] 1.1: `jobs/mod_cache_refresh.py` runs `ModUpdateService.check()` (ADR-5) instead of its own reachability loop, which made the same requests and stored nothing; logs a summary with the update count
-  - [ ] 1.2: `ModUpdateCheckInProgressError` → log `mod_cache_refresh_skipped` and return
-  - [ ] 1.3: Rewrite `tests/jobs/test_mod_cache_refresh.py`: status recorded per mod with one failing lookup (respx), skip when a check runs, no mods, `safe_job` contract; interval 0 stays covered by `test_jobs_registration.py`
+- [x] Task 1: Scheduled checks in the refresh job + tests (AC: 1, 2, 3)
+  - [x] 1.1: `jobs/mod_cache_refresh.py` runs `ModUpdateService.check()` (ADR-5) instead of its own reachability loop, which made the same requests and stored nothing; logs a summary with the update count
+  - [x] 1.2: `ModUpdateCheckInProgressError` → log `mod_cache_refresh_skipped` and return
+  - [x] 1.3: Rewrite `tests/jobs/test_mod_cache_refresh.py`: status recorded per mod with one failing lookup (respx), skip when a check runs, no mods, `safe_job` contract; interval 0 stays covered by `test_jobs_registration.py`
 
 - [ ] Task 2: Update count in the navigation + tests (AC: 4, 5)
   - [ ] 2.1: `SubNavItem.badge` (count) in `ExpandableNavItem`: a count pill on the item when > 0, in the collapsed-sidebar tooltip, and on the parent while the group is closed, with an accessible label
