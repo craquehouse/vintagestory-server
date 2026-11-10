@@ -223,13 +223,30 @@ fixture 0.1.0
 tag_and_push 0.1.0
 commit "feat: a feature"
 push
-printf '#!/bin/sh\necho "rejected by test hook" >&2\nexit 1\n' >"$REMOTE/hooks/pre-receive"
-chmod +x "$REMOTE/hooks/pre-receive"
+# The update hook rejects only the tag: a non-atomic push would still advance main
+cat >"$REMOTE/hooks/update" <<'HOOK'
+#!/bin/sh
+case "$1" in refs/tags/*) echo "tag rejected by test hook" >&2; exit 1 ;; esac
+HOOK
+chmod +x "$REMOTE/hooks/update"
 before=$(state) remote_before=$(remote_state)
 release "y"
-assert_eq "push rejected: exit" 1 "$STATUS"
-assert_contains "push rejected: message" "push failed" "$OUT"
-assert_unchanged "push rejected" "$before" "$remote_before"
+assert_eq "tag rejected: exit" 1 "$STATUS"
+assert_contains "tag rejected: message" "push failed" "$OUT"
+assert_unchanged "tag rejected, so main is not pushed either (atomic)" "$before" "$remote_before"
+
+fixture 0.1.0
+tag_and_push 0.1.0
+commit "feat: a feature"
+push
+for hook in pre-commit prepare-commit-msg commit-msg post-commit pre-push; do
+    printf '#!/bin/sh\necho "%s ran" >&2\nexit 1\n' "$hook" >"$WORK/.git/hooks/$hook"
+    chmod +x "$WORK/.git/hooks/$hook"
+done
+release "y"
+assert_eq "repository hooks do not run: exit" 0 "$STATUS"
+if [[ $OUT == *" ran"* ]]; then fail "repository hooks do not run" "$OUT"; else pass; fi
+assert_eq "repository hooks do not run: tag pushed" "$(g rev-parse v0.2.0)" "$(git -C "$REMOTE" rev-parse v0.2.0)"
 
 # --- Preconditions -----------------------------------------------------------------------
 
@@ -250,6 +267,9 @@ expect_refused() {
 
 g checkout -q -b topic
 expect_refused "not on main" "you are on 'topic'"
+g checkout -q main
+g checkout -q --detach
+expect_refused "detached HEAD" "you are on 'a detached HEAD'"
 g checkout -q main
 
 touch "$WORK/stray.txt"
@@ -282,5 +302,16 @@ g add web/package.json
 commit "chore: desync the version files"
 push
 expect_refused "version files disagree" "api/pyproject.toml has '0.1.0'"
+
+g remote remove origin
+expect_refused_local() {
+    local before
+    before=$(state)
+    release "y"
+    assert_eq "$1: exit" 1 "$STATUS"
+    assert_contains "$1: message" "$2" "$OUT"
+    assert_eq "$1: local state unchanged" "$before" "$(state)"
+}
+expect_refused_local "no origin remote" "cannot fetch origin/main"
 
 finish

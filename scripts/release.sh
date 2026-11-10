@@ -15,6 +15,9 @@
 #
 # Runs in the current repository. Requires git, git-cliff, uv, bun and yq (run through
 # `just release`, which provides them with mise). The push confirmation reads stdin.
+# Repository git hooks do not run for the release commit, tag and push: the commit only
+# touches version files, and a hook that writes to the tree would lose its writes if a
+# failed release is rolled back.
 
 set -euo pipefail
 
@@ -115,7 +118,8 @@ done
 
 case "$request" in
     "")
-        version=$(cliff --bumped-version)
+        version=$(cliff --bumped-version) || true
+        [[ -n $version ]] || die "git cliff could not compute the next version"
         version=${version#v}
         [[ -n $last_stable && $version == "$last_stable" ]] &&
             die "nothing to release: no feat, fix, perf or breaking commits since v$last_stable"
@@ -211,8 +215,9 @@ fi
 git add -- "${files[@]}"
 # --allow-empty: releasing the version already in the files with a hand-written section
 # (v0.1.0) changes nothing, but every release still gets its own commit for the tag
-git commit --quiet --allow-empty -m "chore(release): $tag" || die "commit failed"
-git tag -a "$tag" -m "$tag" || die "tag failed"
+unhooked() { git -c core.hooksPath=/dev/null "$@"; }
+unhooked commit --quiet --allow-empty -m "chore(release): $tag" || die "commit failed"
+unhooked tag -a "$tag" -m "$tag" || die "tag failed"
 
 echo "Committed $(git rev-parse --short HEAD) chore(release): $tag and tagged $tag."
 read -r -p "Push $tag to $REMOTE? [y/N] " answer || answer=""
@@ -221,7 +226,7 @@ case "$answer" in
     *) die "release cancelled" ;;
 esac
 
-git push --quiet --atomic "$REMOTE" "$BRANCH" "$tag" || die "push failed"
+unhooked push --quiet --atomic "$REMOTE" "$BRANCH" "$tag" || die "push failed"
 pushed=true
 trap - EXIT
 echo "Pushed $tag. The release workflow publishes it."
