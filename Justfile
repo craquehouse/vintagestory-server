@@ -25,8 +25,8 @@ default:
 # TESTING
 # =============================================================================
 
-# Run all tests (api + web)
-test: test-api test-web
+# Run all tests (api + web + scripts)
+test: test-api test-web test-scripts
 
 # Run API tests (Python/pytest) - accepts optional pytest args
 # Excludes E2E tests by default (run with just test-e2e-api)
@@ -37,6 +37,11 @@ test-api *ARGS:
 # Run web tests (Vitest) - accepts optional vitest args
 test-web *ARGS:
     VS_DATA_DIR=../dev mise exec -C web -- bun run test --run {{ARGS}}
+
+# Examples: just test-scripts | just test-scripts test-version.sh
+# Run tests for the release and version scripts (bash) - accepts optional test files
+test-scripts *ARGS:
+    mise exec -- ./scripts/tests/run.sh {{ARGS}}
 
 # Run API tests in watch mode (TDD)
 test-api-watch:
@@ -232,6 +237,14 @@ docker COMMAND *ARGS:
             exit 1
             ;;
     esac
+
+# =============================================================================
+# RELEASES
+# =============================================================================
+
+# Print the manager version; fails if web/package.json, api/pyproject.toml and api/uv.lock disagree
+version:
+    @mise exec -- ./scripts/version.sh
 
 # =============================================================================
 # DATA MANAGEMENT
