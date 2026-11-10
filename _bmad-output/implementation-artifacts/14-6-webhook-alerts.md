@@ -64,6 +64,16 @@ so that **I find out without opening the UI**.
   - [x] 5.2: Obtain the test Discord webhook URL only through the private secret prompt; never write it to the repo, story, logs or chat
   - [x] 5.3: Run `just check`; update the Dev Agent Record and File List
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] An invalid `api-settings.json` logs pydantic's error text, which quotes the webhook URL, on every settings read [services/api_settings.py `get_settings`]
+- [x] [AI-Review][Low] Alerts run inside the check lock, so a slow receiver delays the next check by up to 10 s (accepted: bounded, and it keeps overlapping checks from sending the same alert twice)
+- [x] [AI-Review][Low] `updateApiSetting`'s doc comment was left above `setModUpdateWebhook` [web/src/api/config.ts]
+- [x] [AI-Review][Low] The generic `useUpdateApiSetting` would cache the URL if called with the webhook key [web/src/hooks/use-api-settings.ts]
+- [x] [AI-Review][Low] A first line too long for the limit produced an alert naming no mod; a newline in a mod name forged summary lines [services/mod_update_alerts.py]
+- [x] [AI-Review][Low] A mod downgraded below an already-alerted version is not alerted again (accepted: ADR-6 "one alert per mod and version")
+- [x] [AI-Review][Low] The configured status is not part of the input's accessible description [ModUpdateWebhookSetting.tsx]
+
 ## Dev Notes
 
 ### Scope
@@ -118,6 +128,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 4: `ModUpdateWebhookSetting` in a new "Update Alerts" group: Configured / Not configured, a URL input that is never prefilled, Save (client-side http/https check) and Clear. It uses its own `useSetModUpdateWebhook` mutation, which is not optimistic, so the URL is never written into the cached settings. 8 tests.
 - Task 5: Throwaway container (Carry On 1.14.1 and Auto Map Markers 5.0.2, both with updates). Set a local receiver URL from the UI ("Webhook saved", status Configured, field empty); two checks produced exactly one alert with the generic payload (`event`, `content`, `updates` with installed modids) and recorded both versions as notified. Then cleared `notified` in the container's state file and restarted it, and set a real Discord webhook through the settings API from a file obtained through the private secret prompt: the check logged `mod_update_alert_sent receiver=discord updates=2`, a second check sent nothing, and no `mod_update_alert_failed`. Searched for the URL: 0 container log lines, 0 API responses, only `api-settings.json` (ADR-6); `httpx` printed no request lines. Clear from the UI showed "Not configured" and removed the URL from the container's state. No browser console errors.
 
+- Review: verdict Changes Requested (M1). Fixed: settings load failures log field names and messages only (`errors(include_input=False)`), tested with a short and an over-long invalid URL; the summary always names at least one mod (an oversized first line is shortened) and mod database text is put on one line; `updateApiSetting` refuses secret keys and the generic hook never caches them; the doc comment is back on `updateApiSetting`; the input's description starts with Configured / Not configured. Accepted L1 and L5 as recorded above. 7 tests added; `just check` passes with 2023 API and 2999 web tests.
+
 ### File List
 
 - Created: `api/src/vintagestory_api/services/mod_update_alerts.py`, `api/tests/test_mod_update_alerts.py`
@@ -131,3 +143,23 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-09: Webhook alerts for mod updates: Admin-only redacted setting, receiver-specific delivery without redirects, one alert per mod and version recorded after a 2xx, and the settings UI. Verified against a local receiver and a real Discord webhook. `just check` passes with 2020 API tests and 2997 web tests.
+- 2026-11-09: Code review (GLM-5.3-Flash, Changes Requested). Fixed M1 and L2–L4, L6; accepted L1 and L5.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-09
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `1c95b34`^..`482cddc`
+**Outcome:** Changes Requested
+
+**Summary:** ACs 2–5 met; AC 1 partial: the write path never echoes the URL, Monitor is blocked and httpx request logs are not emitted, but a hand-edited invalid settings file logged the URL. Deduplication, Discord payloads, back-compatibility and the admin-only SSRF boundary checked clean. No suppressions.
+
+### Action Items
+
+- [x] [Medium] Settings load error logs the webhook URL
+- [x] [Low] Alert inside the check lock (accepted)
+- [x] [Low] Misplaced doc comment
+- [x] [Low] Generic settings hook could cache the secret
+- [x] [Low] Summary could name no mod; newlines forge lines
+- [x] [Low] No re-alert after a downgrade (accepted)
+- [x] [Low] Configured status not in the input's description
+
