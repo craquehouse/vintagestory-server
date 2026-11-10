@@ -3691,9 +3691,14 @@ So that **I can tell whether I am up to date and report problems accurately**.
 **Given** both version files
 **When** `just version` runs
 **Then** it prints the version
-**And** fails if the two files disagree
+**And** fails if the two files disagree, comparing pre-release versions in their PEP 440 form (`0.2.0-rc.1` = `0.2.0rc1`)
+
+**Given** the image is started with no network access
+**When** the container starts
+**Then** the API comes up without installing or downloading anything, and without dev dependencies (`VSS-flj`, found in Story 15.0)
 
 **Tasks:**
+- [ ] Install the project at image build time and start without syncing (`VSS-flj`)
 - [ ] Read the API version from package metadata; remove hard-coded versions
 - [ ] Add `version` to the `/healthz` response
 - [ ] Build the web version from `package.json` into the sidebar footer
@@ -3803,6 +3808,15 @@ So that **version, changelog, commit and tag are always consistent**.
 
 *(Covers FR160)*
 
+**Given** an explicit pre-release version such as `0.3.0-rc.1`
+**When** the release runs
+**Then** it updates the version files, commits and tags, but leaves `CHANGELOG.md` unchanged
+**And** the next stable release's notes cover everything since the last stable release
+
+**Given** no releasable commits since the last release and no explicit version
+**When** I run `just release`
+**Then** it reports that there is nothing to release
+
 **Given** a step fails before the push
 **When** the release stops
 **Then** no release commit or tag is left behind
@@ -3858,7 +3872,7 @@ So that **I can install a specific version and trust where it came from**.
 **Tasks:**
 - [ ] `.github/workflows/release.yml`: verify, build and push, attest, release
 - [ ] Image tags and labels; pre-release handling
-- [ ] SBOM and provenance attestations; SBOM release asset
+- [ ] SBOM and provenance attestations with `actions/attest`; SBOM release asset
 - [ ] End-to-end check with a release-candidate tag, pushed only with the maintainer's approval
 
 ---

@@ -1,6 +1,6 @@
 # Epic 15: Release Engineering Architecture
 
-_Added during the Epic 15 course correction (2026-11-10). Story 15.0 verifies the assumptions marked below._
+_Added during the Epic 15 course correction (2026-11-10). Story 15.0 verified the assumptions marked below; evidence in `_bmad-output/implementation-artifacts/15-0-spike/README.md`._
 
 ## ADR-1: One Version, Kept in the Project Files
 
@@ -12,7 +12,11 @@ _Added during the Epic 15 course correction (2026-11-10). Story 15.0 verifies th
 
 **Rationale:** The version is hard-coded in four places that already disagree. The API and web ship in one image, so one version describes both.
 
-**Consequences:** Between releases, `main` carries the last released version. Only tags publish images, so no published image is mislabeled; local builds show the last release. **Verify (15.0):** `uv sync --frozen --no-dev` runs before `src/` is copied in the Dockerfile, so package metadata must still resolve inside the image.
+**Consequences:** Between releases, `main` carries the last released version. Only tags publish images, so no published image is mislabeled; local builds show the last release.
+
+**Status (15.0): Confirmed, with two changes.** Package metadata resolves inside the image and reports the `pyproject.toml` version.
+- uv writes versions in PEP 440 form: `0.2.0-rc.1` becomes `0.2.0rc1` in `pyproject.toml`, `uv.lock` and package metadata, while `package.json` keeps SemVer. `just version` prints the SemVer form from `package.json` and checks that `pyproject.toml` equals its PEP 440 normalization (`-alpha.N`, `-beta.N`, `-rc.N` → `aN`, `bN`, `rcN`; other pre-release forms are rejected). For pre-releases the API reports the PEP 440 form.
+- The image's `CMD uv run …` re-syncs at every start with the `dev` group, downloading packages from PyPI, so the API cannot start offline (`VSS-flj`). Story 15.1 installs the project at build time and starts without syncing.
 
 ## ADR-2: Changelog from Conventional Commits with git-cliff
 
@@ -26,9 +30,14 @@ _Added during the Epic 15 course correction (2026-11-10). Story 15.0 verifies th
 
 **Changelog file:** `CHANGELOG.md` at the root, newest first. The `v0.1.0` section is a written summary of the product (Story 15.6); each later release prepends its generated section. The GitHub release notes for a tag are that version's section of `CHANGELOG.md` at the tag, so they always match what was committed, including the hand-written `v0.1.0`.
 
-**Rationale:** About 95% of commits are already conventional, so no workflow change is needed beyond writing `feat`/`fix` subjects for users. git-cliff is a single binary with first-class filtering, scope rewriting and version bumping.
+**Rationale:** About 95% of commits are already conventional. git-cliff is a single binary with first-class filtering, scope handling and version bumping.
 
-**Verify (15.0):** filters and scope handling against recent history; bump behavior for 0.x.
+**Status (15.0): Confirmed, with changes.**
+- Scopes are hidden in the template (allowlist `api`, `web`, `docker`), not by a preprocessor, so parsers can still match on them.
+- Safety-net parsers skip preparation stories (scope `story-N.0`) and "move story X.Y to review" commits.
+- `tag_pattern` matches stable versions only (`^v[0-9]+\.[0-9]+\.[0-9]+$`): pre-release tags are invisible to git-cliff, so a stable release's notes and bump cover everything since the last stable release.
+- With nothing releasable, `--bumped-version` returns the last tag unchanged.
+- **Commit types by user impact (maintainer decision, 2026-11-10):** the `dev-story` workflow required `feat(story-X.Y/task-N)` for every task commit, which put bookkeeping in the notes (15 of 58 Epic 14 entries). Task commits now take the type that matches their user impact; `feat`/`fix`/`perf` only for user-visible changes. Updated in `project-context.md` and `dev-story/instructions.xml`.
 
 ## ADR-3: Release Command
 
@@ -46,21 +55,24 @@ A failure or a declined confirmation before step 6 completes resets `main` to th
 
 **Rationale:** The command does not run `just check`: the release commit differs from the commit CI tested only in version files and the changelog, and the release workflow builds the image from the tag.
 
-**Verify (15.0):** the commands that set the version in `pyproject.toml` with `uv.lock`, and in `package.json`.
+**Status (15.0): Confirmed, with changes.**
+- Version files: `uv version X.Y.Z --no-sync` (in `api/`) changes only the version in `pyproject.toml` and `uv.lock`; `bun pm version X.Y.Z --no-git-tag-version` (in `web/`) changes only `package.json`.
+- "Nothing to release": stop when the computed version equals the last stable tag.
+- Pre-releases need an explicit version (`just release 0.3.0-rc.1`; allowed forms `-alpha.N`, `-beta.N`, `-rc.N`). They update the version files, commit and tag, but do not change `CHANGELOG.md`, which lists stable releases only. To finish a pre-release cycle, release the stable version explicitly or let the bump compute it from the last stable tag.
 
 ## ADR-4: Tag-Triggered Release Workflow
 
 **Decision:** `.github/workflows/release.yml` runs on pushed tags `v*`, one run per tag, never cancelled. Its jobs:
 
-1. **verify** (`contents: read`): the tag is SemVer and equals the version from `just version`; `CHANGELOG.md` has a section for it. Saves that section as the notes.
-2. **image** (`contents: read`, `packages: write`, `id-token: write`, `attestations: write`): log in to GHCR with `GITHUB_TOKEN`; `docker/metadata-action` produces tags `{{version}}`, `{{major}}.{{minor}}` and `latest` (pre-releases get only `{{version}}`) and the OCI labels; `docker/build-push-action` builds `linux/amd64` and pushes; `actions/attest-build-provenance` attests the pushed digest; an SPDX SBOM is generated for the digest and attested with `actions/attest-sbom`.
+1. **verify** (`contents: read`): the tag equals `v` + the version from `just version`. For a stable version, the notes are its `CHANGELOG.md` section; for a pre-release, `git cliff --unreleased --tag <tag>` (everything since the last stable release).
+2. **image** (`contents: read`, `packages: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write`): log in to GHCR with `GITHUB_TOKEN`; `docker/metadata-action` produces tags `{{version}}`, `{{major}}.{{minor}}` and `latest` (pre-releases get only `{{version}}`) and the OCI labels; `docker/build-push-action` builds `linux/amd64` and pushes with its own `provenance` and `sbom` off; `actions/attest` attests build provenance for the pushed digest; `anchore/sbom-action` generates an SPDX SBOM for the digest and `actions/attest` attests it.
 3. **release** (`contents: write`): `gh release create vX.Y.Z --verify-tag --notes-file`, with `--prerelease` for pre-release versions, and the SBOM attached.
 
 The GitHub release is created last, so a failed build publishes no release. Actions are pinned to commit SHAs and kept current by Renovate, as in CI. `ci.yml` is unchanged: pull requests and `main` still build without pushing.
 
 **Consequences:** The first push creates the GHCR package. Making it public is a one-time manual step in the organization's package settings; the `org.opencontainers.image.source` label links it to the repository. Users verify with `gh attestation verify oci://ghcr.io/craquehouse/vintagestory-server:X.Y.Z --owner craquehouse`.
 
-**Verify (15.0):** permissions, metadata-action tag rules for 0.x and pre-releases, and the SBOM and attestation actions.
+**Status (15.0): Confirmed, with changes.** `actions/attest` replaces `actions/attest-build-provenance` (now a wrapper) and `actions/attest-sbom` (deprecated); it needs `artifact-metadata: write`. buildx's default provenance is turned off so the signed GitHub attestations are the only ones and the image index has no attestation manifests. Tag rules come from the metadata-action README; the release-candidate run in Story 15.5 confirms them. Pinned versions and the draft workflow (passes `actionlint`) are in the spike.
 
 ## ADR-5: Runtime Web Configuration
 
@@ -78,3 +90,5 @@ window.__VSM_CONFIG__ = {"apiKey": "..."};
 **Rationale:** One published image must work for every deployment. Chosen over a login screen as the smaller change.
 
 **Consequences:** Exposure is unchanged from today: anyone who can load the page receives the key. The README states this; deployments should stay on a trusted network or behind authentication. The image itself no longer contains a key. The key is never logged.
+
+**Status (15.0):** No assumption to verify; Story 15.2 checks it in a browser.
