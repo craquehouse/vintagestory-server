@@ -246,6 +246,11 @@ docker COMMAND *ARGS:
 version:
     @mise exec -- ./scripts/version.sh
 
+# Examples: just changelog | just changelog v0.1.0..HEAD
+# Print the release notes for unreleased commits (writes nothing) - accepts git-cliff args
+changelog *ARGS:
+    @mise exec -- git cliff --unreleased --strip header {{ARGS}}
+
 # =============================================================================
 # DATA MANAGEMENT
 # =============================================================================
