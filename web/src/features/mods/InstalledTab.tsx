@@ -9,10 +9,12 @@
  * Story 10.2: Mods Tab Restructure - AC2
  */
 
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, ArrowUpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModTable } from '@/components/ModTable';
+import { UpdateAllDialog } from '@/components/UpdateAllDialog';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { useCheckModUpdates, useModUpdates } from '@/hooks/use-mods';
 
@@ -22,7 +24,7 @@ import { useCheckModUpdates, useModUpdates } from '@/hooks/use-mods';
  * Provides an interface for managing installed VintageStory mods:
  * - Enable/disable installed mods
  * - Remove installed mods
- * - Check for and apply updates (Story 14.3)
+ * - Check for and apply updates (Story 14.3), or all compatible updates (Story 14.4)
  *
  * For discovering and installing new mods, use the Browse tab.
  */
@@ -32,6 +34,13 @@ export function InstalledTab() {
   const { data: updatesData } = useModUpdates();
   const { mutate: checkUpdates, isPending: isChecking } = useCheckModUpdates();
   const lastChecked = updatesData?.data?.checkedAt;
+  const [updateAllOpen, setUpdateAllOpen] = useState(false);
+  const offeredUpdates = (updatesData?.data?.mods ?? []).filter(
+    (item) => item.status === 'update_available'
+  );
+  const compatibleCount = offeredUpdates.filter(
+    (item) => item.offeredCompatibility === 'compatible'
+  ).length;
 
   const handleCheck = () => {
     checkUpdates(undefined, {
@@ -81,6 +90,16 @@ export function InstalledTab() {
               ? `Last checked ${new Date(lastChecked).toLocaleString()}`
               : 'Not checked yet'}
           </span>
+          {compatibleCount > 0 && (
+            <Button
+              size="sm"
+              onClick={() => setUpdateAllOpen(true)}
+              data-testid="mod-updates-update-all"
+            >
+              <ArrowUpCircle className="mr-2 h-4 w-4" />
+              Update all ({compatibleCount})
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -98,6 +117,12 @@ export function InstalledTab() {
         </div>
       </div>
       <ModTable onToggled={handleToggled} onRemoved={handleRemoved} />
+      <UpdateAllDialog
+        open={updateAllOpen}
+        onOpenChange={setUpdateAllOpen}
+        updates={offeredUpdates}
+        gameVersion={updatesData?.data?.gameVersion ?? null}
+      />
     </div>
   );
 }

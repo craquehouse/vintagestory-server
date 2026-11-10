@@ -58,11 +58,11 @@ so that **routine updates take a single action**.
   - [x] 3.1: Types `ModUpdateAllItem`, `ModUpdateAllData`; `applyAllModUpdates()`; hook `useApplyAllModUpdates()` (skips the global error toast like the other update hooks; invalidates `['mods']` when settled, since mods may have changed even on a failed request)
   - [x] 3.2: Tests
 
-- [ ] Task 4: Update All action, confirmation and summary + tests (AC: 6)
-  - [ ] 4.1: "Update all" button in `InstalledTab`, shown when any status is `update_available`; disabled while running
-  - [ ] 4.2: `UpdateAllDialog`: confirm step lists "Will update" (name, installed → offered) and "Skipped, not verified" (review individually); confirm runs the request; result step lists each mod's outcome with reasons or error, plus "A server restart is required for changes to take effect." when `pendingRestart`; Close
-  - [ ] 4.3: Error toast if the request itself fails (including 409)
-  - [ ] 4.4: Component tests: button visibility, confirmation lists, summary rendering, restart line once, cancel sends nothing
+- [x] Task 4: Update All action, confirmation and summary + tests (AC: 6)
+  - [x] 4.1: "Update all" button in `InstalledTab`, shown when any status is `update_available`; disabled while running
+  - [x] 4.2: `UpdateAllDialog`: confirm step lists "Will update" (name, installed → offered) and "Skipped, not verified" (review individually); confirm runs the request; result step lists each mod's outcome with reasons or error, plus "A server restart is required for changes to take effect." when `pendingRestart`; Close
+  - [x] 4.3: Error toast if the request itself fails (including 409)
+  - [x] 4.4: Component tests: button visibility, confirmation lists, summary rendering, restart line once, cancel sends nothing
 
 - [ ] Task 5: Manual browser verification and final validation (AC: all)
   - [ ] 5.1: Throwaway container with a real server and mods with compatible, not-verified and no updates; run Update all; check the summary, restart banner and mods directory; check the browser console

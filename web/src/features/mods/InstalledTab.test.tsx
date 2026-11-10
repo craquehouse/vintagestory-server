@@ -646,5 +646,57 @@ describe('InstalledTab', () => {
       });
     });
   });
+
+  describe('Update all (Story 14.4)', () => {
+    function offer(slug: string, compatibility: string) {
+      return {
+        slug,
+        name: slug,
+        installed_version: '1.0.0',
+        status: 'update_available',
+        offered_version: '1.1.0',
+        offered_compatibility: compatibility,
+        offered_prerelease: false,
+        reason: null,
+        checked_at: null,
+        error: null,
+      };
+    }
+
+    function mockUpdates(mods: unknown[]) {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? {
+              status: 'ok',
+              data: { game_version: '1.22.7', checked_at: null, update_count: 1, mods },
+            }
+          : url.includes('/mods')
+            ? mockModsResponse
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+    }
+
+    it('offers Update all with the number of compatible updates', async () => {
+      mockUpdates([offer('a', 'compatible'), offer('b', 'not_verified'), offer('c', 'compatible')]);
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const button = await screen.findByTestId('mod-updates-update-all');
+      expect(button).toHaveTextContent('Update all (2)');
+      fireEvent.click(button);
+      expect(await screen.findByTestId('update-all-dialog')).toBeInTheDocument();
+    });
+
+    it('hides Update all when no update is compatible', async () => {
+      mockUpdates([offer('smithingplus', 'not_verified')]);
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      // The row's Update action proves the update status has loaded
+      await screen.findByTestId('mod-update-button-smithingplus');
+      expect(screen.queryByTestId('mod-updates-update-all')).not.toBeInTheDocument();
+    });
+  });
 });
 
