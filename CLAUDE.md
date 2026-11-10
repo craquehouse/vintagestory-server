@@ -157,7 +157,19 @@ just install                                 # Install all dependencies
 
 # Formatting
 just format                                  # Format all code
+
+# Scripts and workflows
+just test-scripts                            # Bash tests for the release/version scripts
+just lint-scripts                            # ShellCheck
+just lint-workflows                          # actionlint on .github/workflows
+
+# Releases (see RELEASING.md)
+just version                                 # Print the version; fails if the version files disagree
+just changelog                               # Preview release notes for unreleased commits
+just release --dry-run                       # Show the next version and notes; changes nothing
 ```
+
+**Never run `just release` (without `--dry-run`) or push a tag unless the user explicitly asks in this session:** it publishes a GitHub release and a public image.
 
 Run `just` with no arguments to see all available commands.
 
@@ -175,6 +187,7 @@ docker compose logs -f vintagestory    # Follow game logs
 - **Merge PRs, do not squash** - Preserve individual commit history when merging pull requests
 - **Delete branches after merge** - Clean up feature branches once merged to main
 - **Commit after each task** - Create checkpoint commits at logical boundaries (see BMad methodology above)
+- **Commit types are release notes** - `feat`, `fix` and `perf` subjects (and anything marked breaking) become user-facing release notes; use them only for changes users would notice and write the subject for users. Use `docs`, `test`, `chore`, `ci`, `build` or `refactor` otherwise, including story bookkeeping (see `project-context.md` "Commit Message Format" and `RELEASING.md`)
 
 ## Key Conventions
 

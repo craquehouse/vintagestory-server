@@ -12,6 +12,10 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Commit Messages Are Release Notes
+
+Commits follow Conventional Commits. `feat`, `fix` and `perf` subjects (and anything marked breaking with `!` or a `BREAKING CHANGE:` footer) are published as release notes, so use those types only for changes users would notice, and write the subject for users. Use `docs`, `test`, `chore`, `ci`, `build` or `refactor` for everything else. See `RELEASING.md`. Never run `just release` (without `--dry-run`) or push a tag unless the user asks.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

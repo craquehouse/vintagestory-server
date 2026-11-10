@@ -4,6 +4,7 @@
 
 services:
   manager:
+    # Pin a release (e.g. :0.1.0) so upgrades happen only when you change it; see the README
     image: ghcr.io/craquehouse/vintagestory-server:latest
     container_name: vintagestory-manager
     ports:
