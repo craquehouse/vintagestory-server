@@ -149,6 +149,15 @@ class TestRuntimeConfig:
 
         assert response.headers["content-type"].startswith("application/javascript")
         assert response.headers["cache-control"] == "no-store"
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+    def test_other_sites_cannot_include_it(self, static_dir: Path) -> None:
+        # A classic <script src> from another site's page skips CORS; CORP blocks it
+        client = self._client(static_dir, Settings(api_key_admin="admin"))
+
+        response = client.get("/config.js")
+
+        assert response.headers["cross-origin-resource-policy"] == "same-origin"
 
     def test_wins_over_a_built_placeholder(self, static_dir: Path) -> None:
         (static_dir / "config.js").write_text("window.__VSM_CONFIG__ = {};")

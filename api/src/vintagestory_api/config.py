@@ -35,6 +35,10 @@ class Settings(BaseSettings):
             return self.api_key
         return self.api_key_admin
 
+    def web_api_key_has_a_role(self) -> bool:
+        """Whether the web UI's key is the Admin or the Monitor key, so its requests can work."""
+        return self.web_api_key in {self.api_key_admin, self.api_key_monitor}
+
     @field_validator("disk_space_warning_threshold_gb")
     @classmethod
     def validate_disk_space_threshold(cls, v: float) -> float:

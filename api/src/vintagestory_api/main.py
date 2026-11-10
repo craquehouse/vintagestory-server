@@ -100,6 +100,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # Ensure data directories exist
     settings.ensure_data_directories()
+    if not settings.web_api_key_has_a_role():
+        # The web UI would get 401 on every request; never log the key itself
+        logger.warning(
+            "web_api_key_matches_no_role",
+            hint="VS_API_KEY must equal VS_API_KEY_ADMIN or VS_API_KEY_MONITOR",
+        )
     debug_enabled = is_debug_enabled()
     logger.info(
         "api_starting",
@@ -248,7 +254,9 @@ def register_frontend(target: FastAPI, static_dir: Path) -> None:
 
     # Runtime web configuration (Epic 15 ADR-5), registered before the SPA fallback so it
     # wins over the placeholder config.js in the build. Unauthenticated by design: the
-    # page needs the key before it can authenticate. Never cached, never logged.
+    # page needs the key before it can authenticate. Never cached, never logged. A classic
+    # <script> load skips CORS, so Cross-Origin-Resource-Policy stops other sites'
+    # pages from including it and reading the key.
     @target.get("/config.js", include_in_schema=False)
     async def serve_runtime_config(settings: Settings = Depends(get_settings)) -> Response:
         """Serve the web UI's runtime configuration as a classic script."""
@@ -256,7 +264,11 @@ def register_frontend(target: FastAPI, static_dir: Path) -> None:
         return Response(
             content=f"window.__VSM_CONFIG__ = {config};\n",
             media_type="application/javascript",
-            headers={"Cache-Control": "no-store"},
+            headers={
+                "Cache-Control": "no-store",
+                "Cross-Origin-Resource-Policy": "same-origin",
+                "X-Content-Type-Options": "nosniff",
+            },
         )
 
     # SPA fallback - serve index.html for all non-API, non-health routes

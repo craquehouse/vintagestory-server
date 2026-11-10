@@ -163,6 +163,17 @@ class TestWebApiKey:
 
         assert Settings(api_key_admin="admin-key").web_api_key == "admin-key"
 
+    @pytest.mark.parametrize(
+        ("web_key", "has_role"),
+        [(None, True), ("admin-key", True), ("monitor-key", True), ("other-key", False)],
+    )
+    def test_web_api_key_has_a_role(self, web_key: str | None, has_role: bool) -> None:
+        settings = Settings(
+            api_key_admin="admin-key", api_key_monitor="monitor-key", api_key=web_key
+        )
+
+        assert settings.web_api_key_has_a_role() is has_role
+
 
 class TestDirectoryCreationLogging:
     """Tests for directory creation logging (Story 9.2 AC#2, AC#3)."""
