@@ -1,6 +1,6 @@
 # Story 14.5: Scheduled Checks and Update Badges
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -53,9 +53,9 @@ so that **I notice them without checking**.
   - [x] 3.2: Shown on the installed-server Dashboard below the disk space warning
   - [x] 3.3: Tests
 
-- [ ] Task 4: Manual browser verification and final validation (AC: all)
-  - [ ] 4.1: Throwaway container with a short `mod_list_refresh_interval` and a mod with an update: without clicking Check, the job records status and the badge and notice appear; following them opens the Installed tab; check the browser console
-  - [ ] 4.2: Run `just check`; update the Dev Agent Record and File List
+- [x] Task 4: Manual browser verification and final validation (AC: all)
+  - [x] 4.1: Throwaway container with a short `mod_list_refresh_interval` and a mod with an update: without clicking Check, the job records status and the badge and notice appear; following them opens the Installed tab; check the browser console
+  - [x] 4.2: Run `just check`; update the Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -95,8 +95,28 @@ FR146 and FR148; FR147 (status survives an API restart) is already met by the pe
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Browser verification screenshots were kept locally only (`.playwright-mcp/`, git-ignored).
 
 ### Completion Notes List
 
+- Task 1: `refresh_mod_cache` now runs `ModUpdateService.check()` (ADR-5) and logs `checked`, `failed`, `failed_slugs` and `updates_available`; an on-demand check in progress makes it log `mod_cache_refresh_skipped` and return. Its old loop called `get_mod` per installed mod only to log reachability, so the request count per interval is unchanged. The job tests were rewritten for the new behavior (status recorded per mod with one failing lookup, skip while a check runs, no mods, `safe_job` contract); the old tests asserted the removed loop. API test count drops from 1978 to 1972 accordingly.
+- Task 2: `SubNavItem.badge` and `badgeLabel`: a count pill on the item, a dot plus "(N)" tooltip in the icon-only sidebar, and a dot on the parent icon while the group is closed. The count is `aria-hidden`; screen readers get the label (the Mods link reads "Mods, 2 mod updates available"). `Sidebar` takes the count from `useModUpdates()`. 7 tests.
+- Task 3: `ModUpdatesNotice` on the installed-server Dashboard: "N mod updates available … Review", linking to `/game-server/mods/installed`; nothing when the count is 0 or not loaded. 5 tests.
+- Task 4: Browser check in a throwaway container (Carry On 1.14.1 and Auto Map Markers 5.0.2): with the interval at 30 s and no manual check, the job recorded both updates (`mod_cache_refresh_summary checked=2 failed=0 updates_available=2`); the Dashboard notice and the Mods badge showed 2; the notice opened the Installed tab; no console errors. The first layout put a count pill on the closed Game Server group, which pushed its chevron out of the 160 px sidebar; it is now a dot on the icon (fixed and rechecked).
+- Found, not fixed (filed as `VSS-8bl`): changing `mod_list_refresh_interval` through the settings API does not reschedule the job until the API restarts (`get_api_settings_service` never passes the scheduler callback, an Epic 7 TODO). The check above restarted the container to apply 30 s.
+
 ### File List
+
+- Created: `web/src/components/ModUpdatesNotice.tsx`, `web/src/components/ModUpdatesNotice.test.tsx`
+- Modified: `api/src/vintagestory_api/jobs/mod_cache_refresh.py`, `api/tests/jobs/test_mod_cache_refresh.py`
+- Modified: `web/src/components/layout/ExpandableNavItem.tsx`, `web/src/components/layout/ExpandableNavItem.test.tsx`
+- Modified: `web/src/components/layout/Sidebar.tsx`, `web/src/components/layout/Sidebar.test.tsx`
+- Modified: `web/src/features/dashboard/Dashboard.tsx`, `web/src/features/dashboard/Dashboard.test.tsx`
+
+## Change Log
+
+- 2026-11-09: Scheduled update checks in the mod refresh job, update count in the navigation and on the Dashboard. Browser-verified; fixed the closed-group badge layout. `just check` passes with 1972 API tests and 2990 web tests.
