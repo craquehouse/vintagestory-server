@@ -1,6 +1,6 @@
 # Story 15.5: Release Workflow
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -39,20 +39,20 @@ so that **I can install a specific version and trust where it came from**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: `scripts/release-notes.sh VERSION` (AC: 1, 3)
-  - [ ] 1.1: Prints the notes for a version: the `CHANGELOG.md` section (exact `## [X.Y.Z]` heading match) when present; for a pre-release without a section, `git cliff --unreleased --tag vX --strip all` (everything since the last stable release); fails for a stable version without a section
-  - [ ] 1.2: Tests in `scripts/tests/test-release-notes.sh` (fixture repositories as in `test-release.sh`)
+- [x] Task 1: `scripts/release-notes.sh VERSION` (AC: 1, 3)
+  - [x] 1.1: Prints the notes for a version: the `CHANGELOG.md` section (exact `## [X.Y.Z]` heading match) when present; for a pre-release without a section, `git cliff --unreleased --tag vX --strip all` (everything since the last stable release); fails for a stable version without a section
+  - [x] 1.2: Tests in `scripts/tests/test-release-notes.sh` (fixture repositories as in `test-release.sh`)
 
-- [ ] Task 2: `.github/workflows/release.yml` (AC: 1-5)
-  - [ ] 2.1: Trigger `push: tags: ["v*"]`; `permissions: {}` at the top; one run per tag, never cancelled
-  - [ ] 2.2: `verify` job (`contents: read`): full checkout; mise; tag equals `v` + `just version`; the tagged commit is on `origin/main`; pre-release flag; notes from `scripts/release-notes.sh`, uploaded as an artifact
-  - [ ] 2.3: `image` job (`contents: read`, `packages: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write`): buildx, GHCR login with `GITHUB_TOKEN`, `docker/metadata-action` (`{{version}}` priority 910, `{{major}}.{{minor}}`, default `latest=auto`), build and push `linux/amd64` with buildx `provenance`/`sbom` off, `actions/attest` provenance, `anchore/sbom-action` SPDX for the digest, `actions/attest` with `sbom-path`, SBOM artifact
-  - [ ] 2.4: `release` job (`contents: write`): `gh release create vX --verify-tag --notes-file notes.md`, `--prerelease` for pre-releases, SBOM attached; runs only after `image` succeeds
-  - [ ] 2.5: Actions pinned to the SHAs recorded in Story 15.0 (re-checked for newer releases), version comments for Renovate
+- [x] Task 2: `.github/workflows/release.yml` (AC: 1-5)
+  - [x] 2.1: Trigger `push: tags: ["v*"]`; `permissions: {}` at the top; one run per tag, never cancelled
+  - [x] 2.2: `verify` job (`contents: read`): full checkout; mise; tag equals `v` + `just version`; the tagged commit is on `origin/main`; pre-release flag; notes from `scripts/release-notes.sh`, uploaded as an artifact
+  - [x] 2.3: `image` job (`contents: read`, `packages: write`, `id-token: write`, `attestations: write`, `artifact-metadata: write`): buildx, GHCR login with `GITHUB_TOKEN`, `docker/metadata-action` (`{{version}}` priority 910, `{{major}}.{{minor}}`, default `latest=auto`), build and push `linux/amd64` with buildx `provenance`/`sbom` off, `actions/attest` provenance, `anchore/sbom-action` SPDX for the digest, `actions/attest` with `sbom-path`, SBOM artifact
+  - [x] 2.4: `release` job (`contents: write`): `gh release create vX --verify-tag --notes-file notes.md`, `--prerelease` for pre-releases, SBOM attached; runs only after `image` succeeds
+  - [x] 2.5: Actions pinned to the SHAs recorded in Story 15.0 (re-checked for newer releases), version comments for Renovate
 
-- [ ] Task 3: Lint workflows (AC: 5)
-  - [ ] 3.1: Pin `actionlint` in `.mise.toml`; `just lint-workflows`; run it in CI's "Release scripts" job
-  - [ ] 3.2: `scripts/tests/test-docker-context.sh` sibling or a new check: every `uses:` in `.github/workflows/` is pinned to a 40-character SHA
+- [x] Task 3: Lint workflows (AC: 5)
+  - [x] 3.1: Pin `actionlint` in `.mise.toml`; `just lint-workflows`; run it in CI's "Release scripts" job
+  - [x] 3.2: Check in `scripts/tests/test-docker-context.sh`: every `uses:` in `.github/workflows/` is pinned to a 40-character SHA
 
 - [ ] Task 4: End-to-end check with a release candidate (AC: 1-4) — after this branch is merged, with the maintainer's approval
   - [ ] 4.1: Maintainer approves; from `main`, `just release 0.1.0-rc.1`
@@ -60,7 +60,7 @@ so that **I can install a specific version and trust where it came from**.
   - [ ] 4.3: Negative check without publishing: a tag/version mismatch fails in `verify` (covered by `release-notes.sh`/`version.sh` tests and the `verify` step logic; a real mismatched tag is not pushed)
 
 - [ ] Task 5: Validation
-  - [ ] 5.1: `just check`, `just lint-workflows`; update the Dev Agent Record and File List
+  - [x] 5.1: `just check`, `just lint-workflows`; update the Dev Agent Record and File List
   - [ ] 5.2: After Task 4: AAR on `VSS-3es` ([CICD-005] Add release action) and close it
 
 ## Dev Notes
@@ -94,10 +94,22 @@ FR161-FR164, NFR17-NFR18, Epic 15 ADR-4. A tag-triggered workflow runs the workf
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Completion Notes List
 
+- **Review scope:** Tasks 1-3 and 5.1 are complete. Task 4 (release-candidate run) and 5.2 (`VSS-3es`) need this branch merged and the maintainer's approval; the story stays open for them after review.
+- Task 1: `scripts/release-notes.sh VERSION` prints a version's `CHANGELOG.md` section (exact heading match, leading blank lines trimmed); a pre-release without a section gets `git cliff --unreleased --tag vX --strip all` with the version heading removed; a stable version without a section fails. 11 assertions in `test-release-notes.sh` (stable, leading `v`, `0.1.0` vs `0.10.0`, pre-release notes across an rc tag, missing section, invalid version).
+- Task 2: `.github/workflows/release.yml` from the spike draft. `verify` runs `just version`, requires the tag to equal `v` + version and the tagged commit to be on `origin/main` (releases are cut from `main`), sets the pre-release flag, writes notes with `release-notes.sh` (also to the job summary) and uploads them. `image` and `release` follow ADR-4 with the Story 15.0 pins (re-checked: no newer releases). `release` needs `image`, so a failed build publishes no release. Top-level `permissions: {}`; per-job minimum; concurrency per tag, never cancelled.
+- Task 3: `actionlint` 1.7.12 and `shellcheck` 0.11.0 pinned in `.mise.toml`; `just lint-scripts` and `just lint-workflows` (actionlint also runs ShellCheck on `run:` steps) are part of `just lint`; CI's "Release scripts" job runs both. `test-docker-context.sh` checks every workflow `uses:` is pinned to a 40-character SHA. `scripts/sprint-status.sh` has existing ShellCheck findings and is excluded; filed `VSS-1eb`.
+- Task 5.1: `just check` passes: 2065 API tests, 3007 web tests, 189 script assertions; lints clean.
+
 ### File List
+
+- Created: `.github/workflows/release.yml`, `scripts/release-notes.sh`, `scripts/tests/test-release-notes.sh`
+- Modified: `.mise.toml`, `Justfile`, `.github/workflows/ci.yml`, `scripts/tests/test-docker-context.sh`
 
 ## Change Log
 
 - 2026-11-10: Story created.
+- 2026-11-10: Tasks 1-3 and 5.1 implemented; `just check` passes. Status review; Task 4 follows the merge.
