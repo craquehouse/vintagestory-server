@@ -1,0 +1,373 @@
+{
+  "primitivesurvival": {
+    "releases": 42,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "primitivesurvival"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.20.0-rc.1",
+      "1.20.0-rc.2",
+      "1.20.0-rc.3",
+      "1.20.0-rc.4",
+      "1.20.0-rc.5",
+      "1.20.0-rc.6"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "compatible": 2,
+      "not_verified": 13,
+      "incompatible": 27
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": []
+  },
+  "betterruins": {
+    "releases": 61,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "betterruins"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.16.5-rc.1",
+      "1.17.0-pre.0",
+      "1.17.0-rc.1",
+      "1.17.0-rc.2",
+      "1.17.0-rc.3",
+      "1.17.0-rc.4"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "compatible": 2,
+      "not_verified": 6,
+      "incompatible": 53
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": []
+  },
+  "carryon": {
+    "releases": 89,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "carryon"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.18.0-pre.0",
+      "1.18.0-rc.2",
+      "1.18.0-rc.5",
+      "1.18.0-rc.8",
+      "1.19.0-pre.0",
+      "1.20.0-pre.0"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "compatible": 2,
+      "not_verified": 16,
+      "incompatible": 71
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": [
+      {
+        "modversion": "2.0.0-rc.1",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.22.0_v2.0.0-rc.1.zip",
+        "bytes": 659496,
+        "cdn_name": "CarryOn-1.22.0_v2.0._61efe1fabff7a88a6faaba0f2ddd6430.zip?dl=CarryOn-1.22.0_v2.0.0-rc.1.zip",
+        "modinfo_modid": "carryon",
+        "modinfo_version": "2.0.0-rc.1",
+        "version_matches": true,
+        "modid_matches": true
+      },
+      {
+        "modversion": "1.9.2",
+        "modidstr": "carryon",
+        "filename": "CarryOn-1.20.4_v1.9.2.zip",
+        "bytes": 214761,
+        "cdn_name": "CarryOn-1.20.4_v1.9._513ea50b6d029c2a15d028706d61464a.zip?dl=CarryOn-1.20.4_v1.9.2.zip",
+        "modinfo_modid": "carryon",
+        "modinfo_version": "1.9.2",
+        "version_matches": true,
+        "modid_matches": true
+      }
+    ]
+  },
+  "expandedfoods": {
+    "releases": 73,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "expandedfoods"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "compatible": 8,
+      "not_verified": 2,
+      "incompatible": 63
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": []
+  },
+  "smithingplus": {
+    "releases": 76,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "smithingplus"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.20.0-rc.5",
+      "1.20.11-rc.1",
+      "1.20.5-rc.1",
+      "1.20.5-rc.2",
+      "1.20.5-rc.3",
+      "1.20.8-rc.1"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "not_verified": 3,
+      "incompatible": 73
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": [
+      {
+        "modversion": "1.9.0-rc.1",
+        "modidstr": "smithingplus",
+        "filename": "smithingplus_1.9.0-rc.1.zip",
+        "bytes": 207237,
+        "cdn_name": "smithingplus_1.9.0-r_387b188934e826e4ba9cd7b3661499ed.zip?dl=smithingplus_1.9.0-rc.1.zip",
+        "modinfo_modid": "smithingplus",
+        "modinfo_version": "1.9.0-rc.1",
+        "version_matches": true,
+        "modid_matches": true
+      },
+      {
+        "modversion": "1.5.1",
+        "modidstr": "smithingplus",
+        "filename": "smithingplus_1.5.1.zip",
+        "bytes": 155195,
+        "cdn_name": "smithingplus_1.5.1_281402e9a0ce1f17fd6f1aec351f6768.zip?dl=smithingplus_1.5.1.zip",
+        "modinfo_modid": "smithingplus",
+        "modinfo_version": "1.5.1",
+        "version_matches": true,
+        "modid_matches": true
+      }
+    ]
+  },
+  "maltiezfirearms": {
+    "statuscode": "404"
+  },
+  "egocaribautomapmarkers": {
+    "releases": 24,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [
+      "Auto Map Markers (1.19).zip",
+      "Auto Map Markers.zip"
+    ],
+    "modidstrs_in_releases": [
+      "egocaribautomapmarkers",
+      "egocaribresinmapmarkers"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.15.0-rc.2",
+      "1.18.8-rc.1",
+      "1.18.9-rc.1",
+      "1.19.0-rc.5",
+      "1.19.4-rc.1",
+      "1.19.4-rc.2"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "not_verified": 4,
+      "incompatible": 20
+    },
+    "lookup_by_urlalias_matches": false,
+    "downloads": [
+      {
+        "modversion": "5.0.3",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers 5.0.3 - Vintage Story 1.22.zip",
+        "bytes": 2001828,
+        "cdn_name": "Auto+Map+Markers+5.0_a8d6be802c1f90ed2c099ef154ae02a5.zip?dl=Auto%20Map%20Markers%205.0.3%20-%20Vintage%20Story%201.22.zip",
+        "modinfo_modid": "egocaribautomapmarkers",
+        "modinfo_version": "5.0.3",
+        "version_matches": true,
+        "modid_matches": true
+      },
+      {
+        "modversion": "2.9.9",
+        "modidstr": "egocaribautomapmarkers",
+        "filename": "Auto Map Markers (1.18.15).zip",
+        "bytes": 65319,
+        "cdn_name": "Auto+Map+Markers+%281._8a74de0264b00bd3852645335d003a97.zip?dl=Auto%20Map%20Markers%20(1.18.15).zip",
+        "modinfo_modid": "egocaribautomapmarkers",
+        "modinfo_version": "2.9.9",
+        "version_matches": true,
+        "modid_matches": true
+      }
+    ]
+  },
+  "instruments": {
+    "releases": 33,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [
+      "1.0.1"
+    ],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "instruments",
+      "vsinstruments",
+      "vsinstrumentsbase"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.15.0-rc.2",
+      "1.15.0-rc.4",
+      "1.16.0-rc.8"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "incompatible": 33
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": [
+      {
+        "modversion": "2.0.7",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.7.zip",
+        "bytes": 58811,
+        "cdn_name": "vsinstrumentsbase_2._1e2514b03f06f2afae5b5bfe135f0116.zip?dl=vsinstrumentsbase_2.0.7.zip",
+        "modinfo_modid": "vsinstrumentsbase",
+        "modinfo_version": "2.0.7",
+        "version_matches": true,
+        "modid_matches": true
+      },
+      {
+        "modversion": "1.2.0",
+        "modidstr": "instruments",
+        "filename": "instruments_1.2.0.zip",
+        "bytes": 9885980,
+        "cdn_name": "instruments_1.2.0_c0ce2adc5a7d7287bcd4a7c491670cb1.zip?dl=instruments_1.2.0.zip",
+        "modinfo_modid": "instruments",
+        "modinfo_version": "1.2.0",
+        "version_matches": true,
+        "modid_matches": true
+      }
+    ]
+  },
+  "hudclock": {
+    "releases": 23,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "hudclock",
+      "hudclockserver"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.15.0-rc.1",
+      "1.15.0-rc.2",
+      "1.15.0-rc.3",
+      "1.15.0-rc.4",
+      "1.16.0-rc.2",
+      "1.18.0-pre.0"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "incompatible": 23
+    },
+    "lookup_by_urlalias_matches": null,
+    "downloads": [
+      {
+        "modversion": "3.4.0",
+        "modidstr": "hudclock",
+        "filename": "hudclock-3.4.0.zip",
+        "bytes": 128390,
+        "cdn_name": "hudclock-3.4.0_1a376fdb60da88ca8643770638385850.zip?dl=hudclock-3.4.0.zip",
+        "modinfo_modid": "hudclock",
+        "modinfo_version": "3.4.0",
+        "version_matches": true,
+        "modid_matches": true
+      },
+      {
+        "modversion": "2.9.0-pre.2",
+        "modidstr": "hudclock",
+        "filename": "hudclock-2.9.0-pre.2.zip",
+        "bytes": 147317,
+        "cdn_name": "hudclock-2.9.0-pre.2_5de0e8abd1cb41de735fc67312388286.zip?dl=hudclock-2.9.0-pre.2.zip",
+        "modinfo_modid": "hudclock",
+        "modinfo_version": "2.9.0-pre.2",
+        "version_matches": true,
+        "modid_matches": true
+      }
+    ]
+  },
+  "vsimgui": {
+    "releases": 43,
+    "ordered_newest_first_by_created": true,
+    "ordered_newest_first_by_releaseid": true,
+    "duplicate_modversions": [],
+    "duplicate_filenames": [],
+    "modidstrs_in_releases": [
+      "vsimgui"
+    ],
+    "empty_tags": 0,
+    "prerelease_tags": [
+      "1.19.0-rc.1",
+      "1.19.0-rc.6",
+      "1.19.4-rc.1",
+      "1.19.4-rc.2",
+      "1.20.0-pre.0",
+      "1.21.0-pre.1"
+    ],
+    "file_extensions": [
+      ".zip"
+    ],
+    "compat_vs_1_22_7": {
+      "not_verified": 8,
+      "incompatible": 35
+    },
+    "lookup_by_urlalias_matches": false,
+    "downloads": []
+  }
+}

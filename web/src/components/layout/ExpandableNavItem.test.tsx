@@ -346,3 +346,78 @@ describe("ExpandableNavItem", () => {
     });
   });
 });
+
+describe("ExpandableNavItem badges (Story 14.5)", () => {
+  const badged: SubNavItem[] = [
+    { to: "/parent/version", icon: Home, label: "Version" },
+    {
+      to: "/parent/mods",
+      icon: Package,
+      label: "Mods",
+      badge: 3,
+      badgeLabel: "3 mod updates available",
+    },
+  ];
+
+  function renderBadged(options: { isExpanded: boolean; isCollapsed?: boolean; items?: SubNavItem[] }) {
+    return render(
+      <MemoryRouter initialEntries={["/"]}>
+        <ExpandableNavItem
+          {...defaultProps}
+          subItems={options.items ?? badged}
+          isExpanded={options.isExpanded}
+          onExpandedChange={vi.fn()}
+          isCollapsed={options.isCollapsed ?? false}
+        />
+      </MemoryRouter>
+    );
+  }
+
+  it("shows the count on the sub-item with a screen reader label", () => {
+    renderBadged({ isExpanded: true });
+
+    expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("3");
+    expect(screen.getByRole("link", { name: /Mods.*3 mod updates available/ })).toHaveAttribute(
+      "href",
+      "/parent/mods"
+    );
+    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
+  });
+
+  it("marks the parent while the group is closed, label first", async () => {
+    renderBadged({ isExpanded: false });
+
+    expect(screen.getByTestId("nav-parent-badge")).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    await userEvent.hover(toggle);
+    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
+  });
+
+  it("shows no badge when the count is 0", () => {
+    renderBadged({
+      isExpanded: false,
+      items: [{ to: "/parent/mods", icon: Package, label: "Mods", badge: 0 }],
+    });
+
+    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("nav-badge-Mods")).not.toBeInTheDocument();
+  });
+
+  it("names the item and its updates in the collapsed sidebar", async () => {
+    renderBadged({ isExpanded: true, isCollapsed: true });
+
+    const link = screen.getByRole("link", { name: "Mods, 3 mod updates available" });
+    expect(link).toHaveAttribute("href", "/parent/mods");
+    await userEvent.hover(link);
+    expect((await screen.findAllByText("Mods (3)")).length).toBeGreaterThan(0);
+  });
+
+  it("names the parent and its updates in the collapsed sidebar while closed", async () => {
+    renderBadged({ isExpanded: false, isCollapsed: true });
+
+    const trigger = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    await userEvent.hover(trigger);
+    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
+  });
+});
+

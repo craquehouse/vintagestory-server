@@ -1,0 +1,411 @@
+{
+  "statuscode": "200",
+  "mod": {
+    "modid": 167,
+    "assetid": 463,
+    "name": "Instruments",
+    "author": "Quacksol",
+    "urlalias": null,
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2026-01-24 10:58:34",
+    "releases": [
+      {
+        "releaseid": 33170,
+        "modversion": "2.0.7",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.7.zip",
+        "fileid": 72936,
+        "downloads": 15847,
+        "tags": [
+          "1.21.6"
+        ],
+        "created": "2026-01-24 10:58:34"
+      },
+      {
+        "releaseid": 28756,
+        "modversion": "2.0.6",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.6.zip",
+        "fileid": 63458,
+        "downloads": 27544,
+        "tags": [
+          "1.21.5"
+        ],
+        "created": "2025-11-05 10:56:04"
+      },
+      {
+        "releaseid": 28524,
+        "modversion": "2.0.5",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.5.zip",
+        "fileid": 62915,
+        "downloads": 7981,
+        "tags": [
+          "1.21.5"
+        ],
+        "created": "2025-11-01 11:06:11"
+      },
+      {
+        "releaseid": 24025,
+        "modversion": "2.0.4",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.4.zip",
+        "fileid": 52819,
+        "downloads": 33766,
+        "tags": [
+          "1.21.0"
+        ],
+        "created": "2025-08-31 11:51:14"
+      },
+      {
+        "releaseid": 20310,
+        "modversion": "2.0.3",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.3.zip",
+        "fileid": 43978,
+        "downloads": 19804,
+        "tags": [
+          "1.20.10"
+        ],
+        "created": "2025-05-22 11:34:49"
+      },
+      {
+        "releaseid": 16719,
+        "modversion": "2.0.1",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.1.zip",
+        "fileid": 34637,
+        "downloads": 25955,
+        "tags": [
+          "1.20.4"
+        ],
+        "created": "2025-02-24 13:37:50"
+      },
+      {
+        "releaseid": 14878,
+        "modversion": "2.0.0",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_2.0.0.zip",
+        "fileid": 30869,
+        "downloads": 14863,
+        "tags": [
+          "1.20.1"
+        ],
+        "created": "2025-01-21 11:55:47"
+      },
+      {
+        "releaseid": 14834,
+        "modversion": "1.0.1",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_1.0.1.zip",
+        "fileid": 30807,
+        "downloads": 424,
+        "tags": [
+          "1.20.1"
+        ],
+        "created": "2025-01-20 18:56:57"
+      },
+      {
+        "releaseid": 14823,
+        "modversion": "1.0.0",
+        "modidstr": "vsinstrumentsbase",
+        "filename": "vsinstrumentsbase_1.0.0.zip",
+        "fileid": 30782,
+        "downloads": 521,
+        "tags": [
+          "1.20.1"
+        ],
+        "created": "2025-01-20 15:45:34"
+      },
+      {
+        "releaseid": 8779,
+        "modversion": "1.2.7",
+        "modidstr": "vsinstruments",
+        "filename": "vsinstruments_1.2.7.zip",
+        "fileid": 18954,
+        "downloads": 24104,
+        "tags": [
+          "1.19.3"
+        ],
+        "created": "2024-02-10 11:54:56"
+      },
+      {
+        "releaseid": 8592,
+        "modversion": "1.2.6",
+        "modidstr": "vsinstruments",
+        "filename": "vsinstruments_1.2.6.zip",
+        "fileid": 18584,
+        "downloads": 1333,
+        "tags": [
+          "1.19.3"
+        ],
+        "created": "2024-02-02 17:30:37"
+      },
+      {
+        "releaseid": 8561,
+        "modversion": "1.2.5",
+        "modidstr": "vsinstruments",
+        "filename": "vsinstruments_1.2.5.zip",
+        "fileid": 18536,
+        "downloads": 640,
+        "tags": [
+          "1.19.3"
+        ],
+        "created": "2024-02-01 14:53:50"
+      },
+      {
+        "releaseid": 7368,
+        "modversion": "1.2.4",
+        "modidstr": "vsinstruments",
+        "filename": "vsinstruments_1.2.4.zip",
+        "fileid": 16107,
+        "downloads": 4831,
+        "tags": [
+          "1.18.15"
+        ],
+        "created": "2023-11-14 12:05:48"
+      },
+      {
+        "releaseid": 7362,
+        "modversion": "1.2.3",
+        "modidstr": "vsinstruments",
+        "filename": "vsinstruments_1.2.3.zip",
+        "fileid": 16098,
+        "downloads": 523,
+        "tags": [
+          "1.18.15"
+        ],
+        "created": "2023-11-13 12:29:32"
+      },
+      {
+        "releaseid": 5946,
+        "modversion": "1.2.2",
+        "modidstr": "instruments",
+        "filename": "instruments_1.2.2.zip",
+        "fileid": 12840,
+        "downloads": 11342,
+        "tags": [
+          "1.18.6"
+        ],
+        "created": "2023-07-17 15:28:29"
+      },
+      {
+        "releaseid": 5441,
+        "modversion": "1.2.1",
+        "modidstr": "instruments",
+        "filename": "instruments_1.2.1.zip",
+        "fileid": 11760,
+        "downloads": 4374,
+        "tags": [
+          "1.18.5"
+        ],
+        "created": "2023-05-31 10:16:34"
+      },
+      {
+        "releaseid": 4762,
+        "modversion": "1.2.0",
+        "modidstr": "instruments",
+        "filename": "instruments_1.2.0.zip",
+        "fileid": 10529,
+        "downloads": 3526,
+        "tags": [
+          "1.18.0"
+        ],
+        "created": "2023-04-19 18:26:36"
+      },
+      {
+        "releaseid": 4241,
+        "modversion": "1.1.5",
+        "modidstr": "instruments",
+        "filename": "Instruments_1.1.5.zip",
+        "fileid": 9495,
+        "downloads": 1604,
+        "tags": [
+          "1.17.9"
+        ],
+        "created": "2023-02-19 16:55:14"
+      },
+      {
+        "releaseid": 3715,
+        "modversion": "1.1.4",
+        "modidstr": "instruments",
+        "filename": "instruments_1.1.4.zip",
+        "fileid": 8376,
+        "downloads": 2845,
+        "tags": [
+          "1.17.9"
+        ],
+        "created": "2022-11-16 23:43:42"
+      },
+      {
+        "releaseid": 3166,
+        "modversion": "1.1.3",
+        "modidstr": "instruments",
+        "filename": "instruments_1.1.3.zip",
+        "fileid": 7146,
+        "downloads": 2962,
+        "tags": [
+          "1.17.2"
+        ],
+        "created": "2022-09-05 10:05:05"
+      },
+      {
+        "releaseid": 1820,
+        "modversion": "1.1.2",
+        "modidstr": "instruments",
+        "filename": "instruments_1.1.2.zip",
+        "fileid": 4506,
+        "downloads": 4364,
+        "tags": [
+          "1.16.3"
+        ],
+        "created": "2022-02-07 22:01:59"
+      },
+      {
+        "releaseid": 1573,
+        "modversion": "1.1.1",
+        "modidstr": "instruments",
+        "filename": "instruments_1.1.1.zip",
+        "fileid": 3939,
+        "downloads": 1212,
+        "tags": [
+          "1.16.0"
+        ],
+        "created": "2022-01-17 21:31:57"
+      },
+      {
+        "releaseid": 1448,
+        "modversion": "1.1.0",
+        "modidstr": "instruments",
+        "filename": "instruments_1.1.0.zip",
+        "fileid": 3659,
+        "downloads": 1530,
+        "tags": [
+          "1.16.0-rc.8"
+        ],
+        "created": "2022-01-09 01:22:49"
+      },
+      {
+        "releaseid": 743,
+        "modversion": "1.0.10",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.10.zip",
+        "fileid": 2069,
+        "downloads": 1476,
+        "tags": [
+          "1.15.2"
+        ],
+        "created": "2021-07-29 19:28:36"
+      },
+      {
+        "releaseid": 645,
+        "modversion": "1.0.9",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.9.zip",
+        "fileid": 1827,
+        "downloads": 765,
+        "tags": [
+          "1.15.1"
+        ],
+        "created": "2021-07-16 22:14:22"
+      },
+      {
+        "releaseid": 640,
+        "modversion": "1.0.8",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.8.zip",
+        "fileid": 1819,
+        "downloads": 659,
+        "tags": [
+          "1.15.0-rc.4"
+        ],
+        "created": "2021-07-16 17:55:24"
+      },
+      {
+        "releaseid": 624,
+        "modversion": "1.0.7",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.7.zip",
+        "fileid": 1787,
+        "downloads": 651,
+        "tags": [
+          "1.15.0-rc.2"
+        ],
+        "created": "2021-07-14 12:03:34"
+      },
+      {
+        "releaseid": 619,
+        "modversion": "1.0.6",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.6.zip",
+        "fileid": 1778,
+        "downloads": 622,
+        "tags": [
+          "1.15.0-rc.2"
+        ],
+        "created": "2021-07-13 10:15:30"
+      },
+      {
+        "releaseid": 561,
+        "modversion": "1.0.5",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.5.zip",
+        "fileid": 1676,
+        "downloads": 681,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-07-04 14:07:11"
+      },
+      {
+        "releaseid": 500,
+        "modversion": "1.0.4",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.4.zip",
+        "fileid": 1498,
+        "downloads": 770,
+        "tags": [
+          "1.14.10"
+        ],
+        "created": "2021-06-05 09:33:30"
+      },
+      {
+        "releaseid": 326,
+        "modversion": "1.0.3",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.3.zip",
+        "fileid": 1037,
+        "downloads": 956,
+        "tags": [
+          "1.14.8"
+        ],
+        "created": "2021-04-14 22:37:01"
+      },
+      {
+        "releaseid": 325,
+        "modversion": "1.0.2",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.2.zip",
+        "fileid": 1032,
+        "downloads": 642,
+        "tags": [
+          "1.14.8"
+        ],
+        "created": "2021-04-14 21:43:40"
+      },
+      {
+        "releaseid": 314,
+        "modversion": "1.0.1",
+        "modidstr": "instruments",
+        "filename": "instruments_1.0.1.zip",
+        "fileid": 1002,
+        "downloads": 999,
+        "tags": [
+          "1.14.8"
+        ],
+        "created": "2021-04-13 12:09:09"
+      }
+    ]
+  }
+}

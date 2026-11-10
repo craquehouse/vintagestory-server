@@ -567,6 +567,27 @@ class TestImportMod:
         assert metadata.authors == ["Author1"]
         assert metadata.description == "A test mod"
 
+    def test_import_mod_accepts_universal_side(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """A modinfo with side "Universal" imports its real modid and version (Better Ruins)."""
+        zip_path = temp_mods_dir / "BetterRuinsv0.6.4.zip"
+        create_mod_zip(
+            zip_path,
+            {
+                "type": "content",
+                "modid": "betterruins",
+                "name": "BetterRuins",
+                "version": "0.6.4",
+                "side": "Universal",
+                "dependencies": {"game": "1.22.0"},
+            },
+        )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        assert (metadata.modid, metadata.version, metadata.side) == ("betterruins", "0.6.4", "Both")
+
     def test_import_mod_caches_modinfo(
         self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
     ) -> None:
@@ -1290,3 +1311,99 @@ class TestPendingRestartState:
 
         assert state.pending_restart is True
         assert len(state.pending_changes) == 3
+
+
+class TestRepairFallbackEntries:
+    """Entries imported with filename fallback metadata are re-read at startup (VSS-tpe
+    follow-up: Better Ruins declared side "Universal", which older builds rejected)."""
+
+    MODINFO: dict[str, object] = {
+        "modid": "betterruins",
+        "name": "BetterRuins",
+        "version": "0.6.4",
+        "side": "Universal",
+    }
+
+    def fallback_entry(
+        self, manager: ModStateManager, filename: str, *, enabled: bool = True
+    ) -> ModState:
+        entry = ModState(
+            filename=filename,
+            slug=filename.removesuffix(".disabled").removesuffix(".zip"),
+            version="unknown",
+            enabled=enabled,
+            installed_at=datetime(2026, 1, 2, tzinfo=UTC),
+            asset_id=4242,
+        )
+        manager.set_mod_state(filename, entry)
+        manager.save()
+        return entry
+
+    def test_repairs_slug_and_version_and_keeps_the_rest(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        create_mod_zip(temp_mods_dir / "BetterRuinsv0.6.4.zip.disabled", self.MODINFO)
+        self.fallback_entry(state_manager, "BetterRuinsv0.6.4.zip.disabled", enabled=False)
+
+        repaired = state_manager.repair_fallback_entries()
+
+        assert repaired == ["BetterRuinsv0.6.4.zip.disabled"]
+        reloaded = ModStateManager(state_dir=temp_state_dir, mods_dir=temp_mods_dir)
+        reloaded.load()
+        entry = reloaded.get_mod("BetterRuinsv0.6.4.zip.disabled")
+        assert entry is not None
+        assert (entry.slug, entry.version) == ("betterruins", "0.6.4")
+        assert (entry.enabled, entry.asset_id) == (False, 4242)
+        assert entry.installed_at == datetime(2026, 1, 2, tzinfo=UTC)
+        assert reloaded.get_cached_metadata("betterruins", "0.6.4") is not None
+
+    def test_still_unreadable_archive_is_left_alone(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        (temp_mods_dir / "broken.zip").write_bytes(b"not a zip")
+        entry = self.fallback_entry(state_manager, "broken.zip")
+
+        assert state_manager.repair_fallback_entries() == []
+        assert state_manager.get_mod("broken.zip") == entry
+
+    def test_missing_file_is_left_alone(self, state_manager: ModStateManager) -> None:
+        entry = self.fallback_entry(state_manager, "gone.zip")
+
+        assert state_manager.repair_fallback_entries() == []
+        assert state_manager.get_mod("gone.zip") == entry
+
+    def test_repair_that_would_duplicate_an_installed_mod_is_skipped(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        create_mod_zip(
+            temp_mods_dir / "betterruins_0.6.3.zip", {**self.MODINFO, "version": "0.6.3"}
+        )
+        state_manager.set_mod_state(
+            "betterruins_0.6.3.zip",
+            ModState(
+                filename="betterruins_0.6.3.zip",
+                slug="betterruins",
+                version="0.6.3",
+                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        create_mod_zip(temp_mods_dir / "BetterRuinsv0.6.4.zip", self.MODINFO)
+        entry = self.fallback_entry(state_manager, "BetterRuinsv0.6.4.zip")
+
+        assert state_manager.repair_fallback_entries() == []
+        assert state_manager.get_mod("BetterRuinsv0.6.4.zip") == entry
+
+    def test_entries_with_real_versions_are_not_reread(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        create_mod_zip(temp_mods_dir / "betterruins.zip", self.MODINFO)
+        entry = ModState(
+            filename="betterruins.zip",
+            slug="something-else",
+            version="0.6.0",
+            installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        state_manager.set_mod_state("betterruins.zip", entry)
+
+        assert state_manager.repair_fallback_entries() == []
+        assert state_manager.get_mod("betterruins.zip") == entry

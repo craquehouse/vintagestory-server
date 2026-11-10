@@ -7,7 +7,7 @@
  * Story: 11-1-sub-navigation-infrastructure
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { NavLink, useLocation } from "react-router";
 import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,41 @@ export interface SubNavItem {
   to: string;
   icon: LucideIcon;
   label: string;
+  /** Count shown as a pill when greater than 0 (Story 14.5: mod updates) */
+  badge?: number;
+  /** Screen reader text for the badge, e.g. "2 mod updates available" */
+  badgeLabel?: string;
+}
+
+function badgeText(item: SubNavItem): string {
+  return item.badgeLabel ?? `${item.label}: ${item.badge}`;
+}
+
+/** Count pill; the number is visual, the label is read by screen readers. */
+function CountBadge({ count, label, testId }: { count: number; label: string; testId: string }) {
+  return (
+    <span
+      className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
+      data-testid={testId}
+    >
+      <span aria-hidden="true">{count}</span>
+      <span className="sr-only">{`, ${label}`}</span>
+    </span>
+  );
+}
+
+/**
+ * Dot for icons where a count pill does not fit. It is visual only: callers give the
+ * count in a tooltip and the item's accessible name.
+ */
+function CountDot({ testId, className = "right-1 top-1" }: { testId: string; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("absolute h-2 w-2 rounded-full bg-primary", className)}
+      data-testid={testId}
+    />
+  );
 }
 
 interface ExpandableNavItemProps {
@@ -78,6 +113,24 @@ export function ExpandableNavItem({
     onExpandedChange(newState);
   };
 
+  // Story 14.5: badges on sub-items; the parent shows their total while closed
+  const badgedItems = subItems.filter((item) => (item.badge ?? 0) > 0);
+  const badgeTotal = badgedItems.reduce((sum, item) => sum + (item.badge ?? 0), 0);
+  const parentBadgeLabel = badgedItems.map(badgeText).join(", ");
+  const showParentBadge = !isOpen && badgeTotal > 0;
+
+  // The dot alone does not say what it counts; explain it on hover, as the collapsed
+  // sidebar's tooltip does
+  const withBadgeTooltip = (trigger: ReactElement) =>
+    showParentBadge ? (
+      <Tooltip>
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+        <TooltipContent side="right">{`${label} (${badgeTotal})`}</TooltipContent>
+      </Tooltip>
+    ) : (
+      trigger
+    );
+
   // Check if any sub-item is currently active
   const isAnySubItemActive = subItems.some(
     (item) =>
@@ -96,7 +149,7 @@ export function ExpandableNavItem({
               variant="ghost"
               size="icon-sm"
               className={cn(
-                "w-full justify-center",
+                "relative w-full justify-center",
                 "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 isAnySubItemActive && "bg-sidebar-accent/50"
               )}
@@ -105,9 +158,17 @@ export function ExpandableNavItem({
               data-testid="collapsed-nav-trigger"
             >
               <Icon className="h-5 w-5 shrink-0" />
+              {!isOpen && badgeTotal > 0 && (
+                <>
+                  <CountDot testId="nav-parent-badge" />
+                  <span className="sr-only">{`${label}, ${parentBadgeLabel}`}</span>
+                </>
+              )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">{label}</TooltipContent>
+          <TooltipContent side="right">
+            {!isOpen && badgeTotal > 0 ? `${label} (${badgeTotal})` : label}
+          </TooltipContent>
         </Tooltip>
 
         {/* Sub-items expanded below (icons only with tooltips) */}
@@ -125,7 +186,7 @@ export function ExpandableNavItem({
                   variant="ghost"
                   size="icon-sm"
                   asChild
-                  className="w-full justify-center"
+                  className="relative w-full justify-center"
                 >
                   <NavLink
                     to={item.to}
@@ -137,10 +198,18 @@ export function ExpandableNavItem({
                     }
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
+                    {(item.badge ?? 0) > 0 && (
+                      <>
+                        <CountDot testId={`nav-badge-${item.label}`} />
+                        <span className="sr-only">{`${item.label}, ${badgeText(item)}`}</span>
+                      </>
+                    )}
                   </NavLink>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right">
+                {(item.badge ?? 0) > 0 ? `${item.label} (${item.badge})` : item.label}
+              </TooltipContent>
             </Tooltip>
           ))}
         </div>
@@ -152,26 +221,37 @@ export function ExpandableNavItem({
   return (
     <div className="space-y-1">
       {/* Parent item with expand/collapse toggle */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn(
-          "w-full justify-start",
-          "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          isAnySubItemActive && "bg-sidebar-accent/50"
-        )}
-        onClick={handleToggle}
-        aria-expanded={isOpen}
-        data-testid="expandable-nav-toggle"
-      >
-        <Icon className="h-5 w-5 shrink-0" />
-        <span className="flex-1 text-left">{label}</span>
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4 shrink-0" data-testid="chevron-down" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" data-testid="chevron-right" />
-        )}
-      </Button>
+      {withBadgeTooltip(
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "w-full justify-start",
+            "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            isAnySubItemActive && "bg-sidebar-accent/50"
+          )}
+          onClick={handleToggle}
+          aria-expanded={isOpen}
+          data-testid="expandable-nav-toggle"
+        >
+          {/* A count pill does not fit beside the label and chevron; use a dot on the icon */}
+          <span className="relative shrink-0">
+            <Icon className="h-5 w-5" />
+            {showParentBadge && (
+              <CountDot testId="nav-parent-badge" className="-right-0.5 -top-0.5" />
+            )}
+          </span>
+          <span className="flex-1 text-left">
+            {label}
+            {showParentBadge && <span className="sr-only">{`, ${parentBadgeLabel}`}</span>}
+          </span>
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 shrink-0" data-testid="chevron-down" />
+          ) : (
+            <ChevronRight className="h-4 w-4 shrink-0" data-testid="chevron-right" />
+          )}
+        </Button>
+      )}
 
       {/* Sub-items with smooth animation */}
       <div
@@ -201,6 +281,13 @@ export function ExpandableNavItem({
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 <span>{item.label}</span>
+                {(item.badge ?? 0) > 0 && (
+                  <CountBadge
+                    count={item.badge ?? 0}
+                    label={badgeText(item)}
+                    testId={`nav-badge-${item.label}`}
+                  />
+                )}
               </NavLink>
             </Button>
           ))}

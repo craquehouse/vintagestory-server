@@ -15,6 +15,7 @@ import type {
   GameSettingUpdateData,
   ApiSettingsData,
   ApiSettingUpdateData,
+  ModUpdateWebhookUpdateData,
   ConfigDirectoryListData,
   ConfigFileListData,
   ConfigFileContentData,
@@ -67,11 +68,35 @@ export async function fetchApiSettings(): Promise<ApiResponse<ApiSettingsData>> 
 }
 
 /**
+ * API settings whose values are secrets (Story 14.6). The generic update path refuses
+ * them; use their dedicated functions, which never cache or return the value.
+ */
+export const SECRET_API_SETTINGS: ReadonlySet<string> = new Set(['mod_update_webhook_url']);
+
+/**
+ * Set or clear the mod update webhook (Story 14.6). `null` clears it.
+ *
+ * Requires Admin role. The response reports only whether a webhook is configured.
+ */
+export async function setModUpdateWebhook(
+  url: string | null
+): Promise<ApiResponse<ModUpdateWebhookUpdateData>> {
+  return apiClient<ApiResponse<ModUpdateWebhookUpdateData>>(
+    `${API_PREFIX}/api/settings/mod_update_webhook_url`,
+    {
+      method: 'POST',
+      body: { value: url },
+    }
+  );
+}
+
+/**
  * Update a specific API setting.
  *
  * @param key - Setting key to update (e.g., 'auto_start_server')
  * @param value - New value for the setting
  * @returns Update result with the new value
+ * @throws Error for a secret setting; use its dedicated function instead
  *
  * Requires Admin role.
  */
@@ -79,6 +104,9 @@ export async function updateApiSetting(
   key: string,
   value: string | number | boolean
 ): Promise<ApiResponse<ApiSettingUpdateData>> {
+  if (SECRET_API_SETTINGS.has(key)) {
+    throw new Error(`${key} is a secret; use setModUpdateWebhook`);
+  }
   return apiClient<ApiResponse<ApiSettingUpdateData>>(
     `${API_PREFIX}/api/settings/${encodeURIComponent(key)}`,
     {

@@ -6,14 +6,18 @@ ModStateManager for state persistence, ModApiClient for external API access,
 and PendingRestartState for restart tracking.
 """
 
+import asyncio
 import shutil
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import structlog
 
 from vintagestory_api.config import Settings
+from vintagestory_api.models.mod_updates import StoredRelease
 from vintagestory_api.models.mods import (
     CompatibilityInfo,
     DisableResult,
@@ -27,15 +31,19 @@ from vintagestory_api.models.mods import (
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
+    ExternalApiError,
     ModApiClient,
+    ModVersionNotFoundError,
     check_compatibility,
     extract_slug,
+    safe_release_filename,
     validate_slug,
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
 )
 from vintagestory_api.services.mod_state import ModStateManager
+from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 logger = structlog.get_logger()
@@ -81,12 +89,15 @@ def get_mod_service() -> ModService:
             mods_dir=mods_dir,
             cache_dir=cache_dir,
             restart_state=get_restart_state(),
-            game_version=settings.game_version,
+            # No game_version: compatibility follows the installed server, not
+            # VS_GAME_VERSION (the install channel). VSS-tpe.
             mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
-        # Load existing state
+        # Load existing state, then re-read mods that older builds imported with
+        # filename fallback metadata (for example modinfo side "Universal")
         _mod_service.state_manager.load()
+        _mod_service.state_manager.repair_fallback_entries()
 
         logger.info(
             "mod_service_initialized",
@@ -136,6 +147,68 @@ class InvalidSlugError(Exception):
         super().__init__(f"Invalid mod slug: '{slug}'")
 
 
+class ModConfirmationRequiredError(Exception):
+    """Raised when a version change needs explicit confirmation (ADR-2)."""
+
+    def __init__(
+        self, slug: str, version: str, reasons: list[str], compatibility: CompatibilityStatus
+    ) -> None:
+        self.slug = slug
+        self.version = version
+        self.reasons = reasons
+        self.compatibility = compatibility
+        super().__init__(
+            f"Changing '{slug}' to {version} needs confirmation: {', '.join(reasons)}"
+        )
+
+
+class ModValidationError(Exception):
+    """Raised when a release archive is unusable or does not match the requested release."""
+
+    def __init__(self, slug: str, message: str) -> None:
+        self.slug = slug
+        super().__init__(f"Release for mod '{slug}' failed validation: {message}")
+
+
+class ModVersionChangeInProgressError(Exception):
+    """Raised when a version change is requested while one is running for the same mod."""
+
+    def __init__(self, slug: str) -> None:
+        self.slug = slug
+        super().__init__(f"A version change for mod '{slug}' is already in progress")
+
+
+class ModVersionChangeFailedError(Exception):
+    """Raised when placing the new file or updating state fails; the change is rolled back."""
+
+    def __init__(self, slug: str, message: str) -> None:
+        self.slug = slug
+        super().__init__(f"Version change for mod '{slug}' failed: {message}")
+
+
+@dataclass(frozen=True)
+class VersionChangeResult:
+    """Outcome of a version change."""
+
+    slug: str
+    previous_version: str
+    version: str
+    filename: str
+    compatibility: CompatibilityStatus | None
+    """Compatibility of the new version; None when nothing changed."""
+    changed: bool
+    pending_restart: bool
+
+
+@dataclass(frozen=True)
+class PreparedVersionChange:
+    """A resolved, confirmed and validated version change, ready to apply."""
+
+    target: StoredRelease
+    archive: Path
+    compatibility: CompatibilityStatus
+
+
 @dataclass
 class InstallResult:
     """Result of a mod installation operation."""
@@ -178,8 +251,9 @@ class ModService:
         mods_dir: Path,
         restart_state: PendingRestartState,
         cache_dir: Path | None = None,
-        game_version: str = "stable",
+        game_version: str | None = None,
         mod_cache_max_size_mb: int = 500,
+        game_version_provider: Callable[[], str | None] | None = None,
     ) -> None:
         """Initialize the mod service.
 
@@ -189,8 +263,13 @@ class ModService:
             restart_state: Shared PendingRestartState for restart tracking.
             cache_dir: Directory for caching downloaded mods. Defaults to
                        state_dir.parent / "cache" if not provided.
-            game_version: Game version for compatibility checking (e.g., "1.21.3").
+            game_version: A fixed game version for compatibility checks (tests and
+                tools). Ignored when `game_version_provider` is given.
             mod_cache_max_size_mb: Maximum cache size in MB (0 to disable eviction).
+            game_version_provider: Returns the game version that lookups, installs and
+                version changes check compatibility against. Defaults to the installed
+                server version, read on each call (VSS-tpe); never VS_GAME_VERSION,
+                which only chooses what to install.
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
@@ -208,8 +287,23 @@ class ModService:
             max_size_mb=mod_cache_max_size_mb,
         )
 
-        self._game_version = game_version
+        if game_version_provider is None:
+            if game_version is not None:
+                fixed: str = game_version
+
+                def fixed_version() -> str:
+                    return fixed
+
+                game_version_provider = fixed_version
+            else:
+                game_version_provider = installed_game_version
+        self._game_version_provider = game_version_provider
         self._mod_api_client: ModApiClient | None = None
+        self._version_locks: dict[str, asyncio.Lock] = {}
+
+    def game_version(self) -> str | None:
+        """The game version compatibility is checked against (installed server by default)."""
+        return self._game_version_provider()
 
     @property
     def state_manager(self) -> ModStateManager:
@@ -389,8 +483,8 @@ class ModService:
         latest_release = releases[0]
         mod_version = latest_release.get("modversion", "unknown")
 
-        # Check compatibility with current game version
-        game_version = self._game_version
+        # Check compatibility with the installed game version (VSS-tpe)
+        game_version = self.game_version()
         if not game_version or game_version == UNKNOWN_VERSION:
             # Server not installed or version unknown
             status: CompatibilityStatus = "not_verified"
@@ -429,6 +523,7 @@ class ModService:
                 game_versions=r.get("tags", []),
                 created=r.get("created", ""),
                 changelog=r.get("changelog"),
+                modidstr=r.get("modidstr") or "",
             )
             for r in releases
         ]
@@ -661,6 +756,246 @@ class ModService:
             self._mod_api_client = None
             logger.debug("mod_api_client_closed")
 
+    async def change_version(
+        self, slug: str, version: str, *, confirm: bool = False
+    ) -> VersionChangeResult:
+        """Move an installed mod to another listed release: update or rollback (ADR-2).
+
+        The installed file is replaced only after the new archive is validated, and any
+        failure afterwards restores the original file and state.
+
+        Raises:
+            ModVersionChangeInProgressError: A change for this mod is already running.
+            ModVersionChangeFailedError: Placing the file or saving state failed.
+            See `_prepare_version_change` for lookup, confirmation and validation errors.
+        """
+        lock = self._version_locks.setdefault(slug, asyncio.Lock())
+        if lock.locked():
+            raise ModVersionChangeInProgressError(slug)
+        async with lock:
+            state = self._state_manager.get_mod_by_slug(slug)
+            if state is None:
+                raise ModNotFoundError(slug)
+            if state.version == version:
+                return VersionChangeResult(
+                    slug=slug,
+                    previous_version=state.version,
+                    version=version,
+                    filename=state.filename,
+                    compatibility=None,
+                    changed=False,
+                    pending_restart=False,
+                )
+
+            prepared = await self._prepare_version_change(slug, version, confirm=confirm)
+            filename = self._apply_version_change(state, prepared)
+
+            pending_restart = False
+            if self._server_running:
+                self._restart_state.require_restart(
+                    f"Mod '{slug}' changed from {state.version} to {version}"
+                )
+                pending_restart = True
+            logger.info(
+                "mod_version_changed",
+                slug=slug,
+                previous_version=state.version,
+                version=version,
+                filename=filename,
+                pending_restart=pending_restart,
+            )
+            return VersionChangeResult(
+                slug=slug,
+                previous_version=state.version,
+                version=version,
+                filename=filename,
+                compatibility=prepared.compatibility,
+                changed=True,
+                pending_restart=pending_restart,
+            )
+
+    def _apply_version_change(self, state: ModState, prepared: PreparedVersionChange) -> str:
+        """Swap the validated archive into the mods directory and update state.
+
+        Returns the new filename. On failure, restores the original file and state.
+        """
+        slug = state.slug
+        mods_dir = self._state_manager.mods_dir
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        new_name = prepared.archive.name if state.enabled else f"{prepared.archive.name}.disabled"
+        old_path = mods_dir / state.filename
+        new_path = mods_dir / new_name
+        same_file = new_name == state.filename
+        if new_path.exists() and not same_file:
+            raise ModVersionChangeFailedError(
+                slug, f"{new_name} already exists in the mods directory"
+            )
+
+        temp_path = new_path.with_name(new_path.name + ".tmp")
+        # A reused filename would be overwritten by the rename, so keep the old file aside.
+        backup_path = old_path.with_name(old_path.name + ".bak") if same_file else None
+        try:
+            shutil.copy2(prepared.archive, temp_path)
+            if backup_path is not None:
+                old_path.rename(backup_path)
+            temp_path.rename(new_path)
+        except OSError as e:
+            temp_path.unlink(missing_ok=True)
+            if backup_path is not None and backup_path.exists() and not old_path.exists():
+                backup_path.rename(old_path)
+            raise ModVersionChangeFailedError(slug, f"could not place the new file: {e}") from e
+
+        old_state = state.model_copy()
+        new_state = ModState(
+            filename=new_name,
+            slug=slug,
+            version=prepared.target.modversion,
+            enabled=state.enabled,
+            installed_at=state.installed_at,
+            asset_id=state.asset_id,
+        )
+        try:
+            self._state_manager.remove_mod(state.filename)
+            self._state_manager.set_mod_state(new_name, new_state)
+            self._state_manager.save()
+            if not same_file:
+                # Required: with two copies of a modid the game loads one and the API
+                # reports the other (Story 14.0).
+                old_path.unlink()
+        except OSError as e:
+            self._rollback_version_change(old_state, new_name, new_path, backup_path)
+            raise ModVersionChangeFailedError(slug, f"could not update state or files: {e}") from e
+
+        if backup_path is not None:
+            try:
+                backup_path.unlink(missing_ok=True)
+            except OSError as e:
+                logger.warning(
+                    "mod_version_backup_not_removed", path=str(backup_path), error=str(e)
+                )
+        try:
+            self._state_manager.import_mod(new_path)
+        except OSError as e:
+            logger.warning("mod_version_metadata_not_cached", slug=slug, error=str(e))
+        return new_name
+
+    def _rollback_version_change(
+        self, old_state: ModState, new_name: str, new_path: Path, backup_path: Path | None
+    ) -> None:
+        """Restore the original file and state after a failed swap."""
+        self._state_manager.remove_mod(new_name)
+        self._state_manager.set_mod_state(old_state.filename, old_state)
+        try:
+            self._state_manager.save()
+        except OSError as e:
+            logger.error("mod_version_rollback_state_not_saved", slug=old_state.slug, error=str(e))
+        try:
+            if backup_path is not None:
+                backup_path.replace(new_path)
+            else:
+                new_path.unlink(missing_ok=True)
+        except OSError as e:
+            logger.error(
+                "mod_version_rollback_file_not_restored", slug=old_state.slug, error=str(e)
+            )
+        logger.warning("mod_version_change_rolled_back", slug=old_state.slug)
+
+    async def _prepare_version_change(
+        self, slug: str, version: str, *, confirm: bool
+    ) -> PreparedVersionChange:
+        """Resolve, confirm and fetch the release a version change targets (ADR-1, ADR-2).
+
+        Confirmation reasons are checked before anything is downloaded.
+
+        Raises:
+            ModNotFoundError: The mod is not installed.
+            ApiModNotFoundError: The mod is not in the mod database.
+            ModVersionNotFoundError: No release with this version for the installed modid.
+            ModConfirmationRequiredError: Confirmation is needed and `confirm` is false.
+            ModValidationError: The archive is unusable or is not the requested release.
+            ExternalApiError, DownloadError: The mod database or download failed.
+        """
+        state = self._state_manager.get_mod_by_slug(slug)
+        if state is None:
+            raise ModNotFoundError(slug)
+
+        mod = await self.api_client.get_mod(slug)
+        if mod is None:
+            raise ApiModNotFoundError(slug)
+        try:
+            raw_releases: object = mod.get("releases") or []
+            if not isinstance(raw_releases, list):
+                raise TypeError("mod releases is not a list")
+            releases = [StoredRelease.from_api(r) for r in cast(list[object], raw_releases)]
+        except (TypeError, ValueError) as e:
+            raise ExternalApiError(f"Unexpected mod database response: {e}") from e
+
+        own = [r for r in releases if r.modidstr == slug]
+        target_index = next((i for i, r in enumerate(own) if r.modversion == version), None)
+        if target_index is None:
+            raise ModVersionNotFoundError(slug, version)
+        target = own[target_index]
+        installed_index = next(
+            (i for i, r in enumerate(own) if r.modversion == state.version), None
+        )
+
+        compatibility = check_compatibility(
+            {"tags": target.tags}, self.game_version() or ""
+        )
+        reasons: list[str] = []
+        if compatibility != "compatible":
+            reasons.append(compatibility)
+        if is_prerelease(target.modversion) and not is_prerelease(state.version):
+            reasons.append("prerelease")
+        if installed_index is not None and target_index > installed_index:
+            reasons.append("older")
+        if reasons and not confirm:
+            raise ModConfirmationRequiredError(slug, version, reasons, compatibility)
+
+        archive = await self._acquire_release_archive(slug, target)
+        return PreparedVersionChange(target=target, archive=archive, compatibility=compatibility)
+
+    async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
+        """Return a validated archive for the release: a valid cached copy, or a download."""
+        try:
+            safe_name = safe_release_filename(target.filename)
+        except ValueError as e:
+            raise ModValidationError(slug, str(e)) from e
+
+        cached = self._cache_dir / "mods" / safe_name
+        if cached.exists():
+            if self._archive_matches(cached, slug, target.modversion):
+                logger.debug("mod_release_cache_hit", slug=slug, version=target.modversion)
+                return cached
+            self._discard_cached_archive(cached, slug)
+
+        path = await self.api_client.download_release_file(slug, target.fileid, target.filename)
+        if not self._archive_matches(path, slug, target.modversion):
+            self._discard_cached_archive(path, slug)
+            raise ModValidationError(
+                slug, f"archive does not contain {slug} version {target.modversion}"
+            )
+        return path
+
+    def _discard_cached_archive(self, path: Path, slug: str) -> None:
+        """Delete a cache file that failed validation.
+
+        A failed delete is logged, not raised: the download replaces the file by rename,
+        and a file that stays behind is validated again before any later use.
+        """
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as e:
+            logger.warning("mod_cache_discard_failed", slug=slug, path=str(path), error=str(e))
+
+    def _archive_matches(self, path: Path, slug: str, version: str) -> bool:
+        metadata = self._state_manager.read_modinfo(path)
+        return (
+            metadata is not None
+            and metadata.modid.lower() == slug.lower()
+            and metadata.version == version
+        )
+
     async def install_mod(
         self,
         slug_or_url: str,
@@ -706,11 +1041,11 @@ class ModService:
             raise ApiModNotFoundError(slug)
 
         # Check compatibility with game version
-        compatibility = check_compatibility(download_result.release, self._game_version)
+        compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
-        temp_path = dest_path.with_suffix(".tmp")
+        temp_path = dest_path.with_name(dest_path.name + ".tmp")
 
         # Ensure mods directory exists
         self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)

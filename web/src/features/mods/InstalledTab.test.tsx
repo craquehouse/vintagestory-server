@@ -16,6 +16,8 @@ import { type ReactNode } from 'react';
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
+    warning: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -511,4 +513,190 @@ describe('InstalledTab', () => {
       });
     });
   });
+
+  describe('Check for updates (Story 14.3)', () => {
+    const updates = (checkedAt: string | null) => ({
+      game_version: '1.22.7',
+      checked_at: checkedAt,
+      update_count: 1,
+      mods: [],
+    });
+
+    function mockApi(check: () => Promise<unknown>) {
+      const mockFetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods/updates/check')) return check();
+        const body = url.includes('/mods/updates')
+          ? { status: 'ok', data: updates('2026-11-09T12:00:00Z') }
+          : url.includes('/mods')
+            ? mockModsResponse
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+      globalThis.fetch = mockFetch;
+      return mockFetch;
+    }
+
+    it('shows when the last full check finished', async () => {
+      mockApi(() => Promise.reject(new Error('unused')));
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const expected = `Last checked ${new Date('2026-11-09T12:00:00Z').toLocaleString()}`;
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-updates-last-checked')).toHaveTextContent(expected);
+      });
+    });
+
+    it('shows Not checked yet before any check', async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? { status: 'ok', data: updates(null) }
+          : url.includes('/mods')
+            ? mockModsResponse
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-updates-last-checked')).toHaveTextContent(
+          'Not checked yet'
+        );
+      });
+    });
+
+    it('runs a check and reports the result', async () => {
+      const mockFetch = mockApi(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                ...updates('2026-11-09T12:00:00Z'),
+                check: { checked: 3, failed: 0, failed_slugs: [] },
+              },
+            }),
+        })
+      );
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+      fireEvent.click(screen.getByTestId('mod-updates-check'));
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith('Checked 3 mods', {
+          description: '1 update available.',
+        });
+      });
+      const checkCall = mockFetch.mock.calls.find(([url]) =>
+        String(url).includes('/mods/updates/check')
+      );
+      expect(checkCall?.[1].method).toBe('POST');
+    });
+
+    it('warns when some mods could not be checked', async () => {
+      mockApi(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                ...updates(null),
+                check: { checked: 3, failed: 1, failed_slugs: ['carryon'] },
+              },
+            }),
+        })
+      );
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+      fireEvent.click(screen.getByTestId('mod-updates-check'));
+
+      await waitFor(() => {
+        expect(toast.warning).toHaveBeenCalledWith('Checked 3 mods; 1 could not be checked', {
+          description: 'carryon. 1 update available.',
+        });
+      });
+    });
+
+    it('shows an error toast when a check is already running', async () => {
+      mockApi(() =>
+        Promise.resolve({
+          ok: false,
+          status: 409,
+          statusText: 'Conflict',
+          json: () =>
+            Promise.resolve({
+              detail: {
+                code: 'MOD_UPDATE_CHECK_IN_PROGRESS',
+                message: 'An update check is already running',
+              },
+            }),
+        })
+      );
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+      fireEvent.click(screen.getByTestId('mod-updates-check'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Update check failed', {
+          description: 'An update check is already running',
+        });
+      });
+    });
+  });
+
+  describe('Update all (Story 14.4)', () => {
+    function offer(slug: string, compatibility: string) {
+      return {
+        slug,
+        name: slug,
+        installed_version: '1.0.0',
+        status: 'update_available',
+        offered_version: '1.1.0',
+        offered_compatibility: compatibility,
+        offered_prerelease: false,
+        reason: null,
+        checked_at: null,
+        error: null,
+      };
+    }
+
+    function mockUpdates(mods: unknown[]) {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? {
+              status: 'ok',
+              data: { game_version: '1.22.7', checked_at: null, update_count: 1, mods },
+            }
+          : url.includes('/mods')
+            ? mockModsResponse
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+    }
+
+    it('offers Update all with the number of compatible updates', async () => {
+      mockUpdates([offer('a', 'compatible'), offer('b', 'not_verified'), offer('c', 'compatible')]);
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const button = await screen.findByTestId('mod-updates-update-all');
+      expect(button).toHaveTextContent('Update all (2)');
+      fireEvent.click(button);
+      expect(await screen.findByTestId('update-all-dialog')).toBeInTheDocument();
+    });
+
+    it('hides Update all when no update is compatible', async () => {
+      mockUpdates([offer('smithingplus', 'not_verified')]);
+
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      // The row's Update action proves the update status has loaded
+      await screen.findByTestId('mod-update-button-smithingplus');
+      expect(screen.queryByTestId('mod-updates-update-all')).not.toBeInTheDocument();
+    });
+  });
 });
+

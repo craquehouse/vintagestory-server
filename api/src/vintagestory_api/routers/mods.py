@@ -1,7 +1,8 @@
 """Mod management API endpoints."""
 
 import math
-from typing import Annotated, Literal
+from dataclasses import asdict
+from typing import Annotated, Any, Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -26,11 +27,21 @@ from vintagestory_api.services.mod_api import (
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
 )
+from vintagestory_api.services.mod_updates import (
+    ModUpdateAllInProgressError,
+    ModUpdateCheckInProgressError,
+    ModUpdateService,
+    get_mod_update_service,
+)
 from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModAlreadyInstalledError,
+    ModConfirmationRequiredError,
     ModNotFoundError,
     ModService,
+    ModValidationError,
+    ModVersionChangeFailedError,
+    ModVersionChangeInProgressError,
     get_mod_service,
 )
 
@@ -75,6 +86,90 @@ async def list_mods(
             "pending_restart": pending_restart,
         },
     )
+
+
+def _mod_updates_payload(service: ModUpdateService) -> dict[str, Any]:
+    items = service.get_status()
+    last_check = service.store.last_full_check
+    return {
+        "game_version": service.game_version() or None,
+        "checked_at": last_check.isoformat().replace("+00:00", "Z") if last_check else None,
+        "update_count": sum(1 for item in items if item.status == "update_available"),
+        "mods": [item.model_dump(mode="json") for item in items],
+    }
+
+
+@router.get("/updates", response_model=ApiResponse, summary="Get mod update status")
+async def get_mod_updates(
+    _: RequireAuth,
+    service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Get update status for every installed mod (Admin or Monitor).
+
+    Status is computed from the last check's stored data against the installed game
+    version; this endpoint makes no calls to the mod database.
+    """
+    return ApiResponse(status="ok", data=_mod_updates_payload(service))
+
+
+@router.post("/updates/check", response_model=ApiResponse, summary="Check for mod updates")
+async def check_mod_updates(
+    _: RequireAdmin,
+    service: ModUpdateService = Depends(get_mod_update_service),
+) -> ApiResponse:
+    """Refresh release data for installed mods from the mod database (Admin only).
+
+    Lookups that fail keep the mod's previous data and are listed in `check.failed_slugs`.
+
+    Raises:
+        HTTPException: 409 if a check is already running.
+    """
+    try:
+        summary = await service.check()
+    except ModUpdateCheckInProgressError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_UPDATE_CHECK_IN_PROGRESS,
+                "message": "A mod update check is already running",
+            },
+        ) from None
+    data = _mod_updates_payload(service)
+    data["check"] = {
+        "checked": summary.checked,
+        "failed": summary.failed,
+        "failed_slugs": summary.failed_slugs,
+    }
+    return ApiResponse(status="ok", data=data)
+
+
+@router.post(
+    "/updates/apply-all", response_model=ApiResponse, summary="Apply all compatible mod updates"
+)
+async def apply_all_mod_updates(
+    _: RequireAdmin,
+    update_service: ModUpdateService = Depends(get_mod_update_service),
+    mod_service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Update every mod whose offered update is compatible, one at a time (Admin only).
+
+    Not verified offers are skipped for individual review; a mod that fails does not stop
+    the others. Each result is `updated`, `skipped` (with reasons) or `failed` (with error).
+
+    Raises:
+        HTTPException: 409 if update all is already running.
+    """
+    try:
+        summary = await update_service.apply_all(mod_service.change_version)
+    except ModUpdateAllInProgressError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_UPDATE_ALL_IN_PROGRESS,
+                "message": "Update all is already running",
+            },
+        ) from None
+    return ApiResponse(status="ok", data=asdict(summary))
 
 
 def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
@@ -835,3 +930,64 @@ async def remove_mod(
                 "message": f"Mod '{e.slug}' is not installed",
             },
         )
+
+
+class ModVersionChangeRequest(BaseModel):
+    """Request body for changing an installed mod's version."""
+
+    version: str = Field(..., min_length=1, description="Release version to install")
+    confirm: bool = Field(
+        default=False,
+        description="Confirm a not-verified, incompatible, pre-release or older release",
+    )
+
+
+def _version_change_error(
+    status_code: int, code: str, error: Exception, **details: Any
+) -> HTTPException:
+    detail: dict[str, Any] = {"code": code, "message": str(error)}
+    if details:
+        detail["details"] = details
+    return HTTPException(status_code=status_code, detail=detail)
+
+
+@router.put("/{slug}/version", response_model=ApiResponse, summary="Change a mod's version")
+async def change_mod_version(
+    request: ModVersionChangeRequest,
+    _: RequireAdmin,
+    slug: str = Path(..., description="Installed mod's modid"),
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Update or roll back an installed mod to a listed release (Admin only).
+
+    The installed file is only replaced after the new release is validated; any
+    failure leaves the mod unchanged.
+    """
+    try:
+        result = await service.change_version(slug, request.version, confirm=request.confirm)
+    except ModNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_NOT_INSTALLED, e) from None
+    except ApiModNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_NOT_FOUND, e) from None
+    except ModVersionNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_VERSION_NOT_FOUND, e) from None
+    except ModConfirmationRequiredError as e:
+        raise _version_change_error(
+            409,
+            ErrorCode.MOD_CONFIRMATION_REQUIRED,
+            e,
+            reasons=e.reasons,
+            compatibility=e.compatibility,
+        ) from None
+    except ModVersionChangeInProgressError as e:
+        raise _version_change_error(409, ErrorCode.MOD_VERSION_CHANGE_IN_PROGRESS, e) from None
+    except ModValidationError as e:
+        raise _version_change_error(422, ErrorCode.MOD_VALIDATION_FAILED, e) from None
+    except ExternalApiError as e:
+        raise _version_change_error(502, ErrorCode.EXTERNAL_API_ERROR, e) from None
+    except DownloadError as e:
+        raise _version_change_error(502, ErrorCode.DOWNLOAD_FAILED, e) from None
+    except ModVersionChangeFailedError as e:
+        raise _version_change_error(500, ErrorCode.MOD_VERSION_CHANGE_FAILED, e) from None
+    return ApiResponse(status="ok", data=asdict(result))
+

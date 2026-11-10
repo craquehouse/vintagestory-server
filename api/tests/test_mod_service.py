@@ -2,12 +2,14 @@
 
 import json
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModNotFoundError,
@@ -694,6 +696,34 @@ class TestGetModServiceDependency:
             assert service.state_manager.state_dir == custom_state / "state"
             assert service.state_manager.mods_dir == custom_serverdata / "Mods"
 
+    def test_get_mod_service_repairs_fallback_entries_after_loading(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Mods imported with fallback metadata by older builds are re-read at startup."""
+        import vintagestory_api.services.mods as mods_module
+
+        calls: list[str] = []
+
+        def load(self: ModStateManager) -> None:
+            calls.append("load")
+
+        def repair(self: ModStateManager) -> list[str]:
+            calls.append("repair")
+            return []
+
+        monkeypatch.setattr(mods_module, "_mod_service", None)
+        monkeypatch.setattr(ModStateManager, "load", load)
+        monkeypatch.setattr(ModStateManager, "repair_fallback_entries", repair)
+
+        with patch.object(mods_module, "Settings") as mock_settings:
+            mock_settings.return_value.vsmanager_dir = tmp_path / "state"
+            mock_settings.return_value.serverdata_dir = tmp_path / "serverdata"
+            mock_settings.return_value.cache_dir = tmp_path / "cache"
+
+            get_mod_service()
+
+        assert calls == ["load", "repair"]
+
 
 # --- Tests for ModService.install_mod ---
 
@@ -791,6 +821,35 @@ class TestModServiceInstallMod:
         assert mod_state is not None
         assert mod_state.version == "1.8.3"
         assert mod_state.enabled is True
+
+    @pytest.mark.asyncio
+    async def test_install_mod_temp_file_does_not_clobber_same_stem_file(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """install_mod() stages its copy under name + ".tmp", not a suffix swap."""
+        import respx
+        from httpx import Response
+
+        _state_dir, mods_dir = temp_dirs
+        mods_dir.mkdir(parents=True, exist_ok=True)
+        unrelated = mods_dir / "smithingplus_1.8.3.tmp"
+        unrelated.write_bytes(b"not ours")
+        mod_zip_content = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            await install_service.install_mod("smithingplus")
+
+        assert unrelated.read_bytes() == b"not ours"
+        assert (mods_dir / "smithingplus_1.8.3.zip").exists()
 
     @pytest.mark.asyncio
     async def test_install_mod_specific_version(
@@ -1388,6 +1447,30 @@ class TestModServiceLookupMod:
             await lookup_service.lookup_mod("con")
 
     @pytest.mark.asyncio
+    async def test_lookup_mod_releases_carry_their_modid(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() exposes each release's modidstr; one entry can ship several modids."""
+        import json
+
+        import respx
+        from httpx import Response
+
+        fixture = Path(__file__).parent / "fixtures" / "moddb" / "mod_instruments.json"
+        payload = json.loads(fixture.read_text())
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+                return_value=Response(200, json=payload)
+            )
+
+            result = await lookup_service.lookup_mod("instruments")
+
+        expected = [r["modidstr"] for r in payload["mod"]["releases"]]
+        assert [r.modidstr for r in result.releases] == expected
+        assert {"vsinstrumentsbase", "vsinstruments", "instruments"} <= set(expected)
+
+    @pytest.mark.asyncio
     async def test_lookup_mod_calculates_total_downloads(
         self, lookup_service: ModService
     ) -> None:
@@ -1712,3 +1795,100 @@ class TestModServiceProperties:
 
         # Property should reflect the change
         assert not service.restart_state.pending_restart
+
+
+class TestCompatibilityUsesInstalledServerVersion:
+    """VSS-tpe: lookup and install check compatibility against the installed server,
+    not VS_GAME_VERSION (the install channel, e.g. "stable" or an old pin)."""
+
+    @staticmethod
+    def make(
+        tmp_path: Path, game_version_provider: Callable[[], str | None] | None = None
+    ) -> ModService:
+        return ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+            game_version_provider=game_version_provider,
+        )
+
+    @pytest.mark.asyncio
+    async def test_lookup_uses_the_installed_version_on_each_call(self, tmp_path: Path) -> None:
+        import respx
+        from httpx import Response
+
+        installed = {"version": "1.21.0"}
+        service = self.make(tmp_path, game_version_provider=lambda: installed["version"])
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE})
+            )
+            first = await service.lookup_mod("smithingplus")
+            installed["version"] = "1.21.3"  # server upgraded
+            second = await service.lookup_mod("smithingplus")
+
+        assert (first.compatibility.game_version, first.compatibility.status) == (
+            "1.21.0",
+            "compatible",
+        )
+        assert (second.compatibility.game_version, second.compatibility.status) == (
+            "1.21.3",
+            "compatible",
+        )
+
+    @pytest.mark.asyncio
+    async def test_default_reads_the_installed_server(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import respx
+        from httpx import Response
+
+        import vintagestory_api.services.mods as mods_module
+
+        monkeypatch.setattr(mods_module, "installed_game_version", lambda: "1.21.3")
+        service = self.make(tmp_path)
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": LOOKUP_MOD_COMPATIBLE})
+            )
+            result = await service.lookup_mod("smithingplus")
+
+        assert result.compatibility.game_version == "1.21.3"
+        assert result.compatibility.status == "compatible"
+
+    def test_mod_service_singleton_does_not_pin_vs_game_version(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import vintagestory_api.services.mods as mods_module
+
+        monkeypatch.setenv("VS_GAME_VERSION", "1.21.6")
+        monkeypatch.setattr(mods_module, "_mod_service", None)
+        monkeypatch.setattr(mods_module, "installed_game_version", lambda: "1.22.7")
+
+        service = mods_module.get_mod_service()
+
+        assert service.game_version() == "1.22.7"
+
+    @pytest.mark.asyncio
+    async def test_install_uses_the_installed_version(self, tmp_path: Path) -> None:
+        import respx
+        from httpx import Response
+
+        service = self.make(tmp_path, game_version_provider=lambda: "1.21.3")
+        mod_zip = create_mod_zip_bytes(
+            {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip)
+            )
+            result = await service.install_mod("smithingplus")
+
+        assert result.compatibility == "compatible"

@@ -22,6 +22,7 @@ import {
 import { useSidebar } from "@/contexts/SidebarContext";
 import { usePreferences } from "@/contexts/PreferencesContext";
 import { useServerStatus } from "@/hooks/use-server-status";
+import { useModUpdates } from "@/hooks/use-mods";
 import { ExpandableNavItem, type SubNavItem } from "./ExpandableNavItem";
 
 /** Top-level navigation items (non-expandable) */
@@ -57,6 +58,9 @@ export function Sidebar({ className }: SidebarProps) {
   const { isCollapsed, toggleCollapse } = useSidebar();
   const { preferences, setGameServerNavExpanded } = usePreferences();
   const { data: statusResponse } = useServerStatus();
+  // Story 14.5: count of mods with an update available, shown on the Mods item
+  const { data: updatesResponse } = useModUpdates();
+  const updateCount = updatesResponse?.data?.updateCount ?? 0;
 
   // Derive dynamic label for Version/Installation based on server state
   const serverState = statusResponse?.data?.state;
@@ -66,7 +70,13 @@ export function Sidebar({ className }: SidebarProps) {
   const gameServerSubItems: SubNavItem[] = [
     { to: "/game-server/version", icon: HardDrive, label: versionLabel },
     { to: "/game-server/settings", icon: Settings2, label: "Settings" },
-    { to: "/game-server/mods", icon: Package, label: "Mods" },
+    {
+      to: "/game-server/mods",
+      icon: Package,
+      label: "Mods",
+      badge: updateCount,
+      badgeLabel: `${updateCount} mod ${updateCount === 1 ? "update" : "updates"} available`,
+    },
     { to: "/game-server/console", icon: Terminal, label: "Console" },
   ];
 

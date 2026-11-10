@@ -164,6 +164,15 @@ development_status:
   13-6-server-uninstall-api: done
   13-7-server-uninstall-ui: done
   epic-13-retrospective: done
+  epic-14: done
+  epic-14-retrospective: optional
+  14-0-epic-14-technical-preparation: done
+  14-1-update-detection-and-status-api: done
+  14-2-version-change-api: done
+  14-3-update-and-version-switching-ui: done
+  14-4-update-all: done
+  14-5-scheduled-checks-and-update-badges: done
+  14-6-webhook-alerts: done
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

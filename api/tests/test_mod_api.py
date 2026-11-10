@@ -355,7 +355,10 @@ class TestModApiClientGetMod:
     async def test_get_mod_unexpected_status(
         self, mod_api_client: ModApiClient
     ) -> None:
-        """get_mod() returns None for unexpected status codes."""
+        """get_mod() raises ExternalApiError for unexpected status codes (VSS-d15).
+
+        Returning None would read as "not found" to callers.
+        """
         respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
             return_value=Response(
                 200,
@@ -363,8 +366,27 @@ class TestModApiClientGetMod:
             )
         )
 
-        result = await mod_api_client.get_mod("anymod")
-        assert result is None
+        with pytest.raises(ExternalApiError, match="unexpected status"):
+            await mod_api_client.get_mod("anymod")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "response",
+        [
+            Response(500, content=b""),
+            Response(502, content=b"<html>Bad Gateway</html>"),
+            Response(200, json=["not", "an", "object"]),
+        ],
+    )
+    async def test_get_mod_unusable_body(
+        self, mod_api_client: ModApiClient, response: Response
+    ) -> None:
+        """get_mod() raises ExternalApiError when the body is not a JSON object."""
+        respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(return_value=response)
+
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mod("anymod")
 
     @respx.mock
     @pytest.mark.asyncio

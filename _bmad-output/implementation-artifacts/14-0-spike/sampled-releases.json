@@ -1,0 +1,6776 @@
+{
+ "betterruins": {
+  "statuscode": "200",
+  "modid": 792,
+  "assetid": 3829,
+  "urlalias": "betterruins",
+  "releases": [
+   {
+    "releaseid": 57748,
+    "modversion": "0.6.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.4.zip",
+    "fileid": 123882,
+    "tags": [
+     "1.22.7"
+    ],
+    "created": "2026-09-20 20:18:45"
+   },
+   {
+    "releaseid": 45652,
+    "modversion": "0.6.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.3.zip",
+    "fileid": 100357,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-06-13 11:54:42"
+   },
+   {
+    "releaseid": 42147,
+    "modversion": "0.6.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.2.zip",
+    "fileid": 93245,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-05-17 15:36:35"
+   },
+   {
+    "releaseid": 40589,
+    "modversion": "0.6.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.1.zip",
+    "fileid": 90227,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-05 18:33:14"
+   },
+   {
+    "releaseid": 38591,
+    "modversion": "0.6.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.0.zip",
+    "fileid": 86064,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-04-21 17:56:59"
+   },
+   {
+    "releaseid": 36962,
+    "modversion": "0.6.0-rc.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.0-rc.2.zip",
+    "fileid": 81759,
+    "tags": [
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10"
+    ],
+    "created": "2026-03-22 22:16:49"
+   },
+   {
+    "releaseid": 36217,
+    "modversion": "0.6.0-rc.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.0-rc.1.zip",
+    "fileid": 79851,
+    "tags": [
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4"
+    ],
+    "created": "2026-03-10 20:09:32"
+   },
+   {
+    "releaseid": 34578,
+    "modversion": "0.6.0-pre.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.6.0-pre.1.zip",
+    "fileid": 76157,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2"
+    ],
+    "created": "2026-02-14 15:24:16"
+   },
+   {
+    "releaseid": 34027,
+    "modversion": "0.5.7",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.7.zip",
+    "fileid": 75006,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-02-06 17:52:26"
+   },
+   {
+    "releaseid": 32702,
+    "modversion": "0.5.6",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.6.zip",
+    "fileid": 71876,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-01-16 20:29:30"
+   },
+   {
+    "releaseid": 31133,
+    "modversion": "0.5.5",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.5.zip",
+    "fileid": 68536,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2025-12-21 22:30:40"
+   },
+   {
+    "releaseid": 29686,
+    "modversion": "0.5.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.4.zip",
+    "fileid": 65508,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2025-11-22 19:25:41"
+   },
+   {
+    "releaseid": 28980,
+    "modversion": "0.5.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.3.zip",
+    "fileid": 63983,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-11-09 20:45:29"
+   },
+   {
+    "releaseid": 28238,
+    "modversion": "0.5.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.2.zip",
+    "fileid": 62126,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-27 21:51:04"
+   },
+   {
+    "releaseid": 28179,
+    "modversion": "0.5.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.1.zip",
+    "fileid": 61996,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-26 21:37:27"
+   },
+   {
+    "releaseid": 23557,
+    "modversion": "0.5.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.0.zip",
+    "fileid": 51838,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-08-26 21:00:22"
+   },
+   {
+    "releaseid": 22306,
+    "modversion": "0.5.0-rc.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.0-rc.1.zip",
+    "fileid": 48857,
+    "tags": [
+     "1.21.0-rc.1",
+     "1.21.0-rc.2",
+     "1.21.0-rc.3",
+     "1.21.0-rc.5",
+     "1.21.0-rc.6",
+     "1.21.0-rc.7"
+    ],
+    "created": "2025-07-27 17:23:22"
+   },
+   {
+    "releaseid": 21509,
+    "modversion": "0.5.0-pre.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.0-pre.2.zip",
+    "fileid": 46883,
+    "tags": [
+     "1.21.0-pre.1",
+     "1.21.0-pre.3"
+    ],
+    "created": "2025-06-29 20:24:43"
+   },
+   {
+    "releaseid": 21508,
+    "modversion": "0.4.15",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.15.zip",
+    "fileid": 46882,
+    "tags": [
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-06-29 20:23:44"
+   },
+   {
+    "releaseid": 21329,
+    "modversion": "0.5.0-pre.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.5.0-pre.1.zip",
+    "fileid": 46366,
+    "tags": [
+     "1.21.0-pre.1",
+     "1.21.0-pre.3"
+    ],
+    "created": "2025-06-22 17:27:53"
+   },
+   {
+    "releaseid": 21328,
+    "modversion": "0.4.14",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.14.zip",
+    "fileid": 46364,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-06-22 17:25:55"
+   },
+   {
+    "releaseid": 21055,
+    "modversion": "0.4.13",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.13.zip",
+    "fileid": 45644,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-06-13 16:41:58"
+   },
+   {
+    "releaseid": 19640,
+    "modversion": "0.4.12",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.12.zip",
+    "fileid": 42471,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-05-04 15:58:54"
+   },
+   {
+    "releaseid": 18889,
+    "modversion": "0.4.11",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.11.zip",
+    "fileid": 40874,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9"
+    ],
+    "created": "2025-04-13 13:16:36"
+   },
+   {
+    "releaseid": 18872,
+    "modversion": "0.4.10",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.10.zip",
+    "fileid": 40838,
+    "tags": [
+     "1.20.0",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-12 19:07:55"
+   },
+   {
+    "releaseid": 17708,
+    "modversion": "0.4.9",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.9.zip",
+    "fileid": 37908,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-03-17 18:06:12"
+   },
+   {
+    "releaseid": 17245,
+    "modversion": "0.4.8",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.8.zip",
+    "fileid": 36565,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5-rc.3"
+    ],
+    "created": "2025-03-08 14:48:35"
+   },
+   {
+    "releaseid": 15922,
+    "modversion": "0.4.7",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.7.zip",
+    "fileid": 32774,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4"
+    ],
+    "created": "2025-02-09 13:14:44"
+   },
+   {
+    "releaseid": 14759,
+    "modversion": "0.4.6",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.6.zip",
+    "fileid": 30660,
+    "tags": [
+     "1.20.0-rc.9",
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3"
+    ],
+    "created": "2025-01-19 17:48:16"
+   },
+   {
+    "releaseid": 14437,
+    "modversion": "0.4.5",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.5.zip",
+    "fileid": 30042,
+    "tags": [
+     "1.20.0-rc.6",
+     "1.20.0-rc.8",
+     "1.20.0-rc.9",
+     "1.20.0"
+    ],
+    "created": "2025-01-11 18:25:15"
+   },
+   {
+    "releaseid": 14152,
+    "modversion": "0.4.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.4.zip",
+    "fileid": 29472,
+    "tags": [
+     "1.20.0-rc.6",
+     "1.20.0-rc.8"
+    ],
+    "created": "2025-01-02 19:07:30"
+   },
+   {
+    "releaseid": 13978,
+    "modversion": "0.4.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.3.zip",
+    "fileid": 29148,
+    "tags": [
+     "1.20.0-rc.6"
+    ],
+    "created": "2024-12-26 21:07:33"
+   },
+   {
+    "releaseid": 13860,
+    "modversion": "0.4.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.2.zip",
+    "fileid": 28947,
+    "tags": [
+     "1.20.0-rc.5"
+    ],
+    "created": "2024-12-21 14:30:20"
+   },
+   {
+    "releaseid": 13713,
+    "modversion": "0.4.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.1.zip",
+    "fileid": 28689,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4"
+    ],
+    "created": "2024-12-15 19:14:40"
+   },
+   {
+    "releaseid": 13634,
+    "modversion": "0.4.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.4.0.zip",
+    "fileid": 28556,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4"
+    ],
+    "created": "2024-12-13 16:57:40"
+   },
+   {
+    "releaseid": 12916,
+    "modversion": "0.3.9",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.9.zip",
+    "fileid": 27117,
+    "tags": [
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-11-07 20:02:23"
+   },
+   {
+    "releaseid": 12859,
+    "modversion": "0.3.8",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.8.zip",
+    "fileid": 27008,
+    "tags": [
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-11-03 14:50:19"
+   },
+   {
+    "releaseid": 11337,
+    "modversion": "0.3.7",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.7.zip",
+    "fileid": 23605,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-07-19 19:37:36"
+   },
+   {
+    "releaseid": 11332,
+    "modversion": "0.3.6",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.6.zip",
+    "fileid": 23600,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-07-19 11:50:25"
+   },
+   {
+    "releaseid": 10057,
+    "modversion": "0.3.5",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.5.zip",
+    "fileid": 21151,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-04-26 17:48:50"
+   },
+   {
+    "releaseid": 9252,
+    "modversion": "0.3.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.4.zip",
+    "fileid": 19754,
+    "tags": [
+     "1.19.4",
+     "1.19.5-rc.1",
+     "1.19.5-rc.2",
+     "1.19.5-rc.3",
+     "1.19.5",
+     "1.19.6",
+     "1.19.7"
+    ],
+    "created": "2024-03-08 16:14:17"
+   },
+   {
+    "releaseid": 8747,
+    "modversion": "0.3.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.3.zip",
+    "fileid": 18903,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "created": "2024-02-08 19:20:16"
+   },
+   {
+    "releaseid": 8524,
+    "modversion": "0.3.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.2.zip",
+    "fileid": 18457,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "created": "2024-01-30 18:46:00"
+   },
+   {
+    "releaseid": 8480,
+    "modversion": "0.3.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.1.zip",
+    "fileid": 18358,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "created": "2024-01-28 20:01:31"
+   },
+   {
+    "releaseid": 8462,
+    "modversion": "0.3.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.3.0.zip",
+    "fileid": 18311,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "created": "2024-01-28 15:01:54"
+   },
+   {
+    "releaseid": 7914,
+    "modversion": "0.2.5",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.5.zip",
+    "fileid": 17235,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2023-12-30 11:31:22"
+   },
+   {
+    "releaseid": 6899,
+    "modversion": "0.2.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.4.zip",
+    "fileid": 15001,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "created": "2023-10-08 16:25:23"
+   },
+   {
+    "releaseid": 6880,
+    "modversion": "0.2.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.3.zip",
+    "fileid": 14935,
+    "tags": [
+     "1.18.4",
+     "1.18.5",
+     "1.18.6",
+     "1.18.7",
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14"
+    ],
+    "created": "2023-10-06 15:44:24"
+   },
+   {
+    "releaseid": 6315,
+    "modversion": "0.2.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.2.zip",
+    "fileid": 13571,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8-rc.1",
+     "1.18.8",
+     "1.18.9-rc.1",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13"
+    ],
+    "created": "2023-08-19 16:03:50"
+   },
+   {
+    "releaseid": 5605,
+    "modversion": "0.2.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.1.zip",
+    "fileid": 12070,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6-rc.1",
+     "1.18.6-rc.2",
+     "1.18.6",
+     "1.18.7",
+     "1.18.8-rc.1",
+     "1.18.8"
+    ],
+    "created": "2023-06-17 13:25:13"
+   },
+   {
+    "releaseid": 5528,
+    "modversion": "0.2.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.2.0.zip",
+    "fileid": 11914,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6-rc.1"
+    ],
+    "created": "2023-06-10 14:28:02"
+   },
+   {
+    "releaseid": 5175,
+    "modversion": "0.1.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.1.1.zip",
+    "fileid": 11228,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2-rc.1",
+     "1.18.2-rc.2",
+     "1.18.2-rc.3",
+     "1.18.2-rc.4",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4"
+    ],
+    "created": "2023-05-10 18:21:39"
+   },
+   {
+    "releaseid": 4846,
+    "modversion": "0.1.0",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.1.0.zip",
+    "fileid": 10669,
+    "tags": [
+     "1.18.0-rc.7",
+     "1.18.0-rc.8",
+     "1.18.0",
+     "1.18.1"
+    ],
+    "created": "2023-04-22 18:09:58"
+   },
+   {
+    "releaseid": 4550,
+    "modversion": "0.0.8",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.8.zip",
+    "fileid": 10118,
+    "tags": [
+     "1.18.0-pre.0",
+     "1.18.0-rc.1",
+     "1.18.0-rc.2",
+     "1.18.0-rc.3",
+     "1.18.0-rc.4",
+     "1.18.0-rc.5",
+     "1.18.0-rc.6"
+    ],
+    "created": "2023-04-01 14:05:41"
+   },
+   {
+    "releaseid": 4137,
+    "modversion": "0.0.7",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.7.zip",
+    "fileid": 9329,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "created": "2023-02-05 16:50:25"
+   },
+   {
+    "releaseid": 3690,
+    "modversion": "0.0.6",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.6.zip",
+    "fileid": 8329,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10"
+    ],
+    "created": "2022-11-13 18:32:45"
+   },
+   {
+    "releaseid": 3587,
+    "modversion": "0.0.5",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.5.zip",
+    "fileid": 8102,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "created": "2022-11-01 21:00:20"
+   },
+   {
+    "releaseid": 3460,
+    "modversion": "0.0.4",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.4.zip",
+    "fileid": 7833,
+    "tags": [
+     "1.16.5",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "created": "2022-10-09 11:23:48"
+   },
+   {
+    "releaseid": 3221,
+    "modversion": "0.0.3",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.3.zip",
+    "fileid": 7244,
+    "tags": [
+     "1.16.5",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6"
+    ],
+    "created": "2022-09-10 21:40:29"
+   },
+   {
+    "releaseid": 3117,
+    "modversion": "0.0.2",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.2.zip",
+    "fileid": 7062,
+    "tags": [
+     "1.16.5",
+     "1.17.0-pre.0",
+     "1.17.0-rc.8",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2"
+    ],
+    "created": "2022-09-01 20:38:59"
+   },
+   {
+    "releaseid": 3039,
+    "modversion": "0.0.1",
+    "modidstr": "betterruins",
+    "filename": "BetterRuinsv0.0.1.zip",
+    "fileid": 6910,
+    "tags": [
+     "1.16.5-rc.1",
+     "1.16.5",
+     "1.17.0-pre.0",
+     "1.17.0-rc.1",
+     "1.17.0-rc.2",
+     "1.17.0-rc.3",
+     "1.17.0-rc.4",
+     "1.17.0-rc.5",
+     "1.17.0-rc.6",
+     "1.17.0-rc.7",
+     "1.17.0-rc.8",
+     "1.17.0"
+    ],
+    "created": "2022-08-22 17:43:22"
+   }
+  ]
+ },
+ "carryon": {
+  "statuscode": "200",
+  "modid": 890,
+  "assetid": 4405,
+  "urlalias": "carryon",
+  "releases": [
+   {
+    "releaseid": 61180,
+    "modversion": "2.0.0-rc.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-rc.1.zip",
+    "fileid": 130071,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-10-14 13:43:04"
+   },
+   {
+    "releaseid": 52086,
+    "modversion": "1.14.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.3.zip",
+    "fileid": 113014,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-08-07 10:22:05"
+   },
+   {
+    "releaseid": 50130,
+    "modversion": "2.0.0-pre.8",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.8.zip",
+    "fileid": 109190,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "created": "2026-07-22 09:32:32"
+   },
+   {
+    "releaseid": 47994,
+    "modversion": "2.0.0-pre.7",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.7.zip",
+    "fileid": 104947,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-07-04 07:45:20"
+   },
+   {
+    "releaseid": 47802,
+    "modversion": "2.0.0-pre.6",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.6.zip",
+    "fileid": 104572,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-07-02 15:00:37"
+   },
+   {
+    "releaseid": 47581,
+    "modversion": "2.0.0-pre.5",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.5.zip",
+    "fileid": 104121,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-30 11:28:06"
+   },
+   {
+    "releaseid": 45302,
+    "modversion": "2.0.0-pre.4",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.4.zip",
+    "fileid": 99604,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-10 07:09:26"
+   },
+   {
+    "releaseid": 44613,
+    "modversion": "2.0.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.3.zip",
+    "fileid": 98205,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-04 14:29:35"
+   },
+   {
+    "releaseid": 44162,
+    "modversion": "2.0.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.2.zip",
+    "fileid": 97226,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-01 01:34:35"
+   },
+   {
+    "releaseid": 43194,
+    "modversion": "2.0.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.1.zip",
+    "fileid": 95224,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-25 12:53:16"
+   },
+   {
+    "releaseid": 42603,
+    "modversion": "1.14.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.2.zip",
+    "fileid": 94053,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-05-21 09:53:48"
+   },
+   {
+    "releaseid": 42233,
+    "modversion": "1.14.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.1.zip",
+    "fileid": 93412,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-18 11:42:34"
+   },
+   {
+    "releaseid": 41225,
+    "modversion": "1.14.1-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.1-pre.1.zip",
+    "fileid": 91473,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-10 09:32:31"
+   },
+   {
+    "releaseid": 39307,
+    "modversion": "1.14.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.0.zip",
+    "fileid": 87553,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-04-26 05:37:00"
+   },
+   {
+    "releaseid": 38705,
+    "modversion": "1.14.0-rc.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0_v1.14.0-rc.1.zip",
+    "fileid": 86268,
+    "tags": [
+     "1.22.0"
+    ],
+    "created": "2026-04-22 12:36:46"
+   },
+   {
+    "releaseid": 38450,
+    "modversion": "1.13.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.13.0.zip",
+    "fileid": 85814,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6",
+     "1.21.7"
+    ],
+    "created": "2026-04-19 06:18:34"
+   },
+   {
+    "releaseid": 36005,
+    "modversion": "1.14.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0-rc.1_v1.14.0-pre.3.zip",
+    "fileid": 79461,
+    "tags": [
+     "1.22.0-rc.1"
+    ],
+    "created": "2026-03-08 07:45:11"
+   },
+   {
+    "releaseid": 35999,
+    "modversion": "1.13.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.3.zip",
+    "fileid": 79454,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-03-08 06:57:02"
+   },
+   {
+    "releaseid": 35049,
+    "modversion": "1.14.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0-pre.3_v1.14.0-pre.2.zip",
+    "fileid": 77282,
+    "tags": [
+     "1.22.0-pre.3"
+    ],
+    "created": "2026-02-21 09:55:43"
+   },
+   {
+    "releaseid": 35040,
+    "modversion": "1.13.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.2.zip",
+    "fileid": 77260,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-02-21 04:23:19"
+   },
+   {
+    "releaseid": 34870,
+    "modversion": "1.14.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.22.0-pre.2_v1.14.0-pre.1.zip",
+    "fileid": 76822,
+    "tags": [
+     "1.22.0-pre.2"
+    ],
+    "created": "2026-02-18 14:09:04"
+   },
+   {
+    "releaseid": 34863,
+    "modversion": "1.13.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.1.zip",
+    "fileid": 76814,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-02-18 11:18:21"
+   },
+   {
+    "releaseid": 34143,
+    "modversion": "1.12.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.12.2.zip",
+    "fileid": 75263,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6"
+    ],
+    "created": "2026-02-08 09:57:46"
+   },
+   {
+    "releaseid": 26801,
+    "modversion": "1.12.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.12.1.zip",
+    "fileid": 58729,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.4"
+    ],
+    "created": "2025-10-07 03:51:48"
+   },
+   {
+    "releaseid": 26573,
+    "modversion": "1.12.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.12.0.zip",
+    "fileid": 58313,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "created": "2025-10-04 06:16:33"
+   },
+   {
+    "releaseid": 26365,
+    "modversion": "1.11.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.11.0.zip",
+    "fileid": 57892,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "created": "2025-10-01 13:09:36"
+   },
+   {
+    "releaseid": 25694,
+    "modversion": "1.9.10",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.10.zip",
+    "fileid": 56560,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-09-22 04:00:26"
+   },
+   {
+    "releaseid": 25082,
+    "modversion": "1.10.9",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.9.zip",
+    "fileid": 55165,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "created": "2025-09-13 21:58:16"
+   },
+   {
+    "releaseid": 24974,
+    "modversion": "1.10.8",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.8.zip",
+    "fileid": 54900,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "created": "2025-09-12 10:02:37"
+   },
+   {
+    "releaseid": 24316,
+    "modversion": "1.10.7",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.7.zip",
+    "fileid": 53422,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "created": "2025-09-03 12:01:15"
+   },
+   {
+    "releaseid": 24311,
+    "modversion": "1.10.6",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.6.zip",
+    "fileid": 53414,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-09-03 10:44:54"
+   },
+   {
+    "releaseid": 24201,
+    "modversion": "1.10.5",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.5.zip",
+    "fileid": 53212,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-09-02 09:40:42"
+   },
+   {
+    "releaseid": 24139,
+    "modversion": "1.10.4",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.4.zip",
+    "fileid": 53077,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-09-01 16:16:47"
+   },
+   {
+    "releaseid": 24126,
+    "modversion": "1.10.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.3.zip",
+    "fileid": 53059,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-09-01 10:49:07"
+   },
+   {
+    "releaseid": 23862,
+    "modversion": "1.10.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.2.zip",
+    "fileid": 52518,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-08-30 02:50:17"
+   },
+   {
+    "releaseid": 23688,
+    "modversion": "1.10.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.1.zip",
+    "fileid": 52161,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-08-28 10:36:56"
+   },
+   {
+    "releaseid": 23486,
+    "modversion": "1.10.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0_v1.10.0.zip",
+    "fileid": 51728,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-08-26 09:32:37"
+   },
+   {
+    "releaseid": 22984,
+    "modversion": "1.10.0-rc.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0-rc.4_v1.10.0-rc.3.zip",
+    "fileid": 50632,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "created": "2025-08-15 01:44:10"
+   },
+   {
+    "releaseid": 22921,
+    "modversion": "1.9.9",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.9.zip",
+    "fileid": 50469,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-13 16:33:12"
+   },
+   {
+    "releaseid": 22918,
+    "modversion": "1.10.0-rc.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0-rc.4_v1.10.0-rc.2.zip",
+    "fileid": 50465,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "created": "2025-08-13 15:25:29"
+   },
+   {
+    "releaseid": 22857,
+    "modversion": "1.9.8",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.8.zip",
+    "fileid": 50343,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-12 10:26:18"
+   },
+   {
+    "releaseid": 22760,
+    "modversion": "1.9.6",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.6.zip",
+    "fileid": 50044,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-10 09:11:35"
+   },
+   {
+    "releaseid": 22697,
+    "modversion": "1.9.4",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.4.zip",
+    "fileid": 49894,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-09 00:48:36"
+   },
+   {
+    "releaseid": 22590,
+    "modversion": "1.9.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.3.zip",
+    "fileid": 49625,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-06 11:56:39"
+   },
+   {
+    "releaseid": 22567,
+    "modversion": "1.9.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.2.zip",
+    "fileid": 49567,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-05 13:56:16"
+   },
+   {
+    "releaseid": 22459,
+    "modversion": "1.9.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.0.zip",
+    "fileid": 56060,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-08-01 16:02:08"
+   },
+   {
+    "releaseid": 22430,
+    "modversion": "1.9.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.3.zip",
+    "fileid": 49176,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-07-31 15:22:26"
+   },
+   {
+    "releaseid": 22266,
+    "modversion": "1.10.0-rc.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0-rc.1_v1.10.0-rc.1.zip",
+    "fileid": 48741,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "created": "2025-07-26 17:21:18"
+   },
+   {
+    "releaseid": 22052,
+    "modversion": "1.10.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0-pre.3_v1.10.0-pre.2.zip",
+    "fileid": 48282,
+    "tags": [
+     "1.21.0-pre.3"
+    ],
+    "created": "2025-07-20 12:23:35"
+   },
+   {
+    "releaseid": 22018,
+    "modversion": "1.9.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.2.zip",
+    "fileid": 48191,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-07-19 10:46:05"
+   },
+   {
+    "releaseid": 21868,
+    "modversion": "1.9.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.1.zip",
+    "fileid": 47831,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-07-13 12:36:54"
+   },
+   {
+    "releaseid": 21845,
+    "modversion": "1.8.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.8.2.zip",
+    "fileid": 47779,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-12 16:18:26"
+   },
+   {
+    "releaseid": 21808,
+    "modversion": "1.10.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.21.0-pre.2_v1.10.0-pre.1.zip",
+    "fileid": 47711,
+    "tags": [
+     "1.21.0-pre.2"
+    ],
+    "created": "2025-07-11 15:25:17"
+   },
+   {
+    "releaseid": 20822,
+    "modversion": "1.8.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.4_v1.8.1.zip",
+    "fileid": 45074,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11"
+    ],
+    "created": "2025-06-05 12:12:39"
+   },
+   {
+    "releaseid": 19834,
+    "modversion": "1.8.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20_v1.8.0.zip",
+    "fileid": 42931,
+    "tags": [
+     "1.20.6",
+     "1.20.10"
+    ],
+    "created": "2025-05-09 23:53:07"
+   },
+   {
+    "releaseid": 17995,
+    "modversion": "1.8.0-rc.4",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20_v1.8.0-rc.4.zip",
+    "fileid": 38654,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "created": "2025-03-24 12:44:18"
+   },
+   {
+    "releaseid": 17992,
+    "modversion": "1.8.0-rc.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20_v1.8.0-rc.3.zip",
+    "fileid": 38651,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "created": "2025-03-24 12:16:12"
+   },
+   {
+    "releaseid": 17916,
+    "modversion": "1.8.0-rc.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20_v1.8.0-rc.2.zip",
+    "fileid": 38482,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6"
+    ],
+    "created": "2025-03-22 20:25:47"
+   },
+   {
+    "releaseid": 12471,
+    "modversion": "1.8.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.20.0-pre_v1.8.0-pre.1.zip",
+    "fileid": 26136,
+    "tags": [
+     "1.20.0-pre.0",
+     "1.20.0-rc.1"
+    ],
+    "created": "2024-10-10 16:06:10"
+   },
+   {
+    "releaseid": 8380,
+    "modversion": "1.7.4",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19_v1.7.4.zip",
+    "fileid": 18114,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "created": "2024-01-26 01:11:19"
+   },
+   {
+    "releaseid": 8336,
+    "modversion": "1.7.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19_v1.7.3.zip",
+    "fileid": 18017,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "created": "2024-01-24 10:52:27"
+   },
+   {
+    "releaseid": 8264,
+    "modversion": "1.7.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19_v1.7.2.zip",
+    "fileid": 17899,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "created": "2024-01-20 13:07:47"
+   },
+   {
+    "releaseid": 8260,
+    "modversion": "1.7.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19_v1.7.1.zip",
+    "fileid": 17894,
+    "tags": [
+     "1.19.1"
+    ],
+    "created": "2024-01-20 09:19:49"
+   },
+   {
+    "releaseid": 8257,
+    "modversion": "1.7.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19_v1.7.0.zip",
+    "fileid": 17888,
+    "tags": [
+     "1.19.1"
+    ],
+    "created": "2024-01-20 01:51:25"
+   },
+   {
+    "releaseid": 7832,
+    "modversion": "1.7.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19.0-pre.10_v1.7.0-pre.3.zip",
+    "fileid": 17049,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "created": "2023-12-21 02:20:20"
+   },
+   {
+    "releaseid": 7476,
+    "modversion": "1.7.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19.0-pre.7_v1.7.0-pre.2.zip",
+    "fileid": 16342,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "created": "2023-11-22 11:34:09"
+   },
+   {
+    "releaseid": 7247,
+    "modversion": "1.6.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18-net7_v1.6.1.zip",
+    "fileid": 15836,
+    "tags": [
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "created": "2023-11-05 00:29:46"
+   },
+   {
+    "releaseid": 7241,
+    "modversion": "1.7.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.19.0-pre.4_v1.7.0-pre.1.zip",
+    "fileid": 15828,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "created": "2023-11-04 02:41:06"
+   },
+   {
+    "releaseid": 6623,
+    "modversion": "1.6.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18-net7_v1.6.0.zip",
+    "fileid": 14364,
+    "tags": [
+     "1.18.8",
+     "1.18.9",
+     "1.18.10"
+    ],
+    "created": "2023-09-15 12:06:48"
+   },
+   {
+    "releaseid": 6354,
+    "modversion": "1.5.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18-net7_v1.5.0.zip",
+    "fileid": 13687,
+    "tags": [
+     "1.18.8"
+    ],
+    "created": "2023-08-23 06:39:07"
+   },
+   {
+    "releaseid": 6318,
+    "modversion": "1.4.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18_v1.4.0.zip",
+    "fileid": 13576,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8"
+    ],
+    "created": "2023-08-19 17:20:47"
+   },
+   {
+    "releaseid": 5978,
+    "modversion": "1.3.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18_v1.3.0.zip",
+    "fileid": 12895,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6"
+    ],
+    "created": "2023-07-20 14:27:25"
+   },
+   {
+    "releaseid": 5322,
+    "modversion": "1.2.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18_v1.2.0.zip",
+    "fileid": 11456,
+    "tags": [
+     "1.18.5"
+    ],
+    "created": "2023-05-20 03:47:38"
+   },
+   {
+    "releaseid": 5229,
+    "modversion": "1.1.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18_v1.1.0.zip",
+    "fileid": 11294,
+    "tags": [
+     "1.18.1",
+     "1.18.2",
+     "1.18.3"
+    ],
+    "created": "2023-05-14 00:01:05"
+   },
+   {
+    "releaseid": 4802,
+    "modversion": "1.0.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18_v1.0.0.zip",
+    "fileid": 10600,
+    "tags": [
+     "1.18.0"
+    ],
+    "created": "2023-04-21 12:53:55"
+   },
+   {
+    "releaseid": 4757,
+    "modversion": "1.0.0-rc.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-rc.8_v1.0.0-rc.3.zip",
+    "fileid": 10509,
+    "tags": [
+     "1.18.0-rc.8"
+    ],
+    "created": "2023-04-19 12:31:03"
+   },
+   {
+    "releaseid": 4692,
+    "modversion": "1.0.0-rc.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-rc.5_v1.0.0-rc.2.zip",
+    "fileid": 10397,
+    "tags": [
+     "1.18.0-rc.5"
+    ],
+    "created": "2023-04-12 11:50:11"
+   },
+   {
+    "releaseid": 4583,
+    "modversion": "1.0.0-rc.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-rc.2_v1.0.0-rc.1.zip",
+    "fileid": 10173,
+    "tags": [
+     "1.18.0-rc.2"
+    ],
+    "created": "2023-04-05 15:29:36"
+   },
+   {
+    "releaseid": 4540,
+    "modversion": "0.13.0-pre.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-pre_v0.13.0-pre.3.zip",
+    "fileid": 10091,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-03-30 06:54:30"
+   },
+   {
+    "releaseid": 4507,
+    "modversion": "0.12.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.0_v0.12.0.zip",
+    "fileid": 10036,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "created": "2023-03-24 01:53:56"
+   },
+   {
+    "releaseid": 4506,
+    "modversion": "0.13.0-pre.2",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-pre_v0.13.0-pre.2.zip",
+    "fileid": 10035,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-03-24 01:50:22"
+   },
+   {
+    "releaseid": 4314,
+    "modversion": "0.11.0-pre.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.18.0-pre_v0.11.0-pre.1.zip",
+    "fileid": 9648,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-02-26 19:58:39"
+   },
+   {
+    "releaseid": 4228,
+    "modversion": "0.10.4-rc.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-0.10.4-rc.1-net7.zip",
+    "fileid": 9477,
+    "tags": [
+     "1.17.11"
+    ],
+    "created": "2023-02-17 11:51:15"
+   },
+   {
+    "releaseid": 3825,
+    "modversion": "0.10.3",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.10.3.zip",
+    "fileid": 8617,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "created": "2022-12-04 06:53:30"
+   },
+   {
+    "releaseid": 3785,
+    "modversion": "0.9.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.9.1.zip",
+    "fileid": 8526,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "created": "2022-11-29 11:37:55"
+   },
+   {
+    "releaseid": 3743,
+    "modversion": "0.9.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.9.0.zip",
+    "fileid": 8420,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "created": "2022-11-20 07:05:46"
+   },
+   {
+    "releaseid": 3672,
+    "modversion": "0.8.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.8.0.zip",
+    "fileid": 8307,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "created": "2022-11-11 13:28:44"
+   },
+   {
+    "releaseid": 3561,
+    "modversion": "0.7.1",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.7.1.zip",
+    "fileid": 8044,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2022-10-30 03:37:47"
+   },
+   {
+    "releaseid": 3538,
+    "modversion": "0.7.0",
+    "modidstr": "carryon",
+    "filename": "CarryOn-1.17.9_v0.7.0.zip",
+    "fileid": 7996,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2022-10-25 10:46:17"
+   }
+  ]
+ },
+ "egocaribautomapmarkers": {
+  "statuscode": "200",
+  "modid": 253,
+  "assetid": 797,
+  "urlalias": "automapmarkers",
+  "releases": [
+   {
+    "releaseid": 40495,
+    "modversion": "5.0.3",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 5.0.3 - Vintage Story 1.22.zip",
+    "fileid": 90054,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-05-04 21:56:53"
+   },
+   {
+    "releaseid": 39440,
+    "modversion": "5.0.2",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 5.0.2 - Vintage Story 1.22.zip",
+    "fileid": 87789,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-04-27 01:15:14"
+   },
+   {
+    "releaseid": 37840,
+    "modversion": "5.0.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 5.0.1 - Vintage Story 1.22.zip",
+    "fileid": 84118,
+    "tags": [
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0"
+    ],
+    "created": "2026-04-09 04:44:26"
+   },
+   {
+    "releaseid": 36428,
+    "modversion": "4.1.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.1.0 - Vintagestory 1.22.zip",
+    "fileid": 80420,
+    "tags": [
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6"
+    ],
+    "created": "2026-03-14 04:54:18"
+   },
+   {
+    "releaseid": 36426,
+    "modversion": "4.0.4",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.0.4 - Vintagestory 1.21.zip",
+    "fileid": 80418,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6",
+     "1.21.7"
+    ],
+    "created": "2026-03-14 04:27:33"
+   },
+   {
+    "releaseid": 22438,
+    "modversion": "4.0.3",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.0.3 - Vintagestory 1.21-rc.zip",
+    "fileid": 49192,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6",
+     "1.21.7"
+    ],
+    "created": "2025-07-31 23:59:55"
+   },
+   {
+    "releaseid": 19340,
+    "modversion": "4.0.2",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.0.2 (Vintagestory 1.20).zip",
+    "fileid": 41790,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-04-25 23:43:04"
+   },
+   {
+    "releaseid": 14653,
+    "modversion": "4.0.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.0.1 (Vintagestory 1.20).zip",
+    "fileid": 30488,
+    "tags": [
+     "1.20.0",
+     "1.20.1"
+    ],
+    "created": "2025-01-18 04:56:54"
+   },
+   {
+    "releaseid": 12142,
+    "modversion": "4.0.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers 4.0.0 (Vintagestory 1.20).zip",
+    "fileid": 25453,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "created": "2024-09-22 15:06:56"
+   },
+   {
+    "releaseid": 8287,
+    "modversion": "3.1.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers (1.19).zip",
+    "fileid": 17937,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3",
+     "1.19.4-rc.1",
+     "1.19.4-rc.2",
+     "1.19.4-rc.3",
+     "1.19.4",
+     "1.19.5-rc.1",
+     "1.19.5-rc.2",
+     "1.19.5-rc.3",
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "created": "2024-01-21 02:17:02"
+   },
+   {
+    "releaseid": 8174,
+    "modversion": "3.0.2",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "egocaribautomapmarkers_3.0.2.zip",
+    "fileid": 17733,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "created": "2024-01-17 19:37:56"
+   },
+   {
+    "releaseid": 8173,
+    "modversion": "2.9.10",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "egocaribautomapmarkers_2.9.10.zip",
+    "fileid": 17732,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2024-01-17 19:36:29"
+   },
+   {
+    "releaseid": 7965,
+    "modversion": "2.9.9",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers (1.18.15).zip",
+    "fileid": 17342,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2024-01-04 14:08:22"
+   },
+   {
+    "releaseid": 7960,
+    "modversion": "3.0.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers (1.19).zip",
+    "fileid": 17439,
+    "tags": [
+     "1.19.0-rc.5"
+    ],
+    "created": "2024-01-04 06:27:26"
+   },
+   {
+    "releaseid": 5718,
+    "modversion": "2.6.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers (1.18.6 ).zip",
+    "fileid": 12321,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8-rc.1",
+     "1.18.8",
+     "1.18.9-rc.1",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14"
+    ],
+    "created": "2023-06-25 18:16:12"
+   },
+   {
+    "releaseid": 2741,
+    "modversion": "2.4.0-pre.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers (1.17.0-pre.1).zip",
+    "fileid": 6301,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11",
+     "1.17.12"
+    ],
+    "created": "2022-06-25 18:44:22"
+   },
+   {
+    "releaseid": 1621,
+    "modversion": "2.3.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers.zip",
+    "fileid": 4052,
+    "tags": [
+     "1.16.0"
+    ],
+    "created": "2022-01-22 16:47:11"
+   },
+   {
+    "releaseid": 626,
+    "modversion": "2.2.2",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers.zip",
+    "fileid": 1790,
+    "tags": [
+     "1.15.1"
+    ],
+    "created": "2021-07-14 16:21:54"
+   },
+   {
+    "releaseid": 625,
+    "modversion": "2.2.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers.zip",
+    "fileid": 1791,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-07-14 16:21:19"
+   },
+   {
+    "releaseid": 620,
+    "modversion": "2.0.9",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers.zip",
+    "fileid": 1782,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-07-13 13:19:52"
+   },
+   {
+    "releaseid": 614,
+    "modversion": "2.1.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "Auto Map Markers.zip",
+    "fileid": 1783,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "created": "2021-07-13 01:55:44"
+   },
+   {
+    "releaseid": 557,
+    "modversion": "2.0.1",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "egocaribautomapmarkers_v2.0.1 (1.15.pre11).zip",
+    "fileid": 1666,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "created": "2021-07-02 12:31:38"
+   },
+   {
+    "releaseid": 556,
+    "modversion": "2.0.0",
+    "modidstr": "egocaribautomapmarkers",
+    "filename": "egocaribautomapmarkers_v2.0.0 (1.14.10).zip",
+    "fileid": 1664,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-07-02 12:30:04"
+   },
+   {
+    "releaseid": 544,
+    "modversion": "1.0.0",
+    "modidstr": "egocaribresinmapmarkers",
+    "filename": "egocaribresinmapmarkers_v1.0.0.zip",
+    "fileid": 1631,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-06-27 01:11:10"
+   }
+  ]
+ },
+ "expandedfoods": {
+  "statuscode": "200",
+  "modid": 16,
+  "assetid": 28,
+  "urlalias": "expandedfoods",
+  "releases": [
+   {
+    "releaseid": 62903,
+    "modversion": "2.0.0-dev.17",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_2.0.0-dev.17.zip",
+    "fileid": 133371,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-10-25 23:28:43"
+   },
+   {
+    "releaseid": 60475,
+    "modversion": "2.0.0-dev.16",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_2.0.0-dev.16.zip",
+    "fileid": 128625,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-10-09 01:49:38"
+   },
+   {
+    "releaseid": 58684,
+    "modversion": "2.0.0-dev.15",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.15.zip",
+    "fileid": 125488,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-09-27 04:14:53"
+   },
+   {
+    "releaseid": 53629,
+    "modversion": "2.0.0-dev.14",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.14.zip",
+    "fileid": 116136,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-08-20 05:11:54"
+   },
+   {
+    "releaseid": 53467,
+    "modversion": "2.0.0-dev.13",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.13.zip",
+    "fileid": 115854,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-08-18 22:36:55"
+   },
+   {
+    "releaseid": 45971,
+    "modversion": "2.0.0-dev.12",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.12.zip",
+    "fileid": 100947,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-06-15 16:32:26"
+   },
+   {
+    "releaseid": 45913,
+    "modversion": "2.0.0-dev.11",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.11.zip",
+    "fileid": 100835,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-06-15 05:05:01"
+   },
+   {
+    "releaseid": 45870,
+    "modversion": "2.0.0-dev.10",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.10.zip",
+    "fileid": 100771,
+    "tags": [
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-06-14 21:00:05"
+   },
+   {
+    "releaseid": 44322,
+    "modversion": "2.0.0-dev.9",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.9.zip",
+    "fileid": 97576,
+    "tags": [
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-02 02:12:38"
+   },
+   {
+    "releaseid": 42454,
+    "modversion": "2.0.0-dev.8",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.8.zip",
+    "fileid": 93772,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-20 01:59:25"
+   },
+   {
+    "releaseid": 32534,
+    "modversion": "2.0.0-dev.7",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.7.zip",
+    "fileid": 71566,
+    "tags": [
+     "1.21.5",
+     "1.21.6"
+    ],
+    "created": "2026-01-13 22:47:17"
+   },
+   {
+    "releaseid": 30695,
+    "modversion": "2.0.0-dev.6",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.6.zip",
+    "fileid": 67652,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-12-13 01:03:15"
+   },
+   {
+    "releaseid": 29625,
+    "modversion": "2.0.0-dev.5",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.5.zip",
+    "fileid": 65407,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-11-21 18:32:38"
+   },
+   {
+    "releaseid": 29199,
+    "modversion": "2.0.0-dev.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.4.zip",
+    "fileid": 64494,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-11-14 00:15:55"
+   },
+   {
+    "releaseid": 27920,
+    "modversion": "2.0.0-dev.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.3.zip",
+    "fileid": 61383,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-10-23 01:00:05"
+   },
+   {
+    "releaseid": 27619,
+    "modversion": "2.0.0-dev.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev2.zip",
+    "fileid": 60722,
+    "tags": [
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-19 01:08:37"
+   },
+   {
+    "releaseid": 27549,
+    "modversion": "2.0.0-dev.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 2.0.0-dev.zip",
+    "fileid": 60529,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-10-17 21:22:29"
+   },
+   {
+    "releaseid": 16240,
+    "modversion": "1.7.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.7.4.zip",
+    "fileid": 33380,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-14 20:52:08"
+   },
+   {
+    "releaseid": 15119,
+    "modversion": "1.7.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.7.3.zip",
+    "fileid": 31297,
+    "tags": [
+     "1.20.1"
+    ],
+    "created": "2025-01-24 22:00:19"
+   },
+   {
+    "releaseid": 12337,
+    "modversion": "1.7.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.7.2.zip",
+    "fileid": 25884,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-03 22:40:13"
+   },
+   {
+    "releaseid": 12278,
+    "modversion": "1.7.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.7.1.zip",
+    "fileid": 25756,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-09-30 22:06:44"
+   },
+   {
+    "releaseid": 11726,
+    "modversion": "1.7.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.7.0.zip",
+    "fileid": 24587,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-08-20 02:18:28"
+   },
+   {
+    "releaseid": 9605,
+    "modversion": "1.6.9",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.9.zip",
+    "fileid": 20395,
+    "tags": [
+     "1.19.5"
+    ],
+    "created": "2024-03-31 16:56:15"
+   },
+   {
+    "releaseid": 7064,
+    "modversion": "1.6.8",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.8.zip",
+    "fileid": 15420,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2023-10-21 22:37:35"
+   },
+   {
+    "releaseid": 6067,
+    "modversion": "1.6.7",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.7.zip",
+    "fileid": 13059,
+    "tags": [
+     "1.18.6"
+    ],
+    "created": "2023-07-29 18:36:17"
+   },
+   {
+    "releaseid": 5277,
+    "modversion": "1.6.6",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.6.zip",
+    "fileid": 11371,
+    "tags": [
+     "1.18.1",
+     "1.18.2",
+     "1.18.3"
+    ],
+    "created": "2023-05-16 23:24:22"
+   },
+   {
+    "releaseid": 4189,
+    "modversion": "1.6.5",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.5.zip",
+    "fileid": 9400,
+    "tags": [
+     "1.17.11"
+    ],
+    "created": "2023-02-12 16:08:00"
+   },
+   {
+    "releaseid": 3836,
+    "modversion": "1.6.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.4.zip",
+    "fileid": 8649,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2022-12-06 07:29:45"
+   },
+   {
+    "releaseid": 3537,
+    "modversion": "1.6.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.3.zip",
+    "fileid": 7992,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2022-10-24 21:49:00"
+   },
+   {
+    "releaseid": 3462,
+    "modversion": "1.6.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.2.zip",
+    "fileid": 7835,
+    "tags": [
+     "1.17.6"
+    ],
+    "created": "2022-10-09 15:41:11"
+   },
+   {
+    "releaseid": 3352,
+    "modversion": "1.6.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.1.zip",
+    "fileid": 7583,
+    "tags": [
+     "1.17.3"
+    ],
+    "created": "2022-09-23 04:41:58"
+   },
+   {
+    "releaseid": 3309,
+    "modversion": "1.6.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.6.0.zip",
+    "fileid": 7489,
+    "tags": [
+     "1.17.3"
+    ],
+    "created": "2022-09-19 20:30:27"
+   },
+   {
+    "releaseid": 2864,
+    "modversion": "1.5.5",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.5.zip",
+    "fileid": 6532,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-07-14 22:54:19"
+   },
+   {
+    "releaseid": 2806,
+    "modversion": "1.5.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.4.zip",
+    "fileid": 6429,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-07-05 19:16:16"
+   },
+   {
+    "releaseid": 2703,
+    "modversion": "1.5.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3.zip",
+    "fileid": 6215,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-06-18 00:25:12"
+   },
+   {
+    "releaseid": 2614,
+    "modversion": "1.5.3-pre.11",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.11.zip",
+    "fileid": 6018,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-05-30 16:12:49"
+   },
+   {
+    "releaseid": 2526,
+    "modversion": "1.5.3-pre.10",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.10.zip",
+    "fileid": 5862,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-05-07 16:34:23"
+   },
+   {
+    "releaseid": 2471,
+    "modversion": "1.5.3-pre.9",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.9.zip",
+    "fileid": 5784,
+    "tags": [
+     "1.16.5"
+    ],
+    "created": "2022-04-29 16:39:49"
+   },
+   {
+    "releaseid": 2393,
+    "modversion": "1.5.3-pre.8",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.8.zip",
+    "fileid": 5648,
+    "tags": [
+     "1.16.4",
+     "1.16.5"
+    ],
+    "created": "2022-04-16 17:25:43"
+   },
+   {
+    "releaseid": 2362,
+    "modversion": "1.5.3-pre.7",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.7.zip",
+    "fileid": 5590,
+    "tags": [
+     "1.16.4"
+    ],
+    "created": "2022-04-09 17:06:10"
+   },
+   {
+    "releaseid": 2343,
+    "modversion": "1.5.3-pre.6",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.6.zip",
+    "fileid": 5560,
+    "tags": [
+     "1.16.4"
+    ],
+    "created": "2022-04-05 23:09:39"
+   },
+   {
+    "releaseid": 2310,
+    "modversion": "1.5.3-pre.5",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.5.zip",
+    "fileid": 5515,
+    "tags": [
+     "1.16.4"
+    ],
+    "created": "2022-04-01 17:25:11"
+   },
+   {
+    "releaseid": 2195,
+    "modversion": "1.5.3-pre.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.4.zip",
+    "fileid": 5338,
+    "tags": [
+     "1.16.4"
+    ],
+    "created": "2022-03-18 16:21:51"
+   },
+   {
+    "releaseid": 2092,
+    "modversion": "1.5.3-pre.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.3-pre.3.zip",
+    "fileid": 5128,
+    "tags": [
+     "1.16.4"
+    ],
+    "created": "2022-03-05 20:05:49"
+   },
+   {
+    "releaseid": 1395,
+    "modversion": "1.5.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods 1.5.2.zip",
+    "fileid": 3543,
+    "tags": [
+     "1.15.10"
+    ],
+    "created": "2022-01-02 02:05:27"
+   },
+   {
+    "releaseid": 1320,
+    "modversion": "1.5.1",
+    "modidstr": "expandedfoods",
+    "filename": "Expanded Foods 1.5.1.zip",
+    "fileid": 3379,
+    "tags": [
+     "1.15.9"
+    ],
+    "created": "2021-12-18 00:34:37"
+   },
+   {
+    "releaseid": 1314,
+    "modversion": "1.5.0",
+    "modidstr": "expandedfoods",
+    "filename": "Expanded Foods 1.5.0.zip",
+    "fileid": 3372,
+    "tags": [
+     "1.15.9"
+    ],
+    "created": "2021-12-16 01:54:50"
+   },
+   {
+    "releaseid": 1072,
+    "modversion": "1.4.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.4.4.zip",
+    "fileid": 2809,
+    "tags": [
+     "1.15.5",
+     "1.15.6"
+    ],
+    "created": "2021-10-11 22:03:17"
+   },
+   {
+    "releaseid": 1031,
+    "modversion": "1.4.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.4.3.zip",
+    "fileid": 2722,
+    "tags": [
+     "1.15.5",
+     "1.15.6"
+    ],
+    "created": "2021-10-04 17:18:46"
+   },
+   {
+    "releaseid": 918,
+    "modversion": "1.4.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.4.2.zip",
+    "fileid": 2461,
+    "tags": [
+     "1.15.5"
+    ],
+    "created": "2021-09-02 02:12:53"
+   },
+   {
+    "releaseid": 880,
+    "modversion": "1.4.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.4.1.zip",
+    "fileid": 2354,
+    "tags": [
+     "1.15.2",
+     "1.15.3",
+     "1.15.4",
+     "1.15.5"
+    ],
+    "created": "2021-08-21 14:57:07"
+   },
+   {
+    "releaseid": 832,
+    "modversion": "1.4.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.4.0.zip",
+    "fileid": 2265,
+    "tags": [
+     "1.15.2"
+    ],
+    "created": "2021-08-10 00:26:44"
+   },
+   {
+    "releaseid": 518,
+    "modversion": "1.3.14",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.14.zip",
+    "fileid": 1530,
+    "tags": [
+     "1.14.8",
+     "1.14.10"
+    ],
+    "created": "2021-06-10 23:19:38"
+   },
+   {
+    "releaseid": 508,
+    "modversion": "1.3.13",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.13.zip",
+    "fileid": 1514,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-06-08 20:56:20"
+   },
+   {
+    "releaseid": 499,
+    "modversion": "1.3.12",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.12.zip",
+    "fileid": 1497,
+    "tags": [
+     "1.14.8",
+     "1.14.10"
+    ],
+    "created": "2021-06-04 21:15:20"
+   },
+   {
+    "releaseid": 470,
+    "modversion": "1.3.11",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.11.zip",
+    "fileid": 1395,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-05-23 16:50:15"
+   },
+   {
+    "releaseid": 460,
+    "modversion": "1.3.10",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.10.zip",
+    "fileid": 1357,
+    "tags": [
+     "1.14.8",
+     "1.14.10"
+    ],
+    "created": "2021-05-18 23:37:06"
+   },
+   {
+    "releaseid": 433,
+    "modversion": "1.3.9",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.9.zip",
+    "fileid": 1278,
+    "tags": [
+     "1.14.8",
+     "1.14.10"
+    ],
+    "created": "2021-05-04 17:35:42"
+   },
+   {
+    "releaseid": 430,
+    "modversion": "1.3.8",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.8.zip",
+    "fileid": 1269,
+    "tags": [
+     "1.14.8"
+    ],
+    "created": "2021-05-03 20:44:11"
+   },
+   {
+    "releaseid": 413,
+    "modversion": "1.3.7",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.7.zip",
+    "fileid": 1237,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-28 19:00:31"
+   },
+   {
+    "releaseid": 391,
+    "modversion": "1.3.6",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.6.zip",
+    "fileid": 1196,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-21 22:08:48"
+   },
+   {
+    "releaseid": 357,
+    "modversion": "1.3.5",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.5.zip",
+    "fileid": 1134,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-17 23:43:41"
+   },
+   {
+    "releaseid": 353,
+    "modversion": "1.3.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.4.zip",
+    "fileid": 1127,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-17 00:24:54"
+   },
+   {
+    "releaseid": 327,
+    "modversion": "1.3.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.3.zip",
+    "fileid": 1036,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-14 23:11:30"
+   },
+   {
+    "releaseid": 315,
+    "modversion": "1.3.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.2.zip",
+    "fileid": 1008,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-13 20:24:42"
+   },
+   {
+    "releaseid": 311,
+    "modversion": "1.3.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.1.zip",
+    "fileid": 995,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-12 22:42:58"
+   },
+   {
+    "releaseid": 307,
+    "modversion": "1.3.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.3.0.zip",
+    "fileid": 973,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-04-11 01:53:05"
+   },
+   {
+    "releaseid": 171,
+    "modversion": "1.2.4",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.4.zip",
+    "fileid": 592,
+    "tags": [
+     "1.14.7",
+     "1.14.8"
+    ],
+    "created": "2021-03-12 21:47:32"
+   },
+   {
+    "releaseid": 148,
+    "modversion": "1.2.3",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.3.zip",
+    "fileid": 498,
+    "tags": [
+     "1.14.7"
+    ],
+    "created": "2021-03-02 18:13:45"
+   },
+   {
+    "releaseid": 111,
+    "modversion": "1.2.2",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.2 (Vanilla).zip",
+    "fileid": 401,
+    "tags": [
+     "1.14.7"
+    ],
+    "created": "2021-02-23 22:36:57"
+   },
+   {
+    "releaseid": 92,
+    "modversion": "1.2.1",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.1 (Modded).zip",
+    "fileid": 340,
+    "tags": [
+     "1.14.7"
+    ],
+    "created": "2021-02-19 20:15:43"
+   },
+   {
+    "releaseid": 40,
+    "modversion": "0.0.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.0 (Vanilla).zip",
+    "fileid": 196,
+    "tags": [
+     "1.14.7"
+    ],
+    "created": "2021-02-15 23:27:02"
+   },
+   {
+    "releaseid": 13,
+    "modversion": "1.2.0",
+    "modidstr": "expandedfoods",
+    "filename": "ExpandedFoods_1.2.0 (Modded).zip",
+    "fileid": 72,
+    "tags": [
+     "1.14.7",
+     "1.14.7"
+    ],
+    "created": "2021-02-14 21:41:50"
+   }
+  ]
+ },
+ "hudclock": {
+  "statuscode": "200",
+  "modid": 99,
+  "assetid": 282,
+  "urlalias": null,
+  "releases": [
+   {
+    "releaseid": 7696,
+    "modversion": "3.4.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.4.0.zip",
+    "fileid": 16782,
+    "tags": [
+     "1.19.0-pre.0",
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3",
+     "1.19.4",
+     "1.19.5",
+     "1.19.6",
+     "1.19.7"
+    ],
+    "created": "2023-12-08 08:40:53"
+   },
+   {
+    "releaseid": 6228,
+    "modversion": "3.3.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.3.0.zip",
+    "fileid": 13354,
+    "tags": [
+     "1.18.8",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "created": "2023-08-11 15:04:54"
+   },
+   {
+    "releaseid": 5682,
+    "modversion": "3.2.1",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.2.1.zip",
+    "fileid": 12251,
+    "tags": [
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6",
+     "1.18.7"
+    ],
+    "created": "2023-06-23 16:12:54"
+   },
+   {
+    "releaseid": 5462,
+    "modversion": "3.2.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.2.0.zip",
+    "fileid": 11801,
+    "tags": [
+     "1.17.11",
+     "1.17.12",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6-rc.1"
+    ],
+    "created": "2023-06-03 07:32:01"
+   },
+   {
+    "releaseid": 5370,
+    "modversion": "3.1.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.1.0.zip",
+    "fileid": 11579,
+    "tags": [
+     "1.18.4",
+     "1.18.5"
+    ],
+    "created": "2023-05-24 18:00:39"
+   },
+   {
+    "releaseid": 5326,
+    "modversion": "3.0.1",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.0.1.zip",
+    "fileid": 11462,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5"
+    ],
+    "created": "2023-05-20 15:00:55"
+   },
+   {
+    "releaseid": 5318,
+    "modversion": "3.0.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-3.0.0.zip",
+    "fileid": 11451,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5"
+    ],
+    "created": "2023-05-19 22:02:46"
+   },
+   {
+    "releaseid": 4769,
+    "modversion": "2.9.1",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.9.1.zip",
+    "fileid": 10536,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3"
+    ],
+    "created": "2023-04-19 21:21:57"
+   },
+   {
+    "releaseid": 4768,
+    "modversion": "1.3.1",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.3.1.zip",
+    "fileid": 10535,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3"
+    ],
+    "created": "2023-04-19 21:11:08"
+   },
+   {
+    "releaseid": 4600,
+    "modversion": "2.9.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.9.0.zip",
+    "fileid": 10211,
+    "tags": [
+     "1.18.0-pre.0",
+     "1.18.0-rc.1",
+     "1.18.0-rc.2",
+     "1.18.0-rc.3",
+     "1.18.0-rc.4",
+     "1.18.0-rc.5",
+     "1.18.0-rc.6",
+     "1.18.0-rc.7",
+     "1.18.0-rc.8"
+    ],
+    "created": "2023-04-06 11:43:47"
+   },
+   {
+    "releaseid": 4599,
+    "modversion": "1.3.0",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.3.0.zip",
+    "fileid": 10210,
+    "tags": [
+     "1.18.0-pre.0",
+     "1.18.0-rc.1",
+     "1.18.0-rc.2",
+     "1.18.0-rc.3",
+     "1.18.0-rc.4",
+     "1.18.0-rc.5",
+     "1.18.0-rc.6",
+     "1.18.0-rc.7"
+    ],
+    "created": "2023-04-06 11:42:44"
+   },
+   {
+    "releaseid": 4485,
+    "modversion": "2.9.0-pre.2",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.9.0-pre.2.zip",
+    "fileid": 9986,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-03-18 19:57:32"
+   },
+   {
+    "releaseid": 4374,
+    "modversion": "1.3.0-pre.1",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.3.0-pre.1.zip",
+    "fileid": 9761,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-03-05 10:01:16"
+   },
+   {
+    "releaseid": 4373,
+    "modversion": "2.9.0-pre.1",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.9.0-pre.1.zip",
+    "fileid": 9760,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "created": "2023-03-05 10:00:20"
+   },
+   {
+    "releaseid": 3168,
+    "modversion": "1.2.0",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.2.0.zip",
+    "fileid": 7148,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "created": "2022-09-05 15:05:51"
+   },
+   {
+    "releaseid": 3167,
+    "modversion": "2.8.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.8.0.zip",
+    "fileid": 7147,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "created": "2022-09-05 15:04:43"
+   },
+   {
+    "releaseid": 1704,
+    "modversion": "2.7.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.7.0.zip",
+    "fileid": 4257,
+    "tags": [
+     "1.16.0",
+     "1.16.1"
+    ],
+    "created": "2022-01-28 14:40:57"
+   },
+   {
+    "releaseid": 1335,
+    "modversion": "2.6.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.6.0.zip",
+    "fileid": 3401,
+    "tags": [
+     "1.16.0-rc.2",
+     "1.16.0"
+    ],
+    "created": "2021-12-23 10:09:51"
+   },
+   {
+    "releaseid": 1334,
+    "modversion": "1.1.1",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.1.1.zip",
+    "fileid": 3400,
+    "tags": [
+     "1.16.0-rc.2"
+    ],
+    "created": "2021-12-23 10:08:40"
+   },
+   {
+    "releaseid": 574,
+    "modversion": "2.5.0",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.5.0.zip",
+    "fileid": 1699,
+    "tags": [
+     "1.15.0-rc.1",
+     "1.15.0-rc.2",
+     "1.15.0-rc.3",
+     "1.15.0-rc.4"
+    ],
+    "created": "2021-07-07 16:00:46"
+   },
+   {
+    "releaseid": 573,
+    "modversion": "1.1.0",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.1.0.zip",
+    "fileid": 1698,
+    "tags": [
+     "1.15.0-rc.1",
+     "1.15.0-rc.2",
+     "1.15.0-rc.3",
+     "1.15.0-rc.4"
+    ],
+    "created": "2021-07-07 16:00:18"
+   },
+   {
+    "releaseid": 184,
+    "modversion": "1.0.1",
+    "modidstr": "hudclockserver",
+    "filename": "hudclockserver-1.0.1.zip",
+    "fileid": 580,
+    "tags": [
+     "1.14.8",
+     "1.14.9",
+     "1.14.10"
+    ],
+    "created": "2021-03-13 16:36:58"
+   },
+   {
+    "releaseid": 183,
+    "modversion": "2.4.2",
+    "modidstr": "hudclock",
+    "filename": "hudclock-2.4.2.zip",
+    "fileid": 579,
+    "tags": [
+     "1.14.8",
+     "1.14.9",
+     "1.14.10"
+    ],
+    "created": "2021-03-13 16:36:33"
+   }
+  ]
+ },
+ "instruments": {
+  "statuscode": "200",
+  "modid": 167,
+  "assetid": 463,
+  "urlalias": null,
+  "releases": [
+   {
+    "releaseid": 33170,
+    "modversion": "2.0.7",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.7.zip",
+    "fileid": 72936,
+    "tags": [
+     "1.21.6"
+    ],
+    "created": "2026-01-24 10:58:34"
+   },
+   {
+    "releaseid": 28756,
+    "modversion": "2.0.6",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.6.zip",
+    "fileid": 63458,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-11-05 10:56:04"
+   },
+   {
+    "releaseid": 28524,
+    "modversion": "2.0.5",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.5.zip",
+    "fileid": 62915,
+    "tags": [
+     "1.21.5"
+    ],
+    "created": "2025-11-01 11:06:11"
+   },
+   {
+    "releaseid": 24025,
+    "modversion": "2.0.4",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.4.zip",
+    "fileid": 52819,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-08-31 11:51:14"
+   },
+   {
+    "releaseid": 20310,
+    "modversion": "2.0.3",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.3.zip",
+    "fileid": 43978,
+    "tags": [
+     "1.20.10"
+    ],
+    "created": "2025-05-22 11:34:49"
+   },
+   {
+    "releaseid": 16719,
+    "modversion": "2.0.1",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.1.zip",
+    "fileid": 34637,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-24 13:37:50"
+   },
+   {
+    "releaseid": 14878,
+    "modversion": "2.0.0",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_2.0.0.zip",
+    "fileid": 30869,
+    "tags": [
+     "1.20.1"
+    ],
+    "created": "2025-01-21 11:55:47"
+   },
+   {
+    "releaseid": 14834,
+    "modversion": "1.0.1",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_1.0.1.zip",
+    "fileid": 30807,
+    "tags": [
+     "1.20.1"
+    ],
+    "created": "2025-01-20 18:56:57"
+   },
+   {
+    "releaseid": 14823,
+    "modversion": "1.0.0",
+    "modidstr": "vsinstrumentsbase",
+    "filename": "vsinstrumentsbase_1.0.0.zip",
+    "fileid": 30782,
+    "tags": [
+     "1.20.1"
+    ],
+    "created": "2025-01-20 15:45:34"
+   },
+   {
+    "releaseid": 8779,
+    "modversion": "1.2.7",
+    "modidstr": "vsinstruments",
+    "filename": "vsinstruments_1.2.7.zip",
+    "fileid": 18954,
+    "tags": [
+     "1.19.3"
+    ],
+    "created": "2024-02-10 11:54:56"
+   },
+   {
+    "releaseid": 8592,
+    "modversion": "1.2.6",
+    "modidstr": "vsinstruments",
+    "filename": "vsinstruments_1.2.6.zip",
+    "fileid": 18584,
+    "tags": [
+     "1.19.3"
+    ],
+    "created": "2024-02-02 17:30:37"
+   },
+   {
+    "releaseid": 8561,
+    "modversion": "1.2.5",
+    "modidstr": "vsinstruments",
+    "filename": "vsinstruments_1.2.5.zip",
+    "fileid": 18536,
+    "tags": [
+     "1.19.3"
+    ],
+    "created": "2024-02-01 14:53:50"
+   },
+   {
+    "releaseid": 7368,
+    "modversion": "1.2.4",
+    "modidstr": "vsinstruments",
+    "filename": "vsinstruments_1.2.4.zip",
+    "fileid": 16107,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2023-11-14 12:05:48"
+   },
+   {
+    "releaseid": 7362,
+    "modversion": "1.2.3",
+    "modidstr": "vsinstruments",
+    "filename": "vsinstruments_1.2.3.zip",
+    "fileid": 16098,
+    "tags": [
+     "1.18.15"
+    ],
+    "created": "2023-11-13 12:29:32"
+   },
+   {
+    "releaseid": 5946,
+    "modversion": "1.2.2",
+    "modidstr": "instruments",
+    "filename": "instruments_1.2.2.zip",
+    "fileid": 12840,
+    "tags": [
+     "1.18.6"
+    ],
+    "created": "2023-07-17 15:28:29"
+   },
+   {
+    "releaseid": 5441,
+    "modversion": "1.2.1",
+    "modidstr": "instruments",
+    "filename": "instruments_1.2.1.zip",
+    "fileid": 11760,
+    "tags": [
+     "1.18.5"
+    ],
+    "created": "2023-05-31 10:16:34"
+   },
+   {
+    "releaseid": 4762,
+    "modversion": "1.2.0",
+    "modidstr": "instruments",
+    "filename": "instruments_1.2.0.zip",
+    "fileid": 10529,
+    "tags": [
+     "1.18.0"
+    ],
+    "created": "2023-04-19 18:26:36"
+   },
+   {
+    "releaseid": 4241,
+    "modversion": "1.1.5",
+    "modidstr": "instruments",
+    "filename": "Instruments_1.1.5.zip",
+    "fileid": 9495,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2023-02-19 16:55:14"
+   },
+   {
+    "releaseid": 3715,
+    "modversion": "1.1.4",
+    "modidstr": "instruments",
+    "filename": "instruments_1.1.4.zip",
+    "fileid": 8376,
+    "tags": [
+     "1.17.9"
+    ],
+    "created": "2022-11-16 23:43:42"
+   },
+   {
+    "releaseid": 3166,
+    "modversion": "1.1.3",
+    "modidstr": "instruments",
+    "filename": "instruments_1.1.3.zip",
+    "fileid": 7146,
+    "tags": [
+     "1.17.2"
+    ],
+    "created": "2022-09-05 10:05:05"
+   },
+   {
+    "releaseid": 1820,
+    "modversion": "1.1.2",
+    "modidstr": "instruments",
+    "filename": "instruments_1.1.2.zip",
+    "fileid": 4506,
+    "tags": [
+     "1.16.3"
+    ],
+    "created": "2022-02-07 22:01:59"
+   },
+   {
+    "releaseid": 1573,
+    "modversion": "1.1.1",
+    "modidstr": "instruments",
+    "filename": "instruments_1.1.1.zip",
+    "fileid": 3939,
+    "tags": [
+     "1.16.0"
+    ],
+    "created": "2022-01-17 21:31:57"
+   },
+   {
+    "releaseid": 1448,
+    "modversion": "1.1.0",
+    "modidstr": "instruments",
+    "filename": "instruments_1.1.0.zip",
+    "fileid": 3659,
+    "tags": [
+     "1.16.0-rc.8"
+    ],
+    "created": "2022-01-09 01:22:49"
+   },
+   {
+    "releaseid": 743,
+    "modversion": "1.0.10",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.10.zip",
+    "fileid": 2069,
+    "tags": [
+     "1.15.2"
+    ],
+    "created": "2021-07-29 19:28:36"
+   },
+   {
+    "releaseid": 645,
+    "modversion": "1.0.9",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.9.zip",
+    "fileid": 1827,
+    "tags": [
+     "1.15.1"
+    ],
+    "created": "2021-07-16 22:14:22"
+   },
+   {
+    "releaseid": 640,
+    "modversion": "1.0.8",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.8.zip",
+    "fileid": 1819,
+    "tags": [
+     "1.15.0-rc.4"
+    ],
+    "created": "2021-07-16 17:55:24"
+   },
+   {
+    "releaseid": 624,
+    "modversion": "1.0.7",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.7.zip",
+    "fileid": 1787,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "created": "2021-07-14 12:03:34"
+   },
+   {
+    "releaseid": 619,
+    "modversion": "1.0.6",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.6.zip",
+    "fileid": 1778,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "created": "2021-07-13 10:15:30"
+   },
+   {
+    "releaseid": 561,
+    "modversion": "1.0.5",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.5.zip",
+    "fileid": 1676,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-07-04 14:07:11"
+   },
+   {
+    "releaseid": 500,
+    "modversion": "1.0.4",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.4.zip",
+    "fileid": 1498,
+    "tags": [
+     "1.14.10"
+    ],
+    "created": "2021-06-05 09:33:30"
+   },
+   {
+    "releaseid": 326,
+    "modversion": "1.0.3",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.3.zip",
+    "fileid": 1037,
+    "tags": [
+     "1.14.8"
+    ],
+    "created": "2021-04-14 22:37:01"
+   },
+   {
+    "releaseid": 325,
+    "modversion": "1.0.2",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.2.zip",
+    "fileid": 1032,
+    "tags": [
+     "1.14.8"
+    ],
+    "created": "2021-04-14 21:43:40"
+   },
+   {
+    "releaseid": 314,
+    "modversion": "1.0.1",
+    "modidstr": "instruments",
+    "filename": "instruments_1.0.1.zip",
+    "fileid": 1002,
+    "tags": [
+     "1.14.8"
+    ],
+    "created": "2021-04-13 12:09:09"
+   }
+  ]
+ },
+ "maltiezfirearms": {
+  "statuscode": "404"
+ },
+ "primitivesurvival": {
+  "statuscode": "200",
+  "modid": 322,
+  "assetid": 1238,
+  "urlalias": "primitivesurvival",
+  "releases": [
+   {
+    "releaseid": 57570,
+    "modversion": "5.1.4",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.1.4.zip",
+    "fileid": 123599,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-09-19 18:58:54"
+   },
+   {
+    "releaseid": 53724,
+    "modversion": "5.1.3",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.1.3.zip",
+    "fileid": 116342,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "created": "2026-08-21 00:03:23"
+   },
+   {
+    "releaseid": 53204,
+    "modversion": "5.1.2",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.1.2.zip",
+    "fileid": 115238,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "created": "2026-08-16 15:55:53"
+   },
+   {
+    "releaseid": 52689,
+    "modversion": "5.1.1",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.1.1.zip",
+    "fileid": 114208,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "created": "2026-08-12 05:20:09"
+   },
+   {
+    "releaseid": 51594,
+    "modversion": "5.1.0",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.1.0.zip",
+    "fileid": 112060,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "created": "2026-08-02 15:31:06"
+   },
+   {
+    "releaseid": 51491,
+    "modversion": "5.0.9",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.9.zip",
+    "fileid": 111811,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "created": "2026-08-01 15:38:49"
+   },
+   {
+    "releaseid": 50784,
+    "modversion": "5.0.8",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.8.zip",
+    "fileid": 110454,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5"
+    ],
+    "created": "2026-07-27 07:08:40"
+   },
+   {
+    "releaseid": 50297,
+    "modversion": "5.0.7",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.7.zip",
+    "fileid": 109487,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4"
+    ],
+    "created": "2026-07-23 18:24:15"
+   },
+   {
+    "releaseid": 45029,
+    "modversion": "5.0.6",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.6.zip",
+    "fileid": 99106,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-08 01:00:54"
+   },
+   {
+    "releaseid": 38413,
+    "modversion": "5.0.5",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.5.zip",
+    "fileid": 85722,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-04-18 15:42:40"
+   },
+   {
+    "releaseid": 37583,
+    "modversion": "5.0.4",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.4.zip",
+    "fileid": 83504,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8"
+    ],
+    "created": "2026-04-04 17:58:17"
+   },
+   {
+    "releaseid": 37437,
+    "modversion": "5.0.3",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.3.zip",
+    "fileid": 83115,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6"
+    ],
+    "created": "2026-04-02 04:36:07"
+   },
+   {
+    "releaseid": 37283,
+    "modversion": "5.0.2",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.2.zip",
+    "fileid": 82610,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6"
+    ],
+    "created": "2026-03-29 22:35:15"
+   },
+   {
+    "releaseid": 37209,
+    "modversion": "5.0.1",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.1.zip",
+    "fileid": 82402,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6"
+    ],
+    "created": "2026-03-28 19:04:42"
+   },
+   {
+    "releaseid": 37186,
+    "modversion": "5.0.0",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_5.0.0.zip",
+    "fileid": 82339,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6"
+    ],
+    "created": "2026-03-28 01:05:36"
+   },
+   {
+    "releaseid": 31769,
+    "modversion": "4.0.3",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_4.0.3.zip",
+    "fileid": 69979,
+    "tags": [
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6",
+     "1.21.7"
+    ],
+    "created": "2026-01-01 20:19:08"
+   },
+   {
+    "releaseid": 30064,
+    "modversion": "4.0.2",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_4.0.2.zip",
+    "fileid": 66369,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2025-11-29 16:44:54"
+   },
+   {
+    "releaseid": 29296,
+    "modversion": "4.0.1",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_4.0.1.zip",
+    "fileid": 64670,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-11-15 16:59:36"
+   },
+   {
+    "releaseid": 28060,
+    "modversion": "4.0.0",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_4.0.0.zip",
+    "fileid": 61734,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-25 14:45:21"
+   },
+   {
+    "releaseid": 27592,
+    "modversion": "3.9.9",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.9.zip",
+    "fileid": 60644,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-18 17:01:56"
+   },
+   {
+    "releaseid": 26889,
+    "modversion": "3.9.8",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.8.zip",
+    "fileid": 58932,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4"
+    ],
+    "created": "2025-10-08 05:35:43"
+   },
+   {
+    "releaseid": 25585,
+    "modversion": "3.9.7",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.7.zip",
+    "fileid": 56347,
+    "tags": [
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4"
+    ],
+    "created": "2025-09-20 17:04:31"
+   },
+   {
+    "releaseid": 25161,
+    "modversion": "3.9.6",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.6.zip",
+    "fileid": 55364,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1"
+    ],
+    "created": "2025-09-14 18:41:43"
+   },
+   {
+    "releaseid": 24159,
+    "modversion": "3.9.5",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.5.zip",
+    "fileid": 53117,
+    "tags": [
+     "1.21.0-rc.4",
+     "1.21.0-rc.5",
+     "1.21.0-rc.6",
+     "1.21.0-rc.7",
+     "1.21.0"
+    ],
+    "created": "2025-09-01 20:09:53"
+   },
+   {
+    "releaseid": 23067,
+    "modversion": "3.9.4",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.4.zip",
+    "fileid": 50808,
+    "tags": [
+     "1.21.0-rc.4",
+     "1.21.0-rc.5",
+     "1.21.0-rc.6"
+    ],
+    "created": "2025-08-16 19:58:15"
+   },
+   {
+    "releaseid": 22280,
+    "modversion": "3.9.3",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.3.zip",
+    "fileid": 48801,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "created": "2025-07-27 02:57:01"
+   },
+   {
+    "releaseid": 22270,
+    "modversion": "3.9.2",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.2.zip",
+    "fileid": 48772,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "created": "2025-07-26 19:23:55"
+   },
+   {
+    "releaseid": 22185,
+    "modversion": "3.9.1",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.1.zip",
+    "fileid": 48619,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "created": "2025-07-25 00:36:10"
+   },
+   {
+    "releaseid": 22178,
+    "modversion": "3.9.0",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.9.0.zip",
+    "fileid": 48594,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "created": "2025-07-24 18:32:20"
+   },
+   {
+    "releaseid": 22067,
+    "modversion": "3.8.0",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.8.0.zip",
+    "fileid": 48320,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-21 01:09:44"
+   },
+   {
+    "releaseid": 21116,
+    "modversion": "3.7.8",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.8.zip",
+    "fileid": 45795,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-06-15 15:33:35"
+   },
+   {
+    "releaseid": 19169,
+    "modversion": "3.7.7",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.7.zip",
+    "fileid": 41461,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-04-21 17:25:28"
+   },
+   {
+    "releaseid": 17085,
+    "modversion": "3.7.6",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.6.zip",
+    "fileid": 35898,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-03-04 06:56:26"
+   },
+   {
+    "releaseid": 14025,
+    "modversion": "3.7.5",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.5.zip",
+    "fileid": 29227,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4"
+    ],
+    "created": "2024-12-29 02:22:49"
+   },
+   {
+    "releaseid": 13707,
+    "modversion": "3.7.4",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.4.zip",
+    "fileid": 28681,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4",
+     "1.20.0-rc.5",
+     "1.20.0-rc.6"
+    ],
+    "created": "2024-12-15 17:55:10"
+   },
+   {
+    "releaseid": 13563,
+    "modversion": "3.7.3",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.3.zip",
+    "fileid": 28428,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4"
+    ],
+    "created": "2024-12-10 06:44:28"
+   },
+   {
+    "releaseid": 13501,
+    "modversion": "3.7.2",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.7.2.zip",
+    "fileid": 28275,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "created": "2024-12-07 05:24:10"
+   },
+   {
+    "releaseid": 12028,
+    "modversion": "3.6.5",
+    "modidstr": "primitivesurvival",
+    "filename": "primitivesurvival_3.6.5.zip",
+    "fileid": 25208,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-09-15 15:57:22"
+   },
+   {
+    "releaseid": 6866,
+    "modversion": "3.3.0",
+    "modidstr": "primitivesurvival",
+    "filename": "PrimitiveSurvival3.3.0.zip",
+    "fileid": 14905,
+    "tags": [
+     "1.18.5",
+     "1.18.6",
+     "1.18.7",
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "created": "2023-10-05 05:37:48"
+   },
+   {
+    "releaseid": 3903,
+    "modversion": "3.1.1",
+    "modidstr": "primitivesurvival",
+    "filename": "PrimitiveSurvival3.1.1.zip",
+    "fileid": 8785,
+    "tags": [
+     "1.17.8",
+     "1.17.9",
+     "1.17.10"
+    ],
+    "created": "2022-12-20 05:17:40"
+   },
+   {
+    "releaseid": 2787,
+    "modversion": "2.9.5",
+    "modidstr": "primitivesurvival",
+    "filename": "PrimitiveSurvival2.9.5.zip",
+    "fileid": 6391,
+    "tags": [
+     "1.16.3",
+     "1.16.4",
+     "1.16.5"
+    ],
+    "created": "2022-07-02 01:55:49"
+   },
+   {
+    "releaseid": 1245,
+    "modversion": "2.7.3",
+    "modidstr": "primitivesurvival",
+    "filename": "PrimitiveSurvival2.7.3.zip",
+    "fileid": 3224,
+    "tags": [
+     "1.15.7",
+     "1.15.8",
+     "1.15.9",
+     "1.15.10"
+    ],
+    "created": "2021-11-28 02:50:13"
+   }
+  ]
+ },
+ "smithingplus": {
+  "statuscode": "200",
+  "modid": 2655,
+  "assetid": 15312,
+  "urlalias": "smithingplus",
+  "releases": [
+   {
+    "releaseid": 40373,
+    "modversion": "1.9.0-rc.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.9.0-rc.1.zip",
+    "fileid": 89764,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-03 22:23:28"
+   },
+   {
+    "releaseid": 40343,
+    "modversion": "1.9.0-dev.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.9.0-dev.2.zip",
+    "fileid": 89670,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-03 18:17:22"
+   },
+   {
+    "releaseid": 40292,
+    "modversion": "1.9.0-dev.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.9.0-dev.1.zip",
+    "fileid": 89592,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-03 13:57:34"
+   },
+   {
+    "releaseid": 35586,
+    "modversion": "1.8.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.4.zip",
+    "fileid": 78532,
+    "tags": [
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "created": "2026-03-01 23:29:48"
+   },
+   {
+    "releaseid": 27001,
+    "modversion": "1.8.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.3.zip",
+    "fileid": 59176,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-09 21:28:57"
+   },
+   {
+    "releaseid": 26776,
+    "modversion": "1.8.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.2.zip",
+    "fileid": 58692,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4"
+    ],
+    "created": "2025-10-06 21:41:39"
+   },
+   {
+    "releaseid": 26773,
+    "modversion": "1.8.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.1.zip",
+    "fileid": 58688,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4"
+    ],
+    "created": "2025-10-06 21:04:32"
+   },
+   {
+    "releaseid": 26709,
+    "modversion": "1.8.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.0.zip",
+    "fileid": 58575,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2"
+    ],
+    "created": "2025-10-05 22:30:16"
+   },
+   {
+    "releaseid": 25392,
+    "modversion": "1.8.0-rc.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.0-rc.3.zip",
+    "fileid": 55947,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1"
+    ],
+    "created": "2025-09-17 21:02:04"
+   },
+   {
+    "releaseid": 25320,
+    "modversion": "1.8.0-rc.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.0-rc.2.zip",
+    "fileid": 55786,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1"
+    ],
+    "created": "2025-09-16 23:28:52"
+   },
+   {
+    "releaseid": 25313,
+    "modversion": "1.8.0-rc.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.8.0-rc.1.zip",
+    "fileid": 55746,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1"
+    ],
+    "created": "2025-09-16 21:05:51"
+   },
+   {
+    "releaseid": 24097,
+    "modversion": "1.7.4-dev.120",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.4-dev.120.zip",
+    "fileid": 52997,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-09-01 01:19:21"
+   },
+   {
+    "releaseid": 24096,
+    "modversion": "1.7.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.4.zip",
+    "fileid": 52998,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-09-01 01:09:57"
+   },
+   {
+    "releaseid": 23992,
+    "modversion": "1.7.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.3.zip",
+    "fileid": 52752,
+    "tags": [
+     "1.21.0-rc.7",
+     "1.21.0"
+    ],
+    "created": "2025-08-30 23:43:26"
+   },
+   {
+    "releaseid": 23987,
+    "modversion": "1.7.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.2.zip",
+    "fileid": 52744,
+    "tags": [
+     "1.21.0-rc.7",
+     "1.21.0"
+    ],
+    "created": "2025-08-30 23:09:01"
+   },
+   {
+    "releaseid": 23716,
+    "modversion": "1.7.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.1.zip",
+    "fileid": 52236,
+    "tags": [
+     "1.21.0"
+    ],
+    "created": "2025-08-28 14:39:28"
+   },
+   {
+    "releaseid": 23430,
+    "modversion": "1.7.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.7.0.zip",
+    "fileid": 51629,
+    "tags": [
+     "1.21.0-rc.7",
+     "1.21.0"
+    ],
+    "created": "2025-08-25 21:10:34"
+   },
+   {
+    "releaseid": 23428,
+    "modversion": "1.6.9",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.9.zip",
+    "fileid": 51628,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-08-25 21:06:53"
+   },
+   {
+    "releaseid": 23391,
+    "modversion": "1.6.8-rc.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.8-rc.7.zip",
+    "fileid": 51576,
+    "tags": [
+     "1.21.0-rc.7"
+    ],
+    "created": "2025-08-25 14:04:35"
+   },
+   {
+    "releaseid": 23390,
+    "modversion": "1.6.8",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.8.zip",
+    "fileid": 51575,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-08-25 14:03:49"
+   },
+   {
+    "releaseid": 23363,
+    "modversion": "1.6.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.7.zip",
+    "fileid": 51515,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-08-24 22:47:03"
+   },
+   {
+    "releaseid": 23348,
+    "modversion": "1.6.7-rc.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.7-rc.7.zip",
+    "fileid": 51469,
+    "tags": [
+     "1.21.0-rc.7"
+    ],
+    "created": "2025-08-24 17:25:20"
+   },
+   {
+    "releaseid": 23347,
+    "modversion": "1.6.6-rc.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.6-rc.7.zip",
+    "fileid": 51467,
+    "tags": [
+     "1.21.0-rc.7"
+    ],
+    "created": "2025-08-24 16:29:18"
+   },
+   {
+    "releaseid": 22036,
+    "modversion": "1.6.5",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.5.zip",
+    "fileid": 48238,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-19 22:11:10"
+   },
+   {
+    "releaseid": 21975,
+    "modversion": "1.6.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.4.zip",
+    "fileid": 48084,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-17 16:34:33"
+   },
+   {
+    "releaseid": 21933,
+    "modversion": "1.6.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.3.zip",
+    "fileid": 47973,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-15 23:07:59"
+   },
+   {
+    "releaseid": 21928,
+    "modversion": "1.6.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.2.zip",
+    "fileid": 47957,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-15 19:21:01"
+   },
+   {
+    "releaseid": 21920,
+    "modversion": "1.6.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.1.zip",
+    "fileid": 47941,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "created": "2025-07-15 13:52:30"
+   },
+   {
+    "releaseid": 21916,
+    "modversion": "1.6.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.0.zip",
+    "fileid": 47937,
+    "tags": [
+     "1.20.12"
+    ],
+    "created": "2025-07-15 11:43:21"
+   },
+   {
+    "releaseid": 18972,
+    "modversion": "1.6.0-rc.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.0-rc.2.zip",
+    "fileid": 41026,
+    "tags": [
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-15 19:19:55"
+   },
+   {
+    "releaseid": 18815,
+    "modversion": "1.6.0-rc.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.6.0-rc.1.zip",
+    "fileid": 40727,
+    "tags": [
+     "1.20.7"
+    ],
+    "created": "2025-04-11 01:00:41"
+   },
+   {
+    "releaseid": 18730,
+    "modversion": "1.5.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.7.zip",
+    "fileid": 40533,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-08 18:22:37"
+   },
+   {
+    "releaseid": 18642,
+    "modversion": "1.5.6",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.6.zip",
+    "fileid": 40337,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-06 22:46:35"
+   },
+   {
+    "releaseid": 18532,
+    "modversion": "1.5.1198-dev.1198",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.1198.zip",
+    "fileid": 40041,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2025-04-05 01:31:46"
+   },
+   {
+    "releaseid": 18471,
+    "modversion": "1.5.5",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.5.zip",
+    "fileid": 39889,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-04 03:06:14"
+   },
+   {
+    "releaseid": 18436,
+    "modversion": "1.5.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.4.zip",
+    "fileid": 39794,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-03 01:49:21"
+   },
+   {
+    "releaseid": 18413,
+    "modversion": "1.5.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.3.zip",
+    "fileid": 39754,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-02 17:06:13"
+   },
+   {
+    "releaseid": 18411,
+    "modversion": "1.5.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.2.zip",
+    "fileid": 39752,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-02 16:15:07"
+   },
+   {
+    "releaseid": 18410,
+    "modversion": "1.5.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.1.zip",
+    "fileid": 39751,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-02 15:24:21"
+   },
+   {
+    "releaseid": 18392,
+    "modversion": "1.5.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.5.0.zip",
+    "fileid": 39727,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "created": "2025-04-02 03:00:24"
+   },
+   {
+    "releaseid": 18068,
+    "modversion": "1.4.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.4.1.zip",
+    "fileid": 38855,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "created": "2025-03-26 03:48:12"
+   },
+   {
+    "releaseid": 17739,
+    "modversion": "1.4.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.4.0.zip",
+    "fileid": 38014,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "created": "2025-03-18 13:19:28"
+   },
+   {
+    "releaseid": 17607,
+    "modversion": "1.3.8",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.8.zip",
+    "fileid": 37547,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-15 00:00:46"
+   },
+   {
+    "releaseid": 17591,
+    "modversion": "1.3.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.7.zip",
+    "fileid": 37467,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-14 19:05:00"
+   },
+   {
+    "releaseid": 17588,
+    "modversion": "1.3.6",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.6.zip",
+    "fileid": 37463,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-14 18:20:29"
+   },
+   {
+    "releaseid": 17563,
+    "modversion": "1.3.5",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.5.zip",
+    "fileid": 37398,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-14 03:37:31"
+   },
+   {
+    "releaseid": 17542,
+    "modversion": "1.3.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.4.zip",
+    "fileid": 37336,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-13 18:39:15"
+   },
+   {
+    "releaseid": 17530,
+    "modversion": "1.3.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.3.zip",
+    "fileid": 37284,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-12 23:46:44"
+   },
+   {
+    "releaseid": 17524,
+    "modversion": "1.3.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.2.zip",
+    "fileid": 37274,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-12 19:41:35"
+   },
+   {
+    "releaseid": 17435,
+    "modversion": "1.3.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.1.zip",
+    "fileid": 37108,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-11 23:54:32"
+   },
+   {
+    "releaseid": 17402,
+    "modversion": "1.3.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.3.0.zip",
+    "fileid": 37059,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-11 17:24:29"
+   },
+   {
+    "releaseid": 17384,
+    "modversion": "1.2.10",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.10.zip",
+    "fileid": 36982,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-11 01:59:57"
+   },
+   {
+    "releaseid": 17370,
+    "modversion": "1.2.9",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.9.zip",
+    "fileid": 36916,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-10 23:42:08"
+   },
+   {
+    "releaseid": 17334,
+    "modversion": "1.2.8",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.8.zip",
+    "fileid": 36772,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-10 03:04:33"
+   },
+   {
+    "releaseid": 17322,
+    "modversion": "1.2.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.7.zip",
+    "fileid": 36749,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-10 00:23:29"
+   },
+   {
+    "releaseid": 17261,
+    "modversion": "1.2.6",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.6.zip",
+    "fileid": 36631,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-03-08 21:57:22"
+   },
+   {
+    "releaseid": 16606,
+    "modversion": "1.2.5",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.5.zip",
+    "fileid": 34253,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-21 15:25:23"
+   },
+   {
+    "releaseid": 16582,
+    "modversion": "1.2.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.4.zip",
+    "fileid": 34162,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-20 20:59:04"
+   },
+   {
+    "releaseid": 16544,
+    "modversion": "1.2.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.3.zip",
+    "fileid": 34076,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-20 00:29:28"
+   },
+   {
+    "releaseid": 16527,
+    "modversion": "1.2.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.2.zip",
+    "fileid": 34043,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-19 17:14:37"
+   },
+   {
+    "releaseid": 16507,
+    "modversion": "1.2.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.1.zip",
+    "fileid": 34002,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-19 01:41:54"
+   },
+   {
+    "releaseid": 16506,
+    "modversion": "1.2.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.2.0.zip",
+    "fileid": 34001,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-19 01:28:19"
+   },
+   {
+    "releaseid": 16502,
+    "modversion": "1.1.11",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.11.zip",
+    "fileid": 33993,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-18 23:46:04"
+   },
+   {
+    "releaseid": 16391,
+    "modversion": "1.1.10",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.10.zip",
+    "fileid": 33708,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-17 01:14:13"
+   },
+   {
+    "releaseid": 16388,
+    "modversion": "1.1.9",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.9.zip",
+    "fileid": 33705,
+    "tags": [
+     "1.20.4"
+    ],
+    "created": "2025-02-17 00:47:43"
+   },
+   {
+    "releaseid": 14179,
+    "modversion": "1.1.8",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.8.zip",
+    "fileid": 29509,
+    "tags": [
+     "1.19.8",
+     "1.20.0-rc.5"
+    ],
+    "created": "2025-01-03 15:26:04"
+   },
+   {
+    "releaseid": 14047,
+    "modversion": "1.1.7",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.7.zip",
+    "fileid": 29267,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-12-29 14:15:59"
+   },
+   {
+    "releaseid": 14044,
+    "modversion": "1.1.6",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.6.zip",
+    "fileid": 29263,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-12-29 13:29:31"
+   },
+   {
+    "releaseid": 13881,
+    "modversion": "1.1.5",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.5.zip",
+    "fileid": 28977,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-12-22 10:26:59"
+   },
+   {
+    "releaseid": 13868,
+    "modversion": "1.1.4",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.4.zip",
+    "fileid": 28956,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-12-21 21:27:30"
+   },
+   {
+    "releaseid": 12802,
+    "modversion": "1.1.3",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.3.zip",
+    "fileid": 26906,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-31 17:46:35"
+   },
+   {
+    "releaseid": 12792,
+    "modversion": "1.1.2",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.2.zip",
+    "fileid": 26881,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-31 00:24:32"
+   },
+   {
+    "releaseid": 12724,
+    "modversion": "1.1.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.1.zip",
+    "fileid": 26737,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-26 23:44:23"
+   },
+   {
+    "releaseid": 12723,
+    "modversion": "1.1.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.1.0.zip",
+    "fileid": 26736,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-26 23:12:20"
+   },
+   {
+    "releaseid": 12684,
+    "modversion": "1.0.1",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.0.1.zip",
+    "fileid": 26664,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-24 22:16:33"
+   },
+   {
+    "releaseid": 12657,
+    "modversion": "1.0.0",
+    "modidstr": "smithingplus",
+    "filename": "smithingplus_1.0.0.zip",
+    "fileid": 26623,
+    "tags": [
+     "1.19.8"
+    ],
+    "created": "2024-10-24 01:10:07"
+   }
+  ]
+ },
+ "vsimgui": {
+  "statuscode": "200",
+  "modid": 1745,
+  "assetid": 9329,
+  "urlalias": "imgui",
+  "releases": [
+   {
+    "releaseid": 45264,
+    "modversion": "1.2.7",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.7.zip",
+    "fileid": 99543,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-09 22:31:45"
+   },
+   {
+    "releaseid": 44928,
+    "modversion": "1.2.6",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.6.zip",
+    "fileid": 98911,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "created": "2026-06-07 05:46:50"
+   },
+   {
+    "releaseid": 40854,
+    "modversion": "1.2.5",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.5.zip",
+    "fileid": 90736,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-07 17:41:12"
+   },
+   {
+    "releaseid": 40285,
+    "modversion": "1.2.4",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.4.zip",
+    "fileid": 89584,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-03 13:32:56"
+   },
+   {
+    "releaseid": 40247,
+    "modversion": "1.2.3-pre.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.3-pre.1.zip",
+    "fileid": 89508,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "created": "2026-05-03 07:32:27"
+   },
+   {
+    "releaseid": 38514,
+    "modversion": "1.2.2",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.2.zip",
+    "fileid": 85944,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10",
+     "1.22.0"
+    ],
+    "created": "2026-04-20 02:15:48"
+   },
+   {
+    "releaseid": 37574,
+    "modversion": "1.2.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.1.zip",
+    "fileid": 83491,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2",
+     "1.22.0-pre.3",
+     "1.22.0-pre.4",
+     "1.22.0-pre.5",
+     "1.22.0-rc.1",
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7"
+    ],
+    "created": "2026-04-04 13:50:41"
+   },
+   {
+    "releaseid": 34653,
+    "modversion": "1.2.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.2.0.zip",
+    "fileid": 76347,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2"
+    ],
+    "created": "2026-02-15 12:35:36"
+   },
+   {
+    "releaseid": 29156,
+    "modversion": "1.1.16",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.16.zip",
+    "fileid": 64415,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-11-13 04:33:13"
+   },
+   {
+    "releaseid": 28740,
+    "modversion": "1.1.15",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.15.zip",
+    "fileid": 63403,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-11-04 22:46:34"
+   },
+   {
+    "releaseid": 26673,
+    "modversion": "1.1.14",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.14.zip",
+    "fileid": 58527,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "created": "2025-10-05 14:55:24"
+   },
+   {
+    "releaseid": 25793,
+    "modversion": "1.1.13",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.13.zip",
+    "fileid": 56713,
+    "tags": [
+     "1.21.1"
+    ],
+    "created": "2025-09-23 12:50:30"
+   },
+   {
+    "releaseid": 23026,
+    "modversion": "1.1.12",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.12.zip",
+    "fileid": 50711,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "created": "2025-08-15 22:34:18"
+   },
+   {
+    "releaseid": 22740,
+    "modversion": "1.1.11",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.11.zip",
+    "fileid": 49976,
+    "tags": [
+     "1.21.0-rc.3"
+    ],
+    "created": "2025-08-09 21:45:49"
+   },
+   {
+    "releaseid": 21940,
+    "modversion": "1.1.10",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.10.zip",
+    "fileid": 47990,
+    "tags": [
+     "1.21.0-pre.3"
+    ],
+    "created": "2025-07-16 15:03:01"
+   },
+   {
+    "releaseid": 21174,
+    "modversion": "1.1.9",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.9.zip",
+    "fileid": 45929,
+    "tags": [
+     "1.21.0-pre.1"
+    ],
+    "created": "2025-06-17 08:39:06"
+   },
+   {
+    "releaseid": 18473,
+    "modversion": "1.1.8",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.8.zip",
+    "fileid": 39899,
+    "tags": [
+     "1.20.7",
+     "1.20.12"
+    ],
+    "created": "2025-04-04 09:09:57"
+   },
+   {
+    "releaseid": 12660,
+    "modversion": "1.1.7",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.7.zip",
+    "fileid": 26632,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "created": "2024-10-24 03:13:17"
+   },
+   {
+    "releaseid": 12360,
+    "modversion": "1.1.6",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.6.zip",
+    "fileid": 25920,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "created": "2024-10-05 15:36:59"
+   },
+   {
+    "releaseid": 10703,
+    "modversion": "1.1.5",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.5.zip",
+    "fileid": 22302,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-06-06 12:56:27"
+   },
+   {
+    "releaseid": 10610,
+    "modversion": "1.1.4",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.4.zip",
+    "fileid": 22135,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-05-30 10:51:04"
+   },
+   {
+    "releaseid": 9423,
+    "modversion": "1.1.3",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.3.zip",
+    "fileid": 20067,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-03-21 08:32:53"
+   },
+   {
+    "releaseid": 9240,
+    "modversion": "1.1.2",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.2.zip",
+    "fileid": 19733,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-03-07 17:42:38"
+   },
+   {
+    "releaseid": 9169,
+    "modversion": "1.1.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.1.zip",
+    "fileid": 19565,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-03-02 12:10:21"
+   },
+   {
+    "releaseid": 9160,
+    "modversion": "1.1.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.1.0.zip",
+    "fileid": 19561,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-03-02 00:42:28"
+   },
+   {
+    "releaseid": 9113,
+    "modversion": "1.0.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.0.0.zip",
+    "fileid": 19454,
+    "tags": [
+     "1.19.4"
+    ],
+    "created": "2024-02-28 09:16:32"
+   },
+   {
+    "releaseid": 9112,
+    "modversion": "1.0.0-pre.3",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.0.0-pre.3.zip",
+    "fileid": 19453,
+    "tags": [
+     "1.19.4-rc.2"
+    ],
+    "created": "2024-02-28 05:51:18"
+   },
+   {
+    "releaseid": 9092,
+    "modversion": "1.0.0-pre.2",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.0.0-pre.2.zip",
+    "fileid": 19425,
+    "tags": [
+     "1.19.4-rc.2"
+    ],
+    "created": "2024-02-26 15:10:00"
+   },
+   {
+    "releaseid": 9087,
+    "modversion": "1.0.0-pre.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_1.0.0-pre.1.zip",
+    "fileid": 19420,
+    "tags": [
+     "1.19.4-rc.2"
+    ],
+    "created": "2024-02-26 04:49:59"
+   },
+   {
+    "releaseid": 8853,
+    "modversion": "0.3.5",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.5.zip",
+    "fileid": 19057,
+    "tags": [
+     "1.19.4-rc.1"
+    ],
+    "created": "2024-02-13 22:01:48"
+   },
+   {
+    "releaseid": 8850,
+    "modversion": "0.3.4",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.4.zip",
+    "fileid": 19053,
+    "tags": [
+     "1.19.3"
+    ],
+    "created": "2024-02-13 19:52:42"
+   },
+   {
+    "releaseid": 8191,
+    "modversion": "0.3.3",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.3.zip",
+    "fileid": 17753,
+    "tags": [
+     "1.19.0"
+    ],
+    "created": "2024-01-18 11:26:03"
+   },
+   {
+    "releaseid": 8111,
+    "modversion": "0.3.2",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.2.zip",
+    "fileid": 17618,
+    "tags": [
+     "1.19.0-rc.6"
+    ],
+    "created": "2024-01-14 03:22:57"
+   },
+   {
+    "releaseid": 8104,
+    "modversion": "0.3.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.1.zip",
+    "fileid": 17600,
+    "tags": [
+     "1.18.8",
+     "1.18.15",
+     "1.19.0-rc.1"
+    ],
+    "created": "2024-01-13 13:27:06"
+   },
+   {
+    "releaseid": 8100,
+    "modversion": "0.3.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.3.0.zip",
+    "fileid": 17596,
+    "tags": [
+     "1.18.8",
+     "1.18.15",
+     "1.19.0-rc.1"
+    ],
+    "created": "2024-01-13 09:33:13"
+   },
+   {
+    "releaseid": 8091,
+    "modversion": "0.2.4",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.2.4.zip",
+    "fileid": 17584,
+    "tags": [
+     "1.18.8",
+     "1.18.15",
+     "1.19.0-rc.1"
+    ],
+    "created": "2024-01-12 14:28:27"
+   },
+   {
+    "releaseid": 8081,
+    "modversion": "0.2.3",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.2.3.zip",
+    "fileid": 17565,
+    "tags": [
+     "1.18.8",
+     "1.18.15",
+     "1.19.0-rc.1"
+    ],
+    "created": "2024-01-11 19:51:00"
+   },
+   {
+    "releaseid": 8045,
+    "modversion": "0.2.2",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.2.2.zip",
+    "fileid": 17492,
+    "tags": [
+     "1.19.0-rc.1"
+    ],
+    "created": "2024-01-09 10:18:12"
+   },
+   {
+    "releaseid": 7809,
+    "modversion": "0.2.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.2.1.zip",
+    "fileid": 17003,
+    "tags": [
+     "1.18.8",
+     "1.19.0-rc.1"
+    ],
+    "created": "2023-12-19 03:24:12"
+   },
+   {
+    "releaseid": 7786,
+    "modversion": "0.2.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.2.0.zip",
+    "fileid": 16932,
+    "tags": [
+     "1.18.8"
+    ],
+    "created": "2023-12-16 07:34:42"
+   },
+   {
+    "releaseid": 7745,
+    "modversion": "0.1.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.1.1.zip",
+    "fileid": 16852,
+    "tags": [
+     "1.18.8"
+    ],
+    "created": "2023-12-12 04:42:19"
+   },
+   {
+    "releaseid": 7661,
+    "modversion": "0.1.0",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.1.0.zip",
+    "fileid": 16698,
+    "tags": [
+     "1.18.8"
+    ],
+    "created": "2023-12-05 02:12:15"
+   },
+   {
+    "releaseid": 7584,
+    "modversion": "0.0.1",
+    "modidstr": "vsimgui",
+    "filename": "vsimgui_0.0.1.zip",
+    "fileid": 16568,
+    "tags": [
+     "1.18.8"
+    ],
+    "created": "2023-11-30 19:09:50"
+   }
+  ]
+ }
+}

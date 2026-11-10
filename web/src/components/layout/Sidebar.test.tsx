@@ -28,6 +28,12 @@ vi.mock("@/hooks/use-server-status", () => ({
   useServerStatus: () => ({ data: mockServerState }),
 }));
 
+// Mock mod update status (Story 14.5 badge)
+const mockUpdates = { updateCount: 0 };
+vi.mock("@/hooks/use-mods", () => ({
+  useModUpdates: () => ({ data: { data: mockUpdates } }),
+}));
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -58,6 +64,7 @@ describe("Sidebar", () => {
     localStorage.clear();
     // Reset server state to installed
     mockServerState.data.state = "installed";
+    mockUpdates.updateCount = 0;
   });
 
   describe("Navigation Structure", () => {
@@ -316,4 +323,23 @@ describe("Sidebar", () => {
       expect(tooltipTriggers.length).toBeGreaterThan(0);
     });
   });
+
+  describe("Mod update badge (Story 14.5)", () => {
+    it("shows the update count on Mods, which opens the mods page", () => {
+      mockUpdates.updateCount = 2;
+      renderWithProviders(<Sidebar />, { initialRoute: "/game-server/version" });
+
+      expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("2");
+      expect(
+        screen.getByRole("link", { name: /Mods.*2 mod updates available/ })
+      ).toHaveAttribute("href", "/game-server/mods");
+    });
+
+    it("shows no badge without updates", () => {
+      renderWithProviders(<Sidebar />, { initialRoute: "/game-server/version" });
+
+      expect(screen.queryByTestId("nav-badge-Mods")).not.toBeInTheDocument();
+    });
+  });
 });
+

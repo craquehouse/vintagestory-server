@@ -9,7 +9,12 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
-import { fetchApiSettings, updateApiSetting } from '@/api/config';
+import {
+  SECRET_API_SETTINGS,
+  fetchApiSettings,
+  setModUpdateWebhook,
+  updateApiSetting,
+} from '@/api/config';
 import type { ApiResponse, ApiSettingsData } from '@/api/types';
 
 /**
@@ -87,8 +92,8 @@ export function useUpdateApiSetting() {
         queryKeys.config.api
       );
 
-      // Optimistically update to the new value
-      if (previous) {
+      // Optimistically update to the new value; never cache a secret value (Story 14.6)
+      if (previous && !SECRET_API_SETTINGS.has(key)) {
         // Map API key (snake_case) to camelCase settings key
         const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 
@@ -117,6 +122,23 @@ export function useUpdateApiSetting() {
     },
     onSettled: () => {
       // Always refetch after error or success to ensure server state
+      queryClient.invalidateQueries({ queryKey: queryKeys.config.api });
+    },
+  });
+}
+
+/**
+ * Hook to set or clear the mod update webhook (Story 14.6).
+ *
+ * Not optimistic, unlike useUpdateApiSetting: the URL is a secret and must not be
+ * written into the cached settings. Refetches the settings when it settles.
+ */
+export function useSetModUpdateWebhook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (url: string | null) => setModUpdateWebhook(url),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.config.api });
     },
   });

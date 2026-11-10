@@ -653,4 +653,29 @@ describe('Dashboard', () => {
       expect(screen.queryByTestId('metrics-chart-card')).not.toBeInTheDocument();
     });
   });
+
+  describe('mod updates notice (Story 14.5)', () => {
+    it('shows the number of mods with updates', async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/mods/updates')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { game_version: '1.22.7', checked_at: null, update_count: 3, mods: [] },
+              }),
+          });
+        }
+        return Promise.resolve(mockServerStatus(createServerStatus({ state: 'running' })));
+      });
+
+      render(<Dashboard />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const notice = await screen.findByTestId('mod-updates-notice');
+      expect(notice).toHaveTextContent('3 mod updates available');
+      expect(notice).toHaveAttribute('href', '/game-server/mods/installed');
+    });
+  });
 });
+

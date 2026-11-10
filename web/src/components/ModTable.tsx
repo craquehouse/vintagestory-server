@@ -5,6 +5,7 @@
  * - Displays mod name, version, compatibility status
  * - Enable/disable toggle with optimistic updates
  * - Remove button with confirmation dialog
+ * - Available column with update action and confirmation (Story 14.3)
  * - Sortable columns with persistent sort preference (VSS-g54)
  * - Empty state when no mods installed
  */
@@ -43,9 +44,19 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
-import { useMods, useEnableMod, useDisableMod, useRemoveMod, useModsCompatibility } from '@/hooks/use-mods';
+import { ModUpdateCell } from '@/components/ModUpdateCell';
+import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
+import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
+import {
+  useMods,
+  useEnableMod,
+  useDisableMod,
+  useRemoveMod,
+  useModsCompatibility,
+  useModUpdates,
+} from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
-import type { ModInfo, CompatibilityStatus } from '@/api/types';
+import type { ModInfo, CompatibilityStatus, ModUpdateStatus } from '@/api/types';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -57,6 +68,8 @@ interface ModTableProps {
 /** Extended ModInfo with compatibility and side data for table rendering */
 interface ModTableRow extends ModInfo {
   compatibilityStatus: CompatibilityStatus;
+  /** Story 14.3: update status from GET /mods/updates */
+  updateStatus?: ModUpdateStatus;
 }
 
 const features = tableFeatures({
@@ -111,6 +124,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: disableMod, isPending: isDisabling, variables: disablingSlug } = useDisableMod();
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
+  const versionChange = useVersionChangeFlow();
+  const { start: startVersionChange, isPending: isChangingVersion } = versionChange;
 
   const mods = modsData?.data?.mods ?? [];
 
@@ -118,6 +133,14 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   // VSS-qal: Also fetch side info for SideBadge display
   const slugs = mods.map((m) => m.slug);
   const { compatibilityMap, sideMap } = useModsCompatibility(slugs);
+
+  // Story 14.3: update status for the Available column
+  const { data: updatesData } = useModUpdates();
+  const gameVersion = updatesData?.data?.gameVersion ?? null;
+  const updateMap = useMemo(
+    () => new Map((updatesData?.data?.mods ?? []).map((item) => [item.slug, item])),
+    [updatesData]
+  );
 
   // VSS-g54: Convert preferences to TanStack Table sorting state
   const sorting: SortingState = useMemo(() => {
@@ -155,8 +178,9 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       compatibilityStatus: compatibilityMap.get(mod.slug) ?? 'not_verified',
       // Use API side if available, fall back to sideMap for legacy data
       side: mod.side ?? sideMap.get(mod.slug) ?? null,
+      updateStatus: updateMap.get(mod.slug),
     }));
-  }, [mods, compatibilityMap, sideMap]);
+  }, [mods, compatibilityMap, sideMap, updateMap]);
 
   const handleToggle = useCallback((mod: ModInfo) => {
     if (mod.enabled) {
@@ -173,6 +197,19 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       });
     }
   }, [disableMod, enableMod, onToggled]);
+
+  // Story 14.3: apply the offered update through the confirmation flow
+  const handleUpdate = useCallback((mod: ModTableRow) => {
+    const offered = mod.updateStatus?.offeredVersion;
+    if (!offered) return;
+    startVersionChange({
+      slug: mod.slug,
+      name: mod.name || mod.slug,
+      version: offered,
+      installedVersion: mod.version,
+      kind: 'update',
+    });
+  }, [startVersionChange]);
 
   const handleRemoveClick = useCallback((mod: ModInfo) => {
     setModToRemove(mod);
@@ -258,6 +295,18 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
         <span className="text-muted-foreground">v{getValue()}</span>
       ),
     }),
+    columnHelper.display({
+      id: 'available',
+      header: 'Available',
+      cell: ({ row }) => (
+        <ModUpdateCell
+          status={row.original.updateStatus}
+          gameVersion={gameVersion}
+          onUpdate={() => handleUpdate(row.original)}
+          isUpdating={isChangingVersion(row.original.slug)}
+        />
+      ),
+    }),
     columnHelper.accessor('side', {
       header: 'Side',
       cell: ({ getValue }) => <SideBadge side={getValue()} />,
@@ -323,7 +372,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       },
       meta: { className: 'w-[80px]' },
     }),
-  ]), [handleToggle, handleRemoveClick, isTogglingMod]);
+  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, isChangingVersion]);
 
   const table = useTable({
     features,
@@ -387,6 +436,13 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           ))}
         </TableBody>
       </Table>
+
+      <VersionChangeConfirmDialog
+        confirmation={versionChange.confirmation}
+        gameVersion={gameVersion}
+        onConfirm={versionChange.confirm}
+        onCancel={versionChange.cancel}
+      />
 
       {/* Remove confirmation dialog */}
       <AlertDialog

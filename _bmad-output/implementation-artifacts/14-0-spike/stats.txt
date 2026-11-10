@@ -1,0 +1,12 @@
+Mod list export: 4852 entries; 225 list several modids; 870 have a urlalias that differs from modidstrs[0]
+Sampled: 10 mods (1 not found), 464 releases
+Filenames with spaces: 70; with path separators: 0
+  betterruins: 61 releases, newest-first=True, modids=['betterruins'], repeated versions=[], repeated filenames=[]
+  carryon: 89 releases, newest-first=True, modids=['carryon'], repeated versions=[], repeated filenames=[]
+  egocaribautomapmarkers: 24 releases, newest-first=True, modids=['egocaribautomapmarkers', 'egocaribresinmapmarkers'], repeated versions=[], repeated filenames=['Auto Map Markers (1.19).zip', 'Auto Map Markers.zip']
+  expandedfoods: 73 releases, newest-first=True, modids=['expandedfoods'], repeated versions=[], repeated filenames=[]
+  hudclock: 23 releases, newest-first=True, modids=['hudclock', 'hudclockserver'], repeated versions=[], repeated filenames=[]
+  instruments: 33 releases, newest-first=True, modids=['instruments', 'vsinstruments', 'vsinstrumentsbase'], repeated versions=['1.0.1'], repeated filenames=[]
+  primitivesurvival: 42 releases, newest-first=True, modids=['primitivesurvival'], repeated versions=[], repeated filenames=[]
+  smithingplus: 76 releases, newest-first=True, modids=['smithingplus'], repeated versions=[], repeated filenames=[]
+  vsimgui: 43 releases, newest-first=True, modids=['vsimgui'], repeated versions=[], repeated filenames=[]

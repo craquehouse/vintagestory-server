@@ -20,6 +20,8 @@ export interface ApiResponse<T> {
 export interface ApiErrorDetail {
   code?: string;
   message?: string;
+  /** Structured context for some errors, e.g. confirmation reasons. */
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -151,6 +153,8 @@ export interface ModRelease {
   gameVersions: string[];
   created: string;
   changelog: string | null;
+  /** Mod ID inside this release; one database entry can ship several mod IDs. */
+  modidstr: string;
 }
 
 /**
@@ -261,7 +265,18 @@ export interface ApiSettingsData {
     enforceEnvOnRestart: boolean;
     modListRefreshInterval: number;
     serverVersionsRefreshInterval: number;
+    /** Story 14.6: whether a mod update webhook is set; the URL is never returned */
+    modUpdateWebhookConfigured: boolean;
   };
+}
+
+/**
+ * Response from setting the mod update webhook (Story 14.6). Reports only whether one
+ * is configured; the URL is never returned.
+ */
+export interface ModUpdateWebhookUpdateData {
+  key: string;
+  configured: boolean;
 }
 
 /**
@@ -508,4 +523,92 @@ export interface DebugStatusData {
 export interface DebugToggleData {
   debugEnabled: boolean;
   changed: boolean;
+}
+
+// ============================================
+// Mod updates and version changes (Epic 14)
+// ============================================
+
+/** Update state of an installed mod (Story 14.1). */
+export type ModUpdateState = 'update_available' | 'up_to_date' | 'blocked' | 'unknown';
+
+/** Why an installed mod's update state is unknown. */
+export type ModUpdateUnknownReason =
+  | 'not_checked'
+  | 'not_in_database'
+  | 'installed_release_not_listed'
+  | 'version_unparsable';
+
+/** Update status of one installed mod from GET /mods/updates. */
+export interface ModUpdateStatus {
+  slug: string;
+  name: string;
+  installedVersion: string;
+  status: ModUpdateState;
+  offeredVersion: string | null;
+  offeredCompatibility: CompatibilityStatus | null;
+  offeredPrerelease: boolean | null;
+  reason: ModUpdateUnknownReason | null;
+  checkedAt: string | null;
+  error: string | null;
+}
+
+/** Response data from GET /api/v1alpha1/mods/updates. */
+export interface ModUpdatesData {
+  gameVersion: string | null;
+  /** When the last full check finished without failures. */
+  checkedAt: string | null;
+  updateCount: number;
+  mods: ModUpdateStatus[];
+}
+
+/** Outcome of one update check. */
+export interface ModUpdateCheckSummary {
+  checked: number;
+  failed: number;
+  failedSlugs: string[];
+}
+
+/** Response data from POST /api/v1alpha1/mods/updates/check. */
+export interface ModUpdateCheckData extends ModUpdatesData {
+  check: ModUpdateCheckSummary;
+}
+
+/** Why a version change needs confirmation (409 MOD_CONFIRMATION_REQUIRED). */
+export type VersionChangeReason = 'not_verified' | 'incompatible' | 'prerelease' | 'older';
+
+/** Response data from PUT /api/v1alpha1/mods/{slug}/version. */
+export interface ModVersionChangeData {
+  slug: string;
+  previousVersion: string;
+  version: string;
+  filename: string;
+  /** Compatibility of the new version; null when nothing changed. */
+  compatibility: CompatibilityStatus | null;
+  changed: boolean;
+  pendingRestart: boolean;
+}
+
+/** Outcome of update all for one mod (Story 14.4). */
+export type ModUpdateAllOutcome = 'updated' | 'skipped' | 'failed';
+
+/** One mod's result from POST /mods/updates/apply-all. */
+export interface ModUpdateAllItem {
+  slug: string;
+  name: string;
+  fromVersion: string;
+  toVersion: string;
+  outcome: ModUpdateAllOutcome;
+  /** Why it was skipped, e.g. 'not_verified' */
+  reasons: string[];
+  error: string | null;
+}
+
+/** Response data from POST /api/v1alpha1/mods/updates/apply-all. */
+export interface ModUpdateAllData {
+  results: ModUpdateAllItem[];
+  updated: number;
+  skipped: number;
+  failed: number;
+  pendingRestart: boolean;
 }

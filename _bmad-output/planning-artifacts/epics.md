@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-01-10'
+lastUpdated: '2026-11-09'
 updates:
+  - date: '2026-11-09'
+    description: 'Added Epic 14 (7 stories) for Mod Updates'
   - date: '2026-01-10'
     description: 'Added Epic 11 (6 stories), Epic 12 (6 stories), Epic 13 (6 stories) for Navigation Refactor, Enhanced Dashboard, and Version Browser'
   - date: '2026-01-03'
@@ -324,6 +326,29 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR126 | Epic 13 | Installation progress display |
 | FR127 | Epic 13 | Install Latest Stable quick action |
 | FR128 | Epic 13 | Update to Latest quick action |
+| FR129 | Epic 14 | Detect newer releases by release order |
+| FR130 | Epic 14 | Offer newest compatible release |
+| FR131 | Epic 14 | No offer when only incompatible releases are newer |
+| FR132 | Epic 14 | Unknown status for unlisted mods or versions |
+| FR133 | Epic 14 | View mod update status |
+| FR134 | Epic 14 | On-demand update check |
+| FR135 | Epic 14 | One-click mod update |
+| FR136 | Epic 14 | Warning before not-verified update |
+| FR137 | Epic 14 | Failed update leaves mod unchanged |
+| FR138 | Epic 14 | Preserve enabled state across version change |
+| FR139 | Epic 14 | Pending restart on version change |
+| FR140 | Epic 14 | Switch to any listed release |
+| FR141 | Epic 14 | Warnings when switching versions |
+| FR142 | Epic 14 | Reuse cached release, otherwise download |
+| FR143 | Epic 14 | Update all compatible mods |
+| FR144 | Epic 14 | Update all skips and reports not-verified mods |
+| FR145 | Epic 14 | Per-mod results, failures isolated |
+| FR146 | Epic 14 | Scheduled update checks |
+| FR147 | Epic 14 | Update status survives API restart |
+| FR148 | Epic 14 | Update count on Dashboard and navigation |
+| FR149 | Epic 14 | Admin-only webhook URL treated as a secret |
+| FR150 | Epic 14 | One webhook alert per new update |
+| FR151 | Epic 14 | Webhook failures isolated from checks |
 
 ## Epic List
 
@@ -425,7 +450,7 @@ Admins can install, enable/disable, and remove mods via the web UI with automati
 - CompatibilityBadge component
 - Pending restart indication
 
-**Post-MVP (deferred):**
+**Post-MVP (delivered by Epic 14):**
 
 - Mod update detection
 - One-click updates
@@ -1832,7 +1857,8 @@ So that **I can monitor background task status**.
 | Epic 11: GameServer Navigation Refactor | 11.1, 11.2, 11.3, 11.4, 11.5, 11.6 | 6 |
 | Epic 12: Enhanced Dashboard with Server Metrics | 12.1, 12.2, 12.3, 12.4, 12.5, 12.6 | 6 |
 | Epic 13: Server Version Browser | 13.0, 13.1, 13.2, 13.3, 13.4, 13.5 | 6 |
-| **Total** | | **71** |
+| Epic 14: Mod Updates | 14.0, 14.1, 14.2, 14.3, 14.4, 14.5, 14.6 | 7 |
+| **Total** | | **78** |
 
 ---
 
@@ -3206,3 +3232,366 @@ So that **I can cleanly remove the installation without manual file deletion**.
 - [ ] Add success toast and state transition after uninstall
 - [ ] Disable button when server is in transitional states (starting, stopping, installing)
 - [ ] Add tests for uninstall UI flow
+
+---
+
+## Epic 14: Mod Updates
+
+**Goal:** Admins can see when installed mods have updates, apply them individually or together, switch to any listed release, and be alerted when new updates appear.
+
+### Current State
+
+- Mods can be installed, enabled, disabled and removed
+- Installing an already-installed mod is rejected, so the detail page's Update button cannot succeed
+- The mod refresh job fetches data for installed mods but discards it
+
+### Target State
+
+- Installed mods show their update status and offered version
+- Update and version switching are one safe operation that leaves the mod unchanged on failure
+- Scheduled checks drive an in-app count badge and an optional webhook alert
+
+---
+
+### Story 14.0: Epic 14 Technical Preparation
+
+As a **developer**,
+I want **mod release behavior verified against the live mod database**,
+So that **update logic rests on confirmed behavior**.
+
+**Acceptance Criteria:**
+
+**Given** the live mod API
+**When** releases are inspected for several mods
+**Then** findings document release ordering, whether old releases remain listed, and how filenames vary between versions
+
+**Given** a mod file is replaced while the game server is running
+**When** the behavior is tested
+**Then** findings document whether replacement is safe before a restart
+
+**Given** common webhook receivers
+**When** payload requirements are researched
+**Then** a payload format is documented that works with Discord and generic receivers
+
+**Tasks:**
+- [ ] Verify release ordering and history against the live API
+- [ ] Test replacing a mod file while the server runs
+- [ ] Define the webhook payload
+- [ ] Update architecture documentation with findings
+
+---
+
+### Story 14.1: Update Detection and Status API
+
+As an **administrator**,
+I want **to see which installed mods have updates**,
+So that **I know what can be updated without checking each mod**.
+
+**Acceptance Criteria:**
+
+**Given** an installed mod has newer releases
+**When** update status is determined
+**Then** release order from the mod database identifies them, without comparing version strings (apart from the base-version check below)
+**And** the offered update is the newest compatible release, or if none, the newest not-verified release
+
+*(Covers FR129, FR130)*
+
+**Given** a ModDB entry contains releases for several modids
+**When** update status is determined
+**Then** only releases with the installed mod's modid are considered
+**And** the installed release is identified by both modid and version
+
+**Given** the installed version is stable
+**When** a newer release is a pre-release (its version contains `-`)
+**Then** it is not offered as an update
+**And** a mod already on a pre-release can be offered a newer release only if its base version (the dot-separated numeric part before any `-`) is at least the installed base version
+**And** a newer release whose base version cannot be parsed is not eligible, and if the installed base version cannot be parsed, no update is offered for that mod
+
+**Given** every newer release is incompatible with the current game version
+**When** update status is determined
+**Then** no update is offered
+
+*(Covers FR131)*
+
+**Given** a mod or its installed version is not listed in the mod database
+**When** update status is determined
+**Then** its status is unknown, not up to date
+
+*(Covers FR132)*
+
+**Given** I am an Admin or Monitor
+**When** I request `GET /api/v1alpha1/mods/updates`
+**Then** I receive each mod's status, offered version, compatibility and last-checked time
+
+*(Covers FR133)*
+
+**Given** I am an Admin
+**When** I request `POST /api/v1alpha1/mods/updates/check`
+**Then** status is refreshed from the mod database
+**And** a Monitor receives 403
+
+*(Covers FR134)*
+
+**Given** update status has been stored
+**When** the API restarts
+**Then** the last known status is still returned
+
+*(Covers FR147)*
+
+**Given** the mod database is unavailable
+**When** a check runs
+**Then** the previous status is preserved and the failure is reported
+
+**Tasks:**
+- [ ] Implement release-order detection and offered-version selection
+- [ ] Persist update status with atomic writes
+- [ ] Add status and check endpoints with role enforcement
+- [ ] Add tests for each status outcome and API failure
+- [ ] Add tests using `api/tests/fixtures/moddb/mod_carryon.json`: a `2.0.0-pre.8` install is offered `2.0.0-rc.1` but never `1.14.3`, and a `1.14.3` install is never offered a pre-release
+
+---
+
+### Story 14.2: Version Change API
+
+As an **administrator**,
+I want **a mod moved safely to a chosen version**,
+So that **a failed update never leaves me without a working mod**.
+
+**Acceptance Criteria:**
+
+**Given** an installed mod and a release listed in the mod database with the installed mod's modid
+**When** I request `PUT /api/v1alpha1/mods/{slug}/version`
+**Then** the release is obtained from cache if present, otherwise downloaded
+**And** the installed file is replaced only after the new file is validated
+
+*(Covers FR135, FR140, FR142)*
+
+**Given** a download or validation failure
+**When** the version change fails
+**Then** the original file and state are unchanged
+**And** a specific error code is returned
+
+*(Covers FR137)*
+
+**Given** a cached or downloaded archive whose modid or version differs from the requested release
+**When** it is validated
+**Then** a cached copy is replaced by a fresh download, and a downloaded copy fails the change
+**And** the original file and state are unchanged
+
+**Given** ModDB's filename for the release
+**When** it is used to name a file
+**Then** only its final path component is used, and empty, `.` or `..` names are rejected
+
+**Given** the old file cannot be deleted after the swap
+**When** the change completes
+**Then** the new file is removed, the original remains, and the change is reported as failed
+
+**Given** the mod is disabled
+**When** its version changes
+**Then** it remains disabled
+
+*(Covers FR138)*
+
+**Given** the server is running
+**When** a version change succeeds
+**Then** a restart is marked as pending
+
+*(Covers FR139)*
+
+**Given** a release whose modid differs from the installed mod's, even within the same mod database entry
+**When** a version change to it is requested
+**Then** the request is rejected and the mod is unchanged
+
+**Given** the target release is not verified, incompatible, a pre-release while the installed version is stable, or older than the installed release (later in the mod database's release list)
+**When** the request does not include explicit confirmation
+**Then** the request is rejected with the compatibility details
+
+*(Covers FR136, FR141)*
+
+**Given** a version change is in progress for a mod
+**When** another change is requested for that mod
+**Then** the second request is rejected with 409
+
+**Tasks:**
+- [ ] Add a version change operation to ModService
+- [ ] Reuse the download, validation and atomic replacement patterns
+- [ ] Add error codes to `models/errors.py`
+- [ ] Add the endpoint, Admin only
+- [ ] Add tests for failure at each stage, disabled mods and concurrency
+- [ ] Add tests using `api/tests/fixtures/moddb/mod_instruments.json` (version `1.0.1` under two modids) and `mod_carryon.json` (publish order differs from version order)
+
+---
+
+### Story 14.3: Update and Version Switching UI
+
+As an **administrator**,
+I want **to update or switch a mod's version from the UI**,
+So that **I can manage versions without touching files**.
+
+**Acceptance Criteria:**
+
+**Given** a mod has an offered update
+**When** I view the Installed tab
+**Then** I see the installed and offered versions with an Update action, on desktop and mobile layouts
+
+**Given** the offered update is compatible
+**When** I click Update
+**Then** the mod updates without further confirmation and I see a success toast
+
+*(Covers FR135)*
+
+**Given** the offered update is not verified
+**When** I click Update
+**Then** a warning must be confirmed first
+
+*(Covers FR136)*
+
+**Given** a mod's status is unknown
+**When** I view the Installed tab
+**Then** it is shown as unknown, not as up to date
+
+**Given** an installed mod
+**When** I open its detail page
+**Then** the Update button succeeds
+**And** I can select any release listed for the installed mod's modid, with warnings for not-verified, incompatible, pre-release (when the installed version is stable) or older releases
+
+*(Covers FR79, FR140, FR141)*
+
+**Given** an update fails
+**When** the error is returned
+**Then** I see an error toast and the mod is shown unchanged
+
+**Tasks:**
+- [ ] Add update status and version change hooks with query invalidation
+- [ ] Add version information and the Update action to the Installed tab
+- [ ] Add confirmation dialogs
+- [ ] Connect the detail page Update button and version selector to the new endpoint
+- [ ] Add component tests
+- [ ] Manual browser verification
+
+---
+
+### Story 14.4: Update All
+
+As an **administrator**,
+I want **to apply all compatible updates at once**,
+So that **routine updates take a single action**.
+
+**Acceptance Criteria:**
+
+**Given** mods have compatible updates
+**When** I request `POST /api/v1alpha1/mods/updates/apply-all`
+**Then** each is updated using the version change operation
+**And** results are returned per mod
+
+*(Covers FR143, FR145)*
+
+**Given** a mod's offered update is not verified
+**When** update all runs
+**Then** it is skipped and reported for individual review
+
+*(Covers FR144)*
+
+**Given** one mod fails to update
+**When** update all continues
+**Then** the remaining mods are still processed
+
+*(Covers FR145)*
+
+**Given** I click Update All in the UI
+**When** the confirmation appears
+**Then** it lists what will be updated and skipped
+**And** afterwards I see a per-mod summary and at most one restart prompt
+
+**Tasks:**
+- [ ] Add the apply-all endpoint, Admin only
+- [ ] Re-evaluate each offered version when applying
+- [ ] Add the Update All action, confirmation and summary
+- [ ] Add API and component tests
+- [ ] Manual browser verification
+
+---
+
+### Story 14.5: Scheduled Checks and Update Badges
+
+As an **administrator**,
+I want **updates found automatically and shown at a glance**,
+So that **I notice them without checking**.
+
+**Acceptance Criteria:**
+
+**Given** `mod_list_refresh_interval` is greater than 0
+**When** the refresh job runs
+**Then** update status is recorded for each installed mod
+**And** a failure for one mod does not affect the others
+
+*(Covers FR146)*
+
+**Given** `mod_list_refresh_interval` is 0
+**When** the scheduler starts
+**Then** no scheduled checks run
+**And** on-demand checks still work
+
+*(Covers FR146)*
+
+**Given** updates are available
+**When** I view the Dashboard or navigation
+**Then** I see the count of mods with updates
+**And** selecting it takes me to the Installed tab
+
+*(Covers FR148)*
+
+**Given** no updates are available
+**When** I view the Dashboard or navigation
+**Then** no count is shown
+
+**Tasks:**
+- [ ] Extend `mod_cache_refresh` to record update status
+- [ ] Add the count to the Dashboard and Mods navigation
+- [ ] Add job and component tests
+- [ ] Manual browser verification
+
+---
+
+### Story 14.6: Webhook Alerts
+
+As an **administrator**,
+I want **an alert sent to my chat when updates appear**,
+So that **I find out without opening the UI**.
+
+**Acceptance Criteria:**
+
+**Given** I am an Admin
+**When** I save an http or https webhook URL in API settings
+**Then** it is stored and later shown only as configured or not configured
+**And** the URL is never logged or returned to a Monitor
+
+*(Covers FR149)*
+
+**Given** a check finds a newly available update
+**When** a webhook is configured
+**Then** one alert is sent for that mod and version
+**And** later checks do not repeat it, including after an API restart
+
+*(Covers FR150)*
+
+**Given** the webhook URL is a Discord webhook
+**When** an alert is sent
+**Then** the payload contains only `content` and `allowed_mentions`, with mentions suppressed and `content` within 2000 characters
+**And** any other receiver gets `event`, `content` and an `updates` list
+
+**Given** webhook delivery fails or times out
+**When** the job continues
+**Then** a failure is logged without the URL
+**And** update checks are unaffected
+**And** the alert is retried on the next check
+
+*(Covers FR151)*
+
+**Tasks:**
+- [ ] Add the webhook setting with redacted reads
+- [ ] Add a settings UI field
+- [ ] Send alerts without following redirects, and record what was sent
+- [ ] Add tests for deduplication, redaction and failure, including replayed Discord `204` and `429` responses
+- [ ] Verify delivery against a test Discord webhook during manual verification
+- [ ] Manual browser verification
