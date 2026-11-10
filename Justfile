@@ -251,6 +251,11 @@ version:
 changelog *ARGS:
     @mise exec -- git cliff --unreleased --strip header {{ARGS}}
 
+# Examples: just release --dry-run | just release | just release minor | just release 0.3.0-rc.1
+# Cut a release: version files, CHANGELOG.md, commit, tag, then push after confirmation
+release *ARGS:
+    mise exec -- ./scripts/release.sh {{ARGS}}
+
 # =============================================================================
 # DATA MANAGEMENT
 # =============================================================================
