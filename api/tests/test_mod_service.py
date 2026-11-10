@@ -1417,6 +1417,30 @@ class TestModServiceLookupMod:
             await lookup_service.lookup_mod("con")
 
     @pytest.mark.asyncio
+    async def test_lookup_mod_releases_carry_their_modid(
+        self, lookup_service: ModService
+    ) -> None:
+        """lookup_mod() exposes each release's modidstr; one entry can ship several modids."""
+        import json
+
+        import respx
+        from httpx import Response
+
+        fixture = Path(__file__).parent / "fixtures" / "moddb" / "mod_instruments.json"
+        payload = json.loads(fixture.read_text())
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+                return_value=Response(200, json=payload)
+            )
+
+            result = await lookup_service.lookup_mod("instruments")
+
+        expected = [r["modidstr"] for r in payload["mod"]["releases"]]
+        assert [r.modidstr for r in result.releases] == expected
+        assert {"vsinstrumentsbase", "vsinstruments", "instruments"} <= set(expected)
+
+    @pytest.mark.asyncio
     async def test_lookup_mod_calculates_total_downloads(
         self, lookup_service: ModService
     ) -> None:

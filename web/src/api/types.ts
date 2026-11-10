@@ -151,6 +151,8 @@ export interface ModRelease {
   gameVersions: string[];
   created: string;
   changelog: string | null;
+  /** Mod ID inside this release; one database entry can ship several mod IDs. */
+  modidstr: string;
 }
 
 /**

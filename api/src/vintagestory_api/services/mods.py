@@ -504,6 +504,7 @@ class ModService:
                 game_versions=r.get("tags", []),
                 created=r.get("created", ""),
                 changelog=r.get("changelog"),
+                modidstr=r.get("modidstr") or "",
             )
             for r in releases
         ]

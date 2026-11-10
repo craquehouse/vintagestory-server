@@ -1,6 +1,6 @@
 # Story 14.3: Update and Version Switching UI
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -51,10 +51,10 @@ so that **I can manage versions without touching files**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add the release modid to mod lookups + tests (AC: 6)
-  - [ ] 1.1: Add `modidstr: str` to `ModRelease` in `api/src/vintagestory_api/models/mods.py` and set it in `ModService.lookup_mod` from each release's `modidstr`
-  - [ ] 1.2: API test that lookup releases carry `modidstr` (instruments fixture: several modids)
-  - [ ] 1.3: Add `modidstr: string` to `ModRelease` in `web/src/api/types.ts`
+- [x] Task 1: Add the release modid to mod lookups + tests (AC: 6)
+  - [x] 1.1: Add `modidstr: str` to `ModRelease` in `api/src/vintagestory_api/models/mods.py` and set it in `ModService.lookup_mod` from each release's `modidstr`
+  - [x] 1.2: API test that lookup releases carry `modidstr` (instruments fixture: several modids)
+  - [x] 1.3: Add `modidstr: string` to `ModRelease` in `web/src/api/types.ts`
 
 - [ ] Task 2: Add the web API layer for updates and version changes + tests (AC: 2, 3, 4, 5)
   - [ ] 2.1: `api/client.ts`: pass `errorData.detail.details` into `ApiError` so confirmation reasons reach the UI

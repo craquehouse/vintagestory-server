@@ -162,6 +162,9 @@ class ModRelease(BaseModel):
     changelog: str | None = None
     """HTML-formatted changelog for this release."""
 
+    modidstr: str = ""
+    """Mod ID inside this release; one database entry can ship several mod IDs."""
+
 
 class ModLookupResponse(BaseModel):
     """Response from mod lookup endpoint.
