@@ -48,10 +48,10 @@ so that **I notice them without checking**.
   - [x] 2.2: `Sidebar` sets the Mods item's badge from `useModUpdates()` (`updateCount`); the item already opens the Installed tab (`/game-server/mods` → `installed`)
   - [x] 2.3: Tests: badge shown with count, hidden at 0, parent total while closed, collapsed tooltip
 
-- [ ] Task 3: Update notice on the Dashboard + tests (AC: 4, 5)
-  - [ ] 3.1: `ModUpdatesNotice`: "N mod updates available" linking to `/game-server/mods/installed`; renders nothing when the count is 0 or unknown
-  - [ ] 3.2: Shown on the installed-server Dashboard below the disk space warning
-  - [ ] 3.3: Tests
+- [x] Task 3: Update notice on the Dashboard + tests (AC: 4, 5)
+  - [x] 3.1: `ModUpdatesNotice`: "N mod updates available" linking to `/game-server/mods/installed`; renders nothing when the count is 0 or unknown
+  - [x] 3.2: Shown on the installed-server Dashboard below the disk space warning
+  - [x] 3.3: Tests
 
 - [ ] Task 4: Manual browser verification and final validation (AC: all)
   - [ ] 4.1: Throwaway container with a short `mod_list_refresh_interval` and a mod with an update: without clicking Check, the job records status and the badge and notice appear; following them opens the Installed tab; check the browser console

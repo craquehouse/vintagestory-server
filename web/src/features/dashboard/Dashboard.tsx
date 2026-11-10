@@ -29,6 +29,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
+import { ModUpdatesNotice } from '@/components/ModUpdatesNotice';
 import { EmptyServerState } from '@/components/EmptyServerState';
 import { StatCardErrorBoundary } from '@/components/StatCardErrorBoundary';
 import { useServerStatus, useServerStateToasts } from '@/hooks/use-server-status';
@@ -109,6 +110,9 @@ export function Dashboard() {
 
       {/* Disk space warning banner - shown when space is low */}
       <DiskSpaceWarningBanner diskSpace={serverStatus?.diskSpace} />
+
+      {/* Mod updates available (Story 14.5) */}
+      <ModUpdatesNotice />
 
       {/* Stat cards grid: responsive layout (AC: 1, 5)
           - Mobile (<640px): 1 column
