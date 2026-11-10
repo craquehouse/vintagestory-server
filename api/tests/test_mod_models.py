@@ -21,6 +21,25 @@ from vintagestory_api.models.mods import (
 class TestModMetadata:
     """Tests for ModMetadata model (extracted from modinfo.json)."""
 
+    @pytest.mark.parametrize(
+        ("side", "expected"),
+        [
+            ("Universal", "Both"),  # VintageStory's own name for both sides
+            ("universal", "Both"),
+            ("Both", "Both"),
+            ("client", "Client"),
+            ("SERVER", "Server"),
+            ("Server", "Server"),
+            ("sideways", None),  # unknown: keep the rest of the metadata
+            (None, None),
+        ],
+    )
+    def test_side_is_normalized(self, side: str | None, expected: str | None) -> None:
+        metadata = ModMetadata.model_validate(
+            {"modid": "betterruins", "name": "BetterRuins", "version": "0.6.4", "side": side}
+        )
+        assert metadata.side == expected
+
     def test_create_with_required_fields(self) -> None:
         """ModMetadata can be created with only required fields."""
         metadata = ModMetadata(

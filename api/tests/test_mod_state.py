@@ -567,6 +567,27 @@ class TestImportMod:
         assert metadata.authors == ["Author1"]
         assert metadata.description == "A test mod"
 
+    def test_import_mod_accepts_universal_side(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """A modinfo with side "Universal" imports its real modid and version (Better Ruins)."""
+        zip_path = temp_mods_dir / "BetterRuinsv0.6.4.zip"
+        create_mod_zip(
+            zip_path,
+            {
+                "type": "content",
+                "modid": "betterruins",
+                "name": "BetterRuins",
+                "version": "0.6.4",
+                "side": "Universal",
+                "dependencies": {"game": "1.22.0"},
+            },
+        )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        assert (metadata.modid, metadata.version, metadata.side) == ("betterruins", "0.6.4", "Both")
+
     def test_import_mod_caches_modinfo(
         self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
     ) -> None:

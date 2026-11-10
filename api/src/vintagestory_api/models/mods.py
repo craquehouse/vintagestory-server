@@ -11,7 +11,14 @@ These models support the mod service layer:
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+_MODINFO_SIDES: dict[str, str] = {
+    "universal": "Both",
+    "both": "Both",
+    "client": "Client",
+    "server": "Server",
+}
 
 
 class ModMetadata(BaseModel):
@@ -37,7 +44,19 @@ class ModMetadata(BaseModel):
     """Optional description of the mod."""
 
     side: Literal["Both", "Client", "Server"] | None = None
-    """Mod side: 'Both', 'Client', or 'Server'. None if not specified in modinfo.json."""
+    """Mod side: 'Both', 'Client', or 'Server'. None if not specified or not recognized."""
+
+    @field_validator("side", mode="before")
+    @classmethod
+    def _normalize_side(cls, value: object) -> str | None:
+        """Accept modinfo.json side values as VintageStory does (case-insensitive).
+
+        VintageStory names both sides "Universal"; the mod database says "Both". An
+        unrecognized value becomes None rather than discarding the whole modinfo.
+        """
+        if not isinstance(value, str):
+            return None
+        return _MODINFO_SIDES.get(value.strip().lower())
 
 
 class ModState(BaseModel):
