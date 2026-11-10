@@ -95,6 +95,7 @@ class HealthData(BaseModel):
     """Health check response data."""
 
     api: str = "healthy"
+    version: str = Field(description="Manager version (API, web UI and image), e.g. '1.2.3'.")
     game_server: GameServerStatus
     game_server_version: str | None = Field(
         default=None,

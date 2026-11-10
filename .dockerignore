@@ -2,10 +2,11 @@
 .git
 .gitignore
 
-# Environment files (except example)
-.env
-.env.*
-!.env.example
+# Environment files at any depth (except examples): web/.env holds a developer's
+# VITE_API_KEY, which Vite would otherwise build into the bundle
+**/.env
+**/.env.*
+!**/.env.example
 
 # Data directory (mounted at runtime)
 data/

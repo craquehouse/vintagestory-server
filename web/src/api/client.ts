@@ -20,15 +20,15 @@ interface ApiConfig {
 }
 
 /**
- * Get API configuration from environment variables.
+ * Get API configuration.
  *
- * In development, read from Vite env vars.
- * In production, these would come from runtime config.
+ * The API key comes from the runtime configuration the server serves at /config.js
+ * (the published image), falling back to the VITE_API_KEY build variable (the dev server).
  */
 function getConfig(): ApiConfig {
   return {
     baseUrl: import.meta.env.VITE_API_BASE_URL || '',
-    apiKey: import.meta.env.VITE_API_KEY || '',
+    apiKey: window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || '',
   };
 }
 

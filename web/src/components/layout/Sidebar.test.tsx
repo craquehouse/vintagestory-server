@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./Sidebar";
+import { APP_VERSION } from "@/lib/version";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { PreferencesProvider } from "@/contexts/PreferencesContext";
 
@@ -241,8 +242,14 @@ describe("Sidebar", () => {
 
       await user.click(collapseButton);
 
-      const version = screen.queryByText("v0.1.0");
+      const version = screen.queryByText(`v${APP_VERSION}`);
       expect(version).not.toBeInTheDocument();
+    });
+
+    it("shows the manager version when expanded", () => {
+      renderWithProviders(<Sidebar />);
+
+      expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
     });
 
     it("hides nav labels when collapsed", async () => {

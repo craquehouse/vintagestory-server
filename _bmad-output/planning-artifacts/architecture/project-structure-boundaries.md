@@ -444,8 +444,8 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 # .github/workflows/ci.yaml
 # 1. Lint (ruff, eslint)
 # 2. Test (pytest, vitest)
-# 3. Build Docker image
-# 4. Push to ghcr.io/craquehouse/vintagestory-server
+# 3. Build Docker image (not pushed)
+# Publishing: .github/workflows/release.yml on version tags (Epic 15 ADR-4)
 ```
 
 ## File Organization Patterns

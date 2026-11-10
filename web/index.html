@@ -8,6 +8,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Runtime configuration (API key) from the server. A classic script runs while the page
+         is parsed, before module scripts, even though the build moves the module into <head>. -->
+    <script src="/config.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

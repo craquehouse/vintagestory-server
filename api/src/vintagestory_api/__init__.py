@@ -1,3 +1,6 @@
 """VintageStory Server API."""
 
-__version__ = "0.1.0"
+from importlib.metadata import version
+
+__version__ = version("vintagestory-api")
+"""The manager version, from the installed package metadata (`[project].version`)."""

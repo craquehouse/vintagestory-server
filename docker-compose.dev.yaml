@@ -6,8 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        VS_API_KEY: ${VS_API_KEY:-changeme}
     container_name: vintagestory-manager-dev
     ports:
       - "8080:8080"       # Web UI + API
@@ -18,7 +16,8 @@ services:
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
-      - VS_API_KEY=${VS_API_KEY_ADMIN:-changeme}
+      # Key the web UI receives at runtime from /config.js; empty means the Admin key
+      - VS_API_KEY=${VS_API_KEY:-}
       - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=true
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}

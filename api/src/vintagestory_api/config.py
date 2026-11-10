@@ -19,12 +19,25 @@ class Settings(BaseSettings):
     log_level: str | None = None  # Override log level (DEBUG, INFO, WARNING, ERROR)
     api_key_admin: str = ""
     api_key_monitor: str | None = None
+    # VS_API_KEY: the key the web UI uses, served at runtime by /config.js (Epic 15 ADR-5)
+    api_key: str | None = None
     game_version: str = "stable"
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
     disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
     mod_cache_max_size_mb: int = 500  # Maximum size of mod cache in MB (0 to disable)
+
+    @property
+    def web_api_key(self) -> str:
+        """The API key handed to the web UI: VS_API_KEY, or the Admin key when unset or blank."""
+        if self.api_key and self.api_key.strip():
+            return self.api_key
+        return self.api_key_admin
+
+    def web_api_key_has_a_role(self) -> bool:
+        """Whether the web UI's key is the Admin or the Monitor key, so its requests can work."""
+        return self.web_api_key in {self.api_key_admin, self.api_key_monitor}
 
     @field_validator("disk_space_warning_threshold_gb")
     @classmethod

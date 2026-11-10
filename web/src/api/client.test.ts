@@ -130,6 +130,7 @@ describe('apiClient', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    delete window.__VSM_CONFIG__;
     // Restore original env
     Object.keys(import.meta.env).forEach((key) => {
       if (!(key in originalEnv)) {
@@ -196,6 +197,44 @@ describe('apiClient', () => {
       const [, options] = mockFetch.mock.calls[0];
       const headers = options.headers as Headers;
       expect(headers.get('X-API-Key')).toBe('');
+    });
+
+    describe('runtime configuration', () => {
+      async function sentKey(): Promise<string | null> {
+        const mockFetch = vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ status: 'ok', data: {} }),
+        });
+        globalThis.fetch = mockFetch;
+        await apiClient('/test');
+        const [, options] = mockFetch.mock.calls[0];
+        return (options.headers as Headers).get('X-API-Key');
+      }
+
+      it('sends the runtime API key', async () => {
+        delete import.meta.env.VITE_API_KEY;
+        window.__VSM_CONFIG__ = { apiKey: 'runtime-key' };
+
+        expect(await sentKey()).toBe('runtime-key');
+      });
+
+      it('prefers the runtime key over VITE_API_KEY', async () => {
+        window.__VSM_CONFIG__ = { apiKey: 'runtime-key' };
+
+        expect(await sentKey()).toBe('runtime-key');
+      });
+
+      it('falls back to VITE_API_KEY when the runtime key is empty', async () => {
+        window.__VSM_CONFIG__ = { apiKey: '' };
+
+        expect(await sentKey()).toBe('test-api-key');
+      });
+
+      it('falls back to VITE_API_KEY with the placeholder config', async () => {
+        window.__VSM_CONFIG__ = {};
+
+        expect(await sentKey()).toBe('test-api-key');
+      });
     });
   });
 

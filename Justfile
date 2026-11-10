@@ -25,8 +25,8 @@ default:
 # TESTING
 # =============================================================================
 
-# Run all tests (api + web)
-test: test-api test-web
+# Run all tests (api + web + scripts)
+test: test-api test-web test-scripts
 
 # Run API tests (Python/pytest) - accepts optional pytest args
 # Excludes E2E tests by default (run with just test-e2e-api)
@@ -37,6 +37,11 @@ test-api *ARGS:
 # Run web tests (Vitest) - accepts optional vitest args
 test-web *ARGS:
     VS_DATA_DIR=../dev mise exec -C web -- bun run test --run {{ARGS}}
+
+# Examples: just test-scripts | just test-scripts test-version.sh
+# Run tests for the release and version scripts (bash) - accepts optional test files
+test-scripts *ARGS:
+    mise exec -- ./scripts/tests/run.sh {{ARGS}}
 
 # Run API tests in watch mode (TDD)
 test-api-watch:
@@ -123,7 +128,7 @@ build-web:
 # =============================================================================
 
 # Run all linters
-lint: lint-api lint-web
+lint: lint-api lint-web lint-scripts lint-workflows
 
 # Lint API (Ruff) - accepts optional ruff args
 lint-api *ARGS:
@@ -132,6 +137,14 @@ lint-api *ARGS:
 # Lint web (TypeScript type checking)
 lint-web:
     mise exec -C web -- bun run lint
+
+# Lint the bash scripts (ShellCheck); sprint-status.sh is not yet clean (VSS-1eb)
+lint-scripts:
+    mise exec -- shellcheck -x scripts/version.sh scripts/release.sh scripts/release-notes.sh scripts/worktree-setup.sh scripts/tests/*.sh
+
+# Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
+lint-workflows:
+    mise exec -- actionlint
 
 # =============================================================================
 # TYPE CHECKING
@@ -232,6 +245,24 @@ docker COMMAND *ARGS:
             exit 1
             ;;
     esac
+
+# =============================================================================
+# RELEASES
+# =============================================================================
+
+# Print the manager version; fails if web/package.json, api/pyproject.toml and api/uv.lock disagree
+version:
+    @mise exec -- ./scripts/version.sh
+
+# Examples: just changelog | just changelog --tag v0.2.0 (heading as the release would show it)
+# Print the release notes for unreleased commits (writes nothing) - accepts git-cliff args
+changelog *ARGS:
+    @mise exec -- git cliff --unreleased --strip header {{ARGS}}
+
+# Examples: just release --dry-run | just release | just release minor | just release 0.3.0-rc.1
+# Cut a release: version files, CHANGELOG.md, commit, tag, then push after confirmation
+release *ARGS:
+    mise exec -- ./scripts/release.sh {{ARGS}}
 
 # =============================================================================
 # DATA MANAGEMENT
