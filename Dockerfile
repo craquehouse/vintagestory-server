@@ -56,11 +56,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy dependency files first for layer caching
 COPY api/pyproject.toml api/uv.lock ./
 
-# Install Python dependencies (production only, no dev deps)
-RUN uv sync --frozen --no-dev
+# Install Python dependencies (production only, no dev deps); the project itself
+# is installed after its source is copied, so this layer stays cached
+RUN uv sync --frozen --no-dev --no-install-project
 
-# Copy application source code
+# Copy application source code and install the project, so start-up needs no sync
 COPY api/src/ ./src/
+RUN uv sync --frozen --no-dev
 
 # Copy built frontend from web-build stage
 COPY --from=web-build /app/dist /app/static
@@ -87,5 +89,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # 42420: VintageStory game server (future)
 EXPOSE 8080 42420
 
-# Start uvicorn server
-CMD ["uv", "run", "uvicorn", "vintagestory_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start uvicorn server. --no-sync: everything is installed at build time; a sync here
+# would add the dev group and download it from PyPI on every start (VSS-flj)
+CMD ["uv", "run", "--no-sync", "uvicorn", "vintagestory_api.main:app", "--host", "0.0.0.0", "--port", "8080"]
