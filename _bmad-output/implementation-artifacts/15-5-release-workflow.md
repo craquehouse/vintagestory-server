@@ -63,6 +63,15 @@ so that **I can install a specific version and trust where it came from**.
   - [x] 5.1: `just check`, `just lint-workflows`; update the Dev Agent Record and File List
   - [ ] 5.2: After Task 4: AAR on `VSS-3es` ([CICD-005] Add release action) and close it
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] The release job was not idempotent: a failure after `gh release create` (e.g. the SBOM upload) left a release without its SBOM that no re-run could fix. The job now edits an existing release or creates it, then uploads the SBOM with `--clobber`; `RELEASING.md` updated
+- [x] [AI-Review][Low] `release-notes.sh` hid git-cliff's errors: stderr is captured separately and shown on failure
+- [x] [AI-Review][Low] The pin check flagged local (`./`) and digest-pinned `docker://` actions: both are accepted
+- [x] [AI-Review][Low] Release builds are not reproducible (`uv:latest`, `apt-get upgrade`; pre-existing): filed `VSS-870`
+- [x] [AI-Review][Low] Pre-release notes will contain old bookkeeping entries until the first stable tag (history before the commit-type change; expected for `v0.1.0-rc.1`)
+- [x] [AI-Review][Low] Empty pre-release notes: `release-notes.sh` prints "No user-facing changes since the last stable release."; test added
+
 ## Dev Notes
 
 ### Scope and sequencing
@@ -113,3 +122,21 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-10: Story created.
 - 2026-11-10: Tasks 1-3 and 5.1 implemented; `just check` passes. Status review; Task 4 follows the merge.
+- 2026-11-10: Code review (GLM-5.3-Flash, Approve with findings). Fixed the Medium and four Lows, filed one. Code review complete; Task 4 (release candidate) and 5.2 follow the merge.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `4de2688`..`7275d7f`
+**Outcome:** Approve (one Medium, five Low)
+
+**Summary:** All ten SHA pins resolved against their versions; per-job permissions match the `actions/attest` README at the pinned SHA (including `artifact-metadata: write`); metadata-action tag and label behavior confirmed from its README; no untrusted interpolation in `run:` blocks; the version argument is regex-validated; `release` needs `verify` and `image`, so a mismatch or failed build publishes nothing. Script suites pass under bash 3.2.57 and 5.3. Not checked by design: the real GHCR push, attestation and verification round-trip (Task 4).
+
+### Action Items
+
+- [x] [Medium] Idempotent release job
+- [x] [Low] Show git-cliff errors
+- [x] [Low] Pin check false positives
+- [x] [Low] Reproducible builds (`VSS-870`)
+- [x] [Low] Bookkeeping in pre-release notes (expected)
+- [x] [Low] Empty pre-release notes
