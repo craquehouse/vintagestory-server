@@ -71,9 +71,9 @@ so that **a failed update never leaves me without a working mod**.
   - [x] 1.2: Extract `ModApiClient.download_release_file(fileid, filename) -> Path` from step 3 of `download_mod` (stream to `{cache}/mods/{safe name}` through a `.tmp` file, then rename; existing error handling); make `download_mod` call it
   - [x] 1.3: Tests: hostile names (`../x.zip`, `a/b.zip`, `a\\b.zip`, `..`, `""`, NUL) and that `download_mod` uses the safe name; all existing `test_mod_api.py` download tests still pass
 
-- [ ] Task 2: Add strict archive validation + tests (AC: 3)
-  - [ ] 2.1: Add `ModStateManager.read_modinfo(zip_path) -> ModMetadata | None`: parse `modinfo.json` with the existing safe extractor and **no caching or fallback**; `None` when missing or invalid
-  - [ ] 2.2: Tests: valid archive, missing `modinfo.json`, corrupt zip, invalid JSON, wrong field types
+- [x] Task 2: Add strict archive validation + tests (AC: 3)
+  - [x] 2.1: Add `ModStateManager.read_modinfo(zip_path) -> ModMetadata | None`: parse `modinfo.json` with the existing safe extractor and **no caching or fallback**; `None` when missing or invalid
+  - [x] 2.2: Tests: valid archive, missing `modinfo.json`, corrupt zip, invalid JSON, wrong field types
 
 - [ ] Task 3: Implement version resolution, confirmation and archive acquisition + tests (AC: 1, 2, 3, 8, 10)
   - [ ] 3.1: Add `ModService.change_version(slug, version, confirm)`: installed check (`ModNotFoundError`), no-op when already at the version, fresh `get_mod(slug)`, filter releases to `modidstr == slug`, find `modversion == version` (else `ModVersionNotFoundError`)
@@ -235,7 +235,10 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Completion Notes List
 
 - Task 1: Added `safe_release_filename` (raises `ValueError`; `download_release_file` converts it to `DownloadError`) and extracted `ModApiClient.download_release_file`, which `download_mod` now uses, so the install path also gets sanitized names (`VSS-432`). The temp file is now `<name>.tmp` rather than a swapped suffix, so a release named `x.tmp` cannot collide with its own temp file. 15 tests; existing `test_mod_api.py`, `test_mod_service.py` and `test_mods_router.py` pass unchanged.
+- Task 2: Added `ModStateManager.read_modinfo` (no caching, no fallback, case-insensitive top-level keys as VintageStory reads them). The shared extractor now accepts a UTF-8 byte-order mark, returns `None` for undecodable bytes (previously an uncaught `UnicodeDecodeError`) and for JSON that is not an object; this also benefits `import_mod`. 10 tests; existing mod state and service suites pass.
+
 ### File List
 
 - Created: `api/tests/test_mod_version_change.py`
 - Modified: `api/src/vintagestory_api/services/mod_api.py`
+- Modified: `api/src/vintagestory_api/services/mod_state.py`

@@ -9,6 +9,7 @@ import json
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import structlog
 
@@ -240,6 +241,25 @@ class ModStateManager:
         )
         return metadata
 
+    def read_modinfo(self, zip_path: Path) -> ModMetadata | None:
+        """Read and validate an archive's modinfo.json without caching or fallback.
+
+        Top-level keys are matched case-insensitively, as VintageStory does
+        (for example "ModID" or "Version").
+
+        Returns:
+            The metadata, or None if modinfo.json is missing, unreadable or invalid.
+        """
+        data = self._extract_modinfo_from_zip(zip_path)
+        if data is None:
+            return None
+        normalized = {key.lower(): value for key, value in data.items()}
+        try:
+            return ModMetadata.model_validate(normalized)
+        except ValueError as e:
+            logger.warning("modinfo_invalid", filename=zip_path.name, error=str(e))
+            return None
+
     def _is_safe_zip_path(self, name: str) -> bool:
         """Validate that a zip member path is safe (no path traversal).
 
@@ -299,8 +319,12 @@ class ModStateManager:
                             )
                             continue
 
-                        content = zf.read(name).decode("utf-8")
-                        return json.loads(content)
+                        content = zf.read(name).decode("utf-8-sig")
+                        parsed = json.loads(content)
+                        if not isinstance(parsed, dict):
+                            logger.warning("modinfo_not_object", filename=zip_path.name)
+                            return None
+                        return cast(dict[str, object], parsed)
 
                 logger.debug(
                     "modinfo_not_found_in_zip",
@@ -308,7 +332,7 @@ class ModStateManager:
                 )
                 return None
 
-        except (zipfile.BadZipFile, KeyError, json.JSONDecodeError) as e:
+        except (zipfile.BadZipFile, KeyError, json.JSONDecodeError, UnicodeDecodeError) as e:
             logger.warning(
                 "modinfo_extraction_failed",
                 filename=zip_path.name,
