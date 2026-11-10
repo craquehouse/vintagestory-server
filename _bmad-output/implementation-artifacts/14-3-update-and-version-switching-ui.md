@@ -64,10 +64,10 @@ so that **I can manage versions without touching files**.
   - [x] 2.5: Hooks in `hooks/use-mods.ts`: `useModUpdates()`, `useCheckModUpdates()`, `useChangeModVersion()`; mutations invalidate `queryKeys.mods.all` (which covers the update status key)
   - [x] 2.6: Tests for the client change, API functions and hooks
 
-- [ ] Task 3: Show update status in the Installed tab + tests (AC: 1, 5)
-  - [ ] 3.1: Add an "Available" column to `ModTable` driven by `useModUpdates()`, keyed by slug
-  - [ ] 3.2: "Check for updates" button and "Last checked …" text in `InstalledTab`; spinner while running; error toast on failure (including 409 when a check is already running)
-  - [ ] 3.3: Component tests for each status, the check button and last-checked text
+- [x] Task 3: Show update status in the Installed tab + tests (AC: 1, 5)
+  - [x] 3.1: Add an "Available" column to `ModTable` driven by `useModUpdates()`, keyed by slug
+  - [x] 3.2: "Check for updates" button and "Last checked …" text in `InstalledTab`; spinner while running; error toast on failure (including 409 when a check is already running)
+  - [x] 3.3: Component tests for each status, the check button and last-checked text
 
 - [ ] Task 4: Version change flow with confirmation + tests (AC: 2, 3, 4, 7)
   - [ ] 4.1: Shared `useVersionChangeFlow()` hook or component: call `changeModVersion` without `confirm`; on `MOD_CONFIRMATION_REQUIRED` open `VersionChangeConfirmDialog` listing reasons; on confirm retry with `confirm: true`

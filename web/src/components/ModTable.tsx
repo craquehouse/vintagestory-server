@@ -43,9 +43,17 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
-import { useMods, useEnableMod, useDisableMod, useRemoveMod, useModsCompatibility } from '@/hooks/use-mods';
+import { ModUpdateCell } from '@/components/ModUpdateCell';
+import {
+  useMods,
+  useEnableMod,
+  useDisableMod,
+  useRemoveMod,
+  useModsCompatibility,
+  useModUpdates,
+} from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
-import type { ModInfo, CompatibilityStatus } from '@/api/types';
+import type { ModInfo, CompatibilityStatus, ModUpdateStatus } from '@/api/types';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -57,6 +65,8 @@ interface ModTableProps {
 /** Extended ModInfo with compatibility and side data for table rendering */
 interface ModTableRow extends ModInfo {
   compatibilityStatus: CompatibilityStatus;
+  /** Story 14.3: update status from GET /mods/updates */
+  updateStatus?: ModUpdateStatus;
 }
 
 const features = tableFeatures({
@@ -119,6 +129,14 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const slugs = mods.map((m) => m.slug);
   const { compatibilityMap, sideMap } = useModsCompatibility(slugs);
 
+  // Story 14.3: update status for the Available column
+  const { data: updatesData } = useModUpdates();
+  const gameVersion = updatesData?.data?.gameVersion ?? null;
+  const updateMap = useMemo(
+    () => new Map((updatesData?.data?.mods ?? []).map((item) => [item.slug, item])),
+    [updatesData]
+  );
+
   // VSS-g54: Convert preferences to TanStack Table sorting state
   const sorting: SortingState = useMemo(() => {
     const { column, direction } = preferences.installedModsSort;
@@ -155,8 +173,9 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       compatibilityStatus: compatibilityMap.get(mod.slug) ?? 'not_verified',
       // Use API side if available, fall back to sideMap for legacy data
       side: mod.side ?? sideMap.get(mod.slug) ?? null,
+      updateStatus: updateMap.get(mod.slug),
     }));
-  }, [mods, compatibilityMap, sideMap]);
+  }, [mods, compatibilityMap, sideMap, updateMap]);
 
   const handleToggle = useCallback((mod: ModInfo) => {
     if (mod.enabled) {
@@ -258,6 +277,13 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
         <span className="text-muted-foreground">v{getValue()}</span>
       ),
     }),
+    columnHelper.display({
+      id: 'available',
+      header: 'Available',
+      cell: ({ row }) => (
+        <ModUpdateCell status={row.original.updateStatus} gameVersion={gameVersion} />
+      ),
+    }),
     columnHelper.accessor('side', {
       header: 'Side',
       cell: ({ getValue }) => <SideBadge side={getValue()} />,
@@ -323,7 +349,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       },
       meta: { className: 'w-[80px]' },
     }),
-  ]), [handleToggle, handleRemoveClick, isTogglingMod]);
+  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion]);
 
   const table = useTable({
     features,

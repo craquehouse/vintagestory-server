@@ -1390,4 +1390,64 @@ describe('ModTable', () => {
       });
     });
   });
+
+  describe('Available column (Story 14.3)', () => {
+    it('shows update status for each mod', async () => {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? {
+              status: 'ok',
+              data: {
+                game_version: '1.22.7',
+                checked_at: '2026-11-09T00:00:00Z',
+                update_count: 1,
+                mods: [
+                  {
+                    slug: 'smithingplus',
+                    name: 'Smithing Plus',
+                    installed_version: '1.5.0',
+                    status: 'update_available',
+                    offered_version: '1.6.0',
+                    offered_compatibility: 'compatible',
+                    offered_prerelease: false,
+                    reason: null,
+                    checked_at: '2026-11-09T00:00:00Z',
+                    error: null,
+                  },
+                  {
+                    slug: 'carrycapacity',
+                    name: 'Carry Capacity',
+                    installed_version: '2.0.0',
+                    status: 'blocked',
+                    offered_version: null,
+                    offered_compatibility: null,
+                    offered_prerelease: null,
+                    reason: null,
+                    checked_at: '2026-11-09T00:00:00Z',
+                    error: null,
+                  },
+                ],
+              },
+            }
+          : mockModsResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-update-smithingplus')).toHaveTextContent('v1.6.0');
+      });
+      expect(screen.getByText('Available')).toBeInTheDocument();
+      expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(
+        'No compatible update'
+      );
+      expect(screen.getByTestId('mod-update-carrycapacity')).toHaveAttribute(
+        'title',
+        expect.stringContaining('1.22.7')
+      );
+    });
+  });
 });
+
