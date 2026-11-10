@@ -43,10 +43,10 @@ so that **I find out without opening the UI**.
   - [x] 1.2: `GET /config/api` returns `mod_update_webhook_configured` instead of the URL; `POST /config/api/settings/mod_update_webhook_url` returns `{key, configured}` and logs `configured`, never the value
   - [x] 1.3: Tests: set, clear, invalid scheme, too long, redacted read and update response, no URL in logs, Monitor 403
 
-- [ ] Task 2: Alert delivery + tests (AC: 3, 4)
-  - [ ] 2.1: `services/mod_update_alerts.py`: Discord detection (ADR-6 hosts and `/api/webhooks/` path), payloads, summary lines `- {name}: {installed} → {offered} ({compatibility})` truncated with "…and N more" to 2000 characters
-  - [ ] 2.2: `send_update_alert(url, items)`: POST JSON with a 10 s timeout and `follow_redirects=False`; True only for 2xx; failures logged with status or error type, never the URL or exception text
-  - [ ] 2.3: Tests with respx: Discord 204 and 429, other receiver payload, 302 not followed, timeout, connection error, truncation, URL absent from captured logs
+- [x] Task 2: Alert delivery + tests (AC: 3, 4)
+  - [x] 2.1: `services/mod_update_alerts.py`: Discord detection (ADR-6 hosts and `/api/webhooks/` path), payloads, summary lines `- {name}: {installed} → {offered} ({compatibility})` truncated with "…and N more" to 2000 characters
+  - [x] 2.2: `send_update_alert(url, items)`: POST JSON with a 10 s timeout and `follow_redirects=False`; True only for 2xx; failures logged with status or error type, never the URL or exception text
+  - [x] 2.3: Tests with respx: Discord 204 and 429, other receiver payload, 302 not followed, timeout, connection error, truncation, URL absent from captured logs
 
 - [ ] Task 3: Deduplicated alerts after each check + tests (AC: 2, 4)
   - [ ] 3.1: Store: `ModUpdatesFile.notified` (modid → offered version alerted), with store accessors; pruned with uninstalled mods
