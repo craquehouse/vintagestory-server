@@ -1,6 +1,7 @@
 """Mod management API endpoints."""
 
 import math
+from dataclasses import asdict
 from typing import Annotated, Any, Literal
 
 import structlog
@@ -34,8 +35,12 @@ from vintagestory_api.services.mod_updates import (
 from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModAlreadyInstalledError,
+    ModConfirmationRequiredError,
     ModNotFoundError,
     ModService,
+    ModValidationError,
+    ModVersionChangeFailedError,
+    ModVersionChangeInProgressError,
     get_mod_service,
 )
 
@@ -895,3 +900,64 @@ async def remove_mod(
                 "message": f"Mod '{e.slug}' is not installed",
             },
         )
+
+
+class ModVersionChangeRequest(BaseModel):
+    """Request body for changing an installed mod's version."""
+
+    version: str = Field(..., min_length=1, description="Release version to install")
+    confirm: bool = Field(
+        default=False,
+        description="Confirm a not-verified, incompatible, pre-release or older release",
+    )
+
+
+def _version_change_error(
+    status_code: int, code: str, error: Exception, **details: Any
+) -> HTTPException:
+    detail: dict[str, Any] = {"code": code, "message": str(error)}
+    if details:
+        detail["details"] = details
+    return HTTPException(status_code=status_code, detail=detail)
+
+
+@router.put("/{slug}/version", response_model=ApiResponse, summary="Change a mod's version")
+async def change_mod_version(
+    request: ModVersionChangeRequest,
+    _: RequireAdmin,
+    slug: str = Path(..., description="Installed mod's modid"),
+    service: ModService = Depends(get_mod_service),
+) -> ApiResponse:
+    """Update or roll back an installed mod to a listed release (Admin only).
+
+    The installed file is only replaced after the new release is validated; any
+    failure leaves the mod unchanged.
+    """
+    try:
+        result = await service.change_version(slug, request.version, confirm=request.confirm)
+    except ModNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_NOT_INSTALLED, e) from None
+    except ApiModNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_NOT_FOUND, e) from None
+    except ModVersionNotFoundError as e:
+        raise _version_change_error(404, ErrorCode.MOD_VERSION_NOT_FOUND, e) from None
+    except ModConfirmationRequiredError as e:
+        raise _version_change_error(
+            409,
+            ErrorCode.MOD_CONFIRMATION_REQUIRED,
+            e,
+            reasons=e.reasons,
+            compatibility=e.compatibility,
+        ) from None
+    except ModVersionChangeInProgressError as e:
+        raise _version_change_error(409, ErrorCode.MOD_VERSION_CHANGE_IN_PROGRESS, e) from None
+    except ModValidationError as e:
+        raise _version_change_error(422, ErrorCode.MOD_VALIDATION_FAILED, e) from None
+    except ExternalApiError as e:
+        raise _version_change_error(502, ErrorCode.EXTERNAL_API_ERROR, e) from None
+    except DownloadError as e:
+        raise _version_change_error(502, ErrorCode.DOWNLOAD_FAILED, e) from None
+    except ModVersionChangeFailedError as e:
+        raise _version_change_error(500, ErrorCode.MOD_VERSION_CHANGE_FAILED, e) from None
+    return ApiResponse(status="ok", data=asdict(result))
+

@@ -88,10 +88,10 @@ so that **a failed update never leaves me without a working mod**.
   - [x] 4.4: Mark a pending restart when the server is running
   - [x] 4.5: Tests for every failure point leaving the original intact, disabled mods, same filename, pending restart, and an overlapping change
 
-- [ ] Task 5: Add the endpoint + tests (AC: 8, 9, 11)
-  - [ ] 5.1: Add error codes `MOD_CONFIRMATION_REQUIRED`, `MOD_VERSION_CHANGE_IN_PROGRESS`, `MOD_VALIDATION_FAILED`, `MOD_VERSION_CHANGE_FAILED` to `models/errors.py`
-  - [ ] 5.2: Add `PUT /mods/{slug}/version` (Admin) with body `{version: str, confirm: bool = false}`; map errors as listed in Dev Notes
-  - [ ] 5.3: Router tests: success payload, each error mapping, 401 and 403
+- [x] Task 5: Add the endpoint + tests (AC: 8, 9, 11)
+  - [x] 5.1: Add error codes `MOD_CONFIRMATION_REQUIRED`, `MOD_VERSION_CHANGE_IN_PROGRESS`, `MOD_VALIDATION_FAILED`, `MOD_VERSION_CHANGE_FAILED` to `models/errors.py`
+  - [x] 5.2: Add `PUT /mods/{slug}/version` (Admin) with body `{version: str, confirm: bool = false}`; map errors as listed in Dev Notes
+  - [x] 5.3: Router tests: success payload, each error mapping, 401 and 403
 
 - [ ] Task 6: Final validation (AC: all)
   - [ ] 6.1: Run `just check`
@@ -241,9 +241,14 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 4: Added `ModService.change_version` (per-mod `asyncio.Lock`, no-op when already at the version, pending restart when the server runs) and `_apply_version_change`: copy to a temp file, rename into place keeping `.disabled`, update and save state, then delete the old file. A failure restores the original file and state. When the release reuses the old filename, the old file is first moved to `<name>.bak` (ignored by the game and the mods scan) so it can be restored; ADR-2 did not cover this case. An existing file of another mod at the new name is never overwritten. 10 tests.
 
+- Task 5: Added `MOD_CONFIRMATION_REQUIRED`, `MOD_VERSION_CHANGE_IN_PROGRESS`, `MOD_VALIDATION_FAILED` and `MOD_VERSION_CHANGE_FAILED`, and `PUT /mods/{slug}/version` (Admin) mapping each service error to the status in Dev Notes; confirmation errors carry `details.reasons` and `details.compatibility`. 14 router tests. The test helper reads responses as `Any` because the TestClient response type comes from a different httpx package than `httpx.Response`.
+
 ### File List
 
 - Created: `api/tests/test_mod_version_change.py`
+- Created: `api/tests/test_mod_version_change_router.py`
+- Modified: `api/src/vintagestory_api/routers/mods.py`
+- Modified: `api/src/vintagestory_api/models/errors.py`
 - Modified: `api/src/vintagestory_api/services/mod_api.py`
 - Modified: `api/src/vintagestory_api/services/mod_state.py`
 - Modified: `api/src/vintagestory_api/services/mods.py`
