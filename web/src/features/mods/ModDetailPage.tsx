@@ -14,6 +14,11 @@
  * - 3.2: Check installed mods list to determine install vs update state
  * - 3.3: Show Install or Update button based on state
  * - 3.4: Show "Installed: vX.Y.Z" indicator when mod is installed
+ *
+ * Story 14.3: An installed mod gets a version section instead of the install
+ * flow: the Update button uses the offered update from the update status, the
+ * version list holds only releases with the installed mod ID, and updates and
+ * switches go through the version change API with its confirmation flow.
  */
 
 import { useState } from 'react';
@@ -21,6 +26,7 @@ import { useParams, useNavigate, Link } from 'react-router';
 import DOMPurify from 'dompurify';
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Download,
   Users,
   Calendar,
@@ -32,6 +38,7 @@ import {
   RefreshCw,
   ChevronRight,
   Code,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,8 +55,10 @@ import {
 import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
+import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
-import { useMods } from '@/hooks/use-mods';
+import { useMods, useModUpdates } from '@/hooks/use-mods';
+import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -127,7 +136,7 @@ function ModDetailError({ message }: { message: string }) {
 }
 
 /**
- * Install/Update section props.
+ * Install section props.
  */
 interface InstallSectionProps {
   /** Mod slug for install */
@@ -142,8 +151,6 @@ interface InstallSectionProps {
   latestVersion: string;
   /** All available releases */
   releases: ModRelease[];
-  /** Currently installed version (null if not installed) */
-  installedVersion: string | null;
   /** Compatibility status for dialog */
   compatibilityStatus: CompatibilityStatus;
   /** Compatibility message for dialog */
@@ -151,14 +158,9 @@ interface InstallSectionProps {
 }
 
 /**
- * Install/Update section with version dropdown and action button.
+ * Install section for a mod that is not installed: version dropdown and Install button.
  *
  * Story 10.8: Uses InstallConfirmDialog before actual install.
- *
- * Shows different states:
- * - Not installed: "Install" button with version dropdown
- * - Installed (current): "Installed: vX.Y.Z" indicator
- * - Installed (update available): "Update to vX.Y.Z" button
  */
 function InstallSection({
   slug,
@@ -167,35 +169,16 @@ function InstallSection({
   logoUrl,
   latestVersion,
   releases,
-  installedVersion,
   compatibilityStatus,
   compatibilityMessage,
 }: InstallSectionProps) {
   const [selectedVersion, setSelectedVersion] = useState(latestVersion);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const isInstalled = installedVersion !== null;
-  const hasUpdate = isInstalled && installedVersion !== latestVersion;
-
-  const handleInstallClick = () => {
-    setIsDialogOpen(true);
-  };
-
   return (
     <>
       <Card className="w-64" data-testid="mod-detail-install-section">
         <CardContent className="pt-4 space-y-3">
-          {/* Installed indicator */}
-          {isInstalled && (
-            <div
-              className="flex items-center gap-2 text-sm"
-              data-testid="mod-detail-installed-indicator"
-            >
-              <Check className="h-4 w-4 text-success" />
-              <span>Installed: v{installedVersion}</span>
-            </div>
-          )}
-
           {/* Version selector */}
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Version</label>
@@ -215,36 +198,20 @@ function InstallSection({
                   >
                     v{release.version}
                     {index === 0 && ' (Latest)'}
-                    {release.version === installedVersion && ' (Installed)'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Action button */}
-          {hasUpdate && selectedVersion === latestVersion ? (
-            <Button
-              className="w-full gap-2"
-              onClick={handleInstallClick}
-              data-testid="mod-detail-update-button"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Update to v{latestVersion}
-            </Button>
-          ) : (
-            <Button
-              className="w-full gap-2"
-              onClick={handleInstallClick}
-              disabled={isInstalled && selectedVersion === installedVersion}
-              data-testid="mod-detail-install-button"
-            >
-              <Download className="h-4 w-4" />
-              {isInstalled && selectedVersion === installedVersion
-                ? 'Already Installed'
-                : `Install v${selectedVersion}`}
-            </Button>
-          )}
+          <Button
+            className="w-full gap-2"
+            onClick={() => setIsDialogOpen(true)}
+            data-testid="mod-detail-install-button"
+          >
+            <Download className="h-4 w-4" />
+            Install v{selectedVersion}
+          </Button>
         </CardContent>
       </Card>
 
@@ -263,6 +230,153 @@ function InstallSection({
         }}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
+      />
+    </>
+  );
+}
+
+/**
+ * Installed version section props (Story 14.3).
+ */
+interface InstalledVersionSectionProps {
+  /** Installed mod ID, as the installed mods list reports it */
+  slug: string;
+  /** Mod name for toasts and the confirmation dialog */
+  name: string;
+  /** Installed version */
+  installedVersion: string;
+  /** All releases of the mod database entry, newest first */
+  releases: ModRelease[];
+}
+
+/**
+ * Version section for an installed mod (Story 14.3).
+ *
+ * The version list holds only releases with the installed mod ID, since one
+ * database entry can ship several mod IDs. The default selection is the offered
+ * update, if any, otherwise the installed version. Updates and switches go through
+ * the version change API; risky changes open VersionChangeConfirmDialog.
+ */
+function InstalledVersionSection({
+  slug,
+  name,
+  installedVersion,
+  releases,
+}: InstalledVersionSectionProps) {
+  const { data: updatesData } = useModUpdates();
+  const versionChange = useVersionChangeFlow();
+  const [picked, setPicked] = useState<string | null>(null);
+
+  const ownReleases = releases.filter((release) => release.modidstr === slug);
+  const updateStatus = updatesData?.data?.mods.find((item) => item.slug === slug);
+  const offeredVersion =
+    updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
+  const selectedVersion = picked ?? offeredVersion ?? installedVersion;
+  const isChanging = versionChange.pendingSlug === slug;
+
+  const handleChange = () => {
+    versionChange.start({
+      slug,
+      name,
+      version: selectedVersion,
+      installedVersion,
+      kind: selectedVersion === offeredVersion ? 'update' : 'switch',
+    });
+  };
+
+  let action;
+  if (selectedVersion === installedVersion) {
+    action = (
+      <Button className="w-full gap-2" disabled data-testid="mod-detail-current-button">
+        <Check className="h-4 w-4" />
+        Installed
+      </Button>
+    );
+  } else if (selectedVersion === offeredVersion) {
+    action = (
+      <Button
+        className="w-full gap-2"
+        onClick={handleChange}
+        disabled={isChanging}
+        data-testid="mod-detail-update-button"
+      >
+        {isChanging ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="h-4 w-4" />
+        )}
+        Update to v{selectedVersion}
+      </Button>
+    );
+  } else {
+    action = (
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={handleChange}
+        disabled={isChanging}
+        data-testid="mod-detail-switch-button"
+      >
+        {isChanging ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ArrowLeftRight className="h-4 w-4" />
+        )}
+        Switch to v{selectedVersion}
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Card className="w-64" data-testid="mod-detail-install-section">
+        <CardContent className="pt-4 space-y-3">
+          <div
+            className="flex items-center gap-2 text-sm"
+            data-testid="mod-detail-installed-indicator"
+          >
+            <Check className="h-4 w-4 text-success" />
+            <span>Installed: v{installedVersion}</span>
+          </div>
+
+          {ownReleases.length === 0 ? (
+            <p className="text-sm text-muted-foreground" data-testid="mod-detail-no-own-releases">
+              The mod database lists no releases for mod ID {slug}.
+            </p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Version</label>
+                <Select value={selectedVersion} onValueChange={setPicked}>
+                  <SelectTrigger data-testid="mod-detail-version-select">
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ownReleases.map((release, index) => (
+                      <SelectItem
+                        key={release.version}
+                        value={release.version}
+                        data-testid={`mod-detail-version-option-${release.version}`}
+                      >
+                        v{release.version}
+                        {index === 0 && ' (Latest)'}
+                        {release.version === installedVersion && ' (Installed)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {action}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <VersionChangeConfirmDialog
+        confirmation={versionChange.confirmation}
+        gameVersion={updatesData?.data?.gameVersion ?? null}
+        onConfirm={versionChange.confirm}
+        onCancel={versionChange.cancel}
       />
     </>
   );
@@ -321,9 +435,8 @@ export function ModDetailPage() {
   const { data, isLoading, error } = useModDetail(slug ?? '');
   const { data: modsData } = useMods();
 
-  // Find installed version if this mod is installed
+  // Installed copy of this mod, if any
   const installedMod = modsData?.data?.mods?.find((m) => m.slug === slug);
-  const installedVersion = installedMod?.version ?? null;
 
   // Handle back navigation - always go to browse tab
   // Story 11.4: Changed from navigate(-1) to explicit path for predictable behavior
@@ -518,20 +631,27 @@ export function ModDetailPage() {
           </div>
         </div>
 
-        {/* Install/Update section */}
-        {mod.releases.length > 0 && (
-          <InstallSection
-            slug={mod.slug}
-            name={mod.name}
-            author={mod.author}
-            logoUrl={mod.logoUrl}
-            latestVersion={mod.latestVersion}
-            releases={mod.releases}
-            installedVersion={installedVersion}
-            compatibilityStatus={mod.compatibility?.status ?? 'not_verified'}
-            compatibilityMessage={mod.compatibility?.message}
-          />
-        )}
+        {/* Install section, or version section when installed (Story 14.3) */}
+        {mod.releases.length > 0 &&
+          (installedMod ? (
+            <InstalledVersionSection
+              slug={installedMod.slug}
+              name={mod.name}
+              installedVersion={installedMod.version}
+              releases={mod.releases}
+            />
+          ) : (
+            <InstallSection
+              slug={mod.slug}
+              name={mod.name}
+              author={mod.author}
+              logoUrl={mod.logoUrl}
+              latestVersion={mod.latestVersion}
+              releases={mod.releases}
+              compatibilityStatus={mod.compatibility?.status ?? 'not_verified'}
+              compatibilityMessage={mod.compatibility?.message}
+            />
+          ))}
       </div>
 
       <Separator />

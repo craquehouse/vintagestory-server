@@ -6,8 +6,8 @@
  * Story 11.4: Updated to /game-server/mods paths.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router';
@@ -69,6 +69,7 @@ const mockModDetailResponse = {
         version: '1.8.3',
         filename: 'smithingplus_1.8.3.zip',
         file_id: 59176,
+        modidstr: 'smithingplus',
         downloads: 49726,
         game_versions: ['1.21.0', '1.21.1', '1.21.2', '1.21.3'],
         created: '2025-10-09 21:28:57',
@@ -78,6 +79,7 @@ const mockModDetailResponse = {
         version: '1.8.2',
         filename: 'smithingplus_1.8.2.zip',
         file_id: 57894,
+        modidstr: 'smithingplus',
         downloads: 31245,
         game_versions: ['1.21.0', '1.21.1'],
         created: '2025-09-15 14:22:11',
@@ -649,101 +651,299 @@ describe('ModDetailPage', () => {
       });
     });
 
-    describe('installed state - current version (AC: 3)', () => {
-      it('shows "Installed: vX.Y.Z" indicator when mod is installed', async () => {
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
-
-        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
-
-        const indicator = await screen.findByTestId('mod-detail-installed-indicator');
-        expect(indicator).toBeInTheDocument();
-        expect(indicator).toHaveTextContent('Installed: v1.8.2');
+    describe('installed state (Story 14.3)', () => {
+      beforeAll(() => {
+        // Radix Select needs these in jsdom
+        Element.prototype.hasPointerCapture ??= () => false;
+        Element.prototype.releasePointerCapture ??= () => {};
+        Element.prototype.scrollIntoView ??= () => {};
       });
 
-      it('shows "Already Installed" disabled button when selected version matches installed', async () => {
-        // Mock with installed version matching a non-latest release
-        const installedCurrentResponse = {
-          ...mockInstalledModsResponse,
+      function installedAt(version: string) {
+        return {
+          status: 'ok',
           data: {
-            ...mockInstalledModsResponse.data,
+            mods: [
+              { name: 'Smithing Plus', slug: 'smithingplus', version, enabled: true, side: 'Both' },
+            ],
+            pending_restart: false,
+          },
+        };
+      }
+
+      function updateStatus(status: string, offered: string | null = null) {
+        return {
+          status: 'ok',
+          data: {
+            game_version: '1.21.3',
+            checked_at: null,
+            update_count: status === 'update_available' ? 1 : 0,
             mods: [
               {
-                name: 'Smithing Plus',
                 slug: 'smithingplus',
-                version: '1.8.3', // Latest version installed
-                enabled: true,
-                side: 'Both',
+                name: 'Smithing Plus',
+                installed_version: '1.8.2',
+                status,
+                offered_version: offered,
+                offered_compatibility: offered ? 'compatible' : null,
+                offered_prerelease: offered ? false : null,
+                reason: null,
+                checked_at: null,
+                error: null,
               },
             ],
           },
         };
+      }
 
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          installedCurrentResponse
-        );
+      const withOtherModid = {
+        ...mockModDetailResponse,
+        data: {
+          ...mockModDetailResponse.data,
+          releases: [
+            {
+              version: '9.9.9',
+              filename: 'otherid_9.9.9.zip',
+              file_id: 1,
+              modidstr: 'otherid',
+              downloads: 1,
+              game_versions: ['1.21.3'],
+              created: '2025-11-01 00:00:00',
+              changelog: null,
+            },
+            ...mockModDetailResponse.data.releases,
+          ],
+        },
+      };
 
-        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+      function mockInstalled({
+        detail = mockModDetailResponse as unknown,
+        mods,
+        updates,
+        versionResponses = [],
+      }: {
+        detail?: unknown;
+        mods: unknown;
+        updates: unknown;
+        versionResponses?: Array<{ status: number; body: unknown }>;
+      }) {
+        const queue = [...versionResponses];
+        return vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+          const respond = (status: number, body: unknown) =>
+            Promise.resolve({
+              ok: status < 400,
+              status,
+              statusText: status < 400 ? 'OK' : 'Conflict',
+              json: () => Promise.resolve(body),
+            });
+          if (url.includes('/version') && options?.method === 'PUT') {
+            const next = queue.shift();
+            return next ? respond(next.status, next.body) : Promise.reject(new Error('no response'));
+          }
+          if (url.includes('/mods/lookup/')) return respond(200, detail);
+          if (url.includes('/mods/updates')) return respond(200, updates);
+          if (url.endsWith('/api/v1alpha1/mods')) {
+            if (options?.method === 'POST') return Promise.reject(new Error('install attempted'));
+            return respond(200, mods);
+          }
+          return Promise.reject(new Error(`Unexpected URL: ${url}`));
+        });
+      }
 
-        const installButton = await screen.findByTestId('mod-detail-install-button');
-        expect(installButton).toHaveTextContent('Already Installed');
-        expect(installButton).toBeDisabled();
+      const changed = (version: string) => ({
+        status: 200,
+        body: {
+          status: 'ok',
+          data: {
+            slug: 'smithingplus',
+            previous_version: '1.8.2',
+            version,
+            filename: `smithingplus_${version}.zip`,
+            compatibility: 'compatible',
+            changed: true,
+            pending_restart: false,
+          },
+        },
       });
 
-      it('shows version option marked as "(Installed)" in dropdown', async () => {
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
+      function putBodies(mockFetch: ReturnType<typeof vi.fn>) {
+        return mockFetch.mock.calls
+          .filter(([, options]) => options?.method === 'PUT')
+          .map(([, options]) => JSON.parse(options.body));
+      }
+
+      it('shows the installed version', async () => {
+        globalThis.fetch = mockInstalled({
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('up_to_date'),
+        });
 
         renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
-        // Wait for install section to render
-        await screen.findByTestId('mod-detail-install-section');
-
-        // The version select trigger should show latest version
-        const versionSelect = screen.getByTestId('mod-detail-version-select');
-        expect(versionSelect).toHaveTextContent('v1.8.3');
+        const indicator = await screen.findByTestId('mod-detail-installed-indicator');
+        expect(indicator).toHaveTextContent('Installed: v1.8.2');
+        expect(screen.queryByTestId('mod-detail-install-button')).not.toBeInTheDocument();
       });
-    });
 
-    describe('installed state - update available (AC: 3)', () => {
-      it('shows "Update to vX.Y.Z" button when newer version is available', async () => {
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
+      it('offers the update from the update status', async () => {
+        globalThis.fetch = mockInstalled({
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('update_available', '1.8.3'),
+        });
 
         renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
-        // When installed 1.8.2 and latest is 1.8.3, should show update button
         const updateButton = await screen.findByTestId('mod-detail-update-button');
-        expect(updateButton).toBeInTheDocument();
         expect(updateButton).toHaveTextContent('Update to v1.8.3');
         expect(updateButton).not.toBeDisabled();
       });
 
-      it('shows install button (not update) when selecting non-latest version', async () => {
-        // This tests the logic when user selects an older version than latest
-        // The update button only shows when selectedVersion === latestVersion && hasUpdate
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
+      it('offers no update when a newer release is not offered', async () => {
+        globalThis.fetch = mockInstalled({
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('blocked'),
+        });
 
         renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
-        // Wait for update button (default state with latest selected)
-        await screen.findByTestId('mod-detail-update-button');
+        const current = await screen.findByTestId('mod-detail-current-button');
+        expect(current).toBeDisabled();
+        expect(screen.queryByTestId('mod-detail-update-button')).not.toBeInTheDocument();
+        expect(screen.getByTestId('mod-detail-version-select')).toHaveTextContent('v1.8.2');
+      });
 
-        // The component renders update button when hasUpdate && selectedVersion === latestVersion
-        // If user changes to installed version, it shows install button as disabled
-        expect(screen.getByTestId('mod-detail-update-button')).toHaveTextContent(
-          'Update to v1.8.3'
+      it('updates through the version change API, never install', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockInstalled({
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('update_available', '1.8.3'),
+          versionResponses: [changed('1.8.3')],
+        });
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await user.click(await screen.findByTestId('mod-detail-update-button'));
+
+        await waitFor(() => {
+          expect(putBodies(mockFetch)).toEqual([{ version: '1.8.3', confirm: false }]);
+        });
+        expect(screen.queryByTestId('install-confirm-dialog')).not.toBeInTheDocument();
+        expect(
+          mockFetch.mock.calls.some(([, options]) => options?.method === 'POST')
+        ).toBe(false);
+      });
+
+      it('lists only releases with the installed mod ID', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockInstalled({
+          detail: withOtherModid,
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('up_to_date'),
+        });
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+
+        const options = await screen.findAllByRole('option');
+        expect(options.map((o) => o.textContent)).toEqual([
+          'v1.8.3 (Latest)',
+          'v1.8.2 (Installed)',
+        ]);
+      });
+
+      it('switches to another version with the confirmation flow', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockInstalled({
+          mods: installedAt('1.8.3'),
+          updates: updateStatus('up_to_date'),
+          versionResponses: [
+            {
+              status: 409,
+              body: {
+                detail: {
+                  code: 'MOD_CONFIRMATION_REQUIRED',
+                  message: 'Confirmation required',
+                  details: { reasons: ['older'], compatibility: 'not_verified' },
+                },
+              },
+            },
+            changed('1.8.2'),
+          ],
+        });
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: 'v1.8.2' }));
+        await user.click(screen.getByTestId('mod-detail-switch-button'));
+
+        expect(await screen.findByText('Switch Smithing Plus to v1.8.2?')).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'v1.8.2 is older than the installed v1.8.3. Worlds saved with a newer version may not load correctly.'
+          )
+        ).toBeInTheDocument();
+        await user.click(screen.getByTestId('version-change-confirm'));
+
+        await waitFor(() => {
+          expect(putBodies(mockFetch)).toEqual([
+            { version: '1.8.2', confirm: false },
+            { version: '1.8.2', confirm: true },
+          ]);
+        });
+      });
+
+      it('cancelling a switch makes no further request', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockInstalled({
+          mods: installedAt('1.8.3'),
+          updates: updateStatus('up_to_date'),
+          versionResponses: [
+            {
+              status: 409,
+              body: {
+                detail: {
+                  code: 'MOD_CONFIRMATION_REQUIRED',
+                  message: 'Confirmation required',
+                  details: { reasons: ['older'] },
+                },
+              },
+            },
+          ],
+        });
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: 'v1.8.2' }));
+        await user.click(screen.getByTestId('mod-detail-switch-button'));
+        await user.click(await screen.findByTestId('version-change-cancel'));
+
+        await waitFor(() => {
+          expect(screen.queryByTestId('version-change-dialog')).not.toBeInTheDocument();
+        });
+        expect(putBodies(mockFetch)).toHaveLength(1);
+      });
+
+      it('explains when no release has the installed mod ID', async () => {
+        globalThis.fetch = mockInstalled({
+          detail: {
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              releases: [withOtherModid.data.releases[0]],
+            },
+          },
+          mods: installedAt('1.8.2'),
+          updates: updateStatus('unknown'),
+        });
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        expect(await screen.findByTestId('mod-detail-no-own-releases')).toHaveTextContent(
+          'The mod database lists no releases for mod ID smithingplus.'
         );
+        expect(screen.queryByTestId('mod-detail-version-select')).not.toBeInTheDocument();
       });
     });
 
@@ -791,18 +991,6 @@ describe('ModDetailPage', () => {
         const installButton = await screen.findByTestId('mod-detail-install-button');
         expect(installButton).not.toBeDisabled();
       });
-
-      it('update button is enabled when update is available', async () => {
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
-
-        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
-
-        const updateButton = await screen.findByTestId('mod-detail-update-button');
-        expect(updateButton).not.toBeDisabled();
-      });
     });
 
     describe('confirmation dialog (Story 10.8)', () => {
@@ -817,23 +1005,6 @@ describe('ModDetailPage', () => {
 
         const installButton = await screen.findByTestId('mod-detail-install-button');
         await user.click(installButton);
-
-        // Dialog should appear
-        expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
-        expect(screen.getByTestId('install-dialog-mod-name')).toHaveTextContent('Smithing Plus');
-      });
-
-      it('opens confirmation dialog when Update button is clicked', async () => {
-        const user = userEvent.setup();
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockInstalledModsResponse
-        );
-
-        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
-
-        const updateButton = await screen.findByTestId('mod-detail-update-button');
-        await user.click(updateButton);
 
         // Dialog should appear
         expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();

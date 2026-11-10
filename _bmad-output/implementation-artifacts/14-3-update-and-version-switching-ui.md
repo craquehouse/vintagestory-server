@@ -75,11 +75,11 @@ so that **I can manage versions without touching files**.
   - [x] 4.3: Update action in the Available column uses the flow; per-row spinner; success and error toasts (restart wording when the server is running)
   - [x] 4.4: Tests: compatible update (no dialog), each reason rendered, confirm retries with `confirm: true`, cancel makes no second call, error toast
 
-- [ ] Task 5: Version switching on the mod detail page + tests (AC: 6)
-  - [ ] 5.1: In `InstallSection`, when installed: offered update from `useModUpdates()`; version list filtered to `release.modidstr === installed slug`; the action button switches versions through the Task 4 flow
-  - [ ] 5.2: Remove the `installedVersion !== latestVersion` comparison (it reports any non-latest version, including a rollback, as an update)
-  - [ ] 5.3: Not installed: keep the existing install flow and `InstallConfirmDialog` unchanged
-  - [ ] 5.4: Tests: update button only when an update is offered, filtered version list, switch calls the version change API, install path unchanged
+- [x] Task 5: Version switching on the mod detail page + tests (AC: 6)
+  - [x] 5.1: In `InstallSection`, when installed: offered update from `useModUpdates()`; version list filtered to `release.modidstr === installed slug`; the action button switches versions through the Task 4 flow
+  - [x] 5.2: Remove the `installedVersion !== latestVersion` comparison (it reports any non-latest version, including a rollback, as an update)
+  - [x] 5.3: Not installed: keep the existing install flow and `InstallConfirmDialog` unchanged
+  - [x] 5.4: Tests: update button only when an update is offered, filtered version list, switch calls the version change API, install path unchanged
 
 - [ ] Task 6: Manual browser verification and final validation (AC: all)
   - [ ] 6.1: Build the image, run it in a throwaway container with a real server and a mod at an older version: update, roll back with confirmation, check for updates; check browser console for errors
