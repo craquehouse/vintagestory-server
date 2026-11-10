@@ -5,6 +5,7 @@ import shutil
 import structlog
 from fastapi import APIRouter
 
+from vintagestory_api import __version__
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.responses import (
     ApiResponse,
@@ -139,6 +140,7 @@ async def health_check() -> ApiResponse:
         status="ok",
         data=HealthData(
             api="healthy",
+            version=__version__,
             game_server=game_server_status,
             game_server_version=server_status.version,
             game_server_uptime=server_status.uptime_seconds,

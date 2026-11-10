@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from vintagestory_api import __version__
 from vintagestory_api.config import Settings, initialize_debug_state, is_debug_enabled
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.request_context import RequestContextMiddleware
@@ -157,7 +158,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(
     title="VintageStory Server Manager",
     description="API for managing VintageStory dedicated game server",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 
