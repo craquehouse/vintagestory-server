@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import json
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,7 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from vintagestory_api import __version__
 from vintagestory_api.config import Settings, initialize_debug_state, is_debug_enabled
-from vintagestory_api.middleware.auth import get_current_user
+from vintagestory_api.middleware.auth import get_current_user, get_settings
 from vintagestory_api.middleware.request_context import RequestContextMiddleware
 from vintagestory_api.routers import (
     auth,
@@ -244,6 +245,19 @@ def register_frontend(target: FastAPI, static_dir: Path) -> None:
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
         target.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    # Runtime web configuration (Epic 15 ADR-5), registered before the SPA fallback so it
+    # wins over the placeholder config.js in the build. Unauthenticated by design: the
+    # page needs the key before it can authenticate. Never cached, never logged.
+    @target.get("/config.js", include_in_schema=False)
+    async def serve_runtime_config(settings: Settings = Depends(get_settings)) -> Response:
+        """Serve the web UI's runtime configuration as a classic script."""
+        config = json.dumps({"apiKey": settings.web_api_key})
+        return Response(
+            content=f"window.__VSM_CONFIG__ = {config};\n",
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-store"},
+        )
 
     # SPA fallback - serve index.html for all non-API, non-health routes
     @target.get("/{full_path:path}")
