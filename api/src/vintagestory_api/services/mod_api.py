@@ -88,6 +88,21 @@ class DownloadError(ModApiError):
         super().__init__(f"Failed to download mod '{slug}': {message}")
 
 
+def safe_release_filename(filename: str) -> str:
+    """Return a mod database release filename that is safe to use as a file name.
+
+    Release filenames are chosen by mod authors (Story 14.0), so only the final path
+    component is kept, splitting on both "/" and "\\".
+
+    Raises:
+        ValueError: If nothing usable remains (empty, ".", "..") or the name contains NUL.
+    """
+    name = filename.replace("\\", "/").rsplit("/", 1)[-1]
+    if name in ("", ".", "..") or "\x00" in name:
+        raise ValueError(f"Unusable release filename: {filename!r}")
+    return name
+
+
 class GameVersionNotFoundError(ModApiError):
     """Raised when a game version string is not found in the version list."""
 
@@ -362,10 +377,37 @@ class ModApiClient:
             logger.debug("selected_specific_version", slug=slug, version=version)
 
         # 3. Download file
-        fileid = release["fileid"]
-        filename = release["filename"]
-        dest_path = self._mods_cache / filename
-        temp_path = dest_path.with_suffix(".tmp")
+        path = await self.download_release_file(slug, release["fileid"], release["filename"])
+        return DownloadResult(
+            path=path,
+            filename=path.name,
+            version=release["modversion"],
+            release=release,
+            asset_id=int(mod.get("assetid", 0)),
+        )
+
+    async def download_release_file(self, slug: str, fileid: int, filename: str) -> Path:
+        """Download one release file into the mod cache, atomically.
+
+        Args:
+            slug: Mod slug, for logging and errors.
+            fileid: The release's file ID.
+            filename: The release's filename from the mod database (sanitized here).
+
+        Returns:
+            Path of the downloaded file in the cache.
+
+        Raises:
+            DownloadError: If the filename is unusable or the download fails.
+        """
+        try:
+            safe_name = safe_release_filename(filename)
+        except ValueError as e:
+            logger.error("mod_download_unsafe_filename", slug=slug, filename=filename)
+            raise DownloadError(slug, str(e)) from e
+
+        dest_path = self._mods_cache / safe_name
+        temp_path = dest_path.with_name(dest_path.name + ".tmp")
 
         client = await self._get_client()
         try:
@@ -383,12 +425,7 @@ class ModApiClient:
             # Atomic rename
             temp_path.rename(dest_path)
 
-            logger.info(
-                "mod_download_complete",
-                slug=slug,
-                version=release["modversion"],
-                filename=filename,
-            )
+            logger.info("mod_download_complete", slug=slug, fileid=fileid, filename=safe_name)
 
             # Run cache eviction after successful download
             if self._cache_eviction is not None:
@@ -400,13 +437,7 @@ class ModApiClient:
                         bytes_freed=eviction_result.bytes_freed,
                     )
 
-            return DownloadResult(
-                path=dest_path,
-                filename=filename,
-                version=release["modversion"],
-                release=release,
-                asset_id=int(mod.get("assetid", 0)),
-            )
+            return dest_path
 
         except httpx.TimeoutException:
             # Cleanup partial download
