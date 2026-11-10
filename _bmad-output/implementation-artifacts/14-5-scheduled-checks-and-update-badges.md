@@ -44,7 +44,7 @@ so that **I notice them without checking**.
   - [x] 1.3: Rewrite `tests/jobs/test_mod_cache_refresh.py`: status recorded per mod with one failing lookup (respx), skip when a check runs, no mods, `safe_job` contract; interval 0 stays covered by `test_jobs_registration.py`
 
 - [x] Task 2: Update count in the navigation + tests (AC: 4, 5)
-  - [x] 2.1: `SubNavItem.badge` (count) in `ExpandableNavItem`: a count pill on the item when > 0, in the collapsed-sidebar tooltip, and on the parent while the group is closed, with an accessible label
+  - [x] 2.1: `SubNavItem.badge` (count) in `ExpandableNavItem`: a count pill on the item when > 0, in the collapsed-sidebar tooltip, and a dot on the parent while the group is closed, with an accessible label
   - [x] 2.2: `Sidebar` sets the Mods item's badge from `useModUpdates()` (`updateCount`); the item already opens the Installed tab (`/game-server/mods` → `installed`)
   - [x] 2.3: Tests: badge shown with count, hidden at 0, parent total while closed, collapsed tooltip
 

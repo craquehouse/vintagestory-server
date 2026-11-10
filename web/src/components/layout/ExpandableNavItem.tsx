@@ -46,11 +46,19 @@ function CountBadge({ count, label, testId }: { count: number; label: string; te
   );
 }
 
-/** Dot for icon-only (collapsed sidebar) items. */
-function CountDot({ label, testId }: { label: string; testId: string }) {
+/** Dot for icons where a count pill does not fit; the label is for screen readers. */
+function CountDot({
+  label,
+  testId,
+  className = "right-1 top-1",
+}: {
+  label: string;
+  testId: string;
+  className?: string;
+}) {
   return (
     <span
-      className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary"
+      className={cn("absolute h-2 w-2 rounded-full bg-primary", className)}
       data-testid={testId}
     >
       <span className="sr-only">{label}</span>
@@ -212,11 +220,18 @@ export function ExpandableNavItem({
         aria-expanded={isOpen}
         data-testid="expandable-nav-toggle"
       >
-        <Icon className="h-5 w-5 shrink-0" />
+        {/* A count pill does not fit beside the label and chevron; use a dot on the icon */}
+        <span className="relative shrink-0">
+          <Icon className="h-5 w-5" />
+          {!isOpen && badgeTotal > 0 && (
+            <CountDot
+              label={parentBadgeLabel}
+              testId="nav-parent-badge"
+              className="-right-0.5 -top-0.5"
+            />
+          )}
+        </span>
         <span className="flex-1 text-left">{label}</span>
-        {!isOpen && badgeTotal > 0 && (
-          <CountBadge count={badgeTotal} label={parentBadgeLabel} testId="nav-parent-badge" />
-        )}
         {isOpen ? (
           <ChevronDown className="h-4 w-4 shrink-0" data-testid="chevron-down" />
         ) : (

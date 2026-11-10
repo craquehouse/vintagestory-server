@@ -384,11 +384,13 @@ describe("ExpandableNavItem badges (Story 14.5)", () => {
     expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
   });
 
-  it("shows the total on the parent while the group is closed", () => {
+  it("marks the parent while the group is closed", () => {
     renderBadged({ isExpanded: false });
 
-    expect(screen.getByTestId("nav-parent-badge")).toHaveTextContent("3");
     expect(screen.getByTestId("nav-parent-badge")).toHaveTextContent("3 mod updates available");
+    expect(
+      screen.getByRole("button", { name: /Parent Item.*3 mod updates available|3 mod updates available.*Parent Item/ })
+    ).toBeInTheDocument();
   });
 
   it("shows no badge when the count is 0", () => {
