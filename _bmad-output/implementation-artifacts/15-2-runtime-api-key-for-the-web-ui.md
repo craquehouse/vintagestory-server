@@ -1,6 +1,6 @@
 # Story 15.2: Runtime API Key for the Web UI
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -29,27 +29,27 @@ so that **one image works for every deployment and no key is baked into it**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Serve the runtime web configuration (AC: 1, 2)
-  - [ ] 1.1: `Settings.api_key: str | None` (env `VS_API_KEY`) and a `web_api_key` property returning it, or `api_key_admin` when unset or blank
-  - [ ] 1.2: `register_frontend` registers `GET /config.js` before the SPA fallback, returning `window.__VSM_CONFIG__ = {"apiKey": ...};` (JSON-encoded) as `application/javascript` with `Cache-Control: no-store`; settings through the `get_settings` dependency
-  - [ ] 1.3: Tests in `test_frontend_routes.py`: key from `VS_API_KEY`; Admin key fallback (unset and blank); JSON escaping of a key with quotes or `</script>`; headers; the route wins over a `config.js` file in the static directory; the key is not logged
+- [x] Task 1: Serve the runtime web configuration (AC: 1, 2)
+  - [x] 1.1: `Settings.api_key: str | None` (env `VS_API_KEY`) and a `web_api_key` property returning it, or `api_key_admin` when unset or blank
+  - [x] 1.2: `register_frontend` registers `GET /config.js` before the SPA fallback, returning `window.__VSM_CONFIG__ = {"apiKey": ...};` (JSON-encoded) as `application/javascript` with `Cache-Control: no-store`; settings through the `get_settings` dependency
+  - [x] 1.3: Tests in `test_frontend_routes.py`: key from `VS_API_KEY`; Admin key fallback (unset and blank); JSON escaping of a key with quotes or `</script>`; headers; the route wins over a `config.js` file in the static directory (that the key is not logged is checked in the container, Task 4.2)
 
-- [ ] Task 2: Web client reads the runtime key (AC: 1, 2, 4)
-  - [ ] 2.1: `index.html` loads `<script src="/config.js"></script>` before the module script
-  - [ ] 2.2: `web/public/config.js` placeholder (`window.__VSM_CONFIG__ = window.__VSM_CONFIG__ || {};`) for the dev server; the API route takes precedence in the image
-  - [ ] 2.3: `client.ts` `getConfig()`: `window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || ''`; `Window.__VSM_CONFIG__` typed in `src/globals.d.ts`
-  - [ ] 2.4: Tests in `client.test.ts`: runtime key sent; runtime key wins over `VITE_API_KEY`; empty runtime key falls back to `VITE_API_KEY`
+- [x] Task 2: Web client reads the runtime key (AC: 1, 2, 4)
+  - [x] 2.1: `index.html` loads `<script src="/config.js"></script>` before the module script
+  - [x] 2.2: `web/public/config.js` placeholder (`window.__VSM_CONFIG__ = window.__VSM_CONFIG__ || {};`) for the dev server; the API route takes precedence in the image
+  - [x] 2.3: `client.ts` `getConfig()`: `window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || ''`; `Window.__VSM_CONFIG__` typed in `src/globals.d.ts`
+  - [x] 2.4: Tests in `client.test.ts`: runtime key sent; runtime key wins over `VITE_API_KEY`; empty runtime key falls back to `VITE_API_KEY`
 
-- [ ] Task 3: No key in the image (AC: 3)
-  - [ ] 3.1: Dockerfile: remove `ARG VS_API_KEY` and `VITE_API_KEY` from the web build; keep `VITE_API_BASE_URL=""`
-  - [ ] 3.2: `.dockerignore`: exclude `.env` files at any depth (`**/.env`, `**/.env.*`, keep `**/.env.example`); today only the root `.env` is excluded, so `web/.env` reaches the build and Vite would bake its `VITE_API_KEY` once the build argument is gone
-  - [ ] 3.3: `docker-compose.dev.yaml`: remove the `VS_API_KEY` build argument; keep the runtime `VS_API_KEY` environment line; update comments in `docker-compose.yaml` if they mention the build-time key
+- [x] Task 3: No key in the image (AC: 3)
+  - [x] 3.1: Dockerfile: remove `ARG VS_API_KEY` and `VITE_API_KEY` from the web build; keep `VITE_API_BASE_URL=""`
+  - [x] 3.2: `.dockerignore`: exclude `.env` files at any depth (`**/.env`, `**/.env.*`, keep `**/.env.example`); today only the root `.env` is excluded, so `web/.env` reaches the build and Vite would bake its `VITE_API_KEY` once the build argument is gone
+  - [x] 3.3: `docker-compose.dev.yaml`: remove the `VS_API_KEY` build argument; keep the runtime `VS_API_KEY` environment line; update comments in `docker-compose.yaml` if they mention the build-time key
 
-- [ ] Task 4: Verification and validation (AC: all)
-  - [ ] 4.1: Build the image with `web/.env` present; confirm `docker history`/`inspect` show no key argument and the bundle contains neither the `web/.env` key nor the runtime key (compare without printing the key)
-  - [ ] 4.2: Run the image with `VS_API_KEY_ADMIN` only, then with a different `VS_API_KEY`; in a browser the UI loads data both times and requests carry the expected key (check the request header, not just the page); console clean apart from known errors
-  - [ ] 4.3: `just dev-web` against `just dev-api` still authenticates with `web/.env` (or confirm with a Vite dev server smoke check)
-  - [ ] 4.4: `just check`; update the Dev Agent Record and File List
+- [x] Task 4: Verification and validation (AC: all)
+  - [x] 4.1: Build the image with `web/.env` present; confirm `docker history`/`inspect` show no key argument and the bundle contains neither the `web/.env` key nor the runtime key (compare without printing the key)
+  - [x] 4.2: Run the image with `VS_API_KEY_ADMIN` only, then with a different `VS_API_KEY`; in a browser the UI loads data both times and requests carry the expected key (check the request header, not just the page); console clean apart from known errors
+  - [x] 4.3: `just dev-web` against `just dev-api` still authenticates with `web/.env` (or confirm with a Vite dev server smoke check)
+  - [x] 4.4: `just check`; update the Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -89,10 +89,28 @@ FR165, Epic 15 ADR-5. Out of scope: a login screen; README wording on exposure (
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
+### Debug Log References
+
+- Browser screenshot kept locally only (`.playwright-mcp/story-15-2-monitor-key.png`, git-ignored).
+
 ### Completion Notes List
 
+- Task 1: `Settings.api_key` (`VS_API_KEY`) and `Settings.web_api_key` (that key, or `api_key_admin` when unset or blank). `register_frontend` registers `GET /config.js` before the SPA fallback; it returns `window.__VSM_CONFIG__ = {"apiKey": …};` built with `json.dumps` (non-ASCII escaped), `application/javascript`, `Cache-Control: no-store`, excluded from the OpenAPI schema, settings through `get_settings`. 3 settings tests, 5 route tests (key, fallback, encoding of quotes, `</script>` and U+2028, headers, precedence over a built `config.js`). The "not logged" check needs the real middleware stack, so it was done in the container (Task 4.2).
+- Task 2: `index.html` loads `/config.js` as a classic script before the module; `web/public/config.js` is the dev-server placeholder (copied to `dist/`, shadowed by the API route in the image); `getConfig()` prefers `window.__VSM_CONFIG__.apiKey`, then `VITE_API_KEY`; `Window.__VSM_CONFIG__` typed in `globals.d.ts`. 4 new client tests. Vite builds without warnings.
+- Task 3: the Dockerfile has no key argument and builds with `VITE_API_KEY=""`. **Found:** `.dockerignore`'s `.env` patterns matched only the context root, so `web/.env` (a developer's `VITE_API_KEY`) reached the web build stage; once the argument was gone, Vite would have built it in. Now `**/.env` and `**/.env.*` (keeping `**/.env.example`). Both compose files set `VS_API_KEY=${VS_API_KEY:-}` (empty means the Admin key) instead of forcing the Admin key, and the dev compose file has no build argument. With the maintainer's `.env`, `VS_API_KEY` equals the Admin key, so the dev stack behaves as before.
+- Task 4: built the image with `web/.env` present. The `web/.env` key occurs 0 times in the extracted bundle (compared without printing it); the image's `config.js` is the placeholder; `docker history` and the image environment carry no key; the web build stage contains only `.env.example`. Run with `VS_API_KEY_ADMIN` only: `/config.js` serves the Admin key, requests send it (checked on the request header), API calls return 200. Run with `VS_API_KEY` set to the Monitor key: requests send the Monitor key and return 200. Neither key appears in the container logs. Console: only the known `404 /api/v1alpha1/config/game` with no game server installed. The Vite dev server serves the placeholder before the app, so the client falls back to `VITE_API_KEY` (covered by the client tests). `just check` passes: 2060 API tests (+8), 3007 web tests (+6 including the Story 15.1 review tests), 23 script assertions.
+
 ### File List
+
+- Modified: `api/src/vintagestory_api/config.py`, `api/src/vintagestory_api/main.py`
+- Modified: `api/tests/test_config.py`, `api/tests/test_frontend_routes.py`
+- Modified: `web/index.html`, `web/src/api/client.ts`, `web/src/api/client.test.ts`, `web/src/globals.d.ts`
+- Created: `web/public/config.js`
+- Modified: `Dockerfile`, `.dockerignore`, `docker-compose.yaml`, `docker-compose.dev.yaml`
 
 ## Change Log
 
 - 2026-11-10: Story created.
+- 2026-11-10: Implemented; fixed `.dockerignore` letting `web/.env` into the build; verified in the image and a browser. `just check` passes. Status review.
