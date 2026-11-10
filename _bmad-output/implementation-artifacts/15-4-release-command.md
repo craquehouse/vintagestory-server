@@ -1,6 +1,6 @@
 # Story 15.4: Release Command
 
-Status: review
+Status: done
 
 ## Story
 
@@ -75,6 +75,14 @@ so that **version, changelog, commit and tag are always consistent**.
   - [x] 4.1: `just release --dry-run` in this repository (no tags yet: expect `v0.1.0` and the whole history); confirm nothing changed
   - [x] 4.2: `just check`; update the Dev Agent Record and File List
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] The push-rejected test could not tell an atomic push from a sequential one: the remote's `update` hook now rejects only the tag, so a non-atomic push would advance `main`; removing `--atomic` makes the test fail
+- [x] [AI-Review][Medium] Repository hooks (this repository's bd shims, a post-commit tracker) ran during the release commit, tag and push; a hook writing to the tree could lose its writes on rollback: the release commit, tag and push run with `core.hooksPath=/dev/null`; a fixture with failing `pre-commit`, `prepare-commit-msg`, `commit-msg`, `post-commit` and `pre-push` hooks releases cleanly, and re-enabling hooks makes it fail
+- [x] [AI-Review][Low] The first release rewrites `api/uv.lock`'s `revision` from 5 (written by Renovate's newer uv) to 3 (the pinned uv 0.13.7); dependency pins are unchanged (accepted: churn only; noted for the release guide in Story 15.6)
+- [x] [AI-Review][Low] A git-cliff that exists but fails gave a silent exit: `release: git cliff could not compute the next version`
+- [x] [AI-Review][Low] Missing `origin` and detached HEAD were verified only by hand: both are now test cases
+
 ## Dev Notes
 
 ### Scope
@@ -124,3 +132,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-10: Story created. AC 8 added so the hand-written `v0.1.0` section (Story 15.6) is kept.
 - 2026-11-10: Implemented; four behaviors found by the tests fixed; `just check` passes. Status review.
+- 2026-11-10: First review attempt failed (provider timeout); retried. Code review (GLM-5.3-Flash, Approve with findings). Fixed both Mediums and two Lows, accepted one. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-10
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `ee44b73`..`52b8c07` (second attempt; the first timed out at the provider)
+**Outcome:** Approve (two Medium, three Low findings)
+
+**Summary:** All ACs met; 167 script assertions pass, shellcheck clean, and the suite passes with `release.sh` under macOS bash 3.2.57. A sabotage matrix on copies outside the repository caught 5 of 6 seeded regressions (the sixth, `--atomic`, is now covered). SIGINT at the prompt exits 130 with a full rollback; a push race fails without force and rolls back; SemVer precedence is exact in nine edge cases; `uv version --no-sync` on a copy of the real `api/` leaves dependency pins unchanged. No release, tag or push in this repository; the reviewer's temporary repositories were removed.
+
+### Action Items
+
+- [x] [Medium] Pin the atomic push in tests
+- [x] [Medium] Repository hooks during a release
+- [x] [Low] `uv.lock` revision churn (accepted)
+- [x] [Low] Silent exit when git-cliff fails
+- [x] [Low] Test missing `origin` and detached HEAD
