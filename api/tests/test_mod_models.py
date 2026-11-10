@@ -337,6 +337,7 @@ class TestModRelease:
             game_versions=["1.21.0", "1.21.1"],
             created="2025-10-09 21:28:57",
             changelog="<p>Changelog</p>",
+            modidstr="smithingplus",
         )
         data = release.model_dump(mode="json")
 
@@ -348,6 +349,7 @@ class TestModRelease:
             "game_versions": ["1.21.0", "1.21.1"],
             "created": "2025-10-09 21:28:57",
             "changelog": "<p>Changelog</p>",
+            "modidstr": "smithingplus",
         }
 
 

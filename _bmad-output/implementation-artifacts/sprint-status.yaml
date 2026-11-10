@@ -169,7 +169,7 @@ development_status:
   14-0-epic-14-technical-preparation: done
   14-1-update-detection-and-status-api: done
   14-2-version-change-api: done
-  14-3-update-and-version-switching-ui: in-progress
+  14-3-update-and-version-switching-ui: review
   14-4-update-all: backlog
   14-5-scheduled-checks-and-update-badges: backlog
   14-6-webhook-alerts: backlog

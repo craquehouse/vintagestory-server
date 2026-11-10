@@ -1,6 +1,6 @@
 # Story 14.3: Update and Version Switching UI
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -81,9 +81,9 @@ so that **I can manage versions without touching files**.
   - [x] 5.3: Not installed: keep the existing install flow and `InstallConfirmDialog` unchanged
   - [x] 5.4: Tests: update button only when an update is offered, filtered version list, switch calls the version change API, install path unchanged
 
-- [ ] Task 6: Manual browser verification and final validation (AC: all)
-  - [ ] 6.1: Build the image, run it in a throwaway container with a real server and a mod at an older version: update, roll back with confirmation, check for updates; check browser console for errors
-  - [ ] 6.2: Run `just check`; update this story's Dev Agent Record and File List
+- [x] Task 6: Manual browser verification and final validation (AC: all)
+  - [x] 6.1: Build the image, run it in a throwaway container with a real server and a mod at an older version: update, roll back with confirmation, check for updates; check browser console for errors
+  - [x] 6.2: Run `just check`; update this story's Dev Agent Record and File List
 
 ## Dev Notes
 
@@ -148,8 +148,35 @@ Delivers the UI for Stories 14.1 and 14.2, plus a one-field API addition (Task 1
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Browser verification screenshots were kept locally only (`.playwright-mcp/`, git-ignored).
 
 ### Completion Notes List
 
+- Task 1: `ModRelease.modidstr` (default `""`) is set from each release in `lookup_mod`; the web type has it too. Test with the instruments fixture (three mod IDs in one entry); the exact-dict model serialization test was updated for the field.
+- Task 2: `ApiError` now carries `detail.details`, so confirmation reasons reach the UI. Added types, `fetchModUpdates`, `checkModUpdates`, `changeModVersion`, query key `['mods', '@updates']`, and hooks `useModUpdates` (60 s poll; the endpoint reads stored data), `useCheckModUpdates` and `useChangeModVersion`, which invalidate `['mods']` when they settle. 8 tests.
+- Task 3: `ModUpdateCell` renders the Available column: offered version (with a pre-release marker) and Update action, or "Up to date", "No compatible update" or "Unknown" with the reason (and any last check error) as a `title` tooltip, matching `CompatibilityBadge`. `InstalledTab` has "Check for updates" and "Last checked …" / "Not checked yet"; results report as a success toast, a warning toast when some mods failed, or an error toast (including 409 when a check is running). 21 tests.
+- Task 4: `useVersionChangeFlow` calls the version change API without confirmation, holds a confirmation on `MOD_CONFIRMATION_REQUIRED` (unknown reasons are dropped; with none left the dialog shows a generic line), retries with `confirm: true`, and reports success, no-op and failure with toasts; "A server restart is required for changes to take effect." comes from the response's `pendingRestart`, the same wording as enable/disable. `VersionChangeConfirmDialog` uses the story's reason wording. 22 tests.
+- Task 5: An installed mod's detail page renders `InstalledVersionSection` instead of the install flow: releases filtered to `modidstr === installed slug`, default selection the offered update (else the installed version), and an Update, Switch or disabled Installed button; both actions use the Task 4 flow. The `installedVersion !== latestVersion` comparison is gone, and `InstallSection` now serves only mods that are not installed. Old installed-state tests were replaced. 8 tests.
+- Task 6: Browser check in a throwaway container (VintageStory 1.22.7 running, Auto Map Markers 5.0.2 and Carry On installed): Check for updates offered 5.0.3 for Auto Map Markers and "Up to date" for Carry On; Update opened the dialog ("Not verified for game version 1.22.7") and Update anyway installed 5.0.3 with the restart toast and banner; the detail page listed only that mod ID's releases and Switch to 5.0.2 showed both `not_verified` and `older` and rolled back; Cancel changed nothing; the mods directory held one file per mod each time. Found and fixed: the global mutation error handler also toasted the expected 409 (and check errors), so `useCheckModUpdates` and `useChangeModVersion` now override `onError` and leave reporting to their callers (2 tests). The only console entry left is the browser's network log of that 409.
+- Found, not fixed (out of scope): installing without a version took Carry On `2.0.0-rc.1`, because install takes `releases[0]`; filed `VSS-43b`. The installed table remounts its cells on each `InstalledTab` render because `onToggled` is a new function each time (pre-existing).
+
 ### File List
+
+- Created: `web/src/components/ModUpdateCell.tsx`, `web/src/components/ModUpdateCell.test.tsx`
+- Created: `web/src/components/VersionChangeConfirmDialog.tsx`, `web/src/components/VersionChangeConfirmDialog.test.tsx`
+- Created: `web/src/hooks/use-version-change-flow.ts`, `web/src/hooks/use-version-change-flow.test.tsx`
+- Modified: `api/src/vintagestory_api/models/mods.py`, `api/src/vintagestory_api/services/mods.py`
+- Modified: `api/tests/test_mod_service.py`, `api/tests/test_mod_models.py`
+- Modified: `web/src/api/client.ts`, `web/src/api/client.test.ts`, `web/src/api/types.ts`, `web/src/api/mods.ts`, `web/src/api/mods.test.ts`, `web/src/api/query-keys.ts`
+- Modified: `web/src/hooks/use-mods.ts`, `web/src/hooks/use-mods.test.tsx`
+- Modified: `web/src/components/ModTable.tsx`, `web/src/components/ModTable.test.tsx`
+- Modified: `web/src/features/mods/InstalledTab.tsx`, `web/src/features/mods/InstalledTab.test.tsx`
+- Modified: `web/src/features/mods/ModDetailPage.tsx`, `web/src/features/mods/ModDetailPage.test.tsx`
+
+## Change Log
+
+- 2026-11-09: Implemented the update and version switching UI (Available column, check for updates, confirmation flow, detail page version switching) and release mod IDs in lookups. Browser-verified in a throwaway container; fixed a duplicate error toast found there. `just check` passes with 1961 API tests and 2959 web tests.
