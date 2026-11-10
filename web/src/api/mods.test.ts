@@ -9,6 +9,9 @@ import {
   disableMod,
   removeMod,
   fetchModTags,
+  fetchModUpdates,
+  checkModUpdates,
+  changeModVersion,
 } from './mods';
 import type {
   ApiResponse,
@@ -937,5 +940,111 @@ describe('removeMod', () => {
     expect(result.status).toBe('ok');
     expect(result.data.slug).toBe('testmod');
     expect(result.data.pendingRestart).toBe(true);
+  });
+});
+
+describe('mod update API', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const updatesBody = {
+    status: 'ok',
+    data: {
+      game_version: '1.22.7',
+      checked_at: '2026-11-09T00:00:00Z',
+      update_count: 1,
+      mods: [
+        {
+          slug: 'carryon',
+          name: 'Carry On',
+          installed_version: '1.14.1',
+          status: 'update_available',
+          offered_version: '1.14.3',
+          offered_compatibility: 'compatible',
+          offered_prerelease: false,
+          reason: null,
+          checked_at: '2026-11-09T00:00:00Z',
+          error: null,
+        },
+      ],
+    },
+  };
+
+  function mockOk(body: unknown) {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(body),
+    });
+    globalThis.fetch = mockFetch;
+    return mockFetch;
+  }
+
+  it('fetchModUpdates reads the update status', async () => {
+    const mockFetch = mockOk(updatesBody);
+
+    const result = await fetchModUpdates();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/updates');
+    expect(options.method ?? 'GET').toBe('GET');
+    expect(result.data.updateCount).toBe(1);
+    expect(result.data.mods[0].offeredVersion).toBe('1.14.3');
+    expect(result.data.mods[0].installedVersion).toBe('1.14.1');
+  });
+
+  it('checkModUpdates posts to the check endpoint', async () => {
+    const mockFetch = mockOk({
+      ...updatesBody,
+      data: { ...updatesBody.data, check: { checked: 1, failed: 0, failed_slugs: [] } },
+    });
+
+    const result = await checkModUpdates();
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/updates/check');
+    expect(options.method).toBe('POST');
+    expect(result.data.check).toEqual({ checked: 1, failed: 0, failedSlugs: [] });
+  });
+
+  it('changeModVersion puts the version and confirm flag', async () => {
+    const mockFetch = mockOk({
+      status: 'ok',
+      data: {
+        slug: 'carryon',
+        previous_version: '1.14.1',
+        version: '1.14.3',
+        filename: 'carryon_1.14.3.zip',
+        compatibility: 'compatible',
+        changed: true,
+        pending_restart: false,
+      },
+    });
+
+    const result = await changeModVersion('carry on', '1.14.3', true);
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/carry%20on/version');
+    expect(options.method).toBe('PUT');
+    expect(JSON.parse(options.body)).toEqual({ version: '1.14.3', confirm: true });
+    expect(result.data.previousVersion).toBe('1.14.1');
+    expect(result.data.pendingRestart).toBe(false);
+  });
+
+  it('changeModVersion sends confirm false by default', async () => {
+    const mockFetch = mockOk({ status: 'ok', data: {} });
+
+    await changeModVersion('carryon', '1.14.3');
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({ version: '1.14.3', confirm: false });
   });
 });

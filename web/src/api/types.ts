@@ -20,6 +20,8 @@ export interface ApiResponse<T> {
 export interface ApiErrorDetail {
   code?: string;
   message?: string;
+  /** Structured context for some errors, e.g. confirmation reasons. */
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -510,4 +512,68 @@ export interface DebugStatusData {
 export interface DebugToggleData {
   debugEnabled: boolean;
   changed: boolean;
+}
+
+// ============================================
+// Mod updates and version changes (Epic 14)
+// ============================================
+
+/** Update state of an installed mod (Story 14.1). */
+export type ModUpdateState = 'update_available' | 'up_to_date' | 'blocked' | 'unknown';
+
+/** Why an installed mod's update state is unknown. */
+export type ModUpdateUnknownReason =
+  | 'not_checked'
+  | 'not_in_database'
+  | 'installed_release_not_listed'
+  | 'version_unparsable';
+
+/** Update status of one installed mod from GET /mods/updates. */
+export interface ModUpdateStatus {
+  slug: string;
+  name: string;
+  installedVersion: string;
+  status: ModUpdateState;
+  offeredVersion: string | null;
+  offeredCompatibility: CompatibilityStatus | null;
+  offeredPrerelease: boolean | null;
+  reason: ModUpdateUnknownReason | null;
+  checkedAt: string | null;
+  error: string | null;
+}
+
+/** Response data from GET /api/v1alpha1/mods/updates. */
+export interface ModUpdatesData {
+  gameVersion: string | null;
+  /** When the last full check finished without failures. */
+  checkedAt: string | null;
+  updateCount: number;
+  mods: ModUpdateStatus[];
+}
+
+/** Outcome of one update check. */
+export interface ModUpdateCheckSummary {
+  checked: number;
+  failed: number;
+  failedSlugs: string[];
+}
+
+/** Response data from POST /api/v1alpha1/mods/updates/check. */
+export interface ModUpdateCheckData extends ModUpdatesData {
+  check: ModUpdateCheckSummary;
+}
+
+/** Why a version change needs confirmation (409 MOD_CONFIRMATION_REQUIRED). */
+export type VersionChangeReason = 'not_verified' | 'incompatible' | 'prerelease' | 'older';
+
+/** Response data from PUT /api/v1alpha1/mods/{slug}/version. */
+export interface ModVersionChangeData {
+  slug: string;
+  previousVersion: string;
+  version: string;
+  filename: string;
+  /** Compatibility of the new version; null when nothing changed. */
+  compatibility: CompatibilityStatus | null;
+  changed: boolean;
+  pendingRestart: boolean;
 }

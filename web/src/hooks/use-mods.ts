@@ -14,6 +14,9 @@ import {
   enableMod,
   disableMod,
   removeMod,
+  fetchModUpdates,
+  checkModUpdates,
+  changeModVersion,
 } from '@/api/mods';
 import type { ApiResponse, ModsListData, CompatibilityStatus, ModSide } from '@/api/types';
 
@@ -348,4 +351,63 @@ export function useModsCompatibility(slugs: string[]) {
     isAllFetched,
     queries, // Expose raw queries for advanced usage
   };
+}
+
+/**
+ * Polling interval for mod update status (60 seconds).
+ * The endpoint reads stored check data; it changes only after a check or version change.
+ */
+const MOD_UPDATES_POLL_INTERVAL = 60000;
+
+/**
+ * Hook to fetch update status for installed mods (Story 14.3).
+ */
+export function useModUpdates() {
+  return useQuery({
+    queryKey: queryKeys.mods.updateStatus,
+    queryFn: fetchModUpdates,
+    refetchInterval: MOD_UPDATES_POLL_INTERVAL,
+    refetchIntervalInBackground: false,
+  });
+}
+
+/**
+ * Hook to run an update check against the mod database (Admin).
+ *
+ * Invalidates all mod queries, including the update status, when it settles.
+ */
+export function useCheckModUpdates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => checkModUpdates(),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+  });
+}
+
+/**
+ * Hook to update, roll back or switch an installed mod's version (Admin).
+ *
+ * A risky change rejects with ApiError code MOD_CONFIRMATION_REQUIRED and
+ * `details.reasons`; call again with `confirm: true` after the user agrees.
+ */
+export function useChangeModVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      slug,
+      version,
+      confirm = false,
+    }: {
+      slug: string;
+      version: string;
+      confirm?: boolean;
+    }) => changeModVersion(slug, version, confirm),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
+    },
+  });
 }

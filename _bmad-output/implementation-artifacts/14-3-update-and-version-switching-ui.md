@@ -56,13 +56,13 @@ so that **I can manage versions without touching files**.
   - [x] 1.2: API test that lookup releases carry `modidstr` (instruments fixture: several modids)
   - [x] 1.3: Add `modidstr: string` to `ModRelease` in `web/src/api/types.ts`
 
-- [ ] Task 2: Add the web API layer for updates and version changes + tests (AC: 2, 3, 4, 5)
-  - [ ] 2.1: `api/client.ts`: pass `errorData.detail.details` into `ApiError` so confirmation reasons reach the UI
-  - [ ] 2.2: Types: `ModUpdateStatus`, `ModUpdatesData`, `ModUpdateCheckData`, `ModVersionChangeData` in `api/types.ts` (camelCase, per the client's transform)
-  - [ ] 2.3: `api/mods.ts`: `fetchModUpdates()`, `checkModUpdates()`, `changeModVersion(slug, version, confirm)`
-  - [ ] 2.4: Query key `mods.updateStatus` as `['mods', '@updates']` (`@` cannot appear in a modid, so it cannot collide with `mods.detail(slug)`)
-  - [ ] 2.5: Hooks in `hooks/use-mods.ts`: `useModUpdates()`, `useCheckModUpdates()`, `useChangeModVersion()`; mutations invalidate `queryKeys.mods.all` (which covers the update status key)
-  - [ ] 2.6: Tests for the client change, API functions and hooks
+- [x] Task 2: Add the web API layer for updates and version changes + tests (AC: 2, 3, 4, 5)
+  - [x] 2.1: `api/client.ts`: pass `errorData.detail.details` into `ApiError` so confirmation reasons reach the UI
+  - [x] 2.2: Types: `ModUpdateStatus`, `ModUpdatesData`, `ModUpdateCheckData`, `ModVersionChangeData` in `api/types.ts` (camelCase, per the client's transform)
+  - [x] 2.3: `api/mods.ts`: `fetchModUpdates()`, `checkModUpdates()`, `changeModVersion(slug, version, confirm)`
+  - [x] 2.4: Query key `mods.updateStatus` as `['mods', '@updates']` (`@` cannot appear in a modid, so it cannot collide with `mods.detail(slug)`)
+  - [x] 2.5: Hooks in `hooks/use-mods.ts`: `useModUpdates()`, `useCheckModUpdates()`, `useChangeModVersion()`; mutations invalidate `queryKeys.mods.all` (which covers the update status key)
+  - [x] 2.6: Tests for the client change, API functions and hooks
 
 - [ ] Task 3: Show update status in the Installed tab + tests (AC: 1, 5)
   - [ ] 3.1: Add an "Available" column to `ModTable` driven by `useModUpdates()`, keyed by slug

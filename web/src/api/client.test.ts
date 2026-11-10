@@ -293,6 +293,31 @@ describe('apiClient', () => {
       await expect(apiClient('/test')).rejects.toThrow('Resource not found');
     });
 
+    it('keeps structured error details on ApiError', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () =>
+          Promise.resolve({
+            detail: {
+              code: 'MOD_CONFIRMATION_REQUIRED',
+              message: 'Confirm to continue',
+              details: { reasons: ['older'], compatibility: 'compatible' },
+            },
+          }),
+      });
+
+      const error = await apiClient('/test').catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).code).toBe('MOD_CONFIRMATION_REQUIRED');
+      expect((error as ApiError).details).toEqual({
+        reasons: ['older'],
+        compatibility: 'compatible',
+      });
+    });
+
     it('handles string detail in error response', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: false,

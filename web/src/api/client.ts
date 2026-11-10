@@ -104,6 +104,7 @@ async function handleApiError(response: Response): Promise<never> {
   // Extract error details from FastAPI's standard format
   let code = 'UNKNOWN';
   let message = response.statusText;
+  let details: Record<string, unknown> | undefined;
 
   if (errorData.detail) {
     if (typeof errorData.detail === 'string') {
@@ -111,6 +112,7 @@ async function handleApiError(response: Response): Promise<never> {
     } else {
       code = errorData.detail.code || 'UNKNOWN';
       message = errorData.detail.message || response.statusText;
+      details = errorData.detail.details;
     }
   }
 
@@ -121,7 +123,7 @@ async function handleApiError(response: Response): Promise<never> {
     throw new ForbiddenError(message);
   }
 
-  throw new ApiError(code, message, response.status);
+  throw new ApiError(code, message, response.status, details);
 }
 
 /**

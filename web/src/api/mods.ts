@@ -17,6 +17,9 @@ import type {
   ModEnableDisableData,
   ModRemoveData,
   ModTagsData,
+  ModUpdatesData,
+  ModUpdateCheckData,
+  ModVersionChangeData,
 } from './types';
 
 const API_PREFIX = '/api/v1alpha1/mods';
@@ -200,4 +203,44 @@ export async function fetchBrowseMods(
   const url = query ? `${API_PREFIX}/browse?${query}` : `${API_PREFIX}/browse`;
 
   return apiClient<ApiResponse<ModBrowseData>>(url);
+}
+
+/**
+ * Fetch update status for every installed mod (Story 14.1).
+ *
+ * Computed from the last check's stored data; makes no mod database calls.
+ * Accessible to both Admin and Monitor roles.
+ */
+export async function fetchModUpdates(): Promise<ApiResponse<ModUpdatesData>> {
+  return apiClient<ApiResponse<ModUpdatesData>>(`${API_PREFIX}/updates`);
+}
+
+/**
+ * Check the mod database for updates to every installed mod (Story 14.1).
+ *
+ * Requires Admin role. Fails with 409 MOD_UPDATE_CHECK_IN_PROGRESS when a check is running.
+ */
+export async function checkModUpdates(): Promise<ApiResponse<ModUpdateCheckData>> {
+  return apiClient<ApiResponse<ModUpdateCheckData>>(`${API_PREFIX}/updates/check`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Move an installed mod to another listed release: update or rollback (Story 14.2).
+ *
+ * Without `confirm`, a risky change fails with 409 MOD_CONFIRMATION_REQUIRED and
+ * `details.reasons`; retry with `confirm: true` to proceed.
+ *
+ * Requires Admin role.
+ */
+export async function changeModVersion(
+  slug: string,
+  version: string,
+  confirm = false
+): Promise<ApiResponse<ModVersionChangeData>> {
+  return apiClient<ApiResponse<ModVersionChangeData>>(
+    `${API_PREFIX}/${encodeURIComponent(slug)}/version`,
+    { method: 'PUT', body: { version, confirm } }
+  );
 }

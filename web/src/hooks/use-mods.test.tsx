@@ -11,6 +11,9 @@ import {
   useRemoveMod,
   useModsCompatibility,
   useModsPendingRestart,
+  useModUpdates,
+  useCheckModUpdates,
+  useChangeModVersion,
 } from './use-mods';
 
 // Create a fresh QueryClient for each test
@@ -1500,5 +1503,102 @@ describe('useModsCompatibility', () => {
       expect(result.current.sideMap.get('clientmod')).toBe('Client');
       expect(result.current.sideMap.get('servermod')).toBe('Server');
     });
+  });
+});
+
+describe('mod update hooks', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function mockOk(data: unknown) {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data }),
+    });
+    globalThis.fetch = mockFetch;
+    return mockFetch;
+  }
+
+  it('useModUpdates fetches the update status under its own key', async () => {
+    const mockFetch = mockOk({
+      game_version: '1.22.7',
+      checked_at: null,
+      update_count: 0,
+      mods: [],
+    });
+    const queryClient = createTestQueryClient();
+
+    const { result } = renderHook(() => useModUpdates(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      'http://localhost:8080/api/v1alpha1/mods/updates'
+    );
+    expect(result.current.data?.data.gameVersion).toBe('1.22.7');
+    expect(queryClient.getQueryData(['mods', '@updates'])).toBeDefined();
+  });
+
+  it('useCheckModUpdates posts and invalidates mod queries', async () => {
+    const mockFetch = mockOk({
+      game_version: '1.22.7',
+      checked_at: '2026-11-09T00:00:00Z',
+      update_count: 0,
+      mods: [],
+      check: { checked: 0, failed: 0, failed_slugs: [] },
+    });
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useCheckModUpdates(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate();
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
+  });
+
+  it('useChangeModVersion puts the version and invalidates mod queries', async () => {
+    const mockFetch = mockOk({
+      slug: 'carryon',
+      previous_version: '1.14.1',
+      version: '1.14.3',
+      filename: 'carryon_1.14.3.zip',
+      compatibility: 'compatible',
+      changed: true,
+      pending_restart: true,
+    });
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useChangeModVersion(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate({ slug: 'carryon', version: '1.14.3', confirm: true });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/carryon/version');
+    expect(JSON.parse(options.body)).toEqual({ version: '1.14.3', confirm: true });
+    expect(result.current.data?.data.pendingRestart).toBe(true);
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['mods'] });
   });
 });

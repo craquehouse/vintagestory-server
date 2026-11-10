@@ -30,6 +30,9 @@ export const queryKeys = {
     gameVersions: ['mods', 'gameversions'] as const,
     // VSS-y7u: Mod tags for filtering
     tags: ['mods', 'tags'] as const,
+    // Story 14.3: update status. '@' cannot appear in a mod ID, so this key
+    // cannot collide with detail(slug).
+    updateStatus: ['mods', '@updates'] as const,
   },
   server: {
     status: ['server', 'status'] as const,
