@@ -84,6 +84,14 @@ SECRET_SETTINGS = frozenset({"mod_update_webhook_url"})
 """Settings whose values are never logged or returned (FR149)."""
 
 
+def _describe_validation_errors(error: ValidationError) -> str:
+    """Field names and messages only; never the invalid values (they may be secrets)."""
+    return "; ".join(
+        f"{'.'.join(str(part) for part in detail['loc'])}: {detail['msg']}"
+        for detail in error.errors(include_input=False, include_url=False)
+    )
+
+
 class ApiSettingUnknownError(Exception):
     """Raised when an unknown API setting key is requested."""
 
@@ -166,10 +174,15 @@ class ApiSettingsService:
             # failing the request. This ensures the API remains operational even if the
             # settings file is manually edited incorrectly. The warning log allows
             # administrators to detect and fix the issue.
+            # Never str() a ValidationError: it quotes the input, which can be the
+            # webhook URL (FR149). JSONDecodeError messages carry only a position.
+            error = (
+                _describe_validation_errors(e) if isinstance(e, ValidationError) else str(e)
+            )
             logger.warning(
                 "api_settings_load_failed",
                 path=str(self._settings_file),
-                error=str(e),
+                error=error,
             )
             return ApiSettings()
 

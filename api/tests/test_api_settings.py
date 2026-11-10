@@ -906,3 +906,23 @@ class TestModUpdateWebhookSetting:
         assert "aaaa" not in exc_info.value.message
         assert service.get_settings().mod_update_webhook_url is None
 
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "htp:/bad url with leaked-secret-token",
+            "https://discord.com/api/webhooks/1/" + "x" * 2100 + "leaked-secret-token",
+        ],
+    )
+    def test_invalid_settings_file_does_not_log_the_value(
+        self, service: ApiSettingsService, capsys: pytest.CaptureFixture[str], bad: str
+    ) -> None:
+        service.settings_file.write_text(json.dumps({"mod_update_webhook_url": bad}))
+
+        settings = service.get_settings()
+
+        assert settings.mod_update_webhook_url is None  # falls back to defaults
+        out = capsys.readouterr().out
+        assert "api_settings_load_failed" in out
+        assert "leaked-secret-token" not in out
+        assert "mod_update_webhook_url" in out  # the field is named, its value is not
+

@@ -104,6 +104,17 @@ class TestPayload:
         content = summarize([item("huge", name="x" * 5000)])
 
         assert len(content) <= CONTENT_LIMIT
+        assert content.startswith("1 mod update available:\n- xxx")
+        assert content.endswith("…")
+
+    def test_newlines_in_names_cannot_forge_lines(self) -> None:
+        content = summarize([item("demo", name="Demo\n- Fake: 9 → 10 (compatible)")])
+
+        assert content.count("\n") == 1
+        assert content == (
+            "1 mod update available:\n"
+            "- Demo - Fake: 9 → 10 (compatible): 1.0.0 → 1.1.0 (compatible)"
+        )
 
     def test_discord_payload_has_only_content_and_suppressed_mentions(self) -> None:
         payload = build_payload(DISCORD, [item("demo", name="@everyone")])

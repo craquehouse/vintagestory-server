@@ -6,6 +6,7 @@ message, which can contain the URL. Failures are logged by status code or error 
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -38,31 +39,44 @@ def is_discord_webhook(url: str) -> bool:
     return host in DISCORD_HOSTS and parts.path.startswith("/api/webhooks/")
 
 
+_LINE_BREAKS = re.compile(r"\s*[\r\n]+\s*")
+
+
+def _one_line(text: str | None) -> str:
+    """Mod database text on one line, so a name cannot forge extra summary lines."""
+    return _LINE_BREAKS.sub(" ", text or "")
+
+
 def _line(item: ModUpdateStatusItem) -> str:
     compatibility = _COMPATIBILITY_LABELS.get(
         item.offered_compatibility or "", item.offered_compatibility or "unknown"
     )
-    name = item.name or item.slug
-    return f"- {name}: {item.installed_version} → {item.offered_version} ({compatibility})"
+    name = _one_line(item.name or item.slug)
+    installed = _one_line(item.installed_version)
+    offered = _one_line(item.offered_version)
+    return f"- {name}: {installed} → {offered} ({compatibility})"
 
 
 def summarize(items: list[ModUpdateStatusItem], limit: int = CONTENT_LIMIT) -> str:
-    """One line per mod under a count header, cut to `limit` with "…and N more"."""
+    """One line per mod under a count header, cut to `limit` with "…and N more".
+
+    At least one mod is always named: a first line too long to fit is shortened.
+    """
     count = len(items)
     content = f"{count} mod {'update' if count == 1 else 'updates'} available:"
     for index, item in enumerate(items):
         line = "\n" + _line(item)
-        remaining = count - index - 1
-        # Reserve room for the "more" note unless this is the last line
-        reserve = len(f"\n…and {count - index} more") if remaining else 0
-        if len(content) + len(line) + reserve > limit:
-            more = f"\n…and {count - index} more"
-            if len(content) + len(more) <= limit:
-                return content + more
-            break
-        content += line
-    # Only reachable when a single line or the note alone cannot fit
-    return content if len(content) <= limit else content[: limit - 1] + "…"
+        rest = count - index - 1
+        more = f"\n…and {rest} more" if rest else ""
+        if len(content) + len(line) + len(more) <= limit:
+            content += line
+            continue
+        if index == 0:
+            room = limit - len(content) - len(more) - 1
+            return content + line[:room] + "…" + more
+        # The previous line reserved room for this note
+        return content + f"\n…and {count - index} more"
+    return content
 
 
 def build_payload(url: str, items: list[ModUpdateStatusItem]) -> dict[str, Any]:
