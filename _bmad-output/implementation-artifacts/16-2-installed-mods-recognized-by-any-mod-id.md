@@ -1,6 +1,6 @@
 # Story 16.2: Installed Mods Recognized by Any Mod ID
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR169 and Epic 16 ADR-2 decision 2 ("which mod ID"), detail-page side. Bead: VSS-ywb. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID). Stacks on Story 16.1 (PR #148). -->
 
@@ -37,9 +37,9 @@ so that **I am not offered an install for a mod I have**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.2/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: Mod ID matching helper + tests (AC: 3, 4, 5)
-  - [ ] 1.1: Create `web/src/lib/mod-ids.ts` with `entryModIds(releases: Pick<ModRelease, 'modidstr'>[]): string[]` (distinct, non-empty `modidstr` values in release order, newest first) and `findInstalledModForEntry<T extends { slug: string }>(installedMods: readonly T[] | undefined, entry: { slug: string; releases: Pick<ModRelease, 'modidstr'>[] }): T | undefined` implementing AC 3 and AC 4 (URL slug first, then `entryModIds` order; exact comparison; `undefined` for no list)
-  - [ ] 1.2: Tests in `web/src/lib/mod-ids.test.ts`: the instruments shape (three mod IDs, installed one last or middle), URL slug wins over an earlier-release mod ID, newest-release mod ID wins when the URL slug is not installed, no `modidstr` on releases (URL slug still matches), installed mod from another entry not matched, case differs → no match, empty and `undefined` installed lists, duplicates and empty strings dropped from `entryModIds`
+- [x] Task 1: Mod ID matching helper + tests (AC: 3, 4, 5)
+  - [x] 1.1: Create `web/src/lib/mod-ids.ts` with `entryModIds(releases: Pick<ModRelease, 'modidstr'>[]): string[]` (distinct, non-empty `modidstr` values in release order, newest first) and `findInstalledModForEntry<T extends { slug: string }>(installedMods: readonly T[] | undefined, entry: { slug: string; releases: Pick<ModRelease, 'modidstr'>[] }): T | undefined` implementing AC 3 and AC 4 (URL slug first, then `entryModIds` order; exact comparison; `undefined` for no list)
+  - [x] 1.2: Tests in `web/src/lib/mod-ids.test.ts`: the instruments shape (three mod IDs, installed one last or middle), URL slug wins over an earlier-release mod ID, newest-release mod ID wins when the URL slug is not installed, no `modidstr` on releases (URL slug still matches), installed mod from another entry not matched, case differs → no match, empty and `undefined` installed lists, duplicates and empty strings dropped from `entryModIds`
 
 - [ ] Task 2: Detail page recognizes the installed mod by any of the entry's mod IDs + tests (AC: 1, 2, 3, 4)
   - [ ] 2.1: `ModDetailPage`: replace `modsData?.data?.mods?.find((m) => m.slug === slug)` with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })`, computed after the `mod` guards (the releases are needed); `InstalledVersionSection` keeps receiving `installedMod.slug`, so its version list, update status lookup and version change already use the installed mod ID
@@ -151,11 +151,21 @@ ADR-2 decision 2: the mod ID is "the installed mod's ID when the mod is installe
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: red run of `mod-ids.test.ts` (module missing), then 11 passed.
 
 ### Completion Notes List
 
+- Task 1: `web/src/lib/mod-ids.ts` exports `entryModIds` (distinct non-empty `modidstr`, newest release first) and `findInstalledModForEntry` (URL slug first, then release order, exact comparison; generic over `{ slug }`). 11 unit tests. Not used yet; Task 2 wires it into the detail page.
+
 ### File List
+
+- `web/src/lib/mod-ids.ts` (new)
+- `web/src/lib/mod-ids.test.ts` (new)
+- `_bmad-output/implementation-artifacts/16-2-installed-mods-recognized-by-any-mod-id.md`
 
 ## Change Log
 
