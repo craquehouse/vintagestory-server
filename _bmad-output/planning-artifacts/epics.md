@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-10'
+lastUpdated: '2026-11-13'
 updates:
+  - date: '2026-11-13'
+    description: 'Added Epic 16 (8 stories) for UI Polish'
   - date: '2026-11-10'
     description: 'Added Epic 15 (7 stories) for Release Engineering'
   - date: '2026-11-09'
@@ -366,6 +368,14 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR164 | Epic 15 | SBOM and signed provenance |
 | FR165 | Epic 15 | Runtime web API key, none in the image |
 | FR166 | Epic 15 | Release and install documentation |
+| FR167 | Epic 16 | Mod browser keeps search, filters and sort |
+| FR168 | Epic 16 | Page and scroll restored with browse state |
+| FR169 | Epic 16 | Installed mod recognized by any mod ID |
+| FR170 | Epic 16 | Latest supported game version for incompatible mods |
+| FR171 | Epic 16 | Formatted description in lookup preview |
+| FR172 | Epic 16 | Installed mods as cards on phones |
+| FR173 | Epic 16 | Settings use desktop width |
+| FR174 | Epic 16 | File browser breadcrumbs |
 
 ## Epic List
 
@@ -1876,7 +1886,8 @@ So that **I can monitor background task status**.
 | Epic 13: Server Version Browser | 13.0, 13.1, 13.2, 13.3, 13.4, 13.5 | 6 |
 | Epic 14: Mod Updates | 14.0, 14.1, 14.2, 14.3, 14.4, 14.5, 14.6 | 7 |
 | Epic 15: Release Engineering | 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6 | 7 |
-| **Total** | | **85** |
+| Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7 | 8 |
+| **Total** | | **93** |
 
 ---
 
@@ -3912,3 +3923,227 @@ So that **I can deploy and upgrade predictably**.
 - [ ] `docker-compose.yaml` comment on pinning a version
 - [ ] Seed `CHANGELOG.md` with a summary for `v0.1.0`
 - [ ] First release, cut by the maintainer
+
+---
+
+## Epic 16: UI Polish
+
+**Goal:** Admins keep their place when moving around the web UI, see accurate mod information, and get layouts that fit their screen.
+
+### Current State
+
+- The mod browser keeps search, filters and sort in component state, so opening a mod's detail page and coming back resets them to newest, descending, no search; page and scroll restoration from Story 10.7 is cleared whenever they change
+- The mod detail page matches an installed mod only by the browse slug, so an installed mod whose ID is not the entry's first mod ID shows the install flow
+- An unverified or incompatible mod gives no hint of which game version it does support
+- The mod lookup preview card prints the mod description's HTML as plain text
+- The Installed mods table scrolls horizontally on phones
+- Game server settings cards stretch across the full width on desktop
+- The file browser has only a Back button
+
+### Target State
+
+- Returning from a mod's detail page restores the browser exactly: search, filters, sort, page and scroll position
+- Mod information is accurate: installed mods are recognized by any mod ID, and incompatible mods name the game version they last supported
+- The lookup preview card, Installed mods and settings pages read well at every screen size, and the file browser path is clickable
+
+---
+
+### Story 16.0: Epic 16 Technical Preparation
+
+As a **developer**,
+I want **the open questions behind the polish stories answered against the running app**,
+So that **each story starts from confirmed behavior and data**.
+
+**Acceptance Criteria:**
+
+**Given** the mod browser with Story 10.7's scroll restoration
+**When** it is exercised manually, including on a throttled network
+**Then** findings record whether page and scroll restoration work today, and whether the 100 ms timeout is reliable (`VSS-901`)
+
+**Given** the browse state that has to survive navigation
+**When** URL query parameters and sessionStorage are compared
+**Then** findings record the chosen mechanism and why, including browser back, refresh and shared links
+
+**Given** the mod database API
+**When** its release data is checked for incompatible mods
+**Then** findings record where the most recent supported game version comes from, and whether it is available on browse cards or only from mod details
+
+**Given** the game server settings page
+**When** it is reviewed at common desktop widths
+**Then** findings record the target layout for the settings cards
+
+**Tasks:**
+- [ ] Verify Story 10.7 scroll restoration manually and record the result on `VSS-901`
+- [ ] Choose the browse state persistence mechanism
+- [ ] Find the source of a mod's most recent supported game version
+- [ ] Sketch the desktop settings layout
+- [ ] Write `architecture/epic-16-ui-polish.md` with the findings and add it to the index
+
+---
+
+### Story 16.1: Mod Browser State Survives Mod Details
+
+As an **administrator**,
+I want **the mod browser to keep my search, filters and sort when I look at a mod and come back**,
+So that **I can compare several mods without searching again each time**.
+
+**Acceptance Criteria:**
+
+**Given** I have entered a search term, set filters or changed the sort
+**When** I open a mod's detail page and return with Back to Browse or the browser's back button
+**Then** the search term, filters and sort are as I left them, and the results match them
+
+*(Covers FR167)*
+
+**Given** I was on a later page and scrolled down
+**When** I return from a mod's detail page
+**Then** the same page is shown and scrolled to the card I opened, with the search, filters and sort I had set
+
+*(Covers FR168)*
+
+**Given** I change the search, filters or sort after returning
+**When** the results change
+**Then** the browser goes back to page 1, as it does today
+
+**Tasks:**
+- [ ] Persist search, filters and sort with the mechanism chosen in Story 16.0 (`VSS-dkl`)
+- [ ] Restore page and scroll position together with them; fix restoration timing if Story 16.0 found it unreliable (`VSS-901`)
+- [ ] Tests, including an end-to-end test of the detail round trip
+
+---
+
+### Story 16.2: Installed Mods Recognized by Any Mod ID
+
+As an **administrator**,
+I want **a mod's detail page to know when I already have it installed**,
+So that **I am not offered an install for a mod I have**.
+
+**Acceptance Criteria:**
+
+**Given** a database entry that ships several mod IDs, and I have installed one that is not its first
+**When** I open the entry's detail page
+**Then** it shows the installed state, version and update actions, not the install flow
+
+*(Covers FR169)*
+
+**Tasks:**
+- [ ] Match installed mods against every mod ID in the entry's releases (`ModRelease.modidstr`) instead of the browse slug (`VSS-ywb`)
+- [ ] Tests
+
+---
+
+### Story 16.3: Latest Supported Game Version for Incompatible Mods
+
+As an **administrator**,
+I want **to see which game version an unverified or incompatible mod last supported**,
+So that **I can judge how far behind it is before installing it**.
+
+**Acceptance Criteria:**
+
+**Given** a mod that is not verified or is incompatible with my installed game version
+**When** I view it on its detail page or in the Installed mods list
+**Then** the compatibility message names the most recent game version the mod supports
+
+*(Covers FR170)*
+
+**Given** Story 16.0 found the version available without fetching each mod's details
+**When** I browse mods
+**Then** browse cards show it too
+
+**Tasks:**
+- [ ] Add the most recent supported game version to the compatibility data, from the source chosen in Story 16.0 (`VSS-udh`)
+- [ ] Show it in the compatibility message on the detail page and Installed mods list, and on browse cards if available
+- [ ] Tests
+
+---
+
+### Story 16.4: Formatted Description in the Mod Lookup Preview
+
+As an **administrator**,
+I want **the mod lookup preview to show the description as formatted text**,
+So that **I can read it instead of raw HTML tags**.
+
+**Acceptance Criteria:**
+
+**Given** I look up a mod by slug or URL
+**When** the preview card shows its description
+**Then** the description is rendered from sanitized HTML, as on the mod detail page, and kept to a short preview
+
+*(Covers FR171)*
+
+**Tasks:**
+- [ ] Render the preview description with DOMPurify, sharing the detail page's sanitizing (`VSS-4ll`)
+- [ ] Clamp the preview length
+- [ ] Tests, including that scripts and event handlers are stripped
+
+---
+
+### Story 16.5: Installed Mods on Phones
+
+As an **administrator**,
+I want **installed mods to fit a phone screen**,
+So that **I can update, enable and remove mods without scrolling sideways**.
+
+**Acceptance Criteria:**
+
+**Given** a screen narrower than the `md` breakpoint
+**When** I open Installed mods
+**Then** each mod is a card showing its version, update status and Update action, enable toggle and remove action, with no horizontal scrolling
+
+*(Covers FR172)*
+
+**Given** a wider screen
+**When** I open Installed mods
+**Then** the existing table is unchanged
+
+**Tasks:**
+- [ ] Add a card layout below `md` for the Installed tab (`VSS-rr5`)
+- [ ] Tests at both breakpoints
+
+---
+
+### Story 16.6: Settings Layout on Desktop
+
+As an **administrator**,
+I want **game server settings to use the width of a desktop screen**,
+So that **I can see more settings without scrolling past half-empty cards**.
+
+**Acceptance Criteria:**
+
+**Given** a desktop-width screen
+**When** I open game server settings
+**Then** the settings cards follow the layout chosen in Story 16.0 instead of stretching across the full width
+
+*(Covers FR173)*
+
+**Given** a phone-width screen
+**When** I open game server settings
+**Then** the cards stack in one column as they do today
+
+**Tasks:**
+- [ ] Apply the desktop layout to the settings cards (`VSS-dfx`)
+- [ ] Tests
+
+---
+
+### Story 16.7: File Browser Breadcrumbs
+
+As an **administrator**,
+I want **to jump to any folder in the current path**,
+So that **I can move up several levels in one click**.
+
+**Acceptance Criteria:**
+
+**Given** I am in a subdirectory of the file browser
+**When** I look at the path
+**Then** each segment, and the root, is a link to that directory
+
+*(Covers FR174)*
+
+**Given** I click a segment
+**When** the directory loads
+**Then** its listing is shown and the path updates
+
+**Tasks:**
+- [ ] Replace the Back button with breadcrumb segments (`VSS-8lh`)
+- [ ] Tests, including the end-to-end directory navigation test from `VSS-3mr` if it is still open

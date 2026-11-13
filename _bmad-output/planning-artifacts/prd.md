@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-10'
+lastUpdated: '2026-11-13'
 updates:
+  - date: '2026-11-13'
+    description: 'Added FR167-FR174 for Epic 16 (UI Polish)'
   - date: '2026-11-10'
     description: 'Added FR152-FR166 and NFR17-NFR18 for Epic 15 (Release Engineering)'
   - date: '2026-11-09'
@@ -638,3 +640,19 @@ If trivial to implement:
 
 - FR165: The published image contains no API key; the web UI receives its API key from the server's configuration at runtime, so one image works for every deployment
 - FR166: Documentation explains installing and upgrading to a specific release, verifying an image, writing commits that become release notes, and cutting a release
+
+### Epic 16: UI Polish
+
+#### Mod Browser
+
+- FR167: The mod browser keeps its search term, filters and sort when the admin opens a mod's detail page and returns with Back to Browse or the browser's back button
+- FR168: Returning to the mod browser restores the page and scroll position that went with that search, filters and sort
+- FR169: The mod detail page recognizes an installed mod when any mod ID in the database entry matches it
+- FR170: For a mod that is not verified or is incompatible with the installed game version, the UI shows the most recent game version the mod supports
+- FR171: The mod lookup preview shows the mod description as formatted, sanitized HTML instead of raw markup
+
+#### Layout and Navigation
+
+- FR172: On narrow screens, installed mods are shown as cards with version, update status and Update action, enable toggle and remove action, without horizontal scrolling
+- FR173: Game server settings use the available width on desktop screens instead of full-width stacked cards
+- FR174: The file browser shows the current path as clickable segments, each opening that directory
