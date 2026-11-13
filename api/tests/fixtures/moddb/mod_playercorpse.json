@@ -1,0 +1,588 @@
+{
+  "mod": {
+    "modid": 51,
+    "assetid": 115,
+    "name": "Player Corpse",
+    "author": "DArkHekRoMaNT",
+    "urlalias": "playercorpse",
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2025-09-13 03:00:07",
+    "releases": [
+      {
+        "releaseid": 25029,
+        "modversion": "1.12.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.21.1_net8_v1.12.0.zip",
+        "fileid": 55036,
+        "downloads": 158557,
+        "tags": [
+          "1.21.0",
+          "1.21.1-rc.1",
+          "1.21.1-rc.2",
+          "1.21.1"
+        ],
+        "created": "2025-09-13 03:00:07"
+      },
+      {
+        "releaseid": 19172,
+        "modversion": "1.11.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.20.7_net7_v1.11.1.zip",
+        "fileid": 41465,
+        "downloads": 79961,
+        "tags": [
+          "1.20.0",
+          "1.20.7",
+          "1.20.8"
+        ],
+        "created": "2025-04-21 21:04:19"
+      },
+      {
+        "releaseid": 13538,
+        "modversion": "1.11.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.20.0-rc.1_net7_v1.11.0.zip",
+        "fileid": 28383,
+        "downloads": 86507,
+        "tags": [
+          "1.20.0-rc.1",
+          "1.20.0",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3"
+        ],
+        "created": "2024-12-09 00:25:31"
+      },
+      {
+        "releaseid": 10525,
+        "modversion": "1.10.1-rc.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.19.7_net7_v1.10.1-rc.1.zip",
+        "fileid": 21975,
+        "downloads": 34588,
+        "tags": [
+          "1.19.0",
+          "1.19.8"
+        ],
+        "created": "2024-05-26 03:54:19"
+      },
+      {
+        "releaseid": 10522,
+        "modversion": "1.10.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.19.7_net7_v1.10.0.zip",
+        "fileid": 21972,
+        "downloads": 1469,
+        "tags": [
+          "1.19.0",
+          "1.19.8"
+        ],
+        "created": "2024-05-26 03:27:11"
+      },
+      {
+        "releaseid": 8002,
+        "modversion": "1.9.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.19.0-rc.5_net7_v1.9.0.zip",
+        "fileid": 17404,
+        "downloads": 24698,
+        "tags": [
+          "1.19.0-rc.5"
+        ],
+        "created": "2024-01-06 19:03:53"
+      },
+      {
+        "releaseid": 5971,
+        "modversion": "1.8.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_VS1.18.6_netstandard2.0_v1.8.0.zip",
+        "fileid": 12885,
+        "downloads": 23025,
+        "tags": [
+          "1.18.6",
+          "1.18.15"
+        ],
+        "created": "2023-07-19 12:52:56"
+      },
+      {
+        "releaseid": 5826,
+        "modversion": "1.7.2",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.18.6_v1.7.2.zip",
+        "fileid": 12570,
+        "downloads": 4947,
+        "tags": [
+          "1.18.0",
+          "1.18.1",
+          "1.18.2",
+          "1.18.3",
+          "1.18.4",
+          "1.18.5",
+          "1.18.6"
+        ],
+        "created": "2023-07-03 10:28:07"
+      },
+      {
+        "releaseid": 4641,
+        "modversion": "1.7.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.18.0-rc.1_v1.7.1.zip",
+        "fileid": 10287,
+        "downloads": 9764,
+        "tags": [
+          "1.18.0-rc.1",
+          "1.18.0",
+          "1.18.1"
+        ],
+        "created": "2023-04-08 13:20:48"
+      },
+      {
+        "releaseid": 4580,
+        "modversion": "1.7.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.18.0-rc.1_v1.7.0.zip",
+        "fileid": 10170,
+        "downloads": 1025,
+        "tags": [
+          "1.18.0-rc.1"
+        ],
+        "created": "2023-04-05 09:45:28"
+      },
+      {
+        "releaseid": 4393,
+        "modversion": "1.6.0-rc.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.18.0-pre.5_v1.6.0-rc.1.zip",
+        "fileid": 9791,
+        "downloads": 1622,
+        "tags": [
+          "1.18.0-pre.0"
+        ],
+        "created": "2023-03-07 09:45:43"
+      },
+      {
+        "releaseid": 3598,
+        "modversion": "1.5.5",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.9_v1.5.5.zip",
+        "fileid": 8131,
+        "downloads": 10780,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3",
+          "1.17.4",
+          "1.17.5",
+          "1.17.6",
+          "1.17.7",
+          "1.17.8",
+          "1.17.9"
+        ],
+        "created": "2022-11-02 17:31:17"
+      },
+      {
+        "releaseid": 3596,
+        "modversion": "1.5.4",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.9_v1.5.4.zip",
+        "fileid": 8113,
+        "downloads": 672,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3",
+          "1.17.4",
+          "1.17.5",
+          "1.17.6",
+          "1.17.7",
+          "1.17.8",
+          "1.17.9"
+        ],
+        "created": "2022-11-02 07:28:42"
+      },
+      {
+        "releaseid": 3566,
+        "modversion": "1.5.3",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.9_v1.5.3.zip",
+        "fileid": 8051,
+        "downloads": 1063,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3",
+          "1.17.4",
+          "1.17.5",
+          "1.17.6",
+          "1.17.7",
+          "1.17.8",
+          "1.17.9"
+        ],
+        "created": "2022-10-30 14:23:57"
+      },
+      {
+        "releaseid": 3565,
+        "modversion": "1.5.2",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.9_v1.5.2.zip",
+        "fileid": 8050,
+        "downloads": 571,
+        "tags": [
+          "1.17.8",
+          "1.17.9"
+        ],
+        "created": "2022-10-30 13:36:16"
+      },
+      {
+        "releaseid": 3535,
+        "modversion": "1.5.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.9_v1.5.1.zip",
+        "fileid": 7980,
+        "downloads": 1184,
+        "tags": [
+          "1.17.8",
+          "1.17.9"
+        ],
+        "created": "2022-10-24 01:35:55"
+      },
+      {
+        "releaseid": 3438,
+        "modversion": "1.5.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.3_v1.5.0.zip",
+        "fileid": 7800,
+        "downloads": 2102,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3"
+        ],
+        "created": "2022-10-04 09:14:28"
+      },
+      {
+        "releaseid": 3245,
+        "modversion": "1.4.3",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.3_v1.4.3.zip",
+        "fileid": 7320,
+        "downloads": 2439,
+        "tags": [
+          "1.17.0",
+          "1.17.1",
+          "1.17.2",
+          "1.17.3"
+        ],
+        "created": "2022-09-12 20:28:44"
+      },
+      {
+        "releaseid": 3217,
+        "modversion": "1.4.2",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.3_v1.4.2.zip",
+        "fileid": 7235,
+        "downloads": 1165,
+        "tags": [
+          "1.17.3"
+        ],
+        "created": "2022-09-10 17:30:31"
+      },
+      {
+        "releaseid": 2987,
+        "modversion": "1.4.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.0-rc.5_v1.4.1.zip",
+        "fileid": 6779,
+        "downloads": 1833,
+        "tags": [
+          "1.17.0-rc.5"
+        ],
+        "created": "2022-08-11 12:21:13"
+      },
+      {
+        "releaseid": 2972,
+        "modversion": "1.4.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.0-rc.4_v1.4.0.zip",
+        "fileid": 6736,
+        "downloads": 727,
+        "tags": [
+          "1.17.0-rc.4"
+        ],
+        "created": "2022-08-08 14:53:05"
+      },
+      {
+        "releaseid": 2753,
+        "modversion": "1.3.3",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.0-pre.1_v1.3.3.zip",
+        "fileid": 6320,
+        "downloads": 1189,
+        "tags": [
+          "1.17.0-pre.0"
+        ],
+        "created": "2022-06-28 11:28:50"
+      },
+      {
+        "releaseid": 2732,
+        "modversion": "1.3.2",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.17.0-pre.1_v1.3.2.zip",
+        "fileid": 6286,
+        "downloads": 2543,
+        "tags": [
+          "1.16.0",
+          "1.16.1",
+          "1.16.2",
+          "1.16.3",
+          "1.16.4",
+          "1.16.5"
+        ],
+        "created": "2022-06-23 12:29:54"
+      },
+      {
+        "releaseid": 1913,
+        "modversion": "1.3.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.16.3_v1.3.1.zip",
+        "fileid": 4730,
+        "downloads": 7156,
+        "tags": [
+          "1.16.0",
+          "1.16.1",
+          "1.16.2",
+          "1.16.3",
+          "1.16.4",
+          "1.16.5"
+        ],
+        "created": "2022-02-18 01:13:33"
+      },
+      {
+        "releaseid": 1303,
+        "modversion": "1.3.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.16.0-pre.8_v1.3.0.zip",
+        "fileid": 3350,
+        "downloads": 3062,
+        "tags": [
+          "1.16.0-pre.0"
+        ],
+        "created": "2021-12-14 15:47:35"
+      },
+      {
+        "releaseid": 1302,
+        "modversion": "1.2.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.10_v1.2.0.zip",
+        "fileid": 3349,
+        "downloads": 952,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5",
+          "1.15.6",
+          "1.15.7",
+          "1.15.8",
+          "1.15.9",
+          "1.15.10"
+        ],
+        "created": "2021-12-14 15:47:25"
+      },
+      {
+        "releaseid": 1114,
+        "modversion": "1.1.9",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.7_v1.1.9.zip",
+        "fileid": 2897,
+        "downloads": 1514,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5",
+          "1.15.6",
+          "1.15.7"
+        ],
+        "created": "2021-10-22 04:41:44"
+      },
+      {
+        "releaseid": 1108,
+        "modversion": "1.1.8",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.7_v1.1.8.zip",
+        "fileid": 2868,
+        "downloads": 752,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5",
+          "1.15.6",
+          "1.15.7"
+        ],
+        "created": "2021-10-20 09:37:38"
+      },
+      {
+        "releaseid": 1090,
+        "modversion": "1.1.7",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.7_v1.1.7.zip",
+        "fileid": 2842,
+        "downloads": 764,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5",
+          "1.15.6",
+          "1.15.7"
+        ],
+        "created": "2021-10-18 05:56:08"
+      },
+      {
+        "releaseid": 1082,
+        "modversion": "1.1.6",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.7_v1.1.6.zip",
+        "fileid": 2832,
+        "downloads": 706,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5",
+          "1.15.6",
+          "1.15.7"
+        ],
+        "created": "2021-10-17 15:40:52"
+      },
+      {
+        "releaseid": 954,
+        "modversion": "1.1.5",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.1_v1.1.5.zip",
+        "fileid": 2538,
+        "downloads": 1242,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5"
+        ],
+        "created": "2021-09-10 01:02:27"
+      },
+      {
+        "releaseid": 860,
+        "modversion": "1.1.4",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.1_v1.1.4.zip",
+        "fileid": 2326,
+        "downloads": 1305,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2",
+          "1.15.3",
+          "1.15.4",
+          "1.15.5"
+        ],
+        "created": "2021-08-14 23:21:29"
+      },
+      {
+        "releaseid": 682,
+        "modversion": "1.1.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.1_v1.1.1.zip",
+        "fileid": 1892,
+        "downloads": 853,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2"
+        ],
+        "created": "2021-07-20 06:52:07"
+      },
+      {
+        "releaseid": 650,
+        "modversion": "1.1.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.15.0_v1.1.0.zip",
+        "fileid": 1836,
+        "downloads": 853,
+        "tags": [
+          "1.15.0",
+          "1.15.1",
+          "1.15.2"
+        ],
+        "created": "2021-07-17 09:20:26"
+      },
+      {
+        "releaseid": 141,
+        "modversion": "1.0.2",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.14.7_v1.0.2.zip",
+        "fileid": 481,
+        "downloads": 2044,
+        "tags": [
+          "1.14.0",
+          "1.14.2",
+          "1.14.5",
+          "1.14.7",
+          "1.14.8"
+        ],
+        "created": "2021-02-28 19:27:44"
+      },
+      {
+        "releaseid": 94,
+        "modversion": "1.0.1",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.14.7_v1.0.1.zip",
+        "fileid": 349,
+        "downloads": 877,
+        "tags": [
+          "1.14.0",
+          "1.14.2",
+          "1.14.5",
+          "1.14.7",
+          "1.14.8"
+        ],
+        "created": "2021-02-20 15:13:55"
+      },
+      {
+        "releaseid": 65,
+        "modversion": "1.0.0",
+        "modidstr": "playercorpse",
+        "filename": "PlayerCorpse_v1.14.0_v1.0.0.zip",
+        "fileid": 257,
+        "downloads": 818,
+        "tags": [
+          "1.14.0",
+          "1.14.2",
+          "1.14.5",
+          "1.14.7",
+          "1.14.8"
+        ],
+        "created": "2021-02-17 10:57:26"
+      }
+    ]
+  },
+  "statuscode": "200"
+}

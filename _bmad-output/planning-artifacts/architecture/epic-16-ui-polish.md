@@ -54,3 +54,35 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
 - Refresh, shared links and browser back/forward all preserve the browse state.
 - Story 10.7's `browse-scroll-position` key and `{ scrollY, page }` shape are retired; its unit tests are rewritten for the slug-based entry.
 - Returning lands on the card that was opened even if layout or card heights changed.
+
+## ADR-2: Most Recent Supported Game Version
+
+**Status:** Accepted (Story 16.0). Epic 10 ADR-2 (Conservative Compatibility Badge) stays in force for browse cards.
+
+**Context** (probe: `16-0-spike/moddb_probe.py`, output `moddb_probe.out.txt`, installed game 1.22.7):
+
+- Listing items (`/api/mods`, 9,560 items, 4.2 MB) carry only category `tags` (`Building`, `Patch`, ...); none parse as game versions.
+- Mod details carry game versions per release in `tags`, oldest first within a release, including pre-releases. `playercorpse` 1.12.0 (its newest release): `1.21.0, 1.21.1-rc.1, 1.21.1-rc.2, 1.21.1`.
+- Compatibility (`ModService` lookup, `services/mods.py:477-499`) evaluates `releases[0]` regardless of mod ID, and the incompatible message lists `tags[:3]`: for `playercorpse` it names the three oldest tags, not 1.21.1. For `instruments`, `releases[0]` belongs to `vsinstrumentsbase`, a different mod ID (related: `VSS-jhf`, Story 16.2).
+- Per mod ID, the probe's most recent supported versions are: `playercorpse` 1.21.1, `instruments` 1.18.6, `vsinstruments` 1.19.3, `vsinstrumentsbase` 1.21.6; `carryon` supports 1.22.7 exactly. No sampled mod was ahead of the installed version, but nothing prevents a release tagged only for a newer game version.
+- `/api/mods?gameversion=<tagid>` returns, in one request (2.5 MB, 1.5 s, 5,582 mods for 1.22.7), the mods with *any* release tagged for that version. `ModApiClient.get_mods_by_version` does **not** cache it (`services/mod_api.py:559`).
+- The Installed list gets compatibility from `useModsCompatibility` → `lookupMod(slug)`, which evaluates the newest release, not the installed one, and `ModTable` shows only the status badge.
+
+**Decision:**
+
+1. **Definition.** For a mod ID, the most recent supported game version is the highest tag across that mod ID's releases (`modidstr` equal to it), compared with `parse_base_version` and `is_prerelease` from `services/mod_updates.py`: by base version, then a stable tag above pre-releases of the same base. Stable tags are preferred; a pre-release is used only when the mod ID has no stable tag. Tags that do not parse are ignored. No new version parser.
+2. **Which mod ID.** The installed mod's ID when the mod is installed; otherwise the mod ID whose release the install flow would install (today `releases[0].modidstr`; Story 16.2 and `VSS-jhf` keep this consistent).
+3. **Which release decides the status.** Detail page and lookup: the newest release of that mod ID (not `releases[0]` of the whole entry). Installed list: the installed release (matching `modidstr` and `modversion`), because the question there is whether what is running supports the game; the lookup endpoint takes an optional `version` for this.
+4. **Message,** replacing the `tags[:3]` list in `_build_compatibility_message`, using the mod ID's lowest and highest supported versions:
+   - behind (highest < installed): "Last supported game version: 1.21.1."
+   - ahead (lowest > installed): "Requires game version 1.23.0 or newer (installed: 1.22.7)."
+   - gap (installed between them but not tagged): "Not tagged for 1.22.7; supports 1.21.0 to 1.23.0."
+   - `not_verified` keeps its wording and adds "Last tagged for X." when the highest supported version is older than the installed one.
+5. **API.** `CompatibilityInfo` gains `latest_supported_game_version: str | None` (snake_case in the API, `latestSupportedGameVersion` in the web types, per the JSON field naming rule). The Installed list shows it beside the badge for `not_verified` and `incompatible` mods; the detail page shows it in the compatibility message.
+6. **Browse cards are unchanged.** The most recent supported version would need a request per mod. A "has a release for your version" flag is possible from one uncached `?gameversion=` request, but it answers a different question from the detail page (any release, not the one that would be installed), so it is out of Epic 16 and recorded as a backlog bead.
+
+**Consequences:**
+
+- The incompatible and unverified messages name the version an admin can act on, in the right direction.
+- Story 16.3 changes the API (`CompatibilityInfo`, lookup `version` parameter, message builder) and the Installed list UI; it does not touch browse cards.
+- Fixture `api/tests/fixtures/moddb/mod_playercorpse.json` covers the behind case; `mod_instruments.json` covers mod ID selection; an ahead case needs a synthetic fixture.

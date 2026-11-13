@@ -59,15 +59,15 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 2.6: Decide what restoration targets: the pixel offset (`scrollY`, today) or the opened card (save its slug and `scrollIntoView` once results render, which removes the 100 ms timing dependence). Position is not shareable, so it stays in sessionStorage keyed to the browse URL
   - [x] 2.7: Record the decisions as ADR-1 in `architecture/epic-16-ui-polish.md`, noting that it implements Epic 10 ADR-4
 
-- [ ] Task 3: Most recent supported game version (AC: 3)
-  - [ ] 3.1: Confirm that `https://mods.vintagestory.at/api/mods` listing items carry only category `tags` (e.g. `["Building","Patch"]`), no game versions
-  - [ ] 3.2: `https://mods.vintagestory.at/api/mod/{slug}` releases carry game versions in `tags`, oldest first within a release. Already verified for `playercorpse` release 1.12.0: `["1.21.0","1.21.1-rc.1","1.21.1-rc.2","1.21.1"]`; re-check one other mod
-  - [ ] 3.3: Define "most recent supported game version": the highest version across the tags of releases whose `modidstr` matches the mod being evaluated (as update checks do at `services/mods.py:933`; see `mod_instruments.json`, where the newest releases belong to `vsinstrumentsbase`), compared as versions, not strings. Decide whether pre-release tags (`-rc.N`) count when a stable tag exists. Reuse `parse_base_version` and `is_prerelease` from `services/mod_updates.py`; no new version parser. This shares its mod ID matching with Story 16.2
-  - [ ] 3.4: Decide the message when the mod is ahead rather than behind: compatibility evaluates only the newest release (`services/mods.py:481-499`), and publish order is not version order (Epic 14 ADR-1, `mod_carryon.json`), so an "incompatible" mod may support only a newer game version than the installed one. Also decide whether the Installed list should evaluate the installed release (`ModInfo.version`) instead of the newest; it currently gets compatibility from `useModsCompatibility` → `lookupMod(slug)` (`web/src/hooks/use-mods.ts`), which evaluates the newest release
-  - [ ] 3.5: Evaluate browse cards: `ModApiClient.get_mods_by_version(tagid)` fetches `/api/mods?gameversion=<tagid>` in one cached request (`services/mod_api.py:555-575`, used by the browse router at `routers/mods.py:320-328`). Record whether it can flag "compatible with the installed version" on every card, and confirm that "most recent supported" per card would need a request per game version. Browse cards show no compatibility badge today (`ModCard.tsx` does not render `CompatibilityBadge`; compatibility appears only in `InstallConfirmDialog`)
-  - [ ] 3.6: Save a trimmed fixture `api/tests/fixtures/moddb/mod_playercorpse.json` (or another mod whose newest release predates the installed game version), trimmed as the folder's `README.md` describes (drop descriptions, changelogs, screenshots, CDN URLs; keep release order), and add its row to that `README.md`
-  - [ ] 3.7: Commit the probe script that fetches and summarizes the ModDB data, with its captured output, to `16-0-spike/`
-  - [ ] 3.8: Record the definition, the ahead/behind wording, the Installed list choice, the browse card decision and the API change Story 16.3 needs as ADR-2. State whether it supersedes Epic 10 ADR-2 (conservative `not_verified` on browse cards). If browse cards stay out of reach, update Story 16.3's conditional acceptance criterion in `epics.md` to say so
+- [x] Task 3: Most recent supported game version (AC: 3)
+  - [x] 3.1: Confirm that `https://mods.vintagestory.at/api/mods` listing items carry only category `tags` (e.g. `["Building","Patch"]`), no game versions
+  - [x] 3.2: `https://mods.vintagestory.at/api/mod/{slug}` releases carry game versions in `tags`, oldest first within a release. Already verified for `playercorpse` release 1.12.0: `["1.21.0","1.21.1-rc.1","1.21.1-rc.2","1.21.1"]`; re-check one other mod
+  - [x] 3.3: Define "most recent supported game version": the highest version across the tags of releases whose `modidstr` matches the mod being evaluated (as update checks do at `services/mods.py:933`; see `mod_instruments.json`, where the newest releases belong to `vsinstrumentsbase`), compared as versions, not strings. Decide whether pre-release tags (`-rc.N`) count when a stable tag exists. Reuse `parse_base_version` and `is_prerelease` from `services/mod_updates.py`; no new version parser. This shares its mod ID matching with Story 16.2
+  - [x] 3.4: Decide the message when the mod is ahead rather than behind: compatibility evaluates only the newest release (`services/mods.py:481-499`), and publish order is not version order (Epic 14 ADR-1, `mod_carryon.json`), so an "incompatible" mod may support only a newer game version than the installed one. Also decide whether the Installed list should evaluate the installed release (`ModInfo.version`) instead of the newest; it currently gets compatibility from `useModsCompatibility` → `lookupMod(slug)` (`web/src/hooks/use-mods.ts`), which evaluates the newest release
+  - [x] 3.5: Evaluate browse cards: `ModApiClient.get_mods_by_version(tagid)` fetches `/api/mods?gameversion=<tagid>` in one cached request (`services/mod_api.py:555-575`, used by the browse router at `routers/mods.py:320-328`). Record whether it can flag "compatible with the installed version" on every card, and confirm that "most recent supported" per card would need a request per game version. Browse cards show no compatibility badge today (`ModCard.tsx` does not render `CompatibilityBadge`; compatibility appears only in `InstallConfirmDialog`)
+  - [x] 3.6: Save a trimmed fixture `api/tests/fixtures/moddb/mod_playercorpse.json` (or another mod whose newest release predates the installed game version), trimmed as the folder's `README.md` describes (drop descriptions, changelogs, screenshots, CDN URLs; keep release order), and add its row to that `README.md`
+  - [x] 3.7: Commit the probe script that fetches and summarizes the ModDB data, with its captured output, to `16-0-spike/`
+  - [x] 3.8: Record the definition, the ahead/behind wording, the Installed list choice, the browse card decision and the API change Story 16.3 needs as ADR-2. State whether it supersedes Epic 10 ADR-2 (conservative `not_verified` on browse cards). If browse cards stay out of reach, update Story 16.3's conditional acceptance criterion in `epics.md` to say so
 
 - [ ] Task 4: Settings layout (AC: 4)
   - [ ] 4.1: Screenshot game server settings at 1024px, 1440px and 1920px; list the cards in `GameConfigPanel.tsx` and the kind of field each holds
@@ -148,17 +148,21 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: Playwright probe `16-0-spike/browse_probe.mjs` against the dev stack (`just docker restart`, game 1.22.7, 1440x900 Chromium); output `16-0-spike/browse_probe.out.json`. Required `bunx playwright install chromium` (the lockfile's Playwright 1.64.1 needs headless shell build 1248).
 - Task 2: react-router v8 docs via Context7: `useSearchParams` and `navigate(to, { replace, state })` work in declarative mode; `ScrollRestoration`/`useScrollRestoration` require a data router (`useDataRouterContext`).
+- Task 3: `16-0-spike/moddb_probe.py` (standard library, read-only GETs), output `moddb_probe.out.txt`. `get_mods_by_version` is not cached (`services/mod_api.py:559`), contrary to Task 3.5's wording.
 
 ### Findings Summary
 
 ### Architecture Decisions Made
 
 ### Backlog Items Created
+- `VSS-stm.1` [UI-067] Name (A-Z) sort requests more results than the API allows (created at story validation; confirmed in Task 1)
+- `VSS-4f3` [UI-068] Show 'has a release for your game version' on mod browse cards
 
 ### Completion Notes List
 
 - Task 1: Unfiltered restoration works on all four return paths (Back to Browse, breadcrumb, Browse tab, browser back), also on Slow 4G, because the grid renders from the React Query cache. With a search set, the search resets while page and scroll are restored against the unfiltered results. Saved state survives detours (stale restore confirmed). Name (A-Z) sort gets three 422 responses (`page_size=1000`) and shows no cards and no error message; added to `VSS-stm.1`. Results recorded on `VSS-901`.
 - Task 2: ADR-1 written: URL is the source of truth for `q`, `sort`, `side`, `tags`, `type`, `version`, `page` (defaults omitted); debounced search replaces, discrete changes push; detail links carry the browse search in navigation state; position is restored to the opened card's slug only on a return from its detail page, replacing the pixel offset, the 100 ms timeout and the stale restore. Custom hook kept; no data-router migration.
+- Task 3: Listing carries no game versions (0 of 9,560 items). Most recent supported is computed per mod ID with the `mod_updates` helpers, stable preferred. Today's lookup evaluates `releases[0]` across mod IDs (`instruments` gets `vsinstrumentsbase`'s release) and names the three oldest tags. ADR-2 written; Story 16.3 in `epics.md` updated (browse cards unchanged; Installed list evaluates the installed release). Browse-card flag via `?gameversion=` recorded as `VSS-4f3` (outside Epic 16). Fixture `mod_playercorpse.json` added.
 
 ### File List
 
@@ -166,5 +170,10 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `_bmad-output/implementation-artifacts/16-0-spike/browse_probe.out.json` (new)
 - `_bmad-output/implementation-artifacts/16-0-epic-16-technical-preparation.md`
 - `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/moddb_probe.py` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/moddb_probe.out.txt` (new)
+- `api/tests/fixtures/moddb/mod_playercorpse.json` (new)
+- `api/tests/fixtures/moddb/README.md`
+- `_bmad-output/planning-artifacts/epics.md`
 
 ## Change Log

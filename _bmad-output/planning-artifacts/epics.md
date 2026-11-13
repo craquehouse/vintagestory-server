@@ -4046,13 +4046,19 @@ So that **I can judge how far behind it is before installing it**.
 
 *(Covers FR170)*
 
-**Given** Story 16.0 found the version available without fetching each mod's details
-**When** I browse mods
-**Then** browse cards show it too
+**Given** a mod is installed
+**When** I view it in the Installed mods list
+**Then** its compatibility reflects the installed release, not the newest one
+
+**Given** I browse mods
+**When** the cards are shown
+**Then** they are unchanged: the version needs mod details, which browse cards do not fetch (Epic 16 ADR-2)
 
 **Tasks:**
-- [ ] Add the most recent supported game version to the compatibility data, from the source chosen in Story 16.0 (`VSS-udh`)
-- [ ] Show it in the compatibility message on the detail page and Installed mods list, and on browse cards if available
+- [ ] Add `latest_supported_game_version` to `CompatibilityInfo`, computed per mod ID as Epic 16 ADR-2 defines (`VSS-udh`)
+- [ ] Evaluate the newest release of the mod ID rather than `releases[0]`; add an optional `version` to the lookup so the Installed list evaluates the installed release
+- [ ] Replace the incompatible message's tag list with the behind, ahead and gap wording from ADR-2
+- [ ] Show the version beside the badge in the Installed mods list
 - [ ] Tests
 
 ---
