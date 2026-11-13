@@ -9,7 +9,8 @@ import { test, expect, type Page } from '@playwright/test';
  * the installed state and that mod ID's releases, not the install flow.
  *
  * The installed mods list is replaced with `page.route`, so the spec installs nothing;
- * the mod lookup is the live one from the mod database.
+ * the mod lookup comes from the live mod database (fetched once per test and served
+ * to the page from that one response where the test compares against it).
  *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just test-e2e-web`,
@@ -98,10 +99,15 @@ test.describe('Installed mod recognized by any mod ID (Story 16.2)', () => {
         headers: { 'X-API-Key': API_KEY },
       });
       expect(probe.ok()).toBe(true);
-      const live = ((await probe.json()) as { data: { releases: LiveRelease[] } }).data.releases;
-      const own = versionsOf(live, modId);
+      const probeBody = (await probe.json()) as { data: { releases: LiveRelease[] } };
+      const own = versionsOf(probeBody.data.releases, modId);
       expect(own.length).toBeGreaterThan(0);
 
+      // Serve the page the same lookup response, so a release published between the
+      // probe and the page load cannot make the two disagree.
+      await page.route(/\/api\/v1alpha1\/mods\/lookup\/instruments(\?.*)?$/, (route) =>
+        route.fulfill({ json: probeBody })
+      );
       await fakeInstalledMods(page, [{ slug: modId, version: own[0] }]);
       const releases = await openDetail(page);
 
