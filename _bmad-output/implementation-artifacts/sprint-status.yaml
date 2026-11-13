@@ -182,6 +182,16 @@ development_status:
   15-4-release-command: done
   15-5-release-workflow: review
   15-6-release-documentation-and-first-release: review
+  epic-16: in-progress
+  epic-16-retrospective: optional
+  16-0-epic-16-technical-preparation: done
+  16-1-mod-browser-state-survives-mod-details: backlog
+  16-2-installed-mods-recognized-by-any-mod-id: backlog
+  16-3-latest-supported-game-version-for-incompatible-mods: backlog
+  16-4-formatted-description-in-mod-lookup-preview: backlog
+  16-5-installed-mods-on-phones: backlog
+  16-6-settings-layout-on-desktop: backlog
+  16-7-file-browser-breadcrumbs: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open
