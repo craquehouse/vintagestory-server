@@ -1,6 +1,6 @@
 # Story 16.1: Mod Browser State Survives Mod Details
 
-Status: in-progress
+Status: review
 
 <!-- Implements Epic 16 ADR-1 (architecture/epic-16-ui-polish.md), which implements Epic 10 ADR-4. Beads: VSS-dkl (search/sort/filters), VSS-901 (page and scroll restoration). -->
 
@@ -75,9 +75,9 @@ so that **I can compare several mods without searching and filtering again each 
   - [x] 5.2: `just docker restart`, run the spec (`cd web && bunx playwright test e2e/mod-browse-state.spec.ts`), and check the flow by hand in a browser at http://localhost:8080, including Slow 4G throttling and the browser console. Screenshots, if committed, mask the server name (`span.font-semibold` in the header, `#ServerName`) and password
   - [x] 5.3: Record results in the Dev Agent Record; manual confirmation by the maintainer is still required before this task is treated as user-accepted
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` (lint, typecheck, all tests) passes
-  - [ ] 6.2: Story status `review`, `just sprint set 16-1-mod-browser-state-survives-mod-details review`, PR to `main`, PR link on `VSS-dkl` and `VSS-901`
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` (lint, typecheck, all tests) passes
+  - [x] 6.2: Story status `review`, `just sprint set 16-1-mod-browser-state-survives-mod-details review`, PR to `main`, PR link on `VSS-dkl` and `VSS-901`
 
 ## Dev Notes
 
@@ -198,6 +198,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 3: card click and Enter-on-slug share `openModDetail`, which navigates with `state: { browseSearch: location.search }`. `ModDetailPage` sends Back to Browse and the Browse breadcrumb to `BROWSE_PATH + browseSearch` (validated by `readBrowseSearchState`; empty when opened directly) with `MOD_DETAIL_RETURN_STATE` (`{ fromModDetail: true }`, added to `browse-search.ts`). `ModsPage.handleTabChange('browse')` uses `state.browseSearch` on a detail page opened from browse (and marks the return), otherwise `browse-last-search`, otherwise the default. Tests: ModDetailPage (Back to Browse, breadcrumb href and click, direct open, invalid state), ModsPage (all three precedence branches with the game version), BrowseTab (card and Enter carry the full search). Web: 3,071 passed.
 - Task 4: `use-browse-scroll-restoration.ts` rewritten: sessionStorage `browse-opened-mod` holds `{ search, slug }` (validated on read; the retired `browse-scroll-position`/`{ scrollY, page }` shape reads as nothing), `shouldRestoreOpenedMod` (saved, same search, return), `scrollToModCard` (finds `mod-card-<slug>` by comparing `dataset.testid`, so no selector escaping is needed; `scrollIntoView({ block: 'center' })`), and `useBrowseScrollRestoration`, which decides once per mount without side effects (StrictMode-safe), clears the entry in a mount effect, and scrolls once the results are ready; when the opened card is gone it scrolls to the top. No timers. `BrowseTab` passes `isReturn = fromModDetail || navigationType === 'POP'`, saves the slug in `openModDetail`, and no longer clears a position on search/filter/sort changes (the entry is only written before leaving and cleared on every mount). Tests: the old hook tests rewritten for the slug entry (27), and the BrowseTab 10.7 block rewritten (save on click and Enter, restore on `fromModDetail` and on browser back, no restore after a detour, on a search mismatch, or on a load without an entry). Web: 3,092 passed.
 - Task 5: `web/e2e/mod-browse-state.spec.ts` (7 tests): sets search `food`, side Both, type Code Mod, the installed game version and Most Downloaded through the UI, goes to page 2 and opens a card from the lower half of the grid; for each of Back to Browse, the Browse breadcrumb, the Browse tab and browser back it asserts the exact URL, the search box, the version filter label and chip, the side and type chips, the sort label, page 2, and that the opened card is in the viewport. Also refresh (state kept, no scroll), a detour through Installed (state kept by the Browse tab, no scroll) and a copied link in a new page. Tags are covered by the unit and component tests rather than the E2E (tag names come from the live database). E2E tests are not part of `just check`. Maintainer manual confirmation in a browser is still pending; the automated and scripted browser checks above are the agent's verification.
+- Task 6: `just check` passed: lint, typecheck (pyright 0 errors, 3 pre-existing warnings in API tests; `tsc` clean), API 2,065 passed, web 3,092 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. The 16.0 failure in `tests/test_main.py` (`VSS-b2w`) no longer reproduces on this base.
+- Deviations from ADR-1: none in behavior. Additions within it: a URL write that would not change the URL is skipped (re-selecting the current sort adds no history entry); on a return where the opened card is no longer in the results the page is scrolled to the top explicitly (SPA navigation otherwise keeps the detail page's scroll offset), which is how "the page is left at the top" is honored.
+- Bead filed: `VSS-2oz` [UI-070] Mods tabs show Installed as active on a mod detail page, so the Installed tab does nothing there (pre-existing, top-level, not Epic 16 scope).
 
 ### File List
 
@@ -215,3 +218,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/hooks/use-browse-scroll-restoration.test.ts`
 - `web/e2e/mod-browse-state.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/16-1-mod-browser-state-survives-mod-details.md`
+
+## Change Log
+
+- 2026-11-13: Story 16.1 created from Epic 16 ADR-1 (ready-for-dev).
+- 2026-11-13: Implemented: browse state in the URL (`q, sort, side, tags, type, version, page`), links back into browse carry it, Browse tab precedence, return to the opened card; E2E round trip; status review.
