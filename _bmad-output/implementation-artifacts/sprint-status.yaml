@@ -187,7 +187,7 @@ development_status:
   16-0-epic-16-technical-preparation: done
   16-1-mod-browser-state-survives-mod-details: done
   16-2-installed-mods-recognized-by-any-mod-id: done
-  16-3-latest-supported-game-version-for-incompatible-mods: backlog
+  16-3-latest-supported-game-version-for-incompatible-mods: ready-for-dev
   16-4-formatted-description-in-mod-lookup-preview: backlog
   16-5-installed-mods-on-phones: backlog
   16-6-settings-layout-on-desktop: backlog
