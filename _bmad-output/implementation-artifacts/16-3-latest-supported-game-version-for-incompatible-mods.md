@@ -1,6 +1,6 @@
 # Story 16.3: Latest Supported Game Version for Incompatible Mods
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR170 and Epic 16 ADR-2 decisions 1-5 (decision 6: browse cards unchanged). Bead: VSS-udh. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID), VSS-4f3 (browse-card "has a release for your version" flag). Stacks on Story 16.2 (PR #149), itself on 16.1 (PR #148). -->
 
@@ -44,10 +44,10 @@ so that **I can judge how far behind it is before installing it**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.3/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Adding an API field or an optional parameter is not a breaking change. -->
 
-- [ ] Task 1: Supported game version range per mod ID + tests (AC: 2)
-  - [ ] 1.1: New module `api/src/vintagestory_api/services/mod_compatibility.py` with `supported_game_versions(releases, modid) -> SupportedRange | None` (frozen dataclass `lowest`, `highest`, both tag strings) over the releases whose `modidstr` equals `modid`. Sort key: `parse_base_version` with trailing zero parts dropped (so `1.21` equals `1.21.0`), then stable above pre-release. Stable tags preferred for both ends; pre-releases only when the mod ID has no stable tag; unparsable tags ignored; `None` when nothing parses. Ties keep the first tag seen
-  - [ ] 1.2: `compare_game_version(tag, game_version) -> int` (or equivalent) with the same key, used by the message builder
-  - [ ] 1.3: Tests in `api/tests/test_mod_compatibility.py`: `mod_playercorpse.json` (highest `1.21.1`, not `1.21.1-rc.2`; lowest `1.14.0`), `mod_instruments.json` per mod ID (`instruments` 1.18.6, `vsinstruments` 1.19.3, `vsinstrumentsbase` 1.21.6), `mod_carryon.json` (release order is not version order; highest `1.22.7`), pre-release-only mod ID, unparsable tags (`"stable"`, `"1.x"`), `1.21` vs `1.21.0`, unknown mod ID → `None`
+- [x] Task 1: Supported game version range per mod ID + tests (AC: 2)
+  - [x] 1.1: New module `api/src/vintagestory_api/services/mod_compatibility.py` with `supported_game_versions(releases, modid) -> SupportedRange | None` (frozen dataclass `lowest`, `highest`, both tag strings) over the releases whose `modidstr` equals `modid`. Sort key: `parse_base_version` with trailing zero parts dropped (so `1.21` equals `1.21.0`), then stable above pre-release. Stable tags preferred for both ends; pre-releases only when the mod ID has no stable tag; unparsable tags ignored; `None` when nothing parses. Ties keep the first tag seen
+  - [x] 1.2: `compare_game_versions(left, right) -> int | None` with the same key, used by the message builder
+  - [x] 1.3: Tests in `api/tests/test_mod_compatibility.py`: `mod_playercorpse.json` (highest `1.21.1`, not `1.21.1-rc.2`; lowest `1.14.0`), `mod_instruments.json` per mod ID (`instruments` 1.18.6, `vsinstruments` 1.19.3, `vsinstrumentsbase` 1.21.6), `mod_carryon.json` (release order is not version order; highest `1.22.7`), pre-release-only mod ID, unparsable tags (`"stable"`, `"1.x"`), `1.21` vs `1.21.0`, unknown mod ID → `None`
 
 - [ ] Task 2: Lookup reports the evaluated mod ID's release, its latest supported version and the ADR-2 messages + tests (AC: 1, 2, 3, 4, 5)
   - [ ] 2.1: `CompatibilityInfo.latest_supported_game_version: str | None = None` (`models/mods.py`)
@@ -152,11 +152,21 @@ so that **I can judge how far behind it is before installing it**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: red run of `test_mod_compatibility.py` (module missing, collection error), then 21 passed; ruff and pyright clean (pyright 0 errors, 3 pre-existing warnings in API tests).
 
 ### Completion Notes List
 
+- Task 1: `services/mod_compatibility.py` exports `SupportedRange`, `supported_game_versions(releases, modid)` and `compare_game_versions(left, right)`. Sort key is `parse_base_version` with trailing zero parts dropped, then stable above pre-release; stable tags preferred for both ends; unparsable and non-string tags ignored; ties keep the first tag seen. Not used yet; Task 2 wires it into the lookup.
+
 ### File List
+
+- `api/src/vintagestory_api/services/mod_compatibility.py` (new)
+- `api/tests/test_mod_compatibility.py` (new)
+- `_bmad-output/implementation-artifacts/16-3-latest-supported-game-version-for-incompatible-mods.md`
 
 ## Change Log
 
