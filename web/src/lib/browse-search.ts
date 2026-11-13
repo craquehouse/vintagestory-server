@@ -121,6 +121,9 @@ export function readBrowseSearchState(state: unknown): string | undefined {
   return isSearchString(value) ? value : undefined;
 }
 
+/** Navigation state set by the links from a mod's detail page back into the browser. */
+export const MOD_DETAIL_RETURN_STATE = { fromModDetail: true } as const;
+
 /** Whether navigation state marks a return from a mod's detail page. */
 export function isReturnFromModDetail(state: unknown): boolean {
   return readStateField(state, 'fromModDetail') === true;

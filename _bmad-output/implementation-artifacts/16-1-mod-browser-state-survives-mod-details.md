@@ -59,11 +59,11 @@ so that **I can compare several mods without searching and filtering again each 
   - [x] 2.4: Mirror `location.search` to `browse-last-search` whenever it changes
   - [x] 2.5: Tests in `BrowseTab.test.tsx` with a `MemoryRouter` harness that exposes the current location: initial state from URL for every parameter including `version` (asserted on the request URL and the filter UI), writes for search (replace), sort/side/version (push), page change, page reset on search/sort/filter change, invalid values, `browse-last-search` mirroring; adapt existing tests to the router harness
 
-- [ ] Task 3: Links into browse carry the browse state + tests (AC: 1, 5)
-  - [ ] 3.1: Card click and Enter-on-slug navigate to the detail page with `state: { browseSearch: location.search }`
-  - [ ] 3.2: `ModDetailPage`: Back to Browse and the Browse breadcrumb go to `BROWSE_PATH + browseSearch` (empty when opened directly) with `state: { fromModDetail: true }`
-  - [ ] 3.3: `ModsPage.handleTabChange('browse')`: precedence `state.browseSearch` (detail page opened from browse, with `fromModDetail`), then `browse-last-search`, then default. The Installed tab is unchanged
-  - [ ] 3.4: Tests: `ModDetailPage.test.tsx` (back button and breadcrumb targets with a search, side, tags, type, `version` and sort; direct open → default), `ModsPage.test.tsx` (all three precedence branches, game version kept), `BrowseTab.test.tsx` (card and Enter pass `browseSearch`)
+- [x] Task 3: Links into browse carry the browse state + tests (AC: 1, 5)
+  - [x] 3.1: Card click and Enter-on-slug navigate to the detail page with `state: { browseSearch: location.search }`
+  - [x] 3.2: `ModDetailPage`: Back to Browse and the Browse breadcrumb go to `BROWSE_PATH + browseSearch` (empty when opened directly) with `state: { fromModDetail: true }`
+  - [x] 3.3: `ModsPage.handleTabChange('browse')`: precedence `state.browseSearch` (detail page opened from browse, with `fromModDetail`), then `browse-last-search`, then default. The Installed tab is unchanged
+  - [x] 3.4: Tests: `ModDetailPage.test.tsx` (back button and breadcrumb targets with a search, side, tags, type, `version` and sort; direct open → default), `ModsPage.test.tsx` (all three precedence branches, game version kept), `BrowseTab.test.tsx` (card and Enter pass `browseSearch`)
 
 - [ ] Task 4: Restore position to the opened card, only on a return from its detail page + tests (AC: 2, 6)
   - [ ] 4.1: Rewrite `use-browse-scroll-restoration.ts` for the slug entry: sessionStorage `{ search, slug }` saved immediately before opening a mod; retire `browse-scroll-position` and `{ scrollY, page }`; pure `shouldRestoreOpenedCard(saved, currentSearch, isReturn)`
@@ -186,11 +186,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run of `browse-search.test.ts` (module missing) and of the three new controlled-page tests in `use-browse-mods.test.tsx` before implementing. `use-browse-mods.test.tsx` has 2 pre-existing `it.skip` tests (game version client-side filter, disabled since VSS-y7u); not touched.
 - Task 2: red run, 8 new URL-state tests failing; after implementation only the old 10.7 "restores page from saved position" test failed, as expected (the page now comes from the URL), and was rewritten for the URL.
+- Task 3: red run, 13 failures (8 new tests plus 5 existing card/Enter navigation assertions that now expect `state.browseSearch`); the "ignores navigation state that is not a browse search" guard test passed before and after, as intended.
 
 ### Completion Notes List
 
 - Task 1: `web/src/lib/browse-search.ts` parses and builds the ADR-1 parameters (`q, sort, side, tags, type, version, page`, defaults omitted, invalid values to defaults), guards navigation state (`browseSearch`, `fromModDetail`) and wraps `browse-last-search` in sessionStorage. `useBrowseMods` no longer keeps the page: `params.page` is the current page and `setPage`/`goToNextPage`/`goToPrevPage` report through `options.onPageChange`. The hook's page tests now drive the page through a `useState` wrapper (`useControlledBrowseMods`) instead of being deleted; four new tests cover the controlled contract. BrowseTab keeps a local page state for this commit only (replaced by the URL in Task 2). Web: 3,051 passed, 4 skipped (pre-existing).
 - Task 2: `BrowseTab` reads `q, sort, side, tags, type, version, page` with `useSearchParams` (memoized on the query string), keeps the search box local and writes the debounced, trimmed search with `replace` only when the debounced value changes; sort, filter and page changes push one complete parameter set, dropping `page` on search/sort/filter changes, and are skipped when they would not change the URL. The search box follows browser back/forward by adjusting state during render. `location.search` is mirrored to `browse-last-search`. The `prev*Ref` page-reset effect is gone. Tests use a `MemoryRouter` harness with a `LocationProbe` that logs every location and navigation type; ten new tests (every parameter including `version`, defaults, invalid values, replace vs push, page reset, no-op writes, back/forward resync with the debounce, sessionStorage mirroring) and the 10.7 page tests rewritten to assert the URL. Web: 3,061 passed.
+- Task 3: card click and Enter-on-slug share `openModDetail`, which navigates with `state: { browseSearch: location.search }`. `ModDetailPage` sends Back to Browse and the Browse breadcrumb to `BROWSE_PATH + browseSearch` (validated by `readBrowseSearchState`; empty when opened directly) with `MOD_DETAIL_RETURN_STATE` (`{ fromModDetail: true }`, added to `browse-search.ts`). `ModsPage.handleTabChange('browse')` uses `state.browseSearch` on a detail page opened from browse (and marks the return), otherwise `browse-last-search`, otherwise the default. Tests: ModDetailPage (Back to Browse, breadcrumb href and click, direct open, invalid state), ModsPage (all three precedence branches with the game version), BrowseTab (card and Enter carry the full search). Web: 3,071 passed.
 
 ### File List
 
@@ -200,4 +202,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/hooks/use-browse-mods.test.tsx`
 - `web/src/features/mods/BrowseTab.tsx`
 - `web/src/features/mods/BrowseTab.test.tsx`
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
+- `web/src/features/mods/ModsPage.tsx`
+- `web/src/features/mods/ModsPage.test.tsx`
 - `_bmad-output/implementation-artifacts/16-1-mod-browser-state-survives-mod-details.md`

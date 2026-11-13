@@ -1062,6 +1062,52 @@ describe('BrowseTab', () => {
     });
   });
 
+  describe('Story 16.1: opening a mod carries the browse state', () => {
+    it('passes the browse search, including the game version, when a card is clicked', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(
+          queryClient,
+          `${BROWSE_PATH}?q=carry&sort=downloads&side=both&tags=utility&type=mod&version=1.21.2&page=2`
+        ),
+      });
+
+      await user.click(await screen.findByTestId('mod-card-carrycapacity'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity', {
+        state: {
+          browseSearch: '?q=carry&sort=downloads&side=both&tags=utility&type=mod&version=1.21.2&page=2',
+        },
+      });
+    });
+
+    it('passes the browse search when Enter opens a slug', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockBrowseResponse),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2`),
+      });
+
+      const searchInput = await screen.findByTestId('browse-search-input');
+      fireEvent.change(searchInput, { target: { value: 'smithingplus' } });
+      fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus', {
+        state: { browseSearch: '?version=1.21.2' },
+      });
+    });
+  });
+
   describe('Story 10.7: Pagination Integration', () => {
     it('renders pagination controls when results span multiple pages', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
@@ -1414,7 +1460,9 @@ describe('BrowseTab', () => {
       const card = screen.getByTestId('mod-card-carrycapacity');
       await user.click(card);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity', {
+        state: { browseSearch: '' },
+      });
     });
 
     it('navigates to correct mod when different card is clicked', async () => {
@@ -1435,7 +1483,9 @@ describe('BrowseTab', () => {
       const card = screen.getByTestId('mod-card-primitivesurvival');
       await user.click(card);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/primitivesurvival');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/primitivesurvival', {
+        state: { browseSearch: '' },
+      });
     });
 
     it('mod cards are clickable (have cursor-pointer)', async () => {
@@ -1480,7 +1530,9 @@ describe('BrowseTab', () => {
         fireEvent.keyDown(searchInput, { key: 'Enter' });
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus', {
+        state: { browseSearch: '' },
+      });
     });
 
     it('navigates to mod detail when pressing Enter with a URL', async () => {
@@ -1508,7 +1560,9 @@ describe('BrowseTab', () => {
         fireEvent.keyDown(searchInput, { key: 'Enter' });
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity', {
+        state: { browseSearch: '' },
+      });
     });
 
     it('does not navigate when pressing Enter with a multi-word search', async () => {
@@ -1585,7 +1639,9 @@ describe('BrowseTab', () => {
       });
 
       // Should lowercase the slug
-      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus');
+      expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus', {
+        state: { browseSearch: '' },
+      });
     });
   });
 });

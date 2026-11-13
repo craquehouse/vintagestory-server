@@ -7,11 +7,18 @@
  * - Browser history navigation works correctly
  *
  * Story 10.2: Mods Tab Restructure - AC1, AC4
+ * Story 16.1: The Browse tab returns to the last browse state
  */
 
 import { useLocation, useNavigate, Outlet } from 'react-router';
 import { Package, Search } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  BROWSE_PATH,
+  MOD_DETAIL_RETURN_STATE,
+  getLastBrowseSearch,
+  readBrowseSearchState,
+} from '@/lib/browse-search';
 
 /**
  * Extract the active tab from the current URL path.
@@ -41,6 +48,18 @@ export function ModsPage() {
   const activeTab = getActiveTab(location.pathname);
 
   const handleTabChange = (value: string) => {
+    if (value === 'browse') {
+      // Story 16.1: On a detail page opened from browse, return to the state it was
+      // opened from; otherwise to the last browse state of this session, or the default.
+      const isDetailPage = location.pathname.startsWith(`${BROWSE_PATH}/`);
+      const openedFrom = isDetailPage ? readBrowseSearchState(location.state) : undefined;
+      if (openedFrom !== undefined) {
+        navigate(`${BROWSE_PATH}${openedFrom}`, { state: MOD_DETAIL_RETURN_STATE });
+        return;
+      }
+      navigate(`${BROWSE_PATH}${getLastBrowseSearch() ?? ''}`);
+      return;
+    }
     navigate(`/game-server/mods/${value}`);
   };
 

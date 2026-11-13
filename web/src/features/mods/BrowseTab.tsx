@@ -43,6 +43,7 @@ import { SortControl } from '@/components/SortControl';
 import { Pagination } from '@/components/Pagination';
 import { detectSlugOrUrl } from '@/lib/mod-utils';
 import {
+  BROWSE_PATH,
   parseBrowseSearch,
   buildBrowseSearch,
   saveLastBrowseSearch,
@@ -190,12 +191,13 @@ export function BrowseTab() {
   // Navigate to mod detail view (Story 10.6)
   // Story 10.7: Save scroll position before navigating
   // Story 11.4: Updated path to /game-server/mods/browse
-  const handleModClick = useCallback(
+  // Story 16.1: Carry the browse URL so the way back returns to it
+  const openModDetail = useCallback(
     (slug: string) => {
       savePosition(currentPage);
-      navigate(`/game-server/mods/browse/${slug}`);
+      navigate(`${BROWSE_PATH}/${slug}`, { state: { browseSearch: location.search } });
     },
-    [navigate, savePosition, currentPage]
+    [navigate, savePosition, currentPage, location.search]
   );
 
   function handleClearSearch(): void {
@@ -215,8 +217,7 @@ export function BrowseTab() {
       if (slug) {
         e.preventDefault();
         // Navigate directly to mod detail page
-        savePosition(currentPage);
-        navigate(`/game-server/mods/browse/${slug}`);
+        openModDetail(slug);
       }
       // If not a slug/URL, debounced search is already active - no action needed
     }
@@ -298,7 +299,7 @@ export function BrowseTab() {
       <ModBrowseGrid
         mods={mods}
         isLoading={isLoading}
-        onModClick={handleModClick}
+        onModClick={openModDetail}
         installedSlugs={installedSlugs}
       />
 

@@ -22,7 +22,7 @@
  */
 
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams, useNavigate, useLocation, Link } from 'react-router';
 import DOMPurify from 'dompurify';
 import {
   ArrowLeft,
@@ -60,6 +60,7 @@ import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
+import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
 /**
@@ -445,10 +446,14 @@ export function ModDetailPage() {
   // Installed copy of this mod, if any
   const installedMod = modsData?.data?.mods?.find((m) => m.slug === slug);
 
+  // Story 16.1: Return to the browse state this page was opened from (default when opened directly)
+  const location = useLocation();
+  const browseTarget = `${BROWSE_PATH}${readBrowseSearchState(location.state) ?? ''}`;
+
   // Handle back navigation - always go to browse tab
   // Story 11.4: Changed from navigate(-1) to explicit path for predictable behavior
   const handleBack = () => {
-    navigate('/game-server/mods/browse');
+    navigate(browseTarget, { state: MOD_DETAIL_RETURN_STATE });
   };
 
   if (isLoading) {
@@ -520,7 +525,8 @@ export function ModDetailPage() {
           </Link>
           <ChevronRight className="h-4 w-4" />
           <Link
-            to="/game-server/mods/browse"
+            to={browseTarget}
+            state={MOD_DETAIL_RETURN_STATE}
             className="hover:text-foreground transition-colors"
             data-testid="mod-detail-breadcrumb-browse"
           >
