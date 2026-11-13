@@ -48,6 +48,8 @@ export function ModsPage() {
   const activeTab = getActiveTab(location.pathname);
 
   const handleTabChange = (value: string) => {
+    // Radix Tabs does not report the active value, but never push a duplicate entry
+    if (value === activeTab) return;
     if (value === 'browse') {
       // Story 16.1: On a detail page opened from browse, return to the state it was
       // opened from; otherwise to the last browse state of this session, or the default.

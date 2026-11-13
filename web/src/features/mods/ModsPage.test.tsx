@@ -364,6 +364,37 @@ describe('ModsPage routing', () => {
       expect(screen.getByTestId('probe-search')).toHaveTextContent(lastSearch);
     });
 
+    it('does not add a history entry when the active Browse tab is clicked', async () => {
+      const user = userEvent.setup();
+      const keys: string[] = [];
+      function KeyProbe() {
+        const location = useLocation();
+        if (keys.at(-1) !== location.key) keys.push(location.key);
+        return null;
+      }
+      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects([`/game-server/mods/browse${lastSearch}`], queryClient);
+      render(
+        <Router>
+          <KeyProbe />
+        </Router>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('tab', { name: /browse/i }));
+
+      expect(keys).toHaveLength(1);
+
+      // The probe does see a real tab change
+      await user.click(screen.getByRole('tab', { name: /installed/i }));
+      await waitFor(() => {
+        expect(keys).toHaveLength(2);
+      });
+    });
+
     it('opens the default browser when no browse state is saved', async () => {
       await clickBrowseTab('/game-server/mods/installed');
 

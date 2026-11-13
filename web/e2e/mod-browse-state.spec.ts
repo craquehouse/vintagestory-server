@@ -70,7 +70,6 @@ async function setUpBrowseState(page: Page): Promise<BrowseState> {
   await expect(page).toHaveURL(/[?&]page=2(&|$)/);
   await page2Loaded;
   await expect(page.locator('[data-testid="pagination"] [aria-current="page"]')).toHaveText('2');
-  await page.waitForLoadState('networkidle');
   await waitForGrid(page);
 
   return { search: SEARCH, version };
@@ -104,6 +103,19 @@ async function expectBrowseState(page: Page, state: BrowseState) {
   await expect(page.getByLabel('Remove type filter: mod')).toBeVisible();
   await expect(page.getByRole('button', { name: /Most Downloaded/ })).toBeVisible();
   await expect(page.locator('[data-testid="pagination"] [aria-current="page"]')).toHaveText('2');
+}
+
+/**
+ * The browser decides on mount whether to return to the opened card and clears the
+ * saved entry then; the scroll happens once the grid renders. With the entry gone and
+ * the grid rendered, any restore has already run, so the scroll position is final.
+ */
+async function expectNoRestoredPosition(page: Page) {
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem('browse-opened-mod')))
+    .toBeNull();
+  await waitForGrid(page);
+  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(50);
 }
 
 async function expectCardInViewport(page: Page, slug: string) {
@@ -146,7 +158,7 @@ test.describe('Mod browser state survives mod details', () => {
     await page.reload();
 
     await expectBrowseState(page, state);
-    expect(await page.evaluate(() => window.scrollY)).toBeLessThan(50);
+    await expectNoRestoredPosition(page);
   });
 
   test('a detour through Installed keeps the state but not the old position', async ({ page }) => {
@@ -159,8 +171,7 @@ test.describe('Mod browser state survives mod details', () => {
     await page.getByTestId('browse-tab').click();
 
     await expectBrowseState(page, state);
-    await page.waitForTimeout(500);
-    expect(await page.evaluate(() => window.scrollY)).toBeLessThan(50);
+    await expectNoRestoredPosition(page);
   });
 
   test('a copied browse link opens the same state in a new page', async ({ page, context }) => {
