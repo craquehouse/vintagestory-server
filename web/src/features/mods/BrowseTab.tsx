@@ -23,7 +23,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router';
+import { useNavigate, useLocation, useNavigationType, useSearchParams } from 'react-router';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -33,10 +33,7 @@ import { useMods } from '@/hooks/use-mods';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { useGameVersions } from '@/hooks/use-game-versions';
 import { useModTags } from '@/hooks/use-mod-tags';
-import {
-  useBrowseScrollRestoration,
-  getSavedScrollState,
-} from '@/hooks/use-browse-scroll-restoration';
+import { useBrowseScrollRestoration } from '@/hooks/use-browse-scroll-restoration';
 import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
@@ -44,6 +41,7 @@ import { Pagination } from '@/components/Pagination';
 import { detectSlugOrUrl } from '@/lib/mod-utils';
 import {
   BROWSE_PATH,
+  isReturnFromModDetail,
   parseBrowseSearch,
   buildBrowseSearch,
   saveLastBrowseSearch,
@@ -61,6 +59,7 @@ import {
 export function BrowseTab() {
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
 
   // Story 16.1: The URL is the source of truth for search, filters, sort and page.
   // Parse once per distinct query string so filters keep their identity between renders.
@@ -107,26 +106,6 @@ export function BrowseTab() {
   } = useModTags();
   const modTags = modTagsData?.data?.tags ?? [];
 
-  // Story 10.7: Scroll position restoration
-  // Read saved state synchronously for initial page (before first render)
-  const [savedState] = useState(() => getSavedScrollState());
-  const { savePosition, restorePosition, clearPosition, scrollToPosition } =
-    useBrowseScrollRestoration();
-  const hasRestoredScrollRef = useRef(false);
-
-  // Restore scroll position on mount (after content renders)
-  useEffect(() => {
-    if (hasRestoredScrollRef.current) return;
-    hasRestoredScrollRef.current = true;
-
-    if (savedState) {
-      // Consume the saved state (clears from sessionStorage)
-      restorePosition();
-      // Scroll after a short delay to allow content to render
-      setTimeout(() => scrollToPosition(savedState.scrollY), 100);
-    }
-  }, [savedState, restorePosition, scrollToPosition]);
-
   const debouncedSearch = useDebounce(searchInput, 300);
 
   /**
@@ -138,13 +117,9 @@ export function BrowseTab() {
     (patch: Partial<BrowseUrlState>, options: { replace?: boolean } = {}) => {
       const nextSearch = buildBrowseSearch({ ...browseState, page: 1, ...patch });
       if (nextSearch === buildBrowseSearch(browseState)) return;
-      if (patch.page === undefined) {
-        // Story 10.7: A saved position belongs to the old results
-        clearPosition();
-      }
       setSearchParams(new URLSearchParams(nextSearch), { replace: options.replace });
     },
-    [browseState, setSearchParams, clearPosition]
+    [browseState, setSearchParams]
   );
 
   // Story 16.1: Write the debounced search only when the debounced value itself changes,
@@ -188,16 +163,25 @@ export function BrowseTab() {
     { onPageChange: handlePageChange }
   );
 
+  // Story 10.7 / 16.1: On a return from a mod's detail page, scroll to the card that
+  // was opened, once the results containing it have rendered (Epic 16 ADR-1)
+  const renderedSlugs = useMemo(() => mods.map((mod) => mod.slug), [mods]);
+  const { saveOpenedMod } = useBrowseScrollRestoration({
+    currentSearch: location.search,
+    isReturn: isReturnFromModDetail(location.state) || navigationType === 'POP',
+    renderedSlugs,
+    isReady: !isLoading,
+  });
+
   // Navigate to mod detail view (Story 10.6)
-  // Story 10.7: Save scroll position before navigating
   // Story 11.4: Updated path to /game-server/mods/browse
-  // Story 16.1: Carry the browse URL so the way back returns to it
+  // Story 16.1: Remember the opened card and carry the browse URL so the way back returns to it
   const openModDetail = useCallback(
     (slug: string) => {
-      savePosition(currentPage);
+      saveOpenedMod(slug);
       navigate(`${BROWSE_PATH}/${slug}`, { state: { browseSearch: location.search } });
     },
-    [navigate, savePosition, currentPage, location.search]
+    [navigate, saveOpenedMod, location.search]
   );
 
   function handleClearSearch(): void {

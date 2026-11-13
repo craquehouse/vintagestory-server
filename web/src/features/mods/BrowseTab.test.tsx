@@ -30,6 +30,7 @@ import {
 } from 'react-router';
 import { BrowseTab } from './BrowseTab';
 import { BROWSE_PATH, BROWSE_LAST_SEARCH_KEY } from '@/lib/browse-search';
+import { BROWSE_OPENED_MOD_KEY } from '@/hooks/use-browse-scroll-restoration';
 import type { ApiResponse, ModBrowseData } from '@/api/types';
 
 // Mock useNavigate
@@ -1318,55 +1319,165 @@ describe('BrowseTab', () => {
     });
   });
 
-  describe('Story 10.7: Scroll Position Restoration (AC3)', () => {
-    // Mock sessionStorage
-    const mockSessionStorage = {
-      store: {} as Record<string, string>,
-      getItem: vi.fn((key: string) => mockSessionStorage.store[key] ?? null),
-      setItem: vi.fn((key: string, value: string) => {
-        mockSessionStorage.store[key] = value;
-      }),
-      removeItem: vi.fn((key: string) => {
-        delete mockSessionStorage.store[key];
-      }),
-    };
+  describe('Story 10.7 / 16.1: returning to the opened card', () => {
+    const scrollIntoView = vi.fn();
 
-    beforeEach(() => {
-      mockSessionStorage.store = {};
-      Object.defineProperty(window, 'sessionStorage', {
-        value: mockSessionStorage,
-        writable: true,
-      });
-      Object.defineProperty(window, 'scrollY', {
-        value: 500,
-        configurable: true,
-      });
-      window.scrollTo = vi.fn();
-    });
-
-    it('saves scroll position when clicking a mod card', async () => {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    function mockFetchOk() {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockBrowseResponse),
       });
+    }
 
+    function savedEntry(): unknown {
+      const stored = window.sessionStorage.getItem(BROWSE_OPENED_MOD_KEY);
+      return stored ? JSON.parse(stored) : null;
+    }
+
+    beforeEach(() => {
+      window.sessionStorage.clear();
+      scrollIntoView.mockClear();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      window.scrollTo = vi.fn();
+    });
+
+    it('saves the browse search and slug when clicking a mod card', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      mockFetchOk();
       const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2&page=2`),
       });
 
-      // Click on a mod card
-      const card = screen.getByTestId('mod-card-carrycapacity');
-      await user.click(card);
+      await user.click(await screen.findByTestId('mod-card-carrycapacity'));
 
-      // Should have saved position to sessionStorage
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        'browse-scroll-position',
-        expect.any(String)
+      expect(savedEntry()).toEqual({ search: '?version=1.21.2&page=2', slug: 'carrycapacity' });
+    });
+
+    it('saves the slug when Enter opens a mod', async () => {
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=x`) });
+
+      const searchInput = await screen.findByTestId('browse-search-input');
+      fireEvent.change(searchInput, { target: { value: 'smithingplus' } });
+      fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+      expect(savedEntry()).toEqual({ search: '?q=x', slug: 'smithingplus' });
+    });
+
+    it('scrolls the opened card into view on Back to Browse (fromModDetail state)', async () => {
+      window.sessionStorage.setItem(
+        BROWSE_OPENED_MOD_KEY,
+        JSON.stringify({ search: '?version=1.21.2&page=2', slug: 'primitivesurvival' })
       );
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      const router = createMemoryRouter(
+        [{ path: BROWSE_PATH, element: <BrowseTab /> }],
+        {
+          initialEntries: [
+            { pathname: BROWSE_PATH, search: '?version=1.21.2&page=2', state: { fromModDetail: true } },
+          ],
+        }
+      );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      });
+      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByTestId('mod-card-primitivesurvival'));
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+      expect(savedEntry()).toBeNull();
+    });
+
+    it('scrolls the opened card into view on browser back (POP)', async () => {
+      window.sessionStorage.setItem(
+        BROWSE_OPENED_MOD_KEY,
+        JSON.stringify({ search: '?q=carry', slug: 'carrycapacity' })
+      );
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      const router = createMemoryRouter(
+        [
+          { path: BROWSE_PATH, element: <BrowseTab /> },
+          { path: `${BROWSE_PATH}/:slug`, element: <div>Detail</div> },
+        ],
+        { initialEntries: [`${BROWSE_PATH}?q=carry`, `${BROWSE_PATH}/carrycapacity`] }
+      );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      );
+
+      await act(async () => {
+        await router.navigate(-1);
+      });
+
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      });
+      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByTestId('mod-card-carrycapacity'));
+    });
+
+    it('does not restore after a detour (Browse opened without a return)', async () => {
+      window.sessionStorage.setItem(
+        BROWSE_OPENED_MOD_KEY,
+        JSON.stringify({ search: '', slug: 'carrycapacity' })
+      );
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      const router = createMemoryRouter(
+        [
+          { path: BROWSE_PATH, element: <BrowseTab /> },
+          { path: '/game-server/mods/installed', element: <div>Installed</div> },
+        ],
+        { initialEntries: ['/game-server/mods/installed'] }
+      );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      );
+
+      await act(async () => {
+        await router.navigate(BROWSE_PATH);
+      });
+
+      expect(await screen.findByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(savedEntry()).toBeNull();
+    });
+
+    it('does not restore when the browse search differs from the saved one', async () => {
+      window.sessionStorage.setItem(
+        BROWSE_OPENED_MOD_KEY,
+        JSON.stringify({ search: '?version=1.21.2', slug: 'carrycapacity' })
+      );
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.3`) });
+
+      expect(await screen.findByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(savedEntry()).toBeNull();
+    });
+
+    it('does not scroll on a load without a saved card (refresh or shared link)', async () => {
+      mockFetchOk();
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=carry&version=1.21.2&page=2`),
+      });
+
+      expect(await screen.findByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(window.scrollTo).not.toHaveBeenCalled();
     });
 
     // Story 16.1: The page is part of the browse URL, which every way back restores
@@ -1408,37 +1519,6 @@ describe('BrowseTab', () => {
       expect(browseRequestUrl().searchParams.get('version')).toBe('1.21.2');
     });
 
-    it('clears saved position when search changes', async () => {
-      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
-        scrollY: 500,
-        page: 2,
-      });
-
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
-      });
-
-      const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
-      });
-
-      const searchInput = screen.getByTestId('browse-search-input');
-
-      // Type in search
-      await act(async () => {
-        fireEvent.change(searchInput, { target: { value: 'test' } });
-        vi.advanceTimersByTime(350);
-      });
-
-      // Should have cleared saved position
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(
-        'browse-scroll-position'
-      );
-    });
   });
 
   describe('Story 10.5: Card Navigation (AC 3)', () => {
