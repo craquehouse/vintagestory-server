@@ -32,6 +32,7 @@ RUN VITE_API_KEY="" VITE_API_BASE_URL="" bun run build
 # Base: .NET 10 runtime on Ubuntu 26.04 Resolute (required for VintageStory 1.22+)
 # Python 3.14 is native to Ubuntu 26.04
 # ==============================================================================
+# The .NET major must match VintageStory's runtimeconfig (net10.0 for 1.22.x); Renovate holds it below 11
 FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64 AS final
 
 WORKDIR /app
