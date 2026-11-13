@@ -983,6 +983,173 @@ describe('ModDetailPage', () => {
         );
         expect(screen.queryByTestId('mod-detail-version-select')).not.toBeInTheDocument();
       });
+
+      describe('Story 16.2: an entry with several mod IDs', () => {
+        // Shaped like the Instruments entry (fixture mod_instruments.json): the browse
+        // slug is `instruments`, but the newest releases belong to other mod IDs.
+        const release = (modidstr: string, version: string) => ({
+          version,
+          filename: `${modidstr}_${version}.zip`,
+          file_id: version.length + modidstr.length,
+          modidstr,
+          downloads: 1,
+          game_versions: ['1.21.6'],
+          created: '2025-11-01 00:00:00',
+          changelog: null,
+        });
+        const instrumentsEntry = {
+          ...mockModDetailResponse,
+          data: {
+            ...mockModDetailResponse.data,
+            slug: 'instruments',
+            name: 'Instruments',
+            latest_version: '2.0.7',
+            releases: [
+              release('vsinstrumentsbase', '2.0.7'),
+              release('vsinstrumentsbase', '2.0.6'),
+              release('vsinstruments', '1.2.7'),
+              release('vsinstruments', '1.2.6'),
+              release('instruments', '1.2.2'),
+              release('instruments', '1.0.1'),
+            ],
+          },
+        };
+        const route = '/game-server/mods/browse/instruments';
+
+        function installedMods(...mods: Array<[string, string]>) {
+          return {
+            status: 'ok',
+            data: {
+              mods: mods.map(([slug, version]) => ({
+                name: slug,
+                slug,
+                version,
+                enabled: true,
+                side: 'Both',
+              })),
+              pending_restart: false,
+            },
+          };
+        }
+
+        function updatesFor(slug: string, installedVersion: string, offered: string | null) {
+          const base = updateStatus(offered ? 'update_available' : 'up_to_date', offered);
+          return {
+            ...base,
+            data: {
+              ...base.data,
+              mods: [{ ...base.data.mods[0], slug, name: slug, installed_version: installedVersion }],
+            },
+          };
+        }
+
+        async function versionOptions(user: ReturnType<typeof userEvent.setup>) {
+          await user.click(await screen.findByTestId('mod-detail-version-select'));
+          const options = await screen.findAllByRole('option');
+          return options.map((o) => o.textContent);
+        }
+
+        it('shows the installed state when the installed mod ID is not the browse slug', async () => {
+          globalThis.fetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['othermod', '1.0.0'], ['vsinstrumentsbase', '2.0.6']),
+            updates: updatesFor('vsinstrumentsbase', '2.0.6', null),
+          });
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-installed-indicator')).toHaveTextContent(
+            'Installed: v2.0.6'
+          );
+          expect(screen.queryByTestId('mod-detail-install-button')).not.toBeInTheDocument();
+        });
+
+        it('lists only the installed mod ID releases and updates that mod ID', async () => {
+          const user = userEvent.setup();
+          const mockFetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['vsinstrumentsbase', '2.0.6']),
+            updates: updatesFor('vsinstrumentsbase', '2.0.6', '2.0.7'),
+            versionResponses: [changed('2.0.7')],
+          });
+          globalThis.fetch = mockFetch;
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-update-button')).toHaveTextContent(
+            'Update to v2.0.7'
+          );
+          expect(await versionOptions(user)).toEqual(['v2.0.7 (Latest)', 'v2.0.6 (Installed)']);
+          await user.keyboard('{Escape}');
+          await user.click(screen.getByTestId('mod-detail-update-button'));
+
+          await waitFor(() => {
+            expect(putBodies(mockFetch)).toEqual([{ version: '2.0.7', confirm: false }]);
+          });
+          const putUrls = mockFetch.mock.calls
+            .filter(([, options]) => options?.method === 'PUT')
+            .map(([url]) => url as string);
+          expect(putUrls).toHaveLength(1);
+          expect(putUrls[0]).toMatch(/\/mods\/vsinstrumentsbase\/version$/);
+        });
+
+        it('recognizes an installed middle mod ID', async () => {
+          const user = userEvent.setup();
+          globalThis.fetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['vsinstruments', '1.2.6']),
+            updates: updatesFor('vsinstruments', '1.2.6', null),
+          });
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-installed-indicator')).toHaveTextContent(
+            'Installed: v1.2.6'
+          );
+          expect(await versionOptions(user)).toEqual(['v1.2.7 (Latest)', 'v1.2.6 (Installed)']);
+        });
+
+        it('prefers the installed mod whose ID is the URL slug', async () => {
+          globalThis.fetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['vsinstrumentsbase', '2.0.6'], ['instruments', '1.0.1']),
+            updates: updatesFor('instruments', '1.0.1', null),
+          });
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-installed-indicator')).toHaveTextContent(
+            'Installed: v1.0.1'
+          );
+        });
+
+        it('otherwise prefers the installed mod ID with the newest release', async () => {
+          globalThis.fetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['vsinstruments', '1.2.6'], ['vsinstrumentsbase', '2.0.6']),
+            updates: updatesFor('vsinstrumentsbase', '2.0.6', null),
+          });
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-installed-indicator')).toHaveTextContent(
+            'Installed: v2.0.6'
+          );
+        });
+
+        it('shows the install flow when no mod ID of the entry is installed', async () => {
+          globalThis.fetch = mockInstalled({
+            detail: instrumentsEntry,
+            mods: installedMods(['smithingplus', '1.8.2']),
+            updates: updatesFor('smithingplus', '1.8.2', null),
+          });
+
+          renderWithProviders(<ModDetailPage />, { route });
+
+          expect(await screen.findByTestId('mod-detail-install-button')).toBeInTheDocument();
+          expect(screen.queryByTestId('mod-detail-installed-indicator')).not.toBeInTheDocument();
+        });
+      });
     });
 
     describe('version selection', () => {

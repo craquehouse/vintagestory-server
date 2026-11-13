@@ -41,10 +41,10 @@ so that **I am not offered an install for a mod I have**.
   - [x] 1.1: Create `web/src/lib/mod-ids.ts` with `entryModIds(releases: Pick<ModRelease, 'modidstr'>[]): string[]` (distinct, non-empty `modidstr` values in release order, newest first) and `findInstalledModForEntry<T extends { slug: string }>(installedMods: readonly T[] | undefined, entry: { slug: string; releases: Pick<ModRelease, 'modidstr'>[] }): T | undefined` implementing AC 3 and AC 4 (URL slug first, then `entryModIds` order; exact comparison; `undefined` for no list)
   - [x] 1.2: Tests in `web/src/lib/mod-ids.test.ts`: the instruments shape (three mod IDs, installed one last or middle), URL slug wins over an earlier-release mod ID, newest-release mod ID wins when the URL slug is not installed, no `modidstr` on releases (URL slug still matches), installed mod from another entry not matched, case differs → no match, empty and `undefined` installed lists, duplicates and empty strings dropped from `entryModIds`
 
-- [ ] Task 2: Detail page recognizes the installed mod by any of the entry's mod IDs + tests (AC: 1, 2, 3, 4)
-  - [ ] 2.1: `ModDetailPage`: replace `modsData?.data?.mods?.find((m) => m.slug === slug)` with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })`, computed after the `mod` guards (the releases are needed); `InstalledVersionSection` keeps receiving `installedMod.slug`, so its version list, update status lookup and version change already use the installed mod ID
-  - [ ] 2.2: Update the header doc comment (Story 16.2 note)
-  - [ ] 2.3: Tests in `ModDetailPage.test.tsx` ("Story 16.2" block) with an instruments-shaped lookup response (releases for `vsinstrumentsbase`, `vsinstruments`, `instruments`) opened at `/game-server/mods/browse/instruments`: installed `vsinstrumentsbase` → installed indicator, no Install button; version options only `vsinstrumentsbase` releases; Update button uses the `vsinstrumentsbase` offered update and the `PUT` goes to `/mods/vsinstrumentsbase/version`; installed `vsinstruments` (middle) also recognized; two installed → AC 3 choice; unrelated installed mod → install flow. Existing tests keep passing unchanged
+- [x] Task 2: Detail page recognizes the installed mod by any of the entry's mod IDs + tests (AC: 1, 2, 3, 4)
+  - [x] 2.1: `ModDetailPage`: replace `modsData?.data?.mods?.find((m) => m.slug === slug)` with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })`, computed after the `mod` guards (the releases are needed); `InstalledVersionSection` keeps receiving `installedMod.slug`, so its version list, update status lookup and version change already use the installed mod ID
+  - [x] 2.2: Update the header doc comment (Story 16.2 note)
+  - [x] 2.3: Tests in `ModDetailPage.test.tsx` ("Story 16.2" block) with an instruments-shaped lookup response (releases for `vsinstrumentsbase`, `vsinstruments`, `instruments`) opened at `/game-server/mods/browse/instruments`: installed `vsinstrumentsbase` → installed indicator, no Install button; version options only `vsinstrumentsbase` releases; Update button uses the `vsinstrumentsbase` offered update and the `PUT` goes to `/mods/vsinstrumentsbase/version`; installed `vsinstruments` (middle) also recognized; two installed → AC 3 choice; unrelated installed mod → install flow. Existing tests keep passing unchanged
 
 - [ ] Task 3: Browser verification against the Docker dev stack + E2E (AC: 1, 2)
   - [ ] 3.1: Add `web/e2e/installed-mod-any-modid.spec.ts` (Playwright, Docker stack, live mod database): open `/game-server/mods/browse/instruments` with the installed mods list (`GET /api/v1alpha1/mods`) fulfilled by `page.route`, so nothing is installed on the stack. Test 1: the list holds `vsinstrumentsbase` at its newest live version (read from the real lookup response, which the spec does not mock) → installed indicator, no Install button, and version options that are exactly the live `vsinstrumentsbase` releases. Test 2: the list holds `vsinstruments` (a middle mod ID) → recognized too. Test 3: the list is empty → the install flow
@@ -156,15 +156,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run of `mod-ids.test.ts` (module missing), then 11 passed.
+- Task 2: red run, 4 of the 6 new ModDetailPage tests failing (the URL-slug-wins and install-flow tests already passed, as intended: they pin unchanged behavior); green after the change. Web: 3,110 passed, 4 skipped (pre-existing `it.skip`s).
 
 ### Completion Notes List
 
 - Task 1: `web/src/lib/mod-ids.ts` exports `entryModIds` (distinct non-empty `modidstr`, newest release first) and `findInstalledModForEntry` (URL slug first, then release order, exact comparison; generic over `{ slug }`). 11 unit tests. Not used yet; Task 2 wires it into the detail page.
+- Task 2: `ModDetailPage` finds the installed mod with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })` after the response guards, instead of `m.slug === slug`. `InstalledVersionSection` is unchanged and still receives `installedMod.slug`, so its version list, update status and `PUT /mods/<id>/version` use the installed mod ID. Six tests in a "Story 16.2" block with an instruments-shaped entry opened at `/browse/instruments`: installed `vsinstrumentsbase` (not the browse slug) shows the installed state; its version list is only its releases and Update goes to `/mods/vsinstrumentsbase/version`; a middle mod ID is recognized; URL slug wins; newest-release mod ID wins otherwise; an unrelated installed mod leaves the install flow.
 
 ### File List
 
 - `web/src/lib/mod-ids.ts` (new)
 - `web/src/lib/mod-ids.test.ts` (new)
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
 - `_bmad-output/implementation-artifacts/16-2-installed-mods-recognized-by-any-mod-id.md`
 
 ## Change Log
