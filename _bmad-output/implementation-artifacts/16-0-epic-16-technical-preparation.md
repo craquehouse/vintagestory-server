@@ -77,7 +77,7 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 5.1: Write `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` with ADR-1 to ADR-3 and their evidence
   - [x] 5.2: Add the file to `architecture/index.md` with an anchor link per ADR, as the Epic 14 and 15 entries do
   - [x] 5.3: Write `_bmad-output/implementation-artifacts/16-0-spike/README.md` with the manual test results, screenshots, and how to rerun the probe script
-  - [x] 5.4: Update affected stories in `epics.md`, or create beads under `VSS-stm` for anything found that is out of scope
+  - [x] 5.4: Update affected stories in `epics.md`, or create beads for anything found: children of `VSS-stm` when the work belongs in Epic 16, top-level otherwise
   - [x] 5.5: Run `just check` to confirm nothing broke (the fixture must not affect tests)
 
 ## Dev Notes

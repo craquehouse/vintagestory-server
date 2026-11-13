@@ -35,10 +35,11 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
 3. **Links into browse carry the last browse URL:**
    - Opening a mod (card click, or Enter on a slug) navigates to the detail page with `state: { browseSearch: location.search }`.
    - Back to Browse (`ModDetailPage.handleBack`) and the breadcrumb navigate to `/game-server/mods/browse` plus `state.browseSearch` (empty when the detail page was opened directly).
-   - The Browse tab (`ModsPage.handleTabChange`) does the same when it is clicked from a detail page; from another tab it opens browse with the last browse search remembered in sessionStorage (`browse-last-search`), written by `BrowseTab` whenever its search string changes.
+   - `BrowseTab` mirrors its full `location.search` (including `page`) to sessionStorage (`browse-last-search`) whenever its URL state changes, so changes to filters, sort or page are remembered as well as the search.
+   - The Browse tab (`ModsPage.handleTabChange`) opens `/game-server/mods/browse` with, in order of precedence: `state.browseSearch` when it is clicked on a detail page that was opened from browse; otherwise `browse-last-search`; otherwise nothing (default state). A detail page opened directly (a shared link) has an empty `state.browseSearch` and falls through to `browse-last-search`.
    - Browser back needs nothing extra: the previous entry is the browse URL.
 
-4. **Position is restored to the opened card, only on a return from that card's detail page.** On opening a mod, `BrowseTab` saves `{ search: location.search, slug }` in sessionStorage. On mount it restores only if the current `location.search` matches the saved search and the arrival is a return from the detail page (`location.state.fromModDetail`, set by the three links above, or `useNavigationType() === 'POP'`); otherwise it clears the saved entry. It restores by calling `scrollIntoView({ block: 'center' })` on `mod-card-<slug>` in an effect that runs once the results containing that slug have rendered, then clears the entry. If the slug is not in the results, the page is left at the top. This replaces the pixel offset and the 100 ms `setTimeout`, and the stale restore after a detour.
+4. **Position is restored to the opened card, only on a return from that card's detail page.** On opening a mod, `BrowseTab` saves `{ search: location.search, slug }` in sessionStorage. On mount it restores only if the current `location.search` matches the saved search and the arrival is a return from the detail page (`location.state.fromModDetail`, set by the three links above, or `useNavigationType() === 'POP'` for browser back); otherwise it clears the saved entry. Every `BrowseTab` mount consumes or clears the entry, and it is written only immediately before leaving for a detail page, so a refresh or initial load of the browse page (also `POP`) never finds one and never scrolls: refresh restores the browse state from the URL, not a position. It restores by calling `scrollIntoView({ block: 'center' })` on `mod-card-<slug>` in an effect that runs once the results containing that slug have rendered, then clears the entry. If the slug is not in the results, the page is left at the top. This replaces the pixel offset and the 100 ms `setTimeout`, and the stale restore after a detour.
 
 5. **The custom hook stays.** Migrating to a data router for `<ScrollRestoration>` would change the whole app's routing for one page; not proposed.
 
@@ -72,7 +73,7 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
 
 1. **Definition.** For a mod ID, the most recent supported game version is the highest tag across that mod ID's releases (`modidstr` equal to it), compared with `parse_base_version` and `is_prerelease` from `services/mod_updates.py`: by base version, then a stable tag above pre-releases of the same base. Stable tags are preferred; a pre-release is used only when the mod ID has no stable tag. Tags that do not parse are ignored. No new version parser.
 2. **Which mod ID.** The installed mod's ID when the mod is installed; otherwise the mod ID whose release the install flow would install (today `releases[0].modidstr`; Story 16.2 and `VSS-jhf` keep this consistent).
-3. **Which release decides the status.** Detail page and lookup: the newest release of that mod ID (not `releases[0]` of the whole entry). Installed list: the installed release (matching `modidstr` and `modversion`), because the question there is whether what is running supports the game; the lookup endpoint takes an optional `version` for this.
+3. **Which release decides the status.** Detail page and lookup: the newest release of that mod ID (not `releases[0]` of the whole entry). Installed list: the installed release (matching `modidstr` and `modversion`), because the question there is whether what is running supports the game; the lookup endpoint gains an optional `version` parameter for this (Story 16.3; today it takes only the slug).
 4. **Message,** replacing the `tags[:3]` list in `_build_compatibility_message`, using the mod ID's lowest and highest supported versions:
    - behind (highest < installed): "Last supported game version: 1.21.1."
    - ahead (lowest > installed): "Requires game version 1.23.0 or newer (installed: 1.22.7)."
@@ -101,7 +102,7 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
 **Decision:**
 
 1. **Maximum width.** The settings panel is limited to 1280px and centered (`max-w-[1280px] mx-auto`), per the UX spec. Applying the maximum to every page is a separate, app-wide change and not part of Epic 16.
-2. **Two columns from `xl` (1280px viewport, content about 1,024px).** Below `xl` the layout stays a single column, as today.
+2. **Two columns from `xl` (1280px viewport; content about 1,072px after the 160px sidebar and padding).** Below `xl` the layout stays a single column, as today.
 3. **Placement at `xl`:**
 
    ```text
@@ -116,7 +117,7 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
    └─────────────────────────────────────┘
    ```
 
-   Server Info spans both columns and lays its four text fields out in two columns. The rest is two independent column stacks, not grid rows: Player Settings then Network on the left (732px), World Settings on the right (518px). Collapsing World Settings or Network then changes only its own column, and no card stretches to match a neighbor's height.
+   Server Info spans both columns and lays its four text fields out in two columns. The rest is two independent column stacks, not grid rows: Player Settings then Network on the left (column height about 732px), World Settings on the right (about 518px), using the card heights measured at 1440px. Collapsing World Settings or Network then changes only its own column, and no card stretches to match a neighbor's height.
 4. **Field width.** Number inputs (Max Players, Max Chunk Radius, Port) keep a fixed narrow width (`max-w-xs`) at every breakpoint; text inputs fill their column.
 
 **Consequences:**

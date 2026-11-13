@@ -1,6 +1,6 @@
 // Story 16.0 Task 1: probe mod browser restoration and sort behavior.
 //
-// Runs against the dev stack (`just docker start`, http://localhost:8080) with a
+// Runs against the dev stack (`just docker restart`, http://localhost:8080) with a
 // game version installed. Writes a JSON report to stdout; progress goes to stderr.
 //
 //   cd web && bun ../_bmad-output/implementation-artifacts/16-0-spike/browse_probe.mjs \
