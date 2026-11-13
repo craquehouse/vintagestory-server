@@ -69,9 +69,9 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 3.7: Commit the probe script that fetches and summarizes the ModDB data, with its captured output, to `16-0-spike/`
   - [x] 3.8: Record the definition, the ahead/behind wording, the Installed list choice, the browse card decision and the API change Story 16.3 needs as ADR-2. State whether it supersedes Epic 10 ADR-2 (conservative `not_verified` on browse cards). If browse cards stay out of reach, update Story 16.3's conditional acceptance criterion in `epics.md` to say so
 
-- [ ] Task 4: Settings layout (AC: 4)
-  - [ ] 4.1: Screenshot game server settings at 1024px, 1440px and 1920px; list the cards in `GameConfigPanel.tsx` and the kind of field each holds
-  - [ ] 4.2: Choose the layout (e.g. a two-column grid at `lg` with wide cards spanning both columns) and record it as ADR-3 with a sketch. ADR-3 must say how it applies the UX spec's 1280px maximum content width and how the collapsible World and Network groups behave in a grid
+- [x] Task 4: Settings layout (AC: 4)
+  - [x] 4.1: Screenshot game server settings at 1024px, 1440px and 1920px; list the cards in `GameConfigPanel.tsx` and the kind of field each holds
+  - [x] 4.2: Choose the layout (e.g. a two-column grid at `lg` with wide cards spanning both columns) and record it as ADR-3 with a sketch. ADR-3 must say how it applies the UX spec's 1280px maximum content width and how the collapsible World and Network groups behave in a grid
 
 - [ ] Task 5: Record findings (AC: 5)
   - [ ] 5.1: Write `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` with ADR-1 to ADR-3 and their evidence
@@ -149,6 +149,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: Playwright probe `16-0-spike/browse_probe.mjs` against the dev stack (`just docker restart`, game 1.22.7, 1440x900 Chromium); output `16-0-spike/browse_probe.out.json`. Required `bunx playwright install chromium` (the lockfile's Playwright 1.64.1 needs headless shell build 1248).
 - Task 2: react-router v8 docs via Context7: `useSearchParams` and `navigate(to, { replace, state })` work in declarative mode; `ScrollRestoration`/`useScrollRestoration` require a data router (`useDataRouterContext`).
 - Task 3: `16-0-spike/moddb_probe.py` (standard library, read-only GETs), output `moddb_probe.out.txt`. `get_mods_by_version` is not cached (`services/mod_api.py:559`), contrary to Task 3.5's wording.
+- Task 4: `16-0-spike/settings_shots.mjs` (Playwright, dev stack) produced `settings-1024.png`, `settings-1440.png`, `settings-1920.png` and `settings_shots.out.json`.
 
 ### Findings Summary
 
@@ -157,12 +158,14 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Backlog Items Created
 - `VSS-stm.1` [UI-067] Name (A-Z) sort requests more results than the API allows (created at story validation; confirmed in Task 1)
 - `VSS-4f3` [UI-068] Show 'has a release for your game version' on mod browse cards
+- `VSS-7ed` [UI-069] Empty game settings show the text 'null' and can save it (P1)
 
 ### Completion Notes List
 
 - Task 1: Unfiltered restoration works on all four return paths (Back to Browse, breadcrumb, Browse tab, browser back), also on Slow 4G, because the grid renders from the React Query cache. With a search set, the search resets while page and scroll are restored against the unfiltered results. Saved state survives detours (stale restore confirmed). Name (A-Z) sort gets three 422 responses (`page_size=1000`) and shows no cards and no error message; added to `VSS-stm.1`. Results recorded on `VSS-901`.
 - Task 2: ADR-1 written: URL is the source of truth for `q`, `sort`, `side`, `tags`, `type`, `version`, `page` (defaults omitted); debounced search replaces, discrete changes push; detail links carry the browse search in navigation state; position is restored to the opened card's slug only on a return from its detail page, replacing the pixel offset, the 100 ms timeout and the stale restore. Custom hook kept; no data-router migration.
 - Task 3: Listing carries no game versions (0 of 9,560 items). Most recent supported is computed per mod ID with the `mod_updates` helpers, stable preferred. Today's lookup evaluates `releases[0]` across mod IDs (`instruments` gets `vsinstrumentsbase`'s release) and names the three oldest tags. ADR-2 written; Story 16.3 in `epics.md` updated (browse cards unchanged; Installed list evaluates the installed release). Browse-card flag via `?gameversion=` recorded as `VSS-4f3` (outside Epic 16). Fixture `mod_playercorpse.json` added.
+- Task 4: Cards are 768-1664px wide with page height 1,984px at every width. ADR-3: 1280px maximum, two columns from `xl` with Server Info spanning, then independent column stacks (Player + Network | World) so collapsing affects one column; narrow number inputs. Found that empty settings render the text `null` and Password is unmasked: `VSS-7ed` (P1, outside Epic 16).
 
 ### File List
 
@@ -175,5 +178,10 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `api/tests/fixtures/moddb/mod_playercorpse.json` (new)
 - `api/tests/fixtures/moddb/README.md`
 - `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/implementation-artifacts/16-0-spike/settings_shots.mjs` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/settings_shots.out.json` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/settings-1024.png` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/settings-1440.png` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/settings-1920.png` (new)
 
 ## Change Log

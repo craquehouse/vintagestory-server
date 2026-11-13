@@ -1,0 +1,95 @@
+[
+  {
+    "width": 1024,
+    "panelWidth": 768,
+    "pageHeight": 1984,
+    "groups": [
+      {
+        "title": "Server Info",
+        "width": 768,
+        "height": 486,
+        "inputs": 4
+      },
+      {
+        "title": "Player Settings",
+        "width": 768,
+        "height": 278,
+        "inputs": 2
+      },
+      {
+        "title": "World Settings",
+        "width": 768,
+        "height": 518,
+        "inputs": 5
+      },
+      {
+        "title": "Network",
+        "width": 768,
+        "height": 454,
+        "inputs": 4
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "panelWidth": 1184,
+    "pageHeight": 1984,
+    "groups": [
+      {
+        "title": "Server Info",
+        "width": 1184,
+        "height": 486,
+        "inputs": 4
+      },
+      {
+        "title": "Player Settings",
+        "width": 1184,
+        "height": 278,
+        "inputs": 2
+      },
+      {
+        "title": "World Settings",
+        "width": 1184,
+        "height": 518,
+        "inputs": 5
+      },
+      {
+        "title": "Network",
+        "width": 1184,
+        "height": 454,
+        "inputs": 4
+      }
+    ]
+  },
+  {
+    "width": 1920,
+    "panelWidth": 1664,
+    "pageHeight": 1984,
+    "groups": [
+      {
+        "title": "Server Info",
+        "width": 1664,
+        "height": 486,
+        "inputs": 4
+      },
+      {
+        "title": "Player Settings",
+        "width": 1664,
+        "height": 278,
+        "inputs": 2
+      },
+      {
+        "title": "World Settings",
+        "width": 1664,
+        "height": 518,
+        "inputs": 5
+      },
+      {
+        "title": "Network",
+        "width": 1664,
+        "height": 454,
+        "inputs": 4
+      }
+    ]
+  }
+]

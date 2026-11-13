@@ -86,3 +86,41 @@ Decisions from Story 16.0 (Epic 16 Technical Preparation). Evidence lives in `_b
 - The incompatible and unverified messages name the version an admin can act on, in the right direction.
 - Story 16.3 changes the API (`CompatibilityInfo`, lookup `version` parameter, message builder) and the Installed list UI; it does not touch browse cards.
 - Fixture `api/tests/fixtures/moddb/mod_playercorpse.json` covers the behind case; `mod_instruments.json` covers mod ID selection; an ahead case needs a synthetic fixture.
+
+## ADR-3: Game Server Settings Layout on Desktop
+
+**Status:** Accepted (Story 16.0).
+
+**Context** (screenshots `16-0-spike/settings-{1024,1440,1920}.png`, measurements `settings_shots.out.json`):
+
+- `GameConfigPanel` stacks four `SettingGroup` cards with `space-y-4` at every width. Panel width: 768px at a 1024px viewport, 1184px at 1440px, 1664px at 1920px; page height 1,984px at every width.
+- Cards and their fields: Server Info (4 text fields: name, description, welcome message, password; 486px tall), Player Settings (1 number, 1 toggle; 278px), World Settings (collapsible; 1 number, 4 toggles; 518px), Network (collapsible; 2 text, 2 toggles; 454px).
+- At 1440px and wider, inputs stretch to well over 1,000px for values such as a port number, and toggles leave most of each card empty.
+- UX spec: `lg` is 1024px+, maximum content width 1280px centered (`ux-design-specification.md:1254-1256`). Nothing in the app applies the maximum today. The sidebar takes 160px (64px collapsed), so at `lg` the content area is too narrow for two useful columns.
+
+**Decision:**
+
+1. **Maximum width.** The settings panel is limited to 1280px and centered (`max-w-[1280px] mx-auto`), per the UX spec. Applying the maximum to every page is a separate, app-wide change and not part of Epic 16.
+2. **Two columns from `xl` (1280px viewport, content about 1,024px).** Below `xl` the layout stays a single column, as today.
+3. **Placement at `xl`:**
+
+   ```text
+   ┌──────────────────── Server Info (spans both columns) ────────────────────┐
+   │ Server Name              │ Description                                   │
+   │ Welcome Message          │ Password                                      │
+   └──────────────────────────────────────────────────────────────────────────┘
+   ┌────────── Player Settings ──────────┐ ┌────────── World Settings ▾ ─────┐
+   └─────────────────────────────────────┘ │                                 │
+   ┌────────── Network ▾ ────────────────┐ │                                 │
+   │                                     │ └─────────────────────────────────┘
+   └─────────────────────────────────────┘
+   ```
+
+   Server Info spans both columns and lays its four text fields out in two columns. The rest is two independent column stacks, not grid rows: Player Settings then Network on the left (732px), World Settings on the right (518px). Collapsing World Settings or Network then changes only its own column, and no card stretches to match a neighbor's height.
+4. **Field width.** Number inputs (Max Players, Max Chunk Radius, Port) keep a fixed narrow width (`max-w-xs`) at every breakpoint; text inputs fill their column.
+
+**Consequences:**
+
+- Page height at 1440px and wider drops from about 1,984px to roughly the left column plus Server Info.
+- Story 16.6 changes only `GameConfigPanel` (and `SettingField` sizing for numbers); `SettingGroup` keeps its collapsible behavior.
+- Out of scope, recorded separately: empty settings render the text `null` and Password is unmasked (`VSS-7ed`).
