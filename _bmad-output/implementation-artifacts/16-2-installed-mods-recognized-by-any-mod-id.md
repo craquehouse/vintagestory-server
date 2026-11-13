@@ -1,6 +1,6 @@
 # Story 16.2: Installed Mods Recognized by Any Mod ID
 
-Status: review
+Status: done
 
 <!-- Implements FR169 and Epic 16 ADR-2 decision 2 ("which mod ID"), detail-page side. Bead: VSS-ywb. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID). Stacks on Story 16.1 (PR #148). -->
 
@@ -54,6 +54,13 @@ so that **I am not offered an install for a mod I have**.
 - [x] Task 4: Quality gate and review hand-off (AC: all)
   - [x] 4.1: `just check` (lint, typecheck, all tests) passes
   - [x] 4.2: Story status `review`, `just sprint set 16-2-installed-mods-recognized-by-any-mod-id review`, PR to `story/16-1-mod-browser-state-survives-mod-details` (stacks on #148), PR link on `VSS-ywb`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] M1: File List omits `sprint-status.yaml`. Rejected: `project-context.md` "File List Tracking" says `sprint-status.yaml` must not be in the File List
+- [x] [AI-Review][Low] L2: the E2E made two independent live lookups (the probe and the page's own) and compared one against the other, so a re-release between them could flake. Fixed: the page's `/mods/lookup/instruments` call is fulfilled with the probe's body, so both read one response (`bf3cc00`)
+- [x] [AI-Review][Low] L3: the E2E was not run red. Accepted as is: the component tests are red-verified (the reviewer also reverted only `ModDetailPage.tsx` and saw 4 of the 6 new tests fail)
+- [x] [AI-Review][Low] L4: `refactor` type for the new helper module. Accepted as is: not user-visible on its own, as planned in the story
 
 ## Dev Notes
 
@@ -167,6 +174,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 3: `web/e2e/installed-mod-any-modid.spec.ts` (3 tests) replaces only `GET /api/v1alpha1/mods` with `page.route` and uses the live lookup: `vsinstrumentsbase` installed and `vsinstruments` installed each show the installed indicator, no Install button, and version options exactly equal to that mod ID's live releases; an empty installed list shows the install flow. Seen during the real-install check and left for Story 16.3: with `vsinstrumentsbase` installed, the header still shows the entry-wide `Version: 2.0.7` and the Incompatible badge from `releases[0]` (ADR-2).
 - Task 4: `just check` passed: lint, typecheck (pyright 0 errors, 3 pre-existing warnings in API tests; `tsc` clean), API 2,065 passed, web 3,110 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions in the diff. Status review; PR targets `story/16-1-mod-browser-state-survives-mod-details` (stacks on #148).
 - Decisions: web-only (Dev Notes); several installed mod IDs → URL slug first, then newest release; exact mod ID comparison like the update check and version change API. No deviation from ADR-2 decision 2.
+- Review fix (L2): `bunx playwright test e2e/installed-mod-any-modid.spec.ts --repeat-each=3` 9 passed against the stack built from this branch (the app is unchanged since that build); `just check` passed (API 2,065, web 3,110 passed and 4 skipped, scripts 190; pyright 0 errors, 3 pre-existing warnings).
 - Bead filed: `VSS-49n` [UI-073] browse cards' Installed badge compares only the browse slug (needs mod IDs on browse items from the API; top-level, related to `VSS-ywb`).
 
 ### File List
@@ -182,3 +190,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.2 created (ready-for-dev).
 - 2026-11-13: Implemented: `findInstalledModForEntry` in `web/src/lib/mod-ids.ts`; the detail page recognizes an installed mod by any of the entry's mod IDs; E2E and a real install in the dev stack; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L2 fixed in `bf3cc00`; M1 rejected (project rule); L3 and L4 accepted as is. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #149 head
+**Outcome:** Approve → resolved
+
+**Summary:** All five acceptance criteria are implemented. On the PR head the reviewer ran the web tests (3,110 passed) and the typecheck (clean), and reverting only `ModDetailPage.tsx` to the 16.1 base made 4 of the 6 new component tests fail. One medium finding was rejected under the project's File List rule; of three low findings, one was fixed and two accepted as is.
+
+### Action Items
+
+- [x] [Medium] M1 File List omits `sprint-status.yaml` (rejected: project-context.md excludes it)
+- [x] [Low] L2 E2E compares two independent live lookups (page served the probe's response, `bf3cc00`)
+- [x] [Low] L3 no red run of the E2E (accepted: component tests red-verified)
+- [x] [Low] L4 `refactor` type for the helper commit (accepted)
