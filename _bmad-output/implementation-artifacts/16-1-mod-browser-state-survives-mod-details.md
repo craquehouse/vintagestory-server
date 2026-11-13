@@ -1,6 +1,6 @@
 # Story 16.1: Mod Browser State Survives Mod Details
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements Epic 16 ADR-1 (architecture/epic-16-ui-polish.md), which implements Epic 10 ADR-4. Beads: VSS-dkl (search/sort/filters), VSS-901 (page and scroll restoration). -->
 
@@ -46,11 +46,11 @@ so that **I can compare several mods without searching and filtering again each 
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.1/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: Browse URL state helpers and a URL-controlled page in `useBrowseMods` + tests (AC: 3, 4)
-  - [ ] 1.1: Create `web/src/lib/browse-search.ts`: `BROWSE_PATH`, `BrowseUrlState` (`search`, `sort`, `filters: ModFilters`, `page`), `parseBrowseSearch(search: string): BrowseUrlState` and `buildBrowseSearch(state): string` (returns `''` or `?…`, parameters in the order `q, sort, side, tags, type, version, page`, defaults omitted, `tags` comma-separated, `q` trimmed). Invalid `sort`, `side`, `type` and `page` (not a positive integer) fall back to defaults; empty `tags`/`version` are omitted
-  - [ ] 1.2: Add `readBrowseSearchState(state: unknown): string | undefined` (navigation state `browseSearch`, accepted only when it is `''` or starts with `?`) and `isReturnFromModDetail(state: unknown): boolean` (`fromModDetail === true`); add `getLastBrowseSearch()` / `saveLastBrowseSearch(search)` for sessionStorage key `browse-last-search`, wrapped in try/catch like the existing restoration hook
-  - [ ] 1.3: Make `useBrowseMods` page controlled: `currentPage` comes from `params.page ?? 1`; `setPage`, `goToNextPage`, `goToPrevPage` validate as today and call an `onPageChange` callback passed in a second `options` argument instead of internal `useState`
-  - [ ] 1.4: Tests: `web/src/lib/browse-search.test.ts` (round trip for every parameter including `version`, defaults omitted, invalid values, ordering, tags with spaces, `q` trimming, navigation-state guards, sessionStorage failure); rewrite the `use-browse-mods.test.tsx` "pagination state management" and "edge cases" page tests to drive the controlled page through a `useState` wrapper instead of deleting them
+- [x] Task 1: Browse URL state helpers and a URL-controlled page in `useBrowseMods` + tests (AC: 3, 4)
+  - [x] 1.1: Create `web/src/lib/browse-search.ts`: `BROWSE_PATH`, `BrowseUrlState` (`search`, `sort`, `filters: ModFilters`, `page`), `parseBrowseSearch(search: string): BrowseUrlState` and `buildBrowseSearch(state): string` (returns `''` or `?…`, parameters in the order `q, sort, side, tags, type, version, page`, defaults omitted, `tags` comma-separated, `q` trimmed). Invalid `sort`, `side`, `type` and `page` (not a positive integer) fall back to defaults; empty `tags`/`version` are omitted
+  - [x] 1.2: Add `readBrowseSearchState(state: unknown): string | undefined` (navigation state `browseSearch`, accepted only when it is `''` or starts with `?`) and `isReturnFromModDetail(state: unknown): boolean` (`fromModDetail === true`); add `getLastBrowseSearch()` / `saveLastBrowseSearch(search)` for sessionStorage key `browse-last-search`, wrapped in try/catch like the existing restoration hook
+  - [x] 1.3: Make `useBrowseMods` page controlled: `currentPage` comes from `params.page ?? 1`; `setPage`, `goToNextPage`, `goToPrevPage` validate as today and call an `onPageChange` callback passed in a second `options` argument instead of internal `useState`
+  - [x] 1.4: Tests: `web/src/lib/browse-search.test.ts` (round trip for every parameter including `version`, defaults omitted, invalid values, ordering, tags with spaces, `q` trimming, navigation-state guards, sessionStorage failure); rewrite the `use-browse-mods.test.tsx` "pagination state management" and "edge cases" page tests to drive the controlled page through a `useState` wrapper instead of deleting them
 
 - [ ] Task 2: BrowseTab reads and writes its state through the URL + tests (AC: 1, 3, 4)
   - [ ] 2.1: Replace `useState` for `filters` and `sort` with `useSearchParams`; derive `BrowseUrlState` with `useMemo` keyed on `searchParams.toString()` (trap: reference-compared filters reset the page every render)
@@ -180,8 +180,21 @@ so that **I can compare several mods without searching and filtering again each 
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: red run of `browse-search.test.ts` (module missing) and of the three new controlled-page tests in `use-browse-mods.test.tsx` before implementing. `use-browse-mods.test.tsx` has 2 pre-existing `it.skip` tests (game version client-side filter, disabled since VSS-y7u); not touched.
 
 ### Completion Notes List
 
+- Task 1: `web/src/lib/browse-search.ts` parses and builds the ADR-1 parameters (`q, sort, side, tags, type, version, page`, defaults omitted, invalid values to defaults), guards navigation state (`browseSearch`, `fromModDetail`) and wraps `browse-last-search` in sessionStorage. `useBrowseMods` no longer keeps the page: `params.page` is the current page and `setPage`/`goToNextPage`/`goToPrevPage` report through `options.onPageChange`. The hook's page tests now drive the page through a `useState` wrapper (`useControlledBrowseMods`) instead of being deleted; four new tests cover the controlled contract. BrowseTab keeps a local page state for this commit only (replaced by the URL in Task 2). Web: 3,051 passed, 4 skipped (pre-existing).
+
 ### File List
+
+- `web/src/lib/browse-search.ts` (new)
+- `web/src/lib/browse-search.test.ts` (new)
+- `web/src/hooks/use-browse-mods.ts`
+- `web/src/hooks/use-browse-mods.test.tsx`
+- `web/src/features/mods/BrowseTab.tsx`
+- `_bmad-output/implementation-artifacts/16-1-mod-browser-state-survives-mod-details.md`

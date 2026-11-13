@@ -106,6 +106,10 @@ export function BrowseTab() {
 
   const debouncedSearch = useDebounce(searchInput, 300);
 
+  // Story 10.7: Start on restored page if available
+  // Story 16.1: useBrowseMods no longer keeps the page itself
+  const [page, setPageState] = useState(() => savedState?.page ?? 1);
+
   const {
     mods,
     pagination,
@@ -121,9 +125,8 @@ export function BrowseTab() {
     search: debouncedSearch,
     filters,
     sort,
-    // Story 10.7: Start on restored page if available
-    page: savedState?.page,
-  });
+    page,
+  }, { onPageChange: setPageState });
 
   // Navigate to mod detail view (Story 10.6)
   // Story 10.7: Save scroll position before navigating
