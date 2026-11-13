@@ -2,7 +2,7 @@
 python = "3.14"
 uv = "0.13.7"
 bun = "1.4.4"
-yq = "4.54.2"
+yq = "4.54.3"
 just = "1.59.0"
 git-cliff = "2.14.2"
 actionlint = "1.7.12"
