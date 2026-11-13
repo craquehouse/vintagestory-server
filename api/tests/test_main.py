@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
+from vintagestory_api import __version__
 from vintagestory_api import jobs as jobs_module
 from vintagestory_api import main as main_module
 from vintagestory_api.main import (
@@ -170,7 +171,8 @@ class TestApplicationConfiguration:
         """Verify FastAPI app has correct title and description."""
         assert app.title == "VintageStory Server Manager"
         assert "VintageStory dedicated game server" in app.description
-        assert app.version == "0.1.0"
+        # The single version source (Epic 15 ADR-1); test_version.py ties it to pyproject.toml
+        assert app.version == __version__
 
     def test_cors_middleware_configured(self) -> None:
         """Verify CORS middleware allows requests (functional test)."""
