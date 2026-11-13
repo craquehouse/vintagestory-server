@@ -1,6 +1,6 @@
 [project]
 name = "vintagestory-api"
-version = "0.1.0rc1"
+version = "0.1.0rc2"
 description = "API for managing VintageStory dedicated game server"
 requires-python = ">=3.14"
 dependencies = [
