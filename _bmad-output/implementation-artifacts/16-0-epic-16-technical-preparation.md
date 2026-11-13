@@ -50,14 +50,14 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 1.6: Select each sort option (`recent`, `downloads`, `trending`, `name`) and record failures. Name sort requests `pageSize: 1000` (`use-browse-mods.ts:85`) while the API allows `page_size` ≤ 100 (`routers/mods.py:235-237`); the expected 422 is tracked as `VSS-stm.1`, so confirm it there
   - [x] 1.7: Add the results to `VSS-901` with `bd comments add VSS-901 "..."`
 
-- [ ] Task 2: Choose the browse state mechanism (AC: 2)
-  - [ ] 2.1: Read Epic 10 ADR-4 and confirm `useSearchParams` from `react-router` 8.5.1 works with the nested `mods` → `browse` route in `App.tsx`. The app uses declarative `<BrowserRouter>` (`App.tsx:109`), so the router's built-in `<ScrollRestoration>` (data routers only) is unavailable; record whether ADR-1 keeps the custom hook (expected) or proposes a data-router migration as a bead
-  - [ ] 2.2: Decide parameter names and defaults, starting from ADR-4's `q` and `side`, for search, each `ModFilters` field, sort and page; default values are omitted so `/game-server/mods/browse` stays the default state. There is no sort direction, only the four `BrowseSortOption` values
-  - [ ] 2.3: Record the two implementation traps Story 16.1 must avoid: `page` is internal `useState` in `useBrowseMods` (`use-browse-mods.ts:70`) and must become controlled by the URL; `BrowseTab.tsx:146` detects filter changes by reference (`prevFiltersRef.current !== filters`), so a `filters` object parsed from the URL must be memoized or compared by value, or every render resets the page
-  - [ ] 2.4: Decide how the 300 ms debounced search writes to the URL (`replace`, not a history entry per keystroke) and whether page changes add history entries
-  - [ ] 2.5: List every link into browse and decide which preserve the last browse URL: Back to Browse (`ModDetailPage.handleBack`, fixed path), the breadcrumb (`ModDetailPage.tsx:522`, fixed path), the Browse tab (`ModsPage.tsx:44`, `navigate('/game-server/mods/${value}')`), and Enter on a slug (`BrowseTab.tsx:174-181`)
-  - [ ] 2.6: Decide what restoration targets: the pixel offset (`scrollY`, today) or the opened card (save its slug and `scrollIntoView` once results render, which removes the 100 ms timing dependence). Position is not shareable, so it stays in sessionStorage keyed to the browse URL
-  - [ ] 2.7: Record the decisions as ADR-1 in `architecture/epic-16-ui-polish.md`, noting that it implements Epic 10 ADR-4
+- [x] Task 2: Choose the browse state mechanism (AC: 2)
+  - [x] 2.1: Read Epic 10 ADR-4 and confirm `useSearchParams` from `react-router` 8.5.1 works with the nested `mods` → `browse` route in `App.tsx`. The app uses declarative `<BrowserRouter>` (`App.tsx:109`), so the router's built-in `<ScrollRestoration>` (data routers only) is unavailable; record whether ADR-1 keeps the custom hook (expected) or proposes a data-router migration as a bead
+  - [x] 2.2: Decide parameter names and defaults, starting from ADR-4's `q` and `side`, for search, each `ModFilters` field, sort and page; default values are omitted so `/game-server/mods/browse` stays the default state. There is no sort direction, only the four `BrowseSortOption` values
+  - [x] 2.3: Record the two implementation traps Story 16.1 must avoid: `page` is internal `useState` in `useBrowseMods` (`use-browse-mods.ts:70`) and must become controlled by the URL; `BrowseTab.tsx:146` detects filter changes by reference (`prevFiltersRef.current !== filters`), so a `filters` object parsed from the URL must be memoized or compared by value, or every render resets the page
+  - [x] 2.4: Decide how the 300 ms debounced search writes to the URL (`replace`, not a history entry per keystroke) and whether page changes add history entries
+  - [x] 2.5: List every link into browse and decide which preserve the last browse URL: Back to Browse (`ModDetailPage.handleBack`, fixed path), the breadcrumb (`ModDetailPage.tsx:522`, fixed path), the Browse tab (`ModsPage.tsx:44`, `navigate('/game-server/mods/${value}')`), and Enter on a slug (`BrowseTab.tsx:174-181`)
+  - [x] 2.6: Decide what restoration targets: the pixel offset (`scrollY`, today) or the opened card (save its slug and `scrollIntoView` once results render, which removes the 100 ms timing dependence). Position is not shareable, so it stays in sessionStorage keyed to the browse URL
+  - [x] 2.7: Record the decisions as ADR-1 in `architecture/epic-16-ui-polish.md`, noting that it implements Epic 10 ADR-4
 
 - [ ] Task 3: Most recent supported game version (AC: 3)
   - [ ] 3.1: Confirm that `https://mods.vintagestory.at/api/mods` listing items carry only category `tags` (e.g. `["Building","Patch"]`), no game versions
@@ -147,6 +147,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: Playwright probe `16-0-spike/browse_probe.mjs` against the dev stack (`just docker restart`, game 1.22.7, 1440x900 Chromium); output `16-0-spike/browse_probe.out.json`. Required `bunx playwright install chromium` (the lockfile's Playwright 1.64.1 needs headless shell build 1248).
+- Task 2: react-router v8 docs via Context7: `useSearchParams` and `navigate(to, { replace, state })` work in declarative mode; `ScrollRestoration`/`useScrollRestoration` require a data router (`useDataRouterContext`).
 
 ### Findings Summary
 
@@ -157,11 +158,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Completion Notes List
 
 - Task 1: Unfiltered restoration works on all four return paths (Back to Browse, breadcrumb, Browse tab, browser back), also on Slow 4G, because the grid renders from the React Query cache. With a search set, the search resets while page and scroll are restored against the unfiltered results. Saved state survives detours (stale restore confirmed). Name (A-Z) sort gets three 422 responses (`page_size=1000`) and shows no cards and no error message; added to `VSS-stm.1`. Results recorded on `VSS-901`.
+- Task 2: ADR-1 written: URL is the source of truth for `q`, `sort`, `side`, `tags`, `type`, `version`, `page` (defaults omitted); debounced search replaces, discrete changes push; detail links carry the browse search in navigation state; position is restored to the opened card's slug only on a return from its detail page, replacing the pixel offset, the 100 ms timeout and the stale restore. Custom hook kept; no data-router migration.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/16-0-spike/browse_probe.mjs` (new)
 - `_bmad-output/implementation-artifacts/16-0-spike/browse_probe.out.json` (new)
 - `_bmad-output/implementation-artifacts/16-0-epic-16-technical-preparation.md`
+- `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` (new)
 
 ## Change Log
