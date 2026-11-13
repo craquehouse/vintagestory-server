@@ -1,6 +1,6 @@
 # Story 16.2: Installed Mods Recognized by Any Mod ID
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR169 and Epic 16 ADR-2 decision 2 ("which mod ID"), detail-page side. Bead: VSS-ywb. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID). Stacks on Story 16.1 (PR #148). -->
 
@@ -51,9 +51,9 @@ so that **I am not offered an install for a mod I have**.
   - [x] 3.2: `just docker restart` (rebuild from this branch), run the spec (`cd web && bunx playwright test e2e/installed-mod-any-modid.spec.ts`)
   - [x] 3.3: Real-install check in the dev stack: note the installed mod set, install `instruments` through the UI (today this installs `vsinstrumentsbase`, `VSS-jhf`), confirm the detail page at `/game-server/mods/browse/instruments` shows the installed section for `vsinstrumentsbase` and the browser console is clean, take a screenshot with the server name (`span.font-semibold` in the header) masked, then remove the mod so `./data` returns to its prior mod set. Record results in the Dev Agent Record
 
-- [ ] Task 4: Quality gate and review hand-off (AC: all)
-  - [ ] 4.1: `just check` (lint, typecheck, all tests) passes
-  - [ ] 4.2: Story status `review`, `just sprint set 16-2-installed-mods-recognized-by-any-mod-id review`, PR to `story/16-1-mod-browser-state-survives-mod-details` (stacks on #148), PR link on `VSS-ywb`
+- [x] Task 4: Quality gate and review hand-off (AC: all)
+  - [x] 4.1: `just check` (lint, typecheck, all tests) passes
+  - [x] 4.2: Story status `review`, `just sprint set 16-2-installed-mods-recognized-by-any-mod-id review`, PR to `story/16-1-mod-browser-state-survives-mod-details` (stacks on #148), PR link on `VSS-ywb`
 
 ## Dev Notes
 
@@ -165,6 +165,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: `web/src/lib/mod-ids.ts` exports `entryModIds` (distinct non-empty `modidstr`, newest release first) and `findInstalledModForEntry` (URL slug first, then release order, exact comparison; generic over `{ slug }`). 11 unit tests. Not used yet; Task 2 wires it into the detail page.
 - Task 2: `ModDetailPage` finds the installed mod with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })` after the response guards, instead of `m.slug === slug`. `InstalledVersionSection` is unchanged and still receives `installedMod.slug`, so its version list, update status and `PUT /mods/<id>/version` use the installed mod ID. Six tests in a "Story 16.2" block with an instruments-shaped entry opened at `/browse/instruments`: installed `vsinstrumentsbase` (not the browse slug) shows the installed state; its version list is only its releases and Update goes to `/mods/vsinstrumentsbase/version`; a middle mod ID is recognized; URL slug wins; newest-release mod ID wins otherwise; an unrelated installed mod leaves the install flow.
 - Task 3: `web/e2e/installed-mod-any-modid.spec.ts` (3 tests) replaces only `GET /api/v1alpha1/mods` with `page.route` and uses the live lookup: `vsinstrumentsbase` installed and `vsinstruments` installed each show the installed indicator, no Install button, and version options exactly equal to that mod ID's live releases; an empty installed list shows the install flow. Seen during the real-install check and left for Story 16.3: with `vsinstrumentsbase` installed, the header still shows the entry-wide `Version: 2.0.7` and the Incompatible badge from `releases[0]` (ADR-2).
+- Task 4: `just check` passed: lint, typecheck (pyright 0 errors, 3 pre-existing warnings in API tests; `tsc` clean), API 2,065 passed, web 3,110 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions in the diff. Status review; PR targets `story/16-1-mod-browser-state-survives-mod-details` (stacks on #148).
+- Decisions: web-only (Dev Notes); several installed mod IDs → URL slug first, then newest release; exact mod ID comparison like the update check and version change API. No deviation from ADR-2 decision 2.
 - Bead filed: `VSS-49n` [UI-073] browse cards' Installed badge compares only the browse slug (needs mod IDs on browse items from the API; top-level, related to `VSS-ywb`).
 
 ### File List
@@ -179,3 +181,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-13: Story 16.2 created (ready-for-dev).
+- 2026-11-13: Implemented: `findInstalledModForEntry` in `web/src/lib/mod-ids.ts`; the detail page recognizes an installed mod by any of the entry's mod IDs; E2E and a real install in the dev stack; status review.
