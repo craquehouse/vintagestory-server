@@ -1,0 +1,476 @@
+{
+  "base": "http://localhost:8080",
+  "ranAt": "2026-11-13T21:30:01.027Z",
+  "roundTrips": [
+    {
+      "name": "default-backButton",
+      "returnVia": "backButton",
+      "search": null,
+      "throttle": false,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "default-breadcrumb",
+      "returnVia": "breadcrumb",
+      "search": null,
+      "throttle": false,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "default-browseTab",
+      "returnVia": "browseTab",
+      "search": null,
+      "throttle": false,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "default-browserBack",
+      "returnVia": "browserBack",
+      "search": null,
+      "throttle": false,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "throttled-backButton",
+      "returnVia": "backButton",
+      "search": null,
+      "throttle": true,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "throttled-browserBack",
+      "returnVia": "browserBack",
+      "search": null,
+      "throttle": true,
+      "opened": "vsrpbridgeclient",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 1500,
+        "page": 3,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 1500,
+          "page": 3,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "in-viewport"
+        }
+      }
+    },
+    {
+      "name": "search-backButton",
+      "returnVia": "backButton",
+      "search": "food",
+      "throttle": false,
+      "opened": "TemperatureMonitor",
+      "before": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 900,
+        "page": 2,
+        "search": "food",
+        "sort": "Newest",
+        "resultsText": "Found 20 mods matching \"food\"",
+        "error": null,
+        "cardCount": 20
+      },
+      "after": {
+        "150ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 900,
+          "page": 2,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "not-rendered"
+        },
+        "1000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 900,
+          "page": 2,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "not-rendered"
+        },
+        "3000ms": {
+          "url": "/game-server/mods/browse",
+          "scrollY": 900,
+          "page": 2,
+          "search": "",
+          "sort": "Newest",
+          "resultsText": "Showing 20 of 9560 mods",
+          "error": null,
+          "cardCount": 20,
+          "openedCard": "not-rendered"
+        }
+      }
+    }
+  ],
+  "stale": {
+    "name": "stale-restore",
+    "opened": "vsrpbridgeclient",
+    "before": {
+      "url": "/game-server/mods/browse",
+      "scrollY": 1500,
+      "page": 3,
+      "search": "",
+      "sort": "Newest",
+      "resultsText": "Showing 20 of 9560 mods",
+      "error": null,
+      "cardCount": 20
+    },
+    "after": {
+      "url": "/game-server/mods/browse",
+      "scrollY": 1500,
+      "page": 3,
+      "search": "",
+      "sort": "Newest",
+      "resultsText": "Showing 20 of 9560 mods",
+      "error": null,
+      "cardCount": 20,
+      "openedCard": "in-viewport"
+    }
+  },
+  "sorts": [
+    {
+      "sort": "Newest",
+      "responses": [],
+      "state": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 0,
+        "page": 1,
+        "search": "",
+        "sort": "Newest",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      }
+    },
+    {
+      "sort": "Most Downloaded",
+      "responses": [
+        {
+          "status": 200,
+          "query": "?page=1&page_size=20&sort=downloads"
+        }
+      ],
+      "state": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 0,
+        "page": 1,
+        "search": "",
+        "sort": "Most Downloaded",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      }
+    },
+    {
+      "sort": "Trending",
+      "responses": [
+        {
+          "status": 200,
+          "query": "?page=1&page_size=20&sort=trending"
+        }
+      ],
+      "state": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 0,
+        "page": 1,
+        "search": "",
+        "sort": "Trending",
+        "resultsText": "Showing 20 of 9560 mods",
+        "error": null,
+        "cardCount": 20
+      }
+    },
+    {
+      "sort": "Name (A-Z)",
+      "responses": [
+        {
+          "status": 422,
+          "query": "?page=1&page_size=1000"
+        },
+        {
+          "status": 422,
+          "query": "?page=1&page_size=1000"
+        },
+        {
+          "status": 422,
+          "query": "?page=1&page_size=1000"
+        }
+      ],
+      "state": {
+        "url": "/game-server/mods/browse",
+        "scrollY": 0,
+        "page": null,
+        "search": "",
+        "sort": "Name (A-Z)",
+        "resultsText": null,
+        "error": null,
+        "cardCount": 0
+      }
+    }
+  ]
+}

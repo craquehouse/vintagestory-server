@@ -184,7 +184,7 @@ development_status:
   15-6-release-documentation-and-first-release: review
   epic-16: in-progress
   epic-16-retrospective: optional
-  16-0-epic-16-technical-preparation: ready-for-dev
+  16-0-epic-16-technical-preparation: in-progress
   16-1-mod-browser-state-survives-mod-details: backlog
   16-2-installed-mods-recognized-by-any-mod-id: backlog
   16-3-latest-supported-game-version-for-incompatible-mods: backlog

@@ -1,6 +1,6 @@
 # Story 16.0: Epic 16 Technical Preparation
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Spike story (template-api-spike). Complete before Stories 16.1-16.7: their designs rest on the decisions this story records. No application code changes in this story. -->
 
@@ -41,14 +41,14 @@ so that **each story starts from confirmed behavior and data**.
 
 <!-- Research story: no application code changes. Tasks produce documentation, a fixture, a probe script and spike notes under 16-0-spike/. -->
 
-- [ ] Task 1: Verify current browse behavior (AC: 1)
-  - [ ] 1.1: Start the stack (`just docker restart`); install a game version if none is installed
-  - [ ] 1.2: Default browse state: go to page 2 or later, scroll down, open a mod, return with Back to Browse; repeat returning with the breadcrumb `Browse` link, the Browse tab and browser back. Record page and scroll results for each
-  - [ ] 1.3: Repeat 1.2 with Chrome DevTools network throttling ("Slow 4G") to test the 100 ms `setTimeout` in `BrowseTab.tsx`
-  - [ ] 1.4: Repeat 1.2 with a search term set, to record the current failure Story 16.1 fixes (search resets, so the restored page belongs to a different result set)
-  - [ ] 1.5: Stale restore: open a mod, leave through the sidebar to another page, come back to Browse later. Saved state is consumed on any mount, so record whether an old position is restored unexpectedly
-  - [ ] 1.6: Select each sort option (`recent`, `downloads`, `trending`, `name`) and record failures. Name sort requests `pageSize: 1000` (`use-browse-mods.ts:85`) while the API allows `page_size` ≤ 100 (`routers/mods.py:235-237`); the expected 422 is tracked as `VSS-stm.1`, so confirm it there
-  - [ ] 1.7: Add the results to `VSS-901` with `bd comments add VSS-901 "..."`
+- [x] Task 1: Verify current browse behavior (AC: 1)
+  - [x] 1.1: Start the stack (`just docker restart`); install a game version if none is installed
+  - [x] 1.2: Default browse state: go to page 2 or later, scroll down, open a mod, return with Back to Browse; repeat returning with the breadcrumb `Browse` link, the Browse tab and browser back. Record page and scroll results for each
+  - [x] 1.3: Repeat 1.2 with Chrome DevTools network throttling ("Slow 4G") to test the 100 ms `setTimeout` in `BrowseTab.tsx`
+  - [x] 1.4: Repeat 1.2 with a search term set, to record the current failure Story 16.1 fixes (search resets, so the restored page belongs to a different result set)
+  - [x] 1.5: Stale restore: open a mod, leave through the sidebar to another page, come back to Browse later. Saved state is consumed on any mount, so record whether an old position is restored unexpectedly
+  - [x] 1.6: Select each sort option (`recent`, `downloads`, `trending`, `name`) and record failures. Name sort requests `pageSize: 1000` (`use-browse-mods.ts:85`) while the API allows `page_size` ≤ 100 (`routers/mods.py:235-237`); the expected 422 is tracked as `VSS-stm.1`, so confirm it there
+  - [x] 1.7: Add the results to `VSS-901` with `bd comments add VSS-901 "..."`
 
 - [ ] Task 2: Choose the browse state mechanism (AC: 2)
   - [ ] 2.1: Read Epic 10 ADR-4 and confirm `useSearchParams` from `react-router` 8.5.1 works with the nested `mods` → `browse` route in `App.tsx`. The app uses declarative `<BrowserRouter>` (`App.tsx:109`), so the router's built-in `<ScrollRestoration>` (data routers only) is unavailable; record whether ADR-1 keeps the custom hook (expected) or proposes a data-router migration as a bead
@@ -142,7 +142,11 @@ so that **each story starts from confirmed behavior and data**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: Playwright probe `16-0-spike/browse_probe.mjs` against the dev stack (`just docker restart`, game 1.22.7, 1440x900 Chromium); output `16-0-spike/browse_probe.out.json`. Required `bunx playwright install chromium` (the lockfile's Playwright 1.64.1 needs headless shell build 1248).
 
 ### Findings Summary
 
@@ -152,6 +156,12 @@ so that **each story starts from confirmed behavior and data**.
 
 ### Completion Notes List
 
+- Task 1: Unfiltered restoration works on all four return paths (Back to Browse, breadcrumb, Browse tab, browser back), also on Slow 4G, because the grid renders from the React Query cache. With a search set, the search resets while page and scroll are restored against the unfiltered results. Saved state survives detours (stale restore confirmed). Name (A-Z) sort gets three 422 responses (`page_size=1000`) and shows no cards and no error message; added to `VSS-stm.1`. Results recorded on `VSS-901`.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/16-0-spike/browse_probe.mjs` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/browse_probe.out.json` (new)
+- `_bmad-output/implementation-artifacts/16-0-epic-16-technical-preparation.md`
 
 ## Change Log
