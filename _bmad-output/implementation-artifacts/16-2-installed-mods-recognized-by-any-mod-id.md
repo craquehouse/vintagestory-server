@@ -46,10 +46,10 @@ so that **I am not offered an install for a mod I have**.
   - [x] 2.2: Update the header doc comment (Story 16.2 note)
   - [x] 2.3: Tests in `ModDetailPage.test.tsx` ("Story 16.2" block) with an instruments-shaped lookup response (releases for `vsinstrumentsbase`, `vsinstruments`, `instruments`) opened at `/game-server/mods/browse/instruments`: installed `vsinstrumentsbase` → installed indicator, no Install button; version options only `vsinstrumentsbase` releases; Update button uses the `vsinstrumentsbase` offered update and the `PUT` goes to `/mods/vsinstrumentsbase/version`; installed `vsinstruments` (middle) also recognized; two installed → AC 3 choice; unrelated installed mod → install flow. Existing tests keep passing unchanged
 
-- [ ] Task 3: Browser verification against the Docker dev stack + E2E (AC: 1, 2)
-  - [ ] 3.1: Add `web/e2e/installed-mod-any-modid.spec.ts` (Playwright, Docker stack, live mod database): open `/game-server/mods/browse/instruments` with the installed mods list (`GET /api/v1alpha1/mods`) fulfilled by `page.route`, so nothing is installed on the stack. Test 1: the list holds `vsinstrumentsbase` at its newest live version (read from the real lookup response, which the spec does not mock) → installed indicator, no Install button, and version options that are exactly the live `vsinstrumentsbase` releases. Test 2: the list holds `vsinstruments` (a middle mod ID) → recognized too. Test 3: the list is empty → the install flow
-  - [ ] 3.2: `just docker restart` (rebuild from this branch), run the spec (`cd web && bunx playwright test e2e/installed-mod-any-modid.spec.ts`)
-  - [ ] 3.3: Real-install check in the dev stack: note the installed mod set, install `instruments` through the UI (today this installs `vsinstrumentsbase`, `VSS-jhf`), confirm the detail page at `/game-server/mods/browse/instruments` shows the installed section for `vsinstrumentsbase` and the browser console is clean, take a screenshot with the server name (`span.font-semibold` in the header) masked, then remove the mod so `./data` returns to its prior mod set. Record results in the Dev Agent Record
+- [x] Task 3: Browser verification against the Docker dev stack + E2E (AC: 1, 2)
+  - [x] 3.1: Add `web/e2e/installed-mod-any-modid.spec.ts` (Playwright, Docker stack, live mod database): open `/game-server/mods/browse/instruments` with the installed mods list (`GET /api/v1alpha1/mods`) fulfilled by `page.route`, so nothing is installed on the stack. Test 1: the list holds `vsinstrumentsbase` at its newest live version (read from the real lookup response, which the spec does not mock) → installed indicator, no Install button, and version options that are exactly the live `vsinstrumentsbase` releases. Test 2: the list holds `vsinstruments` (a middle mod ID) → recognized too. Test 3: the list is empty → the install flow
+  - [x] 3.2: `just docker restart` (rebuild from this branch), run the spec (`cd web && bunx playwright test e2e/installed-mod-any-modid.spec.ts`)
+  - [x] 3.3: Real-install check in the dev stack: note the installed mod set, install `instruments` through the UI (today this installs `vsinstrumentsbase`, `VSS-jhf`), confirm the detail page at `/game-server/mods/browse/instruments` shows the installed section for `vsinstrumentsbase` and the browser console is clean, take a screenshot with the server name (`span.font-semibold` in the header) masked, then remove the mod so `./data` returns to its prior mod set. Record results in the Dev Agent Record
 
 - [ ] Task 4: Quality gate and review hand-off (AC: all)
   - [ ] 4.1: `just check` (lint, typecheck, all tests) passes
@@ -157,11 +157,15 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run of `mod-ids.test.ts` (module missing), then 11 passed.
 - Task 2: red run, 4 of the 6 new ModDetailPage tests failing (the URL-slug-wins and install-flow tests already passed, as intended: they pin unchanged behavior); green after the change. Web: 3,110 passed, 4 skipped (pre-existing `it.skip`s).
+- Task 3: `just docker restart` (image rebuilt from this branch at 1cadfca; game 1.22.7, server stopped). The stack's admin key comes from `.env`, so the spec runs with `VS_API_KEY_ADMIN` exported from it. `bunx playwright test e2e/installed-mod-any-modid.spec.ts`: 3 passed; `--repeat-each=3`: 9 passed. The E2E was not run red against a pre-fix image; the red evidence is Task 2's component tests.
+- Task 3 real install (scratchpad Playwright script, Chromium 1440x900): `./data` had `betterruins`, `smithingplus`, `carryon`, `carryonlib`, `egocaribautomapmarkers`. `/game-server/mods/browse/instruments` offered `Install v2.0.7`; confirming installed `vsinstrumentsbase` 2.0.7 (`VSS-jhf` behavior). The page switched in place to `Installed: v2.0.7`; a fresh load of the same URL showed the installed section, no Install button, and version options `v2.0.7 (Latest) (Installed)`, `v2.0.6` ... `v1.0.0` (the nine `vsinstrumentsbase` releases only). No console errors or warnings. Screenshot taken with the server name masked (kept outside the repo). Removed with `DELETE /api/v1alpha1/mods/vsinstrumentsbase` and deleted the downloaded `cache/mods/vsinstrumentsbase_2.0.7.zip`; the Mods folder listing and the state tree match the snapshots taken before.
 
 ### Completion Notes List
 
 - Task 1: `web/src/lib/mod-ids.ts` exports `entryModIds` (distinct non-empty `modidstr`, newest release first) and `findInstalledModForEntry` (URL slug first, then release order, exact comparison; generic over `{ slug }`). 11 unit tests. Not used yet; Task 2 wires it into the detail page.
 - Task 2: `ModDetailPage` finds the installed mod with `findInstalledModForEntry(modsData?.data?.mods, { slug, releases: mod.releases })` after the response guards, instead of `m.slug === slug`. `InstalledVersionSection` is unchanged and still receives `installedMod.slug`, so its version list, update status and `PUT /mods/<id>/version` use the installed mod ID. Six tests in a "Story 16.2" block with an instruments-shaped entry opened at `/browse/instruments`: installed `vsinstrumentsbase` (not the browse slug) shows the installed state; its version list is only its releases and Update goes to `/mods/vsinstrumentsbase/version`; a middle mod ID is recognized; URL slug wins; newest-release mod ID wins otherwise; an unrelated installed mod leaves the install flow.
+- Task 3: `web/e2e/installed-mod-any-modid.spec.ts` (3 tests) replaces only `GET /api/v1alpha1/mods` with `page.route` and uses the live lookup: `vsinstrumentsbase` installed and `vsinstruments` installed each show the installed indicator, no Install button, and version options exactly equal to that mod ID's live releases; an empty installed list shows the install flow. Seen during the real-install check and left for Story 16.3: with `vsinstrumentsbase` installed, the header still shows the entry-wide `Version: 2.0.7` and the Incompatible badge from `releases[0]` (ADR-2).
+- Bead filed: `VSS-49n` [UI-073] browse cards' Installed badge compares only the browse slug (needs mod IDs on browse items from the API; top-level, related to `VSS-ywb`).
 
 ### File List
 
@@ -169,6 +173,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/lib/mod-ids.test.ts` (new)
 - `web/src/features/mods/ModDetailPage.tsx`
 - `web/src/features/mods/ModDetailPage.test.tsx`
+- `web/e2e/installed-mod-any-modid.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/16-2-installed-mods-recognized-by-any-mod-id.md`
 
 ## Change Log
