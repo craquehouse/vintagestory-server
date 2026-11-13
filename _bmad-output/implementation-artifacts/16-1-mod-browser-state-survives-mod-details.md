@@ -1,6 +1,6 @@
 # Story 16.1: Mod Browser State Survives Mod Details
 
-Status: review
+Status: done
 
 <!-- Implements Epic 16 ADR-1 (architecture/epic-16-ui-polish.md), which implements Epic 10 ADR-4. Beads: VSS-dkl (search/sort/filters), VSS-901 (page and scroll restoration). -->
 
@@ -72,12 +72,20 @@ so that **I can compare several mods without searching and filtering again each 
 
 - [x] Task 5: End-to-end round trip and browser verification against the Docker dev stack + tests (AC: all)
   - [x] 5.1: Add `web/e2e/mod-browse-state.spec.ts` (Playwright, Docker stack, live mod database): set a search, a side filter, the **game version filter** and a sort, go to page 2, scroll, open a card; return by Back to Browse, the breadcrumb, the Browse tab and browser back; assert URL parameters, the search box, the version filter label, the sort label, the page, and that the opened card is in the viewport; plus refresh (state kept, no scroll) and detour (Installed → Browse tab keeps state, no scroll)
-  - [x] 5.2: `just docker restart`, run the spec (`cd web && bunx playwright test e2e/mod-browse-state.spec.ts`), and check the flow by hand in a browser at http://localhost:8080, including Slow 4G throttling and the browser console. Screenshots, if committed, mask the server name (`span.font-semibold` in the header, `#ServerName`) and password
-  - [x] 5.3: Record results in the Dev Agent Record; manual confirmation by the maintainer is still required before this task is treated as user-accepted
+  - [x] 5.2: `just docker restart`, run the spec (`cd web && bunx playwright test e2e/mod-browse-state.spec.ts`), and drive the four return paths in Chromium on DevTools Slow 4G with a script, checking the browser console. Screenshots, if committed, mask the server name (`span.font-semibold` in the header, `#ServerName`) and password
+  - [x] 5.3: Record the E2E and throttled-script results in the Dev Agent Record; together they are this story's browser verification
 
 - [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` (lint, typecheck, all tests) passes
   - [x] 6.2: Story status `review`, `just sprint set 16-1-mod-browser-state-survives-mod-details review`, PR to `main`, PR link on `VSS-dkl` and `VSS-901`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: a second back-through-history replay (browse → detail → back → forward → back) does not re-scroll. No change: Epic 16 ADR-1 decision 4 consumes the entry on the first return
+- [x] [AI-Review][Low] L2: clicking the active Browse tab pushes a duplicate history entry. Did not reproduce: Radix `useControllableState` does not report a value equal to the controlled one. Added a test that clicks the active Browse tab, asserts no new history entry, and proves the probe sees a real tab change; added an early return in `ModsPage.handleTabChange` when `value === activeTab` as a guard (`66f2581`)
+- [x] [AI-Review][Low] L3: an out-of-range `page` from a shared link is not clamped. Not new in this story: `VSS-nhb`
+- [x] [AI-Review][Low] L4: E2E timing used `networkidle` and a fixed 500 ms wait. Replaced by waiting for the page-2 response and the current-page marker, and, for the no-scroll checks, by polling until the opened-card entry is cleared and the grid has rendered (`66f2581`)
+- [x] [AI-Review][Low] L5: `ModDetailError` has no link back to the browser. Not new in this story: `VSS-fv7`
 
 ## Dev Notes
 
@@ -200,6 +208,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 5: `web/e2e/mod-browse-state.spec.ts` (7 tests): sets search `food`, side Both, type Code Mod, the installed game version and Most Downloaded through the UI, goes to page 2 and opens a card from the lower half of the grid; for each of Back to Browse, the Browse breadcrumb, the Browse tab and browser back it asserts the exact URL, the search box, the version filter label and chip, the side and type chips, the sort label, page 2, and that the opened card is in the viewport. Also refresh (state kept, no scroll), a detour through Installed (state kept by the Browse tab, no scroll) and a copied link in a new page. Tags are covered by the unit and component tests rather than the E2E (tag names come from the live database). E2E tests are not part of `just check`. Maintainer manual confirmation in a browser is still pending; the automated and scripted browser checks above are the agent's verification.
 - Task 6: `just check` passed: lint, typecheck (pyright 0 errors, 3 pre-existing warnings in API tests; `tsc` clean), API 2,065 passed, web 3,092 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. The 16.0 failure in `tests/test_main.py` (`VSS-b2w`) no longer reproduces on this base.
 - Deviations from ADR-1: none in behavior. Additions within it: a URL write that would not change the URL is skipped (re-selecting the current sort adds no history entry); on a return where the opened card is no longer in the results the page is scrolled to the top explicitly (SPA navigation otherwise keeps the detail page's scroll offset), which is how "the page is left at the top" is honored.
+- Review fixes: `just docker restart` (rebuilt), `bunx playwright test e2e/mod-browse-state.spec.ts --repeat-each=2` 14 passed; `just check` passed (API 2,065, web 3,093 passed and 4 skipped, scripts 190).
 - Bead filed: `VSS-2oz` [UI-070] Mods tabs show Installed as active on a mod detail page, so the Installed tab does nothing there (pre-existing, top-level, not Epic 16 scope).
 
 ### File List
@@ -223,3 +232,20 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.1 created from Epic 16 ADR-1 (ready-for-dev).
 - 2026-11-13: Implemented: browse state in the URL (`q, sort, side, tags, type, version, page`), links back into browse carry it, Browse tab precedence, return to the opened card; E2E round trip; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L2 and L4 handled in `66f2581`; L3 and L5 filed as `VSS-nhb` and `VSS-fv7`; L1 no change. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #148 head
+**Outcome:** Approve → resolved
+
+**Summary:** No high or medium findings. All six acceptance criteria are implemented, the File List matches git exactly, and the suppression scan is clean. On the PR head the reviewer ran the web tests (3,092 passed) and the typecheck (clean). Five low findings: two fixed in this branch, two filed as top-level beads because they predate this story, and one kept as ADR-1 prescribes.
+
+### Action Items
+
+- [x] [Low] L1 second history replay does not re-scroll (ADR-1 decision 4; no change)
+- [x] [Low] L2 active Browse tab click (did not reproduce; test and guard added)
+- [x] [Low] L3 out-of-range `page` not clamped (`VSS-nhb`)
+- [x] [Low] L4 E2E `networkidle` and fixed wait (deterministic waits)
+- [x] [Low] L5 detail error state has no way back to browse (`VSS-fv7`)
