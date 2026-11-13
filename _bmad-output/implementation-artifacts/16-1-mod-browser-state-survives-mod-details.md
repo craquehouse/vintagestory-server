@@ -52,12 +52,12 @@ so that **I can compare several mods without searching and filtering again each 
   - [x] 1.3: Make `useBrowseMods` page controlled: `currentPage` comes from `params.page ?? 1`; `setPage`, `goToNextPage`, `goToPrevPage` validate as today and call an `onPageChange` callback passed in a second `options` argument instead of internal `useState`
   - [x] 1.4: Tests: `web/src/lib/browse-search.test.ts` (round trip for every parameter including `version`, defaults omitted, invalid values, ordering, tags with spaces, `q` trimming, navigation-state guards, sessionStorage failure); rewrite the `use-browse-mods.test.tsx` "pagination state management" and "edge cases" page tests to drive the controlled page through a `useState` wrapper instead of deleting them
 
-- [ ] Task 2: BrowseTab reads and writes its state through the URL + tests (AC: 1, 3, 4)
-  - [ ] 2.1: Replace `useState` for `filters` and `sort` with `useSearchParams`; derive `BrowseUrlState` with `useMemo` keyed on `searchParams.toString()` (trap: reference-compared filters reset the page every render)
-  - [ ] 2.2: Keep `searchInput` local for responsiveness, initialised from `q`; write the debounced (300 ms), trimmed value with `{ replace: true }` only when the debounced value itself changes; resync the input when `q` changes from outside (browser back/forward) by adjusting state during render, not in an effect
-  - [ ] 2.3: Sort, filter and page changes build the whole next parameter set in one `setSearchParams` call (push). Any change to `q`, `sort` or a filter removes `page`; delete the `prev*Ref` page-reset effect it replaces
-  - [ ] 2.4: Mirror `location.search` to `browse-last-search` whenever it changes
-  - [ ] 2.5: Tests in `BrowseTab.test.tsx` with a `MemoryRouter` harness that exposes the current location: initial state from URL for every parameter including `version` (asserted on the request URL and the filter UI), writes for search (replace), sort/side/version (push), page change, page reset on search/sort/filter change, invalid values, `browse-last-search` mirroring; adapt existing tests to the router harness
+- [x] Task 2: BrowseTab reads and writes its state through the URL + tests (AC: 1, 3, 4)
+  - [x] 2.1: Replace `useState` for `filters` and `sort` with `useSearchParams`; derive `BrowseUrlState` with `useMemo` keyed on `searchParams.toString()` (trap: reference-compared filters reset the page every render)
+  - [x] 2.2: Keep `searchInput` local for responsiveness, initialised from `q`; write the debounced (300 ms), trimmed value with `{ replace: true }` only when the debounced value itself changes; resync the input when `q` changes from outside (browser back/forward) by adjusting state during render, not in an effect
+  - [x] 2.3: Sort, filter and page changes build the whole next parameter set in one `setSearchParams` call (push). Any change to `q`, `sort` or a filter removes `page`; delete the `prev*Ref` page-reset effect it replaces
+  - [x] 2.4: Mirror `location.search` to `browse-last-search` whenever it changes
+  - [x] 2.5: Tests in `BrowseTab.test.tsx` with a `MemoryRouter` harness that exposes the current location: initial state from URL for every parameter including `version` (asserted on the request URL and the filter UI), writes for search (replace), sort/side/version (push), page change, page reset on search/sort/filter change, invalid values, `browse-last-search` mirroring; adapt existing tests to the router harness
 
 - [ ] Task 3: Links into browse carry the browse state + tests (AC: 1, 5)
   - [ ] 3.1: Card click and Enter-on-slug navigate to the detail page with `state: { browseSearch: location.search }`
@@ -185,10 +185,12 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run of `browse-search.test.ts` (module missing) and of the three new controlled-page tests in `use-browse-mods.test.tsx` before implementing. `use-browse-mods.test.tsx` has 2 pre-existing `it.skip` tests (game version client-side filter, disabled since VSS-y7u); not touched.
+- Task 2: red run, 8 new URL-state tests failing; after implementation only the old 10.7 "restores page from saved position" test failed, as expected (the page now comes from the URL), and was rewritten for the URL.
 
 ### Completion Notes List
 
 - Task 1: `web/src/lib/browse-search.ts` parses and builds the ADR-1 parameters (`q, sort, side, tags, type, version, page`, defaults omitted, invalid values to defaults), guards navigation state (`browseSearch`, `fromModDetail`) and wraps `browse-last-search` in sessionStorage. `useBrowseMods` no longer keeps the page: `params.page` is the current page and `setPage`/`goToNextPage`/`goToPrevPage` report through `options.onPageChange`. The hook's page tests now drive the page through a `useState` wrapper (`useControlledBrowseMods`) instead of being deleted; four new tests cover the controlled contract. BrowseTab keeps a local page state for this commit only (replaced by the URL in Task 2). Web: 3,051 passed, 4 skipped (pre-existing).
+- Task 2: `BrowseTab` reads `q, sort, side, tags, type, version, page` with `useSearchParams` (memoized on the query string), keeps the search box local and writes the debounced, trimmed search with `replace` only when the debounced value changes; sort, filter and page changes push one complete parameter set, dropping `page` on search/sort/filter changes, and are skipped when they would not change the URL. The search box follows browser back/forward by adjusting state during render. `location.search` is mirrored to `browse-last-search`. The `prev*Ref` page-reset effect is gone. Tests use a `MemoryRouter` harness with a `LocationProbe` that logs every location and navigation type; ten new tests (every parameter including `version`, defaults, invalid values, replace vs push, page reset, no-op writes, back/forward resync with the debounce, sessionStorage mirroring) and the 10.7 page tests rewritten to assert the URL. Web: 3,061 passed.
 
 ### File List
 
@@ -197,4 +199,5 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/hooks/use-browse-mods.ts`
 - `web/src/hooks/use-browse-mods.test.tsx`
 - `web/src/features/mods/BrowseTab.tsx`
+- `web/src/features/mods/BrowseTab.test.tsx`
 - `_bmad-output/implementation-artifacts/16-1-mod-browser-state-survives-mod-details.md`

@@ -20,8 +20,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import {
+  MemoryRouter,
+  RouterProvider,
+  createMemoryRouter,
+  useLocation,
+  useNavigationType,
+} from 'react-router';
 import { BrowseTab } from './BrowseTab';
+import { BROWSE_PATH, BROWSE_LAST_SEARCH_KEY } from '@/lib/browse-search';
 import type { ApiResponse, ModBrowseData } from '@/api/types';
 
 // Mock useNavigate
@@ -116,13 +124,42 @@ function createTestQueryClient() {
   });
 }
 
-// Wrapper component for rendering with QueryClientProvider
-function createWrapper(queryClient: QueryClient) {
+// Story 16.1: Every location BrowseTab's router passes through, with how it got there
+const locationLog: Array<{ search: string; navigationType: string }> = [];
+
+function LocationProbe() {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    locationLog.push({ search: location.search, navigationType });
+  }, [location, navigationType]);
+  return null;
+}
+
+/** Search string of the router's current location. */
+function currentSearch(): string | undefined {
+  return locationLog.at(-1)?.search;
+}
+
+// Wrapper component for rendering with QueryClientProvider and a router
+// Story 16.1: BrowseTab reads and writes its state through the URL
+function createWrapper(queryClient: QueryClient, initialEntry: string = BROWSE_PATH) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          {children}
+          <LocationProbe />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
   };
+}
+
+/** URL of the n-th browse request (0-based). */
+function browseRequestUrl(index = 0): URL {
+  const calls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls;
+  return new URL(String(calls[index][0]));
 }
 
 // Mock browse API response
@@ -180,6 +217,7 @@ describe('BrowseTab', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     mockNavigate.mockClear();
+    locationLog.length = 0;
     vi.useFakeTimers({ shouldAdvanceTime: true });
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
@@ -752,6 +790,278 @@ describe('BrowseTab', () => {
     });
   });
 
+  describe('Story 16.1: browse state in the URL', () => {
+    const multiPageResponse = (page: number) => ({
+      status: 'ok' as const,
+      data: {
+        mods: mockBrowseResponse.data.mods,
+        pagination: {
+          page,
+          pageSize: 20,
+          totalItems: 100,
+          totalPages: 5,
+          hasNext: page < 5,
+          hasPrev: page > 1,
+        },
+      },
+    });
+
+    function mockFetchPage(page = 1) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(multiPageResponse(page)),
+      });
+    }
+
+    beforeEach(() => {
+      window.sessionStorage.removeItem(BROWSE_LAST_SEARCH_KEY);
+    });
+
+    it('loads search, sort, every filter including the game version, and page from the URL', async () => {
+      mockFetchPage(2);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(
+          queryClient,
+          `${BROWSE_PATH}?q=food&sort=downloads&side=server&tags=qol,food&type=mod&version=1.21.2&page=2`
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const request = browseRequestUrl();
+      expect(request.searchParams.get('search')).toBe('food');
+      expect(request.searchParams.get('sort')).toBe('downloads');
+      expect(request.searchParams.get('side')).toBe('server');
+      expect(request.searchParams.get('tags')).toBe('qol,food');
+      expect(request.searchParams.get('mod_type')).toBe('mod');
+      expect(request.searchParams.get('version')).toBe('1.21.2');
+      expect(request.searchParams.get('page')).toBe('2');
+
+      // The controls show the same state
+      expect(screen.getByTestId('browse-search-input')).toHaveValue('food');
+      expect(screen.getByTestId('version-filter-button')).toHaveTextContent('v1.21.2');
+      expect(screen.getByRole('button', { name: /most downloaded/i })).toBeInTheDocument();
+      expect(screen.getByLabelText('Remove version filter: 1.21.2')).toBeInTheDocument();
+      expect(screen.getByText(/Page 2 of 5/)).toBeInTheDocument();
+    });
+
+    it('uses the default state for /game-server/mods/browse without parameters', async () => {
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(globalThis.fetch).toHaveBeenCalled();
+      });
+
+      const request = browseRequestUrl();
+      expect(request.searchParams.get('page')).toBe('1');
+      expect(request.searchParams.get('sort')).toBe('recent');
+      for (const name of ['search', 'side', 'tags', 'mod_type', 'version']) {
+        expect(request.searchParams.has(name)).toBe(false);
+      }
+      expect(screen.getByTestId('browse-search-input')).toHaveValue('');
+    });
+
+    it('falls back to defaults for invalid URL values', async () => {
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?sort=bogus&side=nowhere&type=x&page=abc`),
+      });
+
+      await waitFor(() => {
+        expect(globalThis.fetch).toHaveBeenCalled();
+      });
+
+      const request = browseRequestUrl();
+      expect(request.searchParams.get('sort')).toBe('recent');
+      expect(request.searchParams.get('page')).toBe('1');
+      expect(request.searchParams.has('side')).toBe(false);
+      expect(request.searchParams.has('mod_type')).toBe(false);
+    });
+
+    it('writes the debounced search with replace, one entry, and removes the page', async () => {
+      mockFetchPage(3);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2&page=3`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      const searchInput = screen.getByTestId('browse-search-input');
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'c' } });
+        vi.advanceTimersByTime(100);
+        fireEvent.change(searchInput, { target: { value: 'ca' } });
+        vi.advanceTimersByTime(100);
+        fireEvent.change(searchInput, { target: { value: 'carry ' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(currentSearch()).toBe('?q=carry&version=1.21.2');
+      });
+      expect(locationLog.at(-1)?.navigationType).toBe('REPLACE');
+      // No entry per keystroke
+      expect(locationLog.map((entry) => entry.search)).toEqual([
+        '?version=1.21.2&page=3',
+        '?q=carry&version=1.21.2',
+      ]);
+    });
+
+    it('pushes a filter change and goes back to page 1', async () => {
+      mockFetchPage(3);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=food&side=server&version=1.21.2&page=3`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Remove version filter: 1.21.2'));
+      });
+
+      expect(currentSearch()).toBe('?q=food&side=server');
+      expect(locationLog.at(-1)?.navigationType).toBe('PUSH');
+    });
+
+    it('pushes a sort change, keeps the game version filter, and goes back to page 1', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      mockFetchPage(3);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2&page=3`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /newest/i }));
+      await user.click(await screen.findByRole('menuitem', { name: /trending/i }));
+
+      expect(currentSearch()).toBe('?sort=trending&version=1.21.2');
+      expect(locationLog.at(-1)?.navigationType).toBe('PUSH');
+      await waitFor(() => {
+        const lastCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length - 1;
+        const request = browseRequestUrl(lastCall);
+        expect(request.searchParams.get('sort')).toBe('trending');
+        expect(request.searchParams.get('version')).toBe('1.21.2');
+        expect(request.searchParams.get('page')).toBe('1');
+      });
+    });
+
+    it('pushes a page change into the URL', async () => {
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pagination')).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      });
+
+      expect(currentSearch()).toBe('?version=1.21.2&page=2');
+      expect(locationLog.at(-1)?.navigationType).toBe('PUSH');
+    });
+
+    it('does not add an entry when a control is set to its current value', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?sort=trending`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /trending/i }));
+      await user.click(await screen.findByRole('menuitem', { name: /trending/i }));
+
+      expect(locationLog).toHaveLength(1);
+    });
+
+    it('follows the URL when browser back and forward change it', async () => {
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      const router = createMemoryRouter(
+        [{ path: BROWSE_PATH, element: <><BrowseTab /><LocationProbe /></> }],
+        { initialEntries: [`${BROWSE_PATH}?q=food&version=1.21.2`, `${BROWSE_PATH}?q=carry&version=1.21.3`] }
+      );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-search-input')).toHaveValue('carry');
+      });
+
+      await act(async () => {
+        await router.navigate(-1);
+      });
+      expect(screen.getByTestId('browse-search-input')).toHaveValue('food');
+      expect(screen.getByTestId('version-filter-button')).toHaveTextContent('v1.21.2');
+
+      // The old debounced text must not be written back over the restored search
+      await act(async () => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(router.state.location.search).toBe('?q=food&version=1.21.2');
+      await waitFor(() => {
+        const calls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls;
+        const request = new URL(String(calls[calls.length - 1][0]));
+        expect(request.searchParams.get('search')).toBe('food');
+        expect(request.searchParams.get('version')).toBe('1.21.2');
+      });
+
+      await act(async () => {
+        await router.navigate(1);
+      });
+      expect(screen.getByTestId('browse-search-input')).toHaveValue('carry');
+      expect(screen.getByTestId('version-filter-button')).toHaveTextContent('v1.21.3');
+    });
+
+    it('remembers the browse search, including the game version, in sessionStorage', async () => {
+      mockFetchPage(1);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2`),
+      });
+
+      await waitFor(() => {
+        expect(window.sessionStorage.getItem(BROWSE_LAST_SEARCH_KEY)).toBe('?version=1.21.2');
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('browse-search-input'), { target: { value: 'carry' } });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(window.sessionStorage.getItem(BROWSE_LAST_SEARCH_KEY)).toBe('?q=carry&version=1.21.2');
+      });
+    });
+  });
+
   describe('Story 10.7: Pagination Integration', () => {
     it('renders pagination controls when results span multiple pages', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
@@ -891,7 +1201,9 @@ describe('BrowseTab', () => {
       });
 
       const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?page=2`),
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
@@ -905,19 +1217,16 @@ describe('BrowseTab', () => {
         vi.advanceTimersByTime(350);
       });
 
-      // Page should reset to 1 (internal state)
-      // We can verify by checking the next button is enabled (indicating we're not on last page)
+      // Story 16.1: page 1 is the default, so the page leaves the URL
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
+        expect(currentSearch()).toBe('?q=carry');
       });
     });
 
-    // VSS-vth: Test page reset when version filter changes
-    // This test verifies the page reset happens via BrowseTab's effect.
-    // Note: Dropdown interaction with Radix UI and fake timers is complex,
-    // so we test filter changes through the Sort dropdown instead (same reset logic).
-    // The version filter dropdown UX is tested in FilterControls unit tests.
-    it('resets to page 1 when sort filter changes', async () => {
+    // VSS-vth: Test page reset when the version filter changes
+    // Story 16.1: The reset is part of the URL write; sort changes are covered in
+    // "Story 16.1: browse state in the URL".
+    it('resets to page 1 when the version filter changes', async () => {
       // Start on page 2
       const page2Response = {
         status: 'ok' as const,
@@ -940,7 +1249,9 @@ describe('BrowseTab', () => {
       });
 
       const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.3`),
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
@@ -951,16 +1262,13 @@ describe('BrowseTab', () => {
       await act(async () => {
         fireEvent.click(nextButton);
       });
+      expect(currentSearch()).toBe('?version=1.21.3&page=2');
 
-      await waitFor(() => {
-        expect(screen.getByText(/Page 2 of 5/)).toBeInTheDocument();
+      // Removing the version filter goes back to page 1
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Remove version filter: 1.21.3'));
       });
-
-      // The page reset effect uses filters, search, AND sort changes.
-      // Since changing any of these triggers the reset, we verify the
-      // mechanism is in place (tested indirectly through search above).
-      // The version filter dropdown is tested in FilterControls.test.tsx.
-      expect(screen.getByTestId('version-filter-button')).toBeInTheDocument();
+      expect(currentSearch()).toBe('');
     });
   });
 
@@ -1015,12 +1323,8 @@ describe('BrowseTab', () => {
       );
     });
 
-    it('restores page from saved position on mount', async () => {
-      // Pre-populate sessionStorage with saved position
-      mockSessionStorage.store['browse-scroll-position'] = JSON.stringify({
-        scrollY: 750,
-        page: 3,
-      });
+    // Story 16.1: The page is part of the browse URL, which every way back restores
+    it('restores the page from the browse URL on return', async () => {
 
       const page3Response = {
         status: 'ok' as const,
@@ -1043,16 +1347,19 @@ describe('BrowseTab', () => {
       });
 
       const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.2&page=3`),
+      });
 
       await waitFor(() => {
         expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
       });
 
-      // Should display page 3 (restored from sessionStorage)
       await waitFor(() => {
         expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
       });
+      expect(browseRequestUrl().searchParams.get('page')).toBe('3');
+      expect(browseRequestUrl().searchParams.get('version')).toBe('1.21.2');
     });
 
     it('clears saved position when search changes', async () => {
