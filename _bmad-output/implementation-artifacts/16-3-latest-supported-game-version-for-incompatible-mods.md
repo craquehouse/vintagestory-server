@@ -49,12 +49,12 @@ so that **I can judge how far behind it is before installing it**.
   - [x] 1.2: `compare_game_versions(left, right) -> int | None` with the same key, used by the message builder
   - [x] 1.3: Tests in `api/tests/test_mod_compatibility.py`: `mod_playercorpse.json` (highest `1.21.1`, not `1.21.1-rc.2`; lowest `1.14.0`), `mod_instruments.json` per mod ID (`instruments` 1.18.6, `vsinstruments` 1.19.3, `vsinstrumentsbase` 1.21.6), `mod_carryon.json` (release order is not version order; highest `1.22.7`), pre-release-only mod ID, unparsable tags (`"stable"`, `"1.x"`), `1.21` vs `1.21.0`, unknown mod ID → `None`
 
-- [ ] Task 2: Lookup reports the evaluated mod ID's release, its latest supported version and the ADR-2 messages + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] 2.1: `CompatibilityInfo.latest_supported_game_version: str | None = None` (`models/mods.py`)
-  - [ ] 2.2: `ModService.lookup_mod(slug_or_url, version: str | None = None)`: choose the mod ID (AC 3; installed IDs from `self._state_manager.list_mods()`), its releases (fall back to all releases when no release carries that mod ID, as for old entries without `modidstr`), and the evaluated release (newest of the mod ID, or the one matching `version`). When `version` is given but not listed for that mod ID: `not_verified`, `mod_version` = the requested version, message "Version X is not listed in the mod database; cannot verify compatibility." `latest_version`, `releases` and the rest of the response are unchanged
-  - [ ] 2.3: Rewrite `_build_compatibility_message` to take the range and produce the AC 5 wording. When the installed version is tagged by another release of the mod ID but not by the evaluated one (possible for an older installed release), say so ("Version X is not tagged for G; another release of this mod is.") instead of the gap wording. Without a parsable range keep today's fallback ("Mod version X is not compatible with G. Installation may cause issues."). The unknown-game-version message is unchanged
-  - [ ] 2.4: Router `GET /mods/lookup/{slug}` gains `version: str | None = Query(None, min_length=1, max_length=100)` and passes it through; docstring lists the new field
-  - [ ] 2.5: Tests: service (playercorpse behind; synthetic ahead entry; synthetic gap entry; not_verified with and without "Last tagged for"; instruments not installed → `vsinstrumentsbase` 2.0.7; instruments with `vsinstruments` installed → its newest release 1.2.7 and 1.19.3; URL slug wins; `version` picks the installed release; unlisted `version`; old entries without `modidstr`), router (`?version=` passed through, field serialized), model. Update existing tests that pinned the `tags[:3]` wording
+- [x] Task 2: Lookup reports the evaluated mod ID's release, its latest supported version and the ADR-2 messages + tests (AC: 1, 2, 3, 4, 5)
+  - [x] 2.1: `CompatibilityInfo.latest_supported_game_version: str | None = None` (`models/mods.py`)
+  - [x] 2.2: `ModService.lookup_mod(slug_or_url, version: str | None = None)`: choose the mod ID (AC 3; installed IDs from `self._state_manager.list_mods()`), its releases (fall back to all releases when no release carries that mod ID, as for old entries without `modidstr`), and the evaluated release (newest of the mod ID, or the one matching `version`). When `version` is given but not listed for that mod ID: `not_verified`, `mod_version` = the requested version, message "Version X is not listed in the mod database; cannot verify compatibility." `latest_version`, `releases` and the rest of the response are unchanged
+  - [x] 2.3: Rewrite `_build_compatibility_message` to take the range and produce the AC 5 wording. When the installed version is tagged by another release of the mod ID but not by the evaluated one (possible for an older installed release), say so ("Version X is not tagged for G; another release of this mod is.") instead of the gap wording. Without a parsable range keep today's fallback ("Mod version X is not compatible with G. Installation may cause issues."). The unknown-game-version message is unchanged
+  - [x] 2.4: Router `GET /mods/lookup/{slug}` gains `version: str | None = Query(None, min_length=1, max_length=100)` and passes it through; docstring lists the new field
+  - [x] 2.5: Tests: service (playercorpse behind; synthetic ahead entry; synthetic gap entry; not_verified with and without "Last tagged for"; instruments not installed → `vsinstrumentsbase` 2.0.7; instruments with `vsinstruments` installed → its newest release 1.2.7 and 1.19.3; URL slug wins; `version` picks the installed release; unlisted `version`; old entries without `modidstr`), router (`?version=` passed through, field serialized), model. Update existing tests that pinned the `tags[:3]` wording
 
 - [ ] Task 3: Installed list evaluates the installed release and shows the latest supported version + tests (AC: 1, 4)
   - [ ] 3.1: `web/src/api/types.ts`: `ModCompatibility.latestSupportedGameVersion: string | null`; `lookupMod(slugOrUrl, version?)` adds `?version=` (encoded); `queryKeys.mods.lookup(slug, version?)` appends the version only when given, so the detail page key is unchanged
@@ -157,15 +157,23 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run of `test_mod_compatibility.py` (module missing, collection error), then 21 passed; ruff and pyright clean (pyright 0 errors, 3 pre-existing warnings in API tests).
+- Task 2: new tests written after a first cut of the service change; red verified by stashing `api/src`: 15 of the 16 new `TestLookupLatestSupportedGameVersion` tests failed (the one that passed pins the unchanged fallback wording), then 16 passed with the change. Six existing tests failed on the change as expected (two model serializations gained the field; four pinned the `tags[:3]` wording or the old builder signature) and were updated. API 2,104 passed; ruff clean; pyright 0 errors, 3 pre-existing warnings.
 
 ### Completion Notes List
 
 - Task 1: `services/mod_compatibility.py` exports `SupportedRange`, `supported_game_versions(releases, modid)` and `compare_game_versions(left, right)`. Sort key is `parse_base_version` with trailing zero parts dropped, then stable above pre-release; stable tags preferred for both ends; unparsable and non-string tags ignored; ties keep the first tag seen. Not used yet; Task 2 wires it into the lookup.
+- Task 2: `CompatibilityInfo.latest_supported_game_version`. `lookup_mod(slug_or_url, version=None)` picks the mod ID with `_compatibility_modid` (installed looked-up slug, then installed entry mod IDs in release order, exact comparison; else `releases[0].modidstr`; a match with no releases in the entry falls back to the default), evaluates that mod ID's newest release or its `version` release, and reports an unlisted `version` as `not_verified` with "Version X is not listed in the mod database; cannot verify compatibility." `_build_compatibility_message` now takes the `SupportedRange` and produces the ADR-2 behind/ahead/gap wording, "Last tagged for X." on `not_verified`, "Version X is not tagged for G; another release of this mod is." when an older evaluated release misses a version another release has, and today's fallback when there is no range or the game version does not parse. `latest_version` and `releases` are unchanged. Router: optional `version` query parameter (1-100 chars).
 
 ### File List
 
 - `api/src/vintagestory_api/services/mod_compatibility.py` (new)
 - `api/tests/test_mod_compatibility.py` (new)
+- `api/src/vintagestory_api/models/mods.py`
+- `api/src/vintagestory_api/services/mods.py`
+- `api/src/vintagestory_api/routers/mods.py`
+- `api/tests/test_mod_service.py`
+- `api/tests/test_mods_router.py`
+- `api/tests/test_mod_models.py`
 - `_bmad-output/implementation-artifacts/16-3-latest-supported-game-version-for-incompatible-mods.md`
 
 ## Change Log

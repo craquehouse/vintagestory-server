@@ -294,6 +294,7 @@ class TestCompatibilityInfo:
         assert restored.game_version == original.game_version
         assert restored.mod_version == original.mod_version
         assert restored.message == original.message
+        assert restored.latest_supported_game_version is None
 
     def test_serialization_for_api_response(self) -> None:
         """CompatibilityInfo serializes correctly for API responses."""
@@ -309,6 +310,7 @@ class TestCompatibilityInfo:
             "game_version": "1.21.3",
             "mod_version": "1.8.3",
             "message": None,
+            "latest_supported_game_version": None,
         }
 
 
@@ -492,6 +494,7 @@ class TestModLookupResponse:
                 "game_version": "1.21.3",
                 "mod_version": "1.8.3",
                 "message": None,
+                "latest_supported_game_version": None,
             },
             "logo_url": None,
             "releases": [],

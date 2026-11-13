@@ -152,6 +152,10 @@ class CompatibilityInfo(BaseModel):
     message: str | None = None
     """Warning message if not compatible. None for compatible status."""
 
+    latest_supported_game_version: str | None = None
+    """Most recent game version the evaluated mod ID's releases are tagged for
+    (Epic 16 ADR-2), or None when none of its tags parse as a version."""
+
 
 class ModRelease(BaseModel):
     """Single release/version of a mod.
