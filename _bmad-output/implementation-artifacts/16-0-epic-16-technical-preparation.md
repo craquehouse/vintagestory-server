@@ -1,6 +1,6 @@
 # Story 16.0: Epic 16 Technical Preparation
 
-Status: review
+Status: done
 
 <!-- Spike story (template-api-spike). Complete before Stories 16.1-16.7: their designs rest on the decisions this story records. No application code changes in this story. -->
 
@@ -79,6 +79,16 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 5.3: Write `_bmad-output/implementation-artifacts/16-0-spike/README.md` with the manual test results, screenshots, and how to rerun the probe script
   - [x] 5.4: Update affected stories in `epics.md`, or create beads for anything found: children of `VSS-stm` when the work belongs in Epic 16, top-level otherwise
   - [x] 5.5: Run `just check` to confirm nothing broke (the fixture must not affect tests)
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] ADR-1: `browse-last-search` saved only on search changes, and Browse tab precedence undefined: now mirrors the full browse URL; precedence `state.browseSearch`, then `browse-last-search`, then default
+- [x] [AI-Review][Medium] ADR-1: `POP` also matches refresh and initial load: stated that every mount consumes or clears the entry, so a refresh never scrolls
+- [x] [AI-Review][Low] ADR-3: column heights read as widths, and content width at `xl` is about 1,072px: corrected
+- [x] [AI-Review][Low] ADR-2: lookup `version` parameter described as existing: now "gains … (Story 16.3)"
+- [x] [AI-Review][Low] `VSS-stm.1` description said "not yet reproduced": updated
+- [x] [AI-Review][Low] Task 5.4 said all new beads go under `VSS-stm`: reworded (Epic 16 work under `VSS-stm`, other findings top-level, as `VSS-4f3` and `VSS-7ed` are)
+- [x] [AI-Review][Low] `browse_probe.mjs` header said `just docker start`: now `just docker restart`
 
 ## Dev Notes
 
@@ -203,3 +213,22 @@ Full evidence: `16-0-spike/README.md`.
 ## Change Log
 
 - 2026-11-13: Story 16.0 implemented: spike probes and evidence, ADR-1 to ADR-3, playercorpse fixture, Story 16.3 updated; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve with comments). Fixed M1, M2, L1-L5 in `3415ddf`. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of `origin/main..d19c7fe` (PR #144)
+**Outcome:** Approve with comments → resolved
+
+**Summary:** The reviewer reran `moddb_probe.py` and got output identical to the committed file apart from timings, verified every code citation in the story and ADRs against the source, checked the fixture against the trimming rules, confirmed all nine referenced beads, matched the File List to git (the three extra files in the PR diff come from the planning commits), and found nothing sensitive in the spike outputs or the masked screenshots. All five acceptance criteria implemented. It did not run the browser probes (no stack).
+
+### Action Items
+
+- [x] [Medium] ADR-1 Browse tab memory and precedence under-specified
+- [x] [Medium] ADR-1 `POP` restore condition matches refresh
+- [x] [Low] ADR-3 heights read as widths; `xl` content width
+- [x] [Low] ADR-2 present tense for a future API parameter
+- [x] [Low] `VSS-stm.1` description stale
+- [x] [Low] Task 5.4 bead parent wording
+- [x] [Low] `browse_probe.mjs` docker command
