@@ -129,3 +129,7 @@
     - [ADR-3: Release Command](./epic-15-release-engineering.md#adr-3-release-command)
     - [ADR-4: Tag-Triggered Release Workflow](./epic-15-release-engineering.md#adr-4-tag-triggered-release-workflow)
     - [ADR-5: Runtime Web Configuration](./epic-15-release-engineering.md#adr-5-runtime-web-configuration)
+  - [Epic 16: UI Polish Architecture](./epic-16-ui-polish.md)
+    - [ADR-1: Browse State in the URL, Position by Opened Card](./epic-16-ui-polish.md#adr-1-browse-state-in-the-url-position-by-opened-card)
+    - [ADR-2: Most Recent Supported Game Version](./epic-16-ui-polish.md#adr-2-most-recent-supported-game-version)
+    - [ADR-3: Game Server Settings Layout on Desktop](./epic-16-ui-polish.md#adr-3-game-server-settings-layout-on-desktop)

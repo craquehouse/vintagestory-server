@@ -1,6 +1,6 @@
 # Story 16.0: Epic 16 Technical Preparation
 
-Status: in-progress
+Status: review
 
 <!-- Spike story (template-api-spike). Complete before Stories 16.1-16.7: their designs rest on the decisions this story records. No application code changes in this story. -->
 
@@ -73,12 +73,12 @@ so that **each story starts from confirmed behavior and data**.
   - [x] 4.1: Screenshot game server settings at 1024px, 1440px and 1920px; list the cards in `GameConfigPanel.tsx` and the kind of field each holds
   - [x] 4.2: Choose the layout (e.g. a two-column grid at `lg` with wide cards spanning both columns) and record it as ADR-3 with a sketch. ADR-3 must say how it applies the UX spec's 1280px maximum content width and how the collapsible World and Network groups behave in a grid
 
-- [ ] Task 5: Record findings (AC: 5)
-  - [ ] 5.1: Write `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` with ADR-1 to ADR-3 and their evidence
-  - [ ] 5.2: Add the file to `architecture/index.md` with an anchor link per ADR, as the Epic 14 and 15 entries do
-  - [ ] 5.3: Write `_bmad-output/implementation-artifacts/16-0-spike/README.md` with the manual test results, screenshots, and how to rerun the probe script
-  - [ ] 5.4: Update affected stories in `epics.md`, or create beads under `VSS-stm` for anything found that is out of scope
-  - [ ] 5.5: Run `just check` to confirm nothing broke (the fixture must not affect tests)
+- [x] Task 5: Record findings (AC: 5)
+  - [x] 5.1: Write `_bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md` with ADR-1 to ADR-3 and their evidence
+  - [x] 5.2: Add the file to `architecture/index.md` with an anchor link per ADR, as the Epic 14 and 15 entries do
+  - [x] 5.3: Write `_bmad-output/implementation-artifacts/16-0-spike/README.md` with the manual test results, screenshots, and how to rerun the probe script
+  - [x] 5.4: Update affected stories in `epics.md`, or create beads under `VSS-stm` for anything found that is out of scope
+  - [x] 5.5: Run `just check` to confirm nothing broke (the fixture must not affect tests)
 
 ## Dev Notes
 
@@ -153,12 +153,25 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Findings Summary
 
+Full evidence: `16-0-spike/README.md`.
+
+1. **Restoration (AC1):** Story 10.7's page and scroll restoration works for the unfiltered browser on all four return paths, also on Slow 4G. With a search set, the search resets and the restored page belongs to the unfiltered results. Saved state survives detours. Recorded on `VSS-901`. Name (A-Z) sort fails with 422 (`VSS-stm.1`).
+2. **Browse state (AC2):** URL parameters, as Epic 10 ADR-4 decided; position restored to the opened card on a return from its detail page only. `ScrollRestoration` is unavailable with `<BrowserRouter>`.
+3. **Supported game version (AC3):** computed per mod ID from release tags, stable preferred, with the existing `mod_updates` helpers. Browse listings carry no game versions, so browse cards are unchanged; `?gameversion=` could flag "has a release for your version" (`VSS-4f3`, outside Epic 16). Fixture `mod_playercorpse.json` added.
+4. **Settings (AC4):** 1280px maximum, two independent columns from `xl`, Server Info spanning. Empty settings render the text `null` (`VSS-7ed`).
+5. **Records (AC5):** ADR-1 to ADR-3 in `architecture/epic-16-ui-polish.md`, linked from the index; Story 16.3 updated in `epics.md`.
+
 ### Architecture Decisions Made
+
+- ADR-1: Browse State in the URL, Position by Opened Card
+- ADR-2: Most Recent Supported Game Version (Epic 10 ADR-2 stays in force for browse cards)
+- ADR-3: Game Server Settings Layout on Desktop
 
 ### Backlog Items Created
 - `VSS-stm.1` [UI-067] Name (A-Z) sort requests more results than the API allows (created at story validation; confirmed in Task 1)
 - `VSS-4f3` [UI-068] Show 'has a release for your game version' on mod browse cards
 - `VSS-7ed` [UI-069] Empty game settings show the text 'null' and can save it (P1)
+- `VSS-b2w` [API-071] test_main asserts a hard-coded version and fails since v0.1.0-rc.1 (P1; pre-existing on `main`)
 
 ### Completion Notes List
 
@@ -166,6 +179,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: ADR-1 written: URL is the source of truth for `q`, `sort`, `side`, `tags`, `type`, `version`, `page` (defaults omitted); debounced search replaces, discrete changes push; detail links carry the browse search in navigation state; position is restored to the opened card's slug only on a return from its detail page, replacing the pixel offset, the 100 ms timeout and the stale restore. Custom hook kept; no data-router migration.
 - Task 3: Listing carries no game versions (0 of 9,560 items). Most recent supported is computed per mod ID with the `mod_updates` helpers, stable preferred. Today's lookup evaluates `releases[0]` across mod IDs (`instruments` gets `vsinstrumentsbase`'s release) and names the three oldest tags. ADR-2 written; Story 16.3 in `epics.md` updated (browse cards unchanged; Installed list evaluates the installed release). Browse-card flag via `?gameversion=` recorded as `VSS-4f3` (outside Epic 16). Fixture `mod_playercorpse.json` added.
 - Task 4: Cards are 768-1664px wide with page height 1,984px at every width. ADR-3: 1280px maximum, two columns from `xl` with Server Info spanning, then independent column stacks (Player + Network | World) so collapsing affects one column; narrow number inputs. Found that empty settings render the text `null` and Password is unmasked: `VSS-7ed` (P1, outside Epic 16).
+- Task 5: Spike README and architecture index entry written. Quality gate: lint, typecheck, web tests (3,007 passed), script tests (149 passed) pass; API tests 2,064 passed and 1 failed, `tests/test_main.py:173`, which fails identically on `main` since the `v0.1.0-rc.1` release commit and is unrelated to this story (no application code changed): `VSS-b2w`.
 
 ### File List
 
@@ -183,5 +197,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `_bmad-output/implementation-artifacts/16-0-spike/settings-1024.png` (new)
 - `_bmad-output/implementation-artifacts/16-0-spike/settings-1440.png` (new)
 - `_bmad-output/implementation-artifacts/16-0-spike/settings-1920.png` (new)
+- `_bmad-output/implementation-artifacts/16-0-spike/README.md` (new)
+- `_bmad-output/planning-artifacts/architecture/index.md`
 
 ## Change Log
+
+- 2026-11-13: Story 16.0 implemented: spike probes and evidence, ADR-1 to ADR-3, playercorpse fixture, Story 16.3 updated; status review.
