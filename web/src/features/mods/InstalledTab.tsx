@@ -84,7 +84,8 @@ export function InstalledTab() {
     <div className="space-y-4" data-testid="installed-tab-content">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Installed Mods</h2>
-        <div className="flex items-center gap-3">
+        {/* Story 16.5: wraps on phones instead of widening the page */}
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-muted-foreground" data-testid="mod-updates-last-checked">
             {lastChecked
               ? `Last checked ${new Date(lastChecked).toLocaleString()}`
@@ -93,6 +94,7 @@ export function InstalledTab() {
           {compatibleCount > 0 && (
             <Button
               size="sm"
+              className="max-md:h-11"
               onClick={() => setUpdateAllOpen(true)}
               data-testid="mod-updates-update-all"
             >
@@ -103,6 +105,7 @@ export function InstalledTab() {
           <Button
             variant="outline"
             size="sm"
+            className="max-md:h-11"
             onClick={handleCheck}
             disabled={isChecking}
             data-testid="mod-updates-check"

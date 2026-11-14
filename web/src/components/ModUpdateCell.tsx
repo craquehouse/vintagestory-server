@@ -25,6 +25,8 @@ interface ModUpdateCellProps {
   onUpdate?: () => void;
   /** Whether a version change for this mod is running */
   isUpdating?: boolean;
+  /** Extra classes for the Update button, e.g. a larger touch size on the cards (Story 16.5) */
+  buttonClassName?: string;
 }
 
 function withError(text: string, status: ModUpdateStatus): string {
@@ -41,7 +43,13 @@ function StatusLabel({ label, title, testId }: { label: string; title?: string; 
   );
 }
 
-export function ModUpdateCell({ status, gameVersion, onUpdate, isUpdating }: ModUpdateCellProps) {
+export function ModUpdateCell({
+  status,
+  gameVersion,
+  onUpdate,
+  isUpdating,
+  buttonClassName,
+}: ModUpdateCellProps) {
   const slug = status?.slug ?? 'none';
 
   switch (status?.status) {
@@ -60,6 +68,7 @@ export function ModUpdateCell({ status, gameVersion, onUpdate, isUpdating }: Mod
               size="sm"
               onClick={onUpdate}
               disabled={isUpdating}
+              className={buttonClassName}
               data-testid={`mod-update-button-${slug}`}
               aria-label={`Update ${status.name || slug} to v${status.offeredVersion}`}
             >

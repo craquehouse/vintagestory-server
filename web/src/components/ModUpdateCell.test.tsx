@@ -123,5 +123,21 @@ describe('ModUpdateCell', () => {
     expect(reason).toHaveClass('sr-only');
     expect(screen.getByTestId('mod-update-carryon')).toContainElement(reason);
   });
-});
 
+  it('passes extra classes to the Update button (Story 16.5 card touch size)', () => {
+    render(
+      <ModUpdateCell
+        status={item({
+          status: 'update_available',
+          offeredVersion: '1.14.3',
+          offeredCompatibility: 'compatible',
+          offeredPrerelease: false,
+        })}
+        onUpdate={vi.fn()}
+        buttonClassName="min-h-11"
+      />
+    );
+
+    expect(screen.getByTestId('mod-update-button-carryon')).toHaveClass('min-h-11');
+  });
+});
