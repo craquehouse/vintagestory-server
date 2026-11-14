@@ -128,6 +128,22 @@ export function SettingField({
   const isDisabled = envManaged || field.isPending;
   const isNumber = type === 'int' || type === 'float';
 
+  // Props shared by the plain and masked text inputs, so the two cannot drift apart
+  const sharedInputProps = {
+    id: settingKey,
+    value: String(field.value),
+    onBlur: field.onBlur,
+    onKeyDown: field.onKeyDown,
+    disabled: isDisabled,
+    'aria-describedby': field.error
+      ? `${settingKey}-error`
+      : description
+        ? `${settingKey}-desc`
+        : undefined,
+    'aria-invalid': !!field.error,
+  };
+  const errorInputClass = field.error && 'border-destructive focus-visible:ring-destructive';
+
   return (
     <div className={cn('space-y-1', className)}>
       {/* Label and badges row */}
@@ -177,23 +193,12 @@ export function SettingField({
       ) : masked ? (
         <div className="relative">
           <Input
-            id={settingKey}
+            {...sharedInputProps}
             type={isRevealed ? 'text' : 'password'}
             // Keep browsers from filling a saved login in, which would then be saved on blur
             autoComplete="new-password"
-            value={String(field.value)}
             onChange={(e) => field.setValue(e.target.value)}
-            onBlur={field.onBlur}
-            onKeyDown={field.onKeyDown}
-            disabled={isDisabled}
-            aria-describedby={
-              field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
-            }
-            aria-invalid={!!field.error}
-            className={cn(
-              'pr-9',
-              field.error && 'border-destructive focus-visible:ring-destructive'
-            )}
+            className={cn('pr-9', errorInputClass)}
           />
           <Button
             type="button"
@@ -211,24 +216,16 @@ export function SettingField({
         </div>
       ) : (
         <Input
-          id={settingKey}
+          {...sharedInputProps}
           type={isNumber ? 'number' : 'text'}
-          value={String(field.value)}
           onChange={(e) => {
             const newValue = isNumber ? coerceSettingValue(e.target.value, type) : e.target.value;
             field.setValue(newValue as string | number);
           }}
-          onBlur={field.onBlur}
-          onKeyDown={field.onKeyDown}
-          disabled={isDisabled}
-          aria-describedby={
-            field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
-          }
-          aria-invalid={!!field.error}
           className={cn(
             // Numbers (ports, counts) keep a narrow box at every width (Epic 16 ADR-3)
             isNumber && 'max-w-xs',
-            field.error && 'border-destructive focus-visible:ring-destructive'
+            errorInputClass
           )}
         />
       )}
