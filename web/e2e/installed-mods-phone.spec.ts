@@ -232,6 +232,12 @@ test.describe('Installed mods on phones (Story 16.5)', () => {
     await page.goto(INSTALLED);
     await expect(page.getByTestId('mod-update-button-longnamemod')).toBeVisible({ timeout: 30_000 });
 
+    // The Update button keeps its 44px floor while it shows only a spinner
+    const updateMinWidth = await page
+      .getByTestId('mod-update-button-longnamemod')
+      .evaluate((element) => parseFloat(getComputedStyle(element).minWidth));
+    expect(updateMinWidth).toBeGreaterThanOrEqual(44);
+
     for (const testId of [
       'mod-update-button-longnamemod',
       'mod-remove-longnamemod',

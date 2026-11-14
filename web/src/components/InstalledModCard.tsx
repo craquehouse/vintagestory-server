@@ -75,7 +75,7 @@ export function InstalledModCard({
             gameVersion={gameVersion}
             onUpdate={onUpdate}
             isUpdating={isUpdating}
-            buttonClassName="min-h-11"
+            buttonClassName="min-h-11 min-w-11"
           />
         </div>
         <ModRemoveButton mod={mod} onRemove={onRemove} className="size-11 shrink-0" />

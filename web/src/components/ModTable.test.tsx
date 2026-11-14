@@ -1853,7 +1853,10 @@ describe('ModTable', () => {
       const label = toggle.closest('label');
       expect(label).toHaveClass('min-h-11', 'min-w-11');
       expect(screen.getByTestId('mod-remove-smithingplus')).toHaveClass('size-11');
-      expect(await screen.findByTestId('mod-update-button-smithingplus')).toHaveClass('min-h-11');
+      expect(await screen.findByTestId('mod-update-button-smithingplus')).toHaveClass(
+        'min-h-11',
+        'min-w-11'
+      );
     });
 
     it('shows the loading state at phone width', () => {
