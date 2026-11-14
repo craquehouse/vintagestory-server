@@ -24,6 +24,7 @@ from vintagestory_api.services.game_config import (
     SettingEnvManagedError,
     SettingUnknownError,
     SettingUpdateFailedError,
+    SettingValueInvalidError,
 )
 
 
@@ -796,6 +797,154 @@ class TestTypeValidation:
 
         assert result.value is True
         assert isinstance(result.value, bool)
+
+
+# ==============================================================================
+# Story 16.8: settings with no value (VSS-7ed)
+# ==============================================================================
+
+
+def _stop_server(mock_server_service: MagicMock) -> None:
+    mock_status = MagicMock()
+    mock_status.state = ServerState.INSTALLED
+    mock_server_service.get_server_status.return_value = mock_status
+
+
+class TestNullableSettings:
+    """Story 16.8: Description, Password and IP Address can have no value (null)."""
+
+    def test_nullable_settings_are_those_with_a_null_default(self) -> None:
+        """Exactly the settings whose VintageStory default is null accept null."""
+        nullable = {key for key, setting in LIVE_SETTINGS.items() if setting.nullable}
+        assert nullable == {"ServerDescription", "Password", "Ip"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("key", ["ServerDescription", "Password", "Ip"])
+    @pytest.mark.parametrize("value", [None, "", "   "])
+    async def test_cleared_value_is_stored_as_null(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+        key: str,
+        value: str | None,
+    ) -> None:
+        """null, an empty string or only spaces are stored as JSON null (server stopped)."""
+        _stop_server(mock_server_service)
+
+        result = await game_config_service.update_setting(key, value)
+
+        config = json.loads(game_config_service.config_path.read_text())
+        assert key in config
+        assert config[key] is None
+        assert result.value is None
+        assert result.method == "file_update"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("value", [None, ""])
+    async def test_cleared_password_uses_nopassword_when_running(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+        value: str | None,
+    ) -> None:
+        """A cleared Password is applied with /serverconfig nopassword while running."""
+        result = await game_config_service.update_setting("Password", value)
+
+        mock_server_service.send_command.assert_called_once_with("/serverconfig nopassword")
+        assert result.method == "console_command"
+        assert result.value is None
+        assert result.pending_restart is False
+
+    @pytest.mark.asyncio
+    async def test_cleared_description_is_written_to_file_with_restart_when_running(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+        mock_pending_restart: MagicMock,
+    ) -> None:
+        """No console command clears the description: write the file, flag a restart."""
+        result = await game_config_service.update_setting("ServerDescription", None)
+
+        mock_server_service.send_command.assert_not_called()
+        assert result.method == "file_update"
+        assert result.pending_restart is True
+        mock_pending_restart.require_restart.assert_called_once()
+        assert "ServerDescription" in mock_pending_restart.require_restart.call_args[0][0]
+        config = json.loads(game_config_service.config_path.read_text())
+        assert config["ServerDescription"] is None
+
+    @pytest.mark.asyncio
+    async def test_cleared_ip_is_written_to_file_with_restart_when_running(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """IP Address is restart-required, cleared or not."""
+        result = await game_config_service.update_setting("Ip", "")
+
+        mock_server_service.send_command.assert_not_called()
+        assert result.method == "file_update"
+        assert result.pending_restart is True
+        config = json.loads(game_config_service.config_path.read_text())
+        assert config["Ip"] is None
+
+    @pytest.mark.asyncio
+    async def test_non_empty_password_still_uses_password_command(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """Setting a password is unchanged."""
+        await game_config_service.update_setting("Password", "secret")
+
+        mock_server_service.send_command.assert_called_once_with("/serverconfig password secret")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("key", ["ServerName", "WelcomeMessage", "Port", "AllowPvP"])
+    async def test_null_is_rejected_for_other_settings(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+        key: str,
+    ) -> None:
+        """null for a setting that cannot be empty is rejected, never stored as "None"."""
+        _stop_server(mock_server_service)
+        before = game_config_service.config_path.read_text()
+
+        with pytest.raises(SettingValueInvalidError):
+            await game_config_service.update_setting(key, None)
+
+        assert game_config_service.config_path.read_text() == before
+        mock_server_service.send_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_empty_welcome_message_is_still_an_empty_string(
+        self,
+        game_config_service: GameConfigService,
+        mock_server_service: MagicMock,
+    ) -> None:
+        """Welcome Message is not nullable: an empty message stays an empty string."""
+        _stop_server(mock_server_service)
+
+        await game_config_service.update_setting("WelcomeMessage", "")
+
+        config = json.loads(game_config_service.config_path.read_text())
+        assert config["WelcomeMessage"] == ""
+
+    @pytest.mark.asyncio
+    async def test_cleared_password_redacted_in_console_command_log(
+        self,
+        game_config_service: GameConfigService,
+    ) -> None:
+        """The clear-command path logs the password as ***."""
+        with patch("vintagestory_api.services.game_config.logger") as mock_logger:
+            await game_config_service.update_setting("Password", None)
+
+            calls = [
+                c for c in mock_logger.info.call_args_list if "executing_console_command" in str(c)
+            ]
+            assert len(calls) == 1
+            assert calls[0][1]["value"] == "***"
 
 
 # ==============================================================================

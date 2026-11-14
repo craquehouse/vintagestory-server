@@ -424,6 +424,43 @@ class TestUpdateGameSettingErrors:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.SETTING_VALUE_INVALID
 
+    def test_update_null_for_required_setting_returns_400(
+        self, client: TestClient, config_file: Path
+    ) -> None:
+        """Story 16.8: null for a setting that cannot be empty is rejected, not saved as "None"."""
+        before = config_file.read_text()
+
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerName",
+            json={"value": None},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.SETTING_VALUE_INVALID
+        assert config_file.read_text() == before
+
+    def test_update_cleared_description_reads_back_as_null(
+        self, client: TestClient, config_file: Path, mock_server_service: MagicMock
+    ) -> None:
+        """Story 16.8: a cleared Description is stored and read back as null."""
+        mock_server_service.get_server_status.return_value.state = ServerState.INSTALLED
+
+        response = client.post(
+            "/api/v1alpha1/config/game/settings/ServerDescription",
+            json={"value": ""},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["data"]["value"] is None
+        assert json.loads(config_file.read_text())["ServerDescription"] is None
+        settings = client.get(
+            "/api/v1alpha1/config/game", headers={"X-API-Key": TEST_ADMIN_KEY}
+        ).json()["data"]["settings"]
+        description = next(s for s in settings if s["key"] == "ServerDescription")
+        assert description["value"] is None
+
     def test_update_console_command_fails(
         self, client: TestClient, mock_server_service: MagicMock
     ) -> None:

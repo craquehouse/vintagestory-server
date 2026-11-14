@@ -60,11 +60,11 @@ so that **I can find mods alphabetically and edit settings without saving the wo
   - [x] 2.3: `web/src/features/mods/BrowseTab.tsx`: show `Pagination` for the Name sort like the other sorts and use the normal results count ("Showing N of T mods" / "Found N mods matching …") instead of "Showing all T mods sorted alphabetically"
   - [x] 2.4: Tests: `mods.test.ts` sends `sort=name`; `use-browse-mods.test.tsx` requests `sort=name&page_size=20` (and the given page), keeps the API order, never asks for more than 100; `BrowseTab.test.tsx` shows pagination and the normal count for Name sort with more than one page, and `?sort=name&page=3` requests page 3
 
-- [ ] Task 3: API stores null for cleared Description, Password and IP Address + tests (AC: 4, 5)
-  - [ ] 3.1: `services/game_config.py`: `ServerSetting` gains `nullable: bool = False` and `clear_command: str | None = None`; `ServerDescription`, `Password` and `Ip` are nullable; `Password` has `clear_command="/serverconfig nopassword"`
-  - [ ] 3.2: `_validate_value`: `None` returns `None` for a nullable setting and raises `SettingValueInvalidError` ("… cannot be empty"/"null is not allowed") otherwise; for a nullable string setting a blank string (empty or only whitespace) becomes `None`. `update_setting` skips string sanitizing for `None`
-  - [ ] 3.3: Applying `None`: with the server running and the setting live, use `clear_command` when there is one (no `{value}`); without one (Description) write the file and report `pending_restart=True` (and call `require_restart`); with the server stopped write the file as today. JSON stores `null`. Password stays redacted in logs (`***`), including the clear command path
-  - [ ] 3.4: Tests in `tests/test_game_config.py` (service) and `tests/test_routers_config.py`: `None` and `""`/`"  "` for each nullable key write `null` to the file (server stopped); running server: Password `None`/`""` sends `/serverconfig nopassword`, Description `None` writes the file with `pending_restart=True` and no console command, Ip unchanged (file, restart); `None` for `ServerName`, `WelcomeMessage`, `Port`, `AllowPvP` → 400 `SETTING_VALUE_INVALID` and the file is unchanged; `""` for `WelcomeMessage` is still stored as `""`; the existing "None" string behavior is gone (red first: today `None` writes `"None"`)
+- [x] Task 3: API stores null for cleared Description, Password and IP Address + tests (AC: 4, 5)
+  - [x] 3.1: `services/game_config.py`: `ServerSetting` gains `nullable: bool = False` and `clear_command: str | None = None`; `ServerDescription`, `Password` and `Ip` are nullable; `Password` has `clear_command="/serverconfig nopassword"`
+  - [x] 3.2: `_validate_value`: `None` returns `None` for a nullable setting and raises `SettingValueInvalidError` ("… cannot be empty"/"null is not allowed") otherwise; for a nullable string setting a blank string (empty or only whitespace) becomes `None`. `update_setting` skips string sanitizing for `None`
+  - [x] 3.3: Applying `None`: with the server running and the setting live, use `clear_command` when there is one (no `{value}`); without one (Description) write the file and report `pending_restart=True` (and call `require_restart`); with the server stopped write the file as today. JSON stores `null`. Password stays redacted in logs (`***`), including the clear command path
+  - [x] 3.4: Tests in `tests/test_game_config.py` (service) and `tests/test_routers_config.py`: `None` and `""`/`"  "` for each nullable key write `null` to the file (server stopped); running server: Password `None`/`""` sends `/serverconfig nopassword`, Description `None` writes the file with `pending_restart=True` and no console command, Ip unchanged (file, restart); `None` for `ServerName`, `WelcomeMessage`, `Port`, `AllowPvP` → 400 `SETTING_VALUE_INVALID` and the file is unchanged; `""` for `WelcomeMessage` is still stored as `""`; the existing "None" string behavior is gone (red first: today `None` writes `"None"`)
 
 - [ ] Task 4: Settings page shows empty settings as empty and masks Password + tests (AC: 3, 6, 7)
   - [ ] 4.1: `web/src/api/types.ts`: `GameSetting.value` and `GameSettingUpdateData.value` allow `null`
@@ -175,12 +175,14 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run, the 3 new `sort_mods` tests failed (leading space and accent order, `None` name raised `AttributeError`, ties in input order); the new router paging test passed already (the API pages name sort today). Then 206 passed in `test_mod_api.py` and `test_mods_router.py`; ruff clean, pyright 0 errors (3 pre-existing warnings).
 - Task 2: red run, 6 new or rewritten tests failed (`mods.test.ts` 1, `use-browse-mods.test.tsx` 4, `BrowseTab.test.tsx` 1); then 182 passed, 2 skipped (pre-existing) in the three files; full web suite 3,121 passed, 4 skipped (pre-existing); `tsc` clean.
+- Task 3: red run, 18 of the new tests failed (`None` and blank values stored as `"None"`/`""`, no `nullable` attribute, `/serverconfig password None` sent, null Server Name and Welcome Message accepted); null for Port and AllowPvP was already rejected (the int and bool parsers fail on `"None"`). Then 172 passed in `test_game_config.py`, `test_routers_config.py` and `test_edge_cases.py`; full API suite 2,135 passed; ruff clean, pyright 0 errors (3 pre-existing warnings).
 
 ### Completion Notes List
 
 - Story created 2026-11-13: context analysis of the browse hook and endpoint, the settings service and field, Stories 16.0, 16.1 and 16.6 and ADR-1/ADR-3.
 - Task 1: `sort_mods(..., "name")` uses `_name_sort_key`: stripped, NFKD without combining marks, `casefold()`, then the stripped name and `assetid`; a null or missing name sorts as empty.
 - Task 2: `fetchBrowseMods` sends `sort=name`; `useBrowseMods` passes every sort through with `pageSize ?? 20` and keeps the API's order (the 1000 page size and the client-side `sortModsByName` are removed, with its tests); `BrowseTab` shows page controls and the normal results count for the Name sort.
+- Task 3: `ServerSetting` has `nullable` and `clear_command`; `ServerDescription`, `Password` and `Ip` are nullable and Password clears with `/serverconfig nopassword`. `_validate_value` (now with a `nullable` flag; the type argument is unchanged) returns `None` for null or a blank string on a nullable setting and rejects null otherwise. While the server runs, a cleared Password uses the clear command; a cleared Description is written to the file with `pending_restart=True` (`_update_config_file` takes a `requires_restart` override). The clear path logs the password as `***`.
 
 ### File List
 
@@ -193,3 +195,6 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/hooks/use-browse-mods.test.tsx`
 - `web/src/features/mods/BrowseTab.tsx`
 - `web/src/features/mods/BrowseTab.test.tsx`
+- `api/src/vintagestory_api/services/game_config.py`
+- `api/tests/test_game_config.py`
+- `api/tests/test_routers_config.py`
