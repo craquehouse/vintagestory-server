@@ -22,11 +22,22 @@ import { test, expect, type Page, type APIRequestContext } from '@playwright/tes
 const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
 
 const DIRECTORIES_API = '/api/v1alpha1/config/directories';
-/** Most directory listings requested while looking for a nested path. */
+/** Most directory listing requests made while looking for a nested path. */
 const MAX_LISTINGS = 60;
 const MAX_DEPTH = 3;
 
-async function listDirectories(request: APIRequestContext, path: string[]): Promise<string[]> {
+/** Remaining directory listings the search may request; every request counts. */
+interface ListingBudget {
+  remaining: number;
+}
+
+async function listDirectories(
+  request: APIRequestContext,
+  path: string[],
+  budget: ListingBudget
+): Promise<string[]> {
+  if (budget.remaining <= 0) throw new Error(`More than ${MAX_LISTINGS} directory listings`);
+  budget.remaining -= 1;
   const query = path.length ? `?directory=${encodeURIComponent(path.join('/'))}` : '';
   const response = await request.get(`${DIRECTORIES_API}${query}`, {
     headers: { 'X-API-Key': API_KEY },
@@ -44,11 +55,10 @@ async function listDirectories(request: APIRequestContext, path: string[]): Prom
 async function findNestedPath(request: APIRequestContext): Promise<string[]> {
   const queue: string[][] = [[]];
   let deepest: string[] = [];
-  let listings = 0;
-  while (queue.length && listings < MAX_LISTINGS) {
+  const budget: ListingBudget = { remaining: MAX_LISTINGS };
+  while (queue.length && budget.remaining > 0) {
     const path = queue.shift()!;
-    listings += 1;
-    for (const name of await listDirectories(request, path)) {
+    for (const name of await listDirectories(request, path, budget)) {
       const child = [...path, name];
       if (child.length > deepest.length) deepest = child;
       if (child.length < MAX_DEPTH) queue.push(child);
