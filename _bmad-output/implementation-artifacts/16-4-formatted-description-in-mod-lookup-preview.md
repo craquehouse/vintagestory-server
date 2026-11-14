@@ -1,6 +1,6 @@
 # Story 16.4: Formatted Description in the Mod Lookup Preview
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR171. Bead: VSS-4ll (empty description; this file is the spec). Stacks on Story 16.3 (PR #150), itself on 16.2 (PR #149) and 16.1 (PR #148). No new dependencies: DOMPurify 3.4.17 is already used by the detail page. -->
 
@@ -33,11 +33,11 @@ so that **I can read it instead of raw HTML tags**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.4/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: Shared mod description sanitizer + tests (AC: 2, 3, 4)
-  - [ ] 1.1: New `web/src/lib/mod-description.ts`. Create a private DOMPurify instance (`DOMPurify(window)`), so its hook never affects other `DOMPurify.sanitize` callers, with an `afterSanitizeAttributes` hook that sets `target="_blank"` and `rel="noopener noreferrer"` on every `<a>` that kept an `href` (DOMPurify drops `target` by default, verified with 3.4.17)
-  - [ ] 1.2: `sanitizeModDescription(html: string): string` for the detail page: DOMPurify defaults plus `FORBID_TAGS: ['style']` (DOMPurify keeps a `<style>` element that follows body content, which would restyle the whole app; verified). Images and inline styles stay, as today
-  - [ ] 1.3: `sanitizeModDescriptionPreview(html: string): string | null` for the lookup preview: same instance and hook, `ALLOWED_TAGS` limited to text formatting (`p`, `br`, `div`, `span`, `strong`, `b`, `em`, `i`, `u`, `s`, `code`, `a`, `ul`, `ol`, `li`, `h1`-`h6`, `blockquote`), `ALLOWED_ATTR: ['href', 'title']` (no `style`, `class`, `id`); returns `null` when the result has no visible text (sanitize with `RETURN_DOM`, check `textContent.trim()`, return `innerHTML`). The two configurations are constants in this module only
-  - [ ] 1.4: `web/src/lib/mod-description.test.ts`: both functions strip `<script>` (and its content), `onerror`/`onclick`/`onload`, `javascript:` in `href` (lower case, mixed case, leading whitespace, entity-encoded) and in SVG `xlink:href`, `<style>` elements at the start and after content; links get `target="_blank"` and `rel="noopener noreferrer"` (an author's `rel="noopener"` and `target="_self"` are replaced), anchors without `href` get neither; detail keeps `<img>` without `onerror`; preview drops `img`, `iframe`, `video`, `form`/`input`/`button`, `svg`, `style`/`class`/`id` attributes, keeps text of tables and unknown wrappers, returns `null` for an image-only description and for `''`; calling `DOMPurify.sanitize` directly after the helpers does not add `target` (hook isolation)
+- [x] Task 1: Shared mod description sanitizer + tests (AC: 2, 3, 4)
+  - [x] 1.1: New `web/src/lib/mod-description.ts`. Create a private DOMPurify instance (`DOMPurify(window)`), so its hook never affects other `DOMPurify.sanitize` callers, with an `afterSanitizeAttributes` hook that sets `target="_blank"` and `rel="noopener noreferrer"` on every `<a>` that kept an `href` (DOMPurify drops `target` by default, verified with 3.4.17)
+  - [x] 1.2: `sanitizeModDescription(html: string): string` for the detail page: DOMPurify defaults plus `FORBID_TAGS: ['style']` (DOMPurify keeps a `<style>` element that follows body content, which would restyle the whole app; verified). Images and inline styles stay, as today
+  - [x] 1.3: `sanitizeModDescriptionPreview(html: string): string | null` for the lookup preview: same instance and hook, `ALLOWED_TAGS` limited to text formatting (`p`, `br`, `div`, `span`, `strong`, `b`, `em`, `i`, `u`, `s`, `code`, `a`, `ul`, `ol`, `li`, `h1`-`h6`, `blockquote`), `ALLOWED_ATTR: ['href', 'title']` (no `style`, `class`, `id`); returns `null` when the result has no visible text (the sanitized string is parsed with `DOMParser`, which is inert, and its `textContent` trimmed). The two configurations are constants in this module only
+  - [x] 1.4: `web/src/lib/mod-description.test.ts`: both functions strip `<script>` (and its content), `onerror`/`onclick`/`onload`, `javascript:` in `href` (lower case, mixed case, leading whitespace, entity-encoded) and in SVG `xlink:href`, `<style>` elements at the start and after content; links get `target="_blank"` and `rel="noopener noreferrer"` (an author's `rel="noopener"` and `target="_self"` are replaced), anchors without `href` get neither; detail keeps `<img>` without `onerror`; preview drops `img`, `iframe`, `video`, `form`/`input`/`button`, `svg`, `style`/`class`/`id` attributes, keeps text of tables and unknown wrappers, returns `null` for an image-only description and for `''`; calling `DOMPurify.sanitize` directly after the helpers does not add `target` (hook isolation)
 
 - [ ] Task 2: Detail page uses the shared sanitizer + tests (AC: 2, 3)
   - [ ] 2.1: `ModDetailPage.tsx`: replace the inline `DOMPurify.sanitize(mod.description)` and the `dompurify` import with `sanitizeModDescription`; markup and classes unchanged
@@ -142,11 +142,21 @@ Authors write `target="_blank" rel="noopener"` themselves; DOMPurify 3.4.17 defa
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: red run of `mod-description.test.ts` (module missing, collection error), then 30 passed. First cut used `RETURN_DOM: true`; its overload is typed `Node` (no `innerHTML`), so `tsc` failed; switched to sanitizing to a string and checking its text with an inert `DOMParser` document. `tsc` clean.
 
 ### Completion Notes List
 
+- Task 1: `web/src/lib/mod-description.ts` exports `sanitizeModDescription` (DOMPurify defaults, `FORBID_TAGS: ['style']`) and `sanitizeModDescriptionPreview` (text-formatting allowlist, `href`/`title` only, `null` when no visible text). One private DOMPurify instance carries the `afterSanitizeAttributes` hook that sets `target="_blank"` and `rel="noopener noreferrer"` on links with an `href`; a test proves the shared default instance is untouched. Not used yet; Tasks 2 and 3 wire it in.
+
 ### File List
+
+- `web/src/lib/mod-description.ts` (new)
+- `web/src/lib/mod-description.test.ts` (new)
+- `_bmad-output/implementation-artifacts/16-4-formatted-description-in-mod-lookup-preview.md`
 
 ## Change Log
 
