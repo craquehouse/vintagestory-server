@@ -41,9 +41,9 @@ so that **I can see more settings without scrolling past half-empty cards**.
   - [x] 1.1: `SettingField`: the `Input` for `int` and `float` settings gets `max-w-xs` (merged with the existing error classes through `cn`); string inputs keep the `Input` default `w-full`; switches unchanged
   - [x] 1.2: Tests in `SettingField.test.tsx`: an `int` and a `float` input carry `max-w-xs`; a `string` input does not; the error classes still apply to a number input
 
-- [ ] Task 2: `SettingGroup` accepts classes for its content + tests (AC: 1, 5)
-  - [ ] 2.1: New optional `contentClassName` prop merged into `CardContent` (`cn('space-y-4', contentClassName)`); collapsible behavior, header and default markup unchanged
-  - [ ] 2.2: Tests in `SettingGroup.test.tsx`: the class reaches the content element; without it the content keeps exactly `space-y-4`; the content is still hidden when collapsed
+- [x] Task 2: `SettingGroup` accepts classes for its content + tests (AC: 1, 5)
+  - [x] 2.1: New optional `contentClassName` prop merged into `CardContent` (`cn('space-y-4', contentClassName)`); collapsible behavior, header and default markup unchanged
+  - [x] 2.2: Tests in `SettingGroup.test.tsx`: the class reaches the content element; without it the content keeps its `space-y-4` stack and gains no grid class; the content is still hidden when collapsed
 
 - [ ] Task 3: Two-column settings layout from `xl` + tests (AC: 1, 2, 4, 5)
   - [ ] 3.1: `GameConfigPanel`: inner wrapper `mx-auto max-w-[1280px] space-y-4` (`data-testid="game-config-layout"`); Server Info rendered with `contentClassName="xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0"`; then `div.grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) holding `div.space-y-4` `game-config-column-left` (Player Settings, Network) and `game-config-column-right` (World Settings). The loading skeleton uses the same max width. `renderGroup` takes the optional content class; no other behavior changes. Update the doc comment
@@ -155,15 +155,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run, 3 of the 4 new width tests failed (the text-input test already passed); then 30 passed; `tsc` clean.
+- Task 2: red run, the `contentClassName` test failed; then 25 passed; `tsc` clean.
 
 ### Completion Notes List
 
 - Task 1: `SettingField` gives `int`/`float` inputs `max-w-xs` (320px) at every width, merged with the error classes; text inputs keep `w-full`. Only game settings pass number types.
+- Task 2: `SettingGroup` takes an optional `contentClassName`, merged with the content's default `space-y-4`.
 
 ### File List
 
 - `web/src/components/SettingField.tsx`
 - `web/src/components/SettingField.test.tsx`
+- `web/src/components/SettingGroup.tsx`
+- `web/src/components/SettingGroup.test.tsx`
 - `_bmad-output/implementation-artifacts/16-6-settings-layout-on-desktop.md`
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs` (new)
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.before.json` (new)
