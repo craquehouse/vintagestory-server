@@ -11,7 +11,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { Trash2, Loader2, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   createColumnHelper,
   createSortedRowModel,
@@ -30,8 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,8 +40,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
+import {
+  ModCompatibility,
+  ModEnableToggle,
+  ModNameLink,
+  ModRemoveButton,
+  type ModTableRow,
+} from '@/components/InstalledModParts';
 import { ModUpdateCell } from '@/components/ModUpdateCell';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
@@ -56,27 +60,13 @@ import {
   useModUpdates,
 } from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
-import type {
-  ModInfo,
-  CompatibilityStatus,
-  ModCompatibility,
-  ModUpdateStatus,
-} from '@/api/types';
+import type { ModInfo } from '@/api/types';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
   onRemoved?: (slug: string) => void;
   /** Callback when a mod's enabled state changes */
   onToggled?: (slug: string, enabled: boolean) => void;
-}
-
-/** Extended ModInfo with compatibility and side data for table rendering */
-interface ModTableRow extends ModInfo {
-  compatibilityStatus: CompatibilityStatus;
-  /** Story 16.3: message and latest supported game version for the installed release */
-  compatibility?: ModCompatibility;
-  /** Story 14.3: update status from GET /mods/updates */
-  updateStatus?: ModUpdateStatus;
 }
 
 const features = tableFeatures({
@@ -259,32 +249,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           onClick={() => column.toggleSorting()}
         />
       ),
-      cell: ({ row }) => {
-        const mod = row.original;
-        return (
-          <div>
-            <div className="font-medium">
-              <a
-                href={
-                  mod.assetId > 0
-                    ? `https://mods.vintagestory.at/show/mod/${mod.assetId}`
-                    : `https://mods.vintagestory.at/${mod.slug}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:underline"
-                data-testid={`mod-link-${mod.slug}`}
-              >
-                {mod.name || mod.slug}
-                <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              </a>
-            </div>
-            {mod.name && (
-              <div className="text-sm text-muted-foreground">{mod.slug}</div>
-            )}
-          </div>
-        );
-      },
+      cell: ({ row }) => <ModNameLink mod={row.original} />,
       sortFn: (rowA, rowB) => {
         const a = (rowA.original.name || rowA.original.slug).toLowerCase();
         const b = (rowB.original.name || rowB.original.slug).toLowerCase();
@@ -322,27 +287,13 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     }),
     columnHelper.accessor('compatibilityStatus', {
       header: 'Compatibility',
-      cell: ({ row, getValue }) => {
-        const status = getValue();
-        const details = row.original.compatibility;
-        // Story 16.3: name the most recent supported game version for unverified
-        // and incompatible mods (Epic 16 ADR-2 decision 5)
-        const latestSupported =
-          status !== 'compatible' ? details?.latestSupportedGameVersion : null;
-        return (
-          <div className="flex flex-wrap items-center gap-2">
-            <CompatibilityBadge status={status} message={details?.message} />
-            {latestSupported && (
-              <span
-                className="text-xs text-muted-foreground whitespace-nowrap"
-                data-testid={`mod-latest-supported-${row.original.slug}`}
-              >
-                Supports up to {latestSupported}
-              </span>
-            )}
-          </div>
-        );
-      },
+      cell: ({ row, getValue }) => (
+        <ModCompatibility
+          slug={row.original.slug}
+          status={getValue()}
+          compatibility={row.original.compatibility}
+        />
+      ),
       enableSorting: false,
     }),
     columnHelper.accessor('enabled', {
@@ -353,27 +304,13 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           onClick={() => column.toggleSorting()}
         />
       ),
-      cell: ({ row }) => {
-        const mod = row.original;
-        const isToggling = isTogglingMod(mod.slug);
-        return (
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={mod.enabled}
-              onCheckedChange={() => handleToggle(mod)}
-              disabled={isToggling}
-              data-testid={`mod-toggle-${mod.slug}`}
-              aria-label={mod.enabled ? 'Disable mod' : 'Enable mod'}
-            />
-            {isToggling && (
-              <Loader2
-                className="h-4 w-4 animate-spin text-muted-foreground"
-                data-testid={`mod-toggle-spinner-${mod.slug}`}
-              />
-            )}
-          </div>
-        );
-      },
+      cell: ({ row }) => (
+        <ModEnableToggle
+          mod={row.original}
+          isToggling={isTogglingMod(row.original.slug)}
+          onToggle={() => handleToggle(row.original)}
+        />
+      ),
       // Sort enabled mods first when ascending
       sortFn: (rowA, rowB) => {
         const a = rowA.original.enabled ? 1 : 0;
@@ -384,20 +321,9 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     columnHelper.display({
       id: 'actions',
       header: () => <span className="sr-only">Actions</span>,
-      cell: ({ row }) => {
-        const mod = row.original;
-        return (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleRemoveClick(mod)}
-            data-testid={`mod-remove-${mod.slug}`}
-            aria-label={`Remove ${mod.name || mod.slug}`}
-          >
-            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-          </Button>
-        );
-      },
+      cell: ({ row }) => (
+        <ModRemoveButton mod={row.original} onRemove={() => handleRemoveClick(row.original)} />
+      ),
       meta: { className: 'w-[80px]' },
     }),
   ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, isChangingVersion]);

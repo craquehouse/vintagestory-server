@@ -46,10 +46,10 @@ so that **I can update, enable and remove mods without scrolling sideways**.
   - [x] 1.2: jsdom has no `matchMedia`. Add `web/tests/viewport.ts`: a `matchMedia` stand-in that evaluates `min-width`/`max-width` in `px` or `rem` (16px) against `window.innerWidth` (other queries never match) and notifies `change` listeners, plus `setViewportWidth(width)` that sets `innerWidth` and notifies listeners whose result changed (inside `act` in tests). `tests/setup.ts` installs it and resets the width to jsdom's default 1024 after each test, so every existing test keeps rendering the desktop layout
   - [x] 1.3: Tests `web/src/hooks/use-media-query.test.tsx`: true at 1024 and at exactly 768, false at 767 and 390, updates when the width crosses the breakpoint, unsubscribes on unmount; a test for the stand-in's `rem`/`px` parsing. Run the full web suite (the stand-in is global; `next-themes` mocks stay as they are)
 
-- [ ] Task 2: Share the installed mod cell content between table and cards + tests (AC: 3, 5)
-  - [ ] 2.1: Move the cell bodies out of the `ModTable` column definitions into `web/src/components/InstalledModParts.tsx`, unchanged in markup, classes and test IDs: `ModNameLink` (link + slug), `ModCompatibility` (badge with message tooltip and "Supports up to X"; new optional `showMessage` that renders the message as text, off for the table), `ModEnableToggle` (switch + spinner, `aria-label` as today) and `ModRemoveButton` (icon button, `aria-label="Remove <name>"`; optional `className` for the card size). Export the `ModTableRow` type from there
-  - [ ] 2.2: `ModTable` columns render these parts; `ModUpdateCell` stays as is apart from an optional `buttonClassName` passed to its Update button (for the card's touch size; the table passes nothing)
-  - [ ] 2.3: Tests: the whole existing `ModTable.test.tsx` passes unchanged (proves the table is unchanged); new `InstalledModParts.test.tsx` covers `ModCompatibility` with and without `showMessage` (message shown only for `not_verified`/`incompatible`), `ModEnableToggle` spinner and name, `ModRemoveButton` name; `ModUpdateCell.test.tsx` covers `buttonClassName`
+- [x] Task 2: Share the installed mod cell content between table and cards + tests (AC: 3, 5)
+  - [x] 2.1: Move the cell bodies out of the `ModTable` column definitions into `web/src/components/InstalledModParts.tsx`, unchanged in markup, classes and test IDs: `ModNameLink` (link + slug), `ModCompatibility` (badge with message tooltip and "Supports up to X"; new optional `showMessage` that renders the message as text, off for the table), `ModEnableToggle` (switch + spinner, `aria-label` as today) and `ModRemoveButton` (icon button, `aria-label="Remove <name>"`; optional `className` for the card size). Export the `ModTableRow` type from there
+  - [x] 2.2: `ModTable` columns render these parts; `ModUpdateCell` stays as is apart from an optional `buttonClassName` passed to its Update button (for the card's touch size; the table passes nothing)
+  - [x] 2.3: Tests: the whole existing `ModTable.test.tsx` passes unchanged (proves the table is unchanged); new `InstalledModParts.test.tsx` covers `ModCompatibility` with and without `showMessage` (message shown only for `not_verified`/`incompatible`), `ModEnableToggle` spinner and name, `ModRemoveButton` name; `ModUpdateCell.test.tsx` covers `buttonClassName`
 
 - [ ] Task 3: Installed mods as cards below `md` + tests (AC: 1, 2, 3, 4, 5, 6)
   - [ ] 3.1: `web/src/components/InstalledModCard.tsx`: one card per mod (`<li>` with `data-testid="installed-mod-card-<slug>"`, `aria-label` = mod name) built from the Task 2 parts and `ModUpdateCell`: name and slug with the enable toggle on the first row; version and side badge; compatibility with `showMessage`; an "Available" row with the update status and Update action; the remove button. Long names, slugs and messages wrap (`min-w-0`, `break-words`), never widen the card. Touch targets: the toggle sits in a `<label>` of at least 44x44px (`min-h-11 min-w-11`) so a tap anywhere in it toggles; the Update and remove buttons are `min-h-11`/`size-11`
@@ -173,6 +173,11 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/hooks/use-media-query.test.tsx` (new)
 - `web/tests/viewport.ts` (new)
 - `web/tests/setup.ts`
+- `web/src/components/InstalledModParts.tsx` (new)
+- `web/src/components/InstalledModParts.test.tsx` (new)
+- `web/src/components/ModTable.tsx`
+- `web/src/components/ModUpdateCell.tsx`
+- `web/src/components/ModUpdateCell.test.tsx`
 - `_bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md`
 ## Change Log
 
