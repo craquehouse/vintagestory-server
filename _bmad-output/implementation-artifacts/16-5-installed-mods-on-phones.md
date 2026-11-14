@@ -60,9 +60,9 @@ so that **I can update, enable and remove mods without scrolling sideways**.
   - [x] 4.1: `InstalledTab`: the button group wraps (`flex-wrap`) so "Last checked …", "Update all (N)" and "Check for updates" never push the page wider than the screen (today at 390px with "Update all" shown the document is 413px wide); below `md` the two buttons are 44px tall (`max-md:h-11`). At `md` and up the toolbar looks as today
   - [x] 4.2: Tests in `InstalledTab.test.tsx`: the group has `flex-wrap`; both buttons carry the touch-height class; existing toolbar tests pass
 
-- [ ] Task 5: Browser verification against the Docker dev stack + E2E spec (AC: 1-6)
-  - [ ] 5.1: `web/e2e/installed-mods-phone.spec.ts` (Story 16.5): replaces `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates` with `page.route` (like `installed-mod-any-modid.spec.ts`), so it installs nothing: a mod with a long name and an offered update, an incompatible mod, a disabled mod. At 390x844: cards visible, no `mod-table`, `document.documentElement.scrollWidth <= clientWidth`, no element under `main` with `scrollWidth > clientWidth` and `overflow-x` auto/scroll, toggle label, Update, remove, "Update all" and "Check for updates" bounding boxes at least 44x44, clicking Update opens the confirmation dialog or calls the version endpoint (route it, never change data), clicking remove opens the dialog and Cancel closes it. At 1440x900: `mod-table` visible with its columns, no cards. Resize 1440 → 390 switches to cards
-  - [ ] 5.2: `just docker restart` (rebuild from this branch); run the spec with `cd web && bunx playwright test e2e/installed-mods-phone.spec.ts`. Then a manual pass on the real `./data` mods at 390x844 and 1440x900 (no installs or removals; a toggle, if exercised, is toggled back), browser console clean. Screenshots with the server name (header `span.font-semibold`, `#ServerName`) masked, kept in the session scratchpad unless needed; record the results in the Dev Agent Record
+- [x] Task 5: Browser verification against the Docker dev stack + E2E spec (AC: 1-6)
+  - [x] 5.1: `web/e2e/installed-mods-phone.spec.ts` (Story 16.5): replaces `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates` with `page.route` (like `installed-mod-any-modid.spec.ts`), so it installs nothing: a mod with a long name and an offered update, an incompatible mod, a disabled mod. At 390x844: cards visible, no `mod-table`, `document.documentElement.scrollWidth <= clientWidth`, no element under `main` with `scrollWidth > clientWidth` and `overflow-x` auto/scroll, toggle label, Update, remove, "Update all" and "Check for updates" bounding boxes at least 44x44, clicking Update opens the confirmation dialog or calls the version endpoint (route it, never change data), clicking remove opens the dialog and Cancel closes it. At 1440x900: `mod-table` visible with its columns, no cards. Resize 1440 → 390 switches to cards
+  - [x] 5.2: `just docker restart` (rebuild from this branch); run the spec with `cd web && bunx playwright test e2e/installed-mods-phone.spec.ts`. Then a manual pass on the real `./data` mods at 390x844 and 1440x900 (no installs or removals; a toggle, if exercised, is toggled back), browser console clean. Screenshots with the server name (header `span.font-semibold`, `#ServerName`) masked, kept in the session scratchpad unless needed; record the results in the Dev Agent Record
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
   - [ ] 6.1: `just check` passes
@@ -180,6 +180,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/components/ModTable.test.tsx`
 - `web/src/components/ModUpdateCell.tsx`
 - `web/src/components/ModUpdateCell.test.tsx`
+- `web/e2e/installed-mods-phone.spec.ts` (new)
 - `web/src/features/mods/InstalledTab.tsx`
 - `web/src/features/mods/InstalledTab.test.tsx`
 - `_bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md`
