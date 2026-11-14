@@ -1,6 +1,6 @@
 # Story 16.5: Installed Mods on Phones
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR172. Bead: VSS-rr5 (Story 14.3 review L3). Stacks on Story 16.4 (branch story/16-4-formatted-description-in-mod-lookup-preview, no PR yet), itself on 16.3 (PR #150), 16.2 (PR #149) and 16.1 (PR #148). Do not touch web/src/components/ModLookupInput* or the Story 16.4 docs. No new dependencies. -->
 
@@ -41,10 +41,10 @@ so that **I can update, enable and remove mods without scrolling sideways**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.5/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: Media query hook and a viewport helper for tests + tests (AC: 5)
-  - [ ] 1.1: `web/src/hooks/use-media-query.ts`: `useMediaQuery(query: string): boolean` built on `useSyncExternalStore` (`subscribe` adds and removes a `change` listener on `window.matchMedia(query)`; the snapshot reads `.matches`), and `MD_UP_QUERY = '(min-width: 48rem)'` (Tailwind v4's `md`, 768px at the default root font size). No fallback for a missing `matchMedia`: every supported browser has it
-  - [ ] 1.2: jsdom has no `matchMedia`. Add `web/tests/viewport.ts`: a `matchMedia` stand-in that evaluates `min-width`/`max-width` in `px` or `rem` (16px) against `window.innerWidth` (other queries never match) and notifies `change` listeners, plus `setViewportWidth(width)` that sets `innerWidth` and notifies listeners whose result changed (inside `act` in tests). `tests/setup.ts` installs it and resets the width to jsdom's default 1024 after each test, so every existing test keeps rendering the desktop layout
-  - [ ] 1.3: Tests `web/src/hooks/use-media-query.test.tsx`: true at 1024 and at exactly 768, false at 767 and 390, updates when the width crosses the breakpoint, unsubscribes on unmount; a test for the stand-in's `rem`/`px` parsing. Run the full web suite (the stand-in is global; `next-themes` mocks stay as they are)
+- [x] Task 1: Media query hook and a viewport helper for tests + tests (AC: 5)
+  - [x] 1.1: `web/src/hooks/use-media-query.ts`: `useMediaQuery(query: string): boolean` built on `useSyncExternalStore` (`subscribe` adds and removes a `change` listener on `window.matchMedia(query)`; the snapshot reads `.matches`), and `MD_UP_QUERY = '(min-width: 48rem)'` (Tailwind v4's `md`, 768px at the default root font size). No fallback for a missing `matchMedia`: every supported browser has it
+  - [x] 1.2: jsdom has no `matchMedia`. Add `web/tests/viewport.ts`: a `matchMedia` stand-in that evaluates `min-width`/`max-width` in `px` or `rem` (16px) against `window.innerWidth` (other queries never match) and notifies `change` listeners, plus `setViewportWidth(width)` that sets `innerWidth` and notifies listeners whose result changed (inside `act` in tests). `tests/setup.ts` installs it and resets the width to jsdom's default 1024 after each test, so every existing test keeps rendering the desktop layout
+  - [x] 1.3: Tests `web/src/hooks/use-media-query.test.tsx`: true at 1024 and at exactly 768, false at 767 and 390, updates when the width crosses the breakpoint, unsubscribes on unmount; a test for the stand-in's `rem`/`px` parsing. Run the full web suite (the stand-in is global; `next-themes` mocks stay as they are)
 
 - [ ] Task 2: Share the installed mod cell content between table and cards + tests (AC: 3, 5)
   - [ ] 2.1: Move the cell bodies out of the `ModTable` column definitions into `web/src/components/InstalledModParts.tsx`, unchanged in markup, classes and test IDs: `ModNameLink` (link + slug), `ModCompatibility` (badge with message tooltip and "Supports up to X"; new optional `showMessage` that renders the message as text, off for the table), `ModEnableToggle` (switch + spinner, `aria-label` as today) and `ModRemoveButton` (icon button, `aria-label="Remove <name>"`; optional `className` for the card size). Export the `ModTableRow` type from there
@@ -159,12 +159,21 @@ so that **I can update, enable and remove mods without scrolling sideways**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
 
+- Task 1: red run (module missing), then the stand-in's own test failed on a wrong expectation in the test (`49rem` is 784px, not over 800); fixed the test. 9 passed; full web suite 3,167 passed, 4 skipped (pre-existing `it.skip`s) with the stand-in installed globally; `tsc` clean.
 ### Completion Notes List
 
+- Task 1: `useMediaQuery(query)` on `useSyncExternalStore` and `MD_UP_QUERY = '(min-width: 48rem)'`. `web/tests/viewport.ts` installs a `matchMedia` stand-in (typed `MediaQueryList`/`MediaQueryListEvent` implementations, no casts) evaluating `min-width`/`max-width` in px/rem against `innerWidth`, with `setViewportWidth` and `resetViewport`; `tests/setup.ts` installs it and resets to 1024px after each test.
 ### File List
 
+- `web/src/hooks/use-media-query.ts` (new)
+- `web/src/hooks/use-media-query.test.tsx` (new)
+- `web/tests/viewport.ts` (new)
+- `web/tests/setup.ts`
+- `_bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md`
 ## Change Log
 
 - 2026-11-13: Story 16.5 created (ready-for-dev).

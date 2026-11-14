@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { installMatchMedia, resetViewport } from './viewport';
 
 // Mock ResizeObserver for components like Recharts ResponsiveContainer
 class MockResizeObserver {
@@ -9,6 +10,9 @@ class MockResizeObserver {
   disconnect = vi.fn();
 }
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+
+// jsdom has no matchMedia; evaluate width queries against innerWidth (Story 16.5)
+installMatchMedia();
 
 // Mock localStorage
 class LocalStorageMock {
@@ -51,5 +55,6 @@ Object.defineProperty(global, 'localStorage', {
 
 afterEach(() => {
   cleanup();
+  resetViewport();
   vi.clearAllMocks();
 });
