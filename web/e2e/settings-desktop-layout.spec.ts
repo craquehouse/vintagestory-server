@@ -51,6 +51,13 @@ async function box(page: Page, title: string): Promise<Box> {
   return b;
 }
 
+/** Same position and size, each within half a pixel (sub-pixel layout can differ slightly). */
+function expectSameBox(actual: Box, expected: Box) {
+  for (const key of ['x', 'y', 'width', 'height'] as const) {
+    expect(Math.abs(actual[key] - expected[key]), key).toBeLessThanOrEqual(0.5);
+  }
+}
+
 async function inputWidth(page: Page, id: string): Promise<number> {
   const b = await page.locator(`#${id}`).boundingBox();
   if (!b) throw new Error(`No box for #${id}`);
@@ -130,18 +137,18 @@ test.describe('Story 16.6: settings layout on desktop', () => {
 
     await toggle(page, 'World Settings');
     await expect(page.locator('#MaxChunkRadius')).toHaveCount(0);
-    expect(await box(page, 'Player Settings')).toEqual(player);
-    expect(await box(page, 'Network')).toEqual(network);
+    expectSameBox(await box(page, 'Player Settings'), player);
+    expectSameBox(await box(page, 'Network'), network);
     expect((await box(page, 'World Settings')).height).toBeLessThan(world.height);
 
     await toggle(page, 'World Settings');
     await expect(page.locator('#MaxChunkRadius')).toBeVisible();
-    expect(await box(page, 'World Settings')).toEqual(world);
+    expectSameBox(await box(page, 'World Settings'), world);
 
     await toggle(page, 'Network');
     await expect(page.locator('#Port')).toHaveCount(0);
-    expect(await box(page, 'World Settings')).toEqual(world);
-    expect(await box(page, 'Player Settings')).toEqual(player);
+    expectSameBox(await box(page, 'World Settings'), world);
+    expectSameBox(await box(page, 'Player Settings'), player);
     expect((await box(page, 'Network')).height).toBeLessThan(network.height);
   });
 
