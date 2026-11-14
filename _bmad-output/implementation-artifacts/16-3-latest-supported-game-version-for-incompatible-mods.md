@@ -1,6 +1,6 @@
 # Story 16.3: Latest Supported Game Version for Incompatible Mods
 
-Status: review
+Status: done
 
 <!-- Implements FR170 and Epic 16 ADR-2 decisions 1-5 (decision 6: browse cards unchanged). Bead: VSS-udh. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID), VSS-4f3 (browse-card "has a release for your version" flag). Stacks on Story 16.2 (PR #149), itself on 16.1 (PR #148). -->
 
@@ -74,6 +74,11 @@ so that **I can judge how far behind it is before installing it**.
 - [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` passes
   - [x] 6.2: Status review, `just sprint set 16-3-latest-supported-game-version-for-incompatible-mods review`, PR to `story/16-2-installed-mods-recognized-by-any-mod-id` (stacks on #149 and #148), PR link on `VSS-udh`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: `check_compatibility` matches strings while the range compares numerically, so an installed `1.21` with a release tagged `1.21.0` could get the gap message although the range end equals the running version (unreachable today: game versions are three-part). Fixed: a range end equal to the installed version uses the "another release of this mod is" wording; test added (`44be8c8`)
+- [x] [AI-Review][Low] L2: `_build_compatibility_message` used the prefix-stripped version in the ahead/gap/tagged-elsewhere wordings but the raw one in the `not_verified` and fallback wordings. Fixed: all wordings use the normalized version; parametrized test added (`44be8c8`)
 
 ## Dev Notes
 
@@ -178,6 +183,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Decisions beyond ADR-2 (recorded in Dev Notes): the API chooses the mod ID by mirroring `findInstalledModForEntry`; an evaluated older release that misses a game version another release of the mod ID has gets "Version X is not tagged for G; another release of this mod is." instead of the gap wording; an unlisted `version` is `not_verified` with its own message; the detail page shows the message as text and its header version follows `compatibility.modVersion`. `latest_version` keeps its meaning, so no API field is removed or changes meaning.
 - Bead filed: `VSS-br2` [UI-074] newly installed mod shows Available: Unknown until the next update check (top-level, not Epic 16).
 
+- Review fixes (L1, L2): red run, 3 of the 4 new tests failing, then green; `just check` passed: API 2,108 passed, web 3,119 passed and 4 skipped, scripts 190 passed; pyright 0 errors (3 pre-existing warnings); ruff and `tsc` clean.
+
 ### File List
 
 - `api/src/vintagestory_api/services/mod_compatibility.py` (new)
@@ -205,3 +212,17 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.3 created (ready-for-dev).
 - 2026-11-13: Implemented: supported game version range per mod ID; lookup reports the installed (or install-flow) mod ID's release, `latest_supported_game_version`, the ADR-2 messages and an optional `version`; Installed list evaluates the installed release and shows "Supports up to X"; detail page shows the message and the evaluated release's version; browser verification; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L1 and L2 fixed in `44be8c8`. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #150 head
+**Outcome:** Approve → resolved
+
+**Summary:** All six acceptance criteria pass and the File List matches the diff. On the PR head the reviewer ran the API tests (2,104 passed), pyright (0 errors), the web tests (3,119 passed) and the typecheck (clean). No suppressions; commit conventions correct. No high or medium findings; two low findings, both fixed.
+
+### Action Items
+
+- [x] [Low] L1 range end equal to the installed version reported as a gap (fixed, `44be8c8`)
+- [x] [Low] L2 messages mixed the raw and the prefix-stripped game version (fixed, `44be8c8`)
