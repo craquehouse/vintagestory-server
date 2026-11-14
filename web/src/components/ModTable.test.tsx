@@ -19,16 +19,27 @@ vi.mock('@/lib/cookies', () => ({
   setCookie: vi.fn(),
 }));
 
-// Mock useModsCompatibility to avoid complex fetch handling
+// Mock useModsCompatibility to avoid complex fetch handling. Story 16.3 tests set
+// `compatibilityMock.details` and read `compatibilityMock.calls`.
+const compatibilityMock = vi.hoisted(() => ({
+  details: new Map<string, import('@/api/types').ModCompatibility>(),
+  calls: [] as { slug: string; version: string }[][],
+}));
 vi.mock('@/hooks/use-mods', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/use-mods')>();
   return {
     ...actual,
-    useModsCompatibility: () => ({
-      compatibilityMap: new Map(),
-      sideMap: new Map(),
-      isLoading: false,
-    }),
+    useModsCompatibility: (mods: { slug: string; version: string }[]) => {
+      compatibilityMock.calls.push(mods.map(({ slug, version }) => ({ slug, version })));
+      return {
+        compatibilityMap: new Map(
+          [...compatibilityMock.details].map(([slug, details]) => [slug, details.status])
+        ),
+        compatibilityDetails: compatibilityMock.details,
+        sideMap: new Map(),
+        isLoading: false,
+      };
+    },
   };
 });
 
@@ -106,6 +117,8 @@ describe('ModTable', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    compatibilityMock.details = new Map();
+    compatibilityMock.calls = [];
     import.meta.env.VITE_API_KEY = 'test-api-key';
     import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
   });
@@ -1156,6 +1169,87 @@ describe('ModTable', () => {
         // so compatibilityStatus should default to 'not_verified'
         expect(screen.getAllByTestId('compatibility-badge').length).toBe(2);
       });
+    });
+  });
+
+  describe('latest supported game version (Story 16.3)', () => {
+    const details = (
+      status: import('@/api/types').CompatibilityStatus,
+      latest: string | null,
+      message: string
+    ) => ({
+      status,
+      gameVersion: '1.22.7',
+      modVersion: '1.0.0',
+      message,
+      latestSupportedGameVersion: latest,
+    });
+
+    async function renderTable() {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+      await waitFor(() => {
+        expect(screen.getAllByTestId('compatibility-badge').length).toBe(2);
+      });
+    }
+
+    it('looks up each mod with its installed version', async () => {
+      await renderTable();
+
+      expect(compatibilityMock.calls.at(-1)).toEqual([
+        { slug: 'smithingplus', version: '1.5.0' },
+        { slug: 'carrycapacity', version: '2.0.0' },
+      ]);
+    });
+
+    it('shows the version beside incompatible and not verified badges', async () => {
+      compatibilityMock.details = new Map([
+        [
+          'smithingplus',
+          details('incompatible', '1.21.1', 'Last supported game version: 1.21.1.'),
+        ],
+        [
+          'carrycapacity',
+          details(
+            'not_verified',
+            '1.22.6',
+            'Mod not explicitly verified for version 1.22.7. May still work. Last tagged for 1.22.6.'
+          ),
+        ],
+      ]);
+
+      await renderTable();
+
+      expect(screen.getByTestId('mod-latest-supported-smithingplus')).toHaveTextContent(
+        'Supports up to 1.21.1'
+      );
+      expect(screen.getByTestId('mod-latest-supported-carrycapacity')).toHaveTextContent(
+        'Supports up to 1.22.6'
+      );
+      const badges = screen.getAllByTestId('compatibility-badge');
+      expect(badges.map((b) => b.getAttribute('data-status')).sort()).toEqual([
+        'incompatible',
+        'not_verified',
+      ]);
+      expect(
+        badges.find((b) => b.getAttribute('data-status') === 'incompatible')
+      ).toHaveAttribute('title', 'Last supported game version: 1.21.1.');
+    });
+
+    it('shows no version for compatible mods or when it is unknown', async () => {
+      compatibilityMock.details = new Map([
+        ['smithingplus', details('compatible', '1.22.7', '')],
+        ['carrycapacity', details('incompatible', null, 'Mod version 1.0.0 is not compatible')],
+      ]);
+
+      await renderTable();
+
+      expect(screen.queryByTestId('mod-latest-supported-smithingplus')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-latest-supported-carrycapacity')).not.toBeInTheDocument();
     });
   });
 

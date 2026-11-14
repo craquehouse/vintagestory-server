@@ -44,6 +44,7 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
     ...actual,
     useModsCompatibility: () => ({
       compatibilityMap: new Map(),
+      compatibilityDetails: new Map(),
       sideMap: new Map(),
       isLoading: false,
     }),

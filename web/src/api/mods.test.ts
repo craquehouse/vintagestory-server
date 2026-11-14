@@ -597,6 +597,7 @@ describe('lookupMod', () => {
         gameVersion: '1.21.3',
         modVersion: '1.0.0',
         message: 'Compatible with game version',
+        latestSupportedGameVersion: '1.21.3',
       },
       logoUrl: 'https://example.com/logo.png',
       releases: [],
@@ -620,6 +621,21 @@ describe('lookupMod', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/lookup/testmod');
+  });
+
+  it('adds the release version as an encoded query parameter (Story 16.3)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockLookupResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    await lookupMod('testmod', '2.0.0-rc.1+build');
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe(
+      'http://localhost:8080/api/v1alpha1/mods/lookup/testmod?version=2.0.0-rc.1%2Bbuild'
+    );
   });
 
   it('URL-encodes special characters in slug', async () => {

@@ -20,7 +20,13 @@ import {
   changeModVersion,
   applyAllModUpdates,
 } from '@/api/mods';
-import type { ApiResponse, ModsListData, CompatibilityStatus, ModSide } from '@/api/types';
+import type {
+  ApiResponse,
+  ModsListData,
+  CompatibilityStatus,
+  ModCompatibility,
+  ModSide,
+} from '@/api/types';
 
 /**
  * Default polling interval for mods list (10 seconds).
@@ -287,21 +293,23 @@ export function useModsPendingRestart() {
 /**
  * Hook to fetch compatibility status for multiple installed mods.
  *
- * Uses parallel queries to fetch mod details for each slug, extracting
+ * Uses parallel queries to fetch mod details for each installed mod, extracting
  * compatibility status. Results are cached with a 5-minute stale time.
  *
  * VSS-j3c: Fixes false "not verified" status on installed mods page.
+ * Story 16.3: each lookup passes the installed version, so compatibility describes
+ * the installed release rather than the newest one.
  *
- * @param slugs - Array of mod slugs to look up compatibility for
- * @returns Map of slug -> CompatibilityStatus, plus loading state
+ * @param mods - Installed mods (slug and installed version) to look up
+ * @returns Map of slug -> CompatibilityStatus, slug -> full compatibility details
+ *   (message, latest supported game version), plus loading state
  *
  * @example
  * function ModTable() {
  *   const { data: modsData } = useMods();
  *   const mods = modsData?.data?.mods ?? [];
- *   const slugs = mods.map(m => m.slug);
  *
- *   const { compatibilityMap, isLoading } = useModsCompatibility(slugs);
+ *   const { compatibilityMap, isLoading } = useModsCompatibility(mods);
  *
  *   return mods.map(mod => (
  *     <CompatibilityBadge
@@ -311,11 +319,11 @@ export function useModsPendingRestart() {
  *   ));
  * }
  */
-export function useModsCompatibility(slugs: string[]) {
+export function useModsCompatibility(mods: readonly { slug: string; version: string }[]) {
   const queries = useQueries({
-    queries: slugs.map((slug) => ({
-      queryKey: queryKeys.mods.lookup(slug),
-      queryFn: () => lookupMod(slug),
+    queries: mods.map(({ slug, version }) => ({
+      queryKey: queryKeys.mods.lookup(slug, version),
+      queryFn: () => lookupMod(slug, version),
       // Keep results fresh for 5 minutes
       staleTime: 5 * 60 * 1000,
       // Don't refetch on window focus
@@ -325,14 +333,17 @@ export function useModsCompatibility(slugs: string[]) {
     })),
   });
 
-  // Build maps of slug -> compatibility status and slug -> side
+  // Build maps of slug -> compatibility status/details and slug -> side
   const compatibilityMap = new Map<string, CompatibilityStatus>();
+  const compatibilityDetails = new Map<string, ModCompatibility>();
   const sideMap = new Map<string, ModSide>();
 
   queries.forEach((query, index) => {
-    const slug = slugs[index];
-    if (query.data?.data?.compatibility?.status) {
-      compatibilityMap.set(slug, query.data.data.compatibility.status);
+    const slug = mods[index].slug;
+    const compatibility = query.data?.data?.compatibility;
+    if (compatibility?.status) {
+      compatibilityMap.set(slug, compatibility.status);
+      compatibilityDetails.set(slug, compatibility);
     }
     if (query.data?.data?.side) {
       sideMap.set(slug, query.data.data.side);
@@ -348,6 +359,7 @@ export function useModsCompatibility(slugs: string[]) {
 
   return {
     compatibilityMap,
+    compatibilityDetails,
     sideMap,
     isLoading,
     isAllFetched,

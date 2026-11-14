@@ -56,7 +56,12 @@ import {
   useModUpdates,
 } from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
-import type { ModInfo, CompatibilityStatus, ModUpdateStatus } from '@/api/types';
+import type {
+  ModInfo,
+  CompatibilityStatus,
+  ModCompatibility,
+  ModUpdateStatus,
+} from '@/api/types';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -68,6 +73,8 @@ interface ModTableProps {
 /** Extended ModInfo with compatibility and side data for table rendering */
 interface ModTableRow extends ModInfo {
   compatibilityStatus: CompatibilityStatus;
+  /** Story 16.3: message and latest supported game version for the installed release */
+  compatibility?: ModCompatibility;
   /** Story 14.3: update status from GET /mods/updates */
   updateStatus?: ModUpdateStatus;
 }
@@ -131,8 +138,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
 
   // VSS-j3c: Fetch compatibility status for all installed mods
   // VSS-qal: Also fetch side info for SideBadge display
-  const slugs = mods.map((m) => m.slug);
-  const { compatibilityMap, sideMap } = useModsCompatibility(slugs);
+  // Story 16.3: for the installed release, not the newest one
+  const { compatibilityMap, compatibilityDetails, sideMap } = useModsCompatibility(mods);
 
   // Story 14.3: update status for the Available column
   const { data: updatesData } = useModUpdates();
@@ -176,11 +183,12 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     return mods.map((mod) => ({
       ...mod,
       compatibilityStatus: compatibilityMap.get(mod.slug) ?? 'not_verified',
+      compatibility: compatibilityDetails.get(mod.slug),
       // Use API side if available, fall back to sideMap for legacy data
       side: mod.side ?? sideMap.get(mod.slug) ?? null,
       updateStatus: updateMap.get(mod.slug),
     }));
-  }, [mods, compatibilityMap, sideMap, updateMap]);
+  }, [mods, compatibilityMap, compatibilityDetails, sideMap, updateMap]);
 
   const handleToggle = useCallback((mod: ModInfo) => {
     if (mod.enabled) {
@@ -314,7 +322,27 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     }),
     columnHelper.accessor('compatibilityStatus', {
       header: 'Compatibility',
-      cell: ({ getValue }) => <CompatibilityBadge status={getValue()} />,
+      cell: ({ row, getValue }) => {
+        const status = getValue();
+        const details = row.original.compatibility;
+        // Story 16.3: name the most recent supported game version for unverified
+        // and incompatible mods (Epic 16 ADR-2 decision 5)
+        const latestSupported =
+          status !== 'compatible' ? details?.latestSupportedGameVersion : null;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            <CompatibilityBadge status={status} message={details?.message} />
+            {latestSupported && (
+              <span
+                className="text-xs text-muted-foreground whitespace-nowrap"
+                data-testid={`mod-latest-supported-${row.original.slug}`}
+              >
+                Supports up to {latestSupported}
+              </span>
+            )}
+          </div>
+        );
+      },
       enableSorting: false,
     }),
     columnHelper.accessor('enabled', {

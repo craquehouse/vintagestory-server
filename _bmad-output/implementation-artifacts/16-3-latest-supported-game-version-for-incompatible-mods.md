@@ -56,11 +56,11 @@ so that **I can judge how far behind it is before installing it**.
   - [x] 2.4: Router `GET /mods/lookup/{slug}` gains `version: str | None = Query(None, min_length=1, max_length=100)` and passes it through; docstring lists the new field
   - [x] 2.5: Tests: service (playercorpse behind; synthetic ahead entry; synthetic gap entry; not_verified with and without "Last tagged for"; instruments not installed → `vsinstrumentsbase` 2.0.7; instruments with `vsinstruments` installed → its newest release 1.2.7 and 1.19.3; URL slug wins; `version` picks the installed release; unlisted `version`; old entries without `modidstr`), router (`?version=` passed through, field serialized), model. Update existing tests that pinned the `tags[:3]` wording
 
-- [ ] Task 3: Installed list evaluates the installed release and shows the latest supported version + tests (AC: 1, 4)
-  - [ ] 3.1: `web/src/api/types.ts`: `ModCompatibility.latestSupportedGameVersion: string | null`; `lookupMod(slugOrUrl, version?)` adds `?version=` (encoded); `queryKeys.mods.lookup(slug, version?)` appends the version only when given, so the detail page key is unchanged
-  - [ ] 3.2: `useModsCompatibility(mods: { slug: string; version: string }[])` looks up each installed mod with its installed version and returns `compatibilityMap: Map<slug, ModCompatibility>` (status, message, latest supported version) plus `sideMap`
-  - [ ] 3.3: `ModTable`: the Compatibility cell shows the badge with the message as its tooltip and, for `not_verified` and `incompatible` with a known version, "Supports up to X" beside it (`data-testid="mod-latest-supported-<slug>"`)
-  - [ ] 3.4: Tests: `api/mods.test.ts` (version query string), `use-mods.test.tsx` (installed version in the request and key; map contents), `ModTable.test.tsx` (version beside incompatible/not_verified, absent for compatible and unknown), `InstalledTab.test.tsx` if its doubles change
+- [x] Task 3: Installed list evaluates the installed release and shows the latest supported version + tests (AC: 1, 4)
+  - [x] 3.1: `web/src/api/types.ts`: `ModCompatibility.latestSupportedGameVersion: string | null`; `lookupMod(slugOrUrl, version?)` adds `?version=` (encoded); `queryKeys.mods.lookup(slug, version?)` appends the version only when given, so the detail page key is unchanged
+  - [x] 3.2: `useModsCompatibility(mods: { slug: string; version: string }[])` looks up each installed mod with its installed version and returns `compatibilityMap: Map<slug, ModCompatibility>` (status, message, latest supported version) plus `sideMap`
+  - [x] 3.3: `ModTable`: the Compatibility cell shows the badge with the message as its tooltip and, for `not_verified` and `incompatible` with a known version, "Supports up to X" beside it (`data-testid="mod-latest-supported-<slug>"`)
+  - [x] 3.4: Tests: `api/mods.test.ts` (version query string), `use-mods.test.tsx` (installed version in the request and key; map contents), `ModTable.test.tsx` (version beside incompatible/not_verified, absent for compatible and unknown), `InstalledTab.test.tsx` if its doubles change
 
 - [ ] Task 4: Detail page shows the evaluated mod ID's version and the compatibility message + tests (AC: 1, 3)
   - [ ] 4.1: `ModDetailPage` header: "Version:" shows `compatibility.modVersion` (the release that decides the badge), falling back to `latestVersion`; the compatibility message is shown as text under the badge row for `not_verified` and `incompatible` (`data-testid="mod-detail-compatibility-message"`), not only as a tooltip. The install flow (`InstallSection latestVersion`) is unchanged (`VSS-jhf`)
@@ -158,11 +158,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run of `test_mod_compatibility.py` (module missing, collection error), then 21 passed; ruff and pyright clean (pyright 0 errors, 3 pre-existing warnings in API tests).
 - Task 2: new tests written after a first cut of the service change; red verified by stashing `api/src`: 15 of the 16 new `TestLookupLatestSupportedGameVersion` tests failed (the one that passed pins the unchanged fallback wording), then 16 passed with the change. Six existing tests failed on the change as expected (two model serializations gained the field; four pinned the `tags[:3]` wording or the old builder signature) and were updated. API 2,104 passed; ruff clean; pyright 0 errors, 3 pre-existing warnings.
+- Task 3: red run with the four source files stashed: 8 tests failed (the new lookup query-string test, two new ModTable tests, the new hook test, and four existing hook tests that now pass installed mods), then green. Web 3,115 passed, 4 skipped (pre-existing `it.skip`s); `tsc` clean.
 
 ### Completion Notes List
 
 - Task 1: `services/mod_compatibility.py` exports `SupportedRange`, `supported_game_versions(releases, modid)` and `compare_game_versions(left, right)`. Sort key is `parse_base_version` with trailing zero parts dropped, then stable above pre-release; stable tags preferred for both ends; unparsable and non-string tags ignored; ties keep the first tag seen. Not used yet; Task 2 wires it into the lookup.
 - Task 2: `CompatibilityInfo.latest_supported_game_version`. `lookup_mod(slug_or_url, version=None)` picks the mod ID with `_compatibility_modid` (installed looked-up slug, then installed entry mod IDs in release order, exact comparison; else `releases[0].modidstr`; a match with no releases in the entry falls back to the default), evaluates that mod ID's newest release or its `version` release, and reports an unlisted `version` as `not_verified` with "Version X is not listed in the mod database; cannot verify compatibility." `_build_compatibility_message` now takes the `SupportedRange` and produces the ADR-2 behind/ahead/gap wording, "Last tagged for X." on `not_verified`, "Version X is not tagged for G; another release of this mod is." when an older evaluated release misses a version another release has, and today's fallback when there is no range or the game version does not parse. `latest_version` and `releases` are unchanged. Router: optional `version` query parameter (1-100 chars).
+- Task 3: `ModCompatibility.latestSupportedGameVersion`; `lookupMod(slugOrUrl, version?)` adds `?version=` (encoded); `queryKeys.mods.lookup(slug, version?)` appends `{ version }` only when given. `useModsCompatibility` now takes the installed mods (`{ slug, version }`) and returns, besides the unchanged `compatibilityMap` (status) and `sideMap`, a `compatibilityDetails` map with the full compatibility. Deviation from subtask 3.2's wording: the status map was kept and the details added as a second map, so existing callers and tests keep their shape. `ModTable`'s Compatibility cell shows the badge with the message as its tooltip and "Supports up to X" for `not_verified`/`incompatible` when the version is known.
 
 ### File List
 
@@ -174,6 +176,15 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `api/tests/test_mod_service.py`
 - `api/tests/test_mods_router.py`
 - `api/tests/test_mod_models.py`
+- `web/src/api/types.ts`
+- `web/src/api/mods.ts`
+- `web/src/api/mods.test.ts`
+- `web/src/api/query-keys.ts`
+- `web/src/hooks/use-mods.ts`
+- `web/src/hooks/use-mods.test.tsx`
+- `web/src/components/ModTable.tsx`
+- `web/src/components/ModTable.test.tsx`
+- `web/src/features/mods/InstalledTab.test.tsx`
 - `_bmad-output/implementation-artifacts/16-3-latest-supported-game-version-for-incompatible-mods.md`
 
 ## Change Log

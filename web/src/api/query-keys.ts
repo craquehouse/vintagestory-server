@@ -14,7 +14,12 @@ export const queryKeys = {
   mods: {
     all: ['mods'] as const,
     detail: (slug: string) => ['mods', slug] as const,
-    lookup: (slug: string) => ['mods', 'lookup', slug] as const,
+    // Story 16.3: the Installed list asks about the installed release (`version`); the
+    // detail page key (no version) is unchanged
+    lookup: (slug: string, version?: string) =>
+      version === undefined
+        ? (['mods', 'lookup', slug] as const)
+        : (['mods', 'lookup', slug, { version }] as const),
     browse: (params: {
       page?: number;
       pageSize?: number;

@@ -1211,6 +1211,7 @@ describe('useModsPendingRestart', () => {
  */
 describe('useModsCompatibility', () => {
   const originalFetch = globalThis.fetch;
+  const installed = (...slugs: string[]) => slugs.map((slug) => ({ slug, version: '1.0.0' }));
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -1269,7 +1270,7 @@ describe('useModsCompatibility', () => {
 
       const queryClient = createTestQueryClient();
       const { result } = renderHook(
-        () => useModsCompatibility(['mod1', 'mod2']),
+        () => useModsCompatibility(installed('mod1', 'mod2')),
         {
           wrapper: createWrapper(queryClient),
         }
@@ -1324,7 +1325,7 @@ describe('useModsCompatibility', () => {
 
       const queryClient = createTestQueryClient();
       const { result } = renderHook(
-        () => useModsCompatibility(['goodmod', 'badmod']),
+        () => useModsCompatibility(installed('goodmod', 'badmod')),
         {
           wrapper: createWrapper(queryClient),
         }
@@ -1376,7 +1377,7 @@ describe('useModsCompatibility', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useModsCompatibility(['slowmod']), {
+      const { result } = renderHook(() => useModsCompatibility(installed('slowmod')), {
         wrapper: createWrapper(queryClient),
       });
 
@@ -1417,7 +1418,7 @@ describe('useModsCompatibility', () => {
 
       // First render
       const { result: result1 } = renderHook(
-        () => useModsCompatibility(['cachedmod']),
+        () => useModsCompatibility(installed('cachedmod')),
         {
           wrapper: createWrapper(queryClient),
         }
@@ -1429,7 +1430,7 @@ describe('useModsCompatibility', () => {
 
       // Second render with same slugs
       const { result: result2 } = renderHook(
-        () => useModsCompatibility(['cachedmod']),
+        () => useModsCompatibility(installed('cachedmod')),
         {
           wrapper: createWrapper(queryClient),
         }
@@ -1490,7 +1491,7 @@ describe('useModsCompatibility', () => {
 
       const queryClient = createTestQueryClient();
       const { result } = renderHook(
-        () => useModsCompatibility(['clientmod', 'servermod']),
+        () => useModsCompatibility(installed('clientmod', 'servermod')),
         {
           wrapper: createWrapper(queryClient),
         }
@@ -1503,6 +1504,55 @@ describe('useModsCompatibility', () => {
       expect(result.current.compatibilityMap.get('servermod')).toBe('compatible');
       expect(result.current.sideMap.get('clientmod')).toBe('Client');
       expect(result.current.sideMap.get('servermod')).toBe('Server');
+    });
+  });
+
+  describe('installed release (Story 16.3)', () => {
+    it('asks about each installed version and keeps the full compatibility', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'playercorpse',
+              name: 'Player Corpse',
+              compatibility: {
+                status: 'incompatible',
+                game_version: '1.22.7',
+                mod_version: '1.11.1',
+                message: 'Last supported game version: 1.21.1.',
+                latest_supported_game_version: '1.21.1',
+              },
+            },
+          }),
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(
+        () => useModsCompatibility([{ slug: 'playercorpse', version: '1.11.1' }]),
+        { wrapper: createWrapper(queryClient) }
+      );
+
+      await waitFor(() => expect(result.current.isAllFetched).toBe(true));
+
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        'http://localhost:8080/api/v1alpha1/mods/lookup/playercorpse?version=1.11.1'
+      );
+      expect(result.current.compatibilityMap.get('playercorpse')).toBe('incompatible');
+      expect(result.current.compatibilityDetails.get('playercorpse')).toEqual({
+        status: 'incompatible',
+        gameVersion: '1.22.7',
+        modVersion: '1.11.1',
+        message: 'Last supported game version: 1.21.1.',
+        latestSupportedGameVersion: '1.21.1',
+      });
+      // Cached apart from the detail page's lookup of the newest release
+      expect(
+        queryClient.getQueryData(['mods', 'lookup', 'playercorpse', { version: '1.11.1' }])
+      ).toBeDefined();
+      expect(queryClient.getQueryData(['mods', 'lookup', 'playercorpse'])).toBeUndefined();
     });
   });
 });
