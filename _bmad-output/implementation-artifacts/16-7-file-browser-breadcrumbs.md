@@ -1,6 +1,6 @@
 # Story 16.7: File Browser Breadcrumbs
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR174. Beads: VSS-8lh (this story, child of the Epic 16 bead VSS-stm); VSS-3mr (directory navigation E2E test, child of VSS-029 Web UI Test Coverage). Stacks on Story 16.6 (branch story/16-6-settings-layout-on-desktop, PR #153), itself on #152, #151, #150, #149, #148. Last story of Epic 16. No new dependencies; no API change. -->
 
@@ -45,9 +45,9 @@ so that **I can move up several levels in one click**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.7/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: `PathBreadcrumb` component + tests (AC: 1, 2, 3, 5, 6)
-  - [ ] 1.1: `web/src/components/PathBreadcrumb.tsx`: props `path: string | null` (slash-separated, `null` = root), `rootLabel: string`, `onNavigate: (path: string | null) => void`, `className?`. Renders `nav[aria-label="Breadcrumb"] > ol` (`flex flex-wrap items-center gap-1 text-sm text-muted-foreground`, `min-w-0`); one `li` per segment; root and ancestors are `button type="button"` (ghost-like: `hover:text-foreground`, focus-visible ring, `max-w-full truncate`, `title` = name); the current segment is a `span` (`text-foreground font-medium truncate`, `aria-current="page"`, `tabIndex={-1}`, `title`); separators are `ChevronRight` with `aria-hidden="true"`. Styling matches the mod detail breadcrumb (`ModDetailPage.tsx`). Clicking segment *i* calls `onNavigate(segments.slice(0, i + 1).join('/'))`, the root calls `onNavigate(null)`. After a click the component focuses the new current segment once the path changes (ref + effect, only when the change came from the breadcrumb). Empty segments from stray slashes are ignored. Test ids: `path-breadcrumb`, `path-breadcrumb-root`, `path-breadcrumb-segment-<index>`, `path-breadcrumb-current`
-  - [ ] 1.2: `PathBreadcrumb.test.tsx`: root only (current, no buttons); nested path renders root + ancestors as buttons and the last as current with `aria-current="page"`; landmark and list roles, separators hidden; clicking root / each ancestor calls `onNavigate` with `null` / the right prefix; keyboard (Tab to a segment, Enter) navigates; focus moves to the new current segment after a click (rerender with the new path) but not on an external path change; names with spaces, `%`, `#`, `&` and unicode render as text and are passed back unchanged; long names carry `title` and `truncate`
+- [x] Task 1: `PathBreadcrumb` component + tests (AC: 1, 2, 3, 5, 6)
+  - [x] 1.1: `web/src/components/PathBreadcrumb.tsx`: props `path: string | null` (slash-separated, `null` = root), `rootLabel: string`, `onNavigate: (path: string | null) => void`, `className?`. Renders `nav[aria-label="Breadcrumb"] > ol` (`flex flex-wrap items-center gap-1 text-sm text-muted-foreground`, `min-w-0`); one `li` per segment; root and ancestors are `button type="button"` (ghost-like: `hover:text-foreground`, focus-visible ring, `max-w-full truncate`, `title` = name); the current segment is a `span` (`text-foreground font-medium truncate`, `aria-current="page"`, `tabIndex={-1}`, `title`); separators are `ChevronRight` with `aria-hidden="true"`. Styling matches the mod detail breadcrumb (`ModDetailPage.tsx`). Clicking segment *i* calls `onNavigate(segments.slice(0, i + 1).join('/'))`, the root calls `onNavigate(null)`. After a click the component focuses the new current segment once the path changes (ref + effect, only when the change came from the breadcrumb). Empty segments from stray slashes are ignored. Test ids: `path-breadcrumb`, `path-breadcrumb-root`, `path-breadcrumb-segment-<index>`, `path-breadcrumb-current`
+  - [x] 1.2: `PathBreadcrumb.test.tsx`: root only (current, no buttons); nested path renders root + ancestors as buttons and the last as current with `aria-current="page"`; landmark and list roles, separators hidden; clicking root / each ancestor calls `onNavigate` with `null` / the right prefix; keyboard (Tab to a segment, Enter) navigates; focus moves to the new current segment after a click (rerender with the new path) but not on an external path change; names with spaces, `%`, `#`, `&` and unicode render as text and are passed back unchanged; long names carry `title` and `truncate`
 
 - [ ] Task 2: File Manager uses the breadcrumb instead of the Back button + tests (AC: 1, 2, 4, 6, 7)
   - [ ] 2.1: `FileManagerPanel`: panel becomes a column (`flex flex-col h-[500px]`); a breadcrumb bar (`border-b px-3 py-2`, `data-testid="file-manager-breadcrumb-bar"`) spans the panel above the existing split row (`flex flex-1 min-h-0`). `PathBreadcrumb` with `rootLabel="serverdata"`, `path={currentDirectory}`, `onNavigate` = set directory and clear the selection. Remove `handleNavigateBack`, the Back button and the unused `ChevronLeft`/`Button` imports. In the error state, render the breadcrumb above the existing error box when `currentDirectory` is set (error test id and text unchanged). Update the doc comment (Story 16.7)
@@ -156,9 +156,17 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Debug Log References
 
+- Task 1: red run, the test file failed to import the missing module; then one test failed because its path contained `</b>` (a slash, so two segments): test data fixed; 16 passed; `tsc` clean.
+
 ### Completion Notes List
 
+- Task 1: `PathBreadcrumb` renders `nav[aria-label=Breadcrumb] > ol`, the root and ancestors as buttons (`title` = name, `max-w-full truncate`), the current directory as a `span` with `aria-current="page"` and `tabIndex=-1`, `ChevronRight` separators with `aria-hidden`; `flex-wrap` and `min-w-0` for long paths. A click passes `null` or the path prefix to `onNavigate` and focuses the new current segment once `path` changes; an outside path change does not take focus.
+
 ### File List
+
+- `web/src/components/PathBreadcrumb.tsx` (new)
+- `web/src/components/PathBreadcrumb.test.tsx` (new)
+- `_bmad-output/implementation-artifacts/16-7-file-browser-breadcrumbs.md`
 
 ## Change Log
 

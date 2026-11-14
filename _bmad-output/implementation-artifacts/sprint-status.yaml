@@ -191,7 +191,7 @@ development_status:
   16-4-formatted-description-in-mod-lookup-preview: done
   16-5-installed-mods-on-phones: done
   16-6-settings-layout-on-desktop: done
-  16-7-file-browser-breadcrumbs: ready-for-dev
+  16-7-file-browser-breadcrumbs: in-progress
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open
