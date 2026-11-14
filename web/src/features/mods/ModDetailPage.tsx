@@ -19,6 +19,10 @@
  * flow: the Update button uses the offered update from the update status, the
  * version list holds only releases with the installed mod ID, and updates and
  * switches go through the version change API with its confirmation flow.
+ *
+ * Story 16.2: The installed mod is found by any mod ID in the entry (the URL slug,
+ * then each release's modidstr), not only the browse slug, which is just the entry's
+ * first mod ID.
  */
 
 import { useState } from 'react';
@@ -60,6 +64,7 @@ import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
+import { findInstalledModForEntry } from '@/lib/mod-ids';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -443,9 +448,6 @@ export function ModDetailPage() {
   const { data, isLoading, error } = useModDetail(slug ?? '');
   const { data: modsData } = useMods();
 
-  // Installed copy of this mod, if any
-  const installedMod = modsData?.data?.mods?.find((m) => m.slug === slug);
-
   // Story 16.1: Return to the browse state this page was opened from (default when opened directly)
   const location = useLocation();
   const browseTarget = `${BROWSE_PATH}${readBrowseSearchState(location.state) ?? ''}`;
@@ -489,6 +491,12 @@ export function ModDetailPage() {
       </div>
     );
   }
+
+  // Installed copy of this mod, if any, matched by any of the entry's mod IDs (Story 16.2)
+  const installedMod = findInstalledModForEntry(modsData?.data?.mods, {
+    slug: slug ?? '',
+    releases: mod.releases,
+  });
 
   // Sanitize HTML description for safe rendering
   const sanitizedDescription = mod.description
