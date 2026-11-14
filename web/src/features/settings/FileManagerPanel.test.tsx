@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
@@ -482,7 +482,7 @@ describe('FileManagerPanel', () => {
       },
     };
 
-    it('hides back button at root directory', async () => {
+    it('shows only the root in the breadcrumb at the root directory', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockFilesResponse),
@@ -495,10 +495,10 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-list')).toBeInTheDocument();
       });
 
-      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
     });
 
-    it('shows back button when in subdirectory', async () => {
+    it('shows the root as a breadcrumb button when in a subdirectory', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           return {
@@ -532,9 +532,9 @@ describe('FileManagerPanel', () => {
         fireEvent.click(screen.getByTestId('file-item-ModConfigs'));
       });
 
-      // Verify back button is now visible
+      // The root is now a breadcrumb button
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-root')).toBeInTheDocument();
       });
     });
 
@@ -573,8 +573,8 @@ describe('FileManagerPanel', () => {
 
       // Verify we're now in the subdirectory
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
-        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-root')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('ModConfigs');
       });
 
       // Verify subdirectory files are displayed
@@ -582,7 +582,7 @@ describe('FileManagerPanel', () => {
       expect(screen.getByText('mod2.json')).toBeInTheDocument();
     });
 
-    it('navigates back to parent directory', async () => {
+    it('navigates back to the parent directory through the breadcrumb', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           return {
@@ -616,24 +616,24 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-root')).toBeInTheDocument();
       });
 
-      // Click back button
+      // Click the root segment
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
       });
 
-      // Back at root - back button should be hidden
+      // Back at root - the root is the current segment
       await waitFor(() => {
-        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
       });
 
       // Original files should be visible again
       expect(screen.getByText('serverconfig.json')).toBeInTheDocument();
     });
 
-    it('navigates back to root from first-level subdirectory', async () => {
+    it('navigates back to root from a first-level subdirectory through the breadcrumb', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           return {
@@ -667,17 +667,17 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-root')).toBeInTheDocument();
       });
 
-      // Click back button
+      // Click the root segment
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
       });
 
       // Verify we're at root
       await waitFor(() => {
-        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
       });
     });
 
@@ -772,7 +772,7 @@ describe('FileManagerPanel', () => {
       });
     });
 
-    it('clears file selection when navigating back', async () => {
+    it('clears file selection when navigating back through the breadcrumb', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           return {
@@ -832,9 +832,9 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-viewer-content')).toHaveTextContent('ModName');
       });
 
-      // Navigate back
+      // Navigate up through the breadcrumb
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
       });
 
       // Viewer should be empty (selection cleared)
@@ -900,7 +900,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('ModConfigs');
       });
 
       // Navigate into nested directory
@@ -909,12 +909,12 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('ModConfigs/unpack')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('unpack');
         expect(screen.getByText('nested.json')).toBeInTheDocument();
       });
     });
 
-    it('navigates back from nested subdirectory to parent', async () => {
+    it('navigates back from a nested subdirectory to its parent segment', async () => {
       const nestedDirectoriesResponse = {
         status: 'ok',
         data: {
@@ -981,17 +981,17 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('ModConfigs/unpack')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('unpack');
       });
 
-      // Navigate back
+      // Navigate up through the breadcrumb
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-segment-0'));
       });
 
       // Should be back at ModConfigs level
       await waitFor(() => {
-        expect(screen.getByText('ModConfigs')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('ModConfigs');
         expect(screen.getByText('mod1.json')).toBeInTheDocument();
       });
     });
@@ -1360,7 +1360,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level1');
       });
 
       await act(async () => {
@@ -1368,7 +1368,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1/level2')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level2');
       });
 
       await act(async () => {
@@ -1376,7 +1376,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1/level2/level3')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level3');
         expect(screen.getByTestId('file-item-deep.json')).toBeInTheDocument();
       });
 
@@ -1397,7 +1397,7 @@ describe('FileManagerPanel', () => {
       );
     });
 
-    it('handles multiple sequential back navigations correctly', async () => {
+    it('handles multiple sequential breadcrumb navigations correctly', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           if (url.includes('directory=level1%2Flevel2')) {
@@ -1455,7 +1455,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level1');
       });
 
       // Navigate to level2
@@ -1464,27 +1464,27 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1/level2')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level2');
         expect(screen.getByTestId('file-item-file2.json')).toBeInTheDocument();
       });
 
       // Navigate back to level1
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-segment-0'));
       });
 
       await waitFor(() => {
-        expect(screen.getByText('level1')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('level1');
         expect(screen.getByTestId('file-item-file1.json')).toBeInTheDocument();
       });
 
       // Navigate back to root
       await act(async () => {
-        fireEvent.click(screen.getByTestId('file-manager-back'));
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
       });
 
       await waitFor(() => {
-        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
         expect(screen.getByTestId('file-item-root.json')).toBeInTheDocument();
       });
     });
@@ -1521,7 +1521,7 @@ describe('FileManagerPanel', () => {
       });
     });
 
-    it('handles concurrent back navigation clicks safely', async () => {
+    it('handles repeated root clicks safely', async () => {
       const mockFetch = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('/config/directories')) {
           return {
@@ -1560,19 +1560,19 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-manager-back')).toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-root')).toBeInTheDocument();
       });
 
       // Simulate multiple rapid clicks without waiting for state updates
       // This tests the guard clause's ability to handle race conditions
-      const backButton = screen.getByTestId('file-manager-back');
-      fireEvent.click(backButton);
-      fireEvent.click(backButton);
-      fireEvent.click(backButton);
+      const rootButton = screen.getByTestId('path-breadcrumb-root');
+      fireEvent.click(rootButton);
+      fireEvent.click(rootButton);
+      fireEvent.click(rootButton);
 
       // Should safely navigate to root without errors
       await waitFor(() => {
-        expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+        expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('serverdata');
       });
 
       expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
@@ -1620,6 +1620,252 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-item-TestDir')).toBeInTheDocument();
         expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
       });
+    });
+  });
+  describe('breadcrumb navigation (Story 16.7)', () => {
+    interface Listing {
+      directories: string[];
+      files: string[];
+    }
+
+    /**
+     * Fetch mock serving a directory tree keyed by path ('' is the root).
+     * Paths in `failing` answer the file listing with a 500.
+     */
+    function treeFetch(tree: Record<string, Listing>, failing: string[] = []) {
+      return vi.fn().mockImplementation(async (input: string) => {
+        const url = new URL(input);
+        const directory = url.searchParams.get('directory') ?? '';
+        const listing = tree[directory] ?? { directories: [], files: [] };
+        if (url.pathname.endsWith('/config/directories')) {
+          return {
+            ok: true,
+            json: () =>
+              Promise.resolve({ status: 'ok', data: { directories: listing.directories } }),
+          };
+        }
+        if (url.pathname.endsWith('/config/files')) {
+          if (failing.includes(directory)) {
+            return {
+              ok: false,
+              status: 500,
+              statusText: 'Internal Server Error',
+              json: () =>
+                Promise.resolve({
+                  detail: { code: 'INTERNAL_ERROR', message: 'Listing failed' },
+                }),
+            };
+          }
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { files: listing.files } }),
+          };
+        }
+        // File content: /config/files/<encoded path>
+        const filename = decodeURIComponent(url.pathname.split('/config/files/')[1] ?? '');
+        return {
+          ok: true,
+          json: () =>
+            Promise.resolve({ status: 'ok', data: { filename, content: { file: filename } } }),
+        };
+      });
+    }
+
+    const tree: Record<string, Listing> = {
+      '': { directories: ['Cache', 'Logs'], files: ['root.json'] },
+      Cache: { directories: ['unpack'], files: ['cache.json'] },
+      'Cache/unpack': { directories: ['Some Mod'], files: ['unpack.json'] },
+      'Cache/unpack/Some Mod': { directories: [], files: ['modinfo.json'] },
+      Logs: { directories: [], files: [] },
+    };
+
+    const current = () => screen.getByTestId('path-breadcrumb-current');
+
+    async function renderPanel(fetchMock = treeFetch(tree)) {
+      globalThis.fetch = fetchMock;
+      const queryClient = createTestQueryClient();
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-root.json')).toBeInTheDocument();
+      });
+      return fetchMock;
+    }
+
+    async function openDirectory(name: string) {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`file-item-${name}`));
+      });
+      await waitFor(() => {
+        expect(current()).toHaveTextContent(name);
+      });
+    }
+
+    it('shows the breadcrumb above the list and viewer at the root', async () => {
+      await renderPanel();
+
+      const panel = screen.getByTestId('file-manager-panel');
+      expect(panel).toHaveClass('flex-col');
+      const bar = screen.getByTestId('file-manager-breadcrumb-bar');
+      expect(bar.parentElement).toBe(panel);
+      expect(panel.firstElementChild).toBe(bar);
+      expect(within(bar).getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
+      expect(bar).not.toContainElement(screen.getByTestId('file-list'));
+      expect(current()).toHaveTextContent('serverdata');
+      expect(current()).toHaveAttribute('aria-current', 'page');
+      expect(screen.queryByTestId('path-breadcrumb-root')).not.toBeInTheDocument();
+    });
+
+    it('has no Back button at any level', async () => {
+      await renderPanel();
+      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+
+      expect(screen.queryByTestId('file-manager-back')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument();
+    });
+
+    it('shows every directory of the path, ancestors as buttons', async () => {
+      await renderPanel();
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+      await openDirectory('Some Mod');
+
+      const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+      expect(within(nav).getAllByRole('button').map((b) => b.textContent)).toEqual([
+        'serverdata',
+        'Cache',
+        'unpack',
+      ]);
+      expect(current()).toHaveTextContent('Some Mod');
+      expect(screen.getByTestId('file-item-modinfo.json')).toBeInTheDocument();
+    });
+
+    it('jumps from three levels deep to the root in one click', async () => {
+      const fetchMock = await renderPanel();
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+      await openDirectory('Some Mod');
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
+      });
+
+      await waitFor(() => {
+        expect(current()).toHaveTextContent('serverdata');
+        expect(screen.getByTestId('file-item-root.json')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-Cache')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('path-breadcrumb-root')).not.toBeInTheDocument();
+      // Only the root and prefixes of the path were ever requested
+      const requested = fetchMock.mock.calls.map(([url]) =>
+        new URL(url).searchParams.get('directory')
+      );
+      expect(new Set(requested)).toEqual(
+        new Set([null, 'Cache', 'Cache/unpack', 'Cache/unpack/Some Mod'])
+      );
+    });
+
+    it('jumps to a middle segment and clears the selected file', async () => {
+      await renderPanel();
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+      await openDirectory('Some Mod');
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-modinfo.json'));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent(
+          'Cache/unpack/Some Mod/modinfo.json'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('path-breadcrumb-segment-0'));
+      });
+
+      await waitFor(() => {
+        expect(current()).toHaveTextContent('Cache');
+        expect(screen.getByTestId('file-item-cache.json')).toBeInTheDocument();
+        expect(screen.getByTestId('file-item-unpack')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+          .getAllByRole('button')
+          .map((b) => b.textContent)
+      ).toEqual(['serverdata']);
+    });
+
+    it('moves keyboard focus to the new current segment after a jump', async () => {
+      const user = userEvent.setup();
+      await renderPanel();
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+
+      screen.getByTestId('path-breadcrumb-segment-0').focus();
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(current()).toHaveTextContent('Cache');
+      });
+      expect(current()).toHaveFocus();
+    });
+
+    it('requests a directory with spaces URL-encoded and shows its name as text', async () => {
+      const fetchMock = await renderPanel();
+      await openDirectory('Cache');
+      await openDirectory('unpack');
+      await openDirectory('Some Mod');
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/config/files?directory=Cache%2Funpack%2FSome%20Mod'),
+        expect.anything()
+      );
+      expect(current()).toHaveTextContent('Some Mod');
+      expect(current()).toHaveAttribute('title', 'Some Mod');
+    });
+
+    it('keeps the breadcrumb when a subdirectory fails to load, so the root can be reached', async () => {
+      await renderPanel(treeFetch(tree, ['Cache/unpack']));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-Cache'));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-unpack')).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('file-item-unpack'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-error')).toBeInTheDocument();
+      });
+      expect(screen.getByText('Failed to load files')).toBeInTheDocument();
+      const error = screen.getByTestId('file-manager-error');
+      expect(within(error).getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
+      expect(current()).toHaveTextContent('unpack');
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('path-breadcrumb-root'));
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('file-manager-error')).not.toBeInTheDocument();
+        expect(screen.getByTestId('file-item-root.json')).toBeInTheDocument();
+      });
+    });
+
+    it('shows no breadcrumb in the error state at the root', async () => {
+      globalThis.fetch = treeFetch(tree, ['']);
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-manager-error')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('path-breadcrumb')).not.toBeInTheDocument();
     });
   });
 });
