@@ -6,19 +6,23 @@
  *
  * Story 6.6: File Manager UI - AC: 1, 2, 3, 4, 5
  * Story 9.7: Dynamic File Browser - Directory navigation
+ * Story 16.7: File Browser Breadcrumbs - path segments replace the Back button
  */
 
 import { useState, useMemo } from 'react';
-import { AlertCircle, ChevronLeft } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FileList, type FileListItem } from '@/components/FileList';
 import { FileViewer } from '@/components/FileViewer';
+import { PathBreadcrumb } from '@/components/PathBreadcrumb';
 import {
   useConfigFiles,
   useConfigFileContent,
   useConfigDirectories,
 } from '@/hooks/use-config-files';
-import { Button } from '@/components/ui/button';
+
+/** Label of the breadcrumb root: the serverdata directory the API lists (Story 16.7). */
+const ROOT_LABEL = 'serverdata';
 
 /**
  * Props for the FileManagerPanel component.
@@ -35,7 +39,8 @@ export interface FileManagerPanelProps {
  *
  * Displays a file list on the left and file viewer on the right.
  * Manages file selection state and data fetching.
- * Supports directory navigation (Story 9.7).
+ * Supports directory navigation (Story 9.7) with a breadcrumb of the current path
+ * across the top of the panel (Story 16.7).
  *
  * @example
  * <FileManagerPanel />
@@ -108,21 +113,15 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     setSelectedFile(null); // Clear selection when changing directories
   };
 
-  // Handle back navigation (Story 9.7 - nested directory support)
-  const handleNavigateBack = () => {
-    if (!currentDirectory) return;
-
-    // Navigate to parent directory or root
-    const lastSlash = currentDirectory.lastIndexOf('/');
-    if (lastSlash === -1) {
-      // At first level, go back to root
-      setCurrentDirectory(null);
-    } else {
-      // Go up one level
-      setCurrentDirectory(currentDirectory.substring(0, lastSlash));
-    }
+  // Breadcrumb navigation to the root (null) or an ancestor of the current path (Story 16.7)
+  const handleNavigate = (path: string | null) => {
+    setCurrentDirectory(path);
     setSelectedFile(null);
   };
+
+  const breadcrumb = (
+    <PathBreadcrumb path={currentDirectory} rootLabel={ROOT_LABEL} onNavigate={handleNavigate} />
+  );
 
   // Combined loading state
   const isLoading = isLoadingFiles || isLoadingDirectories;
@@ -131,6 +130,8 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   if (filesError) {
     return (
       <div className={className} data-testid="file-manager-error">
+        {/* Keep the breadcrumb so a failed subdirectory is not a dead end (Story 16.7) */}
+        {currentDirectory && <div className="mb-2 px-1">{breadcrumb}</div>}
         <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
@@ -146,47 +147,39 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
 
   return (
     <div
-      className={cn('flex h-[500px] rounded-lg border bg-card', className)}
+      className={cn('flex h-[500px] flex-col rounded-lg border bg-card', className)}
       data-testid="file-manager-panel"
     >
-      {/* File List - Left Side */}
-      <div className="w-56 shrink-0 border-r flex flex-col">
-        {/* Back button when in subdirectory (Story 9.7) */}
-        {currentDirectory && (
-          <div className="border-b p-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNavigateBack}
-              className="w-full justify-start gap-2"
-              data-testid="file-manager-back"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="truncate">{currentDirectory}</span>
-            </Button>
-          </div>
-        )}
-        <FileList
-          items={items}
-          selectedFile={selectedFile}
-          isLoading={isLoading}
-          onSelectFile={handleSelectFile}
-          onSelectDirectory={handleSelectDirectory}
-          className="flex-1 overflow-auto"
-        />
+      {/* Current path across the panel (Story 16.7) */}
+      <div className="min-w-0 border-b px-3 py-2" data-testid="file-manager-breadcrumb-bar">
+        {breadcrumb}
       </div>
 
-      {/* File Viewer - Right Side */}
-      <div className="flex-1 min-w-0">
-        <FileViewer
-          filename={selectedFile}
-          content={contentData?.data?.content ?? null}
-          isLoading={isLoadingContent}
-          error={contentError?.message ?? null}
-          wordWrap={wordWrap}
-          onWordWrapChange={setWordWrap}
-          className="h-full"
-        />
+      <div className="flex min-h-0 flex-1">
+        {/* File List - Left Side */}
+        <div className="w-56 shrink-0 border-r flex flex-col">
+          <FileList
+            items={items}
+            selectedFile={selectedFile}
+            isLoading={isLoading}
+            onSelectFile={handleSelectFile}
+            onSelectDirectory={handleSelectDirectory}
+            className="flex-1 overflow-auto"
+          />
+        </div>
+
+        {/* File Viewer - Right Side */}
+        <div className="flex-1 min-w-0">
+          <FileViewer
+            filename={selectedFile}
+            content={contentData?.data?.content ?? null}
+            isLoading={isLoadingContent}
+            error={contentError?.message ?? null}
+            wordWrap={wordWrap}
+            onWordWrapChange={setWordWrap}
+            className="h-full"
+          />
+        </div>
       </div>
     </div>
   );
