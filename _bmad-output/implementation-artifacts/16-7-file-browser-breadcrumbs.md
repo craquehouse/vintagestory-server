@@ -1,6 +1,6 @@
 # Story 16.7: File Browser Breadcrumbs
 
-Status: review
+Status: done
 
 <!-- Implements FR174. Beads: VSS-8lh (this story, child of the Epic 16 bead VSS-stm); VSS-3mr (directory navigation E2E test, child of VSS-029 Web UI Test Coverage). Stacks on Story 16.6 (branch story/16-6-settings-layout-on-desktop, PR #153), itself on #152, #151, #150, #149, #148. Last story of Epic 16. No new dependencies; no API change. -->
 
@@ -61,6 +61,13 @@ so that **I can move up several levels in one click**.
 - [x] Task 4: Quality gate and review hand-off (AC: all)
   - [x] 4.1: `just check` passes
   - [x] 4.2: Status review, `just sprint set 16-7-file-browser-breadcrumbs review`, PR to `story/16-6-settings-layout-on-desktop` (stacks on #153, #152, #151, #150, #149, #148), PR link on `VSS-8lh` and `VSS-3mr`; `VSS-3mr` stays open with a comment that the "new directory appears on refresh" part is not covered
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] M1: segment buttons were about 20px tall; the UX spec asks for 44px touch targets and on phones the breadcrumb is the only way up. Fixed: root and ancestor buttons are `min-h-11 px-1` below `md` and `md:min-h-0 md:px-0` from `md` (the Story 16.5 phone breakpoint); unit test for the classes, E2E asserts at least 44px at 390px and under 44px at 1280px. Red first: the unit test failed, and the E2E height check failed on the running pre-fix build (20px) (651bd76)
+- [x] [AI-Review][Low] L2: the focus flag was only cleared when `path` changed, so a click whose `onNavigate` did not change the path left it set and the next outside path change stole focus. Fixed: the click stores the requested path, an effect after every render focuses only if the rendered path matches it and clears it either way; test with a no-op `onNavigate`, red first (0da3843)
+- [x] [AI-Review][Low] L3: a directory name containing `/` renders as several segments (the slash-joined path dates from Story 9.7). Deferred: bead `VSS-o8s` [UI-081] (top-level, P3)
+- [x] [AI-Review][Low] L4: the E2E search limit counted queue pops, not listing requests. Fixed: every request is counted in `listDirectories` (126c714); not red-first, the number of requests is unchanged (one per pop today)
 
 ## Dev Notes
 
@@ -169,6 +176,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Decisions: Back button removed (the parent segment replaces it; focus moves to the new current segment after a jump); root label `serverdata`; segments are buttons because the path is component state with no URL; the breadcrumb spans the panel and is always shown; long paths wrap and a name wider than the panel truncates with its full name in `title`; the error state keeps the breadcrumb in a subdirectory.
 - Beads: filed `VSS-uni` [UI-080] Settings tab list scrolls the page sideways on phones (top-level; pre-existing 144px overflow at 390px). `VSS-3mr`: the directory navigation E2E test is covered; "new directory appears on refresh" is not (the API cannot create directories and `./data` is read-only for this story), so the bead stays open.
 
+- Review fixes: M1 and L2 red runs (each new unit test failed), M1 E2E height check failed on the pre-fix build (20px); after the fixes `PathBreadcrumb` 18 passed, `FileManagerPanel` 44 passed. `just check` passed: API 2,108 passed; web 3,126 passed and 4 skipped (pre-existing); scripts 190 passed; pyright 0 errors (3 pre-existing warnings); ruff and `tsc` clean. `just docker restart`, then the file browser E2E spec: 5 passed.
+- Beads filed in review: `VSS-o8s` [UI-081] File browser path breaks on directory names containing a slash.
+
 ### File List
 
 - `web/src/components/PathBreadcrumb.tsx` (new)
@@ -182,3 +192,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.7 created (ready-for-dev). Ultimate context engine analysis completed - comprehensive developer guide created.
 - 2026-11-13: Implemented: `PathBreadcrumb` component; the File Manager shows the current path as a breadcrumb across the panel instead of the Back button, also in the error state; E2E spec for directory navigation (VSS-3mr) and before/after browser measurements; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Changes Requested, minor). M1, L2 and L4 fixed, L3 deferred to `VSS-o8s`; Back button removal accepted. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #154 head
+**Outcome:** Changes Requested → resolved
+
+**Summary:** ACs 1-4, 6 and 7 pass; AC 5 was partial (touch targets on phones). The File List matches the diff. On the PR head the web tests passed (3,124 passed, 4 skipped) and the typecheck was clean. Removing the Back button was accepted. One medium and three low findings; three fixed, one deferred.
+
+### Action Items
+
+- [x] [Medium] M1 breadcrumb buttons under 44px on phones (fixed, 651bd76)
+- [x] [Low] L2 stale focus flag after a click that does not change the path (fixed, 0da3843)
+- [x] [Low] L3 directory names containing `/` split into segments (deferred, `VSS-o8s`)
+- [x] [Low] L4 E2E search limit counted pops, not requests (fixed, 126c714)
