@@ -188,7 +188,7 @@ development_status:
   16-1-mod-browser-state-survives-mod-details: done
   16-2-installed-mods-recognized-by-any-mod-id: done
   16-3-latest-supported-game-version-for-incompatible-mods: done
-  16-4-formatted-description-in-mod-lookup-preview: review
+  16-4-formatted-description-in-mod-lookup-preview: done
   16-5-installed-mods-on-phones: review
   16-6-settings-layout-on-desktop: backlog
   16-7-file-browser-breadcrumbs: backlog

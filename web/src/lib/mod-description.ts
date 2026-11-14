@@ -7,6 +7,7 @@
  * - Links that keep an `href` open in a new tab with `rel="noopener noreferrer"`.
  * - `<style>` elements are removed: DOMPurify keeps one that follows body content,
  *   and it would restyle the whole app, not just the description.
+ * - Forms and their controls are removed.
  */
 
 import DOMPurify, { type Config } from 'dompurify';
@@ -18,15 +19,22 @@ import DOMPurify, { type Config } from 'dompurify';
 const purifier = DOMPurify(window);
 
 purifier.addHook('afterSanitizeAttributes', (node) => {
-  if (node.tagName === 'A' && node.hasAttribute('href')) {
+  // nodeName is "A" for HTML links but "a" for SVG links, which carry xlink:href
+  const isLink =
+    node.nodeName.toLowerCase() === 'a' &&
+    (node.hasAttribute('href') || node.hasAttribute('xlink:href'));
+  if (isLink) {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
   }
 });
 
-/** DOMPurify defaults (images, inline styles kept) minus `<style>`. */
+/**
+ * DOMPurify defaults (images, inline styles kept) minus `<style>` and forms:
+ * a form inside the admin UI could pass for one of its own controls.
+ */
 const DESCRIPTION_CONFIG: Config = {
-  FORBID_TAGS: ['style'],
+  FORBID_TAGS: ['style', 'form', 'input', 'button', 'select', 'textarea'],
 };
 
 /** Sanitize a mod description for the mod detail page. */
