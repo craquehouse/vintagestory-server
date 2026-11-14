@@ -1,6 +1,6 @@
 # Story 16.5: Installed Mods on Phones
 
-Status: review
+Status: done
 
 <!-- Implements FR172. Bead: VSS-rr5 (Story 14.3 review L3). Stacks on Story 16.4 (branch story/16-4-formatted-description-in-mod-lookup-preview, PR #151), itself on 16.3 (PR #150), 16.2 (PR #149) and 16.1 (PR #148). Do not touch web/src/components/ModLookupInput* or the Story 16.4 docs. No new dependencies. -->
 
@@ -54,7 +54,7 @@ so that **I can update, enable and remove mods without scrolling sideways**.
 - [x] Task 3: Installed mods as cards below `md` + tests (AC: 1, 2, 3, 4, 5, 6)
   - [x] 3.1: `web/src/components/InstalledModCard.tsx`: one card per mod (`<li>` with `data-testid="installed-mod-card-<slug>"`, `aria-label` = mod name) built from the Task 2 parts and `ModUpdateCell`: name and slug with the enable toggle on the first row; version and side badge; compatibility with `showMessage`; an "Available" row with the update status and Update action; the remove button. Long names, slugs and messages wrap (`min-w-0`, `break-words`), never widen the card. Touch targets: the toggle sits in a `<label>` of at least 44x44px (`min-h-11 min-w-11`) so a tap anywhere in it toggles; the Update and remove buttons are `min-h-11`/`size-11`
   - [x] 3.2: `ModTable` picks the layout with `useMediaQuery(MD_UP_QUERY)`: the table at `md` and up, otherwise `<ul data-testid="installed-mod-cards" aria-label="Installed mods">` with one card per `table.getRowModel().rows` (same sorted row model, so the order always matches the table), passing the existing `handleToggle`, `handleUpdate`, `handleRemoveClick`, `isTogglingMod`, `isChangingVersion` and `gameVersion`. Loading, empty state and both dialogs stay shared and outside the switch. Update the component doc comment
-  - [x] 3.3: Tests in `ModTable.test.tsx` ("Story 16.5: cards below md" block, `setViewportWidth(390)`): cards render and `mod-table` does not; each card shows name link, slug, version, side, update status; the Update action opens the same confirmation flow (same request as the table test); toggle calls enable/disable and shows the spinner; remove opens the shared dialog and removes; incompatible card shows badge, "Supports up to X" and the message text, compatible card no message; card order follows the sort preference (name asc default, a stored `version desc` preference); touch-size classes present on toggle label, Update and remove; loading and empty states at 390; crossing the breakpoint with `setViewportWidth` switches table ↔ cards. At the default width the existing table tests are untouched
+  - [x] 3.3: Tests in `ModTable.test.tsx` ("Story 16.5: cards below md" block, `setViewportWidth(390)`): cards render and `mod-table` does not; each card shows name link, slug, version, side, update status; the Update action opens the same confirmation flow (same request as the table test); toggle calls enable/disable and shows the spinner; remove opens the shared dialog and removes; incompatible card shows badge, "Supports up to X" and the message text, compatible card no message; card order follows the sort preference (name asc default, a stored `enabled desc` preference); touch-size classes present on toggle label, Update and remove; loading and empty states at 390; crossing the breakpoint with `setViewportWidth` switches table ↔ cards. At the default width the existing table tests are untouched
 
 - [x] Task 4: Installed tab toolbar fits a phone + tests (AC: 1, 4, 5)
   - [x] 4.1: `InstalledTab`: the button group wraps (`flex-wrap`) so "Last checked …", "Update all (N)" and "Check for updates" never push the page wider than the screen (today at 390px with "Update all" shown the document is 413px wide); below `md` the two buttons are 44px tall (`max-md:h-11`). At `md` and up the toolbar looks as today
@@ -67,6 +67,15 @@ so that **I can update, enable and remove mods without scrolling sideways**.
 - [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` passes
   - [x] 6.2: Status review, `just sprint set 16-5-installed-mods-on-phones review`, PR to `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4 #151, #150, #149, #148), PR link on `VSS-rr5`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Medium] M1: Task 3.3 said the order test uses a stored `version desc` preference; the test stores `enabled desc`. Fixed the story wording
+- [x] [AI-Review][Medium] M2: PR #152 conflicted after 16.4 gained e5fdbdd and a5675c7 (review fixes, done). Fixed by merging `origin/story/16-4-formatted-description-in-mod-lookup-preview` (b29a0e8, no force-push); `sprint-status.yaml` keeps 16.4 `done` and this story's entry
+- [x] [AI-Review][Low] L3: the card's Update button guaranteed only its height; while updating (spinner only) it was about 40px wide. Fixed: `min-h-11 min-w-11`, unit test asserts the class, E2E asserts a computed `min-width` of at least 44px (red on the previous build: `auto`) (084f06e)
+- [x] [AI-Review][Low] L4: no test that a confirmation dialog survives a layout switch. Added: at 390 open the remove dialog, switch to 1024, the dialog stays and Confirm sends the DELETE (d3c0ceb). It passed on first run: the dialog state lives in `ModTable` outside the layout switch
+- [x] [AI-Review][Low] L5: `useMediaQuery` has no `getServerSnapshot`. Accepted: client-only SPA, no server rendering
+- [x] [AI-Review][Low] L6: the `matchMedia` stand-in evaluated comma-separated (OR) queries as AND. Fixed: split on commas and match when any part does; doc comment updated; test added, red first (dd8c1d1)
 
 ## Dev Notes
 
@@ -176,6 +185,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 6: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,194 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
 - Rebase: Story 16.4's branch moved during development (995e222, de24045, 8ab8b8a: lookup preview removed, story rescoped, PR #151). Rebased this branch onto 8ab8b8a; the only conflicts were the adjacent 16-4/16-5 lines in `sprint-status.yaml`, resolved in each commit by keeping 16.4's `review` and this story's own status, so this branch never changes the 16-4 entry. After the rebase `just check` passed again (API 2,108 passed; web 3,079 passed and 4 skipped, fewer because 16.4 removed the `ModLookupInput` tests; scripts 190 passed; pyright 0 errors, 3 pre-existing warnings), the rebuilt Docker stack passed the E2E spec (4 passed), and the manual pass gave the same results.
 
+- Review fixes: red runs for L3 (unit class assertion; E2E `min-width` on the previous build) and L6 (stand-in OR test); L4's test passed first time (behavior already correct). After the merge and fixes `just check` passed: API 2,108 passed; web 3,084 passed and 4 skipped (pre-existing); scripts 190 passed; pyright 0 errors (3 pre-existing warnings); ruff and `tsc` clean. `just docker restart` then the phone E2E spec: 4 passed (a first run seconds after the restart failed all four while the server was still starting; rerun once ready).
+
 ### Completion Notes List
 
 - Task 1: `useMediaQuery(query)` on `useSyncExternalStore` and `MD_UP_QUERY = '(min-width: 48rem)'`. `web/tests/viewport.ts` installs a `matchMedia` stand-in (typed `MediaQueryList`/`MediaQueryListEvent` implementations, no casts) evaluating `min-width`/`max-width` in px/rem against `innerWidth`, with `setViewportWidth` and `resetViewport`; `tests/setup.ts` installs it and resets to 1024px after each test.
@@ -209,3 +220,22 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.5 created (ready-for-dev).
 - 2026-11-13: Implemented: media query hook and test viewport helper; cell content shared by table and cards; installed mods as cards below `md` with 44px controls and the compatibility message as text; toolbar wraps on phones; E2E spec and browser verification at 390x844 and 1440x900; status review.
+- 2026-11-13: Merged the updated Story 16.4 branch (review fixes, 16.4 done) into this branch (b29a0e8) to resolve the PR conflict.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). M1, M2, L3, L4, L6 fixed; L5 accepted. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #152 head
+**Outcome:** Approve → resolved
+
+**Summary:** All six acceptance criteria are implemented and the File List matches the diff. The desktop table markup was verified unchanged against 8ab8b8a. On the PR head the web tests passed (3,079 passed, 4 skipped) and the typecheck was clean. Two medium and four low findings; five fixed, one accepted.
+
+### Action Items
+
+- [x] [Medium] M1 story wording of the sort preference test (fixed in the story)
+- [x] [Medium] M2 PR conflicting with the updated 16.4 branch (merged, b29a0e8)
+- [x] [Low] L3 card Update button width while updating (fixed, 084f06e)
+- [x] [Low] L4 dialog across a layout switch untested (test added, d3c0ceb)
+- [x] [Low] L5 no `getServerSnapshot` (accepted: client-only SPA)
+- [x] [Low] L6 stand-in treated comma-separated queries as AND (fixed, dd8c1d1)
