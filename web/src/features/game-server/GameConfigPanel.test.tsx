@@ -642,6 +642,22 @@ describe('GameConfigPanel', () => {
       expect(screen.getByLabelText('IP Address')).not.toHaveClass('max-w-xs');
     });
 
+    it('limits the error message to the same width', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ detail: 'Server error' }),
+      });
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-error')).toBeInTheDocument();
+      });
+      const message = screen.getByTestId('game-config-error').firstElementChild;
+      expect(message).toHaveClass('mx-auto', 'max-w-[1280px]');
+    });
+
     it('limits the loading skeleton to the same width', () => {
       globalThis.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
       render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });

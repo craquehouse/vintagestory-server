@@ -197,7 +197,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (error) {
     return (
       <div className={className} data-testid="game-config-error">
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
             <p className="font-medium text-destructive">Failed to load settings</p>
