@@ -7,6 +7,7 @@ mod database at mods.vintagestory.at, handling mod lookups and downloads.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -760,6 +761,20 @@ def _get_recent(m: ModDict) -> str:
     return str(m.get("lastreleased", ""))
 
 
+def _name_sort_key(m: ModDict) -> tuple[str, str, int]:
+    """Get the Name (A-Z) sort key from a mod dict (Story 16.8).
+
+    Ignores surrounding spaces, letter case and accents (combining marks after NFKD
+    normalization). Equal names are ordered by the stripped name, then by asset ID,
+    so the order is the same whatever order the mod database lists them in.
+    A null or missing name sorts as empty.
+    """
+    name = str(m.get("name") or "").strip()
+    decomposed = unicodedata.normalize("NFKD", name)
+    base = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return (base.casefold(), name, int(m.get("assetid") or 0))
+
+
 def sort_mods(
     mods: list[ModDict],
     sort_by: SortOption = "recent",
@@ -771,14 +786,15 @@ def sort_mods(
         sort_by: Sort criteria - "downloads", "trending", "recent", or "name".
 
     Returns:
-        Sorted list of mods (descending order, except name which is ascending).
+        Sorted list of mods (descending order, except name which is ascending and
+        ignores surrounding spaces, letter case and accents).
     """
     if sort_by == "downloads":
         return sorted(mods, key=_get_downloads, reverse=True)
     elif sort_by == "trending":
         return sorted(mods, key=_get_trending, reverse=True)
     elif sort_by == "name":
-        return sorted(mods, key=lambda m: m.get("name", "").lower())
+        return sorted(mods, key=_name_sort_key)
     else:  # recent
         return sorted(mods, key=_get_recent, reverse=True)
 

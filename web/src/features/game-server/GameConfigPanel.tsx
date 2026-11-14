@@ -30,6 +30,8 @@ interface SettingDefinition {
   label: string;
   description?: string;
   validate?: Validator<SettingValue>;
+  /** Story 16.8: mask the value (password) behind a show/hide toggle */
+  masked?: boolean;
 }
 
 /**
@@ -56,6 +58,7 @@ const SERVER_INFO_SETTINGS: SettingDefinition[] = [
     key: 'Password',
     label: 'Password',
     description: 'Leave empty for no password protection',
+    masked: true,
   },
 ];
 
@@ -234,6 +237,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         validate={def.validate}
         envManaged={setting.envManaged}
         description={def.description}
+        masked={def.masked}
         onSave={handleSave}
       />
     );

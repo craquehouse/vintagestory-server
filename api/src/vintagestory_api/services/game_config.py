@@ -43,6 +43,8 @@ class ServerSetting:
     requires_restart: bool
     live_update: bool
     bool_format: BoolFormat
+    nullable: bool
+    clear_command: str | None
 
     def __init__(
         self,
@@ -52,6 +54,8 @@ class ServerSetting:
         requires_restart: bool = False,
         live_update: bool = True,
         bool_format: BoolFormat = "true_false",
+        nullable: bool = False,
+        clear_command: str | None = None,
     ) -> None:
         """Initialize a server setting definition.
 
@@ -62,6 +66,12 @@ class ServerSetting:
             requires_restart: Whether this setting requires server restart.
             live_update: Whether this setting can be updated while server is running.
             bool_format: Format for boolean values in console commands.
+            nullable: Whether the setting can have no value (null). Story 16.8: only
+                settings whose VintageStory default is null; a blank string is stored
+                as null.
+            clear_command: Console command (no {value}) that clears the setting while
+                the server runs. Without one, clearing a live setting writes the file
+                and requires a restart.
         """
         self.key = key
         self.value_type = value_type
@@ -69,6 +79,8 @@ class ServerSetting:
         self.requires_restart = requires_restart
         self.live_update = live_update
         self.bool_format = bool_format
+        self.nullable = nullable
+        self.clear_command = clear_command
 
 
 # Settings that support live updates via console commands
@@ -84,6 +96,7 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         value_type="string",
         console_command="/serverconfig description {value}",
         live_update=True,
+        nullable=True,
     ),
     "WelcomeMessage": ServerSetting(
         key="WelcomeMessage",
@@ -108,6 +121,8 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         value_type="string",
         console_command="/serverconfig password {value}",
         live_update=True,
+        nullable=True,
+        clear_command="/serverconfig nopassword",
     ),
     "AllowPvP": ServerSetting(
         key="AllowPvP",
@@ -172,6 +187,7 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         console_command=None,
         requires_restart=True,
         live_update=False,
+        nullable=True,
     ),
 }
 
@@ -470,20 +486,34 @@ class GameConfigService:
             last_modified=last_modified,
         )
 
-    def _validate_value(self, key: str, value: Any, value_type: ValueType) -> Any:
+    def _validate_value(
+        self, key: str, value: Any, value_type: ValueType, nullable: bool = False
+    ) -> Any:
         """Validate and coerce a value to the expected type.
+
+        Story 16.8: a nullable setting accepts None, and a blank string (empty or only
+        whitespace) for it becomes None. None for any other setting is rejected instead
+        of being stored as the text "None".
 
         Args:
             key: The setting key (for error messages).
             value: The value to validate.
             value_type: The expected type.
+            nullable: Whether the setting accepts no value (null).
 
         Returns:
-            The validated and coerced value.
+            The validated and coerced value, or None for a cleared nullable setting.
 
         Raises:
             SettingValueInvalidError: If the value cannot be coerced to the expected type.
         """
+        if value is None:
+            if nullable:
+                return None
+            raise SettingValueInvalidError(key, "This setting cannot be empty (null)")
+        if nullable and isinstance(value, str) and value.strip() == "":
+            return None
+
         try:
             # If already correct type, return as-is
             if value_type == "string" and isinstance(value, str):
@@ -573,7 +603,9 @@ class GameConfigService:
         setting_def = LIVE_SETTINGS[key]
 
         # Validate and coerce value type
-        validated_value = self._validate_value(key, value, setting_def.value_type)
+        validated_value = self._validate_value(
+            key, value, setting_def.value_type, setting_def.nullable
+        )
 
         # Sanitize string values for command injection prevention
         if setting_def.value_type == "string" and isinstance(validated_value, str):
@@ -588,6 +620,15 @@ class GameConfigService:
         # Determine update method
         server_running = self.is_server_running()
         use_console = server_running and setting_def.live_update
+
+        if use_console and validated_value is None:
+            # Story 16.8: clear with the setting's own command; without one (Description)
+            # write the file and require a restart, like restart-required settings.
+            if setting_def.clear_command is not None:
+                return await self._execute_console_command(key, None, setting_def)
+            return await self._update_config_file(
+                key, None, setting_def, requires_restart=True
+            )
 
         if use_console:
             return await self._execute_console_command(key, validated_value, setting_def)
@@ -626,20 +667,27 @@ class GameConfigService:
         Raises:
             SettingUpdateFailedError: If the console command fails.
         """
-        if setting_def.console_command is None:
-            raise SettingUpdateFailedError(key, "No console command available")
-
         if self._server_service is None:
             raise SettingUpdateFailedError(key, "ServerService not available")
 
-        # Format value for console command
-        if setting_def.value_type == "bool":
-            formatted_value = self._format_bool_for_console(value, setting_def.bool_format)
+        if value is None:
+            # Story 16.8: clearing uses the setting's clear command (no value)
+            if setting_def.clear_command is None:
+                raise SettingUpdateFailedError(key, "No console command clears this setting")
+            formatted_value = ""
+            command = setting_def.clear_command
         else:
-            formatted_value = str(value)
+            if setting_def.console_command is None:
+                raise SettingUpdateFailedError(key, "No console command available")
 
-        # Build command
-        command = setting_def.console_command.format(value=formatted_value)
+            # Format value for console command
+            if setting_def.value_type == "bool":
+                formatted_value = self._format_bool_for_console(value, setting_def.bool_format)
+            else:
+                formatted_value = str(value)
+
+            # Build command
+            command = setting_def.console_command.format(value=formatted_value)
 
         # Execute command
         # Don't log password values
@@ -668,14 +716,20 @@ class GameConfigService:
         )
 
     async def _update_config_file(
-        self, key: str, value: Any, setting_def: ServerSetting
+        self,
+        key: str,
+        value: Any,
+        setting_def: ServerSetting,
+        requires_restart: bool | None = None,
     ) -> UpdateResult:
         """Update a setting in the config file.
 
         Args:
             key: The setting key.
-            value: The value to set.
+            value: The value to set (None is written as JSON null).
             setting_def: The setting definition.
+            requires_restart: Override for whether the change needs a restart;
+                defaults to the setting definition's requires_restart.
 
         Returns:
             UpdateResult for the update.
@@ -693,7 +747,9 @@ class GameConfigService:
             temp_path.rename(self.config_path)
 
             # Track pending restart if needed
-            pending_restart = setting_def.requires_restart
+            pending_restart = (
+                setting_def.requires_restart if requires_restart is None else requires_restart
+            )
             if pending_restart and self._pending_restart_state is not None:
                 self._pending_restart_state.require_restart(
                     f"Setting '{key}' changed - requires server restart"

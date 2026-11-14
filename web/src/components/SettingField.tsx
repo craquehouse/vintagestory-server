@@ -6,9 +6,13 @@
  * Includes loading spinner during save and error display.
  *
  * Story 6.4: Settings UI
+ * Story 16.8: a setting with no value (null) is an empty field; `masked` hides the
+ * value (password) behind a show/hide toggle.
  */
 
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -35,9 +39,9 @@ export interface SettingFieldProps {
   label: string;
 
   /**
-   * Current value of the setting.
+   * Current value of the setting; null when the setting has no value.
    */
-  value: string | number | boolean;
+  value: string | number | boolean | null;
 
   /**
    * Type of the setting (string, int, bool, float).
@@ -70,6 +74,11 @@ export interface SettingFieldProps {
   onSave: (params: { key: string; value: string | number | boolean }) => Promise<unknown>;
 
   /**
+   * Mask the value (a password), with a button to show and hide it.
+   */
+  masked?: boolean;
+
+  /**
    * Additional CSS class names.
    */
   className?: string;
@@ -98,10 +107,13 @@ export function SettingField({
   envVar,
   description,
   onSave,
+  masked = false,
   className,
 }: SettingFieldProps) {
-  // Coerce value to appropriate type and use as initial
-  const initialValue = type === 'bool' ? Boolean(value) : value;
+  // Coerce value to appropriate type and use as initial.
+  // Story 16.8: no value (null) is an empty field, so it never shows or saves "null".
+  const initialValue = type === 'bool' ? Boolean(value) : (value ?? '');
+  const [isRevealed, setIsRevealed] = useState(false);
 
   // Use the setting field hook for state management
   const field = useSettingField({
@@ -115,6 +127,22 @@ export function SettingField({
 
   const isDisabled = envManaged || field.isPending;
   const isNumber = type === 'int' || type === 'float';
+
+  // Props shared by the plain and masked text inputs, so the two cannot drift apart
+  const sharedInputProps = {
+    id: settingKey,
+    value: String(field.value),
+    onBlur: field.onBlur,
+    onKeyDown: field.onKeyDown,
+    disabled: isDisabled,
+    'aria-describedby': field.error
+      ? `${settingKey}-error`
+      : description
+        ? `${settingKey}-desc`
+        : undefined,
+    'aria-invalid': !!field.error,
+  };
+  const errorInputClass = field.error && 'border-destructive focus-visible:ring-destructive';
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -162,26 +190,42 @@ export function SettingField({
             {Boolean(field.value) ? 'Enabled' : 'Disabled'}
           </span>
         </div>
+      ) : masked ? (
+        <div className="relative">
+          <Input
+            {...sharedInputProps}
+            type={isRevealed ? 'text' : 'password'}
+            // Keep browsers from filling a saved login in, which would then be saved on blur
+            autoComplete="new-password"
+            onChange={(e) => field.setValue(e.target.value)}
+            className={cn('pr-9', errorInputClass)}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
+            onClick={() => setIsRevealed((revealed) => !revealed)}
+            disabled={isDisabled}
+            aria-label={isRevealed ? 'Hide password' : 'Show password'}
+            aria-pressed={isRevealed}
+            aria-controls={settingKey}
+          >
+            {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+        </div>
       ) : (
         <Input
-          id={settingKey}
+          {...sharedInputProps}
           type={isNumber ? 'number' : 'text'}
-          value={String(field.value)}
           onChange={(e) => {
             const newValue = isNumber ? coerceSettingValue(e.target.value, type) : e.target.value;
             field.setValue(newValue as string | number);
           }}
-          onBlur={field.onBlur}
-          onKeyDown={field.onKeyDown}
-          disabled={isDisabled}
-          aria-describedby={
-            field.error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
-          }
-          aria-invalid={!!field.error}
           className={cn(
             // Numbers (ports, counts) keep a narrow box at every width (Epic 16 ADR-3)
             isNumber && 'max-w-xs',
-            field.error && 'border-destructive focus-visible:ring-destructive'
+            errorInputClass
           )}
         />
       )}

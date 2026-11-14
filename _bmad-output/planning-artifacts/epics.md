@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-13'
 updates:
   - date: '2026-11-13'
+    description: 'Added Story 16.8 (Name sort and empty settings) to Epic 16; FR175-FR176'
+  - date: '2026-11-13'
     description: 'Added Epic 16 (8 stories) for UI Polish'
   - date: '2026-11-10'
     description: 'Added Epic 15 (7 stories) for Release Engineering'
@@ -376,6 +378,8 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR172 | Epic 16 | Installed mods as cards on phones |
 | FR173 | Epic 16 | Settings use desktop width |
 | FR174 | Epic 16 | File browser breadcrumbs |
+| FR175 | Epic 16 | Name (A-Z) sort works, server-side and paged |
+| FR176 | Epic 16 | Empty settings shown and saved as empty; Password masked |
 
 ## Epic List
 
@@ -1886,8 +1890,8 @@ So that **I can monitor background task status**.
 | Epic 13: Server Version Browser | 13.0, 13.1, 13.2, 13.3, 13.4, 13.5 | 6 |
 | Epic 14: Mod Updates | 14.0, 14.1, 14.2, 14.3, 14.4, 14.5, 14.6 | 7 |
 | Epic 15: Release Engineering | 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6 | 7 |
-| Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7 | 8 |
-| **Total** | | **93** |
+| Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8 | 9 |
+| **Total** | | **94** |
 
 ---
 
@@ -4163,3 +4167,51 @@ So that **I can move up several levels in one click**.
 **Tasks:**
 - [ ] Replace the Back button with breadcrumb segments (`VSS-8lh`)
 - [ ] Tests, including the end-to-end directory navigation test from `VSS-3mr` if it is still open
+
+---
+
+### Story 16.8: Name Sort and Empty Settings
+
+*(Added 2026-11-13 after Stories 16.0-16.7, for two bugs found during the epic: `VSS-stm.1` and `VSS-7ed`.)*
+
+As an **administrator**,
+I want **the Name (A-Z) sort to list mods, and empty game settings to stay empty**,
+So that **I can find mods alphabetically and edit settings without saving the word "null" or showing the server password**.
+
+**Acceptance Criteria:**
+
+**Given** the mod browser
+**When** I choose Name (A-Z)
+**Then** mods are listed alphabetically by name, ignoring leading spaces, letter case and accents, across all matching mods, with page controls like the other sorts
+
+*(Covers FR175)*
+
+**Given** the Name (A-Z) sort with a later page, a search or filters in the URL
+**When** the page loads
+**Then** the results are that page of the alphabetical list of matching mods, and no request asks for more than 100 mods
+
+*(Covers FR175)*
+
+**Given** a game setting with no value (Description, Password or IP Address)
+**When** I open game server settings
+**Then** the field is empty, not the text "null"
+
+*(Covers FR176)*
+
+**Given** I clear Description, Password or IP Address and leave the field
+**When** the setting is saved
+**Then** it is stored as no value (null), never as the text "null" or "None", and the other settings never store "None"
+
+*(Covers FR176)*
+
+**Given** the Password setting
+**When** I open game server settings
+**Then** the password is masked, and I can show and hide it
+
+*(Covers FR176)*
+
+**Tasks:**
+- [ ] Use the API's existing `sort=name` with normal page sizes and drop the client-side sort (`VSS-stm.1`)
+- [ ] Accept null for the settings whose VintageStory default is null; save a cleared field as null (`VSS-7ed`)
+- [ ] Render null as an empty field and mask Password with a show/hide toggle (`VSS-7ed`)
+- [ ] Tests, and browser verification that restores every changed setting

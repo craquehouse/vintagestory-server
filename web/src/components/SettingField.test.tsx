@@ -448,6 +448,157 @@ describe('SettingField', () => {
     });
   });
 
+  describe('Story 16.8: settings with no value', () => {
+    it('shows a null string setting as an empty field, not "null"', () => {
+      render(
+        <SettingField {...defaultProps} settingKey="ServerDescription" label="Description" value={null} />
+      );
+
+      const input = screen.getByLabelText('Description');
+      expect(input).toHaveValue('');
+      expect(screen.queryByDisplayValue('null')).not.toBeInTheDocument();
+    });
+
+    it('does not save an untouched null field on blur or Enter', () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(
+        <SettingField
+          {...defaultProps}
+          settingKey="ServerDescription"
+          label="Description"
+          value={null}
+          onSave={onSave}
+        />
+      );
+
+      const input = screen.getByLabelText('Description');
+      fireEvent.focus(input);
+      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.blur(input);
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('saves a cleared field as an empty string', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(
+        <SettingField
+          {...defaultProps}
+          settingKey="ServerDescription"
+          label="Description"
+          value="Old description"
+          onSave={onSave}
+        />
+      );
+
+      const input = screen.getByLabelText('Description');
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({ key: 'ServerDescription', value: '' });
+      });
+    });
+
+    it('saves text typed into a null field without a "null" prefix', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(
+        <SettingField
+          {...defaultProps}
+          settingKey="ServerDescription"
+          label="Description"
+          value={null}
+          onSave={onSave}
+        />
+      );
+
+      const input = screen.getByLabelText('Description');
+      fireEvent.change(input, { target: { value: 'Hello' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({ key: 'ServerDescription', value: 'Hello' });
+      });
+    });
+
+    it('shows a null number setting as an empty field', () => {
+      render(
+        <SettingField {...defaultProps} settingKey="Port" label="Port" type="int" value={null} />
+      );
+
+      expect(screen.getByLabelText('Port')).toHaveValue(null);
+      expect(screen.queryByDisplayValue('null')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Story 16.8: masked input', () => {
+    const passwordProps = {
+      ...defaultProps,
+      settingKey: 'Password',
+      label: 'Password',
+      value: 'secret',
+      masked: true,
+    };
+
+    it('masks the value and asks browsers not to fill in a saved password', () => {
+      render(<SettingField {...passwordProps} />);
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveAttribute('type', 'password');
+      expect(input).toHaveAttribute('autocomplete', 'new-password');
+      expect(input).toHaveValue('secret');
+    });
+
+    it('shows and hides the value with the toggle button', () => {
+      render(<SettingField {...passwordProps} />);
+
+      const input = screen.getByLabelText('Password');
+      const toggle = screen.getByRole('button', { name: 'Show password' });
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(toggle);
+      expect(input).toHaveAttribute('type', 'text');
+      const hide = screen.getByRole('button', { name: 'Hide password' });
+      expect(hide).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(hide);
+      expect(input).toHaveAttribute('type', 'password');
+      expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
+    });
+
+    it('saves edits while masked', async () => {
+      const onSave = vi.fn().mockResolvedValue({});
+      render(<SettingField {...passwordProps} value={null} onSave={onSave} />);
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveValue('');
+      fireEvent.change(input, { target: { value: 'newsecret' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({ key: 'Password', value: 'newsecret' });
+      });
+    });
+
+    it('disables the toggle when the field is disabled (env-managed)', () => {
+      render(<SettingField {...passwordProps} envManaged />);
+
+      expect(screen.getByLabelText('Password')).toBeDisabled();
+      const toggle = screen.getByRole('button', { name: 'Show password' });
+      expect(toggle).toBeDisabled();
+
+      fireEvent.click(toggle);
+      expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+    });
+
+    it('does not mask or add a toggle when not masked', () => {
+      render(<SettingField {...defaultProps} />);
+
+      expect(screen.getByRole('textbox')).toHaveAttribute('type', 'text');
+      expect(screen.queryByRole('button', { name: /password/i })).not.toBeInTheDocument();
+    });
+  });
+
   describe('accessibility', () => {
     it('associates label with input', () => {
       render(<SettingField {...defaultProps} />);

@@ -1621,6 +1621,32 @@ class TestBrowseModsEndpoint:
         assert mods[2]["slug"] == "trendingnew"
 
     @respx.mock
+    def test_browse_mods_sort_by_name_pages_through_alphabetical_order(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 16.8: sort=name pages through the whole alphabetical list."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?sort=name&page=2&page_size=2",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        # Old Popular Mod, Smithing Plus | Trending New Mod
+        assert [m["slug"] for m in data["mods"]] == ["trendingnew"]
+        assert data["pagination"]["page"] == 2
+        assert data["pagination"]["total_items"] == 3
+        assert data["pagination"]["total_pages"] == 2
+        assert data["pagination"]["has_prev"] is True
+        assert data["pagination"]["has_next"] is False
+
+    @respx.mock
     def test_browse_mods_api_unavailable(
         self,
         client: TestClient,
