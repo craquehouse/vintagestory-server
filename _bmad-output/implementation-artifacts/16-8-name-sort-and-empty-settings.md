@@ -66,11 +66,11 @@ so that **I can find mods alphabetically and edit settings without saving the wo
   - [x] 3.3: Applying `None`: with the server running and the setting live, use `clear_command` when there is one (no `{value}`); without one (Description) write the file and report `pending_restart=True` (and call `require_restart`); with the server stopped write the file as today. JSON stores `null`. Password stays redacted in logs (`***`), including the clear command path
   - [x] 3.4: Tests in `tests/test_game_config.py` (service) and `tests/test_routers_config.py`: `None` and `""`/`"  "` for each nullable key write `null` to the file (server stopped); running server: Password `None`/`""` sends `/serverconfig nopassword`, Description `None` writes the file with `pending_restart=True` and no console command, Ip unchanged (file, restart); `None` for `ServerName`, `WelcomeMessage`, `Port`, `AllowPvP` → 400 `SETTING_VALUE_INVALID` and the file is unchanged; `""` for `WelcomeMessage` is still stored as `""`; the existing "None" string behavior is gone (red first: today `None` writes `"None"`)
 
-- [ ] Task 4: Settings page shows empty settings as empty and masks Password + tests (AC: 3, 6, 7)
-  - [ ] 4.1: `web/src/api/types.ts`: `GameSetting.value` and `GameSettingUpdateData.value` allow `null`
-  - [ ] 4.2: `web/src/components/SettingField.tsx`: `value` prop allows `null`; non-boolean fields use `value ?? ''` as the initial value, so the input is empty and an untouched field is not dirty (no save on blur); booleans unchanged (`Boolean(value)`)
-  - [ ] 4.3: `SettingField` gains an optional `masked` prop: the input is `type="password"` with `autoComplete="new-password"` and a ghost icon button inside its right edge (`Eye`/`EyeOff` from `lucide-react`, already a dependency; positioned like the search clear button in `BrowseTab`) that toggles `type` between `password` and `text`, with `aria-label` "Show password"/"Hide password" and `aria-pressed`; the input gets right padding so text does not run under the button. `GameConfigPanel` sets `masked` on the Password definition
-  - [ ] 4.4: Tests: `SettingField.test.tsx`: a null string value renders an empty input (not "null"); focus and blur without typing does not call `onSave`; clearing a non-empty value and blurring calls `onSave` with `""`; a null number renders empty; `masked` renders `type="password"` with `autocomplete="new-password"`, the toggle shows and hides it and updates its label and `aria-pressed`, and editing and saving still work while masked. `GameConfigPanel.test.tsx`: with `ServerDescription`, `Password` and `Ip` null the inputs are empty and no "null" text is shown; Password is `type="password"`; Server Name is not masked; existing tests pass
+- [x] Task 4: Settings page shows empty settings as empty and masks Password + tests (AC: 3, 6, 7)
+  - [x] 4.1: `web/src/api/types.ts`: `GameSetting.value` and `GameSettingUpdateData.value` allow `null`
+  - [x] 4.2: `web/src/components/SettingField.tsx`: `value` prop allows `null`; non-boolean fields use `value ?? ''` as the initial value, so the input is empty and an untouched field is not dirty (no save on blur); booleans unchanged (`Boolean(value)`)
+  - [x] 4.3: `SettingField` gains an optional `masked` prop: the input is `type="password"` with `autoComplete="new-password"` and a ghost icon button inside its right edge (`Eye`/`EyeOff` from `lucide-react`, already a dependency; positioned like the search clear button in `BrowseTab`) that toggles `type` between `password` and `text`, with `aria-label` "Show password"/"Hide password" and `aria-pressed`; the input gets right padding so text does not run under the button. `GameConfigPanel` sets `masked` on the Password definition
+  - [x] 4.4: Tests: `SettingField.test.tsx`: a null string value renders an empty input (not "null"); focus and blur without typing does not call `onSave`; clearing a non-empty value and blurring calls `onSave` with `""`; a null number renders empty; `masked` renders `type="password"` with `autocomplete="new-password"`, the toggle shows and hides it and updates its label and `aria-pressed`, and editing and saving still work while masked. `GameConfigPanel.test.tsx`: with `ServerDescription`, `Password` and `Ip` null the inputs are empty and no "null" text is shown; Password is `type="password"`; Server Name is not masked; existing tests pass
 
 - [ ] Task 5: Browser verification against the Docker dev stack (AC: all)
   - [ ] 5.1: Before any change to `./data`: copy `data/serverdata/serverconfig.json` to the session scratchpad and record its SHA-1 and the API values of `ServerDescription`, `Password` (null or not, never the value) and `Ip`; record the game server state
@@ -176,6 +176,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: red run, the 3 new `sort_mods` tests failed (leading space and accent order, `None` name raised `AttributeError`, ties in input order); the new router paging test passed already (the API pages name sort today). Then 206 passed in `test_mod_api.py` and `test_mods_router.py`; ruff clean, pyright 0 errors (3 pre-existing warnings).
 - Task 2: red run, 6 new or rewritten tests failed (`mods.test.ts` 1, `use-browse-mods.test.tsx` 4, `BrowseTab.test.tsx` 1); then 182 passed, 2 skipped (pre-existing) in the three files; full web suite 3,121 passed, 4 skipped (pre-existing); `tsc` clean.
 - Task 3: red run, 18 of the new tests failed (`None` and blank values stored as `"None"`/`""`, no `nullable` attribute, `/serverconfig password None` sent, null Server Name and Welcome Message accepted); null for Port and AllowPvP was already rejected (the int and bool parsers fail on `"None"`). Then 172 passed in `test_game_config.py`, `test_routers_config.py` and `test_edge_cases.py`; full API suite 2,135 passed; ruff clean, pyright 0 errors (3 pre-existing warnings).
+- Task 4: red run, 6 of the 11 new tests failed (null shown as "null", no masking or toggle, Password `type="text"` on the panel); the untouched-null, cleared-field, typed-text and null-number tests passed already (an untouched null was never dirty, and a `number` input drops "null"). Then 64 passed in the two files; full web suite 3,132 passed, 4 skipped (pre-existing); `tsc` clean.
 
 ### Completion Notes List
 
@@ -183,6 +184,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: `sort_mods(..., "name")` uses `_name_sort_key`: stripped, NFKD without combining marks, `casefold()`, then the stripped name and `assetid`; a null or missing name sorts as empty.
 - Task 2: `fetchBrowseMods` sends `sort=name`; `useBrowseMods` passes every sort through with `pageSize ?? 20` and keeps the API's order (the 1000 page size and the client-side `sortModsByName` are removed, with its tests); `BrowseTab` shows page controls and the normal results count for the Name sort.
 - Task 3: `ServerSetting` has `nullable` and `clear_command`; `ServerDescription`, `Password` and `Ip` are nullable and Password clears with `/serverconfig nopassword`. `_validate_value` (now with a `nullable` flag; the type argument is unchanged) returns `None` for null or a blank string on a nullable setting and rejects null otherwise. While the server runs, a cleared Password uses the clear command; a cleared Description is written to the file with `pending_restart=True` (`_update_config_file` takes a `requires_restart` override). The clear path logs the password as `***`.
+- Task 4: `GameSetting.value` and `GameSettingUpdateData.value` allow `null`. `SettingField` starts non-boolean fields at `value ?? ''`; a new `masked` prop renders `type="password"` with `autoComplete="new-password"`, `pr-9`, and a ghost `Eye`/`EyeOff` button ("Show password"/"Hide password", `aria-pressed`, `aria-controls`) inside the right edge; `GameConfigPanel` masks Password. The web UI still sends `""` for a cleared field; the API stores null (Task 3).
 
 ### File List
 
@@ -198,3 +200,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `api/src/vintagestory_api/services/game_config.py`
 - `api/tests/test_game_config.py`
 - `api/tests/test_routers_config.py`
+- `web/src/api/types.ts`
+- `web/src/components/SettingField.tsx`
+- `web/src/components/SettingField.test.tsx`
+- `web/src/features/game-server/GameConfigPanel.tsx`
+- `web/src/features/game-server/GameConfigPanel.test.tsx`

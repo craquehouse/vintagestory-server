@@ -529,6 +529,68 @@ describe('GameConfigPanel', () => {
       });
     });
   });
+  describe('Story 16.8: settings with no value and the password', () => {
+    const configWithNulls = {
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: [
+          ...mockGameConfig.data.settings.map((setting) =>
+            setting.key === 'ServerDescription' || setting.key === 'Password'
+              ? { ...setting, value: null, env_managed: false }
+              : setting
+          ),
+          {
+            key: 'Ip',
+            value: null,
+            type: 'string',
+            live_update: false,
+            requires_restart: true,
+            env_managed: false,
+          },
+        ],
+      },
+    };
+
+    it('shows Description, Password and IP Address with no value as empty fields', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(configWithNulls),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Description')).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText('Description')).toHaveValue('');
+      expect(screen.getByLabelText('Password')).toHaveValue('');
+      expect(screen.getByLabelText('IP Address')).toHaveValue('');
+      expect(screen.queryByDisplayValue('null')).not.toBeInTheDocument();
+    });
+
+    it('masks the password and not the server name', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(configWithNulls),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<GameConfigPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Password')).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+      expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Server Name')).toHaveAttribute('type', 'text');
+      expect(screen.getByLabelText('Description')).toHaveAttribute('type', 'text');
+    });
+  });
+
   describe('Story 16.6: desktop layout', () => {
     const setting = (key: string, value: string | number | boolean, type: string) => ({
       key,

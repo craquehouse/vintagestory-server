@@ -232,7 +232,8 @@ export type SettingType = 'string' | 'int' | 'bool' | 'float';
  */
 export interface GameSetting {
   key: string;
-  value: string | number | boolean;
+  /** Story 16.8: null when the setting has no value */
+  value: string | number | boolean | null;
   type: SettingType;
   liveUpdate: boolean;
   envManaged: boolean;
@@ -253,7 +254,8 @@ export interface GameConfigData {
  */
 export interface GameSettingUpdateData {
   key: string;
-  value: string | number | boolean;
+  /** Story 16.8: null when the setting has no value */
+  value: string | number | boolean | null;
   method: 'console_command' | 'file_update';
   pendingRestart: boolean;
 }
