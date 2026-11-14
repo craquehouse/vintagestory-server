@@ -1,6 +1,6 @@
 # Story 16.8: Name Sort and Empty Settings
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR175-FR176. Beads: VSS-stm.1 (Name sort), VSS-7ed (empty settings, Password). Added to Epic 16 on 2026-11-13 after Stories 16.0-16.7 (sprint-change-proposal-2026-11-13.md, Addendum). Stacks on Story 16.7 (branch story/16-7-file-browser-breadcrumbs, PR #154), itself on #153, #152, #151, #150, #149, #148. No new dependencies. -->
 
@@ -79,9 +79,9 @@ so that **I can find mods alphabetically and edit settings without saving the wo
   - [x] 5.4: `just docker restart` (rebuild from this branch); run both specs. Then, with Playwright in a scratchpad script: type a value into Description and Password and leave each field, clear each and leave it, and after each step read the setting back through `GET /api/v1alpha1/config/game`: the cleared value is `null` (not `""`, `"null"` or `"None"`). Do not touch Server Name, IP Address or Port. Browser console clean
   - [x] 5.5: Restore: copy the saved `serverconfig.json` back, confirm the SHA-1 matches the one from 5.1 and the API returns the recorded values. Screenshots stay in the scratchpad unless masked (`header span.font-semibold`, `#ServerName`, `#Password`)
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes
-  - [ ] 6.2: Status review, `just sprint set 16-8-name-sort-and-empty-settings review`, PR to `story/16-7-file-browser-breadcrumbs` (stacks on #154, #153, #152, #151, #150, #149, #148), PR link on `VSS-stm.1` and `VSS-7ed`
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` passes
+  - [x] 6.2: Status review, `just sprint set 16-8-name-sort-and-empty-settings review`, PR to `story/16-7-file-browser-breadcrumbs` (stacks on #154, #153, #152, #151, #150, #149, #148), PR link on `VSS-stm.1` and `VSS-7ed`
 
 ## Dev Notes
 
@@ -181,6 +181,7 @@ Claude Opus 5.5 (claude-opus-5-5)
   - Name sort: Name (A-Z) from the sort menu requested `sort=name&page_size=20` (200), 20 cards in the API's order, alphabetical, pagination and "Showing 20 of N mods"; page 2 by the Next button continued page 1; `?sort=name&page=N` (half of the total pages) was alphabetical and started after page 2 ended; `?q=farm&sort=name` alphabetical. No browse request had `page_size` over 100 and none returned 422.
   - Settings (scratchpad script `save_check.mjs`, output `save_check.out.json`): Description and Password fields empty, Password `type="password"`. Focus and leave without typing: no POST, API still null. Typing a test value and Tab saved it (200, read back through `GET /config/game`); clearing and Tab saved `null` (response value null, read back null, field empty) for both. `serverconfig.json` then had `"ServerDescription": null` and `"Password": null`. Server Name, IP Address and Port were not touched. Browser console: no errors or warnings.
   - Restore: the saved file was copied back; SHA-1 `a69a97560c55daf5e32c42f003cf9090003395d2`, the same as before (the API's writes had already produced identical bytes, since this file was last written by the API with the same JSON formatting); the API reports all three settings null again. No screenshots taken.
+- Task 6: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,135 passed, web 3,132 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
 
 ### Completion Notes List
 
@@ -190,6 +191,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 3: `ServerSetting` has `nullable` and `clear_command`; `ServerDescription`, `Password` and `Ip` are nullable and Password clears with `/serverconfig nopassword`. `_validate_value` (now with a `nullable` flag; the type argument is unchanged) returns `None` for null or a blank string on a nullable setting and rejects null otherwise. While the server runs, a cleared Password uses the clear command; a cleared Description is written to the file with `pending_restart=True` (`_update_config_file` takes a `requires_restart` override). The clear path logs the password as `***`.
 - Task 4: `GameSetting.value` and `GameSettingUpdateData.value` allow `null`. `SettingField` starts non-boolean fields at `value ?? ''`; a new `masked` prop renders `type="password"` with `autoComplete="new-password"`, `pr-9`, and a ghost `Eye`/`EyeOff` button ("Show password"/"Hide password", `aria-pressed`, `aria-controls`) inside the right edge; `GameConfigPanel` masks Password. The web UI still sends `""` for a cleared field; the API stores null (Task 3).
 - Task 5: `web/e2e/mod-browse-name-sort.spec.ts` (Name sort from the menu, pages 1, 2 and a later page in order and continuous, search with Name sort, page size and status of every browse request) and `web/e2e/settings-empty-values.spec.ts` (null settings empty, no "null" text, Password masked and toggled; skips with a reason if the stack's settings have values). Both read only. The save-and-restore check ran from a scratchpad script, not a committed spec, because it changes `./data`.
+- Task 6: status review; PR targets `story/16-7-file-browser-breadcrumbs` (stacks on #154, #153, #152, #151, #150, #149, #148).
+- Decisions: Name sort uses the API's existing `sort=name` (it already sorted the whole cached listing before paging; API-029 was stale), with a key that ignores surrounding spaces, case and accents. Nullable settings are `ServerDescription`, `Password` and `Ip` (VintageStory's null defaults); the API turns blank into null for them and rejects null for every other setting; a cleared Password while running uses `/serverconfig nopassword`, a cleared Description is written to the file with a restart flag.
+- Beads filed (top-level, outside Epic 16): `VSS-qed` [API-072] Monitor role can read the server password from `GET /config/game`; `VSS-2le` [UI-082] Entity Spawning shows Disabled when `serverconfig.json` has no value for it; `VSS-zws` [API-073] check whether VintageStory overwrites `serverconfig.json` edits made while it runs.
 
 ### File List
 
