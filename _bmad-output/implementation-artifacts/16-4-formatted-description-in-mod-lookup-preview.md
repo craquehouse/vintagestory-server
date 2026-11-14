@@ -1,6 +1,6 @@
 # Story 16.4: Shared Description Sanitizer and Safe Links
 
-Status: in-progress
+Status: review
 
 <!-- Rescoped 2026-11-13 (maintainer decision): FR171 withdrawn because the mod lookup preview has not been mounted since VSS-195 (2026-01-19). Sprint key and filename keep the original "formatted-description-in-mod-lookup-preview" slug. Bead: VSS-4ll. Stacks on Story 16.3 (PR #150), itself on 16.2 (PR #149) and 16.1 (PR #148); Story 16.5 stacks on this branch. No new dependencies: DOMPurify 3.4.17 is already used by the detail page. -->
 
@@ -49,9 +49,9 @@ so that **a mod author's HTML cannot run code, restyle the app or navigate me aw
 - [x] Task 4: Detail page verification via tests (AC: 1, 2, 3)
   - [x] 4.1: Run `just test-web src/lib/mod-description.test.ts` and `just test-web src/features/mods/ModDetailPage.test.tsx`: dangerous content stripped, links in a new tab with `rel="noopener noreferrer"`, images and text kept, shared instance untouched. The Docker browser check is skipped (maintainer instruction: the Docker stack is in use by Story 16.5)
 
-- [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `just check` passes
-  - [ ] 5.2: Status review, `just sprint set 16-4-formatted-description-in-mod-lookup-preview review`, PR to `story/16-3-latest-supported-game-version-for-incompatible-mods` (stacks on #150, #149, #148), PR link and rescope on `VSS-4ll`
+- [x] Task 5: Quality gate and review hand-off (AC: all)
+  - [x] 5.1: `just check` passes
+  - [x] 5.2: Status review, `just sprint set 16-4-formatted-description-in-mod-lookup-preview review`, PR to `story/16-3-latest-supported-game-version-for-incompatible-mods` (stacks on #150, #149, #148), PR link and rescope on `VSS-4ll`
 
 ## Dev Notes
 
@@ -141,6 +141,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 3 (first version, bb4cfbf): red run, 5 of 7 new preview tests failing, then 40 passed. Browser check (`just docker restart` from bb4cfbf) found no lookup input in the app: `ModLookupInput` unmounted since VSS-195. Story paused; maintainer chose to remove the component.
 - Task 3 (removal, 995e222): deleting `useLookupMod` left an unused `mockLookupResponse` fixture in `use-mods.test.tsx` (`tsc` TS6133); removed. Web 3,043 passed, 4 skipped (pre-existing `it.skip`s; down from 3,158 by the removed tests); `tsc` clean.
 - Task 4: `mod-description.test.ts` 14 passed, `ModDetailPage.test.tsx` 73 passed.
+- Task 5: `just check` passed in the worktree: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,043 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
 
 ### Completion Notes List
 
@@ -148,6 +149,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: `ModDetailPage` calls `sanitizeModDescription` instead of `DOMPurify.sanitize`; markup and classes unchanged. Description links now open in a new tab (same tab before) and a `<style>` element in a description no longer reaches the page.
 - Task 3: removed `ModLookupInput` and its tests, the preview sanitizer profile, `useLookupMod` and `extractSlug` with their tests; fixed the `ModsPage` doc comment. bb4cfbf's `fix` subject remains in history (see Dev Notes, release-notes side effect).
 - Task 4: detail-page behavior verified by tests; no browser check (Docker stack in use by Story 16.5).
+- Task 5: status review; PR targets `story/16-3-latest-supported-game-version-for-incompatible-mods` (stacks on #150, #149, #148); Story 16.5 stacks on this branch.
 
 ### File List
 
@@ -171,3 +173,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 - 2026-11-13: Story 16.4 created (ready-for-dev) for FR171, the formatted description in the mod lookup preview.
 - 2026-11-13: Tasks 1-3 implemented (shared sanitizer, detail-page links, preview rendering). Browser check found `ModLookupInput` unmounted since VSS-195 (2026-01-19); story paused.
 - 2026-11-13: Rescoped by maintainer decision: dead lookup preview removed (995e222), FR171 withdrawn, title changed to "Shared Description Sanitizer and Safe Links" (sprint key and filename unchanged), Task 4 replaced by test-based detail-page verification.
+- 2026-11-13: `just check` passed; status review.
