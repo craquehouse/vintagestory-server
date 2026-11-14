@@ -1219,4 +1219,112 @@ describe('ModLookupInput', () => {
       });
     });
   });
+
+  describe('formatted description (Story 16.4)', () => {
+    /** Look up a mod whose description is `description` and wait for the preview. */
+    async function renderWithDescription(description: string | null) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockLookupResponse,
+            data: { ...mockLookupResponse.data, description },
+          }),
+      });
+
+      const queryClient = createTestQueryClient();
+      render(<ModLookupInput />, { wrapper: createWrapper(queryClient) });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId('mod-search-input'), {
+          target: { value: 'smithingplus' },
+        });
+        vi.advanceTimersByTime(350);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('install-button')).toBeInTheDocument();
+      });
+    }
+
+    it('renders the description HTML as formatting, not as tags (AC 1)', async () => {
+      await renderWithDescription(
+        '<p>Improves <strong>smithing</strong>. Requires <a href="https://mods.vintagestory.at/commonlib">CommonLib</a>.</p>'
+      );
+
+      const description = screen.getByTestId('mod-preview-description');
+      expect(description.querySelector('strong')).toHaveTextContent('smithing');
+      expect(description.querySelector('a')).toHaveTextContent('CommonLib');
+      expect(description.textContent).not.toContain('<strong>');
+      expect(description.textContent).not.toContain('<p>');
+    });
+
+    it('clamps the rendered element and keeps the whole description (AC 1)', async () => {
+      const paragraphs = Array.from(
+        { length: 12 },
+        (_, index) => `<p>Paragraph ${index + 1} with <em>emphasis</em>.</p>`
+      ).join('');
+      await renderWithDescription(paragraphs);
+
+      const description = screen.getByTestId('mod-preview-description');
+      expect(description).toHaveClass('line-clamp-3');
+      expect(description.querySelectorAll('p')).toHaveLength(12);
+      expect(description).toHaveTextContent('Paragraph 12 with emphasis.');
+    });
+
+    it('strips scripts, event handlers and javascript: URLs (AC 2)', async () => {
+      await renderWithDescription(
+        '<p onclick="alert(1)">Safe text</p><script>alert("xss")</script>' +
+          '<a href="javascript:alert(1)">bad link</a><img src="x" onerror="alert(1)">'
+      );
+
+      const description = screen.getByTestId('mod-preview-description');
+      expect(description.querySelector('script')).toBeNull();
+      expect(description.innerHTML).not.toContain('onclick');
+      expect(description.innerHTML).not.toContain('onerror');
+      expect(description.innerHTML.toLowerCase()).not.toContain('javascript');
+      expect(description).toHaveTextContent('Safe text');
+    });
+
+    it('opens links in a new tab with rel="noopener noreferrer" (AC 3)', async () => {
+      await renderWithDescription(
+        '<p><a href="https://ko-fi.com/x" target="_self" rel="noopener">Ko-fi</a></p>'
+      );
+
+      const link = screen.getByTestId('mod-preview-description').querySelector('a');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('drops images, embeds and inline styling, and uses theme colors (AC 4)', async () => {
+      await renderWithDescription(
+        '<div style="background: #fbbf9d; color: #222" class="fixed inset-0">' +
+          '<p>Support me</p><img src="https://i.imgur.com/a.png">' +
+          '<iframe src="https://www.youtube.com/embed/x"></iframe></div>'
+      );
+
+      const description = screen.getByTestId('mod-preview-description');
+      expect(description.querySelector('img')).toBeNull();
+      expect(description.querySelector('iframe')).toBeNull();
+      expect(description.querySelector('[style]')).toBeNull();
+      expect(description.querySelector('[class]')).toBeNull();
+      expect(description).toHaveTextContent('Support me');
+      expect(description).toHaveClass('text-muted-foreground');
+      expect(description.className).toContain('[&_a]:text-primary');
+    });
+
+    it('shows no description when nothing visible is left (AC 4)', async () => {
+      await renderWithDescription(
+        '<p><a href="https://discord.com/x"><img src="https://i.imgur.com/a.png"></a></p>'
+      );
+
+      expect(screen.queryByTestId('mod-preview-description')).not.toBeInTheDocument();
+    });
+
+    it('shows no description when the mod has none', async () => {
+      await renderWithDescription(null);
+
+      expect(screen.queryByTestId('mod-preview-description')).not.toBeInTheDocument();
+    });
+  });
 });

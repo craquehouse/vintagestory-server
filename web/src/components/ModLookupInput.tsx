@@ -4,7 +4,7 @@
  * Features:
  * - Accepts mod slugs or full URLs (smart parsing)
  * - Debounced lookup (300ms) to avoid excessive API calls
- * - Preview card with mod details when found
+ * - Preview card with mod details when found (description as sanitized HTML, 3 lines)
  * - Install button with loading state
  * - Confirmation dialog for incompatible mods
  */
@@ -34,6 +34,7 @@ import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useLookupMod, useInstallMod } from '@/hooks/use-mods';
 import { extractSlug } from '@/lib/mod-utils';
+import { sanitizeModDescriptionPreview } from '@/lib/mod-description';
 
 interface ModLookupInputProps {
   /** Callback when a mod is successfully installed */
@@ -66,6 +67,10 @@ export function ModLookupInput({ onInstalled }: ModLookupInputProps) {
 
   const modData = lookupData?.data;
   const isIncompatible = modData?.compatibility.status === 'incompatible';
+  // ModDB descriptions are HTML: sanitize to text formatting only (Story 16.4)
+  const previewDescription = modData?.description
+    ? sanitizeModDescriptionPreview(modData.description)
+    : null;
 
   const handleInstall = () => {
     if (!modData) return;
@@ -171,11 +176,13 @@ export function ModLookupInput({ onInstalled }: ModLookupInputProps) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* Description */}
-                {modData.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {modData.description}
-                  </p>
+                {/* Description: sanitized HTML, clamped as rendered (never sliced) */}
+                {previewDescription && (
+                  <div
+                    className="text-sm text-muted-foreground line-clamp-3 break-words [&_a]:text-primary [&_a]:underline"
+                    data-testid="mod-preview-description"
+                    dangerouslySetInnerHTML={{ __html: previewDescription }}
+                  />
                 )}
 
                 {/* Metadata row */}
