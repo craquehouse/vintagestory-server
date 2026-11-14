@@ -6,7 +6,6 @@ import {
   useBrowseMods,
   filterModsBySearch,
   filterModsByFilters,
-  sortModsByName,
 } from './use-browse-mods';
 import type { ModBrowseItem, ApiResponse, ModBrowseData, BrowseParams } from '@/api/types';
 
@@ -278,100 +277,6 @@ describe('filterModsByFilters', () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0].slug).toBe('carrycapacity');
-  });
-});
-
-describe('sortModsByName', () => {
-  it('sorts mods alphabetically by name (A-Z)', () => {
-    const result = sortModsByName(mockMods);
-    expect(result).toHaveLength(3);
-    expect(result[0].slug).toBe('carrycapacity'); // "Carry Capacity"
-    expect(result[1].slug).toBe('primitivesurvival'); // "Primitive Survival"
-    expect(result[2].slug).toBe('wildcraft'); // "Wildcraft"
-  });
-
-  it('returns a new array without mutating the original', () => {
-    const original = [...mockMods];
-    const result = sortModsByName(mockMods);
-
-    expect(result).not.toBe(mockMods);
-    expect(mockMods).toEqual(original);
-  });
-
-  it('handles empty array', () => {
-    const result = sortModsByName([]);
-    expect(result).toEqual([]);
-  });
-
-  it('handles single mod array', () => {
-    const singleMod = [mockMods[0]];
-    const result = sortModsByName(singleMod);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(mockMods[0]);
-  });
-
-  it('sorts case-insensitively using localeCompare', () => {
-    const unsorted: ModBrowseItem[] = [
-      {
-        ...mockMods[0],
-        name: 'zebra mod',
-        slug: 'zebra',
-      },
-      {
-        ...mockMods[1],
-        name: 'Apple Mod',
-        slug: 'apple',
-      },
-      {
-        ...mockMods[2],
-        name: 'banana mod',
-        slug: 'banana',
-      },
-    ];
-
-    const result = sortModsByName(unsorted);
-    expect(result[0].slug).toBe('apple'); // "Apple Mod"
-    expect(result[1].slug).toBe('banana'); // "banana mod"
-    expect(result[2].slug).toBe('zebra'); // "zebra mod"
-  });
-
-  it('handles mods with special characters in names', () => {
-    const specialMods: ModBrowseItem[] = [
-      {
-        ...mockMods[0],
-        name: 'Ñoño Mod',
-        slug: 'nono',
-      },
-      {
-        ...mockMods[1],
-        name: 'Äpfel',
-        slug: 'apfel',
-      },
-      {
-        ...mockMods[2],
-        name: 'Zebra',
-        slug: 'zebra',
-      },
-    ];
-
-    const result = sortModsByName(specialMods);
-    // localeCompare should handle special characters properly
-    expect(result).toHaveLength(3);
-    // Exact order depends on locale, but should be consistent
-    expect(result.map(m => m.slug)).toEqual(['apfel', 'nono', 'zebra']);
-  });
-
-  it('handles identical names', () => {
-    const duplicates: ModBrowseItem[] = [
-      { ...mockMods[0], name: 'Same Name', slug: 'mod1' },
-      { ...mockMods[1], name: 'Same Name', slug: 'mod2' },
-      { ...mockMods[2], name: 'Same Name', slug: 'mod3' },
-    ];
-
-    const result = sortModsByName(duplicates);
-    expect(result).toHaveLength(3);
-    // All have same name, so order should be stable
-    result.forEach(mod => expect(mod.name).toBe('Same Name'));
   });
 });
 
@@ -1178,74 +1083,19 @@ describe('useBrowseMods', () => {
     });
   });
 
-  // Client-side sorting tests
-  describe('client-side name sorting', () => {
-    it('sorts mods by name when sort parameter is "name"', async () => {
-      // API returns unsorted data
-      const unsortedResponse: ApiResponse<ModBrowseData> = {
-        status: 'ok',
-        data: {
-          mods: [mockMods[2], mockMods[0], mockMods[1]], // Wildcraft, Carry Capacity, Primitive Survival
-          pagination: {
-            page: 1,
-            pageSize: 1000, // Large page size for client-side sorting
-            totalItems: 3,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
-        },
-      };
-
+  // Story 16.8: the API sorts by name (VSS-stm.1)
+  describe('Story 16.8: server-side name sorting', () => {
+    function mockFetchWith(response: ApiResponse<ModBrowseData>) {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve(unsortedResponse),
+        json: () => Promise.resolve(response),
       });
       globalThis.fetch = mockFetch;
+      return mockFetch;
+    }
 
-      const { result } = renderHook(() => useBrowseMods({ sort: 'name' }), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      // Should be sorted alphabetically: Carry Capacity, Primitive Survival, Wildcraft
-      expect(result.current.mods).toHaveLength(3);
-      expect(result.current.mods[0].slug).toBe('carrycapacity');
-      expect(result.current.mods[1].slug).toBe('primitivesurvival');
-      expect(result.current.mods[2].slug).toBe('wildcraft');
-    });
-
-    it('uses large pageSize (1000) when sorting by name client-side', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      renderHook(() => useBrowseMods({ sort: 'name', pageSize: 20 }), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
-      });
-
-      // Should request 1000 items for client-side sorting, not 20
-      const [url] = mockFetch.mock.calls[0];
-      expect(url).toContain('page_size=1000');
-      // Name sort is client-side, so no sort param should be sent to API
-      expect(url).not.toContain('sort=name');
-    });
-
-    it('does not pass "name" sort to API (client-side only)', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
-      });
-      globalThis.fetch = mockFetch;
+    it('sends sort=name with the normal page size', async () => {
+      const mockFetch = mockFetchWith(mockBrowseResponse);
 
       renderHook(() => useBrowseMods({ sort: 'name' }), {
         wrapper: createWrapper(),
@@ -1255,17 +1105,105 @@ describe('useBrowseMods', () => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      const [url] = mockFetch.mock.calls[0];
-      expect(url).not.toContain('sort=name');
-      expect(url).not.toContain('sort=');
+      const url = new URL(mockFetch.mock.calls[0][0] as string);
+      expect(url.searchParams.get('sort')).toBe('name');
+      expect(url.searchParams.get('page_size')).toBe('20');
+      expect(url.searchParams.get('page')).toBe('1');
+    });
+
+    it('requests the given page and page size for name sort, never more than 100', async () => {
+      const mockFetch = mockFetchWith(mockBrowseResponse);
+
+      renderHook(() => useBrowseMods({ sort: 'name', page: 3, pageSize: 50 }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalled();
+      });
+
+      const url = new URL(mockFetch.mock.calls[0][0] as string);
+      expect(url.searchParams.get('sort')).toBe('name');
+      expect(url.searchParams.get('page')).toBe('3');
+      expect(Number(url.searchParams.get('page_size'))).toBe(50);
+      expect(Number(url.searchParams.get('page_size'))).toBeLessThanOrEqual(100);
+    });
+
+    it('keeps the order the API returns for name sort', async () => {
+      // Deliberately not in localeCompare order: the API's order is authoritative
+      const apiOrder: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: [mockMods[2], mockMods[0], mockMods[1]],
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 3,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+      };
+      mockFetchWith(apiOrder);
+
+      const { result } = renderHook(() => useBrowseMods({ sort: 'name' }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.mods.map((mod) => mod.slug)).toEqual([
+        'wildcraft',
+        'carrycapacity',
+        'primitivesurvival',
+      ]);
+    });
+
+    it('pages name sort like the other sorts', async () => {
+      const page1: ApiResponse<ModBrowseData> = {
+        status: 'ok',
+        data: {
+          mods: mockMods,
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            totalItems: 60,
+            totalPages: 3,
+            hasNext: true,
+            hasPrev: false,
+          },
+        },
+      };
+      const mockFetch = mockFetchWith(page1);
+
+      const { result } = renderHook(
+        () => useControlledBrowseMods({ sort: 'name' }),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      act(() => {
+        result.current.goToNextPage();
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+
+      const url = new URL(mockFetch.mock.calls[1][0] as string);
+      expect(url.searchParams.get('sort')).toBe('name');
+      expect(url.searchParams.get('page')).toBe('2');
+      expect(url.searchParams.get('page_size')).toBe('20');
     });
 
     it('passes server-side sort options to API', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockBrowseResponse),
-      });
-      globalThis.fetch = mockFetch;
+      const mockFetch = mockFetchWith(mockBrowseResponse);
 
       renderHook(() => useBrowseMods({ sort: 'downloads' }), {
         wrapper: createWrapper(),
@@ -1280,26 +1218,20 @@ describe('useBrowseMods', () => {
     });
 
     it('handles empty results when sorting by name', async () => {
-      const emptyResponse: ApiResponse<ModBrowseData> = {
+      mockFetchWith({
         status: 'ok',
         data: {
           mods: [],
           pagination: {
             page: 1,
-            pageSize: 1000,
+            pageSize: 20,
             totalItems: 0,
-            totalPages: 0,
+            totalPages: 1,
             hasNext: false,
             hasPrev: false,
           },
         },
-      };
-
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(emptyResponse),
       });
-      globalThis.fetch = mockFetch;
 
       const { result } = renderHook(() => useBrowseMods({ sort: 'name' }), {
         wrapper: createWrapper(),

@@ -287,9 +287,8 @@ export function BrowseTab() {
         installedSlugs={installedSlugs}
       />
 
-      {/* Story 10.7: Pagination controls */}
-      {/* VSS-arp: Hide pagination when sorting by name (client-side sort of all results) */}
-      {!isLoading && pagination && pagination.totalPages > 1 && sort !== 'name' && (
+      {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name) */}
+      {!isLoading && pagination && pagination.totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
           totalPages={pagination.totalPages}
@@ -305,11 +304,7 @@ export function BrowseTab() {
           className="text-sm text-muted-foreground"
           data-testid="browse-results-count"
         >
-          {sort === 'name' ? (
-            <>
-              Showing all {pagination.totalItems} mods sorted alphabetically
-            </>
-          ) : browseState.search ? (
+          {browseState.search ? (
             <>
               Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{browseState.search}&quot;
             </>

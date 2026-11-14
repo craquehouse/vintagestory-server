@@ -1,12 +1,13 @@
 /**
  * Hook for fetching and filtering browsable mods.
  *
- * All filtering (search, side, tags, modType, gameVersion) is done
- * server-side for accurate pagination. Uses TanStack Query for caching
- * and state management.
+ * All filtering (search, side, tags, modType, gameVersion) and sorting,
+ * including the Name (A-Z) sort, is done server-side for accurate pagination.
+ * Uses TanStack Query for caching and state management.
  *
  * Story VSS-vth: Added server-side game version filtering.
  * VSS-y7u: Moved all filters (side, tags, modType) to server-side.
+ * Story 16.8: The Name sort is server-side too (VSS-stm.1).
  */
 
 import { useCallback } from 'react';
@@ -84,15 +85,10 @@ export function useBrowseMods(
 
   // VSS-y7u: All filters are now server-side for accurate pagination
   // Extract filters for API - support both new flat params and legacy filters object
-  const { filters, sort, page: _ignoredPage, ...apiParams } = params;
+  const { filters, sort: apiSort, page: _ignoredPage, ...apiParams } = params;
 
-  // Only pass sort to API if it's a server-side option
-  const apiSort = sort === 'name' ? undefined : sort;
-
-  // VSS-arp: When sorting by name client-side, fetch all data to sort correctly
-  // Use a large pageSize to get all mods for client-side name sorting
-  const effectivePageSize = sort === 'name' ? 1000 : params.pageSize;
-  const apiPageSize = effectivePageSize ?? 20;
+  // Story 16.8: every sort, including 'name', is server-side and paged normally
+  const apiPageSize = params.pageSize ?? 20;
 
   // VSS-y7u: Build API params with all filters (server-side)
   // Support both new flat params and legacy filters object for backwards compat
@@ -157,15 +153,12 @@ export function useBrowseMods(
     }
   }, [pagination?.hasPrev, currentPage, onPageChange]);
 
-  // VSS-y7u: All filtering is now server-side, no client-side filtering needed
-  const allMods = query.data?.data?.mods ?? [];
-
-  // Client-side sorting for 'name' option (only remaining client-side operation)
-  const sorted = sort === 'name' ? sortModsByName(allMods) : allMods;
+  // VSS-y7u, Story 16.8: filtering and sorting are server-side; keep the API's order
+  const mods = query.data?.data?.mods ?? [];
 
   return {
     ...query,
-    mods: sorted,
+    mods,
     pagination,
     // Story 10.7: Expose page state and navigation functions
     currentPage,
@@ -218,18 +211,6 @@ export function filterModsBySearch(
 
     return false;
   });
-}
-
-/**
- * Sort mods alphabetically by name (A-Z).
- *
- * Client-side only - API doesn't support name sorting yet.
- *
- * @param mods - Array of mods to sort
- * @returns Sorted array of mods (new array, doesn't mutate input)
- */
-export function sortModsByName(mods: ModBrowseItem[]): ModBrowseItem[] {
-  return [...mods].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

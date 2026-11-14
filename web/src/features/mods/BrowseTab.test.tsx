@@ -849,6 +849,26 @@ describe('BrowseTab', () => {
       expect(screen.getByText(/Page 2 of 5/)).toBeInTheDocument();
     });
 
+    it('Story 16.8: name sort from the URL requests that page from the API and shows page controls', async () => {
+      mockFetchPage(3);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?sort=name&page=3`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pagination')).toBeInTheDocument();
+      });
+
+      const request = browseRequestUrl();
+      expect(request.searchParams.get('sort')).toBe('name');
+      expect(request.searchParams.get('page')).toBe('3');
+      expect(request.searchParams.get('page_size')).toBe('20');
+      expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
+      expect(screen.getByTestId('browse-results-count')).toHaveTextContent('Showing 2 of 100 mods');
+      expect(screen.getByRole('button', { name: /name \(a-z\)/i })).toBeInTheDocument();
+    });
+
     it('uses the default state for /game-server/mods/browse without parameters', async () => {
       mockFetchPage(1);
       const queryClient = createTestQueryClient();

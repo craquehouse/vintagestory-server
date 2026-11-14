@@ -330,18 +330,19 @@ describe('fetchBrowseMods', () => {
     expect(url).not.toContain('tags');
   });
 
-  it('excludes name sort parameter (client-side only)', async () => {
+  it('sends the name sort to the API (Story 16.8)', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockBrowseResponse),
     });
     globalThis.fetch = mockFetch;
 
-    await fetchBrowseMods({ sort: 'name' });
+    await fetchBrowseMods({ sort: 'name', page: 2, pageSize: 20 });
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).not.toContain('sort');
-    expect(url).toBe('http://localhost:8080/api/v1alpha1/mods/browse');
+    expect(url).toBe(
+      'http://localhost:8080/api/v1alpha1/mods/browse?page=2&page_size=20&sort=name'
+    );
   });
 
   it('combines all filter types correctly', async () => {

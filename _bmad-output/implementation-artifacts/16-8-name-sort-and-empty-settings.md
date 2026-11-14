@@ -54,11 +54,11 @@ so that **I can find mods alphabetically and edit settings without saving the wo
   - [x] 1.1: `services/mod_api.py`: a `_name_sort_key(mod)` used by `sort_mods(..., "name")`: `str(mod.get("name") or "")`, stripped, NFKD-normalized with combining marks removed (`unicodedata`, standard library), `casefold()`; tie-break on the stripped name and then `assetid`, so equal names keep one order across cache refreshes. A null or missing name sorts as empty instead of raising
   - [x] 1.2: Tests in `tests/test_mod_api.py` (`TestSortMods` or next to `test_sort_by_name`): leading spaces (`" Auto Map"` between `"Apple"` and `"Butcher"`), case, accents (`"Étiquettes"` next to `"Etiquettes"`, before `"Farm"`), null and missing names, equal names ordered by `assetid`. A router test (`tests/test_mods_router.py`) that `sort=name&page=2&page_size=2` returns the second slice of the alphabetical order and correct pagination
 
-- [ ] Task 2: Web UI uses the server's Name sort with normal paging + tests (AC: 1, 2, 7)
-  - [ ] 2.1: `web/src/api/mods.ts` `fetchBrowseMods`: send `sort` for every option, including `name`
-  - [ ] 2.2: `web/src/hooks/use-browse-mods.ts`: pass `sort` through unchanged, use `params.pageSize ?? 20` for every sort (drop the `VSS-arp` 1000 page size), return the API's order (drop the client-side sort); remove the now-unused `sortModsByName` and its tests; update the doc comments
-  - [ ] 2.3: `web/src/features/mods/BrowseTab.tsx`: show `Pagination` for the Name sort like the other sorts and use the normal results count ("Showing N of T mods" / "Found N mods matching …") instead of "Showing all T mods sorted alphabetically"
-  - [ ] 2.4: Tests: `mods.test.ts` sends `sort=name`; `use-browse-mods.test.tsx` requests `sort=name&page_size=20` (and the given page), keeps the API order, never asks for more than 100; `BrowseTab.test.tsx` shows pagination and the normal count for Name sort with more than one page, and `?sort=name&page=3` requests page 3
+- [x] Task 2: Web UI uses the server's Name sort with normal paging + tests (AC: 1, 2, 7)
+  - [x] 2.1: `web/src/api/mods.ts` `fetchBrowseMods`: send `sort` for every option, including `name`
+  - [x] 2.2: `web/src/hooks/use-browse-mods.ts`: pass `sort` through unchanged, use `params.pageSize ?? 20` for every sort (drop the `VSS-arp` 1000 page size), return the API's order (drop the client-side sort); remove the now-unused `sortModsByName` and its tests; update the doc comments
+  - [x] 2.3: `web/src/features/mods/BrowseTab.tsx`: show `Pagination` for the Name sort like the other sorts and use the normal results count ("Showing N of T mods" / "Found N mods matching …") instead of "Showing all T mods sorted alphabetically"
+  - [x] 2.4: Tests: `mods.test.ts` sends `sort=name`; `use-browse-mods.test.tsx` requests `sort=name&page_size=20` (and the given page), keeps the API order, never asks for more than 100; `BrowseTab.test.tsx` shows pagination and the normal count for Name sort with more than one page, and `?sort=name&page=3` requests page 3
 
 - [ ] Task 3: API stores null for cleared Description, Password and IP Address + tests (AC: 4, 5)
   - [ ] 3.1: `services/game_config.py`: `ServerSetting` gains `nullable: bool = False` and `clear_command: str | None = None`; `ServerDescription`, `Password` and `Ip` are nullable; `Password` has `clear_command="/serverconfig nopassword"`
@@ -174,14 +174,22 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run, the 3 new `sort_mods` tests failed (leading space and accent order, `None` name raised `AttributeError`, ties in input order); the new router paging test passed already (the API pages name sort today). Then 206 passed in `test_mod_api.py` and `test_mods_router.py`; ruff clean, pyright 0 errors (3 pre-existing warnings).
+- Task 2: red run, 6 new or rewritten tests failed (`mods.test.ts` 1, `use-browse-mods.test.tsx` 4, `BrowseTab.test.tsx` 1); then 182 passed, 2 skipped (pre-existing) in the three files; full web suite 3,121 passed, 4 skipped (pre-existing); `tsc` clean.
 
 ### Completion Notes List
 
 - Story created 2026-11-13: context analysis of the browse hook and endpoint, the settings service and field, Stories 16.0, 16.1 and 16.6 and ADR-1/ADR-3.
 - Task 1: `sort_mods(..., "name")` uses `_name_sort_key`: stripped, NFKD without combining marks, `casefold()`, then the stripped name and `assetid`; a null or missing name sorts as empty.
+- Task 2: `fetchBrowseMods` sends `sort=name`; `useBrowseMods` passes every sort through with `pageSize ?? 20` and keeps the API's order (the 1000 page size and the client-side `sortModsByName` are removed, with its tests); `BrowseTab` shows page controls and the normal results count for the Name sort.
 
 ### File List
 
 - `api/src/vintagestory_api/services/mod_api.py`
 - `api/tests/test_mod_api.py`
 - `api/tests/test_mods_router.py`
+- `web/src/api/mods.ts`
+- `web/src/api/mods.test.ts`
+- `web/src/hooks/use-browse-mods.ts`
+- `web/src/hooks/use-browse-mods.test.tsx`
+- `web/src/features/mods/BrowseTab.tsx`
+- `web/src/features/mods/BrowseTab.test.tsx`

@@ -183,8 +183,8 @@ export async function fetchBrowseMods(
   if (params.pageSize !== undefined) {
     searchParams.set('page_size', String(params.pageSize));
   }
-  if (params.sort !== undefined && params.sort !== 'name') {
-    // 'name' sort is still client-side only
+  if (params.sort !== undefined) {
+    // Story 16.8: every sort, including 'name', is applied by the API
     searchParams.set('sort', params.sort);
   }
   if (params.search?.trim()) {
