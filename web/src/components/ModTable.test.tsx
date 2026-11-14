@@ -1859,6 +1859,25 @@ describe('ModTable', () => {
       );
     });
 
+    it('keeps an open remove dialog when the layout switches, and still removes', async () => {
+      const mockFetch = mockApi(() => ({ status: 'ok', data: { slug: 'smithingplus' } }));
+      renderAtPhoneWidth();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove Smithing Plus' }));
+      expect(await screen.findByTestId('remove-dialog')).toBeInTheDocument();
+
+      act(() => setViewportWidth(1024));
+      expect(screen.getByTestId('mod-table')).toBeInTheDocument();
+      expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+      expect(screen.getByText('Remove Smithing Plus?')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+      await waitFor(() => {
+        const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'DELETE');
+        expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus');
+      });
+    });
+
     it('shows the loading state at phone width', () => {
       globalThis.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
       renderAtPhoneWidth();
