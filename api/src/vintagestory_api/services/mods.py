@@ -439,7 +439,7 @@ class ModService:
 
         game = game_version.lstrip("vV")
         if status == "not_verified":
-            message = f"Mod not explicitly verified for version {game_version}. May still work."
+            message = f"Mod not explicitly verified for version {game}. May still work."
             if supported is not None and compare_game_versions(supported.highest, game) == -1:
                 message += f" Last tagged for {supported.highest}."
             return message
@@ -453,10 +453,12 @@ class ModService:
         )
         if supported is None or highest_vs_game is None or lowest_vs_game is None:
             return (
-                f"Mod version {mod_version} is not compatible with {game_version}. "
+                f"Mod version {mod_version} is not compatible with {game}. "
                 "Installation may cause issues."
             )
-        if tagged_elsewhere:
+        # A range end equal to the installed version (e.g. tag "1.21.0" for "1.21", which
+        # check_compatibility's string match misses) means another release has it
+        if tagged_elsewhere or highest_vs_game == 0 or lowest_vs_game == 0:
             return (
                 f"Version {mod_version} is not tagged for {game}; "
                 "another release of this mod is."

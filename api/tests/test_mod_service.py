@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     InvalidSlugError,
@@ -2157,3 +2158,46 @@ class TestLookupLatestSupportedGameVersion:
         assert message == (
             "Mod version 1.0.0 is not compatible with 1.22.7. Installation may cause issues."
         )
+
+    def test_installed_version_at_a_range_end_is_not_called_a_gap(self, tmp_path: Path) -> None:
+        """Review L1: "1.21" equals the tag "1.21.0" numerically though not as a string."""
+        from vintagestory_api.services.mod_compatibility import SupportedRange
+
+        message = self.make(tmp_path)._build_compatibility_message(
+            "incompatible", "1.0.0", "1.21", SupportedRange("1.19.0", "1.21.0")
+        )
+
+        assert message == "Version 1.0.0 is not tagged for 1.21; another release of this mod is."
+
+    @pytest.mark.parametrize(
+        ("status", "supported", "expected"),
+        [
+            (
+                "not_verified",
+                ("1.22.5", "1.22.6"),
+                "Mod not explicitly verified for version 1.22.7. May still work. "
+                "Last tagged for 1.22.6.",
+            ),
+            (
+                "incompatible",
+                None,
+                "Mod version 1.0.0 is not compatible with 1.22.7. Installation may cause issues.",
+            ),
+            ("incompatible", ("1.21.0", "1.21.1"), "Last supported game version: 1.21.1."),
+        ],
+    )
+    def test_messages_use_the_game_version_without_prefix(
+        self,
+        tmp_path: Path,
+        status: CompatibilityStatus,
+        supported: tuple[str, str] | None,
+        expected: str,
+    ) -> None:
+        """Review L2: every wording names the installed version without a "v" prefix."""
+        from vintagestory_api.services.mod_compatibility import SupportedRange
+
+        message = self.make(tmp_path)._build_compatibility_message(
+            status, "1.0.0", "v1.22.7", SupportedRange(*supported) if supported else None
+        )
+
+        assert message == expected
