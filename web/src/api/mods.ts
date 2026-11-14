@@ -38,16 +38,21 @@ export async function fetchMods(): Promise<ApiResponse<ModsListData>> {
  * Look up mod details from the VintageStory mod database.
  *
  * @param slugOrUrl - Mod slug or full URL to look up
+ * @param version - Release version whose compatibility to report (the installed
+ *   version, for the Installed list); defaults to the mod ID's newest release
  * @returns Mod details including compatibility information
  *
  * Accessible to both Admin and Monitor roles.
  */
 export async function lookupMod(
-  slugOrUrl: string
+  slugOrUrl: string,
+  version?: string
 ): Promise<ApiResponse<ModLookupData>> {
   // URL-encode the slug/URL since it may contain special characters
   const encoded = encodeURIComponent(slugOrUrl);
-  return apiClient<ApiResponse<ModLookupData>>(`${API_PREFIX}/lookup/${encoded}`);
+  // Story 16.3: evaluate a specific release (the installed one) instead of the newest
+  const query = version === undefined ? '' : `?version=${encodeURIComponent(version)}`;
+  return apiClient<ApiResponse<ModLookupData>>(`${API_PREFIX}/lookup/${encoded}${query}`);
 }
 
 /**

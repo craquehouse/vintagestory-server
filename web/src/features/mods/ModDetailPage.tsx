@@ -23,6 +23,11 @@
  * Story 16.2: The installed mod is found by any mod ID in the entry (the URL slug,
  * then each release's modidstr), not only the browse slug, which is just the entry's
  * first mod ID.
+ *
+ * Story 16.3: The compatibility badge, its message (shown as text when not
+ * compatible) and the header version describe the release the API evaluated: the
+ * newest release of the installed mod ID, or of the newest release's mod ID when
+ * none is installed (Epic 16 ADR-2).
  */
 
 import { useState } from 'react';
@@ -584,6 +589,17 @@ export function ModDetailPage() {
             />
           </div>
 
+          {/* Story 16.3: the message names the most recent supported game version;
+              shown as text because touch screens never show the badge tooltip */}
+          {mod.compatibility.status !== 'compatible' && mod.compatibility.message && (
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="mod-detail-compatibility-message"
+            >
+              {mod.compatibility.message}
+            </p>
+          )}
+
           {/* Stats row */}
           <div
             className="flex items-center gap-4 text-sm text-muted-foreground"
@@ -598,7 +614,9 @@ export function ModDetailPage() {
               {formatNumber(mod.follows)}
             </span>
             <SideBadge side={mod.side} />
-            <span>Version: {mod.latestVersion}</span>
+            {/* Story 16.3: the release the compatibility badge describes (the installed
+                mod ID's newest release), which can differ from the entry's newest */}
+            <span>Version: {mod.compatibility.modVersion ?? mod.latestVersion}</span>
           </div>
 
           {/* Tags */}

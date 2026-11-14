@@ -34,6 +34,7 @@ from vintagestory_api.services.mod_api import (
     ExternalApiError,
     ModApiClient,
     ModVersionNotFoundError,
+    ReleaseDict,
     check_compatibility,
     extract_slug,
     safe_release_filename,
@@ -41,6 +42,11 @@ from vintagestory_api.services.mod_api import (
 )
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
+)
+from vintagestory_api.services.mod_compatibility import (
+    SupportedRange,
+    compare_game_versions,
+    supported_game_versions,
 )
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
@@ -412,46 +418,93 @@ class ModService:
         status: CompatibilityStatus,
         mod_version: str,
         game_version: str,
-        compatible_tags: list[str] | None = None,
+        supported: SupportedRange | None,
+        tagged_elsewhere: bool = False,
     ) -> str | None:
-        """Build appropriate warning message for compatibility status.
+        """Build the warning message for a compatibility status (Epic 16 ADR-2 decision 4).
 
         Args:
-            status: The compatibility status.
-            mod_version: The mod version being evaluated.
-            game_version: The current game version.
-            compatible_tags: List of compatible version tags (for incompatible status).
+            status: The compatibility status of the evaluated release.
+            mod_version: The evaluated release's version.
+            game_version: The installed game version.
+            supported: Lowest and highest game versions of the evaluated mod ID.
+            tagged_elsewhere: Another release of the mod ID is tagged for the
+                installed game version (only possible when an older release is evaluated).
 
         Returns:
             Warning message string, or None for compatible status.
         """
         if status == "compatible":
             return None
-        elif status == "not_verified":
-            return f"Mod not explicitly verified for version {game_version}. May still work."
-        else:  # incompatible
-            if compatible_tags:
-                versions = ", ".join(compatible_tags[:3])  # Show up to 3 versions
-                if len(compatible_tags) > 3:
-                    versions += "..."
-                return (
-                    f"Mod version {mod_version} is only compatible with {versions}. "
-                    "Installation may cause issues."
-                )
+
+        game = game_version.lstrip("vV")
+        if status == "not_verified":
+            message = f"Mod not explicitly verified for version {game}. May still work."
+            if supported is not None and compare_game_versions(supported.highest, game) == -1:
+                message += f" Last tagged for {supported.highest}."
+            return message
+
+        # incompatible
+        highest_vs_game = (
+            compare_game_versions(supported.highest, game) if supported is not None else None
+        )
+        lowest_vs_game = (
+            compare_game_versions(supported.lowest, game) if supported is not None else None
+        )
+        if supported is None or highest_vs_game is None or lowest_vs_game is None:
             return (
-                f"Mod version {mod_version} is not compatible with {game_version}. "
+                f"Mod version {mod_version} is not compatible with {game}. "
                 "Installation may cause issues."
             )
+        # A range end equal to the installed version (e.g. tag "1.21.0" for "1.21", which
+        # check_compatibility's string match misses) means another release has it
+        if tagged_elsewhere or highest_vs_game == 0 or lowest_vs_game == 0:
+            return (
+                f"Version {mod_version} is not tagged for {game}; "
+                "another release of this mod is."
+            )
+        if highest_vs_game < 0:
+            return f"Last supported game version: {supported.highest}."
+        if lowest_vs_game > 0:
+            return f"Requires game version {supported.lowest} or newer (installed: {game})."
+        return f"Not tagged for {game}; supports {supported.lowest} to {supported.highest}."
 
-    async def lookup_mod(self, slug_or_url: str) -> ModLookupResponse:
+    def _compatibility_modid(self, slug: str, releases: list[ReleaseDict]) -> str:
+        """The mod ID whose releases decide a lookup's compatibility (ADR-2 decision 2).
+
+        Mirrors the web's `findInstalledModForEntry` (Story 16.2): the installed mod
+        whose ID is the looked-up slug, otherwise the installed mod whose ID has the
+        entry's newest release (exact comparison). When none of them is installed, or
+        the match has no releases in the entry, the mod ID of `releases[0]`, which is
+        the release the install flow installs.
+        """
+        entry_ids: list[str] = []
+        for release in releases:
+            modid = release.get("modidstr") or ""
+            if modid and modid not in entry_ids:
+                entry_ids.append(modid)
+
+        installed = {state.slug for state in self._state_manager.list_mods()}
+        default: str = releases[0].get("modidstr") or ""
+        match = next((c for c in (slug, *entry_ids) if c in installed), None)
+        if match is None or not any((r.get("modidstr") or "") == match for r in releases):
+            return default
+        return match
+
+    async def lookup_mod(
+        self, slug_or_url: str, version: str | None = None
+    ) -> ModLookupResponse:
         """Look up mod details and compatibility from the VintageStory mod database.
 
         Fetches mod information from mods.vintagestory.at and checks compatibility
-        with the current game version.
+        with the current game version. Compatibility is reported for one mod ID of
+        the entry (`_compatibility_modid`): for its newest release, or for its release
+        `version` when given (the Installed list asks about the installed release).
 
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
                          (e.g., "https://mods.vintagestory.at/smithingplus").
+            version: Release version (`modversion`) to evaluate instead of the newest.
 
         Returns:
             ModLookupResponse with mod details and compatibility status.
@@ -463,7 +516,7 @@ class ModService:
         """
         # Extract and validate slug
         slug = extract_slug(slug_or_url)
-        logger.info("lookup_mod_start", slug=slug, input=slug_or_url)
+        logger.info("lookup_mod_start", slug=slug, input=slug_or_url, version=version)
 
         if not validate_slug(slug):
             raise InvalidSlugError(slug)
@@ -476,26 +529,44 @@ class ModService:
             raise ModNotFoundError(slug)
 
         # Get releases (API returns newest-first)
-        releases = mod.get("releases", [])
+        releases: list[ReleaseDict] = mod.get("releases", [])
         if not releases:
             raise ModNotFoundError(slug)
 
         latest_release = releases[0]
-        mod_version = latest_release.get("modversion", "unknown")
+        latest_version = latest_release.get("modversion", "unknown")
+
+        # Story 16.3 (ADR-2 decisions 2 and 3): evaluate one mod ID's release
+        modid = self._compatibility_modid(slug, releases)
+        own = [r for r in releases if (r.get("modidstr") or "") == modid]
+        supported = supported_game_versions(own, modid)
+        if version is None:
+            evaluated: ReleaseDict | None = own[0]
+        else:
+            evaluated = next((r for r in own if r.get("modversion") == version), None)
+        mod_version: str = (
+            evaluated.get("modversion", "unknown") if evaluated is not None else str(version)
+        )
 
         # Check compatibility with the installed game version (VSS-tpe)
         game_version = self.game_version()
-        if not game_version or game_version == UNKNOWN_VERSION:
-            # Server not installed or version unknown
+        if evaluated is None:
             status: CompatibilityStatus = "not_verified"
+            message: str | None = (
+                f"Version {version} is not listed in the mod database; "
+                "cannot verify compatibility."
+            )
+        elif not game_version or game_version == UNKNOWN_VERSION:
+            # Server not installed or version unknown
+            status = "not_verified"
             message = "Game server version unknown - cannot verify compatibility"
         else:
-            status = check_compatibility(latest_release, game_version)
+            status = check_compatibility(evaluated, game_version)
+            tagged_elsewhere = status == "incompatible" and any(
+                check_compatibility(r, game_version) == "compatible" for r in own
+            )
             message = self._build_compatibility_message(
-                status,
-                mod_version,
-                game_version,
-                latest_release.get("tags", []),
+                status, mod_version, game_version, supported, tagged_elsewhere
             )
 
         # Build response
@@ -504,6 +575,7 @@ class ModService:
             game_version=game_version or "unknown",
             mod_version=mod_version,
             message=message,
+            latest_supported_game_version=supported.highest if supported else None,
         )
 
         # Calculate total downloads across all releases
@@ -540,7 +612,7 @@ class ModService:
             name=mod.get("name", slug),
             author=mod.get("author", "Unknown"),
             description=mod.get("text"),
-            latest_version=mod_version,
+            latest_version=latest_version,
             downloads=total_downloads,
             follows=mod.get("follows", 0),
             side=side,

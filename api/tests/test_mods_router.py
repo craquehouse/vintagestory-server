@@ -401,6 +401,58 @@ class TestLookupModEndpoint:
         assert data["data"]["compatibility"]["game_version"] == "1.21.3"
         assert data["data"]["compatibility"]["mod_version"] == "1.8.3"
         assert data["data"]["compatibility"]["message"] is None
+        assert data["data"]["compatibility"]["latest_supported_game_version"] == "1.21.3"
+
+    @respx.mock
+    def test_lookup_mod_version_evaluates_that_release(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug}?version= reports that release's compatibility (Story 16.3)."""
+        mod = {
+            **SMITHINGPLUS_MOD,
+            "releases": [
+                {
+                    "releaseid": 27001,
+                    "modversion": "1.8.3",
+                    "modidstr": "smithingplus",
+                    "filename": "smithingplus_1.8.3.zip",
+                    "fileid": 59176,
+                    "downloads": 49726,
+                    "tags": ["1.21.3"],
+                },
+            ],
+        }
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/smithingplus",
+            params={"version": "1.0.0"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        compatibility = response.json()["data"]["compatibility"]
+        assert compatibility["status"] == "not_verified"
+        assert compatibility["mod_version"] == "1.0.0"
+        assert "not listed" in compatibility["message"]
+
+    def test_lookup_mod_rejects_empty_version(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """GET /mods/lookup/{slug}?version= with an empty version is a validation error."""
+        response = client.get(
+            "/api/v1alpha1/mods/lookup/smithingplus",
+            params={"version": ""},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
 
     @respx.mock
     def test_lookup_mod_monitor_access(

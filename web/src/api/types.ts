@@ -139,6 +139,11 @@ export interface ModCompatibility {
   gameVersion: string | null;
   modVersion: string | null;
   message: string;
+  /**
+   * Most recent game version the evaluated mod ID's releases are tagged for, or null
+   * when none of its tags is a version (Story 16.3, Epic 16 ADR-2).
+   */
+  latestSupportedGameVersion: string | null;
 }
 
 /**

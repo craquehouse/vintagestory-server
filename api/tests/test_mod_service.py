@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     InvalidSlugError,
@@ -1337,9 +1338,9 @@ class TestModServiceLookupMod:
             result = await lookup_service.lookup_mod("oldmod")
 
         assert result.compatibility.status == "incompatible"
-        assert result.compatibility.message is not None
-        assert "1.20.0" in result.compatibility.message
-        assert "Installation may cause issues" in result.compatibility.message
+        # Story 16.3: names the highest supported version, not a list of tags
+        assert result.compatibility.message == "Last supported game version: 1.20.1."
+        assert result.compatibility.latest_supported_game_version == "1.20.1"
 
     @pytest.mark.asyncio
     async def test_lookup_mod_not_found(self, lookup_service: ModService) -> None:
@@ -1551,7 +1552,7 @@ class TestModServiceLookupMod:
     async def test_lookup_mod_incompatible_many_tags(
         self, lookup_service: ModService
     ) -> None:
-        """lookup_mod() truncates compatibility message with many compatible tags."""
+        """lookup_mod() names the highest of many tags, not the first ones (Story 16.3)."""
         import respx
         from httpx import Response
 
@@ -1585,12 +1586,7 @@ class TestModServiceLookupMod:
             result = await lookup_service.lookup_mod("manytags")
 
         assert result.compatibility.status == "incompatible"
-        assert result.compatibility.message is not None
-        # Should show first 3 tags with ellipsis
-        assert "1.18.0" in result.compatibility.message
-        assert "1.18.1" in result.compatibility.message
-        assert "1.18.2" in result.compatibility.message
-        assert "..." in result.compatibility.message
+        assert result.compatibility.message == "Last supported game version: 1.18.4."
 
     @pytest.mark.asyncio
     async def test_lookup_mod_incompatible_no_tags(
@@ -1646,17 +1642,12 @@ class TestModServiceLookupMod:
     async def test_lookup_mod_incompatible_none_tags_message(
         self, lookup_service: ModService
     ) -> None:
-        """lookup_mod() generates fallback message when incompatible with no tags list."""
-        # This tests the line 347 code path: incompatible status with None/empty tags
-        # We need to trigger _build_compatibility_message with status="incompatible"
-        # and compatible_tags being falsy (None or empty)
-
-        # We'll directly test the _build_compatibility_message method
+        """lookup_mod() generates fallback message when incompatible with no supported range."""
         message = lookup_service._build_compatibility_message(
             status="incompatible",
             mod_version="2.0.0",
             game_version="1.21.3",
-            compatible_tags=None,  # This triggers line 347
+            supported=None,
         )
 
         assert message is not None
@@ -1665,21 +1656,22 @@ class TestModServiceLookupMod:
         assert "Installation may cause issues" in message
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_incompatible_empty_tags_list(
+    async def test_lookup_mod_incompatible_unparsable_game_version_message(
         self, lookup_service: ModService
     ) -> None:
-        """lookup_mod() generates fallback message when incompatible with empty tags list."""
-        # This tests line 347: empty list [] triggers the else branch
+        """lookup_mod() falls back when the game version cannot be compared (Story 16.3)."""
+        from vintagestory_api.services.mod_compatibility import SupportedRange
+
         message = lookup_service._build_compatibility_message(
             status="incompatible",
             mod_version="1.5.0",
-            game_version="1.21.3",
-            compatible_tags=[],  # Empty list triggers line 347
+            game_version="1.21.x",
+            supported=SupportedRange(lowest="1.18.0", highest="1.18.4"),
         )
 
         assert message is not None
         assert "1.5.0" in message
-        assert "not compatible with 1.21.3" in message
+        assert "not compatible with 1.21.x" in message
         assert "Installation may cause issues" in message
 
 
@@ -1892,3 +1884,320 @@ class TestCompatibilityUsesInstalledServerVersion:
             result = await service.install_mod("smithingplus")
 
         assert result.compatibility == "compatible"
+
+
+# --- Story 16.3: latest supported game version (Epic 16 ADR-2) ---
+
+MODDB_FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+
+def _fixture_mod(name: str) -> dict[str, object]:
+    payload = json.loads((MODDB_FIXTURES / f"mod_{name}.json").read_text())
+    return payload["mod"]
+
+
+def _synthetic_mod(
+    modid: str, releases: list[tuple[str, list[str]]], with_modidstr: bool = True
+) -> dict[str, object]:
+    """One-mod-ID entry; releases are (modversion, tags), newest first."""
+    return {
+        "modid": 9999,
+        "assetid": 9999,
+        "name": modid,
+        "urlalias": modid,
+        "author": "someone",
+        "side": "both",
+        "releases": [
+            {
+                "releaseid": 100 + i,
+                "modversion": version,
+                **({"modidstr": modid} if with_modidstr else {}),
+                "filename": f"{modid}_{version}.zip",
+                "fileid": 100 + i,
+                "downloads": 1,
+                "tags": tags,
+                "created": "2026-01-01 00:00:00",
+            }
+            for i, (version, tags) in enumerate(releases)
+        ],
+    }
+
+
+class TestLookupLatestSupportedGameVersion:
+    """Story 16.3: which mod ID and release decide compatibility, and the messages."""
+
+    @staticmethod
+    def make(
+        tmp_path: Path,
+        game_version: str = "1.22.7",
+        installed: tuple[tuple[str, str], ...] = (),
+    ) -> ModService:
+        from datetime import UTC, datetime
+
+        from vintagestory_api.models.mods import ModState
+
+        service = ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+            game_version_provider=lambda: game_version,
+        )
+        for modid, version in installed:
+            filename = f"{modid}_{version}.zip"
+            service.state_manager.set_mod_state(
+                filename,
+                ModState(
+                    filename=filename,
+                    slug=modid,
+                    version=version,
+                    installed_at=datetime(2026, 11, 13, tzinfo=UTC),
+                ),
+            )
+        return service
+
+    @staticmethod
+    async def lookup(
+        service: ModService, key: str, mod: dict[str, object], version: str | None = None
+    ) -> ModLookupResponse:
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get(f"https://mods.vintagestory.at/api/mod/{key}").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": mod})
+            )
+            return await service.lookup_mod(key, version)
+
+    @pytest.mark.asyncio
+    async def test_behind_names_the_last_supported_version(self, tmp_path: Path) -> None:
+        result = await self.lookup(
+            self.make(tmp_path), "playercorpse", _fixture_mod("playercorpse")
+        )
+
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.mod_version == "1.12.0"
+        assert result.compatibility.latest_supported_game_version == "1.21.1"
+        assert result.compatibility.message == "Last supported game version: 1.21.1."
+
+    @pytest.mark.asyncio
+    async def test_ahead_names_the_required_version(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod(
+            "future", [("3.0.0", ["1.23.0", "1.23.1"]), ("2.9.0", ["1.23.0-rc.2"])]
+        )
+
+        result = await self.lookup(self.make(tmp_path), "future", mod)
+
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.latest_supported_game_version == "1.23.1"
+        assert (
+            result.compatibility.message
+            == "Requires game version 1.23.0 or newer (installed: 1.22.7)."
+        )
+
+    @pytest.mark.asyncio
+    async def test_gap_names_the_supported_range(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod("gappy", [("2.0.0", ["1.23.0"]), ("1.0.0", ["1.21.0"])])
+
+        result = await self.lookup(self.make(tmp_path), "gappy", mod)
+
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.message == "Not tagged for 1.22.7; supports 1.21.0 to 1.23.0."
+
+    @pytest.mark.asyncio
+    async def test_not_verified_adds_last_tagged_when_behind(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod("close", [("1.0.0", ["1.22.5", "1.22.6"])])
+
+        result = await self.lookup(self.make(tmp_path), "close", mod)
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.latest_supported_game_version == "1.22.6"
+        assert result.compatibility.message == (
+            "Mod not explicitly verified for version 1.22.7. May still work. "
+            "Last tagged for 1.22.6."
+        )
+
+    @pytest.mark.asyncio
+    async def test_not_verified_keeps_wording_when_not_behind(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod("newer", [("1.0.0", ["1.22.8"])])
+
+        result = await self.lookup(self.make(tmp_path), "newer", mod)
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.message == (
+            "Mod not explicitly verified for version 1.22.7. May still work."
+        )
+
+    @pytest.mark.asyncio
+    async def test_compatible_still_reports_the_version(self, tmp_path: Path) -> None:
+        result = await self.lookup(self.make(tmp_path), "carryon", _fixture_mod("carryon"))
+
+        assert result.compatibility.status == "compatible"
+        assert result.compatibility.message is None
+        assert result.compatibility.latest_supported_game_version == "1.22.7"
+
+    @pytest.mark.asyncio
+    async def test_not_installed_entry_uses_the_newest_release_mod_id(self, tmp_path: Path) -> None:
+        result = await self.lookup(self.make(tmp_path), "instruments", _fixture_mod("instruments"))
+
+        assert result.compatibility.mod_version == "2.0.7"
+        assert result.compatibility.latest_supported_game_version == "1.21.6"
+        assert result.compatibility.message == "Last supported game version: 1.21.6."
+        assert result.latest_version == "2.0.7"
+
+    @pytest.mark.asyncio
+    async def test_installed_mod_id_decides_compatibility(self, tmp_path: Path) -> None:
+        service = self.make(tmp_path, installed=(("vsinstruments", "1.2.6"),))
+
+        result = await self.lookup(service, "instruments", _fixture_mod("instruments"))
+
+        # Newest release of the installed mod ID, not releases[0] (vsinstrumentsbase 2.0.7)
+        assert result.compatibility.mod_version == "1.2.7"
+        assert result.compatibility.latest_supported_game_version == "1.19.3"
+        assert result.compatibility.message == "Last supported game version: 1.19.3."
+        assert result.latest_version == "2.0.7"
+
+    @pytest.mark.asyncio
+    async def test_looked_up_slug_wins_over_newer_installed_mod_id(self, tmp_path: Path) -> None:
+        service = self.make(
+            tmp_path, installed=(("vsinstrumentsbase", "2.0.7"), ("instruments", "1.2.2"))
+        )
+
+        result = await self.lookup(service, "instruments", _fixture_mod("instruments"))
+
+        assert result.compatibility.mod_version == "1.2.2"
+        assert result.compatibility.latest_supported_game_version == "1.18.6"
+
+    @pytest.mark.asyncio
+    async def test_newest_release_mod_id_wins_when_slug_not_installed(
+        self, tmp_path: Path
+    ) -> None:
+        service = self.make(
+            tmp_path, installed=(("vsinstruments", "1.2.7"), ("vsinstrumentsbase", "2.0.7"))
+        )
+
+        result = await self.lookup(service, "instruments", _fixture_mod("instruments"))
+
+        assert result.compatibility.mod_version == "2.0.7"
+
+    @pytest.mark.asyncio
+    async def test_mod_id_comparison_is_exact(self, tmp_path: Path) -> None:
+        service = self.make(tmp_path, installed=(("VSInstruments", "1.2.7"),))
+
+        result = await self.lookup(service, "instruments", _fixture_mod("instruments"))
+
+        assert result.compatibility.mod_version == "2.0.7"
+
+    @pytest.mark.asyncio
+    async def test_version_evaluates_that_release(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod("pc", [("2.0.0", ["1.22.7"]), ("1.0.0", ["1.21.0", "1.21.1"])])
+        service = self.make(tmp_path, installed=(("pc", "1.0.0"),))
+
+        newest = await self.lookup(service, "pc", mod)
+        installed = await self.lookup(service, "pc", mod, version="1.0.0")
+
+        assert (newest.compatibility.status, newest.compatibility.mod_version) == (
+            "compatible",
+            "2.0.0",
+        )
+        assert (installed.compatibility.status, installed.compatibility.mod_version) == (
+            "incompatible",
+            "1.0.0",
+        )
+        # Another release of the mod ID is tagged for 1.22.7: not "behind" or "gap"
+        assert installed.compatibility.message == (
+            "Version 1.0.0 is not tagged for 1.22.7; another release of this mod is."
+        )
+        assert installed.compatibility.latest_supported_game_version == "1.22.7"
+
+    @pytest.mark.asyncio
+    async def test_version_of_another_mod_id_is_not_listed(self, tmp_path: Path) -> None:
+        service = self.make(tmp_path, installed=(("vsinstruments", "1.2.6"),))
+
+        result = await self.lookup(
+            service, "instruments", _fixture_mod("instruments"), version="2.0.7"
+        )
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.mod_version == "2.0.7"
+        assert result.compatibility.message == (
+            "Version 2.0.7 is not listed in the mod database; cannot verify compatibility."
+        )
+        assert result.compatibility.latest_supported_game_version == "1.19.3"
+
+    @pytest.mark.asyncio
+    async def test_entry_without_modidstr_uses_all_releases(self, tmp_path: Path) -> None:
+        mod = _synthetic_mod(
+            "legacy", [("2.0.0", ["1.21.0"]), ("1.0.0", ["1.20.0"])], with_modidstr=False
+        )
+        service = self.make(tmp_path, installed=(("legacy", "1.0.0"),))
+
+        result = await self.lookup(service, "legacy", mod, version="1.0.0")
+
+        assert result.compatibility.mod_version == "1.0.0"
+        assert result.compatibility.status == "incompatible"
+        assert result.compatibility.latest_supported_game_version == "1.21.0"
+
+    @pytest.mark.asyncio
+    async def test_unknown_game_version_keeps_its_message(self, tmp_path: Path) -> None:
+        result = await self.lookup(
+            self.make(tmp_path, game_version="stable"), "playercorpse", _fixture_mod("playercorpse")
+        )
+
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.message == (
+            "Game server version unknown - cannot verify compatibility"
+        )
+        assert result.compatibility.latest_supported_game_version == "1.21.1"
+
+    def test_no_parsable_range_keeps_fallback_message(self, tmp_path: Path) -> None:
+        message = self.make(tmp_path)._build_compatibility_message(
+            "incompatible", "1.0.0", "1.22.7", None
+        )
+
+        assert message == (
+            "Mod version 1.0.0 is not compatible with 1.22.7. Installation may cause issues."
+        )
+
+    def test_installed_version_at_a_range_end_is_not_called_a_gap(self, tmp_path: Path) -> None:
+        """Review L1: "1.21" equals the tag "1.21.0" numerically though not as a string."""
+        from vintagestory_api.services.mod_compatibility import SupportedRange
+
+        message = self.make(tmp_path)._build_compatibility_message(
+            "incompatible", "1.0.0", "1.21", SupportedRange("1.19.0", "1.21.0")
+        )
+
+        assert message == "Version 1.0.0 is not tagged for 1.21; another release of this mod is."
+
+    @pytest.mark.parametrize(
+        ("status", "supported", "expected"),
+        [
+            (
+                "not_verified",
+                ("1.22.5", "1.22.6"),
+                "Mod not explicitly verified for version 1.22.7. May still work. "
+                "Last tagged for 1.22.6.",
+            ),
+            (
+                "incompatible",
+                None,
+                "Mod version 1.0.0 is not compatible with 1.22.7. Installation may cause issues.",
+            ),
+            ("incompatible", ("1.21.0", "1.21.1"), "Last supported game version: 1.21.1."),
+        ],
+    )
+    def test_messages_use_the_game_version_without_prefix(
+        self,
+        tmp_path: Path,
+        status: CompatibilityStatus,
+        supported: tuple[str, str] | None,
+        expected: str,
+    ) -> None:
+        """Review L2: every wording names the installed version without a "v" prefix."""
+        from vintagestory_api.services.mod_compatibility import SupportedRange
+
+        message = self.make(tmp_path)._build_compatibility_message(
+            status, "1.0.0", "v1.22.7", SupportedRange(*supported) if supported else None
+        )
+
+        assert message == expected

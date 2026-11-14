@@ -559,6 +559,15 @@ async def lookup_mod(
         ),
     ],
     _: RequireAuth,
+    version: Annotated[
+        str | None,
+        Query(
+            description="Release version to evaluate compatibility for (e.g., the "
+            "installed version). Defaults to the newest release of the mod ID.",
+            min_length=1,
+            max_length=100,
+        ),
+    ] = None,
     service: ModService = Depends(get_mod_service),
 ) -> ApiResponse:
     """Look up mod details and compatibility from the VintageStory mod database.
@@ -567,8 +576,14 @@ async def lookup_mod(
     with the current game server version. Both Admin and Monitor roles can
     access this read-only endpoint.
 
+    Compatibility is reported for one mod ID of the entry: the installed one when
+    any of the entry's mod IDs is installed, otherwise the mod ID of the newest
+    release (Epic 16 ADR-2).
+
     Args:
         slug: Mod slug or full URL to look up.
+        version: Optional release version to evaluate (the Installed list passes
+            the installed version); defaults to the mod ID's newest release.
 
     Returns:
         ApiResponse with ModLookupResponse containing:
@@ -579,16 +594,17 @@ async def lookup_mod(
         - latest_version: Latest release version
         - downloads: Total download count
         - side: "Both", "Client", or "Server"
-        - compatibility: Nested object with status, game_version, mod_version, message
+        - compatibility: Nested object with status, game_version, mod_version, message,
+          latest_supported_game_version
 
     Raises:
         HTTPException: 400 if slug format is invalid
         HTTPException: 404 if mod not found in database
         HTTPException: 502 if mod database API is unavailable
     """
-    logger.debug("router_lookup_mod_start", slug=slug)
+    logger.debug("router_lookup_mod_start", slug=slug, version=version)
     try:
-        result = await service.lookup_mod(slug)
+        result = await service.lookup_mod(slug, version)
         logger.debug("router_lookup_mod_complete", slug=slug, name=result.name)
 
         return ApiResponse(
