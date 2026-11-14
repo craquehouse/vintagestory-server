@@ -45,9 +45,9 @@ so that **I can see more settings without scrolling past half-empty cards**.
   - [x] 2.1: New optional `contentClassName` prop merged into `CardContent` (`cn('space-y-4', contentClassName)`); collapsible behavior, header and default markup unchanged
   - [x] 2.2: Tests in `SettingGroup.test.tsx`: the class reaches the content element; without it the content keeps its `space-y-4` stack and gains no grid class; the content is still hidden when collapsed
 
-- [ ] Task 3: Two-column settings layout from `xl` + tests (AC: 1, 2, 4, 5)
-  - [ ] 3.1: `GameConfigPanel`: inner wrapper `mx-auto max-w-[1280px] space-y-4` (`data-testid="game-config-layout"`); Server Info rendered with `contentClassName="xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0"`; then `div.grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) holding `div.space-y-4` `game-config-column-left` (Player Settings, Network) and `game-config-column-right` (World Settings). The loading skeleton uses the same max width. `renderGroup` takes the optional content class; no other behavior changes. Update the doc comment
-  - [ ] 3.2: Tests in `GameConfigPanel.test.tsx` ("Story 16.6: desktop layout" block): layout wrapper classes; Server Info outside the columns with the two-column content classes and its fields in DOM order Name, Description, Welcome, Password; left column contains Player Settings then Network, right column World Settings; columns container classes; collapsing World leaves Player and Network in the left column and their fields rendered, collapsing Network leaves World's fields rendered; Max Players and Port inputs carry `max-w-xs`, Server Name does not. Existing tests pass unchanged
+- [x] Task 3: Two-column settings layout from `xl` + tests (AC: 1, 2, 4, 5)
+  - [x] 3.1: `GameConfigPanel`: inner wrapper `mx-auto max-w-[1280px] space-y-4` (`data-testid="game-config-layout"`); Server Info rendered with `contentClassName="xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0"`; then `div.grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) holding `div.space-y-4` `game-config-column-left` (Player Settings, Network) and `game-config-column-right` (World Settings). The loading skeleton uses the same max width. `renderGroup` takes the optional content class; no other behavior changes. Update the doc comment
+  - [x] 3.2: Tests in `GameConfigPanel.test.tsx` ("Story 16.6: desktop layout" block): layout wrapper classes; Server Info outside the columns with the two-column content classes and its fields in DOM order Name, Description, Welcome, Password; left column contains Player Settings then Network, right column World Settings; columns container classes; collapsing World leaves Player and Network in the left column and their fields rendered, collapsing Network leaves World's fields rendered; Max Players and Port inputs carry `max-w-xs`, Server Name does not. Existing tests pass unchanged
 
 - [ ] Task 4: Browser verification against the Docker dev stack + E2E spec (AC: 1-5)
   - [ ] 4.1: Before measurements: `16-6-browser/settings_layout.mjs` (adapted from `16-0-spike/settings_shots.mjs`; masks the server name and password) at 390, 1024, 1280, 1440 and 1920 on the pre-change build, output `settings_layout.before.json`
@@ -156,11 +156,13 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run, 3 of the 4 new width tests failed (the text-input test already passed); then 30 passed; `tsc` clean.
 - Task 2: red run, the `contentClassName` test failed; then 25 passed; `tsc` clean.
+- Task 3: red run, 6 of the 7 new layout tests failed (the number-width test already passed after Task 1); then 22 passed. Full web suite 3,098 passed, 4 skipped (pre-existing `it.skip`s); `tsc` clean.
 
 ### Completion Notes List
 
 - Task 1: `SettingField` gives `int`/`float` inputs `max-w-xs` (320px) at every width, merged with the error classes; text inputs keep `w-full`. Only game settings pass number types.
 - Task 2: `SettingGroup` takes an optional `contentClassName`, merged with the content's default `space-y-4`.
+- Task 3: `GameConfigPanel` wraps the groups in `mx-auto max-w-[1280px]` (`game-config-layout`; the loading skeleton too); Server Info passes `xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0` to its content; the other groups sit in `grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) with a left stack (Player Settings, Network) and a right stack (World Settings). Below `xl` this is one column in the order Server Info, Player Settings, Network, World Settings.
 
 ### File List
 
@@ -168,6 +170,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/components/SettingField.test.tsx`
 - `web/src/components/SettingGroup.tsx`
 - `web/src/components/SettingGroup.test.tsx`
+- `web/src/features/game-server/GameConfigPanel.tsx`
+- `web/src/features/game-server/GameConfigPanel.test.tsx`
 - `_bmad-output/implementation-artifacts/16-6-settings-layout-on-desktop.md`
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs` (new)
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.before.json` (new)

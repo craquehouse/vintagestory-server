@@ -4,6 +4,12 @@
  * Displays game settings organized into groups with validation.
  * Handles loading, error states, and auto-save on blur.
  *
+ * Layout (Story 16.6, Epic 16 ADR-3): the panel is at most 1280px wide and centered.
+ * Below `xl` the groups stack in one column. From `xl` Server Info spans the panel with
+ * its fields in two columns, followed by two independent column stacks (Player Settings
+ * then Network on the left, World Settings on the right), so collapsing a group only
+ * moves its own column and no card stretches to its neighbor's height.
+ *
  * Story 6.4: Settings UI
  */
 
@@ -178,7 +184,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (isLoading) {
     return (
       <div className={className} data-testid="game-config-loading">
-        <div className="space-y-4">
+        <div className="mx-auto max-w-[1280px] space-y-4">
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -238,7 +244,8 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
     title: string,
     description: string,
     definitions: SettingDefinition[],
-    collapsible = false
+    collapsible = false,
+    contentClassName?: string
   ) => {
     // Filter to only include settings that exist in API response
     const availableSettings = definitions.filter((def) => getSetting(def.key));
@@ -253,6 +260,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         title={title}
         description={description}
         collapsible={collapsible}
+        contentClassName={contentClassName}
       >
         {availableSettings.map(renderSetting)}
       </SettingGroup>
@@ -261,29 +269,37 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
 
   return (
     <div className={className} data-testid="game-config-panel">
-      <div className="space-y-4">
+      <div className="mx-auto max-w-[1280px] space-y-4" data-testid="game-config-layout">
         {renderGroup(
           'Server Info',
           'Basic server identification',
-          SERVER_INFO_SETTINGS
+          SERVER_INFO_SETTINGS,
+          false,
+          'xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0'
         )}
-        {renderGroup(
-          'Player Settings',
-          'Player-related configuration',
-          PLAYER_SETTINGS
-        )}
-        {renderGroup(
-          'World Settings',
-          'Gameplay mechanics',
-          WORLD_SETTINGS,
-          true // collapsible
-        )}
-        {renderGroup(
-          'Network',
-          'Connection and visibility',
-          NETWORK_SETTINGS,
-          true // collapsible
-        )}
+        <div className="grid gap-4 xl:grid-cols-2 xl:items-start" data-testid="game-config-columns">
+          <div className="space-y-4" data-testid="game-config-column-left">
+            {renderGroup(
+              'Player Settings',
+              'Player-related configuration',
+              PLAYER_SETTINGS
+            )}
+            {renderGroup(
+              'Network',
+              'Connection and visibility',
+              NETWORK_SETTINGS,
+              true // collapsible
+            )}
+          </div>
+          <div className="space-y-4" data-testid="game-config-column-right">
+            {renderGroup(
+              'World Settings',
+              'Gameplay mechanics',
+              WORLD_SETTINGS,
+              true // collapsible
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
