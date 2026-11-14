@@ -1,6 +1,6 @@
 # Story 16.8: Name Sort and Empty Settings
 
-Status: review
+Status: done
 
 <!-- Implements FR175-FR176. Beads: VSS-stm.1 (Name sort), VSS-7ed (empty settings, Password). Added to Epic 16 on 2026-11-13 after Stories 16.0-16.7 (sprint-change-proposal-2026-11-13.md, Addendum). Stacks on Story 16.7 (branch story/16-7-file-browser-breadcrumbs, PR #154), itself on #153, #152, #151, #150, #149, #148. No new dependencies. -->
 
@@ -82,6 +82,12 @@ so that **I can find mods alphabetically and edit settings without saving the wo
 - [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` passes
   - [x] 6.2: Status review, `just sprint set 16-8-name-sort-and-empty-settings review`, PR to `story/16-7-file-browser-breadcrumbs` (stacks on #154, #153, #152, #151, #150, #149, #148), PR link on `VSS-stm.1` and `VSS-7ed`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: the Show password button stayed enabled when the field is disabled (env-managed). Fixed: the toggle gets `disabled={isDisabled}`; test that it is disabled and a click leaves the field masked, red first (f49443e)
+- [x] [AI-Review][Low] L2: clearing Password while the server runs sends `/serverconfig nopassword` but leaves `serverconfig.json` (and `GET /config/game`) on the old password until the game saves its config; the same as setting any live value while running. Deferred: comment on `VSS-zws` [API-073], no code change
+- [x] [AI-Review][Low] L3: the masked input repeated the plain input's props (`aria-describedby`, `aria-invalid`, error classes). Fixed: `sharedInputProps` and `errorInputClass` are used by both variants (b81eb2e); refactor, covered by the existing tests
 
 ## Dev Notes
 
@@ -185,6 +191,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Completion Notes List
 
+- Review fixes: L1 red run (the new toggle test failed), then 65 passed in `SettingField.test.tsx` and `GameConfigPanel.test.tsx`; L3 refactor, same 65 passed. `just check` passed: API 2,135 passed; web 3,133 passed and 4 skipped (pre-existing); scripts 190 passed; ruff and `tsc` clean; pyright 0 errors (3 pre-existing warnings). `just docker restart`, then both 16.8 E2E specs: 5 passed (read only); `serverconfig.json` SHA-1 `a69a97560c55daf5e32c42f003cf9090003395d2` before and after.
 - Story created 2026-11-13: context analysis of the browse hook and endpoint, the settings service and field, Stories 16.0, 16.1 and 16.6 and ADR-1/ADR-3.
 - Task 1: `sort_mods(..., "name")` uses `_name_sort_key`: stripped, NFKD without combining marks, `casefold()`, then the stripped name and `assetid`; a null or missing name sorts as empty.
 - Task 2: `fetchBrowseMods` sends `sort=name`; `useBrowseMods` passes every sort through with `pageSize ?? 20` and keeps the API's order (the 1000 page size and the client-side `sortModsByName` are removed, with its tests); `BrowseTab` shows page controls and the normal results count for the Name sort.
@@ -216,3 +223,23 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/features/game-server/GameConfigPanel.test.tsx`
 - `web/e2e/mod-browse-name-sort.spec.ts`
 - `web/e2e/settings-empty-values.spec.ts`
+
+## Change Log
+
+- 2026-11-13: Story 16.8 added to Epic 16 (FR175-FR176) and created (ready-for-dev).
+- 2026-11-13: Implemented: the API's name sort ignores surrounding spaces, case and accents; the web UI uses `sort=name` with normal paging; the API stores null for cleared Description, Password and IP Address and rejects null elsewhere; empty settings render as empty fields and Password is masked with a show/hide toggle; E2E specs; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L1 and L3 fixed, L2 deferred to `VSS-zws`. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #155 head
+**Outcome:** Approve → resolved
+
+**Summary:** All 7 ACs pass. The File List matches the diff and the planning documents are consistent. On the PR head the API tests passed (2,135), pyright reported 0 errors, the web tests passed (3,132 passed, 4 skipped) and the typecheck was clean; red checks confirmed the new tests fail without the change. String sanitizing against command injection and password log redaction were verified. Three low findings: two fixed, one deferred.
+
+### Action Items
+
+- [x] [Low] L1 Show password button enabled on a disabled (env-managed) field (fixed, f49443e)
+- [x] [Low] L2 cleared Password while running leaves the file on the old password until the game saves (deferred, comment on `VSS-zws`)
+- [x] [Low] L3 masked input duplicated the plain input's props (fixed, b81eb2e)
