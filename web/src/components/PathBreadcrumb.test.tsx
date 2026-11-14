@@ -236,6 +236,26 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       expect(external).toHaveFocus();
     });
 
+    it('does not take focus later when a click did not change the path', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <PathBreadcrumb path="a/b" rootLabel="serverdata" onNavigate={() => {}} />
+      );
+
+      await user.click(screen.getByTestId('path-breadcrumb-root'));
+      expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('b');
+
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      outside.focus();
+      rerender(<PathBreadcrumb path="x/y" rootLabel="serverdata" onNavigate={() => {}} />);
+
+      expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('y');
+      expect(screen.getByTestId('path-breadcrumb-current')).not.toHaveFocus();
+      expect(outside).toHaveFocus();
+      outside.remove();
+    });
+
     it('keeps the current segment out of the tab order', () => {
       render(<PathBreadcrumb path="a/b" rootLabel="serverdata" onNavigate={vi.fn()} />);
 

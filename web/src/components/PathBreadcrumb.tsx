@@ -43,18 +43,24 @@ const segmentButtonClass = cn(
  */
 export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathBreadcrumbProps) {
   const segments = (path ?? '').split('/').filter((segment) => segment !== '');
+  const currentPath = segments.join('/');
   const currentRef = useRef<HTMLSpanElement>(null);
-  const shouldFocusCurrent = useRef(false);
+  // Path requested by the last breadcrumb click, until the next render ('' is the root)
+  const focusTarget = useRef<string | null>(null);
 
+  // Runs after every render: focus the current segment only if this render shows the
+  // path the click asked for, and forget the request either way, so a click that did not
+  // change the path cannot steal focus on a later, unrelated path change.
   useEffect(() => {
-    if (shouldFocusCurrent.current) {
-      shouldFocusCurrent.current = false;
+    if (focusTarget.current === null) return;
+    if (focusTarget.current === currentPath) {
       currentRef.current?.focus();
     }
-  }, [path]);
+    focusTarget.current = null;
+  });
 
   const navigate = (target: string | null) => {
-    shouldFocusCurrent.current = true;
+    focusTarget.current = target ?? '';
     onNavigate(target);
   };
 
