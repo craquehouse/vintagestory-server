@@ -1,6 +1,6 @@
 # Story 16.3: Latest Supported Game Version for Incompatible Mods
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR170 and Epic 16 ADR-2 decisions 1-5 (decision 6: browse cards unchanged). Bead: VSS-udh. Related, NOT in scope: VSS-jhf (install can pick a release from a different mod ID), VSS-4f3 (browse-card "has a release for your version" flag). Stacks on Story 16.2 (PR #149), itself on 16.1 (PR #148). -->
 
@@ -71,9 +71,9 @@ so that **I can judge how far behind it is before installing it**.
   - [x] 5.2: Install `playercorpse` through the UI; Installed list shows Incompatible and "Supports up to 1.21.1"; open `/game-server/mods/browse/instruments` (not installed) and check the header names the `vsinstrumentsbase` release. Browse cards look as before. Browser console clean
   - [x] 5.3: Screenshot with the server name masked (header `span.font-semibold`, `#ServerName`), kept outside the repo unless needed; remove `playercorpse` and its cached zip so `./data` returns to its prior mod set; record results in the Dev Agent Record
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes
-  - [ ] 6.2: Status review, `just sprint set 16-3-latest-supported-game-version-for-incompatible-mods review`, PR to `story/16-2-installed-mods-recognized-by-any-mod-id` (stacks on #149 and #148), PR link on `VSS-udh`
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` passes
+  - [x] 6.2: Status review, `just sprint set 16-3-latest-supported-game-version-for-incompatible-mods review`, PR to `story/16-2-installed-mods-recognized-by-any-mod-id` (stacks on #149 and #148), PR link on `VSS-udh`
 
 ## Dev Notes
 
@@ -166,6 +166,7 @@ Claude Opus 5.5 (claude-opus-5-5)
   - Browse grid rendered 8 cards with no lookup requests; browse components have no diff on this branch (AC 6).
   - No console errors or warnings on any page. Screenshots (server name masked) kept in the session scratchpad, not committed.
   - Removed with `DELETE /api/v1alpha1/mods/playercorpse` and deleted `cache/mods/PlayerCorpse_VS1.20.7_net7_v1.11.1.zip`; the Mods folder, `cache/mods` and the state file list match the snapshot (only directory mtimes differ).
+- Task 6: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,104 passed, web 3,119 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
 
 ### Completion Notes List
 
@@ -173,6 +174,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: `CompatibilityInfo.latest_supported_game_version`. `lookup_mod(slug_or_url, version=None)` picks the mod ID with `_compatibility_modid` (installed looked-up slug, then installed entry mod IDs in release order, exact comparison; else `releases[0].modidstr`; a match with no releases in the entry falls back to the default), evaluates that mod ID's newest release or its `version` release, and reports an unlisted `version` as `not_verified` with "Version X is not listed in the mod database; cannot verify compatibility." `_build_compatibility_message` now takes the `SupportedRange` and produces the ADR-2 behind/ahead/gap wording, "Last tagged for X." on `not_verified`, "Version X is not tagged for G; another release of this mod is." when an older evaluated release misses a version another release has, and today's fallback when there is no range or the game version does not parse. `latest_version` and `releases` are unchanged. Router: optional `version` query parameter (1-100 chars).
 - Task 3: `ModCompatibility.latestSupportedGameVersion`; `lookupMod(slugOrUrl, version?)` adds `?version=` (encoded); `queryKeys.mods.lookup(slug, version?)` appends `{ version }` only when given. `useModsCompatibility` now takes the installed mods (`{ slug, version }`) and returns, besides the unchanged `compatibilityMap` (status) and `sideMap`, a `compatibilityDetails` map with the full compatibility. Deviation from subtask 3.2's wording: the status map was kept and the details added as a second map, so existing callers and tests keep their shape. `ModTable`'s Compatibility cell shows the badge with the message as its tooltip and "Supports up to X" for `not_verified`/`incompatible` when the version is known.
 - Task 4: `ModDetailPage` shows the compatibility message as text under the name and badge for `not_verified` and `incompatible`, and "Version:" shows `compatibility.modVersion` (the evaluated release), falling back to `latestVersion`. The install flow still uses `latestVersion` (`VSS-jhf`). Browse cards and their tests are untouched (AC 6).
+- Task 6: status review; PR targets `story/16-2-installed-mods-recognized-by-any-mod-id` (stacks on #149 and #148).
+- Decisions beyond ADR-2 (recorded in Dev Notes): the API chooses the mod ID by mirroring `findInstalledModForEntry`; an evaluated older release that misses a game version another release of the mod ID has gets "Version X is not tagged for G; another release of this mod is." instead of the gap wording; an unlisted `version` is `not_verified` with its own message; the detail page shows the message as text and its header version follows `compatibility.modVersion`. `latest_version` keeps its meaning, so no API field is removed or changes meaning.
+- Bead filed: `VSS-br2` [UI-074] newly installed mod shows Available: Unknown until the next update check (top-level, not Epic 16).
 
 ### File List
 
@@ -200,3 +204,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-13: Story 16.3 created (ready-for-dev).
+- 2026-11-13: Implemented: supported game version range per mod ID; lookup reports the installed (or install-flow) mod ID's release, `latest_supported_game_version`, the ADR-2 messages and an optional `version`; Installed list evaluates the installed release and shows "Supports up to X"; detail page shows the message and the evaluated release's version; browser verification; status review.
