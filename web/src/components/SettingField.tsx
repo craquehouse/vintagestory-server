@@ -201,6 +201,7 @@ export function SettingField({
             size="sm"
             className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0"
             onClick={() => setIsRevealed((revealed) => !revealed)}
+            disabled={isDisabled}
             aria-label={isRevealed ? 'Hide password' : 'Show password'}
             aria-pressed={isRevealed}
             aria-controls={settingKey}

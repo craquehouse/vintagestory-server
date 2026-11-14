@@ -580,6 +580,17 @@ describe('SettingField', () => {
       });
     });
 
+    it('disables the toggle when the field is disabled (env-managed)', () => {
+      render(<SettingField {...passwordProps} envManaged />);
+
+      expect(screen.getByLabelText('Password')).toBeDisabled();
+      const toggle = screen.getByRole('button', { name: 'Show password' });
+      expect(toggle).toBeDisabled();
+
+      fireEvent.click(toggle);
+      expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
+    });
+
     it('does not mask or add a toggle when not masked', () => {
       render(<SettingField {...defaultProps} />);
 
