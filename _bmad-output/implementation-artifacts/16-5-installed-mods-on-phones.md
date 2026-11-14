@@ -2,7 +2,7 @@
 
 Status: review
 
-<!-- Implements FR172. Bead: VSS-rr5 (Story 14.3 review L3). Stacks on Story 16.4 (branch story/16-4-formatted-description-in-mod-lookup-preview, no PR yet), itself on 16.3 (PR #150), 16.2 (PR #149) and 16.1 (PR #148). Do not touch web/src/components/ModLookupInput* or the Story 16.4 docs. No new dependencies. -->
+<!-- Implements FR172. Bead: VSS-rr5 (Story 14.3 review L3). Stacks on Story 16.4 (branch story/16-4-formatted-description-in-mod-lookup-preview, PR #151), itself on 16.3 (PR #150), 16.2 (PR #149) and 16.1 (PR #148). Do not touch web/src/components/ModLookupInput* or the Story 16.4 docs. No new dependencies. -->
 
 ## Story
 
@@ -66,7 +66,7 @@ so that **I can update, enable and remove mods without scrolling sideways**.
 
 - [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` passes
-  - [x] 6.2: Status review, `just sprint set 16-5-installed-mods-on-phones review`, PR to `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4, #150, #149, #148), PR link on `VSS-rr5`
+  - [x] 6.2: Status review, `just sprint set 16-5-installed-mods-on-phones review`, PR to `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4 #151, #150, #149, #148), PR link on `VSS-rr5`
 
 ## Dev Notes
 
@@ -164,9 +164,29 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run (module missing), then the stand-in's own test failed on a wrong expectation in the test (`49rem` is 784px, not over 800); fixed the test. 9 passed; full web suite 3,167 passed, 4 skipped (pre-existing `it.skip`s) with the stand-in installed globally; `tsc` clean.
+- Task 2: red run: `InstalledModParts.test.tsx` failed to import and the new `ModUpdateCell` test failed; then green. The existing `ModTable.test.tsx` passes without changes. Full web suite 3,179 passed, 4 skipped; `tsc` clean.
+- Task 3: red run: 7 of the 13 new card tests failed (the action tests already passed against the table, since both layouts use the same test IDs); then 62 passed (1 pre-existing skip). The label-tap test was checked to fail with the label turned into a `div`. Full web suite 3,192 passed, 4 skipped; `tsc` clean. First look on the rebuilt Docker stack at 390x844 with three faked updates: cards, no table, card controls 44px (toggle label 91x44, remove 44x44, Update 71x44), no console messages; the toolbar still widened the document to 413px (Task 4).
+- Task 4: red run, both new toolbar tests failed; then 19 passed. Full web suite 3,194 passed, 4 skipped.
+- Task 5: `just docker restart` rebuilt the stack from this branch (game 1.22.7, five mods in `./data`: Auto Map Markers, BetterRuins, Carry On, CarryOnLib, SmithingPlus). `bunx playwright test e2e/installed-mods-phone.spec.ts` (admin key from `.env`): 4 passed. Its document-overflow assertion is the measurement that read 413px on the Task 3 build. Manual pass with a scratchpad Playwright script on the real mods, reads only (no POST/PUT/DELETE sent):
+  - 390x844: 5 cards, no table, document overflow 0, no scrolling element under `main`; the Not verified cards (Auto Map Markers, SmithingPlus) show the badge, "Supports up to 1.22.3" / "1.22.2" and the message as text; compatible cards only the badge.
+  - 1440x900: the table as before (same columns, sort header, "Supports up to" beside the badge), no cards, no overflow.
+  - 767px: cards; 768px: table. The order is the same in both layouts (name ascending).
+  - At 768px the unchanged table still scrolls inside its container (751px in 560px; it fits from about 1024px): bead `VSS-dp1`.
+  - No console errors or warnings at any width. Screenshots (server name masked) kept in the session scratchpad, not committed. `./data` untouched.
+- Task 6: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,194 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
+- Rebase: Story 16.4's branch moved during development (995e222, de24045, 8ab8b8a: lookup preview removed, story rescoped, PR #151). Rebased this branch onto 8ab8b8a; the only conflicts were the adjacent 16-4/16-5 lines in `sprint-status.yaml`, resolved in each commit by keeping 16.4's `review` and this story's own status, so this branch never changes the 16-4 entry. After the rebase `just check` passed again (API 2,108 passed; web 3,079 passed and 4 skipped, fewer because 16.4 removed the `ModLookupInput` tests; scripts 190 passed; pyright 0 errors, 3 pre-existing warnings), the rebuilt Docker stack passed the E2E spec (4 passed), and the manual pass gave the same results.
+
 ### Completion Notes List
 
 - Task 1: `useMediaQuery(query)` on `useSyncExternalStore` and `MD_UP_QUERY = '(min-width: 48rem)'`. `web/tests/viewport.ts` installs a `matchMedia` stand-in (typed `MediaQueryList`/`MediaQueryListEvent` implementations, no casts) evaluating `min-width`/`max-width` in px/rem against `innerWidth`, with `setViewportWidth` and `resetViewport`; `tests/setup.ts` installs it and resets to 1024px after each test.
+- Task 2: `InstalledModParts.tsx` holds `ModTableRow`, `ModNameLink`, `ModCompatibility` (new `showMessage`: message as text for `not_verified`/`incompatible`, `mod-compatibility-message-<slug>`), `ModEnableToggle` and `ModRemoveButton` (optional `className`), with the table's markup, classes, test IDs and names. `ModTable` columns render them; `ModUpdateCell` gained `buttonClassName` for its Update button.
+- Task 3: `InstalledModCard` (`<li>` named after the mod): name link and slug with the toggle in a 44px `<label>` (visible Enabled/Disabled text; tapping anywhere in it toggles), version and side, `ModCompatibility showMessage`, an Available row with `ModUpdateCell` (`buttonClassName="min-h-11"`) and a `size-11` remove button. `ModTable` mounts the table at `md` and up, otherwise `<ul aria-label="Installed mods" data-testid="installed-mod-cards">` built from `table.getRowModel().rows` with its existing handlers; loading, empty state and both dialogs are shared.
+- Task 4: the toolbar's button group wraps (`flex-wrap`), so "Last checked …", "Update all (N)" and "Check for updates" stack on phones instead of widening the page; both buttons are `max-md:h-11`. Unchanged at `md` and up.
+- Task 5: `web/e2e/installed-mods-phone.spec.ts` fakes the mod list, update status, lookups and every write with `page.route` (a version change answers 409 confirmation-required, other writes 500), so it needs no data changes and no mod database. It checks cards, content, compatibility text, no horizontal overflow (document and scroll containers), 44x44px targets, the Update and remove dialogs and the label-tap enable request at 390x844, and the table, its headers and the live switch to cards at 1440x900.
+- Task 6: status review; PR targets `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4 #151, #150, #149, #148).
+- Decisions: layouts switch with `useMediaQuery` (one layout mounted, existing test IDs and names reused, tests pick the width with `setViewportWidth`) rather than CSS hiding; cards come from the table's sorted row model and use its handlers and dialogs; the card shows the compatibility message as text; the table is unchanged.
+- Beads filed (top-level, not Epic 16): `VSS-dp1` [UI-076] Installed table scrolls sideways at tablet widths, `VSS-bgu` [UI-077] sort control for the cards.
+
 ### File List
 
 - `web/src/hooks/use-media-query.ts` (new)
@@ -184,6 +204,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/features/mods/InstalledTab.tsx`
 - `web/src/features/mods/InstalledTab.test.tsx`
 - `_bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md`
+
 ## Change Log
 
 - 2026-11-13: Story 16.5 created (ready-for-dev).
