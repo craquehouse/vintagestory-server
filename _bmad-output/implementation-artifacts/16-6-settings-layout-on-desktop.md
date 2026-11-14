@@ -1,6 +1,6 @@
 # Story 16.6: Settings Layout on Desktop
 
-Status: review
+Status: done
 
 <!-- Implements FR173 per Epic 16 ADR-3. Bead: VSS-dfx. Stacks on Story 16.5 (branch story/16-5-installed-mods-on-phones, PR #152), itself on #151, #150, #149, #148. No new dependencies. VSS-7ed ('null' in empty settings, unmasked Password) is out of scope. -->
 
@@ -58,6 +58,12 @@ so that **I can see more settings without scrolling past half-empty cards**.
   - [x] 5.1: `just check` passes
   - [x] 5.2: Status review, `just sprint set 16-6-settings-layout-on-desktop review`, PR to `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148), PR link on `VSS-dfx`
 
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: the error state was not limited to 1280px while the loading and loaded states were. Fixed: the error message has `mx-auto max-w-[1280px]`; test added, red first (7295ab9)
+- [x] [AI-Review][Low] L2: `settings_layout.mjs` imports Playwright through a relative `node_modules` path. Accepted: the 16.0 spike scripts do the same on purpose, because bun resolves imports from the script's location and a bare package import does not resolve from `_bmad-output`
+- [x] [AI-Review][Low] L3: the E2E collapse test compared bounding boxes exactly. Fixed: `expectSameBox` compares x, y, width and height each within 0.5px (8d0e085); not red-first, it only relaxes the tolerance; spec 5 passed on the rebuilt stack
+
 ## Dev Notes
 
 ### Today's behavior (measured on `story/16-5-installed-mods-on-phones` 014a3c8, Docker stack, Chromium; `16-6-browser/settings_layout.before.json`)
@@ -78,7 +84,7 @@ so that **I can see more settings without scrolling past half-empty cards**.
 
 - **Tailwind responsive classes, no JS media query.** Every element is the same at every width; only classes change (`xl:grid-cols-2`, `xl:grid` on Server Info's content). Unlike Story 16.5 nothing is mounted twice, so CSS is enough and collapse state and unsaved input survive a resize. jsdom applies no Tailwind CSS: unit tests assert structure and class names, the E2E spec measures geometry.
 - **Column stacks, as ADR-3 requires** ("two independent column stacks, not grid rows"): a two-column grid whose two items are stack wrappers. Collapsing a card only changes its own wrapper's height; `xl:items-start` keeps the shorter wrapper from stretching.
-- **Order below `xl`: Server Info, Player Settings, Network, World Settings.** Stacks put Player and Network in one wrapper, so the DOM order is Player, Network, World. Keeping today's order (World before Network) in one column would need either CSS `order` with `display: contents` (visual order differs from focus and reading order, WCAG 2.4.3) or a JS media query that remounts the cards at 1280px (loses collapse state and unsaved typing). One DOM order at every width, matching the desktop reading order, is chosen; ADR-3 and the epic ask for a single column below `xl`, not a specific order. Recorded for review.
+- **Order below `xl`: Server Info, Player Settings, Network, World Settings.** Stacks put Player and Network in one wrapper, so the DOM order is Player, Network, World. Keeping today's order (World before Network) in one column would need either CSS `order` with `display: contents` (visual order differs from focus and reading order, WCAG 2.4.3) or a JS media query that remounts the cards at 1280px (loses collapse state and unsaved typing). One DOM order at every width, matching the desktop reading order, is chosen; ADR-3 and the epic ask for a single column below `xl`, not a specific order. Accepted by the orchestrator at code review (2026-11-13).
 - **Server Info fields in two columns** through `SettingGroup`'s new `contentClassName` (grid at `xl`, `xl:space-y-0` to drop the stack margins), keeping row-wise DOM order Name, Description, Welcome, Password.
 - **Narrow numbers in `SettingField`** (ADR-3 consequence: "SettingField sizing for numbers"), at every width.
 - **Page header unchanged.** The 1280px limit is on the panel (ADR-3 decision 1); the title row and status badge keep the full width. The app-wide maximum is out of scope.
@@ -181,6 +187,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 4: `web/e2e/settings-desktop-layout.spec.ts` measures the layout on the running stack at 1440, 1920, 1024 and 390 (panel width and centering, Server Info span and field columns, the two stacks, collapse independence, number input widths, no overflow); `16-6-browser/settings_layout.mjs` records before/after boxes.
 - Task 5: status review; PR targets `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148).
 - Decisions: Tailwind classes only (nothing is mounted twice, so no JS media query; collapse state and typing survive a resize); ADR-3 column stacks, which makes the one-column order below `xl` Server Info, Player Settings, Network, World Settings (World was before Network) so focus and reading order match the visual order at every width; numbers narrowed in `SettingField`; the page header is unchanged.
+- Review fixes: L1 red run (the new error-width test failed), then 23 passed; L3 tolerance helper. After the fixes `just check` passed: API 2,108 passed; web 3,099 passed and 4 skipped (pre-existing); scripts 190 passed; pyright 0 errors (3 pre-existing warnings); ruff and `tsc` clean. `just docker restart`, then the settings E2E spec: 5 passed.
 - Beads filed: `VSS-143` [UI-078] Game Settings title row wider than the centered panel (top-level: the app-wide maximum width is outside Epic 16).
 
 ### File List
@@ -201,3 +208,18 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-13: Story 16.6 created (ready-for-dev). Ultimate context engine analysis completed - comprehensive developer guide created.
 - 2026-11-13: Implemented: narrow number inputs; `SettingGroup` content classes; two-column settings layout from `xl` with the panel limited to 1280px and centered; E2E spec and before/after browser measurements; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L1 and L3 fixed, L2 accepted; the order change below `xl` accepted. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #153 head
+**Outcome:** Approve → resolved
+
+**Summary:** All five acceptance criteria pass with measured evidence and the File List matches the diff. On the PR head the web tests passed (3,098 passed, 4 skipped) and the typecheck was clean. The orchestrator accepted the one-column order below `xl` (Network before World Settings). Three low findings; two fixed, one accepted.
+
+### Action Items
+
+- [x] [Low] L1 error state not limited to 1280px (fixed, 7295ab9)
+- [x] [Low] L2 relative Playwright import in the measurement script (accepted: same pattern as the 16.0 spike scripts)
+- [x] [Low] L3 exact bounding-box equality in the E2E collapse test (fixed, 8d0e085)
