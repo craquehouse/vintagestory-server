@@ -182,7 +182,7 @@ development_status:
   15-4-release-command: done
   15-5-release-workflow: review
   15-6-release-documentation-and-first-release: review
-  epic-16: in-progress
+  epic-16: done
   epic-16-retrospective: optional
   16-0-epic-16-technical-preparation: done
   16-1-mod-browser-state-survives-mod-details: done
