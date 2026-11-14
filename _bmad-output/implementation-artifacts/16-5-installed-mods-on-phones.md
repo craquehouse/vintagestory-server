@@ -1,6 +1,6 @@
 # Story 16.5: Installed Mods on Phones
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR172. Bead: VSS-rr5 (Story 14.3 review L3). Stacks on Story 16.4 (branch story/16-4-formatted-description-in-mod-lookup-preview, no PR yet), itself on 16.3 (PR #150), 16.2 (PR #149) and 16.1 (PR #148). Do not touch web/src/components/ModLookupInput* or the Story 16.4 docs. No new dependencies. -->
 
@@ -64,9 +64,9 @@ so that **I can update, enable and remove mods without scrolling sideways**.
   - [x] 5.1: `web/e2e/installed-mods-phone.spec.ts` (Story 16.5): replaces `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates` with `page.route` (like `installed-mod-any-modid.spec.ts`), so it installs nothing: a mod with a long name and an offered update, an incompatible mod, a disabled mod. At 390x844: cards visible, no `mod-table`, `document.documentElement.scrollWidth <= clientWidth`, no element under `main` with `scrollWidth > clientWidth` and `overflow-x` auto/scroll, toggle label, Update, remove, "Update all" and "Check for updates" bounding boxes at least 44x44, clicking Update opens the confirmation dialog or calls the version endpoint (route it, never change data), clicking remove opens the dialog and Cancel closes it. At 1440x900: `mod-table` visible with its columns, no cards. Resize 1440 → 390 switches to cards
   - [x] 5.2: `just docker restart` (rebuild from this branch); run the spec with `cd web && bunx playwright test e2e/installed-mods-phone.spec.ts`. Then a manual pass on the real `./data` mods at 390x844 and 1440x900 (no installs or removals; a toggle, if exercised, is toggled back), browser console clean. Screenshots with the server name (header `span.font-semibold`, `#ServerName`) masked, kept in the session scratchpad unless needed; record the results in the Dev Agent Record
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes
-  - [ ] 6.2: Status review, `just sprint set 16-5-installed-mods-on-phones review`, PR to `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4, #150, #149, #148), PR link on `VSS-rr5`
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` passes
+  - [x] 6.2: Status review, `just sprint set 16-5-installed-mods-on-phones review`, PR to `story/16-4-formatted-description-in-mod-lookup-preview` (stacks on 16.4, #150, #149, #148), PR link on `VSS-rr5`
 
 ## Dev Notes
 
@@ -187,3 +187,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-13: Story 16.5 created (ready-for-dev).
+- 2026-11-13: Implemented: media query hook and test viewport helper; cell content shared by table and cards; installed mods as cards below `md` with 44px controls and the compatibility message as text; toolbar wraps on phones; E2E spec and browser verification at 390x844 and 1440x900; status review.
