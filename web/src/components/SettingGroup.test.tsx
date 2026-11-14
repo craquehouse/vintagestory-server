@@ -281,4 +281,42 @@ describe('SettingGroup', () => {
       expect(header).toHaveClass('hover:bg-muted/50');
     });
   });
+  describe('content classes (Story 16.6)', () => {
+    it('adds contentClassName to the content', () => {
+      render(
+        <SettingGroup title="Server Info" contentClassName="xl:grid xl:grid-cols-2">
+          <div data-testid="child">Child</div>
+        </SettingGroup>
+      );
+
+      const content = screen.getByTestId('child').parentElement;
+      expect(content).toHaveAttribute('data-slot', 'card-content');
+      expect(content).toHaveClass('space-y-4', 'xl:grid', 'xl:grid-cols-2');
+    });
+
+    it('keeps only the default stack spacing without contentClassName', () => {
+      render(
+        <SettingGroup title="Server Info">
+          <div data-testid="child">Child</div>
+        </SettingGroup>
+      );
+
+      const content = screen.getByTestId('child').parentElement;
+      expect(content).toHaveAttribute('data-slot', 'card-content');
+      expect(content?.className.split(/\s+/)).toContain('space-y-4');
+      expect(content).not.toHaveClass('xl:grid');
+    });
+
+    it('still hides the content when collapsed', () => {
+      render(
+        <SettingGroup title="World" collapsible contentClassName="xl:grid">
+          <div data-testid="child">Child</div>
+        </SettingGroup>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /World/ }));
+
+      expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+    });
+  });
 });

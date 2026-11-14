@@ -47,6 +47,12 @@ export interface SettingGroupProps {
    * Additional CSS class names for the card.
    */
   className?: string;
+
+  /**
+   * Additional CSS class names for the content that holds the children, which is a
+   * vertical stack (`space-y-4`) by default; for example a grid at wider breakpoints.
+   */
+  contentClassName?: string;
 }
 
 /**
@@ -70,6 +76,7 @@ export function SettingGroup({
   defaultCollapsed = false,
   children,
   className,
+  contentClassName,
 }: SettingGroupProps) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
@@ -117,7 +124,7 @@ export function SettingGroup({
       </CardHeader>
 
       {!isCollapsed && (
-        <CardContent className="space-y-4">{children}</CardContent>
+        <CardContent className={cn('space-y-4', contentClassName)}>{children}</CardContent>
       )}
     </Card>
   );

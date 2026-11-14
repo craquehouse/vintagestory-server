@@ -1,0 +1,225 @@
+# Story 16.6: Settings Layout on Desktop
+
+Status: done
+
+<!-- Implements FR173 per Epic 16 ADR-3. Bead: VSS-dfx. Stacks on Story 16.5 (branch story/16-5-installed-mods-on-phones, PR #152), itself on #151, #150, #149, #148. No new dependencies. VSS-7ed ('null' in empty settings, unmasked Password) is out of scope. -->
+
+## Story
+
+As an **administrator**,
+I want **game server settings to use the width of a desktop screen**,
+so that **I can see more settings without scrolling past half-empty cards**.
+
+## Acceptance Criteria
+
+1. **Given** a viewport at the Tailwind `xl` breakpoint (80rem, 1280px) or wider
+   **When** I open Game Settings
+   **Then** the settings panel is at most 1280px wide and centered (`max-w-[1280px] mx-auto`); Server Info spans the full panel width with its four text fields in two columns (Server Name | Description, Welcome Message | Password); below it are two independent column stacks, Player Settings then Network on the left and World Settings on the right, and no card stretches to match a neighbor's height
+   *(Covers FR173; `VSS-dfx`; Epic 16 ADR-3)*
+
+2. **Given** the two-column layout at `xl` or wider
+   **When** I collapse or expand World Settings or Network
+   **Then** only that card's own column changes: the cards in the other column keep their position and size
+
+3. **Given** any viewport width
+   **When** the number settings are shown (Max Players, Max Chunk Radius, Port)
+   **Then** their inputs are at most 320px wide (`max-w-xs`), while text inputs fill the width of their card or column
+
+4. **Given** a viewport narrower than `xl` (including 1024px and a 390px phone)
+   **When** I open Game Settings
+   **Then** the cards stack in one full-width column (Server Info, Player Settings, Network, World Settings), Server Info's fields are in one column, and the page does not scroll horizontally at 390px
+
+5. **Given** the new layout
+   **When** I use the settings
+   **Then** editing behaves as before (auto-save on blur, validation messages, env-managed badges and disabled inputs, toasts), World Settings and Network are still collapsible by click and keyboard, the loading and error states are unchanged, and the other `SettingGroup` users (UI Preferences, API Settings) look and behave as before
+
+## Tasks / Subtasks
+
+<!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.6/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
+
+- [x] Task 1: Number settings use a narrow input + tests (AC: 3, 5)
+  - [x] 1.1: `SettingField`: the `Input` for `int` and `float` settings gets `max-w-xs` (merged with the existing error classes through `cn`); string inputs keep the `Input` default `w-full`; switches unchanged
+  - [x] 1.2: Tests in `SettingField.test.tsx`: an `int` and a `float` input carry `max-w-xs`; a `string` input does not; the error classes still apply to a number input
+
+- [x] Task 2: `SettingGroup` accepts classes for its content + tests (AC: 1, 5)
+  - [x] 2.1: New optional `contentClassName` prop merged into `CardContent` (`cn('space-y-4', contentClassName)`); collapsible behavior, header and default markup unchanged
+  - [x] 2.2: Tests in `SettingGroup.test.tsx`: the class reaches the content element; without it the content keeps its `space-y-4` stack and gains no grid class; the content is still hidden when collapsed
+
+- [x] Task 3: Two-column settings layout from `xl` + tests (AC: 1, 2, 4, 5)
+  - [x] 3.1: `GameConfigPanel`: inner wrapper `mx-auto max-w-[1280px] space-y-4` (`data-testid="game-config-layout"`); Server Info rendered with `contentClassName="xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0"`; then `div.grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) holding `div.space-y-4` `game-config-column-left` (Player Settings, Network) and `game-config-column-right` (World Settings). The loading skeleton uses the same max width. `renderGroup` takes the optional content class; no other behavior changes. Update the doc comment
+  - [x] 3.2: Tests in `GameConfigPanel.test.tsx` ("Story 16.6: desktop layout" block): layout wrapper classes; Server Info outside the columns with the two-column content classes and its fields in DOM order Name, Description, Welcome, Password; left column contains Player Settings then Network, right column World Settings; columns container classes; collapsing World leaves Player and Network in the left column and their fields rendered, collapsing Network leaves World's fields rendered; Max Players and Port inputs carry `max-w-xs`, Server Name does not. Existing tests pass unchanged
+
+- [x] Task 4: Browser verification against the Docker dev stack + E2E spec (AC: 1-5)
+  - [x] 4.1: Before measurements: `16-6-browser/settings_layout.mjs` (adapted from `16-0-spike/settings_shots.mjs`; masks the server name and password) at 390, 1024, 1280, 1440 and 1920 on the pre-change build, output `settings_layout.before.json`
+  - [x] 4.2: `web/e2e/settings-desktop-layout.spec.ts`: at 1440x900 and 1920x1080 the panel is at most 1280px and centered in the content area; Server Info spans both columns and its fields sit in two columns; Player and Network share a left edge, World is to their right and starts at Player's top; collapsing World does not move or resize Player or Network, collapsing Network does not move or resize World; number inputs at most 320px wide, Server Name wider. At 1024x900 and 390x844 one column (all cards share a left edge and width) and no document overflow. Reads only; collapse is UI state
+  - [x] 4.3: `just docker restart` (rebuild from this branch); run the spec; rerun the measurement script for `settings_layout.after.json`; compare card boxes, input widths and page height before/after in the Dev Agent Record; browser console clean. Masked screenshots stay in the session scratchpad
+
+- [x] Task 5: Quality gate and review hand-off (AC: all)
+  - [x] 5.1: `just check` passes
+  - [x] 5.2: Status review, `just sprint set 16-6-settings-layout-on-desktop review`, PR to `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148), PR link on `VSS-dfx`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: the error state was not limited to 1280px while the loading and loaded states were. Fixed: the error message has `mx-auto max-w-[1280px]`; test added, red first (7295ab9)
+- [x] [AI-Review][Low] L2: `settings_layout.mjs` imports Playwright through a relative `node_modules` path. Accepted: the 16.0 spike scripts do the same on purpose, because bun resolves imports from the script's location and a bare package import does not resolve from `_bmad-output`
+- [x] [AI-Review][Low] L3: the E2E collapse test compared bounding boxes exactly. Fixed: `expectSameBox` compares x, y, width and height each within 0.5px (8d0e085); not red-first, it only relaxes the tolerance; spec 5 passed on the rebuilt stack
+
+## Dev Notes
+
+### Today's behavior (measured on `story/16-5-installed-mods-on-phones` 014a3c8, Docker stack, Chromium; `16-6-browser/settings_layout.before.json`)
+
+| Viewport | Panel | Card widths | Page height | Number/text input width |
+|---|---|---|---|---|
+| 390 | 326 | 326 | 1,952 | 276 |
+| 1024 | 768 | 768 | 1,984 | 718 |
+| 1280 | 1,024 | 1,024 | 1,984 | 974 |
+| 1440 | 1,184 | 1,184 | 1,984 | 1,134 |
+| 1920 | 1,664 | 1,664 | 1,984 | 1,614 |
+
+- Card heights at every desktop width: Server Info 486, Player Settings 278, World Settings 518 (94 collapsed), Network 454 (94 collapsed). Today collapsing World moves Network up by 424px.
+- Content area = viewport − 160px sidebar − 48px (`Layout` `md:p-6`) − 48px (`SettingsPage` `lg:p-6`): 1,024px at 1280 (ADR-3 estimated 1,072), so each `xl` column is 504px.
+- `GameConfigPanel` renders four `SettingGroup`s in one `space-y-4` stack. `SettingField` renders `Input` (`w-full`) for strings and numbers and a `Switch` for booleans. Only `GameConfigPanel` passes `int`/`float` settings to `SettingField` (`ApiSettingsPanel` uses only `bool`), so the number width change is confined to game settings.
+
+### Decisions
+
+- **Tailwind responsive classes, no JS media query.** Every element is the same at every width; only classes change (`xl:grid-cols-2`, `xl:grid` on Server Info's content). Unlike Story 16.5 nothing is mounted twice, so CSS is enough and collapse state and unsaved input survive a resize. jsdom applies no Tailwind CSS: unit tests assert structure and class names, the E2E spec measures geometry.
+- **Column stacks, as ADR-3 requires** ("two independent column stacks, not grid rows"): a two-column grid whose two items are stack wrappers. Collapsing a card only changes its own wrapper's height; `xl:items-start` keeps the shorter wrapper from stretching.
+- **Order below `xl`: Server Info, Player Settings, Network, World Settings.** Stacks put Player and Network in one wrapper, so the DOM order is Player, Network, World. Keeping today's order (World before Network) in one column would need either CSS `order` with `display: contents` (visual order differs from focus and reading order, WCAG 2.4.3) or a JS media query that remounts the cards at 1280px (loses collapse state and unsaved typing). One DOM order at every width, matching the desktop reading order, is chosen; ADR-3 and the epic ask for a single column below `xl`, not a specific order. Accepted by the orchestrator at code review (2026-11-13).
+- **Server Info fields in two columns** through `SettingGroup`'s new `contentClassName` (grid at `xl`, `xl:space-y-0` to drop the stack margins), keeping row-wise DOM order Name, Description, Welcome, Password.
+- **Narrow numbers in `SettingField`** (ADR-3 consequence: "SettingField sizing for numbers"), at every width.
+- **Page header unchanged.** The 1280px limit is on the panel (ADR-3 decision 1); the title row and status badge keep the full width. The app-wide maximum is out of scope.
+
+### Layout at `xl` (1280px viewport: 1,024px panel; 1920px: 1,280px panel, centered)
+
+```text
+┌──────────────────── Server Info (full width) ───────────────────────┐
+│ Server Name              │ Description                              │
+│ Welcome Message          │ Password                                 │
+└─────────────────────────────────────────────────────────────────────┘
+┌──────── Player Settings ────────┐ ┌──────── World Settings ▾ ────────┐
+└─────────────────────────────────┘ │                                  │
+┌──────── Network ▾ ──────────────┐ └──────────────────────────────────┘
+└─────────────────────────────────┘
+```
+
+### Out of scope
+
+- `VSS-7ed` (empty settings show `null`, Password unmasked), the app-wide maximum width, other settings pages, any other Epic 16 story.
+
+### Testing Requirements
+
+**CRITICAL:** Tests are written with each task and committed with it. `just test-web <file>` after each task; `just check` before review.
+
+- Vitest/jsdom applies no Tailwind CSS: assert class names and DOM containment. The `matchMedia` stand-in from Story 16.5 (`web/tests/viewport.ts`) is not needed (no media query in JS).
+- `GameConfigPanel.test.tsx` mocks `fetch` and `sonner`; reuse its `mockGameConfig` and wrapper.
+
+**UI Stories - Manual Browser Verification:** Docker stack (`just docker restart`, http://localhost:8080, game 1.22.7). Never change setting values in `./data`; collapsing groups is UI-only. Committed screenshots (none planned) must mask `header span.font-semibold`, `#ServerName` and `#Password`. Check the browser console.
+
+### Security Requirements
+
+- UI-only; no API or data changes. The measurement script and screenshots mask the server name and password.
+
+### Development Commands
+
+- `just test-web src/components/SettingField.test.tsx`, `just test-web src/components/SettingGroup.test.tsx`, `just test-web src/features/game-server/GameConfigPanel.test.tsx`, `just check`, `just docker restart`, `cd web && bunx playwright test e2e/settings-desktop-layout.spec.ts`, `cd web && bun ../_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs`.
+
+### Previous Story Intelligence
+
+- **16.5:** E2E specs set `localStorage.apiKey` with an init script (`VS_API_KEY_ADMIN`, default `changeme`); a first run seconds after `just docker restart` can fail while the server starts, rerun once healthy. `just lint-web` is `tsc --noEmit`. Commit types by user impact.
+- **16.0:** `settings_shots.mjs` measures cards through `:scope > div > *`, which the new structure breaks; the 16.6 script selects `[data-slot="card"]`.
+- **11.3 / 6.4:** `SettingsPage` wraps `GameConfigPanel` with the header and empty state; `SettingGroup`/`SettingField` are shared with the app Settings page.
+
+### Git Intelligence
+
+- Branch `story/16-6-settings-layout-on-desktop` from `origin/story/16-5-installed-mods-on-phones` (014a3c8). The three settings components have not changed since `b99e4cc` (semantic colors). Planned types: Task 1 `fix` (number boxes stretched across the screen), Task 2 `refactor`, Task 3 `feat`, Task 4 `test`, Task 5 `chore`.
+
+### Latest Technical Information
+
+- No new libraries. Tailwind v4: `xl` = `80rem`; `max-w-xs` = `20rem` (320px); `space-y-*` sets margins on children, so it is reset with `xl:space-y-0` where the content becomes a grid; `cn` (tailwind-merge) resolves conflicting classes.
+
+### Project Structure Notes
+
+- New: `web/e2e/settings-desktop-layout.spec.ts`, `_bmad-output/implementation-artifacts/16-6-browser/` (script, before/after JSON).
+- Modified: `web/src/components/SettingField.tsx` (+ test), `web/src/components/SettingGroup.tsx` (+ test), `web/src/features/game-server/GameConfigPanel.tsx` (+ test).
+
+### References
+
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 16.6: Settings Layout on Desktop]
+- [Source: _bmad-output/planning-artifacts/prd.md] FR173
+- [Source: _bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md#ADR-3: Game Server Settings Layout on Desktop]
+- [Source: _bmad-output/implementation-artifacts/16-0-spike/settings_shots.out.json]
+- [Source: _bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md]
+- Beads: `VSS-dfx` (this story), parent `VSS-stm`; out of scope `VSS-7ed`
+- `project-context.md` - critical implementation rules and patterns
+
+## Dev Agent Record
+
+### Agent Model Used
+
+Claude Opus 5.5 (claude-opus-5-5)
+
+### Debug Log References
+
+- Task 1: red run, 3 of the 4 new width tests failed (the text-input test already passed); then 30 passed; `tsc` clean.
+- Task 2: red run, the `contentClassName` test failed; then 25 passed; `tsc` clean.
+- Task 3: red run, 6 of the 7 new layout tests failed (the number-width test already passed after Task 1); then 22 passed. Full web suite 3,098 passed, 4 skipped (pre-existing `it.skip`s); `tsc` clean.
+- Task 4: before measurements taken on the running 16.5 build (the settings components are unchanged since 16.0) before Task 1. `just docker restart` rebuilt the stack from this branch (game 1.22.7, server stopped). `bunx playwright test e2e/settings-desktop-layout.spec.ts` (admin key from `.env`): 5 passed on the first run; its two-column, collapse and number-width assertions contradict the before measurements (one 1,024px-wide column at 1280, number inputs 974-1,614px), so they would fail on the old build. After measurements (`settings_layout.after.json`), read only, no setting changed:
+
+  | Viewport | Panel (x, width) | Cards (width) | Page height before → after | Number inputs before → after | Text input (Server Name) after |
+  |---|---|---|---|---|---|
+  | 390 | 32, 326 | 326, one column | 1,952 → 1,952 | 276 → 276 | 276 |
+  | 1024 | 208, 768 | 768, one column | 1,984 → 1,984 | 718 → 320 | 718 |
+  | 1280 | 208, 1,024 | Server Info 1,024; columns 504 + 504 | 1,984 → 1,258 | 974 → 320 | 479 |
+  | 1440 | 208, 1,184 | Server Info 1,184; columns 584 + 584 | 1,984 → 1,258 | 1,134 → 320 | 559 |
+  | 1920 | 400, 1,280 (centered in 1,664) | Server Info 1,280; columns 632 + 632 | 1,984 → 1,258 | 1,614 → 320 | 607 |
+
+  - From 1280: Server Info 294px tall (was 486); Player Settings at y 462 and World Settings at y 462 in the right column; Network at y 756 below Player. Left column 278 + 16 + 454 = 748px, right 518px; no card stretched (heights equal to the one-column heights).
+  - Collapse at 1280, 1440 and 1920: World collapsed (518 → 94) left Player and Network at the same x, y, width and height; Network collapsed (454 → 94) left World and Player unchanged. Before, collapsing World moved Network up 424px.
+  - Below `xl` (390, 1024) one column, Network now above World (the stack order); no document overflow at any width. Browser console: no errors or warnings at 390, 1024, 1280 and 1920. Masked screenshots (server name, password) are in the session scratchpad, not committed.
+  - At 1920 the page title row still spans the full content width while the panel is centered (title at x 208, panel from 400): bead `VSS-143`.
+- Task 5: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,098 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
+
+### Completion Notes List
+
+- Task 1: `SettingField` gives `int`/`float` inputs `max-w-xs` (320px) at every width, merged with the error classes; text inputs keep `w-full`. Only game settings pass number types.
+- Task 2: `SettingGroup` takes an optional `contentClassName`, merged with the content's default `space-y-4`.
+- Task 3: `GameConfigPanel` wraps the groups in `mx-auto max-w-[1280px]` (`game-config-layout`; the loading skeleton too); Server Info passes `xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0` to its content; the other groups sit in `grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) with a left stack (Player Settings, Network) and a right stack (World Settings). Below `xl` this is one column in the order Server Info, Player Settings, Network, World Settings.
+- Task 4: `web/e2e/settings-desktop-layout.spec.ts` measures the layout on the running stack at 1440, 1920, 1024 and 390 (panel width and centering, Server Info span and field columns, the two stacks, collapse independence, number input widths, no overflow); `16-6-browser/settings_layout.mjs` records before/after boxes.
+- Task 5: status review; PR targets `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148).
+- Decisions: Tailwind classes only (nothing is mounted twice, so no JS media query; collapse state and typing survive a resize); ADR-3 column stacks, which makes the one-column order below `xl` Server Info, Player Settings, Network, World Settings (World was before Network) so focus and reading order match the visual order at every width; numbers narrowed in `SettingField`; the page header is unchanged.
+- Review fixes: L1 red run (the new error-width test failed), then 23 passed; L3 tolerance helper. After the fixes `just check` passed: API 2,108 passed; web 3,099 passed and 4 skipped (pre-existing); scripts 190 passed; pyright 0 errors (3 pre-existing warnings); ruff and `tsc` clean. `just docker restart`, then the settings E2E spec: 5 passed.
+- Beads filed: `VSS-143` [UI-078] Game Settings title row wider than the centered panel (top-level: the app-wide maximum width is outside Epic 16).
+
+### File List
+
+- `web/src/components/SettingField.tsx`
+- `web/src/components/SettingField.test.tsx`
+- `web/src/components/SettingGroup.tsx`
+- `web/src/components/SettingGroup.test.tsx`
+- `web/src/features/game-server/GameConfigPanel.tsx`
+- `web/src/features/game-server/GameConfigPanel.test.tsx`
+- `_bmad-output/implementation-artifacts/16-6-settings-layout-on-desktop.md`
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs` (new)
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.before.json` (new)
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.after.json` (new)
+- `web/e2e/settings-desktop-layout.spec.ts` (new)
+
+## Change Log
+
+- 2026-11-13: Story 16.6 created (ready-for-dev). Ultimate context engine analysis completed - comprehensive developer guide created.
+- 2026-11-13: Implemented: narrow number inputs; `SettingGroup` content classes; two-column settings layout from `xl` with the panel limited to 1280px and centered; E2E spec and before/after browser measurements; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L1 and L3 fixed, L2 accepted; the order change below `xl` accepted. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #153 head
+**Outcome:** Approve → resolved
+
+**Summary:** All five acceptance criteria pass with measured evidence and the File List matches the diff. On the PR head the web tests passed (3,098 passed, 4 skipped) and the typecheck was clean. The orchestrator accepted the one-column order below `xl` (Network before World Settings). Three low findings; two fixed, one accepted.
+
+### Action Items
+
+- [x] [Low] L1 error state not limited to 1280px (fixed, 7295ab9)
+- [x] [Low] L2 relative Playwright import in the measurement script (accepted: same pattern as the 16.0 spike scripts)
+- [x] [Low] L3 exact bounding-box equality in the E2E collapse test (fixed, 8d0e085)
