@@ -9,7 +9,7 @@
  * VSS-y7u: Moved all filters (side, tags, modType) to server-side.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
@@ -20,6 +20,12 @@ import type { BrowseParams, ModBrowseItem, ModFilters } from '@/api/types';
  */
 const BROWSE_STALE_TIME = 5 * 60 * 1000;
 
+/** Options for useBrowseMods. */
+export interface UseBrowseModsOptions {
+  /** Called with a validated page number when the page should change. */
+  onPageChange?: (page: number) => void;
+}
+
 /**
  * Hook to fetch and filter browsable mods.
  *
@@ -27,8 +33,11 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  * VSS-y7u: All filters (side, tags, modType) are now server-side for accurate pagination.
  *
  * Story 10.7: Added pagination state management with setPage, goToNextPage, goToPrevPage.
+ * Story 16.1: The page is controlled: `params.page` is the current page and page
+ * changes are reported through `options.onPageChange`.
  *
  * @param params - Browse parameters including page, pageSize, sort, and search
+ * @param options - `onPageChange` receives validated page changes
  * @returns Query result with filtered mods array, pagination metadata, and page control functions
  *
  * @example
@@ -42,11 +51,10 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  *     setPage,
  *     goToNextPage,
  *     goToPrevPage,
- *   } = useBrowseMods({
- *     pageSize: 20,
- *     sort: 'recent',
- *     search: 'farming',
- *   });
+ *   } = useBrowseMods(
+ *     { page, pageSize: 20, sort: 'recent', search: 'farming' },
+ *     { onPageChange: setPageInUrl },
+ *   );
  *
  *   if (isLoading) return <div>Loading...</div>;
  *   if (isError) return <div>Error loading mods</div>;
@@ -65,13 +73,14 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
  *   );
  * }
  */
-export function useBrowseMods(params: BrowseParams = {}) {
-  // Story 10.7: Manage page state internally, with initial value from params
-  const [currentPage, setCurrentPage] = useState(params.page ?? 1);
-
-  // Note: Page reset on search/filter/sort changes is handled by the consumer
-  // (BrowseTab) which has full context of all criteria changes.
-  // This hook only manages pagination state.
+export function useBrowseMods(
+  params: BrowseParams = {},
+  options: UseBrowseModsOptions = {}
+) {
+  // Story 16.1: The page is controlled by the caller (BrowseTab keeps it in the URL).
+  // Resetting the page when search/filters/sort change is also the caller's job.
+  const currentPage = params.page ?? 1;
+  const { onPageChange } = options;
 
   // VSS-y7u: All filters are now server-side for accurate pagination
   // Extract filters for API - support both new flat params and legacy filters object
@@ -125,33 +134,28 @@ export function useBrowseMods(params: BrowseParams = {}) {
   const pagination = query.data?.data?.pagination;
 
   // Story 10.7: Page navigation functions
+  // Story 16.1: Validated page changes are reported through onPageChange
   const setPage = useCallback(
     (page: number) => {
       // Validate page number: must be positive integer within bounds
       if (page < 1) return;
       if (pagination?.totalPages && page > pagination.totalPages) return;
-      setCurrentPage(page);
+      onPageChange?.(page);
     },
-    [pagination?.totalPages]
+    [pagination?.totalPages, onPageChange]
   );
 
   const goToNextPage = useCallback(() => {
-    setCurrentPage((prev) => {
-      if (pagination?.hasNext) {
-        return prev + 1;
-      }
-      return prev;
-    });
-  }, [pagination?.hasNext]);
+    if (pagination?.hasNext) {
+      onPageChange?.(currentPage + 1);
+    }
+  }, [pagination?.hasNext, currentPage, onPageChange]);
 
   const goToPrevPage = useCallback(() => {
-    setCurrentPage((prev) => {
-      if (pagination?.hasPrev && prev > 1) {
-        return prev - 1;
-      }
-      return prev;
-    });
-  }, [pagination?.hasPrev]);
+    if (pagination?.hasPrev && currentPage > 1) {
+      onPageChange?.(currentPage - 1);
+    }
+  }, [pagination?.hasPrev, currentPage, onPageChange]);
 
   // VSS-y7u: All filtering is now server-side, no client-side filtering needed
   const allMods = query.data?.data?.mods ?? [];

@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vite
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Routes, Route } from 'react-router';
+import { MemoryRouter, Routes, Route, useLocation, type InitialEntry } from 'react-router';
 import { ModDetailPage } from './ModDetailPage';
 
 // Create a fresh QueryClient for each test
@@ -24,10 +24,23 @@ function createTestQueryClient() {
   });
 }
 
+/** Story 16.1: Shows where a link back into the browser landed, and with which state. */
+function BrowseLanding() {
+  const location = useLocation();
+  const state = location.state as { fromModDetail?: unknown } | null;
+  return (
+    <div>
+      Browse Page
+      <span data-testid="landing-search">{location.search}</span>
+      <span data-testid="landing-from-detail">{String(state?.fromModDetail === true)}</span>
+    </div>
+  );
+}
+
 // Wrapper to provide QueryClient and Router context - Story 11.4: Uses /game-server/mods paths
 function renderWithProviders(
   ui: React.ReactElement,
-  { route = '/game-server/mods/browse/testmod' } = {}
+  { route = '/game-server/mods/browse/testmod' }: { route?: InitialEntry } = {}
 ) {
   const queryClient = createTestQueryClient();
 
@@ -36,7 +49,7 @@ function renderWithProviders(
       <MemoryRouter initialEntries={[route]}>
         <Routes>
           <Route path="/game-server/mods" element={<div>Mods Page</div>} />
-          <Route path="/game-server/mods/browse" element={<div>Browse Page</div>} />
+          <Route path="/game-server/mods/browse" element={<BrowseLanding />} />
           <Route path="/game-server/mods/browse/:slug" element={ui} />
         </Routes>
       </MemoryRouter>
@@ -1105,6 +1118,73 @@ describe('ModDetailPage', () => {
         const backButton = await screen.findByTestId('mod-detail-back');
         // Just verify it can be clicked without error
         await user.click(backButton);
+      });
+    });
+
+    describe('Story 16.1: returning to the browser keeps its state', () => {
+      const browseSearch = '?q=smithing&sort=downloads&side=both&tags=Crafting&type=mod&version=1.21.2&page=2';
+      const openedFromBrowse = {
+        pathname: '/game-server/mods/browse/smithingplus',
+        state: { browseSearch },
+      };
+
+      beforeEach(() => {
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve(mockModDetailResponse),
+        });
+      });
+
+      it('Back to Browse returns to the search, sort and filters including the game version', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<ModDetailPage />, { route: openedFromBrowse });
+
+        await user.click(await screen.findByTestId('mod-detail-back'));
+
+        expect(screen.getByTestId('landing-search')).toHaveTextContent(browseSearch);
+        expect(screen.getByTestId('landing-from-detail')).toHaveTextContent('true');
+      });
+
+      it('the Browse breadcrumb links to the same browse state and marks the return', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<ModDetailPage />, { route: openedFromBrowse });
+
+        const browseLink = await screen.findByTestId('mod-detail-breadcrumb-browse');
+        expect(browseLink).toHaveAttribute('href', `/game-server/mods/browse${browseSearch}`);
+
+        await user.click(browseLink);
+
+        expect(screen.getByTestId('landing-search')).toHaveTextContent(browseSearch);
+        expect(screen.getByTestId('landing-from-detail')).toHaveTextContent('true');
+      });
+
+      it('returns to the default browser when the page was opened directly', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        expect(await screen.findByTestId('mod-detail-breadcrumb-browse')).toHaveAttribute(
+          'href',
+          '/game-server/mods/browse'
+        );
+
+        await user.click(screen.getByTestId('mod-detail-back'));
+
+        expect(screen.getByTestId('landing-search')).toBeEmptyDOMElement();
+        expect(screen.getByTestId('landing-from-detail')).toHaveTextContent('true');
+      });
+
+      it('ignores navigation state that is not a browse search', async () => {
+        renderWithProviders(<ModDetailPage />, {
+          route: {
+            pathname: '/game-server/mods/browse/smithingplus',
+            state: { browseSearch: '//evil.example/path' },
+          },
+        });
+
+        expect(await screen.findByTestId('mod-detail-breadcrumb-browse')).toHaveAttribute(
+          'href',
+          '/game-server/mods/browse'
+        );
       });
     });
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useState } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -7,7 +8,17 @@ import {
   filterModsByFilters,
   sortModsByName,
 } from './use-browse-mods';
-import type { ModBrowseItem, ApiResponse, ModBrowseData } from '@/api/types';
+import type { ModBrowseItem, ApiResponse, ModBrowseData, BrowseParams } from '@/api/types';
+
+/**
+ * Story 16.1: the page is controlled by the caller (BrowseTab keeps it in the URL).
+ * This wrapper plays the caller's part with local state so page-change behavior
+ * can be tested through the hook alone.
+ */
+function useControlledBrowseMods(params: BrowseParams = {}) {
+  const [page, setPage] = useState(params.page ?? 1);
+  return useBrowseMods({ ...params, page }, { onPageChange: setPage });
+}
 
 // Create a wrapper with QueryClientProvider for testing hooks that use TanStack Query
 function createWrapper() {
@@ -638,6 +649,115 @@ describe('useBrowseMods', () => {
   });
 
   // Story 10.7: Pagination state tests
+  describe('Story 16.1: page controlled by the caller', () => {
+    const paginatedResponse = {
+      status: 'ok' as const,
+      data: {
+        mods: mockMods,
+        pagination: {
+          page: 2,
+          pageSize: 20,
+          totalItems: 100,
+          totalPages: 5,
+          hasNext: true,
+          hasPrev: true,
+        },
+      },
+    };
+
+    it('follows params.page when it changes', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(paginatedResponse),
+      });
+      globalThis.fetch = mockFetch;
+
+      const { result, rerender } = renderHook(
+        ({ page }: { page: number }) => useBrowseMods({ page }),
+        { wrapper: createWrapper(), initialProps: { page: 1 } }
+      );
+      expect(result.current.currentPage).toBe(1);
+
+      rerender({ page: 3 });
+
+      expect(result.current.currentPage).toBe(3);
+      await waitFor(() => {
+        expect(mockFetch.mock.calls.some(([url]) => String(url).includes('page=3'))).toBe(true);
+      });
+    });
+
+    it('setPage reports the page through onPageChange instead of changing it', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(paginatedResponse),
+      });
+      const onPageChange = vi.fn();
+
+      const { result } = renderHook(
+        () => useBrowseMods({ page: 2 }, { onPageChange }),
+        { wrapper: createWrapper() }
+      );
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      act(() => {
+        result.current.setPage(4);
+      });
+
+      expect(onPageChange).toHaveBeenCalledWith(4);
+      expect(result.current.currentPage).toBe(2);
+    });
+
+    it('goToNextPage and goToPrevPage report through onPageChange', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(paginatedResponse),
+      });
+      const onPageChange = vi.fn();
+
+      const { result } = renderHook(
+        () => useBrowseMods({ page: 2 }, { onPageChange }),
+        { wrapper: createWrapper() }
+      );
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      act(() => {
+        result.current.goToNextPage();
+      });
+      act(() => {
+        result.current.goToPrevPage();
+      });
+
+      expect(onPageChange.mock.calls).toEqual([[3], [1]]);
+    });
+
+    it('does not report invalid pages', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(paginatedResponse),
+      });
+      const onPageChange = vi.fn();
+
+      const { result } = renderHook(
+        () => useBrowseMods({ page: 2 }, { onPageChange }),
+        { wrapper: createWrapper() }
+      );
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      act(() => {
+        result.current.setPage(0);
+        result.current.setPage(6);
+      });
+
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
+  });
+
   describe('pagination state management', () => {
     it('exposes setPage function to change current page', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
@@ -646,7 +766,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -704,7 +824,7 @@ describe('useBrowseMods', () => {
         });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -729,7 +849,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -747,7 +867,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -779,7 +899,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -824,7 +944,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -865,7 +985,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+      const { result } = renderHook(() => useControlledBrowseMods({ page: 2 }), {
         wrapper: createWrapper(),
       });
 
@@ -906,7 +1026,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods({ page: 5 }), {
+      const { result } = renderHook(() => useControlledBrowseMods({ page: 5 }), {
         wrapper: createWrapper(),
       });
 
@@ -948,7 +1068,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -990,7 +1110,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+      const { result } = renderHook(() => useControlledBrowseMods({ page: 2 }), {
         wrapper: createWrapper(),
       });
 
@@ -1038,7 +1158,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods({ page: 2 }), {
+      const { result } = renderHook(() => useControlledBrowseMods({ page: 2 }), {
         wrapper: createWrapper(),
       });
 
@@ -1482,7 +1602,7 @@ describe('useBrowseMods', () => {
         });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 
@@ -1526,7 +1646,7 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      const { result } = renderHook(() => useBrowseMods(), {
+      const { result } = renderHook(() => useControlledBrowseMods(), {
         wrapper: createWrapper(),
       });
 

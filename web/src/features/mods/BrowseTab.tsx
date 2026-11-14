@@ -19,10 +19,11 @@
  * Story 10.8: Browse Install Integration
  * Story VSS-vth: Game version filter
  * VSS-195: Slug/URL detection in search
+ * Story 16.1: Search, filters, sort and page live in the URL (Epic 16 ADR-1)
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation, useNavigationType, useSearchParams } from 'react-router';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,16 +33,20 @@ import { useMods } from '@/hooks/use-mods';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { useGameVersions } from '@/hooks/use-game-versions';
 import { useModTags } from '@/hooks/use-mod-tags';
-import {
-  useBrowseScrollRestoration,
-  getSavedScrollState,
-} from '@/hooks/use-browse-scroll-restoration';
+import { useBrowseScrollRestoration } from '@/hooks/use-browse-scroll-restoration';
 import { ModBrowseGrid } from '@/components/ModBrowseGrid';
 import { FilterControls } from '@/components/FilterControls';
 import { SortControl } from '@/components/SortControl';
 import { Pagination } from '@/components/Pagination';
 import { detectSlugOrUrl } from '@/lib/mod-utils';
-import type { ModFilters, BrowseSortOption } from '@/api/types';
+import {
+  BROWSE_PATH,
+  isReturnFromModDetail,
+  parseBrowseSearch,
+  buildBrowseSearch,
+  saveLastBrowseSearch,
+  type BrowseUrlState,
+} from '@/lib/browse-search';
 
 /**
  * Browse mods tab with search functionality.
@@ -53,9 +58,26 @@ import type { ModFilters, BrowseSortOption } from '@/api/types';
  */
 export function BrowseTab() {
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState<ModFilters>({});
-  const [sort, setSort] = useState<BrowseSortOption>('recent');
+  const location = useLocation();
+  const navigationType = useNavigationType();
+
+  // Story 16.1: The URL is the source of truth for search, filters, sort and page.
+  // Parse once per distinct query string so filters keep their identity between renders.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlQuery = searchParams.toString();
+  const browseState = useMemo(() => parseBrowseSearch(urlQuery), [urlQuery]);
+  const { sort, filters, page } = browseState;
+
+  // The search box keeps local state for responsiveness; the URL gets the debounced value.
+  const [searchInput, setSearchInput] = useState(browseState.search);
+  // When the URL search changes from outside (browser back/forward), show it in the box.
+  const [syncedUrlSearch, setSyncedUrlSearch] = useState(browseState.search);
+  if (browseState.search !== syncedUrlSearch) {
+    setSyncedUrlSearch(browseState.search);
+    if (searchInput.trim() !== browseState.search) {
+      setSearchInput(browseState.search);
+    }
+  }
 
   // Story 10.8: Get installed mods to show install state on cards
   const { data: modsData } = useMods();
@@ -84,27 +106,41 @@ export function BrowseTab() {
   } = useModTags();
   const modTags = modTagsData?.data?.tags ?? [];
 
-  // Story 10.7: Scroll position restoration
-  // Read saved state synchronously for initial page (before first render)
-  const [savedState] = useState(() => getSavedScrollState());
-  const { savePosition, restorePosition, clearPosition, scrollToPosition } =
-    useBrowseScrollRestoration();
-  const hasRestoredScrollRef = useRef(false);
-
-  // Restore scroll position on mount (after content renders)
-  useEffect(() => {
-    if (hasRestoredScrollRef.current) return;
-    hasRestoredScrollRef.current = true;
-
-    if (savedState) {
-      // Consume the saved state (clears from sessionStorage)
-      restorePosition();
-      // Scroll after a short delay to allow content to render
-      setTimeout(() => scrollToPosition(savedState.scrollY), 100);
-    }
-  }, [savedState, restorePosition, scrollToPosition]);
-
   const debouncedSearch = useDebounce(searchInput, 300);
+
+  /**
+   * Story 16.1: Write the next browse state to the URL in one call.
+   * Changing search, sort or a filter goes back to page 1 (the page is omitted).
+   * Discrete changes push a history entry; the debounced search replaces.
+   */
+  const updateBrowseState = useCallback(
+    (patch: Partial<BrowseUrlState>, options: { replace?: boolean } = {}) => {
+      const nextSearch = buildBrowseSearch({ ...browseState, page: 1, ...patch });
+      if (nextSearch === buildBrowseSearch(browseState)) return;
+      setSearchParams(new URLSearchParams(nextSearch), { replace: options.replace });
+    },
+    [browseState, setSearchParams]
+  );
+
+  // Story 16.1: Write the debounced search only when the debounced value itself changes,
+  // so browser back/forward is not overwritten by the previous text still in the debounce.
+  const lastDebouncedRef = useRef(debouncedSearch);
+  useEffect(() => {
+    if (lastDebouncedRef.current === debouncedSearch) return;
+    lastDebouncedRef.current = debouncedSearch;
+    if (debouncedSearch.trim() === browseState.search) return;
+    updateBrowseState({ search: debouncedSearch }, { replace: true });
+  }, [debouncedSearch, browseState.search, updateBrowseState]);
+
+  // Story 16.1: Remember the browse URL so the Browse tab can return to it
+  useEffect(() => {
+    saveLastBrowseSearch(location.search);
+  }, [location.search]);
+
+  const handlePageChange = useCallback(
+    (nextPage: number) => updateBrowseState({ page: nextPage }),
+    [updateBrowseState]
+  );
 
   const {
     mods,
@@ -117,47 +153,36 @@ export function BrowseTab() {
     // Story 10.7: Pagination state and controls
     currentPage,
     setPage,
-  } = useBrowseMods({
-    search: debouncedSearch,
-    filters,
-    sort,
-    // Story 10.7: Start on restored page if available
-    page: savedState?.page,
+  } = useBrowseMods(
+    {
+      search: browseState.search,
+      filters,
+      sort,
+      page,
+    },
+    { onPageChange: handlePageChange }
+  );
+
+  // Story 10.7 / 16.1: On a return from a mod's detail page, scroll to the card that
+  // was opened, once the results containing it have rendered (Epic 16 ADR-1)
+  const renderedSlugs = useMemo(() => mods.map((mod) => mod.slug), [mods]);
+  const { saveOpenedMod } = useBrowseScrollRestoration({
+    currentSearch: location.search,
+    isReturn: isReturnFromModDetail(location.state) || navigationType === 'POP',
+    renderedSlugs,
+    isReady: !isLoading,
   });
 
   // Navigate to mod detail view (Story 10.6)
-  // Story 10.7: Save scroll position before navigating
   // Story 11.4: Updated path to /game-server/mods/browse
-  const handleModClick = useCallback(
+  // Story 16.1: Remember the opened card and carry the browse URL so the way back returns to it
+  const openModDetail = useCallback(
     (slug: string) => {
-      savePosition(currentPage);
-      navigate(`/game-server/mods/browse/${slug}`);
+      saveOpenedMod(slug);
+      navigate(`${BROWSE_PATH}/${slug}`, { state: { browseSearch: location.search } });
     },
-    [navigate, savePosition, currentPage]
+    [navigate, saveOpenedMod, location.search]
   );
-
-  // Story 10.7: Reset to page 1 when search/filters/sort change
-  const prevSearchRef = useRef(debouncedSearch);
-  const prevFiltersRef = useRef(filters);
-  const prevSortRef = useRef(sort);
-
-  useEffect(() => {
-    const searchChanged = prevSearchRef.current !== debouncedSearch;
-    const filtersChanged = prevFiltersRef.current !== filters;
-    const sortChanged = prevSortRef.current !== sort;
-
-    if (searchChanged || filtersChanged || sortChanged) {
-      // Reset to page 1 when criteria change
-      if (currentPage !== 1) {
-        setPage(1);
-      }
-      // Story 10.7: Clear saved scroll position when criteria change
-      clearPosition();
-      prevSearchRef.current = debouncedSearch;
-      prevFiltersRef.current = filters;
-      prevSortRef.current = sort;
-    }
-  }, [debouncedSearch, filters, sort, currentPage, setPage, clearPosition]);
 
   function handleClearSearch(): void {
     setSearchInput('');
@@ -176,8 +201,7 @@ export function BrowseTab() {
       if (slug) {
         e.preventDefault();
         // Navigate directly to mod detail page
-        savePosition(currentPage);
-        navigate(`/game-server/mods/browse/${slug}`);
+        openModDetail(slug);
       }
       // If not a slug/URL, debounced search is already active - no action needed
     }
@@ -237,14 +261,14 @@ export function BrowseTab() {
 
         {/* Sort Control */}
         <div className="sm:ml-auto">
-          <SortControl value={sort} onChange={setSort} />
+          <SortControl value={sort} onChange={(nextSort) => updateBrowseState({ sort: nextSort })} />
         </div>
       </div>
 
       {/* Filter Controls */}
       <FilterControls
         filters={filters}
-        onChange={setFilters}
+        onChange={(nextFilters) => updateBrowseState({ filters: nextFilters })}
         // VSS-y7u: Use full tag list from API instead of extracting from current page
         availableTags={modTags}
         tagsLoading={modTagsLoading}
@@ -259,7 +283,7 @@ export function BrowseTab() {
       <ModBrowseGrid
         mods={mods}
         isLoading={isLoading}
-        onModClick={handleModClick}
+        onModClick={openModDetail}
         installedSlugs={installedSlugs}
       />
 
@@ -285,9 +309,9 @@ export function BrowseTab() {
             <>
               Showing all {pagination.totalItems} mods sorted alphabetically
             </>
-          ) : debouncedSearch ? (
+          ) : browseState.search ? (
             <>
-              Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{debouncedSearch}&quot;
+              Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{browseState.search}&quot;
             </>
           ) : (
             <>

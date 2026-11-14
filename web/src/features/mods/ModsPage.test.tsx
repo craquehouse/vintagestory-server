@@ -13,7 +13,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, Navigate, useLocation } from 'react-router';
+import { MemoryRouter, Routes, Route, Navigate, useLocation, type InitialEntry } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
@@ -38,6 +38,20 @@ import { InstalledTab } from './InstalledTab';
 import { BrowseTab } from './BrowseTab';
 import { ModDetailPage } from './ModDetailPage';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { BROWSE_LAST_SEARCH_KEY } from '@/lib/browse-search';
+
+/** Story 16.1: Shows the router's current location and whether it marks a return. */
+function LocationProbe() {
+  const location = useLocation();
+  const state = location.state as { fromModDetail?: unknown } | null;
+  return (
+    <>
+      <span data-testid="probe-path">{location.pathname}</span>
+      <span data-testid="probe-search">{location.search}</span>
+      <span data-testid="probe-from-detail">{String(state?.fromModDetail === true)}</span>
+    </>
+  );
+}
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -133,7 +147,7 @@ function ModsRedirect() {
 }
 
 // Wrapper for tests that include legacy route redirects - Story 11.4
-function createTestRouterWithRedirects(initialEntries: string[], queryClient: QueryClient) {
+function createTestRouterWithRedirects(initialEntries: InitialEntry[], queryClient: QueryClient) {
   return function TestRouter({ children }: { children?: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -291,6 +305,101 @@ describe('ModsPage routing', () => {
       await waitFor(() => {
         expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Story 16.1: Browse tab returns to the browse state', () => {
+    const lastSearch = '?q=farming&version=1.20.0';
+    const openedSearch = '?q=food&side=server&tags=qol&type=mod&version=1.21.2&sort=downloads&page=2';
+
+    beforeEach(() => {
+      window.sessionStorage.removeItem(BROWSE_LAST_SEARCH_KEY);
+    });
+
+    async function clickBrowseTab(initialEntry: Parameters<typeof createTestRouterWithRedirects>[0][number]) {
+      const user = userEvent.setup();
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects([initialEntry], queryClient);
+      render(
+        <Router>
+          <LocationProbe />
+        </Router>
+      );
+      await user.click(await screen.findByRole('tab', { name: /browse/i }));
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+    }
+
+    it('on a detail page opened from browse, opens the state the mod was opened from', async () => {
+      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
+
+      await clickBrowseTab({
+        pathname: '/game-server/mods/browse/testmod',
+        state: { browseSearch: openedSearch },
+      });
+
+      expect(screen.getByTestId('probe-path')).toHaveTextContent('/game-server/mods/browse');
+      expect(screen.getByTestId('probe-search')).toHaveTextContent(openedSearch);
+      expect(screen.getByTestId('probe-from-detail')).toHaveTextContent('true');
+      expect(screen.getByTestId('browse-search-input')).toHaveValue('food');
+      expect(screen.getByLabelText('Remove version filter: 1.21.2')).toBeInTheDocument();
+    });
+
+    it('from the Installed tab, opens the last browse state including the game version', async () => {
+      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
+
+      await clickBrowseTab('/game-server/mods/installed');
+
+      expect(screen.getByTestId('probe-search')).toHaveTextContent(lastSearch);
+      expect(screen.getByTestId('probe-from-detail')).toHaveTextContent('false');
+      expect(screen.getByLabelText('Remove version filter: 1.20.0')).toBeInTheDocument();
+    });
+
+    it('on a detail page opened directly, opens the last browse state', async () => {
+      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
+
+      await clickBrowseTab('/game-server/mods/browse/testmod');
+
+      expect(screen.getByTestId('probe-search')).toHaveTextContent(lastSearch);
+    });
+
+    it('does not add a history entry when the active Browse tab is clicked', async () => {
+      const user = userEvent.setup();
+      const keys: string[] = [];
+      function KeyProbe() {
+        const location = useLocation();
+        if (keys.at(-1) !== location.key) keys.push(location.key);
+        return null;
+      }
+      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
+      const queryClient = createTestQueryClient();
+      const Router = createTestRouterWithRedirects([`/game-server/mods/browse${lastSearch}`], queryClient);
+      render(
+        <Router>
+          <KeyProbe />
+        </Router>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('tab', { name: /browse/i }));
+
+      expect(keys).toHaveLength(1);
+
+      // The probe does see a real tab change
+      await user.click(screen.getByRole('tab', { name: /installed/i }));
+      await waitFor(() => {
+        expect(keys).toHaveLength(2);
+      });
+    });
+
+    it('opens the default browser when no browse state is saved', async () => {
+      await clickBrowseTab('/game-server/mods/installed');
+
+      expect(screen.getByTestId('probe-path')).toHaveTextContent('/game-server/mods/browse');
+      expect(screen.getByTestId('probe-search')).toBeEmptyDOMElement();
     });
   });
 

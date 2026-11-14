@@ -1,0 +1,251 @@
+# Story 16.1: Mod Browser State Survives Mod Details
+
+Status: done
+
+<!-- Implements Epic 16 ADR-1 (architecture/epic-16-ui-polish.md), which implements Epic 10 ADR-4. Beads: VSS-dkl (search/sort/filters), VSS-901 (page and scroll restoration). -->
+
+## Story
+
+As an **administrator**,
+I want **the mod browser to keep my search, filters (including the game version filter) and sort when I look at a mod and come back**,
+so that **I can compare several mods without searching and filtering again each time**.
+
+## Acceptance Criteria
+
+1. **Given** I have entered a search term, chosen a sort, and set filters: side, tags, mod type and **game version**
+   **When** I open a mod's detail page and return with **Back to Browse**, the **Browse breadcrumb**, the **Browse tab** or the **browser's back button**
+   **Then** the search box, the sort, and every filter including the game version are as I left them, and the results match them (the browse request carries the same `search`, `sort`, `side`, `tags`, `mod_type` and `version`)
+   *(Covers FR167; maintainer report: "Back to Browse isn't maintaining a game version filter that was applied")*
+
+2. **Given** I was on a later page of results and scrolled down
+   **When** I open a mod and return from its detail page by any of the four ways in AC 1
+   **Then** the same page is shown, with the same search, filters and sort, and the card I opened is scrolled into view
+   **And** this does not depend on a fixed delay: the scroll happens once the results containing that card have rendered, and if the card is no longer in the results the page is left at the top
+   *(Covers FR168; `VSS-901`)*
+
+3. **Given** I change the search, a filter or the sort (after returning or at any time)
+   **When** the results change
+   **Then** the browser goes back to page 1, as it does today
+   **And** typing in the search box does not add a browser history entry per keystroke, while each sort, filter or page change does, so browser back and forward step through them
+
+4. **Given** the browse state is in the URL (`q`, `sort`, `side`, `tags`, `type`, `version`, `page`, defaults omitted)
+   **When** I refresh the page or open a copied browse link
+   **Then** the search, filters including the game version, sort and page are restored from the URL, without restoring a scroll position
+   **And** `/game-server/mods/browse` with no parameters is the default state (no search, Newest, no filters, page 1), and unknown or invalid values fall back to their defaults
+
+5. **Given** I click the **Browse** tab
+   **When** I am on a detail page opened from the browser, **then** the browser opens with the state I opened the mod from;
+   **when** I am anywhere else in Mods (Installed tab, or a detail page opened directly from a link), **then** it opens with the last browse state of this browser session, including the game version filter;
+   **when** there is no saved state, **then** it opens in the default state
+
+6. **Given** I opened a mod and then left through another page (for example Installed or Settings), or I refresh or load the browse page
+   **When** the browser mounts
+   **Then** no old scroll position is restored: the saved card is consumed on a return from its detail page and cleared on every other mount
+
+## Tasks / Subtasks
+
+<!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.1/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
+
+- [x] Task 1: Browse URL state helpers and a URL-controlled page in `useBrowseMods` + tests (AC: 3, 4)
+  - [x] 1.1: Create `web/src/lib/browse-search.ts`: `BROWSE_PATH`, `BrowseUrlState` (`search`, `sort`, `filters: ModFilters`, `page`), `parseBrowseSearch(search: string): BrowseUrlState` and `buildBrowseSearch(state): string` (returns `''` or `?…`, parameters in the order `q, sort, side, tags, type, version, page`, defaults omitted, `tags` comma-separated, `q` trimmed). Invalid `sort`, `side`, `type` and `page` (not a positive integer) fall back to defaults; empty `tags`/`version` are omitted
+  - [x] 1.2: Add `readBrowseSearchState(state: unknown): string | undefined` (navigation state `browseSearch`, accepted only when it is `''` or starts with `?`) and `isReturnFromModDetail(state: unknown): boolean` (`fromModDetail === true`); add `getLastBrowseSearch()` / `saveLastBrowseSearch(search)` for sessionStorage key `browse-last-search`, wrapped in try/catch like the existing restoration hook
+  - [x] 1.3: Make `useBrowseMods` page controlled: `currentPage` comes from `params.page ?? 1`; `setPage`, `goToNextPage`, `goToPrevPage` validate as today and call an `onPageChange` callback passed in a second `options` argument instead of internal `useState`
+  - [x] 1.4: Tests: `web/src/lib/browse-search.test.ts` (round trip for every parameter including `version`, defaults omitted, invalid values, ordering, tags with spaces, `q` trimming, navigation-state guards, sessionStorage failure); rewrite the `use-browse-mods.test.tsx` "pagination state management" and "edge cases" page tests to drive the controlled page through a `useState` wrapper instead of deleting them
+
+- [x] Task 2: BrowseTab reads and writes its state through the URL + tests (AC: 1, 3, 4)
+  - [x] 2.1: Replace `useState` for `filters` and `sort` with `useSearchParams`; derive `BrowseUrlState` with `useMemo` keyed on `searchParams.toString()` (trap: reference-compared filters reset the page every render)
+  - [x] 2.2: Keep `searchInput` local for responsiveness, initialised from `q`; write the debounced (300 ms), trimmed value with `{ replace: true }` only when the debounced value itself changes; resync the input when `q` changes from outside (browser back/forward) by adjusting state during render, not in an effect
+  - [x] 2.3: Sort, filter and page changes build the whole next parameter set in one `setSearchParams` call (push). Any change to `q`, `sort` or a filter removes `page`; delete the `prev*Ref` page-reset effect it replaces
+  - [x] 2.4: Mirror `location.search` to `browse-last-search` whenever it changes
+  - [x] 2.5: Tests in `BrowseTab.test.tsx` with a `MemoryRouter` harness that exposes the current location: initial state from URL for every parameter including `version` (asserted on the request URL and the filter UI), writes for search (replace), sort/side/version (push), page change, page reset on search/sort/filter change, invalid values, `browse-last-search` mirroring; adapt existing tests to the router harness
+
+- [x] Task 3: Links into browse carry the browse state + tests (AC: 1, 5)
+  - [x] 3.1: Card click and Enter-on-slug navigate to the detail page with `state: { browseSearch: location.search }`
+  - [x] 3.2: `ModDetailPage`: Back to Browse and the Browse breadcrumb go to `BROWSE_PATH + browseSearch` (empty when opened directly) with `state: { fromModDetail: true }`
+  - [x] 3.3: `ModsPage.handleTabChange('browse')`: precedence `state.browseSearch` (detail page opened from browse, with `fromModDetail`), then `browse-last-search`, then default. The Installed tab is unchanged
+  - [x] 3.4: Tests: `ModDetailPage.test.tsx` (back button and breadcrumb targets with a search, side, tags, type, `version` and sort; direct open → default), `ModsPage.test.tsx` (all three precedence branches, game version kept), `BrowseTab.test.tsx` (card and Enter pass `browseSearch`)
+
+- [x] Task 4: Restore position to the opened card, only on a return from its detail page + tests (AC: 2, 6)
+  - [x] 4.1: Rewrite `use-browse-scroll-restoration.ts` for the slug entry: sessionStorage `{ search, slug }` saved immediately before opening a mod; retire `browse-scroll-position` and `{ scrollY, page }`; pure `shouldRestoreOpenedCard(saved, currentSearch, isReturn)`
+  - [x] 4.2: `BrowseTab`: read the entry without side effects on first render; restore only if `saved.search === location.search` and the arrival is a return (`fromModDetail` state or `useNavigationType() === 'POP'`); clear the entry on every mount. Once results have rendered, `scrollIntoView({ block: 'center' })` the `mod-card-<slug>` element if that slug is in the results, then stop; remove the 100 ms `setTimeout`
+  - [x] 4.3: Rewrite `use-browse-scroll-restoration.test.ts` and the BrowseTab "Scroll Position Restoration" tests for the slug entry: save on card click and Enter, restore on `fromModDetail` and on `POP`, no restore on `PUSH` without state (detour), on a search mismatch, or when the slug is absent; entry cleared on every mount; no `setTimeout`
+
+- [x] Task 5: End-to-end round trip and browser verification against the Docker dev stack + tests (AC: all)
+  - [x] 5.1: Add `web/e2e/mod-browse-state.spec.ts` (Playwright, Docker stack, live mod database): set a search, a side filter, the **game version filter** and a sort, go to page 2, scroll, open a card; return by Back to Browse, the breadcrumb, the Browse tab and browser back; assert URL parameters, the search box, the version filter label, the sort label, the page, and that the opened card is in the viewport; plus refresh (state kept, no scroll) and detour (Installed → Browse tab keeps state, no scroll)
+  - [x] 5.2: `just docker restart`, run the spec (`cd web && bunx playwright test e2e/mod-browse-state.spec.ts`), and drive the four return paths in Chromium on DevTools Slow 4G with a script, checking the browser console. Screenshots, if committed, mask the server name (`span.font-semibold` in the header, `#ServerName`) and password
+  - [x] 5.3: Record the E2E and throttled-script results in the Dev Agent Record; together they are this story's browser verification
+
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` (lint, typecheck, all tests) passes
+  - [x] 6.2: Story status `review`, `just sprint set 16-1-mod-browser-state-survives-mod-details review`, PR to `main`, PR link on `VSS-dkl` and `VSS-901`
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][Low] L1: a second back-through-history replay (browse → detail → back → forward → back) does not re-scroll. No change: Epic 16 ADR-1 decision 4 consumes the entry on the first return
+- [x] [AI-Review][Low] L2: clicking the active Browse tab pushes a duplicate history entry. Did not reproduce: Radix `useControllableState` does not report a value equal to the controlled one. Added a test that clicks the active Browse tab, asserts no new history entry, and proves the probe sees a real tab change; added an early return in `ModsPage.handleTabChange` when `value === activeTab` as a guard (`66f2581`)
+- [x] [AI-Review][Low] L3: an out-of-range `page` from a shared link is not clamped. Not new in this story: `VSS-nhb`
+- [x] [AI-Review][Low] L4: E2E timing used `networkidle` and a fixed 500 ms wait. Replaced by waiting for the page-2 response and the current-page marker, and, for the no-scroll checks, by polling until the opened-card entry is cleared and the grid has rendered (`66f2581`)
+- [x] [AI-Review][Low] L5: `ModDetailError` has no link back to the browser. Not new in this story: `VSS-fv7`
+
+## Dev Notes
+
+### Current state (verified 2026-11-13 on `main` 8477096)
+
+- `web/src/features/mods/BrowseTab.tsx:56-58`: `searchInput`, `filters` (`ModFilters`: `side`, `tags`, `modType`, `gameVersion`) and `sort` (`BrowseSortOption`, default `recent`) are `useState`. `browse` and `browse/:slug` are sibling routes in `web/src/App.tsx`, so opening a mod unmounts `BrowseTab` and all of it resets. This is why the **game version filter** is lost on Back to Browse (maintainer report).
+- `BrowseTab.tsx:87-105`: restoration reads `{ scrollY, page }` (key `browse-scroll-position`) and scrolls after `setTimeout(…, 100)`. `BrowseTab.tsx:139-160` resets the page and clears the saved position when `prevFiltersRef.current !== filters` (reference comparison).
+- `web/src/hooks/use-browse-mods.ts:70`: `const [currentPage, setCurrentPage] = useState(params.page ?? 1)`, initialised once. `goToNextPage`/`goToPrevPage` are used only by tests.
+- `web/src/features/mods/ModDetailPage.tsx:450-452` (`handleBack`) and `:522-528` (breadcrumb) use the fixed path `/game-server/mods/browse`. The "Mods" breadcrumb (`/game-server/mods`) is not a browse link and stays as is.
+- `web/src/features/mods/ModsPage.tsx:43-45`: `handleTabChange` navigates to `/game-server/mods/${value}`.
+- No component uses `useSearchParams` yet. `react-router` 8.5.1, declarative `<BrowserRouter>`; `useSearchParams`, `useLocation`, `useNavigationType` and `navigate(to, { replace, state })` work; `<ScrollRestoration>` does not (data routers only).
+- Story 16.0 probe (`16-0-spike/browse_probe.out.json`): unfiltered restoration works on all four return paths, also on Slow 4G (grid renders from the React Query cache); with a search the search resets and the restored page belongs to the unfiltered results; a detour restores a stale position.
+- `web/src/main.tsx` renders under `<StrictMode>`: `useState` initialisers and mount effects run twice in development, so reading the saved card must be side-effect free and clearing must be idempotent.
+- `just lint-web` is `tsc --noEmit`; there is no ESLint in the web package, but hooks must still follow the rules of hooks.
+
+### Design (binding: Epic 16 ADR-1)
+
+| Parameter | `BrowseUrlState` field | Default (omitted) | Validation |
+|---|---|---|---|
+| `q` | `search` | `''` | trimmed |
+| `sort` | `sort` | `recent` | one of `recent`, `downloads`, `trending`, `name` |
+| `side` | `filters.side` | none | one of `client`, `server`, `both` |
+| `tags` | `filters.tags` | none | comma-separated, empty items dropped |
+| `type` | `filters.modType` | none | one of `mod`, `externaltool`, `other` |
+| `version` | `filters.gameVersion` | none | any non-empty string (the list loads asynchronously) |
+| `page` | `page` | `1` | positive integer |
+
+- History: debounced search → `replace`; sort, filter, page → push. Build the full next set in one `setSearchParams` call (`setSearchParams(fn)` does not queue like `setState`).
+- Navigation state: `{ browseSearch: string }` on links into a detail page; `{ fromModDetail: true }` on the three links back (Back to Browse, breadcrumb, Browse tab on a detail page).
+- sessionStorage: `browse-last-search` (full `location.search`, mirrored on change); opened-card entry `{ search, slug }` written only immediately before opening a mod, consumed or cleared on every `BrowseTab` mount.
+- Restore: `document.querySelector('[data-testid="mod-card-<slug>"]')?.scrollIntoView({ block: 'center' })` after the results containing the slug render (`ModCard.tsx:88` sets the test id). Use `CSS.escape` on the slug if it is interpolated into a selector, or look it up by iterating the grid's children.
+
+### Implementation traps
+
+- **Controlled page:** do not keep a second copy of `page` in `useBrowseMods`. The URL is the only page state.
+- **Memoized filters:** derive `filters` from the parameter string, not `searchParams` identity; never compare filters by reference.
+- **Search echo:** after browser back changes `q`, the debounced value still holds the old text for 300 ms. Write `q` only when the debounced value changes, or back would rewrite the old search into the URL.
+- **POP on refresh:** a refresh is also `POP`. It never restores because every mount consumes or clears the entry and the entry is written only when opening a mod.
+- **Name sort (`VSS-stm.1`)** fails today with a 422; out of scope. `page` has no effect for it. Do not fix it here.
+
+### Out of scope
+
+- The Name (A-Z) sort failure (`VSS-stm.1`) and any other Epic 16 story.
+- A data-router migration for `<ScrollRestoration>` (ADR-1 decision 5).
+- Restoring the scroll offset inside the detail page.
+
+### Testing Requirements
+
+**CRITICAL:** Tests are written with each task and committed with it. `just test-web` after each task; `just check` before review.
+
+- Unit: `web/src/lib/browse-search.test.ts`, rewritten `web/src/hooks/use-browse-scroll-restoration.test.ts`, updated `web/src/hooks/use-browse-mods.test.tsx`.
+- Component: `BrowseTab.test.tsx`, `ModDetailPage.test.tsx`, `ModsPage.test.tsx`. Render BrowseTab inside `MemoryRouter` with `Routes` so `useSearchParams` works, and expose the location (a small `LocationProbe` component) to assert the URL and history behavior. The game version filter is asserted explicitly in every round-trip test, alongside search, side, tags, type and sort.
+- Tests that encode the old `{ scrollY, page }` behavior are rewritten for the slug entry, not deleted.
+- E2E: `web/e2e/mod-browse-state.spec.ts` runs against the Docker stack (`just test-e2e-web` or `bunx playwright test` with the stack up). It depends on the live mod database, so it picks cards from the rendered grid rather than hard-coding slugs. E2E tests are not part of `just check`.
+
+**UI Stories - Manual Browser Verification:** Docker stack (`just docker restart`, http://localhost:8080, game 1.22.7 installed in `./data`). Verify the four return paths with a search, side, tags, type, **game version** and sort set, on page 2 or later, scrolled down; refresh; a copied link in a new tab; detour through Installed; Slow 4G throttling; browser console free of errors. `just docker stop` when done.
+
+### Security Requirements
+
+- No API changes. Navigation state and sessionStorage values are validated before use (`readBrowseSearchState`, JSON parse in try/catch); URL values are parsed into typed state and invalid values fall back to defaults.
+
+### Development Commands
+
+- `just test-web`, `just test-web src/lib/browse-search.test.ts`, `just check`, `just docker restart`, `just test-e2e-web`.
+
+### Previous Story Intelligence
+
+- **10.3 / 10.4:** search debounce is 300 ms (`useDebounce`); `SortControl` validates its value; `FilterControls` calls `onChange` with the whole next `ModFilters` object (removing a key, not setting `undefined`, for side/type/version).
+- **10.7:** introduced pagination and `{ scrollY, page }` restoration; its tests (`BrowseTab.test.tsx` "Story 10.7" blocks, `use-browse-scroll-restoration.test.ts`) are the ones to rewrite.
+- **11.4:** replaced `navigate(-1)` with the fixed browse path for predictable Back; keep an explicit path, now with the saved search.
+- **16.0:** evidence and ADR-1; `16-0-spike/browse_probe.mjs` shows how to drive the browser and sample the opened card's visibility.
+
+### Git Intelligence
+
+- Recent `main` commits are release and dependency chores; the last story was 16.0 (spike, PR #144). Story branches merge without squash; commit per task with `type(story-16.1/task-N)`.
+
+### Latest Technical Information
+
+- react-router 8.5.1 (declarative mode): `useSearchParams()` returns `[URLSearchParams, setSearchParams(next, navigateOptions)]`; `navigateOptions` accepts `replace` and `state`. `useNavigationType()` returns `'POP' | 'PUSH' | 'REPLACE'`. Confirmed in Story 16.0 via Context7.
+
+### Project Structure Notes
+
+- New: `web/src/lib/browse-search.ts` (+ test), `web/e2e/mod-browse-state.spec.ts`.
+- Modified: `BrowseTab.tsx`, `ModDetailPage.tsx`, `ModsPage.tsx`, `use-browse-mods.ts`, `use-browse-scroll-restoration.ts` and their tests.
+- File naming kebab-case for new modules (`project-context.md`); co-located tests.
+
+### References
+
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 16.1]
+- [Source: _bmad-output/planning-artifacts/architecture/epic-16-ui-polish.md#ADR-1: Browse State in the URL, Position by Opened Card]
+- [Source: _bmad-output/planning-artifacts/architecture/epic-10-architecture-decisions.md#ADR-4: URL State for Filters]
+- [Source: _bmad-output/implementation-artifacts/16-0-epic-16-technical-preparation.md]
+- [Source: _bmad-output/implementation-artifacts/16-0-spike/README.md] and `browse_probe.mjs`
+- [Source: _bmad-output/implementation-artifacts/10-7-pagination.md]
+- [Source: _bmad-output/implementation-artifacts/11-4-mods-page-migration.md]
+- Beads: `VSS-dkl`, `VSS-901`, `VSS-stm.1`
+- `project-context.md` - critical implementation rules and patterns
+
+## Dev Agent Record
+
+### Agent Model Used
+
+Claude Opus 5.5 (claude-opus-5-5)
+
+### Debug Log References
+
+- Task 1: red run of `browse-search.test.ts` (module missing) and of the three new controlled-page tests in `use-browse-mods.test.tsx` before implementing. `use-browse-mods.test.tsx` has 2 pre-existing `it.skip` tests (game version client-side filter, disabled since VSS-y7u); not touched.
+- Task 2: red run, 8 new URL-state tests failing; after implementation only the old 10.7 "restores page from saved position" test failed, as expected (the page now comes from the URL), and was rewritten for the URL.
+- Task 3: red run, 13 failures (8 new tests plus 5 existing card/Enter navigation assertions that now expect `state.browseSearch`); the "ignores navigation state that is not a browse search" guard test passed before and after, as intended.
+- Task 4: red run, 27 hook tests and 5 BrowseTab restoration tests failing against the old `{ scrollY, page }` hook. jsdom has no `Element.prototype.scrollIntoView`; tests stub it, the production code calls it directly.
+- Task 5: `just docker restart` (image rebuilt from this branch; game 1.22.7, server stopped). First E2E run: 4 of 7 failed with "element is not attached to the DOM" because the grid was still swapping page 1 for page 2 when a card was picked; the spec now waits for the page-2 response and the current-page marker. The detour test then showed that the Installed tab does nothing on a detail page (pre-existing, `VSS-2oz`); the detour leaves through the Mods breadcrumb instead. Final: `bunx playwright test e2e/mod-browse-state.spec.ts --repeat-each=2` 14 passed.
+- Task 5 throttled check (scratchpad script adapted from `16-0-spike/browse_probe.mjs`, Chromium 1440x900, DevTools Slow 4G): `?q=food&sort=downloads&side=both&type=mod&version=1.22.7&page=2`, card 16 opened, returned by Back to Browse, browser back, breadcrumb and Browse tab. Every path restored the URL, the search box (`food`) and the version filter (`v1.22.7`); the opened card was centered (offset 0 px) within 22-57 ms of the return; no console errors or warnings.
+
+### Completion Notes List
+
+- Task 1: `web/src/lib/browse-search.ts` parses and builds the ADR-1 parameters (`q, sort, side, tags, type, version, page`, defaults omitted, invalid values to defaults), guards navigation state (`browseSearch`, `fromModDetail`) and wraps `browse-last-search` in sessionStorage. `useBrowseMods` no longer keeps the page: `params.page` is the current page and `setPage`/`goToNextPage`/`goToPrevPage` report through `options.onPageChange`. The hook's page tests now drive the page through a `useState` wrapper (`useControlledBrowseMods`) instead of being deleted; four new tests cover the controlled contract. BrowseTab keeps a local page state for this commit only (replaced by the URL in Task 2). Web: 3,051 passed, 4 skipped (pre-existing).
+- Task 2: `BrowseTab` reads `q, sort, side, tags, type, version, page` with `useSearchParams` (memoized on the query string), keeps the search box local and writes the debounced, trimmed search with `replace` only when the debounced value changes; sort, filter and page changes push one complete parameter set, dropping `page` on search/sort/filter changes, and are skipped when they would not change the URL. The search box follows browser back/forward by adjusting state during render. `location.search` is mirrored to `browse-last-search`. The `prev*Ref` page-reset effect is gone. Tests use a `MemoryRouter` harness with a `LocationProbe` that logs every location and navigation type; ten new tests (every parameter including `version`, defaults, invalid values, replace vs push, page reset, no-op writes, back/forward resync with the debounce, sessionStorage mirroring) and the 10.7 page tests rewritten to assert the URL. Web: 3,061 passed.
+- Task 3: card click and Enter-on-slug share `openModDetail`, which navigates with `state: { browseSearch: location.search }`. `ModDetailPage` sends Back to Browse and the Browse breadcrumb to `BROWSE_PATH + browseSearch` (validated by `readBrowseSearchState`; empty when opened directly) with `MOD_DETAIL_RETURN_STATE` (`{ fromModDetail: true }`, added to `browse-search.ts`). `ModsPage.handleTabChange('browse')` uses `state.browseSearch` on a detail page opened from browse (and marks the return), otherwise `browse-last-search`, otherwise the default. Tests: ModDetailPage (Back to Browse, breadcrumb href and click, direct open, invalid state), ModsPage (all three precedence branches with the game version), BrowseTab (card and Enter carry the full search). Web: 3,071 passed.
+- Task 4: `use-browse-scroll-restoration.ts` rewritten: sessionStorage `browse-opened-mod` holds `{ search, slug }` (validated on read; the retired `browse-scroll-position`/`{ scrollY, page }` shape reads as nothing), `shouldRestoreOpenedMod` (saved, same search, return), `scrollToModCard` (finds `mod-card-<slug>` by comparing `dataset.testid`, so no selector escaping is needed; `scrollIntoView({ block: 'center' })`), and `useBrowseScrollRestoration`, which decides once per mount without side effects (StrictMode-safe), clears the entry in a mount effect, and scrolls once the results are ready; when the opened card is gone it scrolls to the top. No timers. `BrowseTab` passes `isReturn = fromModDetail || navigationType === 'POP'`, saves the slug in `openModDetail`, and no longer clears a position on search/filter/sort changes (the entry is only written before leaving and cleared on every mount). Tests: the old hook tests rewritten for the slug entry (27), and the BrowseTab 10.7 block rewritten (save on click and Enter, restore on `fromModDetail` and on browser back, no restore after a detour, on a search mismatch, or on a load without an entry). Web: 3,092 passed.
+- Task 5: `web/e2e/mod-browse-state.spec.ts` (7 tests): sets search `food`, side Both, type Code Mod, the installed game version and Most Downloaded through the UI, goes to page 2 and opens a card from the lower half of the grid; for each of Back to Browse, the Browse breadcrumb, the Browse tab and browser back it asserts the exact URL, the search box, the version filter label and chip, the side and type chips, the sort label, page 2, and that the opened card is in the viewport. Also refresh (state kept, no scroll), a detour through Installed (state kept by the Browse tab, no scroll) and a copied link in a new page. Tags are covered by the unit and component tests rather than the E2E (tag names come from the live database). E2E tests are not part of `just check`. Maintainer manual confirmation in a browser is still pending; the automated and scripted browser checks above are the agent's verification.
+- Task 6: `just check` passed: lint, typecheck (pyright 0 errors, 3 pre-existing warnings in API tests; `tsc` clean), API 2,065 passed, web 3,092 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. The 16.0 failure in `tests/test_main.py` (`VSS-b2w`) no longer reproduces on this base.
+- Deviations from ADR-1: none in behavior. Additions within it: a URL write that would not change the URL is skipped (re-selecting the current sort adds no history entry); on a return where the opened card is no longer in the results the page is scrolled to the top explicitly (SPA navigation otherwise keeps the detail page's scroll offset), which is how "the page is left at the top" is honored.
+- Review fixes: `just docker restart` (rebuilt), `bunx playwright test e2e/mod-browse-state.spec.ts --repeat-each=2` 14 passed; `just check` passed (API 2,065, web 3,093 passed and 4 skipped, scripts 190).
+- Bead filed: `VSS-2oz` [UI-070] Mods tabs show Installed as active on a mod detail page, so the Installed tab does nothing there (pre-existing, top-level, not Epic 16 scope).
+
+### File List
+
+- `web/src/lib/browse-search.ts` (new)
+- `web/src/lib/browse-search.test.ts` (new)
+- `web/src/hooks/use-browse-mods.ts`
+- `web/src/hooks/use-browse-mods.test.tsx`
+- `web/src/features/mods/BrowseTab.tsx`
+- `web/src/features/mods/BrowseTab.test.tsx`
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
+- `web/src/features/mods/ModsPage.tsx`
+- `web/src/features/mods/ModsPage.test.tsx`
+- `web/src/hooks/use-browse-scroll-restoration.ts`
+- `web/src/hooks/use-browse-scroll-restoration.test.ts`
+- `web/e2e/mod-browse-state.spec.ts` (new)
+- `_bmad-output/implementation-artifacts/16-1-mod-browser-state-survives-mod-details.md`
+
+## Change Log
+
+- 2026-11-13: Story 16.1 created from Epic 16 ADR-1 (ready-for-dev).
+- 2026-11-13: Implemented: browse state in the URL (`q, sort, side, tags, type, version, page`), links back into browse carry it, Browse tab precedence, return to the opened card; E2E round trip; status review.
+- 2026-11-13: Code review (GLM 5.3 FlashX via OpenCode, Approve). L2 and L4 handled in `66f2581`; L3 and L5 filed as `VSS-nhb` and `VSS-fv7`; L1 no change. Status done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-13
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #148 head
+**Outcome:** Approve → resolved
+
+**Summary:** No high or medium findings. All six acceptance criteria are implemented, the File List matches git exactly, and the suppression scan is clean. On the PR head the reviewer ran the web tests (3,092 passed) and the typecheck (clean). Five low findings: two fixed in this branch, two filed as top-level beads because they predate this story, and one kept as ADR-1 prescribes.
+
+### Action Items
+
+- [x] [Low] L1 second history replay does not re-scroll (ADR-1 decision 4; no change)
+- [x] [Low] L2 active Browse tab click (did not reproduce; test and guard added)
+- [x] [Low] L3 out-of-range `page` not clamped (`VSS-nhb`)
+- [x] [Low] L4 E2E `networkidle` and fixed wait (deterministic waits)
+- [x] [Low] L5 detail error state has no way back to browse (`VSS-fv7`)

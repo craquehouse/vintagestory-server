@@ -1,214 +1,237 @@
 /**
- * Tests for useBrowseScrollRestoration hook.
+ * Tests for returning to the opened mod card in the browser.
  *
- * Story 10.7: Scroll position restoration for browse tab.
+ * Story 10.7: Scroll restoration after viewing mod details.
+ * Story 16.1: Rewritten for Epic 16 ADR-1: the position is the opened card's slug,
+ * restored only on a return from its detail page, instead of `{ scrollY, page }`
+ * restored after a 100 ms timeout on any mount.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import {
+  BROWSE_OPENED_MOD_KEY,
+  saveOpenedMod,
+  readOpenedMod,
+  clearOpenedMod,
+  shouldRestoreOpenedMod,
+  scrollToModCard,
   useBrowseScrollRestoration,
-  getSavedScrollState,
-  BROWSE_SCROLL_KEY,
 } from './use-browse-scroll-restoration';
 
+const scrollIntoView = vi.fn();
+
+function addCard(slug: string): HTMLElement {
+  const card = document.createElement('div');
+  card.setAttribute('data-testid', `mod-card-${slug}`);
+  document.body.appendChild(card);
+  return card;
+}
+
+beforeEach(() => {
+  sessionStorage.clear();
+  document.body.innerHTML = '';
+  scrollIntoView.mockClear();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  window.scrollTo = vi.fn();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('opened mod entry (sessionStorage)', () => {
+  it('uses its own key, not the retired browse-scroll-position', () => {
+    expect(BROWSE_OPENED_MOD_KEY).toBe('browse-opened-mod');
+  });
+
+  it('saves and reads the browse search and slug', () => {
+    saveOpenedMod({ search: '?q=food&version=1.22.7&page=2', slug: 'carryon' });
+    expect(JSON.parse(sessionStorage.getItem(BROWSE_OPENED_MOD_KEY) ?? '')).toEqual({
+      search: '?q=food&version=1.22.7&page=2',
+      slug: 'carryon',
+    });
+    expect(readOpenedMod()).toEqual({ search: '?q=food&version=1.22.7&page=2', slug: 'carryon' });
+  });
+
+  it('reading does not consume the entry', () => {
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    readOpenedMod();
+    expect(readOpenedMod()).toEqual({ search: '', slug: 'carryon' });
+  });
+
+  it('clears the entry', () => {
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    clearOpenedMod();
+    expect(readOpenedMod()).toBeNull();
+  });
+
+  it.each([
+    ['nothing saved', null],
+    ['invalid JSON', '{not json'],
+    ['the retired { scrollY, page } shape', JSON.stringify({ scrollY: 500, page: 2 })],
+    ['a non-string slug', JSON.stringify({ search: '', slug: 5 })],
+    ['an empty slug', JSON.stringify({ search: '', slug: '' })],
+    ['a search that is not a query string', JSON.stringify({ search: '/x', slug: 'a' })],
+  ])('reads null for %s', (_name, stored) => {
+    if (stored !== null) sessionStorage.setItem(BROWSE_OPENED_MOD_KEY, stored);
+    expect(readOpenedMod()).toBeNull();
+  });
+
+  it('survives sessionStorage being unavailable', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    expect(() => saveOpenedMod({ search: '', slug: 'a' })).not.toThrow();
+    expect(() => clearOpenedMod()).not.toThrow();
+    expect(readOpenedMod()).toBeNull();
+  });
+});
+
+describe('shouldRestoreOpenedMod', () => {
+  const saved = { search: '?version=1.22.7&page=2', slug: 'carryon' };
+
+  it('restores on a return to the same browse search', () => {
+    expect(shouldRestoreOpenedMod(saved, '?version=1.22.7&page=2', true)).toBe(true);
+  });
+
+  it('does not restore when the arrival is not a return from the detail page', () => {
+    expect(shouldRestoreOpenedMod(saved, '?version=1.22.7&page=2', false)).toBe(false);
+  });
+
+  it('does not restore for a different browse search', () => {
+    expect(shouldRestoreOpenedMod(saved, '?version=1.22.6&page=2', true)).toBe(false);
+    expect(shouldRestoreOpenedMod(saved, '?version=1.22.7', true)).toBe(false);
+  });
+
+  it('does not restore without a saved entry', () => {
+    expect(shouldRestoreOpenedMod(null, '', true)).toBe(false);
+  });
+});
+
+describe('scrollToModCard', () => {
+  it('centers the card in the viewport', () => {
+    const card = addCard('carryon');
+    expect(scrollToModCard('carryon')).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView.mock.contexts[0]).toBe(card);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+  });
+
+  it('returns false when the card is not rendered', () => {
+    expect(scrollToModCard('missing')).toBe(false);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('handles slugs with selector characters', () => {
+    addCard('odd"slug]');
+    expect(scrollToModCard('odd"slug]')).toBe(true);
+  });
+});
+
 describe('useBrowseScrollRestoration', () => {
-  // Mock sessionStorage
-  const mockSessionStorage = {
-    store: {} as Record<string, string>,
-    getItem: vi.fn((key: string) => mockSessionStorage.store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => {
-      mockSessionStorage.store[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete mockSessionStorage.store[key];
-    }),
-    clear: vi.fn(() => {
-      mockSessionStorage.store = {};
-    }),
-    key: vi.fn(),
-    length: 0,
-  };
+  interface Props {
+    currentSearch: string;
+    isReturn: boolean;
+    renderedSlugs: string[];
+    isReady: boolean;
+  }
 
-  // Mock window.scrollTo and scrollY
-  const originalScrollTo = window.scrollTo;
-  const originalScrollY = Object.getOwnPropertyDescriptor(window, 'scrollY');
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockSessionStorage.store = {};
-
-    // Setup sessionStorage mock
-    Object.defineProperty(window, 'sessionStorage', {
-      value: mockSessionStorage,
-      writable: true,
+  function renderRestoration(initial: Props) {
+    return renderHook((props: Props) => useBrowseScrollRestoration(props), {
+      initialProps: initial,
     });
+  }
 
-    // Setup scroll mocks
-    window.scrollTo = vi.fn();
-    Object.defineProperty(window, 'scrollY', {
-      value: 0,
-      writable: true,
-      configurable: true,
+  it('scrolls to the opened card once the results containing it are ready, then stops', () => {
+    saveOpenedMod({ search: '?version=1.22.7&page=2', slug: 'carryon' });
+    const { rerender } = renderRestoration({
+      currentSearch: '?version=1.22.7&page=2',
+      isReturn: true,
+      renderedSlugs: [],
+      isReady: false,
     });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    addCard('carryon');
+    rerender({
+      currentSearch: '?version=1.22.7&page=2',
+      isReturn: true,
+      renderedSlugs: ['other', 'carryon'],
+      isReady: true,
+    });
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+    // Later renders (a refetch, a page change) do not scroll again
+    rerender({
+      currentSearch: '?version=1.22.7&page=3',
+      isReturn: true,
+      renderedSlugs: ['carryon'],
+      isReady: true,
+    });
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
-  afterEach(() => {
-    window.scrollTo = originalScrollTo;
-    if (originalScrollY) {
-      Object.defineProperty(window, 'scrollY', originalScrollY);
-    }
+  it('leaves the page at the top when the opened card is no longer in the results', () => {
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['other'], isReady: true });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
   });
 
-  describe('savePosition', () => {
-    it('saves current scroll position and page to sessionStorage', () => {
-      Object.defineProperty(window, 'scrollY', { value: 500, configurable: true });
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      act(() => {
-        result.current.savePosition(3);
-      });
-
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        BROWSE_SCROLL_KEY,
-        JSON.stringify({ scrollY: 500, page: 3 })
-      );
-    });
-
-    it('saves page 1 when no page specified', () => {
-      Object.defineProperty(window, 'scrollY', { value: 200, configurable: true });
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      act(() => {
-        result.current.savePosition();
-      });
-
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        BROWSE_SCROLL_KEY,
-        JSON.stringify({ scrollY: 200, page: 1 })
-      );
-    });
+  it.each([
+    ['a mount that is not a return (detour)', { currentSearch: '', isReturn: false }],
+    ['a different browse search', { currentSearch: '?q=other', isReturn: true }],
+  ])('does not scroll for %s', (_name, props) => {
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    addCard('carryon');
+    renderRestoration({ ...props, renderedSlugs: ['carryon'], isReady: true });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
-  describe('restorePosition', () => {
-    it('returns saved position and page from sessionStorage', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = JSON.stringify({
-        scrollY: 750,
-        page: 4,
-      });
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      const restored = result.current.restorePosition();
-
-      expect(restored).toEqual({ scrollY: 750, page: 4 });
-    });
-
-    it('returns null when no saved position exists', () => {
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      const restored = result.current.restorePosition();
-
-      expect(restored).toBeNull();
-    });
-
-    it('returns null when sessionStorage contains invalid JSON', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = 'invalid json';
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      const restored = result.current.restorePosition();
-
-      expect(restored).toBeNull();
-    });
-
-    it('clears saved position after restoring', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = JSON.stringify({
-        scrollY: 300,
-        page: 2,
-      });
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      result.current.restorePosition();
-
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(BROWSE_SCROLL_KEY);
-    });
+  it('does nothing on a mount without a saved entry (refresh or first load)', () => {
+    addCard('carryon');
+    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['carryon'], isReady: true });
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(window.scrollTo).not.toHaveBeenCalled();
   });
 
-  describe('clearPosition', () => {
-    it('removes saved position from sessionStorage', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = JSON.stringify({
-        scrollY: 100,
-        page: 1,
-      });
-
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      act(() => {
-        result.current.clearPosition();
-      });
-
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(BROWSE_SCROLL_KEY);
-    });
+  it.each([
+    ['restored', { currentSearch: '', isReturn: true }],
+    ['not a return', { currentSearch: '', isReturn: false }],
+    ['a different search', { currentSearch: '?q=x', isReturn: true }],
+  ])('consumes or clears the entry on every mount (%s)', (_name, props) => {
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    renderRestoration({ ...props, renderedSlugs: [], isReady: false });
+    expect(readOpenedMod()).toBeNull();
   });
 
-  describe('scrollToPosition', () => {
-    it('scrolls window to saved position', () => {
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      act(() => {
-        result.current.scrollToPosition(600);
-      });
-
-      expect(window.scrollTo).toHaveBeenCalledWith({
-        top: 600,
-        behavior: 'instant',
-      });
+  it('saveOpenedMod saves the current browse search with the slug', () => {
+    const { result } = renderRestoration({
+      currentSearch: '?q=food&version=1.22.7',
+      isReturn: false,
+      renderedSlugs: [],
+      isReady: false,
     });
-
-    it('uses instant behavior by default', () => {
-      const { result } = renderHook(() => useBrowseScrollRestoration());
-
-      act(() => {
-        result.current.scrollToPosition(400);
-      });
-
-      expect(window.scrollTo).toHaveBeenCalledWith({
-        top: 400,
-        behavior: 'instant',
-      });
+    act(() => {
+      result.current.saveOpenedMod('carryon');
     });
+    expect(readOpenedMod()).toEqual({ search: '?q=food&version=1.22.7', slug: 'carryon' });
   });
 
-  describe('getSavedScrollState', () => {
-    it('returns saved state without consuming it', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = JSON.stringify({
-        scrollY: 500,
-        page: 3,
-      });
-
-      const state = getSavedScrollState();
-
-      expect(state).toEqual({ scrollY: 500, page: 3 });
-      // Should NOT have removed the item
-      expect(mockSessionStorage.removeItem).not.toHaveBeenCalled();
-    });
-
-    it('returns null when no saved state exists', () => {
-      const state = getSavedScrollState();
-
-      expect(state).toBeNull();
-    });
-
-    it('returns null for invalid JSON', () => {
-      mockSessionStorage.store[BROWSE_SCROLL_KEY] = 'invalid json';
-
-      const state = getSavedScrollState();
-
-      expect(state).toBeNull();
-    });
+  it('does not use timers', () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+    saveOpenedMod({ search: '', slug: 'carryon' });
+    addCard('carryon');
+    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['carryon'], isReady: true });
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
   });
 });
