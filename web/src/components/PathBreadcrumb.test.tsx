@@ -111,6 +111,14 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       expect(screen.getByTestId('path-breadcrumb-current')).toHaveClass('truncate');
     });
 
+    it('gives the root and ancestor buttons a 44px touch target on phones only', () => {
+      render(<PathBreadcrumb path="Logs/Archive" rootLabel="serverdata" onNavigate={vi.fn()} />);
+
+      for (const id of ['path-breadcrumb-root', 'path-breadcrumb-segment-0']) {
+        expect(screen.getByTestId(id)).toHaveClass('min-h-11', 'px-1', 'md:min-h-0', 'md:px-0');
+      }
+    });
+
     it('renders special characters as text', () => {
       render(
         <PathBreadcrumb

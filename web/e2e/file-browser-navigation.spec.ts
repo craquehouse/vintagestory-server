@@ -170,5 +170,23 @@ test.describe('Story 16.7: file browser breadcrumbs', () => {
     }
 
     expect(await documentOverflowX(page)).toBe(overflowAtRoot);
+
+    // The root and ancestor buttons are 44px touch targets on phones
+    const buttons = await breadcrumb(page).getByRole('button').all();
+    expect(buttons).toHaveLength(nestedPath.length);
+    for (const button of buttons) {
+      const b = await button.boundingBox();
+      if (!b) throw new Error('No box for a breadcrumb button');
+      expect(b.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('keeps compact segments on desktop', async ({ page }) => {
+    await openFileManager(page, 1280);
+    await openPath(page, nestedPath);
+
+    const b = await page.getByTestId('path-breadcrumb-root').boundingBox();
+    if (!b) throw new Error('No box for the breadcrumb root');
+    expect(b.height).toBeLessThan(44);
   });
 });

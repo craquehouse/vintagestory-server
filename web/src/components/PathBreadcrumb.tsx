@@ -24,7 +24,9 @@ export interface PathBreadcrumbProps {
   className?: string;
 }
 
+// Phones get a 44px-tall touch target (UX spec); from md the compact desktop look (Story 16.7 review)
 const segmentButtonClass = cn(
+  'min-h-11 px-1 md:min-h-0 md:px-0',
   'max-w-full truncate rounded-sm hover:text-foreground transition-colors',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 );
