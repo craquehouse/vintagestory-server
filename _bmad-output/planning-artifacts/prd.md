@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-13'
 updates:
   - date: '2026-11-13'
+    description: 'Added FR175-FR176 for Epic 16 Story 16.8 (Name sort, empty settings)'
+  - date: '2026-11-13'
     description: 'Added FR167-FR174 for Epic 16 (UI Polish)'
   - date: '2026-11-10'
     description: 'Added FR152-FR166 and NFR17-NFR18 for Epic 15 (Release Engineering)'
@@ -656,3 +658,8 @@ If trivial to implement:
 - FR172: On narrow screens, installed mods are shown as cards with version, update status and Update action, enable toggle and remove action, without horizontal scrolling
 - FR173: Game server settings use the available width on desktop screens instead of full-width stacked cards
 - FR174: The file browser shows the current path as clickable segments, each opening that directory
+
+#### Fixes Found During the Epic (added 2026-11-13, Story 16.8)
+
+- FR175: The mod browser's Name (A-Z) sort lists mods alphabetically by name, ignoring leading spaces, letter case and accents, sorted across all matching mods by the server and paged like the other sorts, so page numbers, search and filters work with it
+- FR176: Game server settings with no value (Description, Password, IP Address) are shown as empty fields, never as the text "null"; clearing one of them saves it as no value (null), never as the text "null" or "None"; the Password field is masked and can be revealed on request

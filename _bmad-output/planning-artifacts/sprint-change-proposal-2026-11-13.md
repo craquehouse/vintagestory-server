@@ -378,3 +378,12 @@ So that **I can move up several levels in one click**.
 - Opening a mod's detail page and returning restores search, filters, sort, page and scroll, with Back to Browse and with browser back
 - Each in-scope beads issue is closed with an AAR by its story
 - `just check` and CI pass throughout
+
+## Addendum (2026-11-13)
+
+After Stories 16.0-16.7 were done, the maintainer added **Story 16.8: Name Sort and Empty Settings** to Epic 16 for two bugs found during the epic:
+
+- `VSS-stm.1` [UI-067]: the Name (A-Z) sort requests 1,000 mods per page, the browse API allows at most 100, and the grid shows no mods. The API already sorts by name server-side, so the web UI uses it and pages normally.
+- `VSS-7ed` [UI-069]: game settings with no value show the text "null" and can save it, and Password is shown in clear text.
+
+New requirements FR175-FR176 (`prd.md`); story in `epics.md`; sprint key `16-8-name-sort-and-empty-settings` added with `just sprint add-story`. The approved proposal above is unchanged.
