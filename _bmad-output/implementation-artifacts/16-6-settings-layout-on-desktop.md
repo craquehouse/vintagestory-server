@@ -49,10 +49,10 @@ so that **I can see more settings without scrolling past half-empty cards**.
   - [x] 3.1: `GameConfigPanel`: inner wrapper `mx-auto max-w-[1280px] space-y-4` (`data-testid="game-config-layout"`); Server Info rendered with `contentClassName="xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0"`; then `div.grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) holding `div.space-y-4` `game-config-column-left` (Player Settings, Network) and `game-config-column-right` (World Settings). The loading skeleton uses the same max width. `renderGroup` takes the optional content class; no other behavior changes. Update the doc comment
   - [x] 3.2: Tests in `GameConfigPanel.test.tsx` ("Story 16.6: desktop layout" block): layout wrapper classes; Server Info outside the columns with the two-column content classes and its fields in DOM order Name, Description, Welcome, Password; left column contains Player Settings then Network, right column World Settings; columns container classes; collapsing World leaves Player and Network in the left column and their fields rendered, collapsing Network leaves World's fields rendered; Max Players and Port inputs carry `max-w-xs`, Server Name does not. Existing tests pass unchanged
 
-- [ ] Task 4: Browser verification against the Docker dev stack + E2E spec (AC: 1-5)
-  - [ ] 4.1: Before measurements: `16-6-browser/settings_layout.mjs` (adapted from `16-0-spike/settings_shots.mjs`; masks the server name and password) at 390, 1024, 1280, 1440 and 1920 on the pre-change build, output `settings_layout.before.json`
-  - [ ] 4.2: `web/e2e/settings-desktop-layout.spec.ts`: at 1440x900 and 1920x1080 the panel is at most 1280px and centered in the content area; Server Info spans both columns and its fields sit in two columns; Player and Network share a left edge, World is to their right and starts at Player's top; collapsing World does not move or resize Player or Network, collapsing Network does not move or resize World; number inputs at most 320px wide, Server Name wider. At 1024x900 and 390x844 one column (all cards share a left edge and width) and no document overflow. Reads only; collapse is UI state
-  - [ ] 4.3: `just docker restart` (rebuild from this branch); run the spec; rerun the measurement script for `settings_layout.after.json`; compare card boxes, input widths and page height before/after in the Dev Agent Record; browser console clean. Masked screenshots stay in the session scratchpad
+- [x] Task 4: Browser verification against the Docker dev stack + E2E spec (AC: 1-5)
+  - [x] 4.1: Before measurements: `16-6-browser/settings_layout.mjs` (adapted from `16-0-spike/settings_shots.mjs`; masks the server name and password) at 390, 1024, 1280, 1440 and 1920 on the pre-change build, output `settings_layout.before.json`
+  - [x] 4.2: `web/e2e/settings-desktop-layout.spec.ts`: at 1440x900 and 1920x1080 the panel is at most 1280px and centered in the content area; Server Info spans both columns and its fields sit in two columns; Player and Network share a left edge, World is to their right and starts at Player's top; collapsing World does not move or resize Player or Network, collapsing Network does not move or resize World; number inputs at most 320px wide, Server Name wider. At 1024x900 and 390x844 one column (all cards share a left edge and width) and no document overflow. Reads only; collapse is UI state
+  - [x] 4.3: `just docker restart` (rebuild from this branch); run the spec; rerun the measurement script for `settings_layout.after.json`; compare card boxes, input widths and page height before/after in the Dev Agent Record; browser console clean. Masked screenshots stay in the session scratchpad
 
 - [ ] Task 5: Quality gate and review hand-off (AC: all)
   - [ ] 5.1: `just check` passes
@@ -157,12 +157,27 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 1: red run, 3 of the 4 new width tests failed (the text-input test already passed); then 30 passed; `tsc` clean.
 - Task 2: red run, the `contentClassName` test failed; then 25 passed; `tsc` clean.
 - Task 3: red run, 6 of the 7 new layout tests failed (the number-width test already passed after Task 1); then 22 passed. Full web suite 3,098 passed, 4 skipped (pre-existing `it.skip`s); `tsc` clean.
+- Task 4: before measurements taken on the running 16.5 build (the settings components are unchanged since 16.0) before Task 1. `just docker restart` rebuilt the stack from this branch (game 1.22.7, server stopped). `bunx playwright test e2e/settings-desktop-layout.spec.ts` (admin key from `.env`): 5 passed on the first run; its two-column, collapse and number-width assertions contradict the before measurements (one 1,024px-wide column at 1280, number inputs 974-1,614px), so they would fail on the old build. After measurements (`settings_layout.after.json`), read only, no setting changed:
+
+  | Viewport | Panel (x, width) | Cards (width) | Page height before → after | Number inputs before → after | Text input (Server Name) after |
+  |---|---|---|---|---|---|
+  | 390 | 32, 326 | 326, one column | 1,952 → 1,952 | 276 → 276 | 276 |
+  | 1024 | 208, 768 | 768, one column | 1,984 → 1,984 | 718 → 320 | 718 |
+  | 1280 | 208, 1,024 | Server Info 1,024; columns 504 + 504 | 1,984 → 1,258 | 974 → 320 | 479 |
+  | 1440 | 208, 1,184 | Server Info 1,184; columns 584 + 584 | 1,984 → 1,258 | 1,134 → 320 | 559 |
+  | 1920 | 400, 1,280 (centered in 1,664) | Server Info 1,280; columns 632 + 632 | 1,984 → 1,258 | 1,614 → 320 | 607 |
+
+  - From 1280: Server Info 294px tall (was 486); Player Settings at y 462 and World Settings at y 462 in the right column; Network at y 756 below Player. Left column 278 + 16 + 454 = 748px, right 518px; no card stretched (heights equal to the one-column heights).
+  - Collapse at 1280, 1440 and 1920: World collapsed (518 → 94) left Player and Network at the same x, y, width and height; Network collapsed (454 → 94) left World and Player unchanged. Before, collapsing World moved Network up 424px.
+  - Below `xl` (390, 1024) one column, Network now above World (the stack order); no document overflow at any width. Browser console: no errors or warnings at 390, 1024, 1280 and 1920. Masked screenshots (server name, password) are in the session scratchpad, not committed.
+  - At 1920 the page title row still spans the full content width while the panel is centered (title at x 208, panel from 400): bead `VSS-143`.
 
 ### Completion Notes List
 
 - Task 1: `SettingField` gives `int`/`float` inputs `max-w-xs` (320px) at every width, merged with the error classes; text inputs keep `w-full`. Only game settings pass number types.
 - Task 2: `SettingGroup` takes an optional `contentClassName`, merged with the content's default `space-y-4`.
 - Task 3: `GameConfigPanel` wraps the groups in `mx-auto max-w-[1280px]` (`game-config-layout`; the loading skeleton too); Server Info passes `xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0` to its content; the other groups sit in `grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) with a left stack (Player Settings, Network) and a right stack (World Settings). Below `xl` this is one column in the order Server Info, Player Settings, Network, World Settings.
+- Task 4: `web/e2e/settings-desktop-layout.spec.ts` measures the layout on the running stack at 1440, 1920, 1024 and 390 (panel width and centering, Server Info span and field columns, the two stacks, collapse independence, number input widths, no overflow); `16-6-browser/settings_layout.mjs` records before/after boxes.
 
 ### File List
 
@@ -175,6 +190,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `_bmad-output/implementation-artifacts/16-6-settings-layout-on-desktop.md`
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs` (new)
 - `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.before.json` (new)
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.after.json` (new)
+- `web/e2e/settings-desktop-layout.spec.ts` (new)
 
 ## Change Log
 

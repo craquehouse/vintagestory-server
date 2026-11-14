@@ -1,0 +1,447 @@
+[
+  {
+    "width": 390,
+    "panel": {
+      "x": 32,
+      "width": 326
+    },
+    "content": {
+      "x": 32,
+      "width": 326
+    },
+    "pageHeight": 1952,
+    "documentOverflowX": 0,
+    "inputs": {
+      "ServerName": 276,
+      "ServerDescription": 276,
+      "WelcomeMessage": 276,
+      "Password": 276,
+      "MaxClients": 276,
+      "MaxChunkRadius": 276,
+      "Port": 276,
+      "Ip": 276
+    },
+    "cards": [
+      {
+        "title": "Server Info",
+        "x": 32,
+        "y": 136,
+        "width": 326,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 32,
+        "y": 638,
+        "width": 326,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 32,
+        "y": 932,
+        "width": 326,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 32,
+        "y": 1466,
+        "width": 326,
+        "height": 454
+      }
+    ]
+  },
+  {
+    "width": 1024,
+    "panel": {
+      "x": 208,
+      "width": 768
+    },
+    "content": {
+      "x": 208,
+      "width": 768
+    },
+    "pageHeight": 1984,
+    "documentOverflowX": 0,
+    "inputs": {
+      "ServerName": 718,
+      "ServerDescription": 718,
+      "WelcomeMessage": 718,
+      "Password": 718,
+      "MaxClients": 718,
+      "MaxChunkRadius": 718,
+      "Port": 718,
+      "Ip": 718
+    },
+    "cards": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 768,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 768,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 768,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 768,
+        "height": 454
+      }
+    ]
+  },
+  {
+    "width": 1280,
+    "panel": {
+      "x": 208,
+      "width": 1024
+    },
+    "content": {
+      "x": 208,
+      "width": 1024
+    },
+    "pageHeight": 1984,
+    "documentOverflowX": 0,
+    "inputs": {
+      "ServerName": 974,
+      "ServerDescription": 974,
+      "WelcomeMessage": 974,
+      "Password": 974,
+      "MaxClients": 974,
+      "MaxChunkRadius": 974,
+      "Port": 974,
+      "Ip": 974
+    },
+    "cards": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1024,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1024,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1024,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1024,
+        "height": 454
+      }
+    ],
+    "worldCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1024,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1024,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1024,
+        "height": 94
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1058,
+        "width": 1024,
+        "height": 454
+      }
+    ],
+    "networkCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1024,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1024,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1024,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1024,
+        "height": 94
+      }
+    ]
+  },
+  {
+    "width": 1440,
+    "panel": {
+      "x": 208,
+      "width": 1184
+    },
+    "content": {
+      "x": 208,
+      "width": 1184
+    },
+    "pageHeight": 1984,
+    "documentOverflowX": 0,
+    "inputs": {
+      "ServerName": 1134,
+      "ServerDescription": 1134,
+      "WelcomeMessage": 1134,
+      "Password": 1134,
+      "MaxClients": 1134,
+      "MaxChunkRadius": 1134,
+      "Port": 1134,
+      "Ip": 1134
+    },
+    "cards": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1184,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1184,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1184,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1184,
+        "height": 454
+      }
+    ],
+    "worldCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1184,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1184,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1184,
+        "height": 94
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1058,
+        "width": 1184,
+        "height": 454
+      }
+    ],
+    "networkCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1184,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1184,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1184,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1184,
+        "height": 94
+      }
+    ]
+  },
+  {
+    "width": 1920,
+    "panel": {
+      "x": 208,
+      "width": 1664
+    },
+    "content": {
+      "x": 208,
+      "width": 1664
+    },
+    "pageHeight": 1984,
+    "documentOverflowX": 0,
+    "inputs": {
+      "ServerName": 1614,
+      "ServerDescription": 1614,
+      "WelcomeMessage": 1614,
+      "Password": 1614,
+      "MaxClients": 1614,
+      "MaxChunkRadius": 1614,
+      "Port": 1614,
+      "Ip": 1614
+    },
+    "cards": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1664,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1664,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1664,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1664,
+        "height": 454
+      }
+    ],
+    "worldCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1664,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1664,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1664,
+        "height": 94
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1058,
+        "width": 1664,
+        "height": 454
+      }
+    ],
+    "networkCollapsed": [
+      {
+        "title": "Server Info",
+        "x": 208,
+        "y": 152,
+        "width": 1664,
+        "height": 486
+      },
+      {
+        "title": "Player Settings",
+        "x": 208,
+        "y": 654,
+        "width": 1664,
+        "height": 278
+      },
+      {
+        "title": "World Settings",
+        "x": 208,
+        "y": 948,
+        "width": 1664,
+        "height": 518
+      },
+      {
+        "title": "Network",
+        "x": 208,
+        "y": 1482,
+        "width": 1664,
+        "height": 94
+      }
+    ]
+  }
+]
