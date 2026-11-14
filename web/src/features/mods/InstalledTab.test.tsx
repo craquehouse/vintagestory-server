@@ -699,5 +699,57 @@ describe('InstalledTab', () => {
       expect(screen.queryByTestId('mod-updates-update-all')).not.toBeInTheDocument();
     });
   });
-});
 
+  describe('toolbar on phones (Story 16.5)', () => {
+    function mockOffer() {
+      globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+        const body = url.includes('/mods/updates')
+          ? {
+              status: 'ok',
+              data: {
+                game_version: '1.22.7',
+                checked_at: '2026-11-09T00:00:00Z',
+                update_count: 1,
+                mods: [
+                  {
+                    slug: 'smithingplus',
+                    name: 'Smithing Plus',
+                    installed_version: '1.5.0',
+                    status: 'update_available',
+                    offered_version: '1.6.0',
+                    offered_compatibility: 'compatible',
+                    offered_prerelease: false,
+                    reason: null,
+                    checked_at: null,
+                    error: null,
+                  },
+                ],
+              },
+            }
+          : url.includes('/mods')
+            ? mockModsResponse
+            : mockServerStatusResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+    }
+
+    it('wraps the last-checked text and buttons instead of widening the page', async () => {
+      mockOffer();
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const updateAll = await screen.findByTestId('mod-updates-update-all');
+      const group = updateAll.parentElement!;
+      expect(group).toHaveClass('flex-wrap');
+      expect(group).toContainElement(screen.getByTestId('mod-updates-check'));
+      expect(group).toContainElement(screen.getByTestId('mod-updates-last-checked'));
+    });
+
+    it('makes Update all and Check for updates 44px tall below md', async () => {
+      mockOffer();
+      render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      expect(await screen.findByTestId('mod-updates-update-all')).toHaveClass('max-md:h-11');
+      expect(screen.getByTestId('mod-updates-check')).toHaveClass('max-md:h-11');
+    });
+  });
+});

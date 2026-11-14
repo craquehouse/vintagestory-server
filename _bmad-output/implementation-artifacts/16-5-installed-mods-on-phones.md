@@ -56,9 +56,9 @@ so that **I can update, enable and remove mods without scrolling sideways**.
   - [x] 3.2: `ModTable` picks the layout with `useMediaQuery(MD_UP_QUERY)`: the table at `md` and up, otherwise `<ul data-testid="installed-mod-cards" aria-label="Installed mods">` with one card per `table.getRowModel().rows` (same sorted row model, so the order always matches the table), passing the existing `handleToggle`, `handleUpdate`, `handleRemoveClick`, `isTogglingMod`, `isChangingVersion` and `gameVersion`. Loading, empty state and both dialogs stay shared and outside the switch. Update the component doc comment
   - [x] 3.3: Tests in `ModTable.test.tsx` ("Story 16.5: cards below md" block, `setViewportWidth(390)`): cards render and `mod-table` does not; each card shows name link, slug, version, side, update status; the Update action opens the same confirmation flow (same request as the table test); toggle calls enable/disable and shows the spinner; remove opens the shared dialog and removes; incompatible card shows badge, "Supports up to X" and the message text, compatible card no message; card order follows the sort preference (name asc default, a stored `version desc` preference); touch-size classes present on toggle label, Update and remove; loading and empty states at 390; crossing the breakpoint with `setViewportWidth` switches table ↔ cards. At the default width the existing table tests are untouched
 
-- [ ] Task 4: Installed tab toolbar fits a phone + tests (AC: 1, 4, 5)
-  - [ ] 4.1: `InstalledTab`: the button group wraps (`flex-wrap`) so "Last checked …", "Update all (N)" and "Check for updates" never push the page wider than the screen (today at 390px with "Update all" shown the document is 413px wide); below `md` the two buttons are 44px tall (`max-md:h-11`). At `md` and up the toolbar looks as today
-  - [ ] 4.2: Tests in `InstalledTab.test.tsx`: the group has `flex-wrap`; both buttons carry the touch-height class; existing toolbar tests pass
+- [x] Task 4: Installed tab toolbar fits a phone + tests (AC: 1, 4, 5)
+  - [x] 4.1: `InstalledTab`: the button group wraps (`flex-wrap`) so "Last checked …", "Update all (N)" and "Check for updates" never push the page wider than the screen (today at 390px with "Update all" shown the document is 413px wide); below `md` the two buttons are 44px tall (`max-md:h-11`). At `md` and up the toolbar looks as today
+  - [x] 4.2: Tests in `InstalledTab.test.tsx`: the group has `flex-wrap`; both buttons carry the touch-height class; existing toolbar tests pass
 
 - [ ] Task 5: Browser verification against the Docker dev stack + E2E spec (AC: 1-6)
   - [ ] 5.1: `web/e2e/installed-mods-phone.spec.ts` (Story 16.5): replaces `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates` with `page.route` (like `installed-mod-any-modid.spec.ts`), so it installs nothing: a mod with a long name and an offered update, an incompatible mod, a disabled mod. At 390x844: cards visible, no `mod-table`, `document.documentElement.scrollWidth <= clientWidth`, no element under `main` with `scrollWidth > clientWidth` and `overflow-x` auto/scroll, toggle label, Update, remove, "Update all" and "Check for updates" bounding boxes at least 44x44, clicking Update opens the confirmation dialog or calls the version endpoint (route it, never change data), clicking remove opens the dialog and Cancel closes it. At 1440x900: `mod-table` visible with its columns, no cards. Resize 1440 → 390 switches to cards
@@ -180,6 +180,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/components/ModTable.test.tsx`
 - `web/src/components/ModUpdateCell.tsx`
 - `web/src/components/ModUpdateCell.test.tsx`
+- `web/src/features/mods/InstalledTab.tsx`
+- `web/src/features/mods/InstalledTab.test.tsx`
 - `_bmad-output/implementation-artifacts/16-5-installed-mods-on-phones.md`
 ## Change Log
 
