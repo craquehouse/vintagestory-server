@@ -295,6 +295,84 @@ describe('ModDetailPage', () => {
     });
   });
 
+  describe('compatibility of the evaluated release (Story 16.3)', () => {
+    function withCompatibility(compatibility: Record<string, unknown>, latestVersion = '1.8.3') {
+      return {
+        ...mockModDetailResponse,
+        data: {
+          ...mockModDetailResponse.data,
+          latest_version: latestVersion,
+          compatibility: {
+            game_version: '1.22.7',
+            mod_version: '1.8.3',
+            latest_supported_game_version: null,
+            ...compatibility,
+          },
+        },
+      };
+    }
+
+    async function renderWith(body: unknown) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(body),
+      });
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+      await screen.findByTestId('mod-detail-page');
+    }
+
+    it('shows the incompatible message with the last supported version', async () => {
+      await renderWith(
+        withCompatibility({
+          status: 'incompatible',
+          message: 'Last supported game version: 1.21.1.',
+          latest_supported_game_version: '1.21.1',
+        })
+      );
+
+      expect(screen.getByTestId('mod-detail-compatibility-message')).toHaveTextContent(
+        'Last supported game version: 1.21.1.'
+      );
+    });
+
+    it('shows the not verified message', async () => {
+      await renderWith(
+        withCompatibility({
+          status: 'not_verified',
+          message:
+            'Mod not explicitly verified for version 1.22.7. May still work. Last tagged for 1.22.6.',
+          latest_supported_game_version: '1.22.6',
+        })
+      );
+
+      expect(screen.getByTestId('mod-detail-compatibility-message')).toHaveTextContent(
+        'Last tagged for 1.22.6.'
+      );
+    });
+
+    it('shows no message for a compatible mod', async () => {
+      await renderWith(withCompatibility({ status: 'compatible', message: null }));
+
+      expect(screen.queryByTestId('mod-detail-compatibility-message')).not.toBeInTheDocument();
+    });
+
+    it('header version is the release the badge describes, not the entry newest', async () => {
+      // e.g. an installed mod ID whose newest release is older than the entry's newest
+      await renderWith(
+        withCompatibility(
+          {
+            status: 'incompatible',
+            mod_version: '1.8.2',
+            message: 'Last supported game version: 1.21.1.',
+          },
+          '1.8.3'
+        )
+      );
+
+      expect(screen.getByTestId('mod-detail-stats')).toHaveTextContent('Version: 1.8.2');
+    });
+  });
+
   describe('description section (Subtask 2.3)', () => {
     it('renders sanitized HTML description', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
