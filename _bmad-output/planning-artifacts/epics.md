@@ -372,7 +372,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR168 | Epic 16 | Page and scroll restored with browse state |
 | FR169 | Epic 16 | Installed mod recognized by any mod ID |
 | FR170 | Epic 16 | Latest supported game version for incompatible mods |
-| FR171 | Epic 16 | Formatted description in lookup preview |
+| FR171 | Epic 16 | Withdrawn (lookup preview removed in VSS-195); Story 16.4 delivers the shared description sanitizer and safe links |
 | FR172 | Epic 16 | Installed mods as cards on phones |
 | FR173 | Epic 16 | Settings use desktop width |
 | FR174 | Epic 16 | File browser breadcrumbs |
@@ -3935,7 +3935,7 @@ So that **I can deploy and upgrade predictably**.
 - The mod browser keeps search, filters and sort in component state, so opening a mod's detail page and coming back resets them to newest, descending, no search; page and scroll restoration from Story 10.7 is cleared whenever they change
 - The mod detail page matches an installed mod only by the browse slug, so an installed mod whose ID is not the entry's first mod ID shows the install flow
 - An unverified or incompatible mod gives no hint of which game version it does support
-- The mod lookup preview card prints the mod description's HTML as plain text
+- Mod description links open in the same tab and leave the app, and the description is sanitized inline on the detail page (the lookup preview card that printed it as plain text has not been mounted since VSS-195)
 - The Installed mods table scrolls horizontally on phones
 - Game server settings cards stretch across the full width on desktop
 - The file browser has only a Back button
@@ -3944,7 +3944,7 @@ So that **I can deploy and upgrade predictably**.
 
 - Returning from a mod's detail page restores the browser exactly: search, filters, sort, page and scroll position
 - Mod information is accurate: installed mods are recognized by any mod ID, and incompatible mods name the game version they last supported
-- The lookup preview card, Installed mods and settings pages read well at every screen size, and the file browser path is clickable
+- Mod descriptions are sanitized in one place with links that open safely in a new tab; Installed mods and settings pages read well at every screen size, and the file browser path is clickable
 
 ---
 
@@ -4063,24 +4063,34 @@ So that **I can judge how far behind it is before installing it**.
 
 ---
 
-### Story 16.4: Formatted Description in the Mod Lookup Preview
+### Story 16.4: Shared Description Sanitizer and Safe Links
+
+*(Rescoped 2026-11-13: the mod lookup preview this story first targeted has not been mounted since VSS-195 (2026-01-19), so FR171 is withdrawn and the dead component is removed. Sprint key `16-4-formatted-description-in-mod-lookup-preview` is unchanged.)*
 
 As an **administrator**,
-I want **the mod lookup preview to show the description as formatted text**,
-So that **I can read it instead of raw HTML tags**.
+I want **mod descriptions to be sanitized in one place, with their links opening safely in a new tab**,
+So that **a mod author's HTML cannot run code, restyle the app or navigate me away from it**.
 
 **Acceptance Criteria:**
 
-**Given** I look up a mod by slug or URL
-**When** the preview card shows its description
-**Then** the description is rendered from sanitized HTML, as on the mod detail page, and kept to a short preview
+**Given** a mod description with scripts, event handler attributes, `javascript:` URLs or `<style>` elements
+**When** the mod detail page renders it
+**Then** none of them reach the DOM, and its text, formatting and images are kept
 
-*(Covers FR171)*
+**Given** a link in a mod description
+**When** the detail page renders it
+**Then** it opens in a new tab with `rel="noopener noreferrer"`
+
+**Given** the web UI
+**When** any code renders mod description HTML
+**Then** it uses one shared sanitizing module with one DOMPurify configuration, and the unused `ModLookupInput` preview and the code only it used are removed
+
+*(FR171 withdrawn; `VSS-4ll`)*
 
 **Tasks:**
-- [ ] Render the preview description with DOMPurify, sharing the detail page's sanitizing (`VSS-4ll`)
-- [ ] Clamp the preview length
-- [ ] Tests, including that scripts and event handlers are stripped
+- [x] Shared DOMPurify sanitizer with safe links and `<style>` stripping + tests
+- [x] Detail page uses it + tests
+- [x] Remove the unused lookup preview and its orphaned code
 
 ---
 

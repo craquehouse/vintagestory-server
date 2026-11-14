@@ -649,7 +649,7 @@ If trivial to implement:
 - FR168: Returning to the mod browser restores the page and scroll position that went with that search, filters and sort
 - FR169: The mod detail page recognizes an installed mod when any mod ID in the database entry matches it
 - FR170: For a mod that is not verified or is incompatible with the installed game version, the UI shows the most recent game version the mod supports
-- FR171: The mod lookup preview shows the mod description as formatted, sanitized HTML instead of raw markup
+- FR171: The mod lookup preview shows the mod description as formatted, sanitized HTML instead of raw markup (withdrawn 2026-11-13: the lookup preview was removed in VSS-195; Story 16.4 delivers the shared sanitizer and safe description links instead)
 
 #### Layout and Navigation
 

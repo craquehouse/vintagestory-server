@@ -414,6 +414,49 @@ describe('ModDetailPage', () => {
       expect(description.innerHTML).toContain('Safe text');
     });
 
+    it('opens description links in a new tab with rel="noopener noreferrer" (Story 16.4)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              description:
+                '<p>Requires <a href="https://mods.vintagestory.at/commonlib" rel="noopener">CommonLib</a></p>',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      const link = description.querySelector('a');
+      expect(link).toHaveAttribute('href', 'https://mods.vintagestory.at/commonlib');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('removes style elements that would restyle the app (Story 16.4)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              description: '<p>Safe text</p><style>body { display: none }</style>',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      expect(description.querySelector('style')).toBeNull();
+      expect(description).toHaveTextContent('Safe text');
+    });
+
     it('shows no description message when null', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,

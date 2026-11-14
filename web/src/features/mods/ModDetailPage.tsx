@@ -32,7 +32,6 @@
 
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router';
-import DOMPurify from 'dompurify';
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -70,6 +69,7 @@ import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
 import { findInstalledModForEntry } from '@/lib/mod-ids';
+import { sanitizeModDescription } from '@/lib/mod-description';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -503,9 +503,9 @@ export function ModDetailPage() {
     releases: mod.releases,
   });
 
-  // Sanitize HTML description for safe rendering
+  // Sanitize HTML description for safe rendering (shared sanitizer, Story 16.4)
   const sanitizedDescription = mod.description
-    ? DOMPurify.sanitize(mod.description)
+    ? sanitizeModDescription(mod.description)
     : null;
 
   return (
