@@ -1043,6 +1043,44 @@ class TestSortMods:
         assert result[1]["urlalias"] == "smithingplus"  # Smithing Plus
         assert result[2]["urlalias"] == "trendingnew"  # Trending New Mod
 
+    def test_sort_by_name_ignores_leading_spaces_case_and_accents(self) -> None:
+        """Story 16.8: name sort ignores surrounding spaces, letter case and accents."""
+        mods: list[dict[str, object]] = [
+            {"name": "Farm", "assetid": 1},
+            {"name": "Étiquettes", "assetid": 2},
+            {"name": "butcher", "assetid": 3},
+            {"name": " Auto Map", "assetid": 4},
+            {"name": "Apple", "assetid": 5},
+            {"name": "etiquettes plus", "assetid": 6},
+        ]
+        result = sort_mods(mods, sort_by="name")
+
+        assert [m["assetid"] for m in result] == [5, 4, 3, 2, 6, 1]
+
+    def test_sort_by_name_handles_null_and_missing_names(self) -> None:
+        """Story 16.8: a null or missing name sorts as empty instead of raising."""
+        mods: list[dict[str, object]] = [
+            {"name": "Beta", "assetid": 1},
+            {"name": None, "assetid": 2},
+            {"assetid": 3},
+        ]
+        result = sort_mods(mods, sort_by="name")
+
+        assert [m["assetid"] for m in result] == [2, 3, 1]
+
+    def test_sort_by_name_orders_equal_names_by_asset_id(self) -> None:
+        """Story 16.8: equal names keep one order, by asset ID, whatever the input order."""
+        mods: list[dict[str, object]] = [
+            {"name": "Same", "assetid": 30},
+            {"name": "same", "assetid": 10},
+            {"name": "Same", "assetid": 20},
+        ]
+        result = sort_mods(mods, sort_by="name")
+        reversed_result = sort_mods(list(reversed(mods)), sort_by="name")
+
+        assert [m["assetid"] for m in result] == [20, 30, 10]
+        assert [m["assetid"] for m in reversed_result] == [20, 30, 10]
+
     def test_sort_default_is_recent(self) -> None:
         """Default sort is by recent."""
         mods = BROWSE_MODS_LIST.copy()

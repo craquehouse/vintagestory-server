@@ -1,6 +1,6 @@
 # Story 16.8: Name Sort and Empty Settings
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR175-FR176. Beads: VSS-stm.1 (Name sort), VSS-7ed (empty settings, Password). Added to Epic 16 on 2026-11-13 after Stories 16.0-16.7 (sprint-change-proposal-2026-11-13.md, Addendum). Stacks on Story 16.7 (branch story/16-7-file-browser-breadcrumbs, PR #154), itself on #153, #152, #151, #150, #149, #148. No new dependencies. -->
 
@@ -50,9 +50,9 @@ so that **I can find mods alphabetically and edit settings without saving the wo
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.8/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: API name sort ignores leading spaces, case and accents + tests (AC: 1)
-  - [ ] 1.1: `services/mod_api.py`: a `_name_sort_key(mod)` used by `sort_mods(..., "name")`: `str(mod.get("name") or "")`, stripped, NFKD-normalized with combining marks removed (`unicodedata`, standard library), `casefold()`; tie-break on the stripped name and then `assetid`, so equal names keep one order across cache refreshes. A null or missing name sorts as empty instead of raising
-  - [ ] 1.2: Tests in `tests/test_mod_api.py` (`TestSortMods` or next to `test_sort_by_name`): leading spaces (`" Auto Map"` between `"Apple"` and `"Butcher"`), case, accents (`"Étiquettes"` next to `"Etiquettes"`, before `"Farm"`), null and missing names, equal names ordered by `assetid`. A router test (`tests/test_mods_router.py`) that `sort=name&page=2&page_size=2` returns the second slice of the alphabetical order and correct pagination
+- [x] Task 1: API name sort ignores leading spaces, case and accents + tests (AC: 1)
+  - [x] 1.1: `services/mod_api.py`: a `_name_sort_key(mod)` used by `sort_mods(..., "name")`: `str(mod.get("name") or "")`, stripped, NFKD-normalized with combining marks removed (`unicodedata`, standard library), `casefold()`; tie-break on the stripped name and then `assetid`, so equal names keep one order across cache refreshes. A null or missing name sorts as empty instead of raising
+  - [x] 1.2: Tests in `tests/test_mod_api.py` (`TestSortMods` or next to `test_sort_by_name`): leading spaces (`" Auto Map"` between `"Apple"` and `"Butcher"`), case, accents (`"Étiquettes"` next to `"Etiquettes"`, before `"Farm"`), null and missing names, equal names ordered by `assetid`. A router test (`tests/test_mods_router.py`) that `sort=name&page=2&page_size=2` returns the second slice of the alphabetical order and correct pagination
 
 - [ ] Task 2: Web UI uses the server's Name sort with normal paging + tests (AC: 1, 2, 7)
   - [ ] 2.1: `web/src/api/mods.ts` `fetchBrowseMods`: send `sort` for every option, including `name`
@@ -173,8 +173,15 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Debug Log References
 
+- Task 1: red run, the 3 new `sort_mods` tests failed (leading space and accent order, `None` name raised `AttributeError`, ties in input order); the new router paging test passed already (the API pages name sort today). Then 206 passed in `test_mod_api.py` and `test_mods_router.py`; ruff clean, pyright 0 errors (3 pre-existing warnings).
+
 ### Completion Notes List
 
 - Story created 2026-11-13: context analysis of the browse hook and endpoint, the settings service and field, Stories 16.0, 16.1 and 16.6 and ADR-1/ADR-3.
+- Task 1: `sort_mods(..., "name")` uses `_name_sort_key`: stripped, NFKD without combining marks, `casefold()`, then the stripped name and `assetid`; a null or missing name sorts as empty.
 
 ### File List
+
+- `api/src/vintagestory_api/services/mod_api.py`
+- `api/tests/test_mod_api.py`
+- `api/tests/test_mods_router.py`
