@@ -66,10 +66,10 @@ so that **I can judge how far behind it is before installing it**.
   - [x] 4.1: `ModDetailPage` header: "Version:" shows `compatibility.modVersion` (the release that decides the badge), falling back to `latestVersion`; the compatibility message is shown as text under the badge row for `not_verified` and `incompatible` (`data-testid="mod-detail-compatibility-message"`), not only as a tooltip. The install flow (`InstallSection latestVersion`) is unchanged (`VSS-jhf`)
   - [x] 4.2: Tests in `ModDetailPage.test.tsx` ("Story 16.3" block): message visible for incompatible and not_verified, absent for compatible; header version follows `compatibility.modVersion`. Browse card tests unchanged (AC 6)
 
-- [ ] Task 5: Browser verification against the Docker dev stack (AC: 1, 4, 6)
-  - [ ] 5.1: `just docker restart` (rebuild from this branch). Note the installed mod set. Open `/game-server/mods/browse/playercorpse`: Incompatible badge, message "Last supported game version: 1.21.1." (or the live equivalent), header version = newest playercorpse release
-  - [ ] 5.2: Install `playercorpse` through the UI; Installed list shows Incompatible and "Supports up to 1.21.1"; open `/game-server/mods/browse/instruments` (not installed) and check the header names the `vsinstrumentsbase` release. Browse cards look as before. Browser console clean
-  - [ ] 5.3: Screenshot with the server name masked (header `span.font-semibold`, `#ServerName`), kept outside the repo unless needed; remove `playercorpse` and its cached zip so `./data` returns to its prior mod set; record results in the Dev Agent Record
+- [x] Task 5: Browser verification against the Docker dev stack (AC: 1, 4, 6)
+  - [x] 5.1: `just docker restart` (rebuild from this branch). Note the installed mod set. Open `/game-server/mods/browse/playercorpse`: Incompatible badge, message "Last supported game version: 1.21.1." (or the live equivalent), header version = newest playercorpse release
+  - [x] 5.2: Install `playercorpse` through the UI; Installed list shows Incompatible and "Supports up to 1.21.1"; open `/game-server/mods/browse/instruments` (not installed) and check the header names the `vsinstrumentsbase` release. Browse cards look as before. Browser console clean
+  - [x] 5.3: Screenshot with the server name masked (header `span.font-semibold`, `#ServerName`), kept outside the repo unless needed; remove `playercorpse` and its cached zip so `./data` returns to its prior mod set; record results in the Dev Agent Record
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
   - [ ] 6.1: `just check` passes
@@ -160,6 +160,12 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: new tests written after a first cut of the service change; red verified by stashing `api/src`: 15 of the 16 new `TestLookupLatestSupportedGameVersion` tests failed (the one that passed pins the unchanged fallback wording), then 16 passed with the change. Six existing tests failed on the change as expected (two model serializations gained the field; four pinned the `tags[:3]` wording or the old builder signature) and were updated. API 2,104 passed; ruff clean; pyright 0 errors, 3 pre-existing warnings.
 - Task 3: red run with the four source files stashed: 8 tests failed (the new lookup query-string test, two new ModTable tests, the new hook test, and four existing hook tests that now pass installed mods), then green. Web 3,115 passed, 4 skipped (pre-existing `it.skip`s); `tsc` clean.
 - Task 4: red run, 3 of the 4 new detail page tests failing (the compatible case already showed no message), then 71 passed. Web 3,119 passed, 4 skipped; `tsc` clean.
+- Task 5: `just docker restart` rebuilt the stack from this branch at 2a8d0c5 (game 1.22.7, server stopped). `./data` had `betterruins`, `smithingplus` 1.9.0-rc.1, `carryon`, `carryonlib`, `egocaribautomapmarkers`; Mods folder, `cache/mods` and the state file list snapshotted before. Scratchpad Playwright script (Chromium 1440x900, API key from `.env`):
+  - Detail pages: `playercorpse` Incompatible, message "Last supported game version: 1.21.1.", Version 1.12.0; `instruments` (not installed) Incompatible, "Last supported game version: 1.21.6.", Version 2.0.7 (`vsinstrumentsbase`); `smithingplus` Not verified, "Mod not explicitly verified for version 1.22.7. May still work. Last tagged for 1.22.2." (live data: its newest release is tagged up to 1.22.2 including pre-releases of 1.22.0).
+  - Installed `playercorpse` 1.11.1 (an older release, chosen in the version select) through the detail page's Install flow. Installed list lookups were `.../lookup/<slug>?version=<installed version>` for all six mods; Player Corpse showed Incompatible with "Supports up to 1.21.1" and the message as its tooltip, Smithing Plus and Auto Map Markers Not verified with "Supports up to 1.22.2" / "1.22.3", the compatible mods no version. The detail page afterwards (no `version`) evaluated 1.12.0, the mod ID's newest release.
+  - Browse grid rendered 8 cards with no lookup requests; browse components have no diff on this branch (AC 6).
+  - No console errors or warnings on any page. Screenshots (server name masked) kept in the session scratchpad, not committed.
+  - Removed with `DELETE /api/v1alpha1/mods/playercorpse` and deleted `cache/mods/PlayerCorpse_VS1.20.7_net7_v1.11.1.zip`; the Mods folder, `cache/mods` and the state file list match the snapshot (only directory mtimes differ).
 
 ### Completion Notes List
 
