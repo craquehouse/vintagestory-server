@@ -1,6 +1,6 @@
 # Story 16.7: File Browser Breadcrumbs
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR174. Beads: VSS-8lh (this story, child of the Epic 16 bead VSS-stm); VSS-3mr (directory navigation E2E test, child of VSS-029 Web UI Test Coverage). Stacks on Story 16.6 (branch story/16-6-settings-layout-on-desktop, PR #153), itself on #152, #151, #150, #149, #148. Last story of Epic 16. No new dependencies; no API change. -->
 
@@ -58,9 +58,9 @@ so that **I can move up several levels in one click**.
   - [x] 3.2: `web/e2e/file-browser-navigation.spec.ts` (the directory navigation test from `VSS-3mr`): discovers a nested path through the read-only API (`/api/v1alpha1/config/directories`, breadth-first over non-hidden directories, up to three levels, preferring the deepest), so it does not depend on fixed names; opens `/config` → File Manager; navigates down by clicking directories in the list and checks the breadcrumb segments and `aria-current` at each level; clicks the root from the deepest level and gets the root listing in one click; navigates down again and clicks a middle segment; uses Tab + Enter for one jump and checks focus lands on the current segment; at 390x844 the breadcrumb's box is inside the panel's box, the `ol` does not scroll sideways, and the document overflow equals the overflow with the File Manager at the root (the change adds none). Reads only: no file or directory is created, changed or deleted
   - [x] 3.3: `just docker restart` (rebuild from this branch); run the spec; take after measurements; browser console clean; compare before/after in the Dev Agent Record. Screenshots stay in the session scratchpad (the File Manager shows no server name or password, but if one is committed, mask `header span.font-semibold`)
 
-- [ ] Task 4: Quality gate and review hand-off (AC: all)
-  - [ ] 4.1: `just check` passes
-  - [ ] 4.2: Status review, `just sprint set 16-7-file-browser-breadcrumbs review`, PR to `story/16-6-settings-layout-on-desktop` (stacks on #153, #152, #151, #150, #149, #148), PR link on `VSS-8lh` and `VSS-3mr`; `VSS-3mr` stays open with a comment that the "new directory appears on refresh" part is not covered
+- [x] Task 4: Quality gate and review hand-off (AC: all)
+  - [x] 4.1: `just check` passes
+  - [x] 4.2: Status review, `just sprint set 16-7-file-browser-breadcrumbs review`, PR to `story/16-6-settings-layout-on-desktop` (stacks on #153, #152, #151, #150, #149, #148), PR link on `VSS-8lh` and `VSS-3mr`; `VSS-3mr` stays open with a comment that the "new directory appears on refresh" part is not covered
 
 ## Dev Notes
 
@@ -158,11 +158,16 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: red run, the test file failed to import the missing module; then one test failed because its path contained `</b>` (a slash, so two segments): test data fixed; 16 passed; `tsc` clean.
 
+- Task 4: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,124 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added, no new dependencies.
+
 ### Completion Notes List
 
 - Task 1: `PathBreadcrumb` renders `nav[aria-label=Breadcrumb] > ol`, the root and ancestors as buttons (`title` = name, `max-w-full truncate`), the current directory as a `span` with `aria-current="page"` and `tabIndex=-1`, `ChevronRight` separators with `aria-hidden`; `flex-wrap` and `min-w-0` for long paths. A click passes `null` or the path prefix to `onNavigate` and focuses the new current segment once `path` changes; an outside path change does not take focus.
 - Task 2: `FileManagerPanel` is a column: a breadcrumb bar (`file-manager-breadcrumb-bar`, `border-b px-3 py-2`) across the panel, then the list and viewer row (`flex min-h-0 flex-1`). The Back button, `handleNavigateBack` and the `ChevronLeft`/`Button` imports are gone; `handleNavigate` sets the directory and clears the selection. In a subdirectory the error state shows the breadcrumb above the error box. The 11 Back-button tests now use the root or parent segment; 9 new tests cover the layout, no Back button, three-level jump to the root in one click (only the root and prefixes are ever requested), middle-segment jump clearing the selection, focus after a keyboard jump, URL-encoded names with spaces, and the error state with and without a subdirectory.
 - Task 3: `web/e2e/file-browser-navigation.spec.ts` (the `VSS-3mr` directory navigation test) finds the deepest visible directory path up to three levels through the directory API (at most 60 listings), opens it from the list checking the breadcrumb at each level, jumps to the root in one click, jumps to an ancestor, navigates with Tab and Enter and checks focus lands on the new current segment, and at 390x844 checks the breadcrumb and every segment stay inside the panel, the list does not scroll sideways and the document overflow does not change. Read only.
+- Task 4: status review; PR targets `story/16-6-settings-layout-on-desktop` (stacks on #153, #152, #151, #150, #149, #148).
+- Decisions: Back button removed (the parent segment replaces it; focus moves to the new current segment after a jump); root label `serverdata`; segments are buttons because the path is component state with no URL; the breadcrumb spans the panel and is always shown; long paths wrap and a name wider than the panel truncates with its full name in `title`; the error state keeps the breadcrumb in a subdirectory.
+- Beads: filed `VSS-uni` [UI-080] Settings tab list scrolls the page sideways on phones (top-level; pre-existing 144px overflow at 390px). `VSS-3mr`: the directory navigation E2E test is covered; "new directory appears on refresh" is not (the API cannot create directories and `./data` is read-only for this story), so the bead stays open.
 
 ### File List
 
@@ -176,3 +181,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-13: Story 16.7 created (ready-for-dev). Ultimate context engine analysis completed - comprehensive developer guide created.
+- 2026-11-13: Implemented: `PathBreadcrumb` component; the File Manager shows the current path as a breadcrumb across the panel instead of the Back button, also in the error state; E2E spec for directory navigation (VSS-3mr) and before/after browser measurements; status review.
