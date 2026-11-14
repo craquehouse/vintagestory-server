@@ -39,9 +39,9 @@ so that **I can read it instead of raw HTML tags**.
   - [x] 1.3: `sanitizeModDescriptionPreview(html: string): string | null` for the lookup preview: same instance and hook, `ALLOWED_TAGS` limited to text formatting (`p`, `br`, `div`, `span`, `strong`, `b`, `em`, `i`, `u`, `s`, `code`, `a`, `ul`, `ol`, `li`, `h1`-`h6`, `blockquote`), `ALLOWED_ATTR: ['href', 'title']` (no `style`, `class`, `id`); returns `null` when the result has no visible text (the sanitized string is parsed with `DOMParser`, which is inert, and its `textContent` trimmed). The two configurations are constants in this module only
   - [x] 1.4: `web/src/lib/mod-description.test.ts`: both functions strip `<script>` (and its content), `onerror`/`onclick`/`onload`, `javascript:` in `href` (lower case, mixed case, leading whitespace, entity-encoded) and in SVG `xlink:href`, `<style>` elements at the start and after content; links get `target="_blank"` and `rel="noopener noreferrer"` (an author's `rel="noopener"` and `target="_self"` are replaced), anchors without `href` get neither; detail keeps `<img>` without `onerror`; preview drops `img`, `iframe`, `video`, `form`/`input`/`button`, `svg`, `style`/`class`/`id` attributes, keeps text of tables and unknown wrappers, returns `null` for an image-only description and for `''`; calling `DOMPurify.sanitize` directly after the helpers does not add `target` (hook isolation)
 
-- [ ] Task 2: Detail page uses the shared sanitizer + tests (AC: 2, 3)
-  - [ ] 2.1: `ModDetailPage.tsx`: replace the inline `DOMPurify.sanitize(mod.description)` and the `dompurify` import with `sanitizeModDescription`; markup and classes unchanged
-  - [ ] 2.2: `ModDetailPage.test.tsx` "description section": links open in a new tab with `rel="noopener noreferrer"`; a `<style>` element after content is removed; the existing script/`onerror` test keeps passing
+- [x] Task 2: Detail page uses the shared sanitizer + tests (AC: 2, 3)
+  - [x] 2.1: `ModDetailPage.tsx`: replace the inline `DOMPurify.sanitize(mod.description)` and the `dompurify` import with `sanitizeModDescription`; markup and classes unchanged
+  - [x] 2.2: `ModDetailPage.test.tsx` "description section": links open in a new tab with `rel="noopener noreferrer"`; a `<style>` element after content is removed; the existing script/`onerror` test keeps passing
 
 - [ ] Task 3: Lookup preview renders the formatted, clamped description + tests (AC: 1, 2, 3, 4)
   - [ ] 3.1: `ModLookupInput.tsx`: compute `sanitizedDescription = modData.description ? sanitizeModDescriptionPreview(modData.description) : null`; render it only when non-null in a `div` with `data-testid="mod-preview-description"`, `dangerouslySetInnerHTML` (the detail page pattern, no lint suppression exists or is needed), classes `text-sm text-muted-foreground line-clamp-3 break-words` plus link styling `[&_a]:text-primary [&_a]:underline`
@@ -147,15 +147,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Debug Log References
 
 - Task 1: red run of `mod-description.test.ts` (module missing, collection error), then 30 passed. First cut used `RETURN_DOM: true`; its overload is typed `Node` (no `innerHTML`), so `tsc` failed; switched to sanitizing to a string and checking its text with an inert `DOMParser` document. `tsc` clean.
+- Task 2: red run, the 2 new detail page tests failing (link without `target`/`rel`, `<style>` kept), then 73 passed; `tsc` clean.
 
 ### Completion Notes List
 
 - Task 1: `web/src/lib/mod-description.ts` exports `sanitizeModDescription` (DOMPurify defaults, `FORBID_TAGS: ['style']`) and `sanitizeModDescriptionPreview` (text-formatting allowlist, `href`/`title` only, `null` when no visible text). One private DOMPurify instance carries the `afterSanitizeAttributes` hook that sets `target="_blank"` and `rel="noopener noreferrer"` on links with an `href`; a test proves the shared default instance is untouched. Not used yet; Tasks 2 and 3 wire it in.
+- Task 2: `ModDetailPage` calls `sanitizeModDescription` instead of `DOMPurify.sanitize`; markup and classes unchanged. Description links now open in a new tab (same tab before) and a `<style>` element in a description no longer reaches the page.
 
 ### File List
 
 - `web/src/lib/mod-description.ts` (new)
 - `web/src/lib/mod-description.test.ts` (new)
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
 - `_bmad-output/implementation-artifacts/16-4-formatted-description-in-mod-lookup-preview.md`
 
 ## Change Log
