@@ -114,6 +114,7 @@ export function SettingField({
   });
 
   const isDisabled = envManaged || field.isPending;
+  const isNumber = type === 'int' || type === 'float';
 
   return (
     <div className={cn('space-y-1', className)}>
@@ -164,13 +165,10 @@ export function SettingField({
       ) : (
         <Input
           id={settingKey}
-          type={type === 'int' || type === 'float' ? 'number' : 'text'}
+          type={isNumber ? 'number' : 'text'}
           value={String(field.value)}
           onChange={(e) => {
-            const newValue =
-              type === 'int' || type === 'float'
-                ? coerceSettingValue(e.target.value, type)
-                : e.target.value;
+            const newValue = isNumber ? coerceSettingValue(e.target.value, type) : e.target.value;
             field.setValue(newValue as string | number);
           }}
           onBlur={field.onBlur}
@@ -181,6 +179,8 @@ export function SettingField({
           }
           aria-invalid={!!field.error}
           className={cn(
+            // Numbers (ports, counts) keep a narrow box at every width (Epic 16 ADR-3)
+            isNumber && 'max-w-xs',
             field.error && 'border-destructive focus-visible:ring-destructive'
           )}
         />

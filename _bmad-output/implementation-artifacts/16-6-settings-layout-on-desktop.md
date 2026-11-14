@@ -1,6 +1,6 @@
 # Story 16.6: Settings Layout on Desktop
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR173 per Epic 16 ADR-3. Bead: VSS-dfx. Stacks on Story 16.5 (branch story/16-5-installed-mods-on-phones, PR #152), itself on #151, #150, #149, #148. No new dependencies. VSS-7ed ('null' in empty settings, unmasked Password) is out of scope. -->
 
@@ -37,9 +37,9 @@ so that **I can see more settings without scrolling past half-empty cards**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-16.6/task-N): ... ; feat/fix only for user-visible changes, subject written for users. -->
 
-- [ ] Task 1: Number settings use a narrow input + tests (AC: 3, 5)
-  - [ ] 1.1: `SettingField`: the `Input` for `int` and `float` settings gets `max-w-xs` (merged with the existing error classes through `cn`); string inputs keep the `Input` default `w-full`; switches unchanged
-  - [ ] 1.2: Tests in `SettingField.test.tsx`: an `int` and a `float` input carry `max-w-xs`; a `string` input does not; the error classes still apply to a number input
+- [x] Task 1: Number settings use a narrow input + tests (AC: 3, 5)
+  - [x] 1.1: `SettingField`: the `Input` for `int` and `float` settings gets `max-w-xs` (merged with the existing error classes through `cn`); string inputs keep the `Input` default `w-full`; switches unchanged
+  - [x] 1.2: Tests in `SettingField.test.tsx`: an `int` and a `float` input carry `max-w-xs`; a `string` input does not; the error classes still apply to a number input
 
 - [ ] Task 2: `SettingGroup` accepts classes for its content + tests (AC: 1, 5)
   - [ ] 2.1: New optional `contentClassName` prop merged into `CardContent` (`cn('space-y-4', contentClassName)`); collapsible behavior, header and default markup unchanged
@@ -150,11 +150,23 @@ so that **I can see more settings without scrolling past half-empty cards**.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Task 1: red run, 3 of the 4 new width tests failed (the text-input test already passed); then 30 passed; `tsc` clean.
 
 ### Completion Notes List
 
+- Task 1: `SettingField` gives `int`/`float` inputs `max-w-xs` (320px) at every width, merged with the error classes; text inputs keep `w-full`. Only game settings pass number types.
+
 ### File List
+
+- `web/src/components/SettingField.tsx`
+- `web/src/components/SettingField.test.tsx`
+- `_bmad-output/implementation-artifacts/16-6-settings-layout-on-desktop.md`
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs` (new)
+- `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.before.json` (new)
 
 ## Change Log
 

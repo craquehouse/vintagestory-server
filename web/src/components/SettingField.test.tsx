@@ -133,6 +133,54 @@ describe('SettingField', () => {
     });
   });
 
+  describe('input width (Story 16.6)', () => {
+    it('limits an int input to a narrow width', () => {
+      render(
+        <SettingField settingKey="Port" label="Port" value={42420} type="int" onSave={vi.fn()} />
+      );
+
+      expect(screen.getByRole('spinbutton')).toHaveClass('max-w-xs');
+    });
+
+    it('limits a float input to a narrow width', () => {
+      render(
+        <SettingField settingKey="Ratio" label="Ratio" value={1.5} type="float" onSave={vi.fn()} />
+      );
+
+      expect(screen.getByRole('spinbutton')).toHaveClass('max-w-xs');
+    });
+
+    it('lets a text input fill its container', () => {
+      render(<SettingField {...defaultProps} />);
+
+      const input = screen.getByRole('textbox');
+      expect(input).not.toHaveClass('max-w-xs');
+      expect(input).toHaveClass('w-full');
+    });
+
+    it('keeps the error styling on a narrow number input', async () => {
+      render(
+        <SettingField
+          settingKey="Port"
+          label="Port"
+          value={42420}
+          type="int"
+          validate={(v) => (Number(v) > 65535 ? 'Too large' : null)}
+          onSave={vi.fn()}
+        />
+      );
+
+      const input = screen.getByRole('spinbutton');
+      fireEvent.change(input, { target: { value: '70000' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(input).toHaveClass('border-destructive');
+      });
+      expect(input).toHaveClass('max-w-xs');
+    });
+  });
+
   describe('boolean input', () => {
     it('renders switch for bool type', () => {
       render(
