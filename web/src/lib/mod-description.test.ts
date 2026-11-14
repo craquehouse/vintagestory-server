@@ -48,6 +48,35 @@ const dangerous: { name: string; html: string; check: (el: HTMLElement) => void 
     },
   },
   {
+    name: 'data: and vbscript: URLs',
+    html: [
+      '<p>Safe text</p>',
+      '<a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">a</a>',
+      '<a href="vbscript:msgbox(1)">b</a>',
+    ].join(''),
+    check: (el) => {
+      expect(el.innerHTML.toLowerCase()).not.toContain('data:');
+      expect(el.innerHTML.toLowerCase()).not.toContain('vbscript');
+      for (const a of el.querySelectorAll('a')) {
+        expect(a.hasAttribute('href')).toBe(false);
+      }
+    },
+  },
+  {
+    name: 'forms and their controls',
+    html: [
+      '<p>Safe text</p>',
+      '<form action="https://evil.example"><input type="submit" value="Log in">',
+      '<button>Confirm</button><select><option>x</option></select><textarea>t</textarea></form>',
+    ].join(''),
+    check: (el) => {
+      for (const tag of ['form', 'input', 'button', 'select', 'textarea']) {
+        expect(el.querySelector(tag)).toBeNull();
+      }
+      expect(el.innerHTML).not.toContain('evil.example');
+    },
+  },
+  {
     name: 'javascript: URLs inside SVG',
     html: '<p>Safe text</p><svg><a xlink:href="javascript:alert(1)"><text>x</text></a></svg>',
     check: (el) => {
@@ -103,6 +132,16 @@ describe('sanitizeModDescription', () => {
         sanitize('<a href="https://ko-fi.com/x" target="_self" rel="noopener">Ko-fi</a>')
       );
       const link = el.querySelector('a');
+      expect(link?.getAttribute('target')).toBe('_blank');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+
+    it('opens SVG links in a new tab with rel="noopener noreferrer"', () => {
+      const el = parse(
+        sanitize('<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>')
+      );
+      const link = el.querySelector('svg a');
+      expect(link).not.toBeNull();
       expect(link?.getAttribute('target')).toBe('_blank');
       expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
     });
