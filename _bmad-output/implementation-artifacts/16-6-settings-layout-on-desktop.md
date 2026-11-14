@@ -1,6 +1,6 @@
 # Story 16.6: Settings Layout on Desktop
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR173 per Epic 16 ADR-3. Bead: VSS-dfx. Stacks on Story 16.5 (branch story/16-5-installed-mods-on-phones, PR #152), itself on #151, #150, #149, #148. No new dependencies. VSS-7ed ('null' in empty settings, unmasked Password) is out of scope. -->
 
@@ -54,9 +54,9 @@ so that **I can see more settings without scrolling past half-empty cards**.
   - [x] 4.2: `web/e2e/settings-desktop-layout.spec.ts`: at 1440x900 and 1920x1080 the panel is at most 1280px and centered in the content area; Server Info spans both columns and its fields sit in two columns; Player and Network share a left edge, World is to their right and starts at Player's top; collapsing World does not move or resize Player or Network, collapsing Network does not move or resize World; number inputs at most 320px wide, Server Name wider. At 1024x900 and 390x844 one column (all cards share a left edge and width) and no document overflow. Reads only; collapse is UI state
   - [x] 4.3: `just docker restart` (rebuild from this branch); run the spec; rerun the measurement script for `settings_layout.after.json`; compare card boxes, input widths and page height before/after in the Dev Agent Record; browser console clean. Masked screenshots stay in the session scratchpad
 
-- [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `just check` passes
-  - [ ] 5.2: Status review, `just sprint set 16-6-settings-layout-on-desktop review`, PR to `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148), PR link on `VSS-dfx`
+- [x] Task 5: Quality gate and review hand-off (AC: all)
+  - [x] 5.1: `just check` passes
+  - [x] 5.2: Status review, `just sprint set 16-6-settings-layout-on-desktop review`, PR to `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148), PR link on `VSS-dfx`
 
 ## Dev Notes
 
@@ -171,6 +171,7 @@ Claude Opus 5.5 (claude-opus-5-5)
   - Collapse at 1280, 1440 and 1920: World collapsed (518 → 94) left Player and Network at the same x, y, width and height; Network collapsed (454 → 94) left World and Player unchanged. Before, collapsing World moved Network up 424px.
   - Below `xl` (390, 1024) one column, Network now above World (the stack order); no document overflow at any width. Browser console: no errors or warnings at 390, 1024, 1280 and 1920. Masked screenshots (server name, password) are in the session scratchpad, not committed.
   - At 1920 the page title row still spans the full content width while the panel is centered (title at x 208, panel from 400): bead `VSS-143`.
+- Task 5: `just check` passed: ruff and `tsc` clean, pyright 0 errors (3 pre-existing warnings in API tests), API 2,108 passed, web 3,098 passed and 4 skipped (pre-existing `it.skip`s), script tests 190 passed. No suppressions added.
 
 ### Completion Notes List
 
@@ -178,6 +179,9 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 2: `SettingGroup` takes an optional `contentClassName`, merged with the content's default `space-y-4`.
 - Task 3: `GameConfigPanel` wraps the groups in `mx-auto max-w-[1280px]` (`game-config-layout`; the loading skeleton too); Server Info passes `xl:grid xl:grid-cols-2 xl:gap-4 xl:space-y-0` to its content; the other groups sit in `grid gap-4 xl:grid-cols-2 xl:items-start` (`game-config-columns`) with a left stack (Player Settings, Network) and a right stack (World Settings). Below `xl` this is one column in the order Server Info, Player Settings, Network, World Settings.
 - Task 4: `web/e2e/settings-desktop-layout.spec.ts` measures the layout on the running stack at 1440, 1920, 1024 and 390 (panel width and centering, Server Info span and field columns, the two stacks, collapse independence, number input widths, no overflow); `16-6-browser/settings_layout.mjs` records before/after boxes.
+- Task 5: status review; PR targets `story/16-5-installed-mods-on-phones` (stacks on #152, #151, #150, #149, #148).
+- Decisions: Tailwind classes only (nothing is mounted twice, so no JS media query; collapse state and typing survive a resize); ADR-3 column stacks, which makes the one-column order below `xl` Server Info, Player Settings, Network, World Settings (World was before Network) so focus and reading order match the visual order at every width; numbers narrowed in `SettingField`; the page header is unchanged.
+- Beads filed: `VSS-143` [UI-078] Game Settings title row wider than the centered panel (top-level: the app-wide maximum width is outside Epic 16).
 
 ### File List
 
@@ -196,3 +200,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-13: Story 16.6 created (ready-for-dev). Ultimate context engine analysis completed - comprehensive developer guide created.
+- 2026-11-13: Implemented: narrow number inputs; `SettingGroup` content classes; two-column settings layout from `xl` with the panel limited to 1280px and centered; E2E spec and before/after browser measurements; status review.
