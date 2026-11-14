@@ -50,6 +50,17 @@ describe('matchMedia test stand-in', () => {
     expect(window.matchMedia('(prefers-color-scheme: dark)').matches).toBe(false);
   });
 
+  it('treats a comma-separated query list as OR, as browsers do', () => {
+    setViewportWidth(390);
+    expect(window.matchMedia('(min-width: 1024px), (max-width: 400px)').matches).toBe(true);
+    setViewportWidth(800);
+    expect(window.matchMedia('(min-width: 1024px), (max-width: 400px)').matches).toBe(false);
+    expect(window.matchMedia('(min-width: 1024px), (prefers-color-scheme: dark)').matches).toBe(
+      false
+    );
+    expect(window.matchMedia('(min-width: 1024px), (max-width: 50rem)').matches).toBe(true);
+  });
+
   it('notifies only listeners whose result changed', () => {
     const md = window.matchMedia('(min-width: 768px)');
     const lg = window.matchMedia('(min-width: 1024px)');

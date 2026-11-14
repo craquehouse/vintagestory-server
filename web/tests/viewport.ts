@@ -3,7 +3,8 @@
  *
  * jsdom has no `window.matchMedia` and applies no CSS, so layouts chosen with a media
  * query (see `useMediaQuery`) need a stand-in. This one evaluates `min-width` and
- * `max-width` (in px or rem at 16px) against `window.innerWidth`; any other query
+ * `max-width` (in px or rem at 16px) against `window.innerWidth`; a comma-separated
+ * list matches when any of its queries does, and a query without a width feature
  * never matches. `setViewportWidth` changes the width and fires `change` on every
  * media query list whose result changed. Wrap it in `act` when components are mounted.
  *
@@ -16,13 +17,19 @@ const ROOT_FONT_SIZE = 16;
 
 const WIDTH_FEATURE = /\(\s*(min|max)-width\s*:\s*([\d.]+)(px|rem)\s*\)/g;
 
-/** Whether `query` matches a viewport `width` px wide. */
+/**
+ * Whether `query` matches a viewport `width` px wide. A comma-separated list matches
+ * when any of its queries does (as in browsers); a query matches when it has at least
+ * one width feature and all of its width features match.
+ */
 export function evaluateWidthQuery(query: string, width: number): boolean {
-  const features = [...query.matchAll(WIDTH_FEATURE)];
-  if (features.length === 0) return false;
-  return features.every(([, kind, value, unit]) => {
-    const px = Number(value) * (unit === 'rem' ? ROOT_FONT_SIZE : 1);
-    return kind === 'min' ? width >= px : width <= px;
+  return query.split(',').some((part) => {
+    const features = [...part.matchAll(WIDTH_FEATURE)];
+    if (features.length === 0) return false;
+    return features.every(([, kind, value, unit]) => {
+      const px = Number(value) * (unit === 'rem' ? ROOT_FONT_SIZE : 1);
+      return kind === 'min' ? width >= px : width <= px;
+    });
   });
 }
 
