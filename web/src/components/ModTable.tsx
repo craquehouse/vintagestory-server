@@ -8,6 +8,8 @@
  * - Available column with update action and confirmation (Story 14.3)
  * - Sortable columns with persistent sort preference (VSS-g54)
  * - Empty state when no mods installed
+ * - Below the `md` breakpoint, one card per mod instead of the table (Story 16.5),
+ *   rendered from the same sorted rows with the same handlers and dialogs
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -49,8 +51,10 @@ import {
   type ModTableRow,
 } from '@/components/InstalledModParts';
 import { ModUpdateCell } from '@/components/ModUpdateCell';
+import { InstalledModCard } from '@/components/InstalledModCard';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
+import { useMediaQuery, MD_UP_QUERY } from '@/hooks/use-media-query';
 import {
   useMods,
   useEnableMod,
@@ -122,6 +126,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
   const versionChange = useVersionChangeFlow();
+  // Story 16.5: the table at md and up, cards below; only one layout is mounted
+  const isTableLayout = useMediaQuery(MD_UP_QUERY);
   const { start: startVersionChange, isPending: isChangingVersion } = versionChange;
 
   const mods = modsData?.data?.mods ?? [];
@@ -359,37 +365,57 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
 
   return (
     <>
-      <Table data-testid="mod-table">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className={
-                    (header.column.columnDef.meta as { className?: string } | undefined)?.className
-                  }
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} data-testid={`mod-row-${row.original.slug}`}>
-              {row.getAllCells().map((cell) => (
-                <TableCell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {isTableLayout ? (
+        <Table data-testid="mod-table">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className={
+                      (header.column.columnDef.meta as { className?: string } | undefined)?.className
+                    }
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id} data-testid={`mod-row-${row.original.slug}`}>
+                {row.getAllCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <ul className="space-y-3" aria-label="Installed mods" data-testid="installed-mod-cards">
+          {table.getRowModel().rows.map((row) => {
+            const mod = row.original;
+            return (
+              <InstalledModCard
+                key={row.id}
+                mod={mod}
+                gameVersion={gameVersion}
+                isToggling={isTogglingMod(mod.slug)}
+                isUpdating={isChangingVersion(mod.slug)}
+                onToggle={() => handleToggle(mod)}
+                onUpdate={() => handleUpdate(mod)}
+                onRemove={() => handleRemoveClick(mod)}
+              />
+            );
+          })}
+        </ul>
+      )}
 
       <VersionChangeConfirmDialog
         confirmation={versionChange.confirmation}

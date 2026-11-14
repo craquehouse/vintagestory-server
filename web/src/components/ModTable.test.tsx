@@ -46,6 +46,7 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
 import { ModTable } from './ModTable';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { getCookie } from '@/lib/cookies';
+import { setViewportWidth } from '../../tests/viewport';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -1605,5 +1606,290 @@ describe('ModTable', () => {
       expect(screen.queryByTestId('version-change-dialog')).not.toBeInTheDocument();
     });
   });
-});
+  describe('Story 16.5: cards below md', () => {
+    const updatesResponse = {
+      status: 'ok',
+      data: {
+        game_version: '1.22.7',
+        checked_at: '2026-11-09T00:00:00Z',
+        update_count: 1,
+        mods: [
+          {
+            slug: 'smithingplus',
+            name: 'Smithing Plus',
+            installed_version: '1.5.0',
+            status: 'update_available',
+            offered_version: '1.6.0',
+            offered_compatibility: 'compatible',
+            offered_prerelease: false,
+            reason: null,
+            checked_at: '2026-11-09T00:00:00Z',
+            error: null,
+          },
+          {
+            slug: 'carrycapacity',
+            name: 'Carry Capacity',
+            installed_version: '2.0.0',
+            status: 'up_to_date',
+            offered_version: null,
+            offered_compatibility: null,
+            offered_prerelease: null,
+            reason: null,
+            checked_at: '2026-11-09T00:00:00Z',
+            error: null,
+          },
+        ],
+      },
+    };
 
+    /** fetch for the list and updates; PUT/POST/DELETE answered by `onWrite` when given. */
+    function mockApi(onWrite?: (url: string, options: RequestInit) => unknown) {
+      const mockFetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (options?.method && options.method !== 'GET' && onWrite) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(onWrite(url, options)),
+          });
+        }
+        const body = url.includes('/mods/updates') ? updatesResponse : mockModsResponse;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+      });
+      globalThis.fetch = mockFetch;
+      return mockFetch;
+    }
+
+    function renderAtPhoneWidth() {
+      setViewportWidth(390);
+      const queryClient = createTestQueryClient();
+      return render(<ModTable />, { wrapper: createWrapper(queryClient) });
+    }
+
+    function cardSlugs(): string[] {
+      return screen
+        .getAllByTestId(/^installed-mod-card-/)
+        .map((card) => card.getAttribute('data-testid')!.replace('installed-mod-card-', ''));
+    }
+
+    it('renders one card per mod and no table', async () => {
+      mockApi();
+      renderAtPhoneWidth();
+
+      const list = await screen.findByTestId('installed-mod-cards');
+      expect(list.tagName).toBe('UL');
+      expect(list).toHaveAccessibleName('Installed mods');
+      expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId(/^installed-mod-card-/)).toHaveLength(2);
+    });
+
+    it('shows name, slug, version, side, update status, toggle and remove on each card', async () => {
+      mockApi();
+      renderAtPhoneWidth();
+
+      const card = await screen.findByTestId('installed-mod-card-smithingplus');
+      expect(card).toHaveAccessibleName('Smithing Plus');
+      expect(card).toContainElement(screen.getByTestId('mod-link-smithingplus'));
+      expect(card).toHaveTextContent('smithingplus');
+      expect(card).toHaveTextContent('v1.5.0');
+      expect(card.querySelector('[data-testid="side-badge"]')).not.toBeNull();
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-update-smithingplus')).toHaveTextContent('v1.6.0');
+      });
+      expect(card).toContainElement(screen.getByTestId('mod-update-button-smithingplus'));
+      expect(card).toContainElement(screen.getByTestId('mod-toggle-smithingplus'));
+      expect(card).toContainElement(screen.getByTestId('mod-remove-smithingplus'));
+
+      const other = screen.getByTestId('installed-mod-card-carrycapacity');
+      await waitFor(() => {
+        expect(other).toContainElement(screen.getByTestId('mod-update-carrycapacity'));
+      });
+      expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent('Up to date');
+    });
+
+    it('applies the offered update through the same version change request as the table', async () => {
+      const mockFetch = mockApi(() => ({
+        status: 'ok',
+        data: {
+          slug: 'smithingplus',
+          previous_version: '1.5.0',
+          version: '1.6.0',
+          filename: 'smithingplus-1.6.0.zip',
+          compatibility: 'compatible',
+          changed: true,
+          pending_restart: false,
+        },
+      }));
+      renderAtPhoneWidth();
+
+      fireEvent.click(await screen.findByTestId('mod-update-button-smithingplus'));
+
+      await waitFor(() => {
+        const put = mockFetch.mock.calls.find(([, options]) => options?.method === 'PUT');
+        expect(put?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/version');
+        expect(JSON.parse(put?.[1].body)).toEqual({ version: '1.6.0', confirm: false });
+      });
+    });
+
+    it('toggles a mod from its card', async () => {
+      const mockFetch = mockApi(() => ({
+        status: 'ok',
+        data: { slug: 'smithingplus', enabled: false, pending_restart: false },
+      }));
+      renderAtPhoneWidth();
+
+      const toggle = await screen.findByTestId('mod-toggle-smithingplus');
+      expect(toggle).toHaveAccessibleName('Disable mod');
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
+        expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/disable');
+      });
+    });
+
+    it('toggles when the label area around the switch is tapped', async () => {
+      const mockFetch = mockApi(() => ({
+        status: 'ok',
+        data: { slug: 'carrycapacity', enabled: true, pending_restart: false },
+      }));
+      renderAtPhoneWidth();
+
+      const card = await screen.findByTestId('installed-mod-card-carrycapacity');
+      const label = card.querySelector('label');
+      expect(label).toHaveTextContent('Disabled');
+      fireEvent.click(label!.querySelector('span')!);
+
+      await waitFor(() => {
+        const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
+        expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/carrycapacity/enable');
+      });
+    });
+
+    it('removes a mod from its card through the shared confirmation dialog', async () => {
+      const mockFetch = mockApi(() => ({ status: 'ok', data: { slug: 'smithingplus' } }));
+      renderAtPhoneWidth();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove Smithing Plus' }));
+      expect(await screen.findByTestId('remove-dialog')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'DELETE');
+        expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus');
+      });
+    });
+
+    it('shows the badge, latest supported version and message for an incompatible mod', async () => {
+      compatibilityMock.details = new Map([
+        [
+          'smithingplus',
+          {
+            status: 'incompatible',
+            gameVersion: '1.22.7',
+            modVersion: '1.5.0',
+            message: 'Last supported game version: 1.21.1.',
+            latestSupportedGameVersion: '1.21.1',
+          },
+        ],
+        [
+          'carrycapacity',
+          {
+            status: 'compatible',
+            gameVersion: '1.22.7',
+            modVersion: '2.0.0',
+            message: 'Compatible with 1.22.7.',
+            latestSupportedGameVersion: '1.22.7',
+          },
+        ],
+      ]);
+      mockApi();
+      renderAtPhoneWidth();
+
+      const card = await screen.findByTestId('installed-mod-card-smithingplus');
+      expect(card.querySelector('[data-testid="compatibility-badge"]')).toHaveAttribute(
+        'data-status',
+        'incompatible'
+      );
+      expect(screen.getByTestId('mod-latest-supported-smithingplus')).toHaveTextContent(
+        'Supports up to 1.21.1'
+      );
+      expect(screen.getByTestId('mod-compatibility-message-smithingplus')).toHaveTextContent(
+        'Last supported game version: 1.21.1.'
+      );
+      expect(screen.queryByTestId('mod-compatibility-message-carrycapacity')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-latest-supported-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('lists cards by name ascending by default, like the table', async () => {
+      mockApi();
+      renderAtPhoneWidth();
+
+      await screen.findByTestId('installed-mod-cards');
+      expect(cardSlugs()).toEqual(['carrycapacity', 'smithingplus']);
+    });
+
+    it('follows a stored sort preference', async () => {
+      (getCookie as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+        JSON.stringify({
+          theme: 'system',
+          consoleFontSize: 14,
+          sidebarCollapsed: false,
+          gameServerNavExpanded: true,
+          installedModsSort: { column: 'enabled', direction: 'desc' },
+        })
+      );
+      mockApi();
+      renderAtPhoneWidth();
+
+      await screen.findByTestId('installed-mod-cards');
+      // smithingplus is enabled, carrycapacity is not
+      expect(cardSlugs()).toEqual(['smithingplus', 'carrycapacity']);
+    });
+
+    it('gives the card controls 44px touch targets', async () => {
+      mockApi();
+      renderAtPhoneWidth();
+
+      const toggle = await screen.findByTestId('mod-toggle-smithingplus');
+      const label = toggle.closest('label');
+      expect(label).toHaveClass('min-h-11', 'min-w-11');
+      expect(screen.getByTestId('mod-remove-smithingplus')).toHaveClass('size-11');
+      expect(await screen.findByTestId('mod-update-button-smithingplus')).toHaveClass('min-h-11');
+    });
+
+    it('shows the loading state at phone width', () => {
+      globalThis.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
+      renderAtPhoneWidth();
+
+      expect(screen.getByTestId('mod-table-loading')).toBeInTheDocument();
+      expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+    });
+
+    it('shows the empty state at phone width', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockEmptyModsResponse),
+      });
+      renderAtPhoneWidth();
+
+      expect(await screen.findByTestId('mod-table-empty')).toHaveTextContent('No mods installed yet');
+      expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+    });
+
+    it('switches between table and cards when the viewport crosses md', async () => {
+      mockApi();
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      expect(await screen.findByTestId('mod-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+
+      act(() => setViewportWidth(767));
+      expect(screen.getByTestId('installed-mod-cards')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+
+      act(() => setViewportWidth(768));
+      expect(screen.getByTestId('mod-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+    });
+  });
+});
