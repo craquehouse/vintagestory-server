@@ -66,38 +66,6 @@ export function useMods() {
 }
 
 /**
- * Hook to look up mod details from the VintageStory mod database.
- *
- * Only fetches when slug is non-empty.
- * Uses staleTime to avoid refetching the same mod repeatedly.
- *
- * @param slug - Mod slug or URL to look up (empty string disables query)
- *
- * @example
- * function ModSearch() {
- *   const [slug, setSlug] = useState('');
- *   const { data, isLoading, error } = useLookupMod(slug);
- *
- *   return (
- *     <>
- *       <input value={slug} onChange={e => setSlug(e.target.value)} />
- *       {data && <div>{data.data.name}</div>}
- *     </>
- *   );
- * }
- */
-export function useLookupMod(slug: string | null) {
-  return useQuery({
-    queryKey: queryKeys.mods.lookup(slug ?? ''),
-    queryFn: () => lookupMod(slug!),
-    // Only fetch when slug is non-empty
-    enabled: !!slug?.trim(),
-    // Keep lookup results fresh for 5 minutes
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-/**
  * Hook to install a mod.
  *
  * Invalidates mods list on success.

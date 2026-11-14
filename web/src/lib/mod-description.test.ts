@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import DOMPurify from 'dompurify';
-import {
-  sanitizeModDescription,
-  sanitizeModDescriptionPreview,
-} from './mod-description';
+import { sanitizeModDescription } from './mod-description';
 
 /** Parse sanitized markup so assertions inspect elements, not substrings. */
 function parse(html: string | null): HTMLElement {
@@ -12,7 +9,7 @@ function parse(html: string | null): HTMLElement {
   return container;
 }
 
-/** Payloads both sanitizers must neutralize (AC 2). */
+/** Payloads the sanitizer must neutralize. */
 const dangerous: { name: string; html: string; check: (el: HTMLElement) => void }[] = [
   {
     name: 'script elements and their content',
@@ -75,11 +72,10 @@ const dangerous: { name: string; html: string; check: (el: HTMLElement) => void 
   },
 ];
 
-describe.each([
-  ['sanitizeModDescription', sanitizeModDescription],
-  ['sanitizeModDescriptionPreview', sanitizeModDescriptionPreview],
-] as const)('%s', (_name, sanitize) => {
-  describe('strips dangerous content (AC 2)', () => {
+describe('sanitizeModDescription', () => {
+  const sanitize = sanitizeModDescription;
+
+  describe('strips dangerous content', () => {
     it.each(dangerous)('removes $name and keeps the text', ({ html, check }) => {
       const el = parse(sanitize(html));
       check(el);
@@ -92,7 +88,7 @@ describe.each([
     });
   });
 
-  describe('links (AC 3)', () => {
+  describe('links', () => {
     it('opens links in a new tab with rel="noopener noreferrer"', () => {
       const el = parse(sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>'));
       const link = el.querySelector('a');
@@ -131,7 +127,7 @@ describe.each([
   });
 });
 
-describe('sanitizeModDescription (detail page)', () => {
+describe('sanitizeModDescription keeps what the detail page shows', () => {
   it('keeps images and inline styles as the detail page shows them today', () => {
     const el = parse(
       sanitizeModDescription('<p style="color: #222">Text</p><img src="https://i.imgur.com/a.png" alt="logo">')
@@ -145,75 +141,9 @@ describe('sanitizeModDescription (detail page)', () => {
   });
 });
 
-describe('sanitizeModDescriptionPreview (lookup preview, AC 4)', () => {
-  it('drops images, embeds, forms and SVG', () => {
-    const el = parse(
-      sanitizeModDescriptionPreview(
-        [
-          '<p>Safe text</p>',
-          '<img src="https://i.imgur.com/a.png">',
-          '<iframe src="https://www.youtube.com/embed/x"></iframe>',
-          '<video src="https://example.com/v.mp4">video fallback</video>',
-          '<audio src="https://example.com/a.mp3"></audio>',
-          '<form action="https://example.com"><input name="q"><button>Go</button></form>',
-          '<svg><circle r="1"></circle></svg>',
-        ].join('')
-      )
-    );
-    for (const tag of ['img', 'iframe', 'video', 'audio', 'form', 'input', 'button', 'svg']) {
-      expect(el.querySelector(tag)).toBeNull();
-    }
-    expect(el.textContent).not.toContain('video fallback');
-    expect(el.textContent).toContain('Safe text');
-  });
-
-  it('drops style, class and id attributes', () => {
-    const el = parse(
-      sanitizeModDescriptionPreview(
-        '<div style="background: #fbbf9d; color: #222" class="fixed inset-0" id="root"><p style="font-weight: bold">Support me</p></div>'
-      )
-    );
-    for (const node of el.querySelectorAll('*')) {
-      expect(node.hasAttribute('style')).toBe(false);
-      expect(node.hasAttribute('class')).toBe(false);
-      expect(node.hasAttribute('id')).toBe(false);
-    }
-    expect(el.textContent).toBe('Support me');
-  });
-
-  it('keeps the text of tables and other dropped wrappers', () => {
-    const el = parse(
-      sanitizeModDescriptionPreview(
-        '<table><tbody><tr><td>Cell text</td></tr></tbody></table><center>Centered</center>'
-      )
-    );
-    expect(el.querySelector('table')).toBeNull();
-    expect(el.textContent).toContain('Cell text');
-    expect(el.textContent).toContain('Centered');
-  });
-
-  it('keeps link titles', () => {
-    const el = parse(
-      sanitizeModDescriptionPreview('<a title="Discord" href="https://discord.com/x">Discord</a>')
-    );
-    expect(el.querySelector('a')?.getAttribute('title')).toBe('Discord');
-  });
-
-  it('returns null when nothing visible is left', () => {
-    expect(
-      sanitizeModDescriptionPreview(
-        '<p><a href="https://discord.com/x"><img src="https://i.imgur.com/a.png"></a>&nbsp;</p>'
-      )
-    ).toBeNull();
-    expect(sanitizeModDescriptionPreview('<script>alert(1)</script>')).toBeNull();
-    expect(sanitizeModDescriptionPreview('')).toBeNull();
-  });
-});
-
 describe('hook isolation', () => {
   it('does not change the shared DOMPurify instance', () => {
     sanitizeModDescription('<a href="https://example.com">x</a>');
-    sanitizeModDescriptionPreview('<a href="https://example.com">x</a>');
     const el = parse(DOMPurify.sanitize('<a href="https://example.com">x</a>'));
     expect(el.querySelector('a')?.hasAttribute('target')).toBe(false);
   });

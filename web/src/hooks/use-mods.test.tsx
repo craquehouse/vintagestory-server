@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import {
   useMods,
-  useLookupMod,
   useInstallMod,
   useEnableMod,
   useDisableMod,
@@ -67,25 +66,6 @@ const mockModsList = {
       },
     ],
     pending_restart: false,
-  },
-};
-
-const mockLookupResponse = {
-  status: 'ok',
-  data: {
-    slug: 'newmod',
-    name: 'New Mod',
-    author: 'ModAuthor',
-    description: 'A new mod description',
-    latest_version: '1.5.0',
-    downloads: 1000,
-    side: 'Both',
-    compatibility: {
-      status: 'compatible',
-      game_version: '1.21.3',
-      mod_version: '1.5.0',
-      message: 'Compatible with current server version',
-    },
   },
 };
 
@@ -182,124 +162,6 @@ describe('useMods', () => {
       expect(result.current.data?.data.mods[0].slug).toBe('smithingplus');
       expect(result.current.data?.data.mods[1].slug).toBe('carrycapacity');
       expect(result.current.data?.data.pendingRestart).toBe(false);
-    });
-  });
-});
-
-describe('useLookupMod', () => {
-  const originalFetch = globalThis.fetch;
-
-  beforeEach(() => {
-    vi.resetAllMocks();
-    import.meta.env.VITE_API_KEY = 'test-api-key';
-    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  describe('query behavior', () => {
-    it('fetches mod details from lookup endpoint when slug is provided', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLookupResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useLookupMod('newmod'), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8080/api/v1alpha1/mods/lookup/newmod',
-        expect.objectContaining({
-          headers: expect.any(Headers),
-        })
-      );
-    });
-
-    it('does not fetch when slug is empty', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLookupResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useLookupMod(''), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      // Should not be loading since query is disabled
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.fetchStatus).toBe('idle');
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('does not fetch when slug is null', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLookupResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useLookupMod(null), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      // Should not be loading since query is disabled
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.fetchStatus).toBe('idle');
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('encodes special characters in slug (URL handling)', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLookupResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      const queryClient = createTestQueryClient();
-      const { result } = renderHook(
-        () => useLookupMod('https://mods.vintagestory.at/newmod'),
-        {
-          wrapper: createWrapper(queryClient),
-        }
-      );
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(
-          '/api/v1alpha1/mods/lookup/https%3A%2F%2Fmods.vintagestory.at%2Fnewmod'
-        ),
-        expect.any(Object)
-      );
-    });
-
-    it('transforms response to camelCase', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(mockLookupResponse),
-      });
-      globalThis.fetch = mockFetch;
-
-      const queryClient = createTestQueryClient();
-      const { result } = renderHook(() => useLookupMod('newmod'), {
-        wrapper: createWrapper(queryClient),
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(result.current.data?.data.latestVersion).toBe('1.5.0');
-      expect(result.current.data?.data.compatibility.gameVersion).toBe('1.21.3');
-      expect(result.current.data?.data.compatibility.modVersion).toBe('1.5.0');
     });
   });
 });

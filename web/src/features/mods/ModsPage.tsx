@@ -37,7 +37,7 @@ function getActiveTab(pathname: string): string {
  * Mods page with tabbed navigation.
  *
  * Displays two tabs:
- * - Installed: Existing mod management (ModLookupInput, ModTable)
+ * - Installed: Existing mod management (ModTable)
  * - Browse: Mod discovery interface (placeholder for Stories 10.3+)
  *
  * The active tab is synced with the URL for direct linking and history navigation.

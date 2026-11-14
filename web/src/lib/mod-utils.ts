@@ -1,7 +1,7 @@
 /**
  * Mod-related utility functions.
  *
- * VSS-195: Extracted from ModLookupInput for reuse in BrowseTab search.
+ * VSS-195: Slug and URL detection for the BrowseTab search.
  */
 
 /**
@@ -30,61 +30,6 @@ const VALID_SLUG_PATTERN = /^[a-zA-Z0-9_-]+$/;
  */
 export function isValidSlug(input: string): boolean {
   return VALID_SLUG_PATTERN.test(input.trim());
-}
-
-/**
- * Extracts a mod slug from a URL or returns the input as-is if it's already a slug.
- *
- * Handles:
- * - Full URLs: https://mods.vintagestory.at/smithingplus
- * - URLs with query params: mods.vintagestory.at/modname?tab=files
- * - Protocol-less URLs: mods.vintagestory.at/smithingplus
- * - Plain slugs: smithingplus
- *
- * @param input - User input (slug or URL)
- * @returns Extracted slug (lowercase), or null if input is invalid
- *
- * @example Valid inputs:
- * extractSlug('smithingplus') // => 'smithingplus'
- * extractSlug('SmithingPlus') // => 'smithingplus'
- * extractSlug('https://mods.vintagestory.at/smithingplus') // => 'smithingplus'
- * extractSlug('mods.vintagestory.at/modname?tab=files') // => 'modname'
- *
- * @example Invalid inputs:
- * extractSlug('hello world') // => null (contains space)
- * extractSlug('@#$%') // => null (invalid characters)
- * extractSlug('') // => null (empty)
- */
-export function extractSlug(input: string): string | null {
-  const trimmed = input.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  // Handle full URLs with or without protocol
-  const urlMatch = trimmed.match(MODDB_URL_PATTERN);
-  if (urlMatch) {
-    return urlMatch[1].toLowerCase();
-  }
-
-  // Handle paths like "/modname" or "some/path/modname"
-  if (trimmed.includes('/')) {
-    const parts = trimmed.split('/');
-    const lastPart = parts[parts.length - 1];
-    // Only return if it looks like a valid slug (non-empty)
-    if (lastPart && isValidSlug(lastPart)) {
-      return lastPart.toLowerCase();
-    }
-    return null;
-  }
-
-  // Check if it's a valid slug directly
-  if (isValidSlug(trimmed)) {
-    return trimmed.toLowerCase();
-  }
-
-  return null;
 }
 
 /**

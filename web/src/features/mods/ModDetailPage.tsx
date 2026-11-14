@@ -503,7 +503,7 @@ export function ModDetailPage() {
     releases: mod.releases,
   });
 
-  // Sanitize HTML description for safe rendering (shared with the lookup preview, Story 16.4)
+  // Sanitize HTML description for safe rendering (shared sanitizer, Story 16.4)
   const sanitizedDescription = mod.description
     ? sanitizeModDescription(mod.description)
     : null;
