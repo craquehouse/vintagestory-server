@@ -1,6 +1,6 @@
 # Story 17.2: Install Picks the Right Release
 
-Status: review
+Status: done
 
 <!-- Implements FR179-FR181 and Epic 17 ADR-2. Beads: VSS-jhf, VSS-43b; also closes Story 17.1 review finding L1 (a release without a file reaching the download). Branch story/17-2-install-picks-the-right-release from main (139eef0, Story 17.1 merged). Not in scope: Story 17.3 (per-mod lock, archive mod ID check, modinfo key case), 17.4 (browse cards recognizing any installed mod ID, update status after install). No new dependencies. -->
 
@@ -316,6 +316,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 5.3 manual check (Docker stack, an agent-driven browser tab, no screenshots kept): Browse "carry on": the Carry On card shows Installed (already installed). Carry On detail page (installed section, installed mod ID = install mod ID): indicator "Installed: v2.0.0-rc.1"; the list holds only `carryon` releases, `v2.0.0-rc.1 (Installed)` then `v1.14.3 (Latest)` then the `2.0.0-pre.*` pre-releases; the Releases list's "Latest" badge is on 1.14.3 only. Instruments detail page: 19 options, all `instruments` versions (1.2.2 to 1.0.1, none from `vsinstruments`/`vsinstrumentsbase`), `v1.2.2 (Latest)` preselected, button "Install v1.2.2", "Latest" badge on 1.2.2; Install, dialog "Version: 1.2.2", confirm: the Installed tab listed Instruments `instruments` v1.2.2 (`instruments_1.2.2.zip`); removed. Browse "instruments", card Install: dialog "Version: 1.2.2"; confirm: the card shows Installed and the API lists `instruments` 1.2.2; removed. C&N Jewelry: 179 options, `v0.8.2 (Latest)` preselected, `v0.2.20 (no file)`, `v0.1.26 (no file)`, `v0.2.0 (no file)` disabled; nothing installed. Browser console: no entries. Afterwards the SHA-1 of every file in `data/serverdata/Mods` and `data/vsmanager/state` matched the snapshot taken before Task 5, the API lists the same five mods, no pending restart, game server still installed and not running. The maintainer's own hand check is left open in the PR.
 - Task 6: `just check` passed: ruff clean; pyright 0 errors, 3 warnings (the same pre-existing three); `just test-api` 2473 passed; `just test-web` 3155 passed, 4 skipped; script tests 23/23, 6/6, 12/12, 126/126, 23/23. The diff adds no lint or type suppression and no `cast`. Story status `review`; `just sprint set 17-2-install-picks-the-right-release review`; branch pushed, PR to `main`, PR link on `VSS-jhf` and `VSS-43b`.
 - Process note: running `just format-api` once in Task 1 reformatted 72 unrelated files (the repo is not `ruff format` clean); those changes were reverted before the commit and the formatter was not used again. Only `ruff check` is part of `just check`.
+- Code review fixes (2026-11-15): M1 `InstalledVersionSection` treats an offered update as an offer only when `versionChoices` lists that version as installable; otherwise the selection falls back to the installed version (disabled "Installed" button), there is no Update button, and the list shows the offer disabled with "(no file)", so it cannot be picked. A disabled item cannot be selected, so the action can never target a release without a file; no extra disabled-button branch was added. `services/mod_updates.py` is unchanged (Epic 14 rules). L1 the E2E cleanup refuses to run without a snapshot of the installed mods and checks each DELETE. L2 the browse card falls back to its slug for an empty `installModId` (`||`). L3 the Releases list key is `modidstr:version:index`; the index is included because a re-uploaded version repeats mod ID and version too. Red first for M1, L2 and L3 (the M1 test waits for the update status request so the offer has loaded). `just check`: API 2473 passed; web 3158 passed, 4 skipped; pyright 0 errors, 3 warnings. Rebuilt stack, three E2E specs: 10 passed, 1 skipped (Carry On already installed); `data/serverdata/Mods` unchanged.
 - Story created 2026-11-15: context analysis of `download_mod`, `download_release_file`, `lookup_mod`, `_compatibility_modid`, the version change path, the detail page's two version lists, the browse card and the install dialog, the mod database fixtures, Story 17.1 and its review, and Epic 17 ADR-2. The API tests that change were found by running the suite against a throwaway prototype of the selection and lookup change.
 
 ### File List
@@ -352,3 +353,21 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-15: Story 17.2 created (ready-for-dev).
 - 2026-11-15: Story 17.2 implemented (review). One function (`services/mod_release_selection.py`, Epic 17 ADR-2) picks the release an install downloads: only releases of the requested mod ID with a downloadable file, the newest stable one by default. Install and version change refuse a release without a file with 422 `MOD_RELEASE_NOT_DOWNLOADABLE` before any confirmation or download. The lookup adds `install_mod_id` and reports the plain-install pick as `latest_version` (nullable). The detail page lists only the install mod ID's releases, labels "(Latest)" and the "Latest" badge on that release, disables releases without a file and installs `installModId`; the browse card sends `installModId` and `latestVersion`, or the card slug and no version (never `'latest'`). New unit, API, web and E2E tests.
+- 2026-11-15: Code review (GLM 5.3 FlashX): approve, one medium and five low findings; M1, L1, L2 and L3 fixed, L4 and L5 accepted. Story 17.2 done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-15
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #157 head
+**Outcome:** Approve → resolved
+
+**Summary:** No high findings; all nine ACs are met apart from one gap in AC 5. Install and lookup share one selection function, a release without a file is refused before confirmation and before any download on both install and version change, and the web follows the lookup's `installModId` and `latestVersion`. The File List matches the diff, no suppression or `cast` was added, and the commit types give correct release notes. One medium finding: the installed section could still offer an update to a release without a file, which only the API's 422 stopped. Five low findings: four about robustness and tests (E2E cleanup without a snapshot, an empty `installModId`, duplicate React keys) and one about process (the maintainer hand check). M1 and L1-L3 were fixed with tests; L4 and L5 were accepted.
+
+### Action Items
+
+- [x] [Med] M1 the update offer can be a release without a file; the installed section showed an enabled "Update to v<that>" that only the API's 422 stopped (fixed, c046ea6: such an offer is not preselected and gets no Update button; the list shows it disabled with "(no file)"; `services/mod_updates.py` unchanged)
+- [x] [Low] L1 `mod-install-release.spec.ts`: if the `beforeAll` snapshot failed, `afterEach` could delete a pre-existing install (fixed, 4cbc501: cleanup requires the snapshot and asserts each DELETE)
+- [x] [Low] L2 `ModCard.tsx` posted `""` when `installModId` was an empty string (fixed, ada2b6f: falls back to the card slug)
+- [x] [Low] L3 `key={release.version}` gave duplicate React keys for an entry whose mod IDs share a version (fixed, 26ef27f: key includes mod ID and index)
+- [x] [Low] L4 a re-uploaded version whose first listing has no file shows disabled while an install by name succeeds (not changed: accepted, documented in Dev Notes "ADR-2 against the code")
+- [x] [Low] L5 the maintainer hand check is still open (not changed: stays an unticked box in the PR for the maintainer)
