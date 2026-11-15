@@ -172,55 +172,58 @@ async def apply_all_mod_updates(
     return ApiResponse(status="ok", data=asdict(summary))
 
 
+BrowseSide = Literal["client", "server", "both"]
+BrowseType = Literal["mod", "externaltool", "other"]
+
+_BROWSE_SIDES: dict[str, BrowseSide] = {"client": "client", "server": "server", "both": "both"}
+_BROWSE_TYPES: dict[str, BrowseType] = {
+    "mod": "mod",
+    "externaltool": "externaltool",
+    "other": "other",
+}
+
+
+def _browse_side(mod: ModDict) -> BrowseSide:
+    """A normalized mod's side, lowercased; empty or unknown shows as "both"."""
+    return _BROWSE_SIDES.get(mod["side"].lower(), "both")
+
+
+def _browse_type(mod: ModDict) -> BrowseType:
+    """A normalized mod's type, lowercased; empty or unknown shows as "mod"."""
+    return _BROWSE_TYPES.get(mod["type"].lower(), "mod")
+
+
 def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
-    """Convert a mod dict from the API to a ModBrowseItem.
+    """Convert a normalized mod dict from the API to a ModBrowseItem.
 
     Args:
-        mod: Raw mod dictionary from VintageStory mod database API.
+        mod: Mod dictionary from the VintageStory mod database API, normalized by
+            `ModApiClient` (Story 17.1, Epic 17 ADR-1).
 
     Returns:
         ModBrowseItem with normalized field names.
     """
     # Get slug from modidstrs[0] - this is what the /api/mod/{slug} endpoint expects
     # VSS-brs: urlalias differs from modidstrs for some mods, causing lookup failures
-    # Handle both missing key and null value with `or []`
-    modidstrs: list[str] = mod.get("modidstrs") or []
-    slug: str = modidstrs[0] if modidstrs else str(mod.get("modid", "unknown"))
-
-    # Keep urlalias separate for website URL construction
-    urlalias = mod.get("urlalias")
-
-    # Normalize side value to lowercase
-    # Type narrowing: pyright can't infer that the `in` check guarantees side_raw
-    # is one of the literal values. We've validated it's in the allowed set.
-    side_raw = str(mod.get("side", "both")).lower()
-    side: Literal["client", "server", "both"] = "both"
-    if side_raw in ("client", "server", "both"):
-        side = side_raw  # type: ignore[assignment]  # validated by `in` check above
-
-    # Normalize type value
-    # Type narrowing: pyright can't infer that the `in` check guarantees type_raw
-    # is one of the literal values. We've validated it's in the allowed set.
-    type_raw = str(mod.get("type", "mod")).lower()
-    mod_type: Literal["mod", "externaltool", "other"] = "mod"
-    if type_raw in ("mod", "externaltool", "other"):
-        mod_type = type_raw  # type: ignore[assignment]  # validated by `in` check above
+    modidstrs: list[str] = mod["modidstrs"]
+    slug: str = modidstrs[0] if modidstrs else (str(mod["modid"]) if mod["modid"] else "unknown")
 
     return ModBrowseItem(
         slug=slug,
-        urlalias=urlalias,
-        asset_id=int(mod.get("assetid", 0)),
-        name=str(mod.get("name", "")),
-        author=str(mod.get("author", "")),
-        summary=mod.get("summary"),
-        downloads=int(mod.get("downloads", 0)),
-        follows=int(mod.get("follows", 0)),
-        trending_points=int(mod.get("trendingpoints", 0)),
-        side=side,
-        mod_type=mod_type,
-        logo_url=mod.get("logo"),
-        tags=mod.get("tags", []),
-        last_released=mod.get("lastreleased"),
+        # Kept separate from the slug for website URL construction
+        urlalias=mod["urlalias"],
+        asset_id=mod["assetid"],
+        name=mod["name"],
+        author=mod["author"],
+        summary=mod["summary"],
+        downloads=mod["downloads"],
+        follows=mod["follows"],
+        trending_points=mod["trendingpoints"],
+        side=_browse_side(mod),
+        mod_type=_browse_type(mod),
+        logo_url=mod["logo"],
+        tags=mod["tags"],
+        last_released=mod["lastreleased"],
     )
 
 
@@ -333,17 +336,13 @@ async def browse_mods(
         # Filter by search term if provided
         filtered_mods = search_mods(all_mods, search or "")
 
-        # Filter by side if provided
+        # Filter by side if provided (the card uses the same helper, so they agree)
         if side:
-            filtered_mods = [
-                m for m in filtered_mods if str(m.get("side", "both")).lower() == side
-            ]
+            filtered_mods = [m for m in filtered_mods if _browse_side(m) == side]
 
         # Filter by mod_type if provided
         if mod_type:
-            filtered_mods = [
-                m for m in filtered_mods if str(m.get("type", "mod")).lower() == mod_type
-            ]
+            filtered_mods = [m for m in filtered_mods if _browse_type(m) == mod_type]
 
         # Filter by tags if provided (OR logic - mod must have at least one matching tag)
         if tags:
@@ -352,9 +351,7 @@ async def browse_mods(
                 filtered_mods = [
                     m
                     for m in filtered_mods
-                    if any(
-                        t.lower() in tag_list for t in m.get("tags", [])
-                    )
+                    if any(t.lower() in tag_list for t in m["tags"])
                 ]
 
         # Sort mods
@@ -524,7 +521,7 @@ async def list_mod_tags(
         # Extract unique tags
         tag_set: set[str] = set()
         for mod in all_mods:
-            for tag in mod.get("tags", []):
+            for tag in mod["tags"]:
                 tag_set.add(tag.lower())
 
         # Sort alphabetically

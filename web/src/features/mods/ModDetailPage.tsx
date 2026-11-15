@@ -28,6 +28,9 @@
  * compatible) and the header version describe the release the API evaluated: the
  * newest release of the installed mod ID, or of the newest release's mod ID when
  * none is installed (Epic 16 ADR-2).
+ *
+ * Story 17.1: The error states (failed lookup, no mod, incomplete details) show the
+ * same Back to Browse button as the loaded page, with the same target and state.
  */
 
 import { useState } from 'react';
@@ -133,16 +136,39 @@ function ModDetailSkeleton() {
 }
 
 /**
- * Error state for the mod detail page.
+ * Back to Browse button, shared by the loaded page and its error states (Story 17.1).
  */
-function ModDetailError({ message }: { message: string }) {
+function BackToBrowseButton({ onClick }: { onClick: () => void }) {
   return (
-    <Card className="border-destructive" data-testid="mod-detail-error">
-      <CardContent className="py-8 text-center">
-        <p className="text-destructive font-medium">Failed to load mod details</p>
-        <p className="text-muted-foreground text-sm mt-1">{message}</p>
-      </CardContent>
-    </Card>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1"
+      onClick={onClick}
+      data-testid="mod-detail-back"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Back to Browse
+    </Button>
+  );
+}
+
+/**
+ * Error state for the mod detail page, with a way back to the browser (Story 17.1).
+ */
+function ModDetailError({ message, onBack }: { message: string; onBack: () => void }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <BackToBrowseButton onClick={onBack} />
+      </div>
+      <Card className="border-destructive" data-testid="mod-detail-error">
+        <CardContent className="py-8 text-center">
+          <p className="text-destructive font-medium">Failed to load mod details</p>
+          <p className="text-muted-foreground text-sm mt-1">{message}</p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -474,7 +500,7 @@ export function ModDetailPage() {
   if (error) {
     return (
       <div className="container mx-auto py-6 max-w-4xl">
-        <ModDetailError message={error.message} />
+        <ModDetailError message={error.message} onBack={handleBack} />
       </div>
     );
   }
@@ -483,7 +509,7 @@ export function ModDetailPage() {
   if (!mod) {
     return (
       <div className="container mx-auto py-6 max-w-4xl">
-        <ModDetailError message="Mod not found" />
+        <ModDetailError message="Mod not found" onBack={handleBack} />
       </div>
     );
   }
@@ -492,7 +518,7 @@ export function ModDetailPage() {
   if (!mod.compatibility || !Array.isArray(mod.tags) || !Array.isArray(mod.releases)) {
     return (
       <div className="container mx-auto py-6 max-w-4xl">
-        <ModDetailError message="The server returned incomplete mod details" />
+        <ModDetailError message="The server returned incomplete mod details" onBack={handleBack} />
       </div>
     );
   }
@@ -512,16 +538,7 @@ export function ModDetailPage() {
     <div className="container mx-auto py-6 max-w-4xl space-y-6" data-testid="mod-detail-page">
       {/* Navigation: Back button and Breadcrumbs */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1"
-          onClick={handleBack}
-          data-testid="mod-detail-back"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Browse
-        </Button>
+        <BackToBrowseButton onClick={handleBack} />
 
         {/* Breadcrumb navigation */}
         <nav

@@ -373,6 +373,20 @@ class TestModRelease:
             "modidstr": "smithingplus",
         }
 
+    def test_release_without_a_file(self) -> None:
+        """file_id is None for a release with no downloadable file (Story 17.1)."""
+        release = ModRelease(
+            version="0.2.20",
+            filename="",
+            file_id=None,
+            downloads=0,
+            game_versions=["1.19.3"],
+            created="2024-03-01 10:00:00",
+        )
+
+        assert release.file_id is None
+        assert release.model_dump(mode="json")["file_id"] is None
+
 
 class TestModLookupResponse:
     """Tests for ModLookupResponse model (lookup endpoint response)."""

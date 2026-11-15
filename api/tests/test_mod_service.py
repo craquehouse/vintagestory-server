@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
 from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
@@ -18,6 +19,20 @@ from vintagestory_api.services.mods import (
     get_mod_service,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+
+def all_null_mod() -> dict[str, object]:
+    """A mod entry with null in every field the API reads (Story 17.1).
+
+    Built from the normalizer's field tables, so a field added there is covered here.
+    It has one all-null release (a lookup needs one) and `tags` `[None, "Utility"]`.
+    """
+    mod: dict[str, object] = {field: None for field in MOD_FIELDS}
+    mod["releases"] = [{field: None for field in RELEASE_FIELDS}]
+    mod["tags"] = [None, "Utility"]
+    return mod
 
 
 def create_mod_zip(
@@ -1673,6 +1688,76 @@ class TestModServiceLookupMod:
         assert "1.5.0" in message
         assert "not compatible with 1.21.x" in message
         assert "Installation may cause issues" in message
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_with_releases_without_a_file(
+        self, lookup_service: ModService
+    ) -> None:
+        """A release with `"fileid": null` is listed with file_id None (Story 17.1, VSS-a0r)."""
+        import respx
+        from httpx import Response
+
+        payload = json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+                return_value=Response(200, json=payload)
+            )
+            result = await lookup_service.lookup_mod("canjewelry")
+
+        raw_releases = payload["mod"]["releases"]
+        assert [r.version for r in result.releases] == [r["modversion"] for r in raw_releases]
+        no_file = [r.version for r in result.releases if r.file_id is None]
+        assert no_file == ["0.2.20", "0.1.26", "0.2.0"]
+        for release, raw in zip(result.releases, raw_releases, strict=True):
+            if raw["fileid"] is not None:
+                assert release.file_id == raw["fileid"]
+        changelogs = {r.version: r.changelog for r in result.releases}
+        assert changelogs["0.3.7"] is None
+        assert result.tags == ["Utility", "Cosmetics", "Crafting"]
+        assert result.downloads == sum(r["downloads"] for r in raw_releases)
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_with_null_in_every_field(
+        self, lookup_service: ModService
+    ) -> None:
+        """An entry with null in every field looks up with the defaults (Story 17.1)."""
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/allnull").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": all_null_mod()})
+            )
+            result = await lookup_service.lookup_mod("allnull")
+
+        assert result.slug == "allnull"
+        assert result.urlalias is None
+        assert result.asset_id == 0
+        assert result.name == "allnull"
+        assert result.author == "Unknown"
+        assert result.description is None
+        assert result.latest_version == "unknown"
+        assert result.downloads == 0
+        assert result.follows == 0
+        assert result.side == "Both"
+        assert result.tags == ["Utility"]
+        assert result.logo_url is None
+        assert result.homepage_url is None
+        assert result.source_url is None
+        assert result.created is None
+        assert result.last_released is None
+        assert result.compatibility.status == "not_verified"
+        assert result.compatibility.mod_version == "unknown"
+        assert len(result.releases) == 1
+        release = result.releases[0]
+        assert release.version == "unknown"
+        assert release.filename == ""
+        assert release.file_id is None
+        assert release.downloads == 0
+        assert release.game_versions == []
+        assert release.created == ""
+        assert release.changelog is None
+        assert release.modidstr == ""
 
 
 class TestModServiceCleanup:

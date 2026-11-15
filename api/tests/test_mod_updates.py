@@ -12,6 +12,7 @@ import respx
 from httpx import Response
 
 from vintagestory_api.models.mod_updates import Compatibility, StoredModRecord, StoredRelease
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
 from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import CompatibilityStatus, ModApiClient
 from vintagestory_api.services.mod_updates import (
@@ -431,14 +432,25 @@ class TestModUpdateCheck:
 
 
 MALFORMED_PAYLOADS: list[Any] = [
-    {
-        "statuscode": "200",
-        "mod": {"releases": [{"modversion": "1", "modidstr": "bad", "fileid": "abc"}]},
-    },
-    {"statuscode": "200", "mod": {"releases": ["oops"]}},
-    {"statuscode": "200", "mod": {"releases": {"a": 1}}},
     {"statuscode": "200", "mod": [1, 2]},
-    {"statuscode": "200", "mod": {"releases": [{"modversion": "1", "created": {"x": 1}}]}},
+]
+
+# Story 17.1 (Epic 17 ADR-1): a wrong type becomes the field's default and a release
+# that is not an object is dropped, so these payloads no longer fail the check.
+NORMALIZED_PAYLOADS: list[tuple[Any, list[StoredRelease]]] = [
+    (
+        {
+            "statuscode": "200",
+            "mod": {"releases": [{"modversion": "1", "modidstr": "bad", "fileid": "abc"}]},
+        },
+        [StoredRelease(modversion="1", modidstr="bad", fileid=0, created="")],
+    ),
+    ({"statuscode": "200", "mod": {"releases": ["oops"]}}, []),
+    ({"statuscode": "200", "mod": {"releases": {"a": 1}}}, []),
+    (
+        {"statuscode": "200", "mod": {"releases": [{"modversion": "1", "created": {"x": 1}}]}},
+        [StoredRelease(modversion="1", modidstr="", created="")],
+    ),
 ]
 
 
@@ -459,6 +471,63 @@ class TestCheckRobustness:
 
         assert summary.failed_slugs == ["bad"]
         assert ModUpdateStore(tmp_path / "state").get("carryon") is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("payload", "expected"), NORMALIZED_PAYLOADS)
+    async def test_payload_with_wrong_types_is_normalized(
+        self, tmp_path: Path, payload: Any, expected: list[StoredRelease]
+    ) -> None:
+        respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, json=payload))
+        service, _ = make_service(tmp_path, [installed("bad", "1")])
+
+        summary = await service.check()
+
+        assert summary.failed_slugs == []
+        stored = ModUpdateStore(tmp_path / "state").get("bad")
+        assert stored is not None
+        assert stored.found is True
+        assert stored.error is None
+        assert stored.releases == expected
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_releases_without_a_file_are_stored(self, tmp_path: Path) -> None:
+        """canjewelry: three releases have `"fileid": null`; stored with fileid 0 (Story 17.1)."""
+        respx.get(MOD_URL.format("canjewelry")).mock(return_value=fixture_response("canjewelry"))
+        service, _ = make_service(tmp_path, [installed("canjewelry", "0.8.2")])
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        stored = ModUpdateStore(tmp_path / "state").get("canjewelry")
+        assert stored is not None
+        assert stored.error is None
+        assert len(stored.releases) == 9
+        no_file = [r.modversion for r in stored.releases if r.fileid == 0]
+        assert no_file == ["0.2.20", "0.1.26", "0.2.0"]
+        assert stored.releases[0].fileid == 138875
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_entry_with_null_in_every_field_is_checked(self, tmp_path: Path) -> None:
+        """An entry with null in every field the API reads does not fail the check (Story 17.1)."""
+        mod: dict[str, Any] = {field: None for field in MOD_FIELDS}
+        mod["releases"] = [{field: None for field in RELEASE_FIELDS}]
+        mod["tags"] = [None, "Utility"]
+        respx.get(MOD_URL.format("allnull")).mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+        service, _ = make_service(tmp_path, [installed("allnull", "1")])
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        stored = ModUpdateStore(tmp_path / "state").get("allnull")
+        assert stored is not None
+        assert stored.releases == [
+            StoredRelease(modversion="", modidstr="", tags=[], fileid=0, filename="", created="")
+        ]
 
     @respx.mock
     @pytest.mark.asyncio

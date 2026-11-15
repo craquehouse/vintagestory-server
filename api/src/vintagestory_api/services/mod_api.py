@@ -11,11 +11,18 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import urlparse
 
 import httpx
 import structlog
+
+from vintagestory_api.models.moddb import (
+    ModDict,
+    ReleaseDict,
+    normalize_mod,
+    normalize_mod_list,
+)
 
 if TYPE_CHECKING:
     from vintagestory_api.services.cache_eviction import CacheEvictionService
@@ -24,10 +31,6 @@ logger = structlog.get_logger()
 
 # Type alias for compatibility status
 CompatibilityStatus = Literal["compatible", "not_verified", "incompatible"]
-
-# Type aliases for API response objects
-ModDict = dict[str, Any]
-ReleaseDict = dict[str, Any]
 
 # Sort options for browse endpoint
 SortOption = Literal["downloads", "trending", "recent", "name"]
@@ -308,8 +311,15 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
+                # Story 17.1 (Epic 17 ADR-1): every entry is normalized where it enters
+                mod = normalize_mod(data.get("mod"))
+                if mod is None:
+                    logger.error(
+                        "mod_api_invalid_body", slug=slug, http_status=response.status_code
+                    )
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 logger.debug("mod_lookup_success", slug=slug)
-                return data["mod"]
+                return mod
 
             if data.get("statuscode") == "404":
                 logger.debug("mod_not_found", slug=slug)
@@ -375,17 +385,17 @@ class ModApiClient:
         if mod is None:
             raise ModNotFoundError(slug)
 
-        releases = mod.get("releases", [])
+        releases: list[ReleaseDict] = mod["releases"]
         if not releases:
             raise ModNotFoundError(slug)
 
         # 2. Select release
         if version is None:
             release = releases[0]  # Latest (releases are newest-first)
-            logger.debug("selected_latest_release", slug=slug, version=release.get("modversion"))
+            logger.debug("selected_latest_release", slug=slug, version=release["modversion"])
         else:
             release = next(
-                (r for r in releases if r.get("modversion") == version),
+                (r for r in releases if r["modversion"] == version),
                 None,
             )
             if release is None:
@@ -399,7 +409,7 @@ class ModApiClient:
             filename=path.name,
             version=release["modversion"],
             release=release,
-            asset_id=int(mod.get("assetid", 0)),
+            asset_id=mod["assetid"],
         )
 
     async def download_release_file(self, slug: str, fileid: int, filename: str) -> Path:
@@ -496,7 +506,7 @@ class ModApiClient:
             force_refresh: If True, bypass the cache and fetch fresh data.
 
         Returns:
-            List of mod dictionaries from the API.
+            List of normalized mod dictionaries from the API.
 
         Raises:
             ExternalApiError: If the mod API is unavailable.
@@ -513,7 +523,12 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
-                mods = data.get("mods", [])
+                # Story 17.1 (Epic 17 ADR-1): normalized before it is cached. A missing
+                # or non-list `mods` is an error, not an empty (and cached) list.
+                mods = normalize_mod_list(data.get("mods"))
+                if mods is None:
+                    logger.error("mod_api_invalid_body_browse")
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 self._browse_cache = mods
                 self._browse_cache_time = datetime.now()
                 logger.debug("browse_cache_refreshed", count=len(mods))
@@ -564,7 +579,7 @@ class ModApiClient:
             version_tagid: The game version tagid to filter by.
 
         Returns:
-            List of mod dictionaries compatible with the specified version.
+            List of normalized mod dictionaries compatible with the specified version.
 
         Raises:
             ExternalApiError: If the mod API is unavailable.
@@ -599,7 +614,13 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
-                mods = data.get("mods", [])
+                # Story 17.1 (Epic 17 ADR-1): normalized where it enters
+                mods = normalize_mod_list(data.get("mods"))
+                if mods is None:
+                    logger.error(
+                        "mod_api_invalid_body_mods_by_version", version_tagid=version_tagid
+                    )
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 logger.debug(
                     "mods_by_version_fetched",
                     version_tagid=version_tagid,
@@ -747,18 +768,18 @@ class ModApiClient:
 
 
 def _get_downloads(m: ModDict) -> int:
-    """Get downloads count from mod dict."""
-    return int(m.get("downloads", 0))
+    """Get downloads count from a normalized mod dict."""
+    return m["downloads"]
 
 
 def _get_trending(m: ModDict) -> int:
-    """Get trending points from mod dict."""
-    return int(m.get("trendingpoints", 0))
+    """Get trending points from a normalized mod dict."""
+    return m["trendingpoints"]
 
 
 def _get_recent(m: ModDict) -> str:
-    """Get last released date from mod dict."""
-    return str(m.get("lastreleased", ""))
+    """Get last released date from a normalized mod dict (optional, so "" when unset)."""
+    return m["lastreleased"] or ""
 
 
 def _name_sort_key(m: ModDict) -> tuple[str, str, int]:
@@ -782,7 +803,7 @@ def sort_mods(
     """Sort a list of mods by the specified criteria.
 
     Args:
-        mods: List of mod dictionaries from the API.
+        mods: List of normalized mod dictionaries (`ModApiClient.get_all_mods`).
         sort_by: Sort criteria - "downloads", "trending", "recent", or "name".
 
     Returns:
@@ -805,7 +826,7 @@ def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
     Searches across name, author, summary, and tags (case-insensitive).
 
     Args:
-        mods: List of mod dictionaries from the API.
+        mods: List of normalized mod dictionaries (`ModApiClient.get_all_mods`).
         search: Search term to filter by. Empty string returns all mods.
 
     Returns:
@@ -818,26 +839,26 @@ def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
     results: list[ModDict] = []
     for mod in mods:
         # Check name
-        name = str(mod.get("name", "")).lower()
+        name: str = mod["name"].lower()
         if search in name:
             results.append(mod)
             continue
 
         # Check author
-        author = str(mod.get("author", "")).lower()
+        author: str = mod["author"].lower()
         if search in author:
             results.append(mod)
             continue
 
         # Check summary
-        summary = str(mod.get("summary") or "").lower()
+        summary: str = (mod["summary"] or "").lower()
         if search in summary:
             results.append(mod)
             continue
 
         # Check tags
-        tags = mod.get("tags", [])
-        if any(search in str(tag).lower() for tag in tags):
+        tags: list[str] = mod["tags"]
+        if any(search in tag.lower() for tag in tags):
             results.append(mod)
             continue
 

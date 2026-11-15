@@ -153,7 +153,8 @@ export interface ModCompatibility {
 export interface ModRelease {
   version: string;
   filename: string;
-  fileId: number;
+  /** File ID for the download endpoint; null when the release has no downloadable file (Story 17.1). */
+  fileId: number | null;
   downloads: number;
   gameVersions: string[];
   created: string;

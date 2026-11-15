@@ -275,6 +275,8 @@ curl -O https://mods.vintagestory.at/download?fileid=59176
 | `releases` | array | Release objects (newest first) |
 | `screenshots` | array | Screenshot objects |
 
+`tags` can contain `null` elements: `canjewelry`'s entry `tags` was `["Utility", "Cosmetics", "Crafting", null]` on 2026-11-15 (the same mod in the `/api/mods` listing had no `null`). The API normalizes every entry once, where it enters (Epic 17 ADR-1).
+
 ### Release Object
 
 | Field | Type | Description |
@@ -289,6 +291,8 @@ curl -O https://mods.vintagestory.at/download?fileid=59176
 | `modversion` | string | Semantic version string |
 | `created` | string | Release timestamp |
 | `changelog` | string | HTML-formatted changelog |
+
+`fileid` can be `null`, with `filename` and `mainfile` `""`: such a release has no downloadable file (`canjewelry` releases `0.2.20`, `0.1.26` and `0.2.0`, 2026-11-15). `changelog` can be `null` (`canjewelry` `0.3.7`).
 
 ### Screenshot Object
 

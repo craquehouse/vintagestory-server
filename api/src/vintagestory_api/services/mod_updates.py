@@ -10,7 +10,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Literal, Protocol
 
 import structlog
 from pydantic import ValidationError
@@ -24,6 +24,7 @@ from vintagestory_api.models.mod_updates import (
     UnknownReason,
     UpdateState,
 )
+from vintagestory_api.models.moddb import ModDict
 from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
@@ -487,9 +488,10 @@ class ModUpdateService:
             data = await self._mod_source.api_client.get_mod(slug)
             record = _record_from_payload(data)
         except (ExternalApiError, ValueError, TypeError, KeyError, AttributeError) as e:
-            # ValueError: a non-JSON body, or pydantic validation errors. TypeError: payloads
-            # with the wrong shape. KeyError and AttributeError: raised inside get_mod() for
-            # a body that is not an object or has no "mod" key.
+            # ExternalApiError: get_mod() could not get a usable entry (API unavailable, a
+            # body that is not JSON or not an object, no `mod` object, an unexpected status).
+            # get_mod() normalizes the entry (Epic 17 ADR-1), so no known payload raises the
+            # others; they stay as a backstop, because one mod must never fail the whole check.
             logger.warning("mod_update_lookup_failed", slug=slug, error=str(e))
             previous = self._store.get(slug)
             if previous is not None:
@@ -503,22 +505,16 @@ class ModUpdateService:
         return True
 
 
-def _record_from_payload(data: object) -> StoredModRecord:
+def _record_from_payload(data: ModDict | None) -> StoredModRecord:
     """Build a stored record from a get_mod() result (None means not found).
 
-    Raises:
-        TypeError: If the payload or its release list has the wrong shape.
-        ValueError: If a release has unusable field values.
+    `data` is normalized by get_mod (Epic 17 ADR-1), so its releases are a list of
+    release objects.
     """
     now = datetime.now(UTC)
     if data is None:
         return StoredModRecord(checked_at=now, found=False)
-    if not isinstance(data, dict):
-        raise TypeError("mod payload is not an object")
-    raw_releases: object = cast(dict[str, Any], data).get("releases") or []
-    if not isinstance(raw_releases, list):
-        raise TypeError("mod releases is not a list")
-    releases = [StoredRelease.from_api(r) for r in cast(list[object], raw_releases)]
+    releases = [StoredRelease.from_api(r) for r in data["releases"]]
     return StoredModRecord(checked_at=now, found=True, releases=releases)
 
 
