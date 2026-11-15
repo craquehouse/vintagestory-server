@@ -1,6 +1,6 @@
 # Story 17.1: Mod Detail Pages Cannot Fail on Bad Data
 
-Status: review
+Status: done
 
 <!-- Implements FR177-FR178 and Epic 17 ADR-1. Beads: VSS-a0r (P1, production bug on v0.1.0-rc.3), VSS-fv7. Epic 17's first story; v0.1.0-rc.4 is expected right after it. Branch from docs/epic-17-mod-data-fixes (1f87ced, the Epic 17 planning commits). Not in scope: Story 17.2 (release selection, refusing a release without a file, "(Latest)", install_mod_id), 17.4 (browse mod_ids), 17.7 (Mods tabs, page clamp). No new dependencies. -->
 
@@ -67,9 +67,9 @@ so that **one odd release does not hide a mod I want to install**.
   - [x] 5.2: `just docker restart` (rebuild from this branch); run the spec (`cd web && bunx playwright test e2e/mod-detail-bad-data.spec.ts`, admin key from `.env`)
   - [x] 5.3: Manual check: in the mod browser search "jewelry", open C&N Jewelry: the page loads, the releases list includes v0.2.20, v0.1.26 and v0.2.0, the version dropdown opens; Back to Browse returns to the search. Install nothing, so `./data` is unchanged. Browser console clean. Record results in the Dev Agent Record; screenshots stay outside the repo unless the server name (`header span.font-semibold`) is masked
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
+- [x] Task 6: Quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` (lint, typecheck, all tests) passes; the diff adds no suppression and removes the two at `routers/mods.py:199` and `:207`
-  - [ ] 6.2: Story status `review`, `just sprint set 17-1-mod-detail-pages-cannot-fail-on-bad-data review`, PR to `main` (it also carries the two Epic 17 planning commits, 88cfd2d and 1f87ced), PR link on `VSS-a0r` and `VSS-fv7`
+  - [x] 6.2: Story status `review`, `just sprint set 17-1-mod-detail-pages-cannot-fail-on-bad-data review`, PR to `main` (it also carries the two Epic 17 planning commits, 88cfd2d and 1f87ced), PR link on `VSS-a0r` and `VSS-fv7`
 
 ## Dev Notes
 
@@ -122,7 +122,7 @@ so that **one odd release does not hide a mod I want to install**.
 | `models/mod_updates.py:51-78` `from_api` | `data.get(k) or default`, its own list handling | `normalize_release`, then `_clean_text`; `fileid` `None` → `0` |
 | `mod_updates.py:516-521`, `mods.py:997-1003` | `isinstance` checks on the payload and its releases | `mod["releases"]` |
 
-- **Display fallbacks stay** (they are presentation, not null handling, and change nothing for valid data): `name` → the slug, `author` → `"Unknown"`, a release `modversion` → `"unknown"` (an empty `SelectItem` value would break the web's Radix Select), `side` → `"Both"` (`mod["side"].title() if mod["side"] else "Both"`). Browse cards keep `""` for name and author, as today. The browse slug falls back to `str(mod["modid"])` when `modidstrs` is empty, and to `"unknown"` when `modid` is also 0, as today.
+- **Display fallbacks stay** (they are presentation, not null handling, and change nothing for valid data): `name` → the slug, `author` → `"Unknown"`, a release `modversion` → `"unknown"` (an empty `SelectItem` value would break the web's Radix Select), `side` → `"Both"` (`mod["side"].title() if mod["side"] else "Both"`). Browse cards keep `""` for name and author, as today. The browse slug falls back to `str(mod["modid"])` when `modidstrs` is empty, as today, and to `"unknown"` when `modid` is also 0 (a deliberate small change: the old code gave the slug `"0"` there, which no lookup can use).
 - **Already null-safe; leave as is:** `_compatibility_modid` (`mods.py:472-492`), `supported_game_versions` (`mod_compatibility.py:50-79`), `_name_sort_key` (`mod_api.py:764-775`, Story 16.8) and `check_compatibility` (`mod_api.py:169-207`; it also receives `{"tags": ...}` built from `StoredRelease`, and `not tags` handles a missing list). Do not churn them.
 - **Install of a release without a file is Story 17.2.** After this story the canjewelry dropdown lists `0.2.20`; choosing it reaches `download_release_file` with `fileid=None` and `filename=""`, and `safe_release_filename("")` raises, so the install fails with `DownloadError` ("Unusable release filename") before any download request. Do not add a guard here; ADR-2 decision 4 defines that error.
 
@@ -227,6 +227,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 6: `just check` passed: ruff clean; pyright 0 errors, 3 warnings (the same pre-existing three as the baseline); `just test-api` 2401 passed; `just test-web` 3139 passed, 4 skipped; script tests 23/23, 6/6, 12/12, 126/126, 23/23. The diff adds no suppression and removes the two `# type: ignore[assignment]` in `routers/mods.py`. Story status `review`; `just sprint set 17-1-mod-detail-pages-cannot-fail-on-bad-data review`.
 - Not done here, by instruction: 6.2's PR to `main` and the PR link on `VSS-a0r` and `VSS-fv7` are left to the controller (no push or PR from the dev agent), so 6.2 and Task 6 stay unchecked until then. Beads were not changed.
 - Story created 2026-11-15: context analysis of `ModApiClient`'s entry points, the lookup, browse, tag and update check readers, `StoredRelease.from_api`, the detail page's error states, the live `canjewelry` entry and listing, Stories 16.1, 16.3 and 16.8, and Epic 17 ADR-1.
+- Task 6.2 (controller): PR #156 to `main`, linked on `VSS-a0r` and `VSS-fv7`.
 
 ### File List
 
@@ -256,3 +257,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - 2026-11-15: Story 17.1 created (ready-for-dev).
 - 2026-11-15: Story 17.1 implemented (review). Mod database entries and listings are normalized once in `ModApiClient` (`models/moddb.py`, Epic 17 ADR-1); a release without a file is listed with `file_id: null` (`int | None`, web `number | null`), so `canjewelry` opens; browse, sorts, filters, search, the tag list and the update check read normalized data; a listing without a `mods` list is a 502; `StoredRelease.from_api` uses the same release normalizer; the two `# type: ignore` in the browse item are gone. The mod detail error states have a Back to Browse button with the loaded page's target. New `canjewelry` fixture, unit, API and web tests, and an E2E spec.
+- 2026-11-15: Code review (GLM 5.3 FlashX): approve, four low findings; three fixed, one handed to Story 17.2. Story 17.1 done.
+
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-15
+**Reviewer:** GLM 5.3 FlashX via OpenCode (OpenRouter), delegated read-only review of the PR #156 head
+**Outcome:** Approve → resolved
+
+**Summary:** All 5 ACs pass and every checked task is done. The File List matches the diff. On the PR head the API tests passed (2,401), the web tests passed (3,139 passed, 4 skipped), pyright reported 0 errors and lint was clean. No remaining read of mod database data bypasses the normalizer other than the four the story lists; a listing without a `mods` list is never cached; normalization runs once per fetch; no suppression was added and two were removed; the commit types give correct release notes. The Docker E2E run was not repeated by the reviewer. Four low findings: three fixed, one handed to Story 17.2.
+
+### Action Items
+
+- [x] [Low] L1 `download_release_file(fileid: int)` can receive `None` for a release without a file; today the empty filename stops it before any request (handed to Story 17.2, which refuses such a release per ADR-2 decision 4)
+- [x] [Low] L2 Dev Notes said the browse slug fallback for `modid` 0 was "as today"; it changed from `"0"` to `"unknown"` (fixed in the Dev Notes)
+- [x] [Low] L3 no test fed a non-empty unrecognized side or type into the filters (fixed, `test_unrecognized_side_and_type_match_the_default_filters`)
+- [x] [Low] L4 `get_all_mods` and `get_mods_by_version` docstrings did not say the lists are normalized (fixed)
