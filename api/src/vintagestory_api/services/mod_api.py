@@ -17,7 +17,11 @@ from urllib.parse import urlparse
 import httpx
 import structlog
 
-from vintagestory_api.models.moddb import ModDict, ReleaseDict
+from vintagestory_api.models.moddb import (
+    ModDict,
+    ReleaseDict,
+    normalize_mod,
+)
 
 if TYPE_CHECKING:
     from vintagestory_api.services.cache_eviction import CacheEvictionService
@@ -306,8 +310,15 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
+                # Story 17.1 (Epic 17 ADR-1): every entry is normalized where it enters
+                mod = normalize_mod(data.get("mod"))
+                if mod is None:
+                    logger.error(
+                        "mod_api_invalid_body", slug=slug, http_status=response.status_code
+                    )
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 logger.debug("mod_lookup_success", slug=slug)
-                return data["mod"]
+                return mod
 
             if data.get("statuscode") == "404":
                 logger.debug("mod_not_found", slug=slug)
@@ -373,17 +384,17 @@ class ModApiClient:
         if mod is None:
             raise ModNotFoundError(slug)
 
-        releases = mod.get("releases", [])
+        releases: list[ReleaseDict] = mod["releases"]
         if not releases:
             raise ModNotFoundError(slug)
 
         # 2. Select release
         if version is None:
             release = releases[0]  # Latest (releases are newest-first)
-            logger.debug("selected_latest_release", slug=slug, version=release.get("modversion"))
+            logger.debug("selected_latest_release", slug=slug, version=release["modversion"])
         else:
             release = next(
-                (r for r in releases if r.get("modversion") == version),
+                (r for r in releases if r["modversion"] == version),
                 None,
             )
             if release is None:
@@ -397,7 +408,7 @@ class ModApiClient:
             filename=path.name,
             version=release["modversion"],
             release=release,
-            asset_id=int(mod.get("assetid", 0)),
+            asset_id=mod["assetid"],
         )
 
     async def download_release_file(self, slug: str, fileid: int, filename: str) -> Path:

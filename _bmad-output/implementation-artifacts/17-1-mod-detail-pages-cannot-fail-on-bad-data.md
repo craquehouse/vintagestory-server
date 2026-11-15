@@ -46,11 +46,11 @@ so that **one odd release does not hide a mod I want to install**.
   - [x] 1.3: In `agentdocs/vintagestory-modapi.md`, note under the Release Object table that `fileid` can be `null` (with `filename` and `mainfile` `""`) and `changelog` can be `null`, and under the mod object that `tags` can contain `null` (`canjewelry`, 2026-11-15)
   - [x] 1.4: Tests in `api/tests/test_moddb_normalize.py`: each rule in the table for null, missing and wrong-type values (a `bool` is not an int); `fileid` null, missing or wrong type → `None`, an int kept; a string `tags` → one tag; null and non-string list elements dropped; non-object releases dropped; a non-object entry → `None`; `normalize_mod_list` of a non-list → `None`, non-object items dropped; unknown keys kept; input not mutated; idempotent; every release of `mod_canjewelry.json` and the four existing fixtures normalizes without changing a value that was already valid (compare field by field)
 
-- [ ] Task 2: Lookup lists every release, with `file_id: null` for a release without a file + tests (AC: 1, 2, 3, 4)
-  - [ ] 2.1: `ModApiClient.get_mod` (`services/mod_api.py:309-312`): return `normalize_mod(data.get("mod"))`; when it is `None` (the `mod` key missing or not an object) raise `ExternalApiError("VintageStory mod API returned an unexpected response")`, logged like the other unexpected bodies
-  - [ ] 2.2: `ModRelease.file_id: int | None` (`models/mods.py:173`, docstring: `None` when the release has no downloadable file); `ModRelease.fileId: number | null` in `web/src/api/types.ts:156`
-  - [ ] 2.3: `ModService.lookup_mod` (`services/mods.py:532-626`): read the normalized values directly (Dev Notes "Call sites"); keep the display fallbacks for empty text; `file_id=r["fileid"]`. `ModApiClient.download_mod` (`services/mod_api.py:378-402`): `mod["releases"]`, `release["modversion"]`, `mod["assetid"]`; no change to which release it picks or to a release without a file (Story 17.2)
-  - [ ] 2.4: Tests: `tests/test_mod_api.py` (`TestModApiClientGetMod`): canjewelry → normalized dict with `fileid` `None` on the three releases; `{"statuscode": "200"}` and `"mod": [1, 2]` → `ExternalApiError`. `tests/test_mod_service.py` (`TestModServiceLookupMod`) and `tests/test_mods_router.py` (`TestLookupModEndpoint`), respx on `https://mods.vintagestory.at/api/mod/canjewelry` with the fixture: 200, `len(releases)` equals the fixture's, `file_id` `None` for exactly `0.2.20`, `0.1.26`, `0.2.0`, `changelog` `None` for `0.3.7`, `tags` without the null (red first: today 500). The all-null entry (Dev Notes "Synthetic null payloads") looks up with 200 and the documented defaults. `tests/test_mod_models.py`: `ModRelease(file_id=None, ...)` validates and dumps `file_id: null`
+- [x] Task 2: Lookup lists every release, with `file_id: null` for a release without a file + tests (AC: 1, 2, 3, 4)
+  - [x] 2.1: `ModApiClient.get_mod` (`services/mod_api.py:309-312`): return `normalize_mod(data.get("mod"))`; when it is `None` (the `mod` key missing or not an object) raise `ExternalApiError("VintageStory mod API returned an unexpected response")`, logged like the other unexpected bodies
+  - [x] 2.2: `ModRelease.file_id: int | None` (`models/mods.py:173`, docstring: `None` when the release has no downloadable file); `ModRelease.fileId: number | null` in `web/src/api/types.ts:156`
+  - [x] 2.3: `ModService.lookup_mod` (`services/mods.py:532-626`): read the normalized values directly (Dev Notes "Call sites"); keep the display fallbacks for empty text; `file_id=r["fileid"]`. `ModApiClient.download_mod` (`services/mod_api.py:378-402`): `mod["releases"]`, `release["modversion"]`, `mod["assetid"]`; no change to which release it picks or to a release without a file (Story 17.2)
+  - [x] 2.4: Tests: `tests/test_mod_api.py` (`TestModApiClientGetMod`): canjewelry → normalized dict with `fileid` `None` on the three releases; `{"statuscode": "200"}` and `"mod": [1, 2]` → `ExternalApiError`. `tests/test_mod_service.py` (`TestModServiceLookupMod`) and `tests/test_mods_router.py` (`TestLookupModEndpoint`), respx on `https://mods.vintagestory.at/api/mod/canjewelry` with the fixture: 200, `len(releases)` equals the fixture's, `file_id` `None` for exactly `0.2.20`, `0.1.26`, `0.2.0`, `changelog` `None` for `0.3.7`, `tags` without the null (red first: today 500). The all-null entry (Dev Notes "Synthetic null payloads") looks up with 200 and the documented defaults. `tests/test_mod_models.py`: `ModRelease(file_id=None, ...)` validates and dumps `file_id: null`
 
 - [ ] Task 3: Browse, search, sort, tags and the update check read normalized data + tests (AC: 2, 3, 4)
   - [ ] 3.1: `get_all_mods` (`services/mod_api.py:515-519`) and `get_mods_by_version` (`:601-608`): `normalize_mod_list(data.get("mods"))`; `None` (`mods` missing, null or not a list) raises `ExternalApiError` and is not cached. `_get_downloads`, `_get_trending`, `_get_recent` and `search_mods` (`:749-844`) read normalized values (`mod["summary"] or ""` and `mod["lastreleased"] or ""` stay: those fields are optional)
@@ -217,6 +217,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 ### Completion Notes List
 
 - Task 1: `models/moddb.py` maps each field to a small normalizer function (`MOD_FIELDS`, `RELEASE_FIELDS` are `dict[str, Callable]`), so `{field: None for field in MOD_FIELDS}` works as the Dev Notes describe. An empty string where a list of strings is expected becomes `[]`, not `[""]`, matching `StoredRelease.from_api`'s `data.get("tags") or []` today. Unknown keys are a shallow copy (nested values of unknown keys are shared with the input; known lists are rebuilt). `canjewelry` fixture captured 2026-11-15 with the Dev Notes' `jq` command: 9 releases, the three null `fileid`s (`0.2.20`, `0.1.26`, `0.2.0`), `changelog` null on `0.3.7` and the null in `tags` are all present, so no stop was needed. 239 new tests.
+- Task 2: `get_mod` returns `normalize_mod(data.get("mod"))` and raises `ExternalApiError("VintageStory mod API returned an unexpected response")` (logged as `mod_api_invalid_body`) when `mod` is missing or not an object. `lookup_mod` and `download_mod` read normalized values; display fallbacks kept (`name or slug`, `author or "Unknown"`, `modversion or "unknown"`, side `"Both"`); the compatibility `mod_version` uses the same `or "unknown"` fallback. Red first: the 8 new tests failed (canjewelry lookup raised the `ModRelease.file_id` validation error).
+- Task 2 deviation: the "Existing tests that change" update of `test_mod_updates.py` `MALFORMED_PAYLOADS` was listed under Task 3, but it is caused by `get_mod` normalizing (Task 2): with only Task 2's change those four cases already succeed and the old test fails. To keep every commit green it moved into the Task 2 commit: `MALFORMED_PAYLOADS` keeps `"mod": [1, 2]`, and the four other cases are in the new `test_payload_with_wrong_types_is_normalized`, which asserts the check succeeds and stores the normalized releases (`fileid` 0, no releases, `created` `""`).
 - Story created 2026-11-15: context analysis of `ModApiClient`'s entry points, the lookup, browse, tag and update check readers, `StoredRelease.from_api`, the detail page's error states, the live `canjewelry` entry and listing, Stories 16.1, 16.3 and 16.8, and Epic 17 ADR-1.
 
 ### File List
@@ -227,6 +229,14 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `api/tests/fixtures/moddb/mod_canjewelry.json` (new)
 - `api/tests/fixtures/moddb/README.md`
 - `agentdocs/vintagestory-modapi.md`
+- `api/src/vintagestory_api/services/mods.py`
+- `api/src/vintagestory_api/models/mods.py`
+- `api/tests/test_mod_api.py`
+- `api/tests/test_mod_service.py`
+- `api/tests/test_mods_router.py`
+- `api/tests/test_mod_models.py`
+- `api/tests/test_mod_updates.py`
+- `web/src/api/types.ts`
 
 ## Change Log
 

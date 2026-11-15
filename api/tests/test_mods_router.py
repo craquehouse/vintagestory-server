@@ -18,8 +18,22 @@ from httpx import Response
 from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
 from vintagestory_api.services.mods import ModService, get_mod_service
 from vintagestory_api.services.pending_restart import PendingRestartState
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+
+def all_null_mod() -> dict[str, Any]:
+    """A mod entry or listing item with null in every field the API reads (Story 17.1).
+
+    Built from the normalizer's field tables; one all-null release, `tags` `[None, "Utility"]`.
+    """
+    mod: dict[str, Any] = {field: None for field in MOD_FIELDS}
+    mod["releases"] = [{field: None for field in RELEASE_FIELDS}]
+    mod["tags"] = [None, "Utility"]
+    return mod
 
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
@@ -583,6 +597,75 @@ class TestLookupModEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["slug"] == "smithingplus"
+
+    @respx.mock
+    def test_lookup_mod_with_releases_without_a_file(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A mod with `"fileid": null` releases opens: 200, file_id null (Story 17.1, VSS-a0r)."""
+        payload = json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+        respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/canjewelry", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        raw_releases = payload["mod"]["releases"]
+        assert len(data["releases"]) == len(raw_releases)
+        assert [r["version"] for r in data["releases"]] == [
+            r["modversion"] for r in raw_releases
+        ]
+        assert [r["version"] for r in data["releases"] if r["file_id"] is None] == [
+            "0.2.20",
+            "0.1.26",
+            "0.2.0",
+        ]
+        for release, raw in zip(data["releases"], raw_releases, strict=True):
+            assert release["file_id"] == raw["fileid"]
+        changelogs = {r["version"]: r["changelog"] for r in data["releases"]}
+        assert changelogs["0.3.7"] is None
+        assert data["tags"] == ["Utility", "Cosmetics", "Crafting"]
+
+    @respx.mock
+    def test_lookup_mod_with_null_in_every_field(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """An entry with null in every field looks up with the defaults (Story 17.1)."""
+        respx.get("https://mods.vintagestory.at/api/mod/allnull").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": all_null_mod()})
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/allnull", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["slug"] == "allnull"
+        assert data["name"] == "allnull"
+        assert data["author"] == "Unknown"
+        assert data["side"] == "Both"
+        assert data["asset_id"] == 0
+        assert data["follows"] == 0
+        assert data["downloads"] == 0
+        assert data["tags"] == ["Utility"]
+        assert data["latest_version"] == "unknown"
+        assert data["releases"] == [
+            {
+                "version": "unknown",
+                "filename": "",
+                "file_id": None,
+                "downloads": 0,
+                "game_versions": [],
+                "created": "",
+                "changelog": None,
+                "modidstr": "",
+            }
+        ]
 
 
 def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:

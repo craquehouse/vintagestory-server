@@ -431,14 +431,25 @@ class TestModUpdateCheck:
 
 
 MALFORMED_PAYLOADS: list[Any] = [
-    {
-        "statuscode": "200",
-        "mod": {"releases": [{"modversion": "1", "modidstr": "bad", "fileid": "abc"}]},
-    },
-    {"statuscode": "200", "mod": {"releases": ["oops"]}},
-    {"statuscode": "200", "mod": {"releases": {"a": 1}}},
     {"statuscode": "200", "mod": [1, 2]},
-    {"statuscode": "200", "mod": {"releases": [{"modversion": "1", "created": {"x": 1}}]}},
+]
+
+# Story 17.1 (Epic 17 ADR-1): a wrong type becomes the field's default and a release
+# that is not an object is dropped, so these payloads no longer fail the check.
+NORMALIZED_PAYLOADS: list[tuple[Any, list[StoredRelease]]] = [
+    (
+        {
+            "statuscode": "200",
+            "mod": {"releases": [{"modversion": "1", "modidstr": "bad", "fileid": "abc"}]},
+        },
+        [StoredRelease(modversion="1", modidstr="bad", fileid=0, created="")],
+    ),
+    ({"statuscode": "200", "mod": {"releases": ["oops"]}}, []),
+    ({"statuscode": "200", "mod": {"releases": {"a": 1}}}, []),
+    (
+        {"statuscode": "200", "mod": {"releases": [{"modversion": "1", "created": {"x": 1}}]}},
+        [StoredRelease(modversion="1", modidstr="", created="")],
+    ),
 ]
 
 
@@ -459,6 +470,24 @@ class TestCheckRobustness:
 
         assert summary.failed_slugs == ["bad"]
         assert ModUpdateStore(tmp_path / "state").get("carryon") is not None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("payload", "expected"), NORMALIZED_PAYLOADS)
+    async def test_payload_with_wrong_types_is_normalized(
+        self, tmp_path: Path, payload: Any, expected: list[StoredRelease]
+    ) -> None:
+        respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, json=payload))
+        service, _ = make_service(tmp_path, [installed("bad", "1")])
+
+        summary = await service.check()
+
+        assert summary.failed_slugs == []
+        stored = ModUpdateStore(tmp_path / "state").get("bad")
+        assert stored is not None
+        assert stored.found is True
+        assert stored.error is None
+        assert stored.releases == expected
 
     @respx.mock
     @pytest.mark.asyncio

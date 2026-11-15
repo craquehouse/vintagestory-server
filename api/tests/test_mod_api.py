@@ -1,5 +1,6 @@
 """Tests for ModApiClient - VintageStory mod database API client."""
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,8 @@ from vintagestory_api.services.mod_api import (
     sort_mods,
     validate_slug,
 )
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
 
 # --- Helper fixtures ---
 
@@ -386,6 +389,43 @@ class TestModApiClientGetMod:
         respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(return_value=response)
 
         with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mod("anymod")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mod_normalizes_canjewelry(self, mod_api_client: ModApiClient) -> None:
+        """get_mod() returns the normalized entry: null fileids stay None (Story 17.1)."""
+        payload = json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+        respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        result = await mod_api_client.get_mod("canjewelry")
+
+        assert result is not None
+        assert result["tags"] == ["Utility", "Cosmetics", "Crafting"]
+        assert len(result["releases"]) == len(payload["mod"]["releases"])
+        no_file = [r["modversion"] for r in result["releases"] if r["fileid"] is None]
+        assert no_file == ["0.2.20", "0.1.26", "0.2.0"]
+        # Fields the entry does not carry get their defaults
+        assert result["follows"] == 0
+        assert result["text"] is None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        [{"statuscode": "200"}, {"statuscode": "200", "mod": [1, 2]}],
+    )
+    async def test_get_mod_without_mod_object(
+        self, mod_api_client: ModApiClient, payload: dict[str, Any]
+    ) -> None:
+        """get_mod() raises ExternalApiError when `mod` is missing or not an object."""
+        respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        with pytest.raises(ExternalApiError, match="unexpected response"):
             await mod_api_client.get_mod("anymod")
 
     @respx.mock

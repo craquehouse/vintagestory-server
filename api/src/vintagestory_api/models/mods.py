@@ -170,8 +170,9 @@ class ModRelease(BaseModel):
     filename: str
     """Original filename of the release zip."""
 
-    file_id: int
-    """Unique file identifier for download endpoint."""
+    file_id: int | None
+    """Unique file identifier for download endpoint; None when the release has no
+    downloadable file (Story 17.1)."""
 
     downloads: int
     """Download count for this specific release."""

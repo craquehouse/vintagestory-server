@@ -529,12 +529,13 @@ class ModService:
             raise ModNotFoundError(slug)
 
         # Get releases (API returns newest-first)
-        releases: list[ReleaseDict] = mod.get("releases", [])
+        # Normalized by get_mod (Story 17.1, Epic 17 ADR-1): read the fields directly
+        releases: list[ReleaseDict] = mod["releases"]
         if not releases:
             raise ModNotFoundError(slug)
 
         latest_release = releases[0]
-        latest_version = latest_release.get("modversion", "unknown")
+        latest_version: str = latest_release["modversion"] or "unknown"
 
         # Story 16.3 (ADR-2 decisions 2 and 3): evaluate one mod ID's release
         modid = self._compatibility_modid(slug, releases)
@@ -543,9 +544,9 @@ class ModService:
         if version is None:
             evaluated: ReleaseDict | None = own[0]
         else:
-            evaluated = next((r for r in own if r.get("modversion") == version), None)
+            evaluated = next((r for r in own if r["modversion"] == version), None)
         mod_version: str = (
-            evaluated.get("modversion", "unknown") if evaluated is not None else str(version)
+            (evaluated["modversion"] or "unknown") if evaluated is not None else str(version)
         )
 
         # Check compatibility with the installed game version (VSS-tpe)
@@ -579,51 +580,52 @@ class ModService:
         )
 
         # Calculate total downloads across all releases
-        total_downloads = sum(r.get("downloads", 0) for r in releases)
+        total_downloads = sum(r["downloads"] for r in releases)
 
         # Normalize side value to title case (API returns lowercase)
-        raw_side = mod.get("side", "Both")
-        side = raw_side.title() if raw_side else "Both"
+        side = mod["side"].title() if mod["side"] else "Both"
 
-        # Build release list from API data
+        # Build release list from API data. A release without a downloadable file has
+        # file_id None (Epic 17 ADR-1). An empty version shows as "unknown": an empty
+        # value would break the web's version select.
         mod_releases = [
             ModRelease(
-                version=r.get("modversion", "unknown"),
-                filename=r.get("filename", ""),
-                file_id=r.get("fileid", 0),
-                downloads=r.get("downloads", 0),
-                game_versions=r.get("tags", []),
-                created=r.get("created", ""),
-                changelog=r.get("changelog"),
-                modidstr=r.get("modidstr") or "",
+                version=r["modversion"] or "unknown",
+                filename=r["filename"],
+                file_id=r["fileid"],
+                downloads=r["downloads"],
+                game_versions=r["tags"],
+                created=r["created"],
+                changelog=r["changelog"],
+                modidstr=r["modidstr"],
             )
             for r in releases
         ]
 
         # Get slug from modidstrs[0] - this is what the /api/mod/{slug} endpoint expects
         # VSS-brs: urlalias differs from modidstrs for some mods, causing lookup failures
-        modidstrs: list[str] = mod.get("modidstrs") or []
+        modidstrs: list[str] = mod["modidstrs"]
         response_slug: str = modidstrs[0] if modidstrs else slug
 
         result = ModLookupResponse(
             slug=response_slug,
-            urlalias=mod.get("urlalias"),
-            asset_id=int(mod.get("assetid", 0)),
-            name=mod.get("name", slug),
-            author=mod.get("author", "Unknown"),
-            description=mod.get("text"),
+            urlalias=mod["urlalias"],
+            asset_id=mod["assetid"],
+            name=mod["name"] or slug,
+            author=mod["author"] or "Unknown",
+            description=mod["text"],
             latest_version=latest_version,
             downloads=total_downloads,
-            follows=mod.get("follows", 0),
+            follows=mod["follows"],
             side=side,
             compatibility=compatibility,
-            logo_url=mod.get("logofilename"),
+            logo_url=mod["logofilename"],
             releases=mod_releases,
-            tags=mod.get("tags", []),
-            homepage_url=mod.get("homepageurl"),
-            source_url=mod.get("sourcecodeurl"),
-            created=mod.get("created"),
-            last_released=mod.get("lastreleased"),
+            tags=mod["tags"],
+            homepage_url=mod["homepageurl"],
+            source_url=mod["sourcecodeurl"],
+            created=mod["created"],
+            last_released=mod["lastreleased"],
         )
 
         logger.info(
