@@ -37,6 +37,9 @@ function BrowseLanding() {
   );
 }
 
+/** Story 16.1: A browse state with search, sort, filters, game version and page. */
+const BROWSE_SEARCH = '?q=smithing&sort=downloads&side=both&tags=Crafting&type=mod&version=1.21.2&page=2';
+
 // Wrapper to provide QueryClient and Router context - Story 11.4: Uses /game-server/mods paths
 function renderWithProviders(
   ui: React.ReactElement,
@@ -1410,7 +1413,7 @@ describe('ModDetailPage', () => {
     });
 
     describe('Story 16.1: returning to the browser keeps its state', () => {
-      const browseSearch = '?q=smithing&sort=downloads&side=both&tags=Crafting&type=mod&version=1.21.2&page=2';
+      const browseSearch = BROWSE_SEARCH;
       const openedFromBrowse = {
         pathname: '/game-server/mods/browse/smithingplus',
         state: { browseSearch },
@@ -1474,6 +1477,63 @@ describe('ModDetailPage', () => {
           '/game-server/mods/browse'
         );
       });
+    });
+
+    describe('Story 17.1: error states lead back to the browser', () => {
+      const errorResponses: [string, () => unknown][] = [
+        [
+          'a failed lookup',
+          () => ({
+            ok: false,
+            status: 500,
+            json: () =>
+              Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'Server error' } }),
+          }),
+        ],
+        [
+          'a response with no mod',
+          () => ({ ok: true, json: () => Promise.resolve({ status: 'ok' }) }),
+        ],
+        [
+          'incomplete mod details',
+          () => ({ ok: true, json: () => Promise.resolve({ status: 'ok', data: {} }) }),
+        ],
+      ];
+
+      it.each(errorResponses)(
+        'after %s, Back to Browse returns to the browse state it was opened from',
+        async (_label, response) => {
+          globalThis.fetch = vi.fn().mockResolvedValue(response());
+          const user = userEvent.setup();
+          renderWithProviders(<ModDetailPage />, {
+            route: {
+              pathname: '/game-server/mods/browse/brokenmod',
+              state: { browseSearch: BROWSE_SEARCH },
+            },
+          });
+
+          expect(await screen.findByTestId('mod-detail-error')).toBeInTheDocument();
+          await user.click(screen.getByTestId('mod-detail-back'));
+
+          expect(screen.getByTestId('landing-search')).toHaveTextContent(BROWSE_SEARCH);
+          expect(screen.getByTestId('landing-from-detail')).toHaveTextContent('true');
+        }
+      );
+
+      it.each(errorResponses)(
+        'after %s, Back to Browse returns to the default browser when opened directly',
+        async (_label, response) => {
+          globalThis.fetch = vi.fn().mockResolvedValue(response());
+          const user = userEvent.setup();
+          renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/brokenmod' });
+
+          expect(await screen.findByTestId('mod-detail-error')).toBeInTheDocument();
+          await user.click(screen.getByTestId('mod-detail-back'));
+
+          expect(screen.getByTestId('landing-search')).toBeEmptyDOMElement();
+          expect(screen.getByTestId('landing-from-detail')).toHaveTextContent('true');
+        }
+      );
     });
 
     describe('breadcrumb navigation (Subtask 4.3)', () => {
