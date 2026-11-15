@@ -1346,7 +1346,7 @@ describe('ModDetailPage', () => {
       );
 
       /** Lookup, installed mods and updates; records POST /mods bodies and answers ok. */
-      function mockEntry(detail: unknown, installed: unknown[] = []) {
+      function mockEntry(detail: unknown, installed: unknown[] = [], updateMods: unknown[] = []) {
         return vi.fn().mockImplementation((url: string, options?: RequestInit) => {
           const respond = (body: unknown) =>
             Promise.resolve({
@@ -1359,7 +1359,12 @@ describe('ModDetailPage', () => {
           if (url.includes('/mods/updates')) {
             return respond({
               status: 'ok',
-              data: { game_version: '1.21.3', checked_at: null, update_count: 0, mods: [] },
+              data: {
+                game_version: '1.21.3',
+                checked_at: null,
+                update_count: updateMods.length,
+                mods: updateMods,
+              },
             });
           }
           if (url.endsWith('/api/v1alpha1/mods')) {
@@ -1501,6 +1506,64 @@ describe('ModDetailPage', () => {
         const button = await screen.findByTestId('mod-detail-install-button');
         expect(button).toBeDisabled();
         expect(button).toHaveTextContent('No downloadable release');
+      });
+
+      it('does not offer an update to a release without a file (review M1)', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockEntry(
+          entry({ slug: 'smithingplus', install_mod_id: 'smithingplus', latest_version: '1.8.2' }, [
+            release('smithingplus', '1.8.3', null),
+            release('smithingplus', '1.8.2'),
+          ]),
+          [
+            {
+              name: 'Smithing Plus',
+              slug: 'smithingplus',
+              version: '1.8.2',
+              enabled: true,
+              side: 'Both',
+            },
+          ],
+          [
+            {
+              slug: 'smithingplus',
+              name: 'Smithing Plus',
+              installed_version: '1.8.2',
+              status: 'update_available',
+              offered_version: '1.8.3',
+              offered_compatibility: 'compatible',
+              offered_prerelease: false,
+              reason: null,
+              checked_at: null,
+              error: null,
+            },
+          ]
+        );
+
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await screen.findByTestId('mod-detail-installed-indicator');
+        await waitFor(() => {
+          expect(
+            mockFetch.mock.calls.some(([url]) => String(url).endsWith('/mods/updates'))
+          ).toBe(true);
+        });
+
+        expect(await optionTexts(user)).toEqual([
+          'v1.8.3 (no file)',
+          'v1.8.2 (Latest) (Installed)',
+        ]);
+        expect(screen.getByRole('option', { name: 'v1.8.3 (no file)' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+        await user.keyboard('{Escape}');
+        // The update status has loaded by now; the offer has no file, so it is not
+        // preselected and the action is the disabled "Installed" button
+        expect(screen.getByTestId('mod-detail-version-select')).toHaveTextContent('v1.8.2');
+        expect(screen.getByTestId('mod-detail-current-button')).toBeDisabled();
+        expect(screen.queryByTestId('mod-detail-update-button')).not.toBeInTheDocument();
       });
 
       it('labels "(Latest)" in the installed list when the installed mod ID is the install mod ID', async () => {

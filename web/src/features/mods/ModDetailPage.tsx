@@ -326,8 +326,17 @@ function InstalledVersionSection({
   // install mod ID; on another installed mod ID of the entry there is no label.
   const labelledLatest = slug === installModId ? latestVersion : null;
   const updateStatus = updatesData?.data?.mods.find((item) => item.slug === slug);
-  const offeredVersion =
+  // The update check (Epic 14 ADR-1) can offer a release without a downloadable
+  // file, which the version change API refuses (Story 17.2, review M1). Such an offer
+  // is not preselected and gets no Update button; the list shows it disabled with
+  // "(no file)", so it cannot be picked either.
+  const offered =
     updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
+  const offeredVersion = ownReleases.some(
+    (choice) => choice.version === offered && choice.installable
+  )
+    ? offered
+    : null;
   const selectedVersion = picked ?? offeredVersion ?? installedVersion;
   const isChanging = versionChange.isPending(slug);
 
