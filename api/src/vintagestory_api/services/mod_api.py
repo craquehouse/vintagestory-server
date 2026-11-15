@@ -506,7 +506,7 @@ class ModApiClient:
             force_refresh: If True, bypass the cache and fetch fresh data.
 
         Returns:
-            List of mod dictionaries from the API.
+            List of normalized mod dictionaries from the API.
 
         Raises:
             ExternalApiError: If the mod API is unavailable.
@@ -579,7 +579,7 @@ class ModApiClient:
             version_tagid: The game version tagid to filter by.
 
         Returns:
-            List of mod dictionaries compatible with the specified version.
+            List of normalized mod dictionaries compatible with the specified version.
 
         Raises:
             ExternalApiError: If the mod API is unavailable.

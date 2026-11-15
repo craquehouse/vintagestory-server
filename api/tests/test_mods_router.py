@@ -3460,6 +3460,28 @@ class TestBrowseWithIncompleteModData:
         assert {m["slug"] for m in mods["mods"]} == {"unknown", "qolmod", "trendingnew"}
 
     @respx.mock
+    def test_unrecognized_side_and_type_match_the_default_filters(
+        self, client: TestClient, headers: dict[str, str]
+    ) -> None:
+        odd = {
+            **BROWSE_MODS_API_RESPONSE["mods"][2],
+            "side": "sideways",
+            "type": "weird",
+            "modidstrs": ["oddmod"],
+        }
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": [odd]})
+        )
+
+        for query in ("?side=both", "?mod_type=mod"):
+            cards = self.browse(client, headers, query)["mods"]
+            assert [(m["slug"], m["side"], m["mod_type"]) for m in cards] == [
+                ("oddmod", "both", "mod")
+            ]
+        assert self.browse(client, headers, "?side=client")["mods"] == []
+        assert self.browse(client, headers, "?mod_type=externaltool")["mods"] == []
+
+    @respx.mock
     def test_tag_filter(self, client: TestClient, headers: dict[str, str]) -> None:
         respx.get("https://mods.vintagestory.at/api/mods").mock(
             return_value=Response(200, json=bad_data_listing())
