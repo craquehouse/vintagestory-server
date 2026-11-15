@@ -792,6 +792,51 @@ describe('ModCard', () => {
         );
       });
 
+      it('sends the card slug when the lookup has an empty install mod ID', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
+          data: {
+            status: 'ok',
+            data: {
+              slug: 'carrycapacity',
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: null,
+              latestVersion: null,
+              installModId: '',
+              downloads: 1,
+              follows: 0,
+              side: 'Both',
+              compatibility: {
+                status: 'not_verified',
+                gameVersion: '1.21.6',
+                modVersion: 'unknown',
+                message: '',
+              },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
+            },
+          },
+          isSuccess: true,
+        }));
+
+        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+          wrapper: createWrapper(),
+        });
+        await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+        await user.click(screen.getByTestId('install-dialog-confirm'));
+
+        expect(mockMutate).toHaveBeenCalledWith(
+          { slug: 'carrycapacity', version: undefined },
+          expect.anything()
+        );
+      });
+
       it('sends the card slug and no version when the details fail', async () => {
         const user = userEvent.setup();
         vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({

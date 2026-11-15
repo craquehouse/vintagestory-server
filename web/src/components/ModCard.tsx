@@ -227,7 +227,8 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
     {/* Install confirmation dialog */}
     <InstallConfirmDialog
       mod={{
-        slug: modDetails?.data?.installModId ?? mod.slug,
+        // An empty install mod ID (an entry without mod IDs) falls back to the card slug
+        slug: modDetails?.data?.installModId || mod.slug,
         name: mod.name,
         version: modDetails?.data?.latestVersion,
         logoUrl: mod.logoUrl,
