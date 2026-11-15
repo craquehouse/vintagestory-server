@@ -225,8 +225,19 @@ class ModLookupResponse(BaseModel):
     description: str | None = None
     """HTML-formatted full description text."""
 
-    latest_version: str
-    """Latest release version string."""
+    latest_version: str | None
+    """The version an install without a named version picks for `install_mod_id`.
+
+    The newest stable release of that mod ID that has a downloadable file (Epic 17
+    ADR-2); None when none of its releases has a file.
+    """
+
+    install_mod_id: str
+    """The mod ID an install of the looked-up slug installs (Epic 17 ADR-2).
+
+    The looked-up slug when a release carries it as its mod ID, otherwise the mod ID
+    of the entry's newest release. May differ from `slug`.
+    """
 
     downloads: int
     """Total download count."""

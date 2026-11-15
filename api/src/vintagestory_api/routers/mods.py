@@ -575,8 +575,8 @@ async def lookup_mod(
     access this read-only endpoint.
 
     Compatibility is reported for one mod ID of the entry: the installed one when
-    any of the entry's mod IDs is installed, otherwise the mod ID of the newest
-    release (Epic 16 ADR-2).
+    any of the entry's mod IDs is installed, otherwise the install mod ID (Epic 16
+    ADR-2, Epic 17 ADR-2 decision 6).
 
     Args:
         slug: Mod slug or full URL to look up.
@@ -589,7 +589,11 @@ async def lookup_mod(
         - name: Display name
         - author: Mod author
         - description: Mod description (may be null)
-        - latest_version: Latest release version
+        - latest_version: The version an install without a named version picks for
+          install_mod_id (its newest stable release with a downloadable file); null
+          when none of its releases has a file
+        - install_mod_id: The mod ID an install of this slug installs (the slug when
+          a release carries it, otherwise the newest release's mod ID)
         - downloads: Total download count
         - side: "Both", "Client", or "Server"
         - compatibility: Nested object with status, game_version, mod_version, message,
