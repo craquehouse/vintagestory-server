@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-13'
+lastUpdated: '2026-11-15'
 updates:
+  - date: '2026-11-15'
+    description: 'Added Epic 17 (8 stories) for Mod Data Correctness and Fixes; FR177-FR193'
   - date: '2026-11-13'
     description: 'Added Story 16.8 (Name sort and empty settings) to Epic 16; FR175-FR176'
   - date: '2026-11-13'
@@ -380,6 +382,23 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR174 | Epic 16 | File browser breadcrumbs |
 | FR175 | Epic 16 | Name (A-Z) sort works, server-side and paged |
 | FR176 | Epic 16 | Empty settings shown and saved as empty; Password masked |
+| FR177 | Epic 17 | Nulls in mod database data cannot fail a request |
+| FR178 | Epic 17 | Back to Browse on the mod detail error state |
+| FR179 | Epic 17 | Install considers only the requested mod ID |
+| FR180 | Epic 17 | Install picks the newest stable release |
+| FR181 | Epic 17 | "(Latest)" matches what install picks |
+| FR182 | Epic 17 | One operation per mod at a time, 409 otherwise |
+| FR183 | Epic 17 | Case-insensitive `modinfo.json` keys on import |
+| FR184 | Epic 17 | Browse cards recognize any installed mod ID |
+| FR185 | Epic 17 | Update status for a newly installed mod |
+| FR186 | Epic 17 | Monitor keys never receive the server password |
+| FR187 | Epic 17 | Interval settings reschedule their jobs |
+| FR188 | Epic 17 | Unset boolean settings show the game default |
+| FR189 | Epic 17 | Mods tabs work on a mod detail page |
+| FR190 | Epic 17 | Out-of-range browse page is clamped |
+| FR191 | Epic 17 | Installed mods fit tablet widths |
+| FR192 | Epic 17 | Settings tabs fit phones |
+| FR193 | Epic 17 | Game Settings title row aligned with the panel |
 
 ## Epic List
 
@@ -1891,7 +1910,8 @@ So that **I can monitor background task status**.
 | Epic 14: Mod Updates | 14.0, 14.1, 14.2, 14.3, 14.4, 14.5, 14.6 | 7 |
 | Epic 15: Release Engineering | 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6 | 7 |
 | Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8 | 9 |
-| **Total** | | **94** |
+| Epic 17: Mod Data Correctness and Fixes | 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8 | 8 |
+| **Total** | | **102** |
 
 ---
 
@@ -4215,3 +4235,412 @@ So that **I can find mods alphabetically and edit settings without saving the wo
 - [ ] Accept null for the settings whose VintageStory default is null; save a cleared field as null (`VSS-7ed`)
 - [ ] Render null as an empty field and mask Password with a show/hide toggle (`VSS-7ed`)
 - [ ] Tests, and browser verification that restores every changed setting
+
+---
+
+## Epic 17: Mod Data Correctness and Fixes
+
+**Goal:** Admins can open, install and manage any mod without the manager failing on the mod database's data or acting on the wrong release, and settings and layouts behave as shown.
+
+**Architecture:** `architecture/epic-17-mod-data-fixes.md` (ADR-1 to ADR-5). There is no preparation story; the two open questions are settled inside Stories 17.5 and 17.6, each with a recommended default.
+
+**Order:** Story 17.1 first: it fixes a bug seen in production, and a release candidate follows it. Stories 17.2 and 17.3 change the same install code and run back to back, 17.2 first. The others are independent.
+
+### Current State
+
+- A mod with one release whose file ID is null in the mod database cannot be opened: the lookup returns 500 and the detail page shows "Failed to load mod details" with no way back to the browser
+- Install takes the entry's newest release whatever its mod ID or version, so installing `instruments` installs `vsinstrumentsbase`, and installing `carryon` installs a release candidate; the UI labels that release "(Latest)"
+- Only version changes are serialized per mod; install, enable, disable and remove can run while one is in progress
+- An archive whose `modinfo.json` uses capitalized keys imports with the version "unknown"
+- Browse cards show a mod as not installed when its installed mod ID is not the entry's first, and a newly installed mod shows "Unknown" in the Available column
+- A Monitor key can read the game server password from the settings API and the config file viewer
+- A changed refresh interval does not apply until the API restarts, and Entity Spawning shows "Disabled" when the server config has no value for it
+- On a mod detail page the Installed tab does nothing, and a browse link with a page past the end shows an empty page
+- The installed mods table scrolls sideways on tablets, the Settings tab list scrolls the page sideways on phones, and the Game Settings title row is wider than the settings panel on wide screens
+
+### Target State
+
+- Nulls in mod database data cannot fail a lookup, a browse page or an update check, and every error state on the detail page leads back to the browser
+- Install picks the newest stable release of the mod that was asked for, and "(Latest)" names that release
+- Operations on the same mod cannot run into each other; the second one is refused with 409
+- Installed status is the same on browse cards, the detail page and the Installed list
+- Monitor keys never receive the server password
+- Settings take effect as saved and show what the game actually uses
+- Mods navigation and layouts work at every width
+
+---
+
+### Story 17.1: Mod Detail Pages Cannot Fail on Bad Data
+
+As an **administrator**,
+I want **every mod in the browser to open, whatever the mod database returns for it**,
+So that **one odd release does not hide a mod I want to install**.
+
+**Acceptance Criteria:**
+
+**Given** a mod whose releases include one with `"fileid": null` (for example `canjewelry`)
+**When** I request `GET /api/v1alpha1/mods/lookup/{slug}`
+**Then** the response is 200, every release is listed, and that release has `file_id: null`
+
+*(Covers FR177)*
+
+**Given** a mod database entry or listing item with `null` in any field the API reads, or a `null` element inside `tags`
+**When** I look the mod up, browse with each sort, filter by tag, list tags, or run an update check
+**Then** each request succeeds, the field has its default value, and null list elements are dropped
+
+*(Covers FR177)*
+
+**Given** the mod database data enters the API
+**When** it is read by lookup, browse, search, sort, install and update checks
+**Then** it has passed through one normalization step (Epic 17 ADR-1), and no caller relies on `.get(key, default)` to handle a null
+
+*(Covers FR177)*
+
+**Given** a mod detail page that fails to load (API error, unknown mod, or incomplete response)
+**When** the error is shown
+**Then** it has a Back to Browse link that returns to the browse state the page was opened from, as the loaded page does
+
+*(Covers FR178)*
+
+**Tasks:**
+
+- [ ] Add the mod and release normalizers and apply them where `ModApiClient` receives mod database data (`VSS-a0r`, ADR-1)
+- [ ] `ModRelease.file_id: int | None`; `fileId: number | null` in the web types
+- [ ] Remove the per-field defaults the normalizers replace in `services/mods.py`, `routers/mods.py` and `services/mod_api.py`; use the release normalizer in `StoredRelease.from_api`
+- [ ] Add Back to Browse to `ModDetailError`, reusing `browseTarget` and `MOD_DETAIL_RETURN_STATE` (`VSS-fv7`)
+- [ ] Tests: a fixture with the `canjewelry` shape and one with a null in every field, against lookup, browse, each sort, tags and the update check; `ModDetailPage.test.tsx` for the three error states
+- [ ] Browser verification: C&N Jewelry opens in the mod browser
+
+---
+
+### Story 17.2: Install Picks the Right Release
+
+As an **administrator**,
+I want **Install to give me the newest stable release of the mod I chose**,
+So that **I do not end up with a different mod or a pre-release I did not ask for**.
+
+**Acceptance Criteria:**
+
+**Given** a mod database entry that ships several mod IDs (for example `instruments`, `vsinstruments`, `vsinstrumentsbase`)
+**When** I install one of them, with or without a version
+**Then** only releases with that mod ID are considered, and the installed mod has that mod ID
+
+*(Covers FR179)*
+
+**Given** a mod whose newest release is a pre-release (for example `carryon` with `2.0.0-rc.1`)
+**When** I install it without naming a version
+**Then** the newest stable release is installed
+
+*(Covers FR180)*
+
+**Given** the same mod
+**When** I install it naming the pre-release version
+**Then** that pre-release is installed
+
+*(Covers FR180)*
+
+**Given** a mod ID that has only pre-releases
+**When** I install it without naming a version
+**Then** its newest release is installed
+
+*(Covers FR180)*
+
+**Given** a version that no release of that mod ID has, including one that exists only under another mod ID of the entry
+**When** I install naming it
+**Then** the response is 404 `MOD_VERSION_NOT_FOUND` and nothing is installed
+
+*(Covers FR179)*
+
+**Given** a release with no file ID
+**When** releases are chosen for install
+**Then** it is never picked by default, and naming it fails with an error that says the release has no downloadable file, without a download request
+
+*(Covers FR180)*
+
+**Given** a mod's detail page or browse card
+**When** I look at the install version list and the "(Latest)" label
+**Then** the list holds only the releases of the mod ID that will be installed, "(Latest)" marks the release a plain install picks, and that release is preselected
+
+*(Covers FR181)*
+
+**Tasks:**
+
+- [ ] One release selection function implementing Epic 17 ADR-2, used by `ModApiClient.download_mod` (`VSS-jhf`, `VSS-43b`)
+- [ ] Lookup: `latest_version` from the same function, `install_mod_id` in the response, and `_compatibility_modid` defaulting to the install mod ID
+- [ ] Web: install section and installed section list and label releases per ADR-2; an install with no chosen version sends no version (check what the API does today with `ModCard`'s `'latest'` string)
+- [ ] Tests with `mod_instruments.json` and `mod_carryon.json`, a pre-release-only fixture, and a release without a file ID
+- [ ] Browser verification: install `carryon` from a browse card and from its detail page
+
+---
+
+### Story 17.3: Mod Operations Are Safe Against Each Other
+
+As an **administrator**,
+I want **two operations on the same mod never to run at the same time**,
+So that **a remove or toggle during an update cannot leave the mod half changed**.
+
+**Acceptance Criteria:**
+
+**Given** an install or version change is running for a mod
+**When** I install, enable, disable, remove or change the version of the same mod
+**Then** the request returns 409 `MOD_OPERATION_IN_PROGRESS`, and the mod's file and state are exactly what the running operation leaves
+
+*(Covers FR182)*
+
+**Given** two install requests for the same mod arrive together
+**When** both are processed
+**Then** one installs the mod and the other returns 409
+
+*(Covers FR182)*
+
+**Given** an operation is running for one mod
+**When** I change a different mod
+**Then** it proceeds without waiting
+
+*(Covers FR182)*
+
+**Given** Update All reaches a mod that is busy
+**When** its version change is refused
+**Then** that mod is reported as failed and the remaining mods are still processed, as today
+
+*(Covers FR182)*
+
+**Given** a mod archive whose `modinfo.json` uses `ModID`, `Version` or other capitalized top-level keys
+**When** it is installed, or placed by a version change
+**Then** it is imported with its real mod ID and version, and its `modinfo.json` is cached, the same as an archive with lowercase keys
+
+*(Covers FR183)*
+
+**Tasks:**
+
+- [ ] Replace `_version_locks` with one per-mod operation lock used by install, enable, disable, remove and version change (`VSS-8wg`, Epic 17 ADR-3)
+- [ ] `ModOperationInProgressError` and `MOD_OPERATION_IN_PROGRESS` (409) on all five routes; remove `MOD_VERSION_CHANGE_IN_PROGRESS`; update Update All's error handling and the API documentation
+- [ ] Share the top-level key normalization between `read_modinfo` and `import_mod` (`VSS-0jl`)
+- [ ] Tests: hold the lock with a blocked download and call each operation; concurrent installs; an archive with capitalized keys through install and version change
+
+---
+
+### Story 17.4: Installed Status Is Right Everywhere
+
+As an **administrator**,
+I want **a mod I have installed to show as installed, with its update status, wherever I see it**,
+So that **I do not install a mod twice or wonder whether a new mod is up to date**.
+
+**Acceptance Criteria:**
+
+**Given** a mod database entry with several mod IDs, and I have installed one that is not its first
+**When** I see the entry's card in the mod browser
+**Then** the card shows Installed, as its detail page does
+
+*(Covers FR184)*
+
+**Given** the browse API
+**When** it returns a mod
+**Then** the item lists every mod ID of the entry (`mod_ids`), taken from the listing data without a request per mod
+
+*(Covers FR184)*
+
+**Given** I have just installed a mod
+**When** I open the Installed list without running an update check
+**Then** its Available column shows a real status ("Up to date" or an offered update), computed from the mod database data the install already fetched
+
+*(Covers FR185)*
+
+**Given** a mod with no stored update data (for example one found on disk at startup)
+**When** I open the Installed list
+**Then** its Available column shows "Not checked yet", not "Unknown"
+
+*(Covers FR185)*
+
+**Tasks:**
+
+- [ ] Add `mod_ids` to `ModBrowseItem` from the listing's `modidstrs`; match installed mods against them on browse cards, reusing `web/src/lib/mod-ids.ts` (`VSS-49n`)
+- [ ] After a successful install, store that mod's update record from the lookup the install made; a failure to store it must not fail the install (`VSS-br2`)
+- [ ] Label the `not_checked` reason "Not checked yet" in `ModUpdateCell`
+- [ ] Tests, including the `instruments` entry on a browse card
+
+---
+
+### Story 17.5: Monitor Keys Cannot Read the Server Password
+
+As a **server owner**,
+I want **a Monitor key never to receive the game server password**,
+So that **I can hand out read-only access without handing out the password**.
+
+*(Open question settled in this story: redact the password for Monitor, or make the endpoints Admin-only. Recommended default, used by the criteria below: redact (Epic 17 ADR-4), because the PRD gives Monitor read access to configuration (FR21, FR22) limited to non-sensitive data (FR32).)*
+
+**Acceptance Criteria:**
+
+**Given** a Monitor key and a server with a password set
+**When** I request `GET /api/v1alpha1/config/game`
+**Then** the Password setting has `value: null`, `secret: true` and `configured: true`, and the password appears nowhere in the response
+
+*(Covers FR186)*
+
+**Given** a Monitor key
+**When** I request `serverconfig.json` through `GET /api/v1alpha1/config/files/...`, by any path that resolves to that file
+**Then** the `Password` value is replaced by `"[redacted]"` when one is set and stays null when none is
+
+*(Covers FR186)*
+
+**Given** an Admin key
+**When** I request either endpoint
+**Then** the password is returned as today
+
+*(Covers FR186)*
+
+**Given** a Monitor key in the web UI
+**When** I open Game Settings
+**Then** Password shows "Set" or "Not set" and offers no reveal control
+
+*(Covers FR186)*
+
+**Tasks:**
+
+- [ ] Record the redact-or-restrict choice in the story file before implementing
+- [ ] `secret` flag on `ServerSetting`; role-dependent output in `GameConfigService.get_settings` and `ConfigFilesService.read_file`, redacted unless the caller is Admin (`VSS-qed`)
+- [ ] Check a server-generated `serverconfig.json` for other secret fields and add any to the list
+- [ ] Web: render a secret setting without a value as "Set" or "Not set"
+- [ ] Tests for both endpoints and both roles, including alternate paths to `serverconfig.json`
+
+---
+
+### Story 17.6: Settings Behave as Saved
+
+As an **administrator**,
+I want **a setting to do what the screen says once I have saved it**,
+So that **I do not have to restart the API or guess what the game is using**.
+
+*(Open question settled in this story: VintageStory's default for `EntitySpawning` when `serverconfig.json` has no value. Recommended default, used by the criteria below: on, as `agentdocs/vs-serverconfig-commands.md` states; the story confirms it against a freshly generated server config before relying on it.)*
+
+**Acceptance Criteria:**
+
+**Given** a refresh interval setting with a job running on it
+**When** I save a different interval
+**Then** the job's next run is one new interval from the save, without restarting the API, and Scheduled Jobs shows the new interval
+
+*(Covers FR187)*
+
+**Given** a refresh interval above 0
+**When** I save 0
+**Then** its job is removed and no longer runs
+
+*(Covers FR187)*
+
+**Given** a refresh interval of 0
+**When** I save a value above 0
+**Then** its job is registered with that interval
+
+*(Covers FR187)*
+
+**Given** a boolean game setting that has no value in `serverconfig.json`
+**When** I open Game Settings
+**Then** the switch shows the game's default for that setting and is labeled as the default (for Entity Spawning: "Enabled (default)"), not "Disabled"
+
+*(Covers FR188)*
+
+**Given** a boolean setting whose game default is not known to the manager
+**When** it has no value
+**Then** it is shown as "Not set", with neither Enabled nor Disabled implied
+
+*(Covers FR188)*
+
+**Given** I switch such a setting
+**When** it is saved
+**Then** the explicit value is written and the "default" label goes away
+
+*(Covers FR188)*
+
+**Tasks:**
+
+- [ ] One function that applies an interval setting to the scheduler, used at startup and passed as `scheduler_callback` (`VSS-8bl`, Epic 17 ADR-5); covers `mod_list_refresh_interval`, `server_versions_refresh_interval` and `metrics_collection_interval`
+- [ ] Confirm the game's default for each boolean setting the manager shows; return it with the setting (`default`) and render null booleans from it (`VSS-2le`)
+- [ ] Tests: each interval transition for each setting; null booleans with and without a known default
+- [ ] Browser verification on a config without `EntitySpawning`, restoring every changed setting
+
+---
+
+### Story 17.7: Mods Navigation
+
+As an **administrator**,
+I want **the Mods tabs and shared browse links to take me where they say**,
+So that **I am not stuck on a detail page or looking at an empty page**.
+
+**Acceptance Criteria:**
+
+**Given** I am on a mod detail page
+**When** I look at the Mods tabs
+**Then** Browse is the active tab
+
+*(Covers FR189)*
+
+**Given** I am on a mod detail page
+**When** I click Installed
+**Then** the Installed tab opens
+
+*(Covers FR189)*
+
+**Given** I am on a mod detail page
+**When** I click Browse
+**Then** the browser opens with the state Epic 16 ADR-1 defines: the state the page was opened from, otherwise the last browse state of the session, otherwise the default
+
+*(Covers FR189)*
+
+**Given** a browse URL whose `page` is beyond the last page of its results
+**When** the first response arrives
+**Then** the URL is replaced by the last page (page 1 when there are no results) without a new history entry, and that page's mods are shown
+
+*(Covers FR190)*
+
+**Given** a browse URL with a valid page
+**When** it loads
+**Then** it is requested directly, with no extra request
+
+*(Covers FR190)*
+
+**Tasks:**
+
+- [ ] `getActiveTab`: treat `/game-server/mods/browse/...` as Browse; keep the Browse tab navigating from a detail page although it is the active value (`VSS-2oz`)
+- [ ] Clamp the page after the first response, with `replace` (`VSS-nhb`)
+- [ ] Tests in `ModsPage.test.tsx` for both tabs on a detail page and in `BrowseTab.test.tsx` for `?page=9999`; update the detour in `web/e2e/mod-browse-state.spec.ts` to use the Installed tab
+
+---
+
+### Story 17.8: Layout at Tablet and Phone Widths
+
+As an **administrator**,
+I want **pages to fit the screen I am using**,
+So that **I do not scroll sideways to reach a control**.
+
+**Acceptance Criteria:**
+
+**Given** a viewport from 768px to 1023px wide
+**When** I open Installed mods, including with an update offered
+**Then** nothing scrolls sideways, and each mod's version, update status and Update action, enable toggle and remove action are reachable
+
+*(Covers FR191)*
+
+**Given** a viewport of 1024px or wider, or narrower than 768px
+**When** I open Installed mods
+**Then** the table and the phone cards are unchanged
+
+*(Covers FR191)*
+
+**Given** a 390px wide viewport
+**When** I open Settings and each of its tabs
+**Then** the page does not scroll sideways and every tab can be reached
+
+*(Covers FR192)*
+
+**Given** a viewport of 1560px or wider
+**When** I open Game Settings
+**Then** the title and the server status badge sit within the same centered 1280px width as the settings panel
+
+*(Covers FR193)*
+
+**Tasks:**
+
+- [ ] Installed mods between `md` and `lg`: follow the UX spec's tablet rule (fewer columns, update shown inline), choosing between hiding columns and using the cards up to `lg` (`VSS-dp1`)
+- [ ] Settings `TabsList`: wrap or scroll inside itself on small screens (`VSS-uni`)
+- [ ] Constrain the Game Settings header to the panel's maximum width, in all three states of `SettingsPage` (`VSS-143`)
+- [ ] Tests, and browser measurements at 390px, 768px, 900px, 1024px and 1920px

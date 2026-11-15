@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-13'
+lastUpdated: '2026-11-15'
 updates:
+  - date: '2026-11-15'
+    description: 'Added FR177-FR193 for Epic 17 (Mod Data Correctness and Fixes)'
   - date: '2026-11-13'
     description: 'Added FR175-FR176 for Epic 16 Story 16.8 (Name sort, empty settings)'
   - date: '2026-11-13'
@@ -663,3 +665,31 @@ If trivial to implement:
 
 - FR175: The mod browser's Name (A-Z) sort lists mods alphabetically by name, ignoring leading spaces, letter case and accents, sorted across all matching mods by the server and paged like the other sorts, so page numbers, search and filters work with it
 - FR176: Game server settings with no value (Description, Password, IP Address) are shown as empty fields, never as the text "null"; clearing one of them saves it as no value (null), never as the text "null" or "None"; the Password field is masked and can be revealed on request
+
+### Epic 17: Mod Data Correctness and Fixes
+
+#### Mod Data and Install
+
+- FR177: Mod lookup, browsing, sorting, tag listing and update checks succeed when the mod database returns null for any field of a mod or release; a null takes the field's default, and a release without a file ID is listed with a null file ID
+- FR178: The mod detail page's error state offers Back to Browse, returning to the browse state the page was opened from
+- FR179: Installing a mod considers only releases whose mod ID is the mod being installed, with or without a named version
+- FR180: Installing without a named version picks the newest stable release of that mod ID that has a downloadable file; a pre-release is installed only when its version is named or the mod ID has no stable release
+- FR181: The install version list shows only the releases of the mod ID that will be installed, and "(Latest)" marks the release that an install without a named version picks
+- FR182: Install, enable, disable, remove and version change for the same mod never run at the same time; a request that arrives while another is running is refused with 409 and changes nothing
+- FR183: A mod archive whose `modinfo.json` uses capitalized top-level keys (for example `ModID`, `Version`) is imported with its real mod ID and version
+- FR184: Mod browser cards show a mod as installed when any mod ID of its database entry is installed
+- FR185: A newly installed mod has an update status in the Installed list without waiting for the next update check; a mod with no update data shows "Not checked yet", not "Unknown"
+
+#### Access and Settings
+
+- FR186: A Monitor key never receives the game server password: game settings report only whether a password is set, and the config file viewer redacts it; Admin access is unchanged
+- FR187: Changing a refresh interval setting reschedules its job without restarting the API; setting it to 0 stops the job and raising it from 0 starts it
+- FR188: A boolean game setting with no value in the server config shows the game's default, marked as the default, or "Not set" when the default is not known; it is never shown as Disabled because it is missing
+
+#### Navigation and Layout
+
+- FR189: On a mod detail page, Browse is the active Mods tab and the Installed tab opens the Installed list
+- FR190: A browse link whose page is beyond the results opens the last page (page 1 when there are no results) without adding a history entry
+- FR191: At tablet widths (768-1023px) the installed mods list fits the screen without horizontal scrolling
+- FR192: On phones, the Settings tab list does not make the page scroll horizontally
+- FR193: On wide screens, the Game Settings title row is aligned with the centered settings panel
