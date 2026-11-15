@@ -1,6 +1,6 @@
 # Story 17.1: Mod Detail Pages Cannot Fail on Bad Data
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR177-FR178 and Epic 17 ADR-1. Beads: VSS-a0r (P1, production bug on v0.1.0-rc.3), VSS-fv7. Epic 17's first story; v0.1.0-rc.4 is expected right after it. Branch from docs/epic-17-mod-data-fixes (1f87ced, the Epic 17 planning commits). Not in scope: Story 17.2 (release selection, refusing a release without a file, "(Latest)", install_mod_id), 17.4 (browse mod_ids), 17.7 (Mods tabs, page clamp). No new dependencies. -->
 
@@ -68,7 +68,7 @@ so that **one odd release does not hide a mod I want to install**.
   - [x] 5.3: Manual check: in the mod browser search "jewelry", open C&N Jewelry: the page loads, the releases list includes v0.2.20, v0.1.26 and v0.2.0, the version dropdown opens; Back to Browse returns to the search. Install nothing, so `./data` is unchanged. Browser console clean. Record results in the Dev Agent Record; screenshots stay outside the repo unless the server name (`header span.font-semibold`) is masked
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` (lint, typecheck, all tests) passes; the diff adds no suppression and removes the two at `routers/mods.py:199` and `:207`
+  - [x] 6.1: `just check` (lint, typecheck, all tests) passes; the diff adds no suppression and removes the two at `routers/mods.py:199` and `:207`
   - [ ] 6.2: Story status `review`, `just sprint set 17-1-mod-detail-pages-cannot-fail-on-bad-data review`, PR to `main` (it also carries the two Epic 17 planning commits, 88cfd2d and 1f87ced), PR link on `VSS-a0r` and `VSS-fv7`
 
 ## Dev Notes
@@ -224,6 +224,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 4: `BackToBrowseButton({ onClick })` (ghost `sm`, `ArrowLeft`, "Back to Browse", `data-testid="mod-detail-back"`) is used by the loaded page and by `ModDetailError`, which takes `onBack` and renders the button above the card; the three error branches pass `handleBack`, so `browseTarget` and `MOD_DETAIL_RETURN_STATE` are reused. The Story 16.1 search string moved to a file-level `BROWSE_SEARCH` constant so the new block can reuse it (the 16.1 block reads it unchanged). Red first: the 6 new tests failed (no `mod-detail-back` in the error state). `just test-web`: 3139 passed, 4 skipped.
 - Task 5: `just docker restart` rebuilt the stack from this branch (it was not running). `bunx playwright test e2e/mod-detail-bad-data.spec.ts` with the admin key from `.env`: 2 passed (11.6 s), then 6 of 6 with `--repeat-each=3`. Test 2 matches the lookup with a regex (`/api/v1alpha1/mods/lookup/<slug>`, optional query string) and records both return URLs from `page.url()` after the grid shows cards; both are `/game-server/mods/browse?q=jewelry&sort=downloads`.
 - Task 5.3 manual check (Docker stack, an agent-driven browser tab): searched "jewelry", opened C&N Jewelry: the page loads with no error, 179 releases listed including v0.2.20, v0.1.26 and v0.2.0, the version dropdown opens with 179 options (v0.2.20 among them). Back to Browse returned to `/game-server/mods/browse?q=jewelry` with the cards shown. No console entries. Nothing installed: the SHA-1 of every file under `data/serverdata/Mods` and `data/vsmanager/state` was the same before and after. No screenshots kept.
+- Task 6: `just check` passed: ruff clean; pyright 0 errors, 3 warnings (the same pre-existing three as the baseline); `just test-api` 2401 passed; `just test-web` 3139 passed, 4 skipped; script tests 23/23, 6/6, 12/12, 126/126, 23/23. The diff adds no suppression and removes the two `# type: ignore[assignment]` in `routers/mods.py`. Story status `review`; `just sprint set 17-1-mod-detail-pages-cannot-fail-on-bad-data review`.
+- Not done here, by instruction: 6.2's PR to `main` and the PR link on `VSS-a0r` and `VSS-fv7` are left to the controller (no push or PR from the dev agent), so 6.2 and Task 6 stay unchecked until then. Beads were not changed.
 - Story created 2026-11-15: context analysis of `ModApiClient`'s entry points, the lookup, browse, tag and update check readers, `StoredRelease.from_api`, the detail page's error states, the live `canjewelry` entry and listing, Stories 16.1, 16.3 and 16.8, and Epic 17 ADR-1.
 
 ### File List
@@ -253,3 +255,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-15: Story 17.1 created (ready-for-dev).
+- 2026-11-15: Story 17.1 implemented (review). Mod database entries and listings are normalized once in `ModApiClient` (`models/moddb.py`, Epic 17 ADR-1); a release without a file is listed with `file_id: null` (`int | None`, web `number | null`), so `canjewelry` opens; browse, sorts, filters, search, the tag list and the update check read normalized data; a listing without a `mods` list is a 502; `StoredRelease.from_api` uses the same release normalizer; the two `# type: ignore` in the browse item are gone. The mod detail error states have a Back to Browse button with the loaded page's target. New `canjewelry` fixture, unit, API and web tests, and an E2E spec.
