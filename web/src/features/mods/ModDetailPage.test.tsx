@@ -1508,6 +1508,26 @@ describe('ModDetailPage', () => {
         expect(button).toHaveTextContent('No downloadable release');
       });
 
+      it('renders an entry whose mod IDs share a version without duplicate keys', async () => {
+        const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+          globalThis.fetch = mockEntry(instrumentsEntry);
+
+          renderWithProviders(<ModDetailPage />, {
+            route: '/game-server/mods/browse/instruments',
+          });
+          await screen.findByTestId('mod-detail-releases-list');
+
+          // vsinstrumentsbase and instruments both list 1.0.1
+          const duplicateKeys = errors.mock.calls.filter((call) =>
+            call.some((arg) => String(arg).includes('same key'))
+          );
+          expect(duplicateKeys).toEqual([]);
+        } finally {
+          errors.mockRestore();
+        }
+      });
+
       it('does not offer an update to a release without a file (review M1)', async () => {
         const user = userEvent.setup();
         const mockFetch = mockEntry(

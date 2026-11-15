@@ -775,7 +775,9 @@ export function ModDetailPage() {
             <div data-testid="mod-detail-releases-list">
               {mod.releases.map((release, index) => (
                 <ReleaseItem
-                  key={release.version}
+                  // Several mod IDs can list one version, and a version can be
+                  // re-uploaded, so neither the version nor mod ID + version is unique
+                  key={`${release.modidstr}:${release.version}:${index}`}
                   release={release}
                   isLatest={index === latestReleaseIndex}
                 />
