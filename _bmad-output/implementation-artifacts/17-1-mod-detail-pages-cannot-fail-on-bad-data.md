@@ -1,6 +1,6 @@
 # Story 17.1: Mod Detail Pages Cannot Fail on Bad Data
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR177-FR178 and Epic 17 ADR-1. Beads: VSS-a0r (P1, production bug on v0.1.0-rc.3), VSS-fv7. Epic 17's first story; v0.1.0-rc.4 is expected right after it. Branch from docs/epic-17-mod-data-fixes (1f87ced, the Epic 17 planning commits). Not in scope: Story 17.2 (release selection, refusing a release without a file, "(Latest)", install_mod_id), 17.4 (browse mod_ids), 17.7 (Mods tabs, page clamp). No new dependencies. -->
 
@@ -40,11 +40,11 @@ so that **one odd release does not hide a mod I want to install**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.1/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: Mod and release normalizers + tests (AC: 2, 3)
-  - [ ] 1.1: Create `api/src/vintagestory_api/models/moddb.py` (no imports from `services/`): move the `ModDict` and `ReleaseDict` aliases here (`services/mod_api.py:29-30` re-imports them so existing imports keep working); add the field tables `MOD_FIELDS` and `RELEASE_FIELDS` (Dev Notes "Normalization rules") and `normalize_mod(raw: object) -> ModDict | None`, `normalize_release(raw: object) -> ReleaseDict | None` and `normalize_mod_list(raw: object) -> list[ModDict] | None`. Each returns a new dict (never mutates its input), keeps unknown keys unchanged, and is idempotent
-  - [ ] 1.2: Add `api/tests/fixtures/moddb/mod_canjewelry.json` (real data, trimmed; Dev Notes "canjewelry fixture") and its row in `api/tests/fixtures/moddb/README.md`
-  - [ ] 1.3: In `agentdocs/vintagestory-modapi.md`, note under the Release Object table that `fileid` can be `null` (with `filename` and `mainfile` `""`) and `changelog` can be `null`, and under the mod object that `tags` can contain `null` (`canjewelry`, 2026-11-15)
-  - [ ] 1.4: Tests in `api/tests/test_moddb_normalize.py`: each rule in the table for null, missing and wrong-type values (a `bool` is not an int); `fileid` null, missing or wrong type → `None`, an int kept; a string `tags` → one tag; null and non-string list elements dropped; non-object releases dropped; a non-object entry → `None`; `normalize_mod_list` of a non-list → `None`, non-object items dropped; unknown keys kept; input not mutated; idempotent; every release of `mod_canjewelry.json` and the four existing fixtures normalizes without changing a value that was already valid (compare field by field)
+- [x] Task 1: Mod and release normalizers + tests (AC: 2, 3)
+  - [x] 1.1: Create `api/src/vintagestory_api/models/moddb.py` (no imports from `services/`): move the `ModDict` and `ReleaseDict` aliases here (`services/mod_api.py:29-30` re-imports them so existing imports keep working); add the field tables `MOD_FIELDS` and `RELEASE_FIELDS` (Dev Notes "Normalization rules") and `normalize_mod(raw: object) -> ModDict | None`, `normalize_release(raw: object) -> ReleaseDict | None` and `normalize_mod_list(raw: object) -> list[ModDict] | None`. Each returns a new dict (never mutates its input), keeps unknown keys unchanged, and is idempotent
+  - [x] 1.2: Add `api/tests/fixtures/moddb/mod_canjewelry.json` (real data, trimmed; Dev Notes "canjewelry fixture") and its row in `api/tests/fixtures/moddb/README.md`
+  - [x] 1.3: In `agentdocs/vintagestory-modapi.md`, note under the Release Object table that `fileid` can be `null` (with `filename` and `mainfile` `""`) and `changelog` can be `null`, and under the mod object that `tags` can contain `null` (`canjewelry`, 2026-11-15)
+  - [x] 1.4: Tests in `api/tests/test_moddb_normalize.py`: each rule in the table for null, missing and wrong-type values (a `bool` is not an int); `fileid` null, missing or wrong type → `None`, an int kept; a string `tags` → one tag; null and non-string list elements dropped; non-object releases dropped; a non-object entry → `None`; `normalize_mod_list` of a non-list → `None`, non-object items dropped; unknown keys kept; input not mutated; idempotent; every release of `mod_canjewelry.json` and the four existing fixtures normalizes without changing a value that was already valid (compare field by field)
 
 - [ ] Task 2: Lookup lists every release, with `file_id: null` for a release without a file + tests (AC: 1, 2, 3, 4)
   - [ ] 2.1: `ModApiClient.get_mod` (`services/mod_api.py:309-312`): return `normalize_mod(data.get("mod"))`; when it is `None` (the `mod` key missing or not an object) raise `ExternalApiError("VintageStory mod API returned an unexpected response")`, logged like the other unexpected bodies
@@ -212,11 +212,21 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 ### Debug Log References
 
+- Baseline before Task 1: `just test-api` 2374 passed; `just typecheck-api` 0 errors, 3 warnings (pre-existing, in `test_mod_service.py:1530`, `:1609` and `test_mods_router.py:2275`).
+
 ### Completion Notes List
 
+- Task 1: `models/moddb.py` maps each field to a small normalizer function (`MOD_FIELDS`, `RELEASE_FIELDS` are `dict[str, Callable]`), so `{field: None for field in MOD_FIELDS}` works as the Dev Notes describe. An empty string where a list of strings is expected becomes `[]`, not `[""]`, matching `StoredRelease.from_api`'s `data.get("tags") or []` today. Unknown keys are a shallow copy (nested values of unknown keys are shared with the input; known lists are rebuilt). `canjewelry` fixture captured 2026-11-15 with the Dev Notes' `jq` command: 9 releases, the three null `fileid`s (`0.2.20`, `0.1.26`, `0.2.0`), `changelog` null on `0.3.7` and the null in `tags` are all present, so no stop was needed. 239 new tests.
 - Story created 2026-11-15: context analysis of `ModApiClient`'s entry points, the lookup, browse, tag and update check readers, `StoredRelease.from_api`, the detail page's error states, the live `canjewelry` entry and listing, Stories 16.1, 16.3 and 16.8, and Epic 17 ADR-1.
 
 ### File List
+
+- `api/src/vintagestory_api/models/moddb.py` (new)
+- `api/src/vintagestory_api/services/mod_api.py`
+- `api/tests/test_moddb_normalize.py` (new)
+- `api/tests/fixtures/moddb/mod_canjewelry.json` (new)
+- `api/tests/fixtures/moddb/README.md`
+- `agentdocs/vintagestory-modapi.md`
 
 ## Change Log
 

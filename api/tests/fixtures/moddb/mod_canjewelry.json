@@ -1,0 +1,138 @@
+{
+  "statuscode": "200",
+  "mod": {
+    "modid": 1074,
+    "assetid": 5539,
+    "name": "C&N Jewelry",
+    "author": "KenigVovan",
+    "urlalias": "canjewelry",
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2026-11-14 07:54:30",
+    "tags": [
+      "Utility",
+      "Cosmetics",
+      "Crafting",
+      null
+    ],
+    "releases": [
+      {
+        "releaseid": 65886,
+        "modversion": "0.8.2",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_0.8.2.zip",
+        "fileid": 138875,
+        "downloads": 227,
+        "tags": [
+          "1.22.7"
+        ],
+        "created": "2026-11-14 07:54:30",
+        "changelog": "<ul><li>recipe rotation fix</li></ul>"
+      },
+      {
+        "releaseid": 65883,
+        "modversion": "0.8.1",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_0.8.1.zip",
+        "fileid": 138872,
+        "downloads": 12,
+        "tags": [
+          "1.22.7"
+        ],
+        "created": "2026-11-14 07:31:51",
+        "changelog": "<ul><li>jewelry crafts display change</li></ul>"
+      },
+      {
+        "releaseid": 13575,
+        "modversion": "0.3.7",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_0.3.7.zip",
+        "fileid": 28444,
+        "downloads": 254,
+        "tags": [
+          "1.19.8"
+        ],
+        "created": "2024-12-11 10:30:07",
+        "changelog": null
+      },
+      {
+        "releaseid": 9516,
+        "modversion": "0.2.22",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_0.2.22.zip",
+        "fileid": 20244,
+        "downloads": 383,
+        "tags": [
+          "1.19.5"
+        ],
+        "created": "2024-03-26 22:20:44",
+        "changelog": "<ul>\n<li>typo fixed in default config for \"ore-fluorite-*\" (thx PervySage)</li>\n</ul>"
+      },
+      {
+        "releaseid": 9514,
+        "modversion": "0.2.20",
+        "modidstr": "canjewelry",
+        "filename": "",
+        "fileid": null,
+        "downloads": 0,
+        "tags": [
+          "1.19.5"
+        ],
+        "created": "2024-03-26 19:43:33",
+        "changelog": "<ul>\n<li>gems_drops_table added to config</li>\n<li>default diamonds/emeralds/olivines now has recipes to new one and back</li>\n</ul>"
+      },
+      {
+        "releaseid": 9495,
+        "modversion": "0.2.19",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_0.2.19.zip",
+        "fileid": 20209,
+        "downloads": 478,
+        "tags": [
+          "1.19.5"
+        ],
+        "created": "2024-03-25 11:58:19",
+        "changelog": "<ul>\n<li>hide debug msgs</li>\n</ul>"
+      },
+      {
+        "releaseid": 8427,
+        "modversion": "0.1.26",
+        "modidstr": "canjewelry",
+        "filename": "",
+        "fileid": null,
+        "downloads": 0,
+        "tags": [
+          "1.18.15"
+        ],
+        "created": "2024-01-27 21:04:09",
+        "changelog": "<ul>\n<li>fix slots flip</li>\n</ul>"
+      },
+      {
+        "releaseid": 8047,
+        "modversion": "0.2.0",
+        "modidstr": "canjewelry",
+        "filename": "",
+        "fileid": null,
+        "downloads": 0,
+        "tags": [
+          "1.19.0-rc.6"
+        ],
+        "created": "2024-01-09 17:18:33",
+        "changelog": "<ul>\n<li>CANItemSimpleNecklace is now IWearableShapeSupplier, so we don't need harmony patch on addGearToShape in EntityAgent&nbsp; \\(o-o)/</li>\n</ul>"
+      },
+      {
+        "releaseid": 4465,
+        "modversion": "0.0.1",
+        "modidstr": "canjewelry",
+        "filename": "canjewelry_v0.0.1.zip",
+        "fileid": 9937,
+        "downloads": 423,
+        "tags": [
+          "1.17.11"
+        ],
+        "created": "2023-03-15 16:08:29",
+        "changelog": "<p>init</p>"
+      }
+    ]
+  }
+}

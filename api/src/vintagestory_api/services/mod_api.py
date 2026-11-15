@@ -11,11 +11,13 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 from urllib.parse import urlparse
 
 import httpx
 import structlog
+
+from vintagestory_api.models.moddb import ModDict, ReleaseDict
 
 if TYPE_CHECKING:
     from vintagestory_api.services.cache_eviction import CacheEvictionService
@@ -24,10 +26,6 @@ logger = structlog.get_logger()
 
 # Type alias for compatibility status
 CompatibilityStatus = Literal["compatible", "not_verified", "incompatible"]
-
-# Type aliases for API response objects
-ModDict = dict[str, Any]
-ReleaseDict = dict[str, Any]
 
 # Sort options for browse endpoint
 SortOption = Literal["downloads", "trending", "recent", "name"]

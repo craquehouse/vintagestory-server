@@ -195,7 +195,7 @@ development_status:
   16-8-name-sort-and-empty-settings: done
   epic-17: in-progress
   epic-17-retrospective: optional
-  17-1-mod-detail-pages-cannot-fail-on-bad-data: ready-for-dev
+  17-1-mod-detail-pages-cannot-fail-on-bad-data: in-progress
   17-2-install-picks-the-right-release: backlog
   17-3-mod-operations-are-safe-against-each-other: backlog
   17-4-installed-status-is-right-everywhere: backlog

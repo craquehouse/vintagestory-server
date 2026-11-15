@@ -10,6 +10,7 @@ Each mod keeps `modid`, `assetid`, `name`, `author`, `urlalias`, `side`, `type` 
 | `mod_instruments.json` | `instruments` | All 33 | One entry spanning three modids (`instruments`, `vsinstruments`, `vsinstrumentsbase`); `modversion` `1.0.1` repeated under different modids; `urlalias` is `null` |
 | `mod_egocaribautomapmarkers.json` | `egocaribautomapmarkers` | All 24 | Repeated `filename` values (`Auto Map Markers.zip`); filenames with spaces; a second modid (`egocaribresinmapmarkers`); `urlalias` (`automapmarkers`) that does not resolve as a lookup key |
 | `mod_playercorpse.json` | `playercorpse` | All 37 (captured 2026-11-13, Story 16.0) | Newest release (`1.12.0`) is tagged only up to `1.21.1`, so it is incompatible with 1.22.x; tags within a release are oldest first and include pre-releases (`1.21.1-rc.1`, `1.21.1-rc.2`) |
+| `mod_canjewelry.json` | `canjewelry` | 9 of 179 (captured 2026-11-15, Story 17.1) | `fileid` null on three releases (with `filename` `""`); `changelog` null; a `null` in the entry's `tags` |
 | `mod_not_found.json` | `maltiezfirearms` | None | A mod removed from ModDB: the response is `{"statuscode": "404"}` with no `mod` key |
 
 ModDB returns `statuscode` as a string. See `agentdocs/vintagestory-modapi.md` for the API reference.
