@@ -1,6 +1,6 @@
 # Story 17.2: Install Picks the Right Release
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR179-FR181 and Epic 17 ADR-2. Beads: VSS-jhf, VSS-43b; also closes Story 17.1 review finding L1 (a release without a file reaching the download). Branch story/17-2-install-picks-the-right-release from main (139eef0, Story 17.1 merged). Not in scope: Story 17.3 (per-mod lock, archive mod ID check, modinfo key case), 17.4 (browse cards recognizing any installed mod ID, update status after install). No new dependencies. -->
 
@@ -60,10 +60,10 @@ so that **I do not end up with a different mod or a pre-release I did not ask fo
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.2/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: Release selection function + tests (AC: 1, 2, 3, 4, 5)
-  - [ ] 1.1: Create `api/src/vintagestory_api/services/mod_release_selection.py`. It imports only `vintagestory_api.models.moddb` (Dev Notes "Where the function lives"). Move `is_prerelease` here from `services/mod_updates.py:46-48`; `mod_updates.py` imports it from the new module, so `from vintagestory_api.services.mod_updates import is_prerelease` (`services/mods.py:50`, `services/mod_compatibility.py:14`, tests) keeps working
-  - [ ] 1.2: Add `has_file(fileid: int | None) -> bool` (a positive file ID), the frozen dataclass `InstallSelection` and `select_install_release(slug: str, releases: list[ReleaseDict], version: str | None = None) -> InstallSelection`, implementing ADR-2 rules 1-4 exactly as in Dev Notes "Selection rules". The function is pure: no I/O, no exceptions for a refusal, input not mutated
-  - [ ] 1.3: Tests in `api/tests/test_mod_release_selection.py`, loading fixtures through `normalize_mod` (as `get_mod` does): every row of Dev Notes "Selection test cases"; `is_prerelease` still importable from `services.mod_updates`
+- [x] Task 1: Release selection function + tests (AC: 1, 2, 3, 4, 5)
+  - [x] 1.1: Create `api/src/vintagestory_api/services/mod_release_selection.py`. It imports only `vintagestory_api.models.moddb` (Dev Notes "Where the function lives"). Move `is_prerelease` here from `services/mod_updates.py:46-48`; `mod_updates.py` imports it from the new module, so `from vintagestory_api.services.mod_updates import is_prerelease` (`services/mods.py:50`, `services/mod_compatibility.py:14`, tests) keeps working
+  - [x] 1.2: Add `has_file(fileid: int | None) -> bool` (a positive file ID), the frozen dataclass `InstallSelection` and `select_install_release(slug: str, releases: list[ReleaseDict], version: str | None = None) -> InstallSelection`, implementing ADR-2 rules 1-4 exactly as in Dev Notes "Selection rules". The function is pure: no I/O, no exceptions for a refusal, input not mutated
+  - [x] 1.3: Tests in `api/tests/test_mod_release_selection.py`, loading fixtures through `normalize_mod` (as `get_mod` does): every row of Dev Notes "Selection test cases"; `is_prerelease` still importable from `services.mod_updates`
 
 - [ ] Task 2: Install uses the selection, and a release without a file is refused + tests (AC: 1, 2, 3, 4, 5, 9)
   - [ ] 2.1: `services/mod_api.py`: add `ModReleaseNotDownloadableError(ModApiError)` beside `ModVersionNotFoundError` (`:71-77`), with `slug`, `version: str | None` and the messages in Dev Notes "Errors". `download_mod` (`:355-413`): replace the selection block (`:392-403`) with `select_install_release(slug, releases, version)`; `refusal == "version_not_found"` raises `ModVersionNotFoundError(slug, version)`, `"no_file"` raises `ModReleaseNotDownloadableError(slug, version)`; pass `selection.file_id` (typed `int`) to `download_release_file`, not `release["fileid"]`. Keep the debug log with the chosen mod ID and version. Update the docstring ("latest" is the newest stable release of the mod ID that has a file)
@@ -299,13 +299,23 @@ Manual test tasks need the user's confirmation before they are marked complete (
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
 
+- Baseline before Task 1: `just test-api` passed; `just typecheck-api` 0 errors, 3 warnings (pre-existing, in tests).
+
 ### Completion Notes List
+
+- Task 1: `services/mod_release_selection.py` holds `is_prerelease` (moved from `mod_updates.py`, which now imports it, so every existing import keeps working), `has_file`, the frozen `InstallSelection` and `select_install_release`. The file ID is narrowed with `isinstance` (a `bool` is not a file ID), so `file_id` is a real `int`. Red first: the new test file failed at collection (module missing). 27 new tests (every row of "Selection test cases", `has_file`, the `is_prerelease` re-export and an input-not-mutated check). `just test-api` 2429 passed; pyright 0 errors, the same 3 warnings.
 
 - Story created 2026-11-15: context analysis of `download_mod`, `download_release_file`, `lookup_mod`, `_compatibility_modid`, the version change path, the detail page's two version lists, the browse card and the install dialog, the mod database fixtures, Story 17.1 and its review, and Epic 17 ADR-2. The API tests that change were found by running the suite against a throwaway prototype of the selection and lookup change.
 
 ### File List
+
+- `api/src/vintagestory_api/services/mod_release_selection.py` (new)
+- `api/src/vintagestory_api/services/mod_updates.py`
+- `api/tests/test_mod_release_selection.py` (new)
 
 ## Change Log
 

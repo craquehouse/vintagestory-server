@@ -33,6 +33,7 @@ from vintagestory_api.services.mod_api import (
     ModApiError,
     check_compatibility,
 )
+from vintagestory_api.services.mod_release_selection import is_prerelease
 from vintagestory_api.services.mod_update_alerts import send_update_alert
 
 if TYPE_CHECKING:
@@ -41,11 +42,6 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 STORE_FILENAME = "mod-updates.json"
-
-
-def is_prerelease(version: str) -> bool:
-    """Whether a mod version is a pre-release (contains `-`, such as `2.0.0-rc.1`)."""
-    return "-" in version
 
 
 def parse_base_version(version: str) -> tuple[int, ...] | None:
