@@ -3087,6 +3087,82 @@ class TestInstallModVersionNotFound:
         assert "99.99.99" in data["detail"]["message"]
 
     @respx.mock
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "version"),
+        [
+            # 2.0.7 exists only under vsinstrumentsbase, another mod ID of the entry
+            ("instruments", "instruments", "2.0.7"),
+            # The web used to send the string "latest" as a version name
+            ("carryon", "carryon", "latest"),
+        ],
+    )
+    def test_install_version_the_mod_id_does_not_have_is_not_found(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        temp_data_dir: Path,
+        mod_service: ModService,
+        fixture: str,
+        slug: str,
+        version: str,
+    ) -> None:
+        """Story 17.2: only releases of the requested mod ID are considered."""
+        respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / f"mod_{fixture}.json").read_text())
+            )
+        )
+        download = respx.get("https://mods.vintagestory.at/download").mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": slug, "version": version},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["code"] == "MOD_VERSION_NOT_FOUND"
+        assert not download.called
+        assert list((temp_data_dir / "mods").iterdir()) == []
+        assert mod_service.state_manager.list_mods() == []
+
+    @respx.mock
+    def test_install_release_without_a_file_is_refused(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        temp_data_dir: Path,
+        mod_service: ModService,
+    ) -> None:
+        """Story 17.2: a named release without a file is a 422, nothing downloaded."""
+        respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+            )
+        )
+        download = respx.get("https://mods.vintagestory.at/download").mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": "canjewelry", "version": "0.2.20"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["code"] == "MOD_RELEASE_NOT_DOWNLOADABLE"
+        assert detail["message"] == (
+            "Version '0.2.20' of mod 'canjewelry' has no downloadable file in the mod database"
+        )
+        assert not download.called
+        assert list((temp_data_dir / "mods").iterdir()) == []
+        assert mod_service.state_manager.list_mods() == []
+
+    @respx.mock
     def test_install_mod_download_error(
         self,
         client: TestClient,

@@ -17,6 +17,7 @@ from vintagestory_api.services.mod_api import (
     GameVersionNotFoundError,
     ModApiClient,
     ModNotFoundError,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     check_compatibility,
     extract_slug,
@@ -913,6 +914,189 @@ class TestModApiClientDownloadMod:
         mock_eviction.evict_if_needed.assert_called_once()
 
         await client.close()
+
+
+# --- Story 17.2: which release download_mod picks (Epic 17 ADR-2) ---
+
+
+def _fixture_payload(name: str) -> dict[str, Any]:
+    return json.loads((FIXTURES / f"mod_{name}.json").read_text())
+
+
+def _no_file_mod(modid: str) -> dict[str, Any]:
+    """A one-mod-ID entry none of whose releases has a file."""
+    return {
+        "modid": 9998,
+        "assetid": 9998,
+        "name": modid,
+        "urlalias": modid,
+        "releases": [
+            {
+                "releaseid": 1,
+                "modversion": "1.0.0",
+                "modidstr": modid,
+                "filename": f"{modid}_1.0.0.zip",
+                "fileid": None,
+                "tags": [],
+            },
+            {
+                "releaseid": 2,
+                "modversion": "0.9.0",
+                "modidstr": modid,
+                "filename": "",
+                "fileid": 0,
+                "tags": [],
+            },
+        ],
+    }
+
+
+class TestDownloadModReleaseSelection:
+    """download_mod() picks the install mod ID's newest stable release with a file."""
+
+    DOWNLOAD = "https://mods.vintagestory.at/download"
+
+    def _mock_entry(self, slug: str, fixture: str) -> None:
+        respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+            return_value=Response(200, json=_fixture_payload(fixture))
+        )
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "version", "expected_version", "file_id", "filename"),
+        [
+            ("instruments", "instruments", None, "1.2.2", 12840, "instruments_1.2.2.zip"),
+            ("instruments", "instruments", "1.0.1", "1.0.1", 1002, "instruments_1.0.1.zip"),
+            ("instruments", "vsinstruments", None, "1.2.7", 18954, "vsinstruments_1.2.7.zip"),
+            ("carryon", "carryon", None, "1.14.3", 113014, "CarryOn-1.22.0_v1.14.3.zip"),
+            (
+                "carryon",
+                "carryon",
+                "2.0.0-rc.1",
+                "2.0.0-rc.1",
+                130071,
+                "CarryOn-1.22.0_v2.0.0-rc.1.zip",
+            ),
+            ("canjewelry", "canjewelry", None, "0.8.2", 138875, "canjewelry_0.8.2.zip"),
+        ],
+    )
+    async def test_downloads_the_selected_release(
+        self,
+        mod_api_client: ModApiClient,
+        fixture: str,
+        slug: str,
+        version: str | None,
+        expected_version: str,
+        file_id: int,
+        filename: str,
+    ) -> None:
+        self._mock_entry(slug, fixture)
+        download = respx.get(self.DOWNLOAD, params={"fileid": str(file_id)}).mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        result = await mod_api_client.download_mod(slug, version)
+
+        assert download.call_count == 1
+        assert result is not None
+        assert result.version == expected_version
+        assert result.filename == filename
+        assert result.release["modidstr"] == slug
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_only_prereleases_downloads_the_first(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        payload = _fixture_payload("carryon")
+        payload["mod"]["releases"] = [
+            r for r in payload["mod"]["releases"] if "-" in r["modversion"]
+        ]
+        respx.get("https://mods.vintagestory.at/api/mod/carryon").mock(
+            return_value=Response(200, json=payload)
+        )
+        download = respx.get(self.DOWNLOAD, params={"fileid": "130071"}).mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        result = await mod_api_client.download_mod("carryon")
+
+        assert download.called
+        assert result is not None
+        assert result.version == "2.0.0-rc.1"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "version"),
+        [
+            ("instruments", "instruments", "2.0.7"),
+            ("carryon", "carryon", "latest"),
+        ],
+    )
+    async def test_version_not_of_the_mod_id_is_not_found(
+        self, mod_api_client: ModApiClient, fixture: str, slug: str, version: str
+    ) -> None:
+        self._mock_entry(slug, fixture)
+        download = respx.get(self.DOWNLOAD).mock(return_value=Response(200, content=b"zip"))
+
+        with pytest.raises(ModVersionNotFoundError) as exc_info:
+            await mod_api_client.download_mod(slug, version)
+
+        assert exc_info.value.slug == slug
+        assert exc_info.value.version == version
+        assert not download.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_named_release_without_a_file_is_refused(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        self._mock_entry("canjewelry", "canjewelry")
+        download = respx.get(self.DOWNLOAD).mock(return_value=Response(200, content=b"zip"))
+
+        with pytest.raises(ModReleaseNotDownloadableError) as exc_info:
+            await mod_api_client.download_mod("canjewelry", "0.2.20")
+
+        assert exc_info.value.slug == "canjewelry"
+        assert exc_info.value.version == "0.2.20"
+        assert str(exc_info.value) == (
+            "Version '0.2.20' of mod 'canjewelry' has no downloadable file in the mod database"
+        )
+        assert not download.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_mod_id_without_any_file_is_refused(self, mod_api_client: ModApiClient) -> None:
+        respx.get("https://mods.vintagestory.at/api/mod/nofile").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": _no_file_mod("nofile")})
+        )
+        download = respx.get(self.DOWNLOAD).mock(return_value=Response(200, content=b"zip"))
+
+        with pytest.raises(ModReleaseNotDownloadableError) as exc_info:
+            await mod_api_client.download_mod("nofile")
+
+        assert exc_info.value.slug == "nofile"
+        assert exc_info.value.version is None
+        assert str(exc_info.value) == (
+            "Mod 'nofile' has no release with a downloadable file in the mod database"
+        )
+        assert not download.called
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("fileid", [0, -1])
+    async def test_download_release_file_refuses_a_missing_file_id(
+        self, mod_api_client: ModApiClient, fileid: int
+    ) -> None:
+        download = respx.get(self.DOWNLOAD).mock(return_value=Response(200, content=b"zip"))
+
+        with pytest.raises(ModReleaseNotDownloadableError) as exc_info:
+            await mod_api_client.download_release_file("demo", fileid, "x.zip")
+
+        assert exc_info.value.slug == "demo"
+        assert not download.called
 
 
 # --- Tests for ModApiClient lifecycle ---

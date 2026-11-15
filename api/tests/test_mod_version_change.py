@@ -16,6 +16,7 @@ from vintagestory_api.models.mods import ModState
 from vintagestory_api.services.mod_api import (
     DownloadError,
     ModApiClient,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     safe_release_filename,
 )
@@ -443,6 +444,26 @@ class TestPrepareVersionChange:
 
         with pytest.raises(ModValidationError):
             await service._prepare_version_change("demo", "1.1.0", confirm=True)
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_release_without_a_file_is_refused_before_confirmation(
+        self, tmp_path: Path
+    ) -> None:
+        """Story 17.2: canjewelry 0.2.20 has no file; refused, not asked to confirm."""
+        service = make_service(tmp_path)
+        install_existing(service, "canjewelry", "0.2.19", "canjewelry_0.2.19.zip")
+        respx.get(MOD_URL.format("canjewelry")).mock(
+            return_value=Response(200, json=fixture_json("canjewelry"))
+        )
+        download = respx.get(DOWNLOAD_URL).mock(return_value=Response(200, content=b"zip"))
+
+        with pytest.raises(ModReleaseNotDownloadableError) as raised:
+            await service._prepare_version_change("canjewelry", "0.2.20", confirm=False)
+
+        assert raised.value.slug == "canjewelry"
+        assert raised.value.version == "0.2.20"
+        assert not download.called
 
 
 def demo_mod(filename_new: str, filename_old: str) -> dict[str, Any]:

@@ -18,6 +18,7 @@ from vintagestory_api.services.mod_api import (
     ExternalApiError,
     GameVersionNotFoundError,
     ModDict,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     SortOption,
     search_mods,
@@ -650,7 +651,8 @@ class ModInstallRequest(BaseModel):
     version: str | None = Field(
         default=None,
         description="Specific version to install (e.g., '1.8.3'). "
-        "If not specified, installs the latest version.",
+        "If not specified, installs the newest stable release of the mod ID that has a "
+        "downloadable file.",
     )
 
 
@@ -663,7 +665,8 @@ async def install_mod(
     """Install a mod from the VintageStory mod database.
 
     Downloads and installs a mod by slug or URL. If version is not specified,
-    installs the latest version. Returns compatibility status with the
+    installs the newest stable release of the mod ID that has a downloadable file
+    (Epic 17 ADR-2). Returns compatibility status with the
     installed game version.
 
     Args:
@@ -681,6 +684,7 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
         HTTPException: 502 if download fails
     """
@@ -729,6 +733,15 @@ async def install_mod(
             detail={
                 "code": ErrorCode.MOD_VERSION_NOT_FOUND,
                 "message": f"Version '{e.version}' not found for mod '{e.slug}'",
+            },
+        )
+
+    except ModReleaseNotDownloadableError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.MOD_RELEASE_NOT_DOWNLOADABLE,
+                "message": str(e),
             },
         )
 
@@ -984,6 +997,8 @@ async def change_mod_version(
         raise _version_change_error(404, ErrorCode.MOD_NOT_FOUND, e) from None
     except ModVersionNotFoundError as e:
         raise _version_change_error(404, ErrorCode.MOD_VERSION_NOT_FOUND, e) from None
+    except ModReleaseNotDownloadableError as e:
+        raise _version_change_error(422, ErrorCode.MOD_RELEASE_NOT_DOWNLOADABLE, e) from None
     except ModConfirmationRequiredError as e:
         raise _version_change_error(
             409,

@@ -12,6 +12,7 @@ from vintagestory_api.services.mod_api import (
     DownloadError,
     ExternalApiError,
     ModApiClient,
+    ModReleaseNotDownloadableError,
 )
 from vintagestory_api.services.mod_updates import (
     ModUpdateAllInProgressError,
@@ -148,6 +149,7 @@ class TestApplyAll:
             ModVersionChangeFailedError("alpha", "disk full"),
             DownloadError("alpha", "connection reset"),
             ExternalApiError("mod database unavailable"),
+            ModReleaseNotDownloadableError("alpha", "1.1.0"),
             OSError("read-only file system"),
             ValueError("state could not be serialized"),
             TypeError("unexpected release data"),

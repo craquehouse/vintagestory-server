@@ -1194,6 +1194,50 @@ class TestModServiceInstallMod:
 
             assert exc_info.value.slug == "nonexistent"
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("slug", "version", "file_id", "filename"),
+        [
+            # Story 17.2: the requested mod ID, not vsinstrumentsbase (releases[0])
+            ("instruments", "1.2.2", 12840, "instruments_1.2.2.zip"),
+            # Story 17.2: the newest stable release, not 2.0.0-rc.1 (releases[0])
+            ("carryon", "1.14.3", 113014, "CarryOn-1.22.0_v1.14.3.zip"),
+        ],
+    )
+    async def test_install_picks_the_mod_id_newest_stable_release(
+        self,
+        install_service: ModService,
+        temp_dirs: tuple[Path, Path],
+        slug: str,
+        version: str,
+        file_id: int,
+        filename: str,
+    ) -> None:
+        import respx
+        from httpx import Response
+
+        _state_dir, mods_dir = temp_dirs
+        payload = json.loads((FIXTURES / f"mod_{slug}.json").read_text())
+        mod_zip_content = create_mod_zip_bytes({"modid": slug, "name": slug, "version": version})
+
+        with respx.mock:
+            respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+                return_value=Response(200, json=payload)
+            )
+            respx.get(
+                "https://mods.vintagestory.at/download", params={"fileid": str(file_id)}
+            ).mock(return_value=Response(200, content=mod_zip_content))
+
+            result = await install_service.install_mod(slug)
+
+        assert result.slug == slug
+        assert result.version == version
+        assert result.filename == filename
+        assert (mods_dir / filename).exists()
+        state = install_service.state_manager.get_mod_by_slug(slug)
+        assert state is not None
+        assert state.version == version
+
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""
     import io

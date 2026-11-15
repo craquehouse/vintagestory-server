@@ -31,6 +31,7 @@ from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ModApiClient,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     ReleaseDict,
     check_compatibility,
@@ -839,6 +840,7 @@ class ModService:
         Raises:
             ModVersionChangeInProgressError: A change for this mod is already running.
             ModVersionChangeFailedError: Placing the file or saving state failed.
+            ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
         """
         lock = self._version_locks.setdefault(slug, asyncio.Lock())
@@ -983,6 +985,8 @@ class ModService:
             ModNotFoundError: The mod is not installed.
             ApiModNotFoundError: The mod is not in the mod database.
             ModVersionNotFoundError: No release with this version for the installed modid.
+            ModReleaseNotDownloadableError: That release has no downloadable file
+                (checked before confirmation).
             ModConfirmationRequiredError: Confirmation is needed and `confirm` is false.
             ModValidationError: The archive is unusable or is not the requested release.
             ExternalApiError, DownloadError: The mod database or download failed.
@@ -1002,6 +1006,9 @@ class ModService:
         if target_index is None:
             raise ModVersionNotFoundError(slug, version)
         target = own[target_index]
+        # StoredRelease stores "no file" as 0 (Epic 17 ADR-1); refuse before confirming
+        if target.fileid <= 0:
+            raise ModReleaseNotDownloadableError(slug, version)
         installed_index = next(
             (i for i, r in enumerate(own) if r.modversion == state.version), None
         )
@@ -1076,7 +1083,8 @@ class ModService:
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
                          (e.g., "https://mods.vintagestory.at/smithingplus").
-            version: Specific version to install, or None for latest.
+            version: Specific version to install, or None for the newest stable
+                release of the mod ID that has a downloadable file (Epic 17 ADR-2).
 
         Returns:
             InstallResult with installation details.
@@ -1084,7 +1092,8 @@ class ModService:
         Raises:
             ModAlreadyInstalledError: If the mod is already installed.
             ApiModNotFoundError: If the mod doesn't exist in the database.
-            ModVersionNotFoundError: If the specific version doesn't exist.
+            ModVersionNotFoundError: If no release of the mod ID has that version.
+            ModReleaseNotDownloadableError: If the release to install has no file.
             ExternalApiError: If the mod API is unavailable.
             DownloadError: If the download fails.
         """
