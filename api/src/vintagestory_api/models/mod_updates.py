@@ -5,9 +5,11 @@ See _bmad-output/planning-artifacts/architecture/epic-14-mod-updates.md, ADR-1 a
 
 import re
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Literal
 
 from pydantic import BaseModel
+
+from vintagestory_api.models.moddb import normalize_release
 
 Compatibility = Literal["compatible", "not_verified", "incompatible"]
 """Compatibility of a release with the installed game version (see mod_api.check_compatibility)."""
@@ -51,30 +53,24 @@ class StoredRelease(BaseModel):
     def from_api(cls, release: object) -> StoredRelease:
         """Build from a release object in a mod database response.
 
+        The release goes through the same normalizer as every mod database release
+        (Epic 17 ADR-1); then lone surrogates are cleaned from the text. A release
+        without a downloadable file (`fileid` None) is stored with `fileid` 0.
+
         Raises:
             TypeError: If the release is not an object.
-            ValueError: If a field has an unusable value (pydantic's ValidationError
-                is a ValueError).
         """
-        if not isinstance(release, dict):
+        data = normalize_release(release)
+        if data is None:
             raise TypeError("release is not an object")
-        data = cast(dict[str, Any], release)
-        raw_tags: object = data.get("tags") or []
-        if isinstance(raw_tags, str):
-            raw_tags = [raw_tags]
-        tags = (
-            [_clean_text(tag) for tag in cast(list[Any], raw_tags)]
-            if isinstance(raw_tags, list)
-            else []
-        )
-        created = data.get("created")
+        fileid: int | None = data["fileid"]
         return cls(
-            modversion=_clean_text(data.get("modversion") or ""),
-            modidstr=_clean_text(data.get("modidstr") or ""),
-            tags=tags,
-            fileid=int(data.get("fileid") or 0),
-            filename=_clean_text(data.get("filename") or ""),
-            created=_clean_text(created) if isinstance(created, str) else created,
+            modversion=_clean_text(data["modversion"]),
+            modidstr=_clean_text(data["modidstr"]),
+            tags=[_clean_text(tag) for tag in data["tags"]],
+            fileid=fileid if fileid is not None else 0,
+            filename=_clean_text(data["filename"]),
+            created=_clean_text(data["created"]),
         )
 
 

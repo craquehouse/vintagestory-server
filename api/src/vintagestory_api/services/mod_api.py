@@ -21,6 +21,7 @@ from vintagestory_api.models.moddb import (
     ModDict,
     ReleaseDict,
     normalize_mod,
+    normalize_mod_list,
 )
 
 if TYPE_CHECKING:
@@ -522,7 +523,12 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
-                mods = data.get("mods", [])
+                # Story 17.1 (Epic 17 ADR-1): normalized before it is cached. A missing
+                # or non-list `mods` is an error, not an empty (and cached) list.
+                mods = normalize_mod_list(data.get("mods"))
+                if mods is None:
+                    logger.error("mod_api_invalid_body_browse")
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 self._browse_cache = mods
                 self._browse_cache_time = datetime.now()
                 logger.debug("browse_cache_refreshed", count=len(mods))
@@ -608,7 +614,13 @@ class ModApiClient:
 
             # CRITICAL: statuscode is STRING, not int!
             if data.get("statuscode") == "200":
-                mods = data.get("mods", [])
+                # Story 17.1 (Epic 17 ADR-1): normalized where it enters
+                mods = normalize_mod_list(data.get("mods"))
+                if mods is None:
+                    logger.error(
+                        "mod_api_invalid_body_mods_by_version", version_tagid=version_tagid
+                    )
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
                 logger.debug(
                     "mods_by_version_fetched",
                     version_tagid=version_tagid,
@@ -756,18 +768,18 @@ class ModApiClient:
 
 
 def _get_downloads(m: ModDict) -> int:
-    """Get downloads count from mod dict."""
-    return int(m.get("downloads", 0))
+    """Get downloads count from a normalized mod dict."""
+    return m["downloads"]
 
 
 def _get_trending(m: ModDict) -> int:
-    """Get trending points from mod dict."""
-    return int(m.get("trendingpoints", 0))
+    """Get trending points from a normalized mod dict."""
+    return m["trendingpoints"]
 
 
 def _get_recent(m: ModDict) -> str:
-    """Get last released date from mod dict."""
-    return str(m.get("lastreleased", ""))
+    """Get last released date from a normalized mod dict (optional, so "" when unset)."""
+    return m["lastreleased"] or ""
 
 
 def _name_sort_key(m: ModDict) -> tuple[str, str, int]:
@@ -791,7 +803,7 @@ def sort_mods(
     """Sort a list of mods by the specified criteria.
 
     Args:
-        mods: List of mod dictionaries from the API.
+        mods: List of normalized mod dictionaries (`ModApiClient.get_all_mods`).
         sort_by: Sort criteria - "downloads", "trending", "recent", or "name".
 
     Returns:
@@ -814,7 +826,7 @@ def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
     Searches across name, author, summary, and tags (case-insensitive).
 
     Args:
-        mods: List of mod dictionaries from the API.
+        mods: List of normalized mod dictionaries (`ModApiClient.get_all_mods`).
         search: Search term to filter by. Empty string returns all mods.
 
     Returns:
@@ -827,26 +839,26 @@ def search_mods(mods: list[ModDict], search: str) -> list[ModDict]:
     results: list[ModDict] = []
     for mod in mods:
         # Check name
-        name = str(mod.get("name", "")).lower()
+        name: str = mod["name"].lower()
         if search in name:
             results.append(mod)
             continue
 
         # Check author
-        author = str(mod.get("author", "")).lower()
+        author: str = mod["author"].lower()
         if search in author:
             results.append(mod)
             continue
 
         # Check summary
-        summary = str(mod.get("summary") or "").lower()
+        summary: str = (mod["summary"] or "").lower()
         if search in summary:
             results.append(mod)
             continue
 
         # Check tags
-        tags = mod.get("tags", [])
-        if any(search in str(tag).lower() for tag in tags):
+        tags: list[str] = mod["tags"]
+        if any(search in tag.lower() for tag in tags):
             results.append(mod)
             continue
 

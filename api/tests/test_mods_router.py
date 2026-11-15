@@ -3342,3 +3342,169 @@ class TestGameVersionsParsing:
         assert "1.22.0" in versions
         assert "1.22.0-1rc1" in versions
         assert "1.21.3-2beta" in versions
+
+
+def bad_data_listing() -> dict[str, Any]:
+    """A `/api/mods` listing with incomplete data (Story 17.1, Epic 17 ADR-1).
+
+    Holds an item with null in every field, an item with a null inside `tags` and
+    `modidstrs`, a null element, a string element and one complete item.
+    """
+    return {
+        "statuscode": "200",
+        "mods": [
+            {field: None for field in MOD_FIELDS},
+            {
+                "modid": 4242,
+                "assetid": 9001,
+                "name": "Quality Tweaks",
+                "summary": "Small tweaks",
+                "author": "someone",
+                "downloads": 10,
+                "follows": 1,
+                "trendingpoints": 2,
+                "side": "both",
+                "type": "mod",
+                "logo": None,
+                "tags": ["QoL", None],
+                "lastreleased": "2025-06-01 10:00:00",
+                "urlalias": None,
+                "modidstrs": [None, "qolmod"],
+            },
+            None,
+            "oops",
+            BROWSE_MODS_API_RESPONSE["mods"][2],
+        ],
+    }
+
+
+class TestBrowseWithIncompleteModData:
+    """Browse, filters, search and the tag list read normalized data (Story 17.1)."""
+
+    @pytest.fixture
+    def client(self, tmp_path: Path) -> Generator[TestClient]:
+        data_dir = tmp_path / "data"
+        for sub in ("state", "mods", "cache"):
+            (data_dir / sub).mkdir(parents=True)
+        settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=data_dir,
+            debug=True,
+        )
+        service = ModService(
+            state_dir=data_dir / "state",
+            mods_dir=data_dir / "mods",
+            cache_dir=data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+        app.dependency_overrides[get_mod_service] = lambda: service
+        app.dependency_overrides[get_settings] = lambda: settings
+        yield TestClient(app)
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def headers(self) -> dict[str, str]:
+        return {"X-API-Key": TEST_ADMIN_KEY}
+
+    def browse(self, client: TestClient, headers: dict[str, str], query: str) -> dict[str, Any]:
+        response = client.get(f"/api/v1alpha1/mods/browse{query}", headers=headers)
+        assert response.status_code == 200
+        return response.json()["data"]
+
+    @respx.mock
+    @pytest.mark.parametrize("sort", ["recent", "downloads", "trending", "name"])
+    def test_every_sort_succeeds_with_defaults(
+        self, client: TestClient, headers: dict[str, str], sort: str
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=bad_data_listing())
+        )
+
+        data = self.browse(client, headers, f"?sort={sort}")
+
+        assert data["pagination"]["total_items"] == 3
+        by_slug = {m["slug"]: m for m in data["mods"]}
+        assert set(by_slug) == {"unknown", "qolmod", "trendingnew"}
+        assert by_slug["unknown"] == {
+            "slug": "unknown",
+            "urlalias": None,
+            "asset_id": 0,
+            "name": "",
+            "author": "",
+            "summary": None,
+            "downloads": 0,
+            "follows": 0,
+            "trending_points": 0,
+            "side": "both",
+            "mod_type": "mod",
+            "logo_url": None,
+            "tags": [],
+            "last_released": None,
+        }
+        assert by_slug["qolmod"]["tags"] == ["QoL"]
+
+    @respx.mock
+    def test_side_and_type_filters_match_the_cards(
+        self, client: TestClient, headers: dict[str, str]
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=bad_data_listing())
+        )
+
+        both = self.browse(client, headers, "?side=both")
+        mods = self.browse(client, headers, "?mod_type=mod")
+
+        assert {m["slug"] for m in both["mods"]} == {"unknown", "qolmod"}
+        assert {m["slug"] for m in mods["mods"]} == {"unknown", "qolmod", "trendingnew"}
+
+    @respx.mock
+    def test_tag_filter(self, client: TestClient, headers: dict[str, str]) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=bad_data_listing())
+        )
+
+        data = self.browse(client, headers, "?tags=qol")
+
+        assert [(m["slug"], m["tags"]) for m in data["mods"]] == [("qolmod", ["QoL"])]
+
+    @respx.mock
+    def test_search(self, client: TestClient, headers: dict[str, str]) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=bad_data_listing())
+        )
+
+        by_name = self.browse(client, headers, "?search=tweaks")
+        by_tag = self.browse(client, headers, "?search=ui")
+
+        assert [m["slug"] for m in by_name["mods"]] == ["qolmod"]
+        assert [m["slug"] for m in by_tag["mods"]] == ["trendingnew"]
+
+    @respx.mock
+    def test_tag_list_has_no_null(self, client: TestClient, headers: dict[str, str]) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=bad_data_listing())
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=headers)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["tags"] == ["qol", "ui"]
+
+    @respx.mock
+    @pytest.mark.parametrize(
+        "listing", [{"statuscode": "200", "mods": None}, {"statuscode": "200"}]
+    )
+    def test_listing_without_mods_is_502(
+        self, client: TestClient, headers: dict[str, str], listing: dict[str, Any]
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=listing)
+        )
+
+        browse = client.get("/api/v1alpha1/mods/browse", headers=headers)
+        tags = client.get("/api/v1alpha1/mods/tags", headers=headers)
+
+        assert browse.status_code == 502
+        assert tags.status_code == 502

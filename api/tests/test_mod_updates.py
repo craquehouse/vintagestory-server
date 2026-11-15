@@ -12,6 +12,7 @@ import respx
 from httpx import Response
 
 from vintagestory_api.models.mod_updates import Compatibility, StoredModRecord, StoredRelease
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
 from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import CompatibilityStatus, ModApiClient
 from vintagestory_api.services.mod_updates import (
@@ -488,6 +489,45 @@ class TestCheckRobustness:
         assert stored.found is True
         assert stored.error is None
         assert stored.releases == expected
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_releases_without_a_file_are_stored(self, tmp_path: Path) -> None:
+        """canjewelry: three releases have `"fileid": null`; stored with fileid 0 (Story 17.1)."""
+        respx.get(MOD_URL.format("canjewelry")).mock(return_value=fixture_response("canjewelry"))
+        service, _ = make_service(tmp_path, [installed("canjewelry", "0.8.2")])
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        stored = ModUpdateStore(tmp_path / "state").get("canjewelry")
+        assert stored is not None
+        assert stored.error is None
+        assert len(stored.releases) == 9
+        no_file = [r.modversion for r in stored.releases if r.fileid == 0]
+        assert no_file == ["0.2.20", "0.1.26", "0.2.0"]
+        assert stored.releases[0].fileid == 138875
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_entry_with_null_in_every_field_is_checked(self, tmp_path: Path) -> None:
+        """An entry with null in every field the API reads does not fail the check (Story 17.1)."""
+        mod: dict[str, Any] = {field: None for field in MOD_FIELDS}
+        mod["releases"] = [{field: None for field in RELEASE_FIELDS}]
+        mod["tags"] = [None, "Utility"]
+        respx.get(MOD_URL.format("allnull")).mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+        service, _ = make_service(tmp_path, [installed("allnull", "1")])
+
+        summary = await service.check()
+
+        assert summary.failed == 0
+        stored = ModUpdateStore(tmp_path / "state").get("allnull")
+        assert stored is not None
+        assert stored.releases == [
+            StoredRelease(modversion="", modidstr="", tags=[], fileid=0, filename="", created="")
+        ]
 
     @respx.mock
     @pytest.mark.asyncio

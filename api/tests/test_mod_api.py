@@ -9,6 +9,7 @@ import pytest
 import respx
 from httpx import Response
 
+from vintagestory_api.models.moddb import ModDict, normalize_mod_list
 from vintagestory_api.services.mod_api import (
     DownloadError,
     DownloadResult,
@@ -1044,13 +1045,20 @@ BROWSE_MODS_RESPONSE: dict[str, Any] = {
 # --- Tests for sort_mods ---
 
 
+def normalized(mods: object) -> list[ModDict]:
+    """sort_mods and search_mods take normalized data, as the router passes it (Story 17.1)."""
+    result = normalize_mod_list(mods)
+    assert result is not None
+    return result
+
+
 class TestSortMods:
     """Tests for sort_mods function."""
 
     def test_sort_by_downloads(self) -> None:
         """Sorts mods by downloads descending."""
         mods = BROWSE_MODS_LIST.copy()
-        result = sort_mods(mods, sort_by="downloads")
+        result = sort_mods(normalized(mods), sort_by="downloads")
 
         assert result[0]["urlalias"] == "oldpopular"  # 500000 downloads
         assert result[1]["urlalias"] == "smithingplus"  # 204656 downloads
@@ -1059,7 +1067,7 @@ class TestSortMods:
     def test_sort_by_trending(self) -> None:
         """Sorts mods by trending points descending."""
         mods = BROWSE_MODS_LIST.copy()
-        result = sort_mods(mods, sort_by="trending")
+        result = sort_mods(normalized(mods), sort_by="trending")
 
         assert result[0]["urlalias"] == "trendingnew"  # 5000 trending
         assert result[1]["urlalias"] == "smithingplus"  # 1853 trending
@@ -1068,7 +1076,7 @@ class TestSortMods:
     def test_sort_by_recent(self) -> None:
         """Sorts mods by last released descending."""
         mods = BROWSE_MODS_LIST.copy()
-        result = sort_mods(mods, sort_by="recent")
+        result = sort_mods(normalized(mods), sort_by="recent")
 
         assert result[0]["urlalias"] == "trendingnew"  # 2025-12-01
         assert result[1]["urlalias"] == "smithingplus"  # 2025-10-09
@@ -1077,7 +1085,7 @@ class TestSortMods:
     def test_sort_by_name(self) -> None:
         """Sorts mods by name ascending (alphabetical)."""
         mods = BROWSE_MODS_LIST.copy()
-        result = sort_mods(mods, sort_by="name")
+        result = sort_mods(normalized(mods), sort_by="name")
 
         assert result[0]["urlalias"] == "oldpopular"  # Old Popular Mod
         assert result[1]["urlalias"] == "smithingplus"  # Smithing Plus
@@ -1093,7 +1101,7 @@ class TestSortMods:
             {"name": "Apple", "assetid": 5},
             {"name": "etiquettes plus", "assetid": 6},
         ]
-        result = sort_mods(mods, sort_by="name")
+        result = sort_mods(normalized(mods), sort_by="name")
 
         assert [m["assetid"] for m in result] == [5, 4, 3, 2, 6, 1]
 
@@ -1104,7 +1112,7 @@ class TestSortMods:
             {"name": None, "assetid": 2},
             {"assetid": 3},
         ]
-        result = sort_mods(mods, sort_by="name")
+        result = sort_mods(normalized(mods), sort_by="name")
 
         assert [m["assetid"] for m in result] == [2, 3, 1]
 
@@ -1115,8 +1123,8 @@ class TestSortMods:
             {"name": "same", "assetid": 10},
             {"name": "Same", "assetid": 20},
         ]
-        result = sort_mods(mods, sort_by="name")
-        reversed_result = sort_mods(list(reversed(mods)), sort_by="name")
+        result = sort_mods(normalized(mods), sort_by="name")
+        reversed_result = sort_mods(normalized(list(reversed(mods))), sort_by="name")
 
         assert [m["assetid"] for m in result] == [20, 30, 10]
         assert [m["assetid"] for m in reversed_result] == [20, 30, 10]
@@ -1124,19 +1132,19 @@ class TestSortMods:
     def test_sort_default_is_recent(self) -> None:
         """Default sort is by recent."""
         mods = BROWSE_MODS_LIST.copy()
-        result = sort_mods(mods)
+        result = sort_mods(normalized(mods))
 
         # Same as sort_by="recent"
         assert result[0]["urlalias"] == "trendingnew"
 
     def test_sort_handles_missing_values(self) -> None:
-        """Handles mods with missing sort fields."""
+        """Normalization gives a missing count 0, so it sorts last (Story 17.1)."""
         mods = [
             {"urlalias": "mod1", "downloads": 100},
             {"urlalias": "mod2"},  # No downloads field
             {"urlalias": "mod3", "downloads": 200},
         ]
-        result = sort_mods(mods, sort_by="downloads")
+        result = sort_mods(normalized(mods), sort_by="downloads")
 
         assert result[0]["urlalias"] == "mod3"  # 200
         assert result[1]["urlalias"] == "mod1"  # 100
@@ -1149,9 +1157,11 @@ class TestSortMods:
 
     def test_sort_single_mod(self) -> None:
         """Handles single mod list."""
-        mods = [{"urlalias": "single", "downloads": 100}]
+        mods = normalized([{"urlalias": "single", "downloads": 100}])
         result = sort_mods(mods, sort_by="downloads")
-        assert result == [{"urlalias": "single", "downloads": 100}]
+        assert result == mods
+        assert result[0]["urlalias"] == "single"
+        assert result[0]["downloads"] == 100
 
 
 # --- Tests for search_mods ---
@@ -1163,27 +1173,27 @@ class TestSearchMods:
     def test_search_empty_returns_all(self) -> None:
         """Empty search returns all mods."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "")
+        result = search_mods(normalized(mods), "")
         assert len(result) == 3
 
     def test_search_by_name(self) -> None:
         """Searches mod names."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "smithing")
+        result = search_mods(normalized(mods), "smithing")
         assert len(result) == 1
         assert result[0]["urlalias"] == "smithingplus"
 
     def test_search_by_author(self) -> None:
         """Searches mod authors."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "jayu")
+        result = search_mods(normalized(mods), "jayu")
         assert len(result) == 1
         assert result[0]["urlalias"] == "smithingplus"
 
     def test_search_by_summary(self) -> None:
         """Searches mod summaries."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "trending")
+        result = search_mods(normalized(mods), "trending")
         assert len(result) == 1
         assert result[0]["urlalias"] == "trendingnew"
 
@@ -1199,35 +1209,35 @@ class TestSearchMods:
             },
         ]
         # Search for a term only in the summary
-        result = search_mods(mods, "unique")
+        result = search_mods(normalized(mods), "unique")
         assert len(result) == 1
         assert result[0]["urlalias"] == "mod1"
 
     def test_search_by_tag(self) -> None:
         """Searches mod tags."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "qol")
+        result = search_mods(normalized(mods), "qol")
         assert len(result) == 1
         assert result[0]["urlalias"] == "smithingplus"
 
     def test_search_case_insensitive(self) -> None:
         """Search is case insensitive."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "SMITHING")
+        result = search_mods(normalized(mods), "SMITHING")
         assert len(result) == 1
         assert result[0]["urlalias"] == "smithingplus"
 
     def test_search_whitespace_trimmed(self) -> None:
         """Whitespace is trimmed from search term."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "  smithing  ")
+        result = search_mods(normalized(mods), "  smithing  ")
         assert len(result) == 1
         assert result[0]["urlalias"] == "smithingplus"
 
     def test_search_no_matches(self) -> None:
         """Returns empty list when no matches."""
         mods = BROWSE_MODS_LIST.copy()
-        result = search_mods(mods, "nonexistent")
+        result = search_mods(normalized(mods), "nonexistent")
         assert result == []
 
     def test_search_with_none_summary(self) -> None:
@@ -1248,7 +1258,7 @@ class TestSearchMods:
                 "tags": ["tag2"],
             },
         ]
-        result = search_mods(mods, "searchable")
+        result = search_mods(normalized(mods), "searchable")
         assert len(result) == 1
         assert result[0]["urlalias"] == "mod2"
 
@@ -1263,7 +1273,7 @@ class TestSearchMods:
                 "tags": ["gameplay", "crafting"],
             },
         ]
-        result = search_mods(mods, "craft")
+        result = search_mods(normalized(mods), "craft")
         assert len(result) == 1
         assert result[0]["urlalias"] == "mod1"
 
@@ -1279,7 +1289,7 @@ class TestSearchMods:
             },
         ]
         # Should find it in name first, but result is same
-        result = search_mods(mods, "test")
+        result = search_mods(normalized(mods), "test")
         assert len(result) == 1
 
 
@@ -1303,6 +1313,51 @@ class TestModApiClientGetAllMods:
         assert result[0]["name"] == "Smithing Plus"
         assert result[1]["name"] == "Old Popular Mod"
         assert result[2]["name"] == "Trending New Mod"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_all_mods_normalizes_items(self, mod_api_client: ModApiClient) -> None:
+        """get_all_mods() normalizes items and drops those that are not objects (Story 17.1)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "mods": [{"name": "A", "tags": ["QoL", None]}, None, "oops", {"name": "B"}],
+                },
+            )
+        )
+
+        result = await mod_api_client.get_all_mods()
+
+        assert [m["name"] for m in result] == ["A", "B"]
+        assert result[0]["tags"] == ["QoL"]
+        assert result[1]["downloads"] == 0
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"statuscode": "200"},
+            {"statuscode": "200", "mods": None},
+            {"statuscode": "200", "mods": {}},
+        ],
+    )
+    async def test_get_all_mods_without_mods_list(
+        self, mod_api_client: ModApiClient, payload: dict[str, Any]
+    ) -> None:
+        """get_all_mods() raises, and caches nothing, when `mods` is not a list (Story 17.1)."""
+        route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        with pytest.raises(ExternalApiError, match="unexpected response"):
+            await mod_api_client.get_all_mods()
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_all_mods()
+
+        assert route.call_count == 2
 
     @respx.mock
     @pytest.mark.asyncio
@@ -1681,6 +1736,45 @@ class TestModApiClientModsByVersion:
 
         assert route.called
         assert len(result) == 3  # Uses same test data as browse
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_normalizes_items(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """get_mods_by_version() normalizes items and drops non-objects (Story 17.1)."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(
+            return_value=Response(
+                200, json={"statuscode": "200", "mods": [None, {"name": "A", "side": None}]}
+            )
+        )
+
+        result = await mod_api_client.get_mods_by_version(version_tagid)
+
+        assert len(result) == 1
+        assert result[0]["side"] == ""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload", [{"statuscode": "200"}, {"statuscode": "200", "mods": None}]
+    )
+    async def test_get_mods_by_version_without_mods_list(
+        self, mod_api_client: ModApiClient, payload: dict[str, Any]
+    ) -> None:
+        """get_mods_by_version() raises when `mods` is missing or not a list (Story 17.1)."""
+        version_tagid = -281565171286015
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": str(version_tagid)},
+        ).mock(return_value=Response(200, json=payload))
+
+        with pytest.raises(ExternalApiError, match="unexpected response"):
+            await mod_api_client.get_mods_by_version(version_tagid)
 
     @respx.mock
     @pytest.mark.asyncio

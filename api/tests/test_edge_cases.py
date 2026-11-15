@@ -12,6 +12,7 @@ import respx
 from httpx import Response
 
 from vintagestory_api.config import Settings
+from vintagestory_api.models.moddb import ModDict, normalize_mod
 from vintagestory_api.models.mods import ModState
 from vintagestory_api.models.responses import ApiResponse
 from vintagestory_api.routers.mods import _api_mod_to_browse_item
@@ -71,14 +72,23 @@ class TestApiResponse:
         assert "error" not in ApiResponse(status="ok", data={}).model_dump()
 
 
+def _normalized(raw: dict[str, Any]) -> ModDict:
+    """_api_mod_to_browse_item takes normalized data, as the router passes it (Story 17.1)."""
+    mod = normalize_mod(raw)
+    assert mod is not None
+    return mod
+
+
 class TestModBrowseNormalization:
     def test_unknown_side_defaults_to_both(self) -> None:
-        item = _api_mod_to_browse_item({"modidstrs": ["demo"], "side": "sideways"})
+        item = _api_mod_to_browse_item(_normalized({"modidstrs": ["demo"], "side": "sideways"}))
 
         assert item.side == "both"
 
     def test_unknown_type_defaults_to_mod(self) -> None:
-        item = _api_mod_to_browse_item({"modidstrs": ["demo"], "type": "texturepack"})
+        item = _api_mod_to_browse_item(
+            _normalized({"modidstrs": ["demo"], "type": "texturepack"})
+        )
 
         assert item.mod_type == "mod"
 

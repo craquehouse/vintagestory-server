@@ -12,7 +12,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
 
 import structlog
 
@@ -31,7 +30,6 @@ from vintagestory_api.models.mods import (
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
-    ExternalApiError,
     ModApiClient,
     ModVersionNotFoundError,
     ReleaseDict,
@@ -996,13 +994,8 @@ class ModService:
         mod = await self.api_client.get_mod(slug)
         if mod is None:
             raise ApiModNotFoundError(slug)
-        try:
-            raw_releases: object = mod.get("releases") or []
-            if not isinstance(raw_releases, list):
-                raise TypeError("mod releases is not a list")
-            releases = [StoredRelease.from_api(r) for r in cast(list[object], raw_releases)]
-        except (TypeError, ValueError) as e:
-            raise ExternalApiError(f"Unexpected mod database response: {e}") from e
+        # Normalized by get_mod (Epic 17 ADR-1): a list of release objects
+        releases = [StoredRelease.from_api(r) for r in mod["releases"]]
 
         own = [r for r in releases if r.modidstr == slug]
         target_index = next((i for i, r in enumerate(own) if r.modversion == version), None)
