@@ -216,17 +216,28 @@ test.describe('Install picks the right release: real API (Story 17.2)', () => {
   test.describe.configure({ mode: 'serial' });
 
   let before: string[] = [];
+  // Cleanup deletes only what is missing from this snapshot, so it must never run
+  // without one: it could otherwise remove a mod that was installed before the run.
+  let hasSnapshot = false;
 
   test.beforeAll(async ({ playwright, baseURL }) => {
     const request = await playwright.request.newContext({ baseURL });
-    before = await installedSlugs(request);
-    await request.dispose();
+    try {
+      before = await installedSlugs(request);
+      hasSnapshot = true;
+    } finally {
+      await request.dispose();
+    }
   });
 
   test.afterEach(async ({ request }) => {
+    if (!hasSnapshot) {
+      throw new Error('No snapshot of the installed mods; refusing to clean up');
+    }
     for (const slug of await installedSlugs(request)) {
       if (TOUCHED.includes(slug) && !before.includes(slug)) {
-        await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
+        const removed = await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
+        expect(removed.ok(), `cleanup DELETE /mods/${slug}`).toBe(true);
       }
     }
   });
