@@ -1,6 +1,6 @@
 # Story 17.2: Install Picks the Right Release
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR179-FR181 and Epic 17 ADR-2. Beads: VSS-jhf, VSS-43b; also closes Story 17.1 review finding L1 (a release without a file reaching the download). Branch story/17-2-install-picks-the-right-release from main (139eef0, Story 17.1 merged). Not in scope: Story 17.3 (per-mod lock, archive mod ID check, modinfo key case), 17.4 (browse cards recognizing any installed mod ID, update status after install). No new dependencies. -->
 
@@ -90,9 +90,9 @@ so that **I do not end up with a different mod or a pre-release I did not ask fo
   - [x] 5.2: `just docker restart` (rebuild from this branch); `cd web && bunx playwright test e2e/mod-install-release.spec.ts e2e/installed-mod-any-modid.spec.ts e2e/mod-detail-bad-data.spec.ts` (admin key from `.env`)
   - [x] 5.3: Manual check (Dev Notes "Manual check"): install Carry On from a browse card and from its detail page, removing it after each; Instruments and C&N Jewelry version lists. Record the results, including that the Installed list and `data/serverdata/Mods` are as they were before, in the Dev Agent Record. Screenshots stay outside the repo unless the server name (`header span.font-semibold`) is masked
 
-- [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` (lint, typecheck, all tests) passes; the diff adds no lint or type suppression
-  - [ ] 6.2: Story status `review`, `just sprint set 17-2-install-picks-the-right-release review`, PR to `main`, PR link on `VSS-jhf` and `VSS-43b`
+- [x] Task 6: Quality gate and review hand-off (AC: all)
+  - [x] 6.1: `just check` (lint, typecheck, all tests) passes; the diff adds no lint or type suppression
+  - [x] 6.2: Story status `review`, `just sprint set 17-2-install-picks-the-right-release review`, PR to `main`, PR link on `VSS-jhf` and `VSS-43b`
 
 ## Dev Notes
 
@@ -314,6 +314,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Task 5: `web/e2e/mod-install-release.spec.ts` as in Dev Notes "E2E spec": four UI and lookup tests (installed list and `POST /mods` stubbed, lookups served from one probed response, expected versions computed with `expectedDefault`) and two real-API tests in a serial describe with a `beforeAll` snapshot and an `afterEach` cleanup of the five mod IDs. In a real browser the Select trigger shows the whole item text, so test 2 expects `v<latest> (Latest)` on the trigger. `just docker restart` rebuilt the stack from this branch (the game server was installed, not running, and was not started or stopped). `bunx playwright test e2e/mod-install-release.spec.ts e2e/installed-mod-any-modid.spec.ts e2e/mod-detail-bad-data.spec.ts` with the admin key from `.env`: 10 passed, 1 skipped; then `mod-install-release.spec.ts --repeat-each=3`: 15 passed, 3 skipped.
 - Task 5 deviation (dev stack state): Carry On (`2.0.0-rc.1`) was already installed on the dev stack, so it could not be installed and removed without touching an existing install. (a) The skip condition is per test, on the mods that test touches, instead of the story's "skip 5 and 6 if any of the five is installed": test 5 (instruments, vsinstrumentsbase, canjewelry) ran and passed against the real API; test 6 (real `carryon` install) was skipped with "carryon is already installed on this stack". (b) Manual steps 1 and 2 were done with Instruments in place of Carry On for the real installs, since Instruments also exercises AC 1 and was not installed.
 - Task 5.3 manual check (Docker stack, an agent-driven browser tab, no screenshots kept): Browse "carry on": the Carry On card shows Installed (already installed). Carry On detail page (installed section, installed mod ID = install mod ID): indicator "Installed: v2.0.0-rc.1"; the list holds only `carryon` releases, `v2.0.0-rc.1 (Installed)` then `v1.14.3 (Latest)` then the `2.0.0-pre.*` pre-releases; the Releases list's "Latest" badge is on 1.14.3 only. Instruments detail page: 19 options, all `instruments` versions (1.2.2 to 1.0.1, none from `vsinstruments`/`vsinstrumentsbase`), `v1.2.2 (Latest)` preselected, button "Install v1.2.2", "Latest" badge on 1.2.2; Install, dialog "Version: 1.2.2", confirm: the Installed tab listed Instruments `instruments` v1.2.2 (`instruments_1.2.2.zip`); removed. Browse "instruments", card Install: dialog "Version: 1.2.2"; confirm: the card shows Installed and the API lists `instruments` 1.2.2; removed. C&N Jewelry: 179 options, `v0.8.2 (Latest)` preselected, `v0.2.20 (no file)`, `v0.1.26 (no file)`, `v0.2.0 (no file)` disabled; nothing installed. Browser console: no entries. Afterwards the SHA-1 of every file in `data/serverdata/Mods` and `data/vsmanager/state` matched the snapshot taken before Task 5, the API lists the same five mods, no pending restart, game server still installed and not running. The maintainer's own hand check is left open in the PR.
+- Task 6: `just check` passed: ruff clean; pyright 0 errors, 3 warnings (the same pre-existing three); `just test-api` 2473 passed; `just test-web` 3155 passed, 4 skipped; script tests 23/23, 6/6, 12/12, 126/126, 23/23. The diff adds no lint or type suppression and no `cast`. Story status `review`; `just sprint set 17-2-install-picks-the-right-release review`; branch pushed, PR to `main`, PR link on `VSS-jhf` and `VSS-43b`.
+- Process note: running `just format-api` once in Task 1 reformatted 72 unrelated files (the repo is not `ruff format` clean); those changes were reverted before the commit and the formatter was not used again. Only `ruff check` is part of `just check`.
 - Story created 2026-11-15: context analysis of `download_mod`, `download_release_file`, `lookup_mod`, `_compatibility_modid`, the version change path, the detail page's two version lists, the browse card and the install dialog, the mod database fixtures, Story 17.1 and its review, and Epic 17 ADR-2. The API tests that change were found by running the suite against a throwaway prototype of the selection and lookup change.
 
 ### File List
@@ -349,3 +351,4 @@ Claude Opus 5.5 (claude-opus-5-5)
 ## Change Log
 
 - 2026-11-15: Story 17.2 created (ready-for-dev).
+- 2026-11-15: Story 17.2 implemented (review). One function (`services/mod_release_selection.py`, Epic 17 ADR-2) picks the release an install downloads: only releases of the requested mod ID with a downloadable file, the newest stable one by default. Install and version change refuse a release without a file with 422 `MOD_RELEASE_NOT_DOWNLOADABLE` before any confirmation or download. The lookup adds `install_mod_id` and reports the plain-install pick as `latest_version` (nullable). The detail page lists only the install mod ID's releases, labels "(Latest)" and the "Latest" badge on that release, disables releases without a file and installs `installModId`; the browse card sends `installModId` and `latestVersion`, or the card slug and no version (never `'latest'`). New unit, API, web and E2E tests.
