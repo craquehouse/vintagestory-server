@@ -288,6 +288,7 @@ describe('ModBrowseGrid', () => {
             author: 'copygirl',
             description: 'Test description',
             latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
             downloads: 50000,
             follows: 500,
             side: 'Both',

@@ -179,7 +179,17 @@ export interface ModLookupData {
   name: string;
   author: string;
   description: string | null;
-  latestVersion: string;
+  /**
+   * The version an install without a named version picks for `installModId`: its
+   * newest stable release with a downloadable file (Story 17.2, Epic 17 ADR-2).
+   * Null when none of its releases has a file.
+   */
+  latestVersion: string | null;
+  /**
+   * The mod ID an install of the looked-up slug installs (Story 17.2): the slug when
+   * a release carries it, otherwise the newest release's mod ID. May differ from `slug`.
+   */
+  installModId: string;
   downloads: number;
   follows: number;
   side: ModSide;

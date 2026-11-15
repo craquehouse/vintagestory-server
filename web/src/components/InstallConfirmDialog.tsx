@@ -10,6 +10,10 @@
  * - Displays warning message for not_verified/incompatible mods
  * - Handles install with loading state
  * - Calls onSuccess/onError callbacks appropriately
+ *
+ * Story 17.2: Without a version the dialog shows "Version: Latest", the request
+ * names no version (the API picks the newest stable release with a file) and the
+ * success toast names the version the API installed.
  */
 
 import { AlertTriangle, Download, Package } from 'lucide-react';
@@ -35,7 +39,8 @@ export interface InstallConfirmDialogProps {
   mod: {
     slug: string;
     name: string;
-    version: string;
+    /** Version to install; unset or null lets the API pick (Story 17.2) */
+    version?: string | null;
     logoUrl?: string | null;
     author?: string;
   };
@@ -99,11 +104,12 @@ export function InstallConfirmDialog({
 
   const handleInstall = () => {
     install(
-      { slug: mod.slug, version: mod.version },
+      { slug: mod.slug, version: mod.version ?? undefined },
       {
-        onSuccess: () => {
+        onSuccess: (response) => {
+          const installedVersion = response?.data.version ?? mod.version ?? 'Latest';
           toast.success(`Installed ${mod.name}`, {
-            description: `Version ${mod.version} installed successfully.`,
+            description: `Version ${installedVersion} installed successfully.`,
           });
           onOpenChange(false);
           onSuccess?.();
@@ -164,7 +170,7 @@ export function InstallConfirmDialog({
               className="text-sm text-muted-foreground"
               data-testid="install-dialog-mod-version"
             >
-              Version: {mod.version}
+              Version: {mod.version ?? 'Latest'}
             </p>
           </div>
         </div>

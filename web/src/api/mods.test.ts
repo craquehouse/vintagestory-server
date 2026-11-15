@@ -590,6 +590,7 @@ describe('lookupMod', () => {
       author: 'TestAuthor',
       description: 'A comprehensive test mod',
       latestVersion: '1.0.0',
+      installModId: 'testmod',
       downloads: 1000,
       follows: 50,
       side: 'Both',
@@ -732,6 +733,19 @@ describe('installMod', () => {
     const [, options] = mockFetch.mock.calls[0];
     const body = JSON.parse(options.body);
     expect(body.slug).toBe('testmod');
+  });
+
+  it('sends no version key when no version is given (Story 17.2)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockInstallResponse),
+    });
+    globalThis.fetch = mockFetch;
+
+    await installMod('x');
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({ slug: 'x' });
   });
 
   it('sends version in request body when provided', async () => {

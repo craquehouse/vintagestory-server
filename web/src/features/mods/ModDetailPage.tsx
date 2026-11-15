@@ -31,6 +31,11 @@
  *
  * Story 17.1: The error states (failed lookup, no mod, incomplete details) show the
  * same Back to Browse button as the loaded page, with the same target and state.
+ *
+ * Story 17.2: The install section lists only the releases of the lookup's
+ * `installModId`, preselects `latestVersion` (what a plain install picks) and installs
+ * `installModId`. "(Latest)" and the Releases list's "Latest" badge mark that release;
+ * a release without a downloadable file is listed disabled (Epic 17 ADR-2).
  */
 
 import { useState } from 'react';
@@ -71,7 +76,7 @@ import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
-import { findInstalledModForEntry } from '@/lib/mod-ids';
+import { findInstalledModForEntry, versionChoices } from '@/lib/mod-ids';
 import { sanitizeModDescription } from '@/lib/mod-description';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
@@ -176,7 +181,7 @@ function ModDetailError({ message, onBack }: { message: string; onBack: () => vo
  * Install section props.
  */
 interface InstallSectionProps {
-  /** Mod slug for install */
+  /** The install mod ID (the lookup's `installModId`); what Install installs */
   slug: string;
   /** Mod name for dialog display */
   name: string;
@@ -184,9 +189,9 @@ interface InstallSectionProps {
   author: string;
   /** Mod logo URL */
   logoUrl: string | null;
-  /** Latest version available */
-  latestVersion: string;
-  /** All available releases */
+  /** The version a plain install picks; null when no release of the mod ID has a file */
+  latestVersion: string | null;
+  /** All releases of the mod database entry, newest first */
   releases: ModRelease[];
   /** Compatibility status for dialog */
   compatibilityStatus: CompatibilityStatus;
@@ -209,8 +214,9 @@ function InstallSection({
   compatibilityStatus,
   compatibilityMessage,
 }: InstallSectionProps) {
-  const [selectedVersion, setSelectedVersion] = useState(latestVersion);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(latestVersion);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const choices = versionChoices(releases, slug);
 
   return (
     <>
@@ -220,21 +226,23 @@ function InstallSection({
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Version</label>
             <Select
-              value={selectedVersion}
+              value={selectedVersion ?? ''}
               onValueChange={setSelectedVersion}
             >
               <SelectTrigger data-testid="mod-detail-version-select">
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
-                {releases.map((release, index) => (
+                {choices.map((choice) => (
                   <SelectItem
-                    key={release.version}
-                    value={release.version}
-                    data-testid={`mod-detail-version-option-${release.version}`}
+                    key={choice.version}
+                    value={choice.version}
+                    disabled={!choice.installable}
+                    data-testid={`mod-detail-version-option-${choice.version}`}
                   >
-                    v{release.version}
-                    {index === 0 && ' (Latest)'}
+                    v{choice.version}
+                    {choice.version === latestVersion && ' (Latest)'}
+                    {!choice.installable && ' (no file)'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -244,10 +252,11 @@ function InstallSection({
           <Button
             className="w-full gap-2"
             onClick={() => setIsDialogOpen(true)}
+            disabled={selectedVersion === null}
             data-testid="mod-detail-install-button"
           >
             <Download className="h-4 w-4" />
-            Install v{selectedVersion}
+            {selectedVersion === null ? 'No downloadable release' : `Install v${selectedVersion}`}
           </Button>
         </CardContent>
       </Card>
@@ -278,6 +287,10 @@ function InstallSection({
 interface InstalledVersionSectionProps {
   /** Installed mod ID, as the installed mods list reports it */
   slug: string;
+  /** The lookup's install mod ID (Story 17.2) */
+  installModId: string;
+  /** The version a plain install of `installModId` picks (Story 17.2) */
+  latestVersion: string | null;
   /** Mod name for toasts and the confirmation dialog */
   name: string;
   /** Installed version */
@@ -296,6 +309,8 @@ interface InstalledVersionSectionProps {
  */
 function InstalledVersionSection({
   slug,
+  installModId,
+  latestVersion,
   name,
   installedVersion,
   releases,
@@ -306,12 +321,10 @@ function InstalledVersionSection({
 
   // Releases with the installed mod ID; a re-uploaded version keeps its first
   // (newest) listing, as the update check and version change API do.
-  const seenVersions = new Set<string>();
-  const ownReleases = releases.filter((release) => {
-    if (release.modidstr !== slug || seenVersions.has(release.version)) return false;
-    seenVersions.add(release.version);
-    return true;
-  });
+  const ownReleases = versionChoices(releases, slug);
+  // Story 17.2: "(Latest)" is what a plain install picks, which belongs to the
+  // install mod ID; on another installed mod ID of the entry there is no label.
+  const labelledLatest = slug === installModId ? latestVersion : null;
   const updateStatus = updatesData?.data?.mods.find((item) => item.slug === slug);
   const offeredVersion =
     updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
@@ -396,15 +409,17 @@ function InstalledVersionSection({
                     <SelectValue placeholder="Select version" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ownReleases.map((release, index) => (
+                    {ownReleases.map((choice) => (
                       <SelectItem
-                        key={release.version}
-                        value={release.version}
-                        data-testid={`mod-detail-version-option-${release.version}`}
+                        key={choice.version}
+                        value={choice.version}
+                        disabled={!choice.installable}
+                        data-testid={`mod-detail-version-option-${choice.version}`}
                       >
-                        v{release.version}
-                        {index === 0 && ' (Latest)'}
-                        {release.version === installedVersion && ' (Installed)'}
+                        v{choice.version}
+                        {choice.version === labelledLatest && ' (Latest)'}
+                        {choice.version === installedVersion && ' (Installed)'}
+                        {!choice.installable && ' (no file)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -528,6 +543,11 @@ export function ModDetailPage() {
     slug: slug ?? '',
     releases: mod.releases,
   });
+
+  // Story 17.2: the "Latest" badge marks the release a plain install picks
+  const latestReleaseIndex = mod.releases.findIndex(
+    (release) => release.modidstr === mod.installModId && release.version === mod.latestVersion
+  );
 
   // Sanitize HTML description for safe rendering (shared sanitizer, Story 16.4)
   const sanitizedDescription = mod.description
@@ -692,13 +712,15 @@ export function ModDetailPage() {
           (installedMod ? (
             <InstalledVersionSection
               slug={installedMod.slug}
+              installModId={mod.installModId}
+              latestVersion={mod.latestVersion}
               name={mod.name}
               installedVersion={installedMod.version}
               releases={mod.releases}
             />
           ) : (
             <InstallSection
-              slug={mod.slug}
+              slug={mod.installModId}
               name={mod.name}
               author={mod.author}
               logoUrl={mod.logoUrl}
@@ -746,7 +768,7 @@ export function ModDetailPage() {
                 <ReleaseItem
                   key={release.version}
                   release={release}
-                  isLatest={index === 0}
+                  isLatest={index === latestReleaseIndex}
                 />
               ))}
             </div>

@@ -327,6 +327,93 @@ describe('InstallConfirmDialog', () => {
     });
   });
 
+  describe('Story 17.2: no version named', () => {
+    const modWithoutVersion = { slug: 'carrycapacity', name: 'Carry Capacity', author: 'copygirl' };
+
+    it('shows "Version: Latest" and sends no version', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <InstallConfirmDialog
+          mod={modWithoutVersion}
+          compatibility={{ status: 'not_verified' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
+        'Version: Latest'
+      );
+      await user.click(screen.getByTestId('install-dialog-confirm'));
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        { slug: 'carrycapacity', version: undefined },
+        expect.anything()
+      );
+    });
+
+    it('treats a null version as not named', async () => {
+      const user = userEvent.setup();
+
+      render(
+        <InstallConfirmDialog
+          mod={{ ...modWithoutVersion, version: null }}
+          compatibility={{ status: 'not_verified' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
+        'Version: Latest'
+      );
+      await user.click(screen.getByTestId('install-dialog-confirm'));
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        { slug: 'carrycapacity', version: undefined },
+        expect.anything()
+      );
+    });
+
+    it('names the version the API installed in the success toast', async () => {
+      const user = userEvent.setup();
+      mockMutate.mockImplementation((_params, options) => {
+        options?.onSuccess?.({
+          status: 'ok',
+          data: {
+            slug: 'carrycapacity',
+            version: '1.3.0',
+            filename: 'carrycapacity_1.3.0.zip',
+            compatibility: 'compatible',
+            pendingRestart: false,
+          },
+        });
+      });
+
+      render(
+        <InstallConfirmDialog
+          mod={modWithoutVersion}
+          compatibility={{ status: 'compatible' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('install-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith(
+          'Installed Carry Capacity',
+          expect.objectContaining({ description: 'Version 1.3.0 installed successfully.' })
+        );
+      });
+    });
+  });
+
   describe('error callback', () => {
     it('calls onError and shows error toast on install failure', async () => {
       const user = userEvent.setup();

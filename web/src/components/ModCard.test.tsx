@@ -522,6 +522,7 @@ describe('ModCard', () => {
             author: 'copygirl',
             description: 'Test description',
             latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
             downloads: 50000,
             follows: 500,
             side: 'Both',
@@ -570,6 +571,7 @@ describe('ModCard', () => {
             author: 'copygirl',
             description: 'Test description',
             latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
             downloads: 50000,
             follows: 500,
             side: 'Both',
@@ -636,6 +638,7 @@ describe('ModCard', () => {
             author: 'copygirl',
             description: 'Test description',
             latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
             downloads: 50000,
             follows: 500,
             side: 'Both',
@@ -693,7 +696,7 @@ describe('ModCard', () => {
       expect(screen.getByTestId('install-dialog-warning')).toBeInTheDocument();
     });
 
-    it('uses fetched version instead of LATEST_VERSION', async () => {
+    it('shows the version a plain install picks, from the fetched details', async () => {
       const user = userEvent.setup();
       const installedSlugs = new Set<string>();
 
@@ -707,6 +710,7 @@ describe('ModCard', () => {
             author: 'copygirl',
             description: 'Test description',
             latestVersion: '2.3.4',
+            installModId: 'carrycapacity',
             downloads: 50000,
             follows: 500,
             side: 'Both',
@@ -739,5 +743,76 @@ describe('ModCard', () => {
       expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: 2.3.4');
     });
 
+    describe('Story 17.2: the install request follows the lookup', () => {
+      it('installs the install mod ID at the lookup latest version', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
+          data: {
+            status: 'ok',
+            data: {
+              slug: 'carrycapacity',
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: null,
+              latestVersion: '1.4.0',
+              installModId: 'carrycapacityplus',
+              downloads: 1,
+              follows: 0,
+              side: 'Both',
+              compatibility: {
+                status: 'compatible',
+                gameVersion: '1.21.6',
+                modVersion: '1.4.0',
+                message: '',
+              },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
+            },
+          },
+          isSuccess: true,
+        }));
+
+        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+          wrapper: createWrapper(),
+        });
+        await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+        expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
+          'Version: 1.4.0'
+        );
+        await user.click(screen.getByTestId('install-dialog-confirm'));
+
+        expect(mockMutate).toHaveBeenCalledWith(
+          { slug: 'carrycapacityplus', version: '1.4.0' },
+          expect.anything()
+        );
+      });
+
+      it('sends the card slug and no version when the details fail', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
+          isError: true,
+          error: new Error('Network error'),
+        }));
+
+        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+          wrapper: createWrapper(),
+        });
+        await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+        expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
+          'Version: Latest'
+        );
+        await user.click(screen.getByTestId('install-dialog-confirm'));
+
+        expect(mockMutate).toHaveBeenCalledWith(
+          { slug: 'carrycapacity', version: undefined },
+          expect.anything()
+        );
+      });
+    });
   });
 });
