@@ -380,8 +380,9 @@ export interface ModBrowseItem {
   slug: string;
   /**
    * Every mod ID of the mod database entry (the listing's modidstrs), in listing
-   * order, each once; `slug` is the first. Used to recognize an installed mod by any
-   * of them (Story 17.4).
+   * order, each once; `slug` is the first when the entry has mod IDs (an entry with
+   * none has `[]`, and `slug` falls back to its numeric ID). Used to recognize an
+   * installed mod by any of them (Story 17.4).
    */
   modIds: string[];
   /** URL alias for website links (mods.vintagestory.at/{urlalias}). May differ from slug. */

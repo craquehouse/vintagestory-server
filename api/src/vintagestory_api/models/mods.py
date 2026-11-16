@@ -326,8 +326,9 @@ class ModBrowseItem(BaseModel):
     mod_ids: list[str] = []
     """Every mod ID of the mod database entry (the listing's modidstrs), in listing order.
 
-    Each appears once and `slug` is the first. The web uses it to recognize an
-    installed mod by any of its mod IDs (Story 17.4).
+    Each appears once; `slug` is the first when the entry has mod IDs (an entry with
+    none has `[]`, and `slug` falls back to its numeric ID). The web uses it to
+    recognize an installed mod by any of its mod IDs (Story 17.4).
     """
 
     urlalias: str | None = None
