@@ -15,6 +15,7 @@ vi.mock('sonner', () => ({
     success: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -480,6 +481,52 @@ describe('ApiSettingsPanel', () => {
           })
         );
       });
+    });
+
+    it('shows a warning toast, not "Update failed", when the save is not applied (Story 17.6)', async () => {
+      const notApplied =
+        "Saved 'mod_list_refresh_interval', but its job could not be rescheduled: boom. " +
+        'The saved value applies when the API restarts.';
+      const mockFetch = vi.fn().mockImplementation(async (_url: string, options?: RequestInit) => {
+        if (options?.method === 'POST') {
+          return {
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            json: () =>
+              Promise.resolve({
+                detail: { code: 'API_SETTING_NOT_APPLIED', message: notApplied },
+              }),
+          };
+        }
+        return {
+          ok: true,
+          json: () => Promise.resolve(mockApiSettingsCamelCase),
+        };
+      });
+      globalThis.fetch = mockFetch;
+
+      const queryClient = createTestQueryClient();
+      render(<ApiSettingsPanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
+      });
+
+      const input = screen.getByLabelText('Mod List Refresh');
+      fireEvent.change(input, { target: { value: '10m' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(toast.warning).toHaveBeenCalledWith('Saved, not applied yet', {
+          description: notApplied,
+        });
+      });
+      expect(toast.warning).toHaveBeenCalledTimes(1);
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
     });
 
     it('calls API on duration field blur with changed value', async () => {

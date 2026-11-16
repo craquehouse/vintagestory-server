@@ -7,10 +7,12 @@
  * Story 6.4: Settings UI - AC6
  * VSS-c9o: Debug logging toggle
  * Story 14.6: Mod update webhook
+ * Story 17.6: A saved interval that could not be applied shows a warning
  */
 
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ApiError } from '@/api/errors';
 import { DurationSettingField } from '@/components/DurationSettingField';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
@@ -49,6 +51,11 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
       toast.success(`${params.key} updated`);
       return result;
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'API_SETTING_NOT_APPLIED') {
+        // Story 17.6: the value is saved and applies at the next API start
+        toast.warning('Saved, not applied yet', { description: err.message });
+        throw err;
+      }
       const message = err instanceof Error ? err.message : 'Failed to update setting';
       toast.error('Update failed', { description: message });
       throw err;

@@ -448,3 +448,90 @@ describe('useUpdateApiSetting with a secret key (Story 14.6)', () => {
   });
 });
 
+
+describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function okFetch(key: string, value: number | boolean) {
+    return vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', data: { key, value } }),
+    });
+  }
+
+  async function save(
+    queryClient: QueryClient,
+    key: string,
+    value: number | boolean
+  ): Promise<void> {
+    const { result } = renderHook(() => useUpdateApiSetting(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await act(async () => {
+      result.current.mutate({ key, value });
+    });
+    await waitFor(() => expect(result.current.isSuccess || result.current.isError).toBe(true));
+  }
+
+  it.each([
+    'mod_list_refresh_interval',
+    'server_versions_refresh_interval',
+    'metrics_collection_interval',
+  ])('invalidates the jobs query after saving %s', async (key) => {
+    globalThis.fetch = okFetch(key, 600);
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await save(queryClient, key, 600);
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jobs'] });
+    });
+  });
+
+  it('invalidates the jobs query when the save fails too (a not-applied save)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () =>
+        Promise.resolve({
+          detail: {
+            code: 'API_SETTING_NOT_APPLIED',
+            message: 'Saved, but its job could not be rescheduled',
+          },
+        }),
+    });
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await save(queryClient, 'mod_list_refresh_interval', 600);
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['jobs'] });
+    });
+  });
+
+  it('does not invalidate the jobs query after saving auto_start_server', async () => {
+    globalThis.fetch = okFetch('auto_start_server', true);
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await save(queryClient, 'auto_start_server', true);
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['config', 'api'] });
+    });
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['jobs'] });
+  });
+});

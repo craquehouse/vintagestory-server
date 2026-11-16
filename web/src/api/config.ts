@@ -74,6 +74,15 @@ export async function fetchApiSettings(): Promise<ApiResponse<ApiSettingsData>> 
 export const SECRET_API_SETTINGS: ReadonlySet<string> = new Set(['mod_update_webhook_url']);
 
 /**
+ * API settings whose change reschedules a job (Story 17.6).
+ */
+export const INTERVAL_API_SETTINGS: ReadonlySet<string> = new Set([
+  'mod_list_refresh_interval',
+  'server_versions_refresh_interval',
+  'metrics_collection_interval',
+]);
+
+/**
  * Set or clear the mod update webhook (Story 14.6). `null` clears it.
  *
  * Requires Admin role. The response reports only whether a webhook is configured.
