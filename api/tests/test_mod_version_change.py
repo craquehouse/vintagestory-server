@@ -527,6 +527,29 @@ class TestChangeVersion:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_new_archive_with_capitalized_keys_is_cached(self, tmp_path: Path) -> None:
+        """A new archive whose modinfo.json says "ModID"/"Version" is imported with its real
+        metadata and cached, like one with lowercase keys (VSS-0jl)."""
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        respx.get(MOD_URL.format("demo")).mock(
+            return_value=Response(200, json=demo_mod("Demo-1.1.0.zip", "Demo-1.0.0.zip"))
+        )
+        mock_download(
+            {"modidstr": "demo", "modversion": "1.1.0", "fileid": 11},
+            {"ModID": "demo", "Name": "Demo", "Version": "1.1.0"},
+        )
+
+        result = await service.change_version("demo", "1.1.0")
+
+        assert result.version == "1.1.0"
+        assert service.state_manager.get_cached_metadata("demo", "1.1.0") is not None
+        state = service.state_manager.get_mod_by_slug("demo")
+        assert state is not None
+        assert (state.version, state.filename) == ("1.1.0", "Demo-1.1.0.zip")
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_same_version_is_a_no_op(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")

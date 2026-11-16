@@ -588,6 +588,72 @@ class TestImportMod:
 
         assert (metadata.modid, metadata.version, metadata.side) == ("betterruins", "0.6.4", "Both")
 
+    def test_import_mod_reads_capitalized_keys(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        """Top-level keys are matched without case: an archive with "ModID" and "Version"
+        imports its real mod ID and version, and its cache is readable (VSS-0jl)."""
+        zip_path = temp_mods_dir / "Demo_v1.2.3.zip"
+        create_mod_zip(
+            zip_path,
+            {
+                "ModID": "demo",
+                "Name": "Demo",
+                "Version": "1.2.3",
+                "Authors": ["a"],
+                "Side": "Universal",
+            },
+        )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        assert (metadata.modid, metadata.version, metadata.side) == ("demo", "1.2.3", "Both")
+        assert metadata.authors == ["a"]
+        cache_path = temp_state_dir / "mods" / "demo" / "1.2.3" / "modinfo.json"
+        assert json.loads(cache_path.read_text()) == {
+            "modid": "demo",
+            "name": "Demo",
+            "version": "1.2.3",
+            "authors": ["a"],
+            "side": "Universal",
+        }
+        cached = state_manager.get_cached_metadata("demo", "1.2.3")
+        assert cached is not None
+        assert (cached.modid, cached.name, cached.version) == ("demo", "Demo", "1.2.3")
+
+    def test_import_mod_lowercases_only_top_level_keys(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
+    ) -> None:
+        """Values, including nested objects, keep their keys; the mod ID keeps its spelling."""
+        zip_path = temp_mods_dir / "demo.zip"
+        create_mod_zip(
+            zip_path,
+            {
+                "ModID": "Demo",
+                "Name": "Demo",
+                "Version": "1.2.3",
+                "Dependencies": {"Game": "1.20"},
+            },
+        )
+
+        metadata = state_manager.import_mod(zip_path)
+
+        assert metadata.modid == "Demo"
+        cache_path = temp_state_dir / "mods" / "Demo" / "1.2.3" / "modinfo.json"
+        cached = json.loads(cache_path.read_text())
+        assert cached["dependencies"] == {"Game": "1.20"}
+
+    def test_import_mod_later_key_wins_when_keys_differ_only_in_case(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        zip_path = temp_mods_dir / "demo.zip"
+        create_mod_zip(
+            zip_path,
+            {"modid": "first", "ModID": "second", "name": "Demo", "version": "1.0.0"},
+        )
+
+        assert state_manager.import_mod(zip_path).modid == "second"
+
     def test_import_mod_caches_modinfo(
         self, state_manager: ModStateManager, temp_mods_dir: Path, temp_state_dir: Path
     ) -> None:
@@ -1356,6 +1422,23 @@ class TestRepairFallbackEntries:
         assert (entry.enabled, entry.asset_id) == (False, 4242)
         assert entry.installed_at == datetime(2026, 1, 2, tzinfo=UTC)
         assert reloaded.get_cached_metadata("betterruins", "0.6.4") is not None
+
+    def test_repairs_an_archive_with_capitalized_keys(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """A mod an older build imported as filename / "unknown" because its modinfo.json
+        uses "ModID" and "Version" is repaired at the next start (VSS-0jl)."""
+        create_mod_zip(
+            temp_mods_dir / "BetterRuinsv0.6.4.zip",
+            {"ModID": "betterruins", "Name": "BetterRuins", "Version": "0.6.4"},
+        )
+        self.fallback_entry(state_manager, "BetterRuinsv0.6.4.zip")
+
+        assert state_manager.repair_fallback_entries() == ["BetterRuinsv0.6.4.zip"]
+        entry = state_manager.get_mod("BetterRuinsv0.6.4.zip")
+        assert entry is not None
+        assert (entry.slug, entry.version) == ("betterruins", "0.6.4")
+        assert state_manager.get_cached_metadata("betterruins", "0.6.4") is not None
 
     def test_still_unreadable_archive_is_left_alone(
         self, state_manager: ModStateManager, temp_mods_dir: Path

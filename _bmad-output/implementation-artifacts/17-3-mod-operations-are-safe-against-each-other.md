@@ -60,9 +60,9 @@ so that **a remove or toggle during an update cannot leave the mod half changed*
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.3/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: One `modinfo.json` key normalization for import and validation + tests (AC: 6, 9)
-  - [ ] 1.1: `api/src/vintagestory_api/services/mod_state.py`: `_extract_modinfo_from_zip` (`:296-344`) returns the parsed object with its top-level keys lowercased (replace the `return cast(...)` at `:330`; rule in Dev Notes "Key normalization"). Delete the comprehension in `read_modinfo` (`:259`) and validate `data` directly; keep its docstring sentence about case and add the same sentence to `import_mod` (`:194-245`) and to `_extract_modinfo_from_zip`'s Returns. `import_mod` itself needs no other change: it validates and caches what the extractor returns (`:214`, `:217`)
-  - [ ] 1.2: Tests. `tests/test_mod_state.py` (`TestImportMod`, `:543`): an archive with `{"ModID": "demo", "Name": "Demo", "Version": "1.2.3", "Authors": ["a"], "Side": "Universal"}` imports as `demo` / `1.2.3` / `Both` (not the filename, not `unknown`); `state/mods/demo/1.2.3/modinfo.json` exists with lowercase top-level keys; `get_cached_metadata("demo", "1.2.3")` returns the metadata; a nested object keeps its keys (`{"Dependencies": {"Game": "1.20"}}` is cached as `{"dependencies": {"Game": "1.20"}}`); with both `modid` and `ModID` present the later key wins; `repair_fallback_entries` repairs a state entry stored as filename / `unknown` for such an archive. `tests/test_mod_service.py` (`TestModServiceInstallMod`, `:773`): installing `smithingplus` with a zip whose keys are capitalized gives `InstallResult.slug == "smithingplus"` and a state entry with version `1.8.3`. `tests/test_mod_version_change.py` (`TestChangeVersion`, `:499`): a version change whose new archive has capitalized keys leaves `get_cached_metadata("demo", "1.1.0")` set (pass the modinfo to the download mock as `mock_download` does, `:245-253`)
+- [x] Task 1: One `modinfo.json` key normalization for import and validation + tests (AC: 6, 9)
+  - [x] 1.1: `api/src/vintagestory_api/services/mod_state.py`: `_extract_modinfo_from_zip` (`:296-344`) returns the parsed object with its top-level keys lowercased (replace the `return cast(...)` at `:330`; rule in Dev Notes "Key normalization"). Delete the comprehension in `read_modinfo` (`:259`) and validate `data` directly; keep its docstring sentence about case and add the same sentence to `import_mod` (`:194-245`) and to `_extract_modinfo_from_zip`'s Returns. `import_mod` itself needs no other change: it validates and caches what the extractor returns (`:214`, `:217`)
+  - [x] 1.2: Tests. `tests/test_mod_state.py` (`TestImportMod`, `:543`): an archive with `{"ModID": "demo", "Name": "Demo", "Version": "1.2.3", "Authors": ["a"], "Side": "Universal"}` imports as `demo` / `1.2.3` / `Both` (not the filename, not `unknown`); `state/mods/demo/1.2.3/modinfo.json` exists with lowercase top-level keys; `get_cached_metadata("demo", "1.2.3")` returns the metadata; a nested object keeps its keys (`{"Dependencies": {"Game": "1.20"}}` is cached as `{"dependencies": {"Game": "1.20"}}`); with both `modid` and `ModID` present the later key wins; `repair_fallback_entries` repairs a state entry stored as filename / `unknown` for such an archive. `tests/test_mod_service.py` (`TestModServiceInstallMod`, `:773`): installing `smithingplus` with a zip whose keys are capitalized gives `InstallResult.slug == "smithingplus"` and a state entry with version `1.8.3`. `tests/test_mod_version_change.py` (`TestChangeVersion`, `:499`): a version change whose new archive has capitalized keys leaves `get_cached_metadata("demo", "1.1.0")` set (pass the modinfo to the download mock as `mock_download` does, `:245-253`)
 
 - [ ] Task 2: One per-mod operation lock for version change, enable, disable and remove + tests (AC: 1, 3, 4, 7, 9)
   - [ ] 2.1: `services/mods.py`: rename `ModVersionChangeInProgressError` (`:179-184`) to `ModOperationInProgressError` with the message in AC 1. Replace `_version_locks` (`:308`) with `self._busy: set[str]` and the helpers in Dev Notes "The lock" (`_lock_key`, `_refuse_if_busy`, `_hold`, and the read-only property `busy_mod_ids`). `import asyncio` (`:9`) is then unused: remove it
@@ -362,13 +362,24 @@ Found by running the API suite against a throwaway prototype of Tasks 1-3 (since
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
 
+- Baseline before Task 1 (8d7aba2 + story commit 83a99ec): `just test-api` 2473 passed; `just typecheck-api` 0 errors, 3 warnings (the pre-existing three in tests).
+
 ### Completion Notes List
+
+- Task 1: `_extract_modinfo_from_zip` returns the object with lowercased top-level keys; `read_modinfo` validates it directly; `import_mod` and the extractor's Returns document the rule. Deviation from 1.1 (no `cast`): the story says to replace the `return cast(...)`, but a plain comprehension over the `isinstance(parsed, dict)`-narrowed value is `dict[Unknown, Unknown]` and adds three pyright `reportUnknown*` warnings. The JSON is now validated with a module-level `TypeAdapter(dict[str, object])` (pydantic, already a dependency): a non-object raises `ValidationError` and logs the same `modinfo_not_object` event as before, so the typed result needs neither `cast` nor `isinstance`. Red first: 6 new tests failed (`modinfo_parse_failed` on every capitalized archive). 6 new tests: capitalized import + lowercase cache + `get_cached_metadata`, nested keys kept and the mod ID's spelling kept (`Demo`), later key wins, `repair_fallback_entries` repairs such an archive, install of `smithingplus` with capitalized keys, version change caching `demo` 1.1.0. `test_keys_are_case_insensitive` passes unchanged. `just test-api` 2479 passed; pyright 0 errors, the same 3 warnings.
 
 - Story created 2026-11-15: context analysis of `ModService` (`_version_locks`, `change_version`, `install_mod`, `enable_mod`, `disable_mod`, `remove_mod`), `ModApiClient.download_mod`, `ModStateManager` (`import_mod`, `read_modinfo`, the modinfo cache), `ModUpdateService.apply_all`, the scheduled check job, the mods router, the web's error handling for the five operations, Stories 17.1 and 17.2 with their reviews, and Epic 17 ADR-3. The API tests that change were found by running the suite against a throwaway prototype of Tasks 1-3; the gate pattern, the cancellation release and the ASGI race test were each tried once before being written into the story.
 
 ### File List
+
+- `api/src/vintagestory_api/services/mod_state.py`
+- `api/tests/test_mod_state.py`
+- `api/tests/test_mod_service.py`
+- `api/tests/test_mod_version_change.py`
 
 ## Change Log
 

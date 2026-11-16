@@ -9,9 +9,9 @@ import json
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
 
 import structlog
+from pydantic import TypeAdapter, ValidationError
 
 from vintagestory_api.models.mods import ModMetadata, ModState
 
@@ -19,6 +19,9 @@ logger = structlog.get_logger()
 
 FALLBACK_VERSION = "unknown"
 """Version recorded when a mod's modinfo.json cannot be read (filename fallback)."""
+
+_JSON_OBJECT: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
+"""A modinfo.json must be a JSON object; its keys are always strings."""
 
 
 class ModStateManager:
@@ -197,6 +200,9 @@ class ModStateManager:
         Extracts modinfo.json from the zip, parses metadata, and caches
         the modinfo.json to the state directory for fast future access.
 
+        Top-level keys are matched case-insensitively, as VintageStory does
+        (for example "ModID" or "Version"); the cached modinfo.json holds them lowercased.
+
         Args:
             zip_path: Path to the mod zip file.
 
@@ -256,9 +262,8 @@ class ModStateManager:
         data = self._extract_modinfo_from_zip(zip_path)
         if data is None:
             return None
-        normalized = {key.lower(): value for key, value in data.items()}
         try:
-            return ModMetadata.model_validate(normalized)
+            return ModMetadata.model_validate(data)
         except ValueError as e:
             logger.warning("modinfo_invalid", filename=zip_path.name, error=str(e))
             return None
@@ -300,7 +305,10 @@ class ModStateManager:
             zip_path: Path to the mod zip file.
 
         Returns:
-            Parsed modinfo.json as dict, or None if not found or corrupt.
+            Parsed modinfo.json as dict, or None if not found or corrupt. Top-level keys
+            are lowercased, as VintageStory matches them case-insensitively (for example
+            "ModID" or "Version"); values, including nested objects, are unchanged. When
+            two keys differ only in case, the later one in the file wins.
         """
         try:
             with zipfile.ZipFile(zip_path, "r") as zf:
@@ -323,11 +331,12 @@ class ModStateManager:
                             continue
 
                         content = zf.read(name).decode("utf-8-sig")
-                        parsed = json.loads(content)
-                        if not isinstance(parsed, dict):
+                        try:
+                            modinfo = _JSON_OBJECT.validate_python(json.loads(content))
+                        except ValidationError:
                             logger.warning("modinfo_not_object", filename=zip_path.name)
                             return None
-                        return cast(dict[str, object], parsed)
+                        return {key.lower(): value for key, value in modinfo.items()}
 
                 logger.debug(
                     "modinfo_not_found_in_zip",

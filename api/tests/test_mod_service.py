@@ -839,6 +839,36 @@ class TestModServiceInstallMod:
         assert mod_state.enabled is True
 
     @pytest.mark.asyncio
+    async def test_install_mod_reads_capitalized_modinfo_keys(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """An archive whose modinfo.json says "ModID"/"Version" installs under its real
+        mod ID and version, not the filename and "unknown" (VSS-0jl)."""
+        import respx
+        from httpx import Response
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"ModID": "smithingplus", "Name": "Smithing Plus", "Version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            result = await install_service.install_mod("smithingplus")
+
+        assert result.slug == "smithingplus"
+        mod_state = install_service.state_manager.get_mod_by_slug("smithingplus")
+        assert mod_state is not None
+        assert mod_state.version == "1.8.3"
+        cached = install_service.state_manager.get_cached_metadata("smithingplus", "1.8.3")
+        assert cached is not None
+
+    @pytest.mark.asyncio
     async def test_install_mod_temp_file_does_not_clobber_same_stem_file(
         self, install_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
