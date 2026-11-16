@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-16'
+lastUpdated: '2026-11-17'
 updates:
+  - date: '2026-11-17'
+    description: 'Added Epic 19 (4 stories) for API Security and Mod File Safety; FR205-FR222'
   - date: '2026-11-16'
     description: 'Added Epic 18 (4 stories) for Mod Media and Fixes; FR194-FR204'
   - date: '2026-11-15'
@@ -412,6 +414,24 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR202 | Epic 18 | No indicator when the version or data is unknown |
 | FR203 | Epic 18 | Sort control for installed mod cards |
 | FR204 | Epic 18 | Installed mods table fits at 1024px with a long name |
+| FR205 | Epic 19 | Config file viewer serves `.json` files only, same rule for every role |
+| FR206 | Epic 19 | Other config file requests refused with an error code, never 500 |
+| FR207 | Epic 19 | Recursive secret redaction for roles other than Admin |
+| FR208 | Epic 19 | No key for the web UI when `VS_API_KEY` is unset; set-up message |
+| FR209 | Epic 19 | Start-up warnings for the Admin key as web key and for no web key |
+| FR210 | Epic 19 | `VS_API_KEY` documentation and compose defaults |
+| FR211 | Epic 19 | `VS_GAME_VERSION` removed |
+| FR212 | Epic 19 | Enforced Content-Security-Policy on the web UI's pages |
+| FR213 | Epic 19 | Every page works under the policy |
+| FR214 | Epic 19 | `VS_CSP_MODE` and the other page headers |
+| FR215 | Epic 19 | Enable and disable refuse a taken file name with 409 |
+| FR216 | Epic 19 | Version change file-name refusal is 409, not 500 |
+| FR217 | Epic 19 | File-name collisions ignore letter case |
+| FR218 | Epic 19 | Download cache keyed by file ID |
+| FR219 | Epic 19 | Logo URL allow-list and no referrer |
+| FR220 | Epic 19 | Homepage and source URLs checked |
+| FR221 | Epic 19 | Malformed mod database bodies are 502 |
+| FR222 | Epic 19 | One shared game version list request |
 
 ## Epic List
 
@@ -1925,7 +1945,8 @@ So that **I can monitor background task status**.
 | Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8 | 9 |
 | Epic 17: Mod Data Correctness and Fixes | 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8 | 8 |
 | Epic 18: Mod Media and Fixes | 18.1, 18.2, 18.3, 18.4 | 4 |
-| **Total** | | **106** |
+| Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4 | 4 |
+| **Total** | | **110** |
 
 ---
 
@@ -4983,3 +5004,393 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 - [ ] Wrap the Name column through its column `meta.className`, applied to body cells too; choose the minimum width from the measurements; stack the Available cell only if the numbers require it (ADR-6, long names) (`VSS-n2u`)
 - [ ] Tests: `ModTable.test.tsx` for the control and the shared preference; `layout-widths.spec.ts` now expects no scrolling element at 1024px in both sidebar states
 - [ ] Record the after measurements in the story file
+
+---
+
+## Epic 19: API Security and Mod File Safety
+
+**Goal:** Only the Admin role, and only someone the operator chose to give the Admin key to, can read secrets or act as Admin; the web UI's pages run under a Content-Security-Policy; no mod operation can replace another mod's file; and nothing the mod database sends reaches a link, an image or a 500.
+
+**Architecture:** `architecture/epic-19-api-security-and-mod-file-safety.md` (ADR-1 to ADR-9, with the code facts at `048fea9` and the mod database facts checked on 2026-11-16). There is no preparation story. Story 19.2 confirms two browser behaviours before it settles the policy (ADR-5 decisions 7 and 12).
+
+**Order:** 19.1, 19.2, 19.3, 19.4. Story 19.1 first: it holds the two P2 items (`VSS-633`, `VSS-9wv`) and the breaking change, which should be on `main` early so the release that carries it can be prepared.
+
+**Dependencies:**
+
+- Story 19.2 comes after 19.1: its E2E spec loads every page with a key and uses the `/config.js` helper Story 19.1 adds, and both stories edit `register_frontend` in `main.py` and `config.py`.
+- Stories 19.3 and 19.4 need no other story's code. Both edit `services/mods.py` and `services/mod_api.py` in different places, so run them one after another.
+- Story 19.4's logo rule does not depend on Story 19.2's `img-src`, which allows any `https` image.
+
+**Breaking change:** Story 19.1 stops handing the Admin key to the web UI when `VS_API_KEY` is unset (ADR-3). Every deployment that does not set `VS_API_KEY` must set it when it upgrades, including the maintainer's cluster deployment, which is configured in another repository and is not changed by this epic.
+
+**Size:** Story 19.1 carries four beads and touches the API, the web, the compose files and the documentation. The grouping is the maintainer's; `create-story` should keep its tasks to the six listed and may propose a split if the story file grows past that.
+
+### Current State
+
+- A Monitor key can ask the config file viewer for any file under the server data directory; binary files and directories answer 500
+- A Monitor key receives nested passwords and secrets under other key names in config files
+- With `VS_API_KEY` unset, anyone who can load the web UI receives the Admin key, and nothing tells the operator
+- `VS_GAME_VERSION` is documented and set in the compose files and does nothing
+- The web UI's pages have no Content-Security-Policy
+- Enabling or disabling a mod can replace another mod's file; a version change refuses the same case with a 500; the install check depends on the volume's case rules
+- Two mods whose releases share a file name share one cache file, and two such downloads at once write one temporary file
+- Logo, homepage and source URLs from the mod database reach `src` and `href` unchecked
+- A mod database answer that is not a JSON object makes the mod browser answer 500
+
+### Target State
+
+- The config file viewer serves `.json` files only, to every role, and refuses the rest with an error code
+- Roles other than Admin get secrets redacted at every depth of a config file
+- The web UI gets a key only when `VS_API_KEY` names one; the API warns when that key is the Admin key and when there is none
+- `VS_GAME_VERSION` is gone from the settings and the documentation
+- The web UI's pages are served with an enforced Content-Security-Policy and every page works under it
+- Install, enable, disable and version change refuse a taken file name with 409 `MOD_FILE_CONFLICT`, ignoring case, and the download cache is keyed by file ID
+- Only checked `https` URLs leave the API, and a malformed mod database answer is a 502
+
+---
+
+### Story 19.1: Secrets Stay with Admin
+
+**Sprint key:** `19-1-secrets-stay-with-admin`
+**Beads:** `VSS-633` (API-077, bug), `VSS-sg1` (API-078, bug), `VSS-9wv` (API-079), `VSS-ms0` (API-070)
+**FRs:** FR205, FR206, FR207, FR208, FR209, FR210, FR211
+
+As an **operator who gives other people Monitor access or the web UI's address**,
+I want **secrets and the Admin key to reach only the Admin role**,
+So that **read-only access stays read-only**.
+
+**Acceptance Criteria:**
+
+**Given** a `.json` file under the server data directory
+**When** I request `GET /api/v1alpha1/config/files/{path}` with an Admin or a Monitor key
+**Then** the response is 200 with its content, and `GET /config/files` lists exactly the files that can be read this way
+
+*(Covers FR205)*
+
+**Given** a path whose name does not end in `.json` (a log, a save, a zip), existing or not
+**When** I request it with either key
+**Then** the response is 400 `CONFIG_FILE_NOT_SUPPORTED` and the file is not read
+
+*(Covers FR205, FR206)*
+
+**Given** a directory, a directory named `x.json`, a symlink `x.json` to a file of another type, or a `.json` file that is not UTF-8 text
+**When** I request it with either key
+**Then** the response is 400 `CONFIG_FILE_NOT_SUPPORTED`, never a 500
+
+*(Covers FR206)*
+
+**Given** a `.json` file larger than 2 MiB
+**When** I request it with either key
+**Then** the response is 413 `CONFIG_FILE_TOO_LARGE` and the file is not read into memory
+
+*(Covers FR206)*
+
+**Given** a `.json` file that starts with a byte order mark, and one that is UTF-8 and not valid JSON or is nested too deeply to parse
+**When** I request them
+**Then** the first is parsed, and the second is 200 with `_raw` and `_parse_error`, the text only for Admin
+
+*(Covers FR206)*
+
+**Given** a config file with `{"Other": {"Password": "x"}}`, a list of objects with `Token` or `ApiKey` keys, and a key such as `bot_token` or `WebhookUrl`
+**When** I read it with a Monitor key
+**Then** each of those values is `"[redacted]"` at every depth, a `null` or `""` value stays as it is, and the secret is nowhere in the raw response body
+
+*(Covers FR207)*
+
+**Given** `serverconfig.json` with `StartupCommands` set, and a config file with a string value that is a URL with user info or a Discord webhook URL under any key name
+**When** I read them with a Monitor key
+**Then** those values are `"[redacted]"`
+
+*(Covers FR207)*
+
+**Given** the same files
+**When** I read them with the Admin key
+**Then** every value is returned unchanged
+
+*(Covers FR207)*
+
+**Given** `VS_API_KEY` is unset or blank
+**When** the API starts
+**Then** it starts, `/healthz` and `/readyz` answer as before, it logs the warning `web_api_key_not_set` without any key, and `GET /config.js` serves `{"apiKey": ""}` with the same headers as before
+
+*(Covers FR208, FR209)*
+
+**Given** the web UI is loaded and `/config.js` serves no key
+**When** the page opens
+**Then** it shows a "No API key configured" screen that names `VS_API_KEY`, the Monitor key and the Admin key, and it makes no request to `/api/` and opens no WebSocket
+
+*(Covers FR208)*
+
+**Given** `VS_API_KEY` equals the Admin key
+**When** the API starts
+**Then** `/config.js` serves the Admin key and the API logs the warning `web_api_key_is_admin_key` without the key
+
+*(Covers FR209)*
+
+**Given** `VS_API_KEY` equals the Monitor key, or matches neither key
+**When** the API starts
+**Then** with the Monitor key `/config.js` serves it and neither new warning is logged; with a key that matches no role the existing `web_api_key_matches_no_role` warning is logged, as before
+
+*(Covers FR209)*
+
+**Given** the README, `.env.example` and both compose files
+**When** I read how to give the web UI a key
+**Then** they say the web UI needs `VS_API_KEY`, recommend the Monitor key or an authenticating proxy, say that anyone who can load the page receives that key, and the production compose example does not hand out the Admin key by default
+
+*(Covers FR210)*
+
+**Given** the dev stack started with `just docker start` and no `VS_API_KEY` in the environment
+**When** I open the web UI or run the E2E specs
+**Then** the page has the Admin key as before, because the dev compose file sets `VS_API_KEY` to the Admin key itself
+
+*(Covers FR210)*
+
+**Given** a deployment that still sets `VS_GAME_VERSION`
+**When** the API starts
+**Then** it starts as before; the variable is no longer a setting and is not in the compose files, `.env.example` or the worktree set-up script
+
+*(Covers FR211)*
+
+**Tasks:**
+
+- [ ] Config file viewer: one predicate for the listing and the read; suffix, type, size and decoding checks; `CONFIG_FILE_NOT_SUPPORTED` and `CONFIG_FILE_TOO_LARGE` (Epic 19 ADR-1) (`VSS-633`)
+- [ ] Recursive redaction by key name with `UNMANAGED_SECRET_KEYS`, `SECRET_KEY_FRAGMENTS` and the two value rules; replace `test_nested_password_is_unchanged` (ADR-2) (`VSS-sg1`)
+- [ ] `Settings.web_api_key` without the fallback, the start-up states and warnings, `/config.js` with an empty key; committed as `feat(api)!:` with a `BREAKING CHANGE:` footer and the subject of ADR-3 "Release" (`VSS-9wv`)
+- [ ] Web: the "No API key configured" screen; E2E: one `/config.js` helper, the empty-key spec, and the dev compose default (ADR-3 decisions 4, 7 and 8)
+- [ ] Documentation: README, `.env.example`, both compose files, API documentation of the changed errors (ADR-3 decision 6)
+- [ ] Remove `Settings.game_version` and every `VS_GAME_VERSION` line; test that setting it is harmless; committed as `fix(docker):` (ADR-4) (`VSS-ms0`)
+
+---
+
+### Story 19.2: Content-Security-Policy
+
+**Sprint key:** `19-2-content-security-policy`
+**Beads:** `VSS-3qb8` (INFRA-005)
+**FRs:** FR212, FR213, FR214
+
+As an **operator**,
+I want **the web admin's pages served with a Content-Security-Policy**,
+So that **an injected script cannot run in a page that holds an API key**.
+
+**Acceptance Criteria:**
+
+**Given** the published image
+**When** I request `/` or any web UI path
+**Then** the response has `Content-Security-Policy` with exactly the directives of Epic 19 ADR-5 decision 3, and `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`
+
+*(Covers FR212, FR214)*
+
+**Given** the same image
+**When** I request `/api/v1alpha1/...`, `/healthz`, `/readyz` or `/docs`
+**Then** the response has no `Content-Security-Policy` header, and `/docs` still renders
+
+*(Covers FR212)*
+
+**Given** the Docker stack with the policy enforced
+**When** I open the dashboard, the console, the mod browser, a mod detail page with a gallery and a description with images, the installed list, the settings and the version page, in the light and the dark theme
+**Then** each page works as before, the browser reports no `securitypolicyviolation` event and no console error, and toasts, dialogs and the terminal are styled
+
+*(Covers FR213)*
+
+**Given** the console page with the policy enforced
+**When** it connects
+**Then** the console WebSocket and the log stream connect and carry data
+
+*(Covers FR213)*
+
+**Given** a page of the web UI with the policy enforced
+**When** an inline script is injected into it, or the page is loaded inside a frame on another origin
+**Then** the script does not run and the frame does not load
+
+*(Covers FR212)*
+
+**Given** a mod description with an image on any `https` host
+**When** I open the mod's detail page
+**Then** the image loads
+
+*(Covers FR213)*
+
+**Given** `VS_CSP_MODE=report-only`, `VS_CSP_MODE=off`, and an unknown value
+**When** the API starts
+**Then** with `report-only` the same policy is sent as `Content-Security-Policy-Report-Only`, with `off` neither header is sent, and an unknown value stops start-up with a message naming the setting
+
+*(Covers FR214)*
+
+**Given** the Vite dev server (`just dev-web`)
+**When** I develop
+**Then** no policy applies and hot reload works as before
+
+*(Covers FR213)*
+
+**Tasks:**
+
+- [ ] `VS_CSP_MODE` in `Settings` with validation; the policy as one constant; the headers on `serve_spa` responses (Epic 19 ADR-5 decisions 1, 3, 9 and 10) (`VSS-3qb8`)
+- [ ] API tests: the header in each mode, on SPA paths, and its absence on API, health and docs routes
+- [ ] Browser checks first: the WebSockets under `connect-src 'self'` and the next-themes inline script (ADR-5 decisions 7 and 12); record what was seen and any hash added
+- [ ] E2E spec against the Docker stack: every page in both themes with no violation, and the blocked inline script; the framing refusal by header test or in a browser (ADR-5 decision 13)
+- [ ] Documentation: README section on the policy, `VS_CSP_MODE`, and what a proxy in front has to respect; `.env.example`
+
+---
+
+### Story 19.3: Mod Files Are Never Overwritten
+
+**Sprint key:** `19-3-mod-files-are-never-overwritten`
+**Beads:** `VSS-40ja` (API-082, bug), `VSS-macf` (API-083), `VSS-52fy` (API-085), `VSS-n0qv` (API-084)
+**FRs:** FR215, FR216, FR217, FR218
+
+As an **administrator**,
+I want **no mod operation to replace another mod's file, on any volume**,
+So that **the mods directory always holds what the Installed list says**.
+
+**Acceptance Criteria:**
+
+**Given** mod A is disabled as `Foo.zip.disabled` and another file `Foo.zip` is in the mods directory
+**When** I enable mod A
+**Then** the response is 409 `MOD_FILE_CONFLICT` with a message naming `Foo.zip`, both files have the same bytes as before, the mod state is unchanged and no restart is pending
+
+*(Covers FR215)*
+
+**Given** mod A is enabled as `Foo.zip` and a file `Foo.zip.disabled` is in the mods directory
+**When** I disable mod A
+**Then** the response is 409 `MOD_FILE_CONFLICT` and nothing is changed
+
+*(Covers FR215)*
+
+**Given** no file is in the way
+**When** I enable or disable a mod
+**Then** it works as before, and enabling an enabled mod or disabling a disabled one is still a success that changes nothing
+
+*(Covers FR215)*
+
+**Given** an installed mod and a target release whose file name, or its `.disabled` form, is another file in the mods directory or another entry in the mod state
+**When** I change the mod's version
+**Then** the response is 409 `MOD_FILE_CONFLICT`, not 500 `MOD_VERSION_CHANGE_FAILED`, and the mod's file, the other file and the state are unchanged
+
+*(Covers FR216)*
+
+**Given** Update All, and one mod's new file name is taken
+**When** the run reaches it
+**Then** that mod is a `failed` item with the conflict message, and the run continues with the other mods
+
+*(Covers FR216)*
+
+**Given** a version change that fails to place the file or save state for another reason
+**When** it is rolled back
+**Then** the response is 500 `MOD_VERSION_CHANGE_FAILED`, as before
+
+*(Covers FR216)*
+
+**Given** a case-sensitive mods directory with `Foo.zip` installed
+**When** I install, enable, disable or change to a version of another mod whose file would be `foo.zip` or `FOO.ZIP.disabled`
+**Then** the response is 409 `MOD_FILE_CONFLICT`, the same answer a case-insensitive volume gives
+
+*(Covers FR217)*
+
+**Given** an installed mod `Foo_1.0.zip`
+**When** I change it to a release whose file name differs from its own only in case
+**Then** the change succeeds and exactly one file for the mod is in the directory afterwards, on a case-sensitive and on a case-insensitive volume
+
+*(Covers FR217)*
+
+**Given** a dangling symlink with the target name, or a mod state entry under the target name with no file
+**When** I run any of the four operations
+**Then** the response is 409 `MOD_FILE_CONFLICT`
+
+*(Covers FR215, FR216, FR217)*
+
+**Given** two mods whose releases have the same file name
+**When** I download both, one after the other or at the same time
+**Then** each is cached under its own file ID, neither replaces the other's copy, and each install places the archive of the mod that was asked for
+
+*(Covers FR218)*
+
+**Given** two downloads of the same release at the same time
+**When** both finish
+**Then** the cache holds one complete file and no temporary file is left
+
+*(Covers FR218)*
+
+**Given** a cache with files from before this story, and a temporary file left by a crash more than an hour ago
+**When** the API starts and the next download finishes
+**Then** the old files are removed at start and their number logged, eviction counts and evicts files in the new layout and removes emptied directories and the old temporary file
+
+*(Covers FR218)*
+
+**Tasks:**
+
+- [ ] The file-name helper (listing plus state, `casefold`, the mod's own file excluded) and `ModFileConflictError` with the operation in its message (Epic 19 ADR-6 decisions 1, 2 and 6) (`VSS-52fy`)
+- [ ] Use it in `enable_mod` and `disable_mod`; 409 on both routes (`VSS-40ja`)
+- [ ] Use it in `_apply_version_change`, with `same_file` ignoring case; 409 on the version route; `ModFileConflictError` in the Update All loop (ADR-6 decisions 4 and 7) (`VSS-macf`)
+- [ ] Cache layout `cache/mods/<fileid>/<name>`, one path function, a temporary file per download, removal of the old layout at start (ADR-7 decisions 1, 2, 3 and 5) (`VSS-n0qv`)
+- [ ] `CacheEvictionService` for the new layout, emptied directories and old temporary files (ADR-7 decision 4)
+- [ ] Tests for every case above with file bytes and state compared before and after; confirm the web shows the message for enable, disable and version change; API documentation of the changed errors
+
+---
+
+### Story 19.4: Mod Database Data Is Checked
+
+**Sprint key:** `19-4-mod-database-data-is-checked`
+**Beads:** `VSS-2zis` (API-081), `VSS-ce0h` (API-086)
+**FRs:** FR219, FR220, FR221, FR222
+
+As an **administrator**,
+I want **the manager to pass on only URLs it has checked and to treat a broken mod database answer as an upstream error**,
+So that **a mod author's data or a mod database fault cannot misuse or break the pages I use**.
+
+**Acceptance Criteria:**
+
+**Given** a mod whose logo is an `https://moddbcdn.vintagestory.at/` URL
+**When** I look it up or see it in the browse results
+**Then** `logo_url` is that URL unchanged
+
+*(Covers FR219)*
+
+**Given** a mod whose logo is an `http:` URL, a URL on another host, a `data:` or `javascript:` URL, or not a URL
+**When** I look it up or browse
+**Then** the response is 200, `logo_url` is `null`, and the page shows the placeholder
+
+*(Covers FR219)*
+
+**Given** a mod logo on a browse card, the detail page or the install dialog
+**When** the image is requested
+**Then** the request carries no referrer
+
+*(Covers FR219)*
+
+**Given** a mod whose homepage or source URL is an `https` URL
+**When** I look it up
+**Then** `homepage_url` or `source_url` is that URL unchanged and the detail page shows the link
+
+*(Covers FR220)*
+
+**Given** a homepage or source value that is empty, an `http:`, `javascript:` or `data:` URL, has user info, has a space, control character or backslash, or is longer than 2,048 characters
+**When** I look the mod up
+**Then** the response is 200, the field is `null` and the detail page shows no such link; the "ModDB Page" link is unaffected
+
+*(Covers FR220)*
+
+**Given** the mod database answers the listing, a filtered listing, a mod lookup or the game version list with HTML, an empty body, `[]`, `"text"` or `null`
+**When** a mod route needs that answer
+**Then** the response is 502 `EXTERNAL_API_ERROR`, never 500, and the previous cached copy and its age are unchanged
+
+*(Covers FR221)*
+
+**Given** the mod database answers correctly on the next request
+**When** I retry
+**Then** the route works; nothing malformed was cached
+
+*(Covers FR221)*
+
+**Given** the game version cache is cold and several browse requests arrive together
+**When** they are served
+**Then** the mod database receives one `/api/gameversions` request, every request gets its result, and a failure reaches every waiting request and is not kept
+
+*(Covers FR222)*
+
+**Tasks:**
+
+- [ ] `external_link_url` in `services/mod_media.py`; `mod_image_url` on `logo_url` in the lookup and the browse item; debug log without the URL (Epic 19 ADR-8 decisions 1 to 3 and 6) (`VSS-2zis`)
+- [ ] Web: `referrerPolicy="no-referrer"` on the three logo images; confirm the placeholder and the missing links (ADR-8 decision 5)
+- [ ] One guarded JSON fetch in `ModApiClient`, used by the four fetchers, each keeping its status rules (ADR-9 decisions 1 to 4) (`VSS-ce0h`)
+- [ ] Shared in-flight fetch for the game version list (ADR-9 decision 5)
+- [ ] Tests: URL rules with a synthetic bad-data fixture for lookup and browse; each fetcher with the five malformed bodies and an unchanged cache; concurrent cold calls; API documentation of `null` for the three URL fields
