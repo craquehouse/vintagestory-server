@@ -602,7 +602,7 @@ async def lookup_mod(
           latest_supported_game_version
         - screenshots: List of {image_url, thumbnail_url, filename} in mod database
           order; only https URLs on the mod database CDN; [] when there are none
-        - trailer_url: https://www.youtube.com/watch?v=<id> for the entry's trailer,
+        - trailer_url: https://www.youtube-nocookie.com/embed/<id> for the entry's trailer,
           or null
 
     Raises:

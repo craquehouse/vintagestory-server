@@ -919,7 +919,7 @@ class TestLookupModEndpoint:
         for item, raw_item in zip(data["screenshots"], raw, strict=True):
             assert set(item) == {"image_url", "thumbnail_url", "filename"}
             assert item["image_url"] == raw_item["mainfile"]
-        assert data["trailer_url"] == "https://www.youtube.com/watch?v=mJHZH_sThDM"
+        assert data["trailer_url"] == "https://www.youtube-nocookie.com/embed/mJHZH_sThDM"
 
     @respx.mock
     def test_lookup_mod_bad_media_is_filtered(

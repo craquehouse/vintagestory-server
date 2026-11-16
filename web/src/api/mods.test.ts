@@ -699,7 +699,7 @@ describe('lookupMod', () => {
                 filename: 'a.png',
               },
             ],
-            trailer_url: 'https://www.youtube.com/watch?v=mJHZH_sThDM',
+            trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM',
           },
         }),
     });
@@ -714,7 +714,7 @@ describe('lookupMod', () => {
         filename: 'a.png',
       },
     ]);
-    expect(result.data.trailerUrl).toBe('https://www.youtube.com/watch?v=mJHZH_sThDM');
+    expect(result.data.trailerUrl).toBe('https://www.youtube-nocookie.com/embed/mJHZH_sThDM');
   });
 });
 

@@ -12,7 +12,8 @@ Rules:
   user info, any port (also an empty one) and a trailing dot.
 - A trailer URL is never passed on: the 11-character video ID is taken from a
   YouTube `/watch?v=<id>`, `/embed/<id>` or `youtu.be/<id>` URL on `YOUTUBE_HOSTS`
-  and the link is rebuilt as `TRAILER_WATCH_URL` + ID.
+  and the link is rebuilt as `TRAILER_EMBED_URL` + ID, on the privacy-enhanced
+  youtube-nocookie.com domain (the maintainer's choice; its `/watch` path is a 404).
 
 Pure helpers: no I/O.
 """
@@ -42,7 +43,7 @@ YOUTUBE_HOSTS = frozenset(
 )
 """Hosts a trailer URL may be on."""
 
-TRAILER_WATCH_URL = "https://www.youtube.com/watch?v="
+TRAILER_EMBED_URL = "https://www.youtube-nocookie.com/embed/"
 """Where the trailer link points; the video ID is appended."""
 
 _UNSAFE = re.compile(r"[\x00-\x20\x7f\\]")  # control characters, space, backslash
@@ -64,8 +65,8 @@ def mod_image_url(url: str | None) -> str | None:
     return url if _https_parts(url, MOD_MEDIA_HOSTS) is not None else None
 
 
-def trailer_watch_url(url: str | None) -> str | None:
-    """`https://www.youtube.com/watch?v=<id>` for a YouTube video URL, else None."""
+def trailer_link_url(url: str | None) -> str | None:
+    """`https://www.youtube-nocookie.com/embed/<id>` for a YouTube video URL, else None."""
     parts = _https_parts(url, YOUTUBE_HOSTS)
     if parts is None:
         return None
@@ -79,7 +80,7 @@ def trailer_watch_url(url: str | None) -> str | None:
         return None
     if not _VIDEO_ID.fullmatch(video_id):
         return None
-    return f"{TRAILER_WATCH_URL}{video_id}"
+    return f"{TRAILER_EMBED_URL}{video_id}"
 
 
 def build_screenshots(screenshots: list[dict[str, Any]], slug: str) -> list[ModScreenshot]:

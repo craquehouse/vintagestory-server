@@ -13,7 +13,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
  *   and tell a screen reader they open in a new tab.
  * - At 390px on a touch screen, in the light and the dark theme, the section stays inside the
  *   viewport, does not widen the page, and its controls are at least 44x44px.
- * - The live `betterruins` lookup passes only CDN image URLs and a YouTube watch URL.
+ * - The live `betterruins` lookup passes only CDN image URLs and a youtube-nocookie embed URL.
  *
  * Reads only. The lookup of `e2emediamod` and the CDN images are stubbed with `page.route`;
  * every write to the API is refused, so nothing is installed, changed or removed; the game
@@ -32,7 +32,7 @@ const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
 const SLUG = 'e2emediamod';
 const DETAIL = `/game-server/mods/browse/${SLUG}`;
 const CDN = 'https://moddbcdn.vintagestory.at';
-const WATCH_URL = 'https://www.youtube.com/watch?v=mJHZH_sThDM';
+const EMBED_URL = 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM';
 
 // A 1x1 PNG
 const PNG = Buffer.from(
@@ -91,7 +91,7 @@ function lookupBody(variant: Variant) {
       created: null,
       last_released: null,
       screenshots: screenshots(variant === 'ten' ? 10 : variant === 'one' ? 1 : 0),
-      trailer_url: variant === 'ten' ? WATCH_URL : null,
+      trailer_url: variant === 'ten' ? EMBED_URL : null,
     },
   };
 }
@@ -257,7 +257,7 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
       await openDetail(page);
 
       const trailer = page.getByTestId('mod-detail-trailer-link');
-      await expect(trailer).toHaveAttribute('href', WATCH_URL);
+      await expect(trailer).toHaveAttribute('href', EMBED_URL);
       await expect(trailer).toHaveAttribute('target', '_blank');
       await expect(trailer).toHaveAttribute('rel', 'noopener noreferrer');
       await expect(page.getByRole('link', { name: 'Watch trailer (opens in a new tab)', exact: true })).toHaveCount(1);
@@ -379,7 +379,7 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
     });
   });
 
-  test('the live betterruins lookup passes only CDN images and a YouTube watch URL', async ({
+  test('the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL', async ({
     page,
   }) => {
     test.setTimeout(90_000);
@@ -402,7 +402,7 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
       expect(shot.thumbnail_url.startsWith(`${CDN}/`)).toBe(true);
     }
     if (body.data.trailer_url !== null) {
-      expect(body.data.trailer_url).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/);
+      expect(body.data.trailer_url).toMatch(/^https:\/\/www\.youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}$/);
     }
 
     await expect(page.getByTestId('mod-detail-page')).toBeVisible({ timeout: 60_000 });

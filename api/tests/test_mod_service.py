@@ -1901,7 +1901,7 @@ class TestModServiceLookupMedia:
         assert first.image_url == raw[0]["mainfile"]
         assert first.thumbnail_url == raw[0]["thumbnailfilename"]
         assert first.filename == raw[0]["filename"]
-        assert result.trailer_url == "https://www.youtube.com/watch?v=mJHZH_sThDM"
+        assert result.trailer_url == "https://www.youtube-nocookie.com/embed/mJHZH_sThDM"
 
     @pytest.mark.asyncio
     async def test_bad_screenshots_are_filtered(self, lookup_service: ModService) -> None:

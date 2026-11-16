@@ -215,7 +215,7 @@ export interface ModLookupData {
   lastReleased: string | null;
   /** The entry's screenshots in mod database order; only https URLs on the mod database CDN. */
   screenshots: ModScreenshot[];
-  /** `https://www.youtube.com/watch?v=<id>` when the entry names a YouTube trailer, else null. */
+  /** `https://www.youtube-nocookie.com/embed/<id>` when the entry names a YouTube trailer, else null. */
   trailerUrl: string | null;
 }
 

@@ -48,7 +48,7 @@ from vintagestory_api.services.mod_compatibility import (
     compare_game_versions,
     supported_game_versions,
 )
-from vintagestory_api.services.mod_media import build_screenshots, trailer_watch_url
+from vintagestory_api.services.mod_media import build_screenshots, trailer_link_url
 from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
@@ -680,7 +680,7 @@ class ModService:
             created=mod["created"],
             last_released=mod["lastreleased"],
             screenshots=build_screenshots(mod["screenshots"], response_slug),
-            trailer_url=trailer_watch_url(mod["trailervideourl"]),
+            trailer_url=trailer_link_url(mod["trailervideourl"]),
         )
 
         logger.info(

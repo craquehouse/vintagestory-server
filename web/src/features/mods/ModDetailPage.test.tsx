@@ -713,7 +713,7 @@ describe('ModDetailPage', () => {
             ...mockModDetailResponse,
             data: {
               ...mockModDetailResponse.data,
-              trailer_url: 'https://www.youtube.com/watch?v=mJHZH_sThDM',
+              trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM',
             },
           }),
       });
@@ -721,7 +721,7 @@ describe('ModDetailPage', () => {
       renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
 
       const link = await screen.findByTestId('mod-detail-trailer-link');
-      expect(link).toHaveAttribute('href', 'https://www.youtube.com/watch?v=mJHZH_sThDM');
+      expect(link).toHaveAttribute('href', 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM');
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       expect(screen.getByRole('link', { name: 'Watch trailer (opens in a new tab)' })).toBe(link);

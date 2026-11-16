@@ -12,10 +12,10 @@ from vintagestory_api.services.mod_media import (
     YOUTUBE_HOSTS,
     build_screenshots,
     mod_image_url,
-    trailer_watch_url,
+    trailer_link_url,
 )
 
-WATCH_URL = "https://www.youtube.com/watch?v=mJHZH_sThDM"
+EMBED_URL = "https://www.youtube-nocookie.com/embed/mJHZH_sThDM"
 
 
 class TestHosts:
@@ -79,7 +79,7 @@ class TestModImageUrl:
 
 
 class TestTrailerWatchUrl:
-    """`trailer_watch_url` rebuilds a YouTube watch URL from the video ID alone."""
+    """`trailer_link_url` rebuilds a youtube-nocookie embed URL from the video ID alone."""
 
     @pytest.mark.parametrize(
         "url",
@@ -95,7 +95,7 @@ class TestTrailerWatchUrl:
         ],
     )
     def test_accepted(self, url: str) -> None:
-        assert trailer_watch_url(url) == WATCH_URL
+        assert trailer_link_url(url) == EMBED_URL
 
     @pytest.mark.parametrize(
         "url",
@@ -119,11 +119,11 @@ class TestTrailerWatchUrl:
         ],
     )
     def test_rejected(self, url: str | None) -> None:
-        assert trailer_watch_url(url) is None
+        assert trailer_link_url(url) is None
 
     def test_only_the_first_id_is_used(self) -> None:
         url = "https://www.youtube.com/watch?v=mJHZH_sThDM&v=aaaaaaaaaaa"
-        assert trailer_watch_url(url) == WATCH_URL
+        assert trailer_link_url(url) == EMBED_URL
 
 
 def screenshot(name: str, **overrides: Any) -> dict[str, Any]:

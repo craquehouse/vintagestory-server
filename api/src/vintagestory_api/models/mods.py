@@ -291,7 +291,7 @@ class ModLookupResponse(BaseModel):
     database CDN (Epic 18 ADR-1)."""
 
     trailer_url: str | None = None
-    """`https://www.youtube.com/watch?v=<id>` when the entry's trailer field names a
+    """`https://www.youtube-nocookie.com/embed/<id>` when the entry's trailer field names a
     YouTube video, else None (Epic 18 ADR-2)."""
 
 
