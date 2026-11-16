@@ -19,6 +19,7 @@ import { EmptyServerState } from '@/components/EmptyServerState';
 import { useServerStatus } from '@/hooks/use-server-status';
 import { GameConfigPanel } from './GameConfigPanel';
 import { isServerInstalled } from '@/lib/server-utils';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 
 /**
  * Settings page for the Game Server section.
@@ -42,7 +43,7 @@ export function SettingsPage() {
         className="p-4 lg:p-6 h-full overflow-auto"
         data-testid="settings-page-loading"
       >
-        <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+        <div className={SETTINGS_CONTENT_WIDTH} data-testid="settings-page-content">
           <h1 className="text-2xl font-bold">Game Settings</h1>
           <p className="text-muted-foreground mt-4">Loading server status...</p>
         </div>
@@ -57,7 +58,7 @@ export function SettingsPage() {
         className="p-4 lg:p-6 h-full overflow-auto"
         data-testid="settings-page-error"
       >
-        <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+        <div className={SETTINGS_CONTENT_WIDTH} data-testid="settings-page-content">
           <h1 className="text-2xl font-bold">Game Settings</h1>
           <p className="text-destructive mt-4">Error: {error.message}</p>
         </div>
@@ -71,7 +72,7 @@ export function SettingsPage() {
       data-testid="settings-page"
       aria-label="Game Settings"
     >
-      <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+      <div className={SETTINGS_CONTENT_WIDTH} data-testid="settings-page-content">
         {/* Page Header with title and status badge */}
         <div className="flex items-center justify-between mb-6" data-testid="settings-page-header">
           <h1 className="text-2xl font-bold">Game Settings</h1>

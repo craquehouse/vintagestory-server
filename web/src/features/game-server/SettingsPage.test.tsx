@@ -10,6 +10,7 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { SettingsPage } from './SettingsPage';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 import * as serverStatusHook from '@/hooks/use-server-status';
 
 // Mock the server status hook. `statusMock` is the same function as the mocked
@@ -308,7 +309,7 @@ describe('SettingsPage', () => {
     function expectCappedContent(pageTestId: string): HTMLElement {
       const content = screen.getByTestId('settings-page-content');
       expect(screen.getByTestId(pageTestId)).toContainElement(content);
-      expect(content).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(content).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
       expect(content).toContainElement(screen.getByRole('heading', { name: 'Game Settings' }));
       return content;
     }
