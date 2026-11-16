@@ -110,6 +110,7 @@ const mockMod: ModBrowseItem = {
   logoUrl: null,
   tags: ['utility', 'qol'],
   lastReleased: '2024-01-15T10:00:00Z',
+  hasReleaseForGameVersion: null,
 };
 
 const mockModWithLogo: ModBrowseItem = {
@@ -904,6 +905,55 @@ describe('ModCard', () => {
           expect.anything()
         );
       });
+    });
+  });
+
+  describe('game version indicator (Story 18.3)', () => {
+    const hasRelease: ModBrowseItem = { ...mockMod, hasReleaseForGameVersion: true };
+    const noRelease: ModBrowseItem = { ...mockMod, hasReleaseForGameVersion: false };
+
+    it('shows a badge when the entry has a release for the game version', () => {
+      render(<ModCard mod={hasRelease} gameVersion="1.22.7" />);
+
+      const indicator = screen.getByTestId('mod-card-game-version-carrycapacity');
+      expect(indicator).toHaveTextContent('Has a release for 1.22.7');
+      expect(indicator).toHaveAttribute('data-has-release', 'true');
+      expect(screen.getByTestId('mod-card-carrycapacity')).not.toHaveTextContent(/compatible/i);
+    });
+
+    it('shows muted text when the entry has no release for the game version', () => {
+      render(<ModCard mod={noRelease} gameVersion="1.22.7" />);
+
+      const indicator = screen.getByTestId('mod-card-game-version-carrycapacity');
+      expect(indicator).toHaveTextContent('No release for 1.22.7');
+      expect(indicator).toHaveAttribute('data-has-release', 'false');
+      expect(screen.getByTestId('mod-card-carrycapacity')).not.toHaveTextContent(/compatible/i);
+    });
+
+    it('shows nothing when the flag is not known', () => {
+      render(<ModCard mod={mockMod} gameVersion="1.22.7" />);
+
+      expect(screen.queryByTestId('mod-card-game-version-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('shows nothing when the game version is null or not passed', () => {
+      const { unmount } = render(<ModCard mod={hasRelease} gameVersion={null} />);
+      expect(screen.queryByTestId('mod-card-game-version-carrycapacity')).not.toBeInTheDocument();
+      unmount();
+
+      render(<ModCard mod={hasRelease} />);
+      expect(screen.queryByTestId('mod-card-game-version-carrycapacity')).not.toBeInTheDocument();
+    });
+
+    it('shows the indicator beside the install footer', () => {
+      render(<ModCard mod={hasRelease} gameVersion="1.22.7" installedMods={[]} />, {
+        wrapper: createWrapper(),
+      });
+
+      expect(screen.getByTestId('mod-card-game-version-carrycapacity')).toHaveTextContent(
+        'Has a release for 1.22.7'
+      );
+      expect(screen.getByTestId('mod-card-install-carrycapacity')).toBeInTheDocument();
     });
   });
 });

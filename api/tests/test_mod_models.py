@@ -888,7 +888,40 @@ class TestModBrowseItem:
             "logo_url": "https://moddbcdn.vintagestory.at/logo.png",
             "tags": ["Crafting", "QoL"],
             "last_released": "2025-10-09 21:28:57",
+            "has_release_for_game_version": None,
         }
+
+    def test_has_release_for_game_version_defaults_to_none(self) -> None:
+        """The game version flag is None (not known) by default (Story 18.3)."""
+        item = ModBrowseItem(
+            slug="m",
+            name="M",
+            author="A",
+            downloads=0,
+            follows=0,
+            trending_points=0,
+            side="both",
+            mod_type="mod",
+        )
+        assert item.has_release_for_game_version is None
+
+    @pytest.mark.parametrize("flag", [True, False, None])
+    def test_has_release_for_game_version_round_trip(self, flag: bool | None) -> None:
+        """True, False and None survive model_dump(mode="json") and validation (Story 18.3)."""
+        item = ModBrowseItem(
+            slug="m",
+            name="M",
+            author="A",
+            downloads=0,
+            follows=0,
+            trending_points=0,
+            side="both",
+            mod_type="mod",
+            has_release_for_game_version=flag,
+        )
+        data = item.model_dump(mode="json")
+        assert data["has_release_for_game_version"] is flag
+        assert ModBrowseItem.model_validate(data).has_release_for_game_version is flag
 
 
 class TestPaginationMeta:
@@ -1067,6 +1100,24 @@ class TestModBrowseResponse:
 
         assert len(response.mods) == 0
         assert response.pagination.total_items == 0
+
+    @pytest.mark.parametrize("game_version", ["1.22.7", None])
+    def test_game_version_round_trip(self, game_version: str | None) -> None:
+        """game_version defaults to None and survives model_dump(mode="json") (Story 18.3)."""
+        pagination = PaginationMeta(
+            page=1,
+            page_size=20,
+            total_items=0,
+            total_pages=0,
+            has_next=False,
+            has_prev=False,
+        )
+        assert ModBrowseResponse(mods=[], pagination=pagination).game_version is None
+
+        response = ModBrowseResponse(mods=[], pagination=pagination, game_version=game_version)
+        data = response.model_dump(mode="json")
+        assert data["game_version"] == game_version
+        assert ModBrowseResponse.model_validate(data).game_version == game_version
 
     def test_serialization_roundtrip(self) -> None:
         """ModBrowseResponse serializes to JSON and deserializes correctly."""

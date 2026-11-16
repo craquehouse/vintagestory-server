@@ -1,5 +1,6 @@
 """Mod management API endpoints."""
 
+import asyncio
 import math
 from dataclasses import asdict
 from functools import partial
@@ -199,12 +200,17 @@ def _browse_type(mod: ModDict) -> BrowseType:
     return _BROWSE_TYPES.get(mod["type"].lower(), "mod")
 
 
-def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
+def _api_mod_to_browse_item(
+    mod: ModDict, release_mod_ids: frozenset[int] | None = None
+) -> ModBrowseItem:
     """Convert a normalized mod dict from the API to a ModBrowseItem.
 
     Args:
         mod: Mod dictionary from the VintageStory mod database API, normalized by
             `ModApiClient` (Story 17.1, Epic 17 ADR-1).
+        release_mod_ids: The numeric mod IDs of the entries with a release tagged for the
+            installed game version, or None when not known (Story 18.3). An item without
+            a numeric mod ID (normalized to 0) cannot be matched and gets None.
 
     Returns:
         ModBrowseItem with normalized field names.
@@ -232,6 +238,11 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
         logo_url=mod["logo"],
         tags=mod["tags"],
         last_released=mod["lastreleased"],
+        has_release_for_game_version=(
+            (mod["modid"] in release_mod_ids)
+            if release_mod_ids is not None and mod["modid"]
+            else None
+        ),
     )
 
 
@@ -305,8 +316,16 @@ async def browse_mods(
 
     Returns:
         ApiResponse with ModBrowseResponse containing:
-        - mods: List of mod items for the current page
+        - mods: List of mod items for the current page, each with
+          `has_release_for_game_version`: whether the entry has a release tagged for
+          exactly the installed game version (Story 18.3), or null when not known
         - pagination: Pagination metadata with total counts
+        - game_version: The installed game version those flags refer to, or null when
+          the flags are null
+
+        The flags come from the mod database's listing filtered by the installed
+        version, cached for 5 minutes. A failed or slow flag lookup never fails the
+        request: the flags are then from the last copy, or null.
 
     Raises:
         HTTPException: 400 if pagination parameters are invalid
@@ -326,8 +345,18 @@ async def browse_mods(
         tags=tags,
     )
 
+    # The version the cards' flags refer to (Story 18.3); None when no server is installed.
+    # Read on every request, so another installed version is used at once (another tag).
+    # A version file that cannot be read leaves the flags null; browse still answers.
     try:
-        # Get mods - either filtered by version or all
+        installed_version = service.game_version()
+    except OSError as e:
+        logger.warning("browse_game_version_unreadable", error=str(e))
+        installed_version = None
+    game_version = (installed_version or "").lstrip("vV") or None
+
+    try:
+        # Get mods - either filtered by version or all (both cached)
         if version:
             # Look up the version tagid
             game_versions = await service.api_client.get_game_versions()
@@ -335,11 +364,19 @@ async def browse_mods(
             if version_tagid is None:
                 raise GameVersionNotFoundError(version)
 
-            # Fetch mods filtered by version (server-side filtering)
-            all_mods = await service.api_client.get_mods_by_version(version_tagid)
+            # Mods filtered by version (server-side filtering)
+            listing = service.api_client.get_mods_by_version(version_tagid)
         else:
-            # Get all mods from API (cached)
-            all_mods = await service.api_client.get_all_mods()
+            listing = service.api_client.get_all_mods()
+
+        # The flag lookup runs alongside the listing; it is bounded and never raises
+        release_mod_ids: frozenset[int] | None = None
+        if game_version is None:
+            all_mods = await listing
+        else:
+            all_mods, release_mod_ids = await asyncio.gather(
+                listing, service.api_client.get_version_mod_ids(game_version)
+            )
 
         # Filter by search term if provided
         filtered_mods = search_mods(all_mods, search or "")
@@ -378,7 +415,7 @@ async def browse_mods(
 
         # Get page slice and convert to models
         page_mods = sorted_mods[start_idx:end_idx]
-        browse_items = [_api_mod_to_browse_item(mod) for mod in page_mods]
+        browse_items = [_api_mod_to_browse_item(mod, release_mod_ids) for mod in page_mods]
 
         # Build pagination metadata
         pagination = PaginationMeta(
@@ -390,7 +427,11 @@ async def browse_mods(
             has_prev=actual_page > 1,
         )
 
-        response = ModBrowseResponse(mods=browse_items, pagination=pagination)
+        response = ModBrowseResponse(
+            mods=browse_items,
+            pagination=pagination,
+            game_version=game_version if release_mod_ids is not None else None,
+        )
 
         logger.debug(
             "router_browse_mods_complete",

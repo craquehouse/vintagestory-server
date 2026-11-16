@@ -1,6 +1,8 @@
 """Tests for ModApiClient - VintageStory mod database API client."""
 
+import asyncio
 import json
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -1984,6 +1986,66 @@ class TestModApiClientGameVersions:
         result = mod_api_client._is_gameversions_cache_valid()  # pyright: ignore[reportPrivateUsage]
         assert result is False
 
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_skips_malformed_entries(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """Non-object entries and ones without a str name and int tagid are skipped (18.3)."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(
+                200,
+                json={
+                    "statuscode": "200",
+                    "gameversions": [
+                        None,
+                        "x",
+                        {"name": 5, "tagid": -1},
+                        {"name": "1.0.0", "tagid": "a"},
+                        {"name": "1.0.1", "tagid": True},
+                        {"name": "1.22.7", "tagid": -7},
+                        {"name": "1.21.3", "tagid": -3},
+                    ],
+                },
+            )
+        )
+
+        result = await mod_api_client.get_game_versions()
+
+        assert result == {"1.22.7": -7, "1.21.3": -3}
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [
+            [{"name": "1.22.7", "tagid": -7}],
+            {"statuscode": "200", "gameversions": "x"},
+        ],
+    )
+    async def test_get_game_versions_unexpected_body_raises(
+        self, mod_api_client: ModApiClient, body: object
+    ) -> None:
+        """A body that is not an object, or a non-list `gameversions`, raises (Story 18.3)."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=body)
+        )
+
+        with pytest.raises(ExternalApiError, match="unexpected response"):
+            await mod_api_client.get_game_versions()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_game_versions_missing_key_is_empty(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """A missing `gameversions` key gives an empty map, as before (Story 18.3)."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json={"statuscode": "200"})
+        )
+
+        assert await mod_api_client.get_game_versions() == {}
+
 
 # --- Tests for ModApiClient get_mods_by_version ---
 
@@ -2049,23 +2111,105 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_not_cached(
+    async def test_get_mods_by_version_cache_hit(
         self, mod_api_client: ModApiClient
     ) -> None:
-        """get_mods_by_version() does not use browse cache (each call fetches)."""
+        """A second call for the same tag is served from the cache (Story 18.3)."""
         version_tagid = -281565171286015
         route = respx.get(
             "https://mods.vintagestory.at/api/mods",
             params={"gameversion": str(version_tagid)},
         ).mock(return_value=Response(200, json=BROWSE_MODS_RESPONSE))
+        # Registered after the filtered route; it must not answer filtered requests
+        plain = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+        )
 
-        # First call
-        await mod_api_client.get_mods_by_version(version_tagid)
+        first = await mod_api_client.get_mods_by_version(version_tagid)
+        second = await mod_api_client.get_mods_by_version(version_tagid)
+
         assert route.call_count == 1
+        assert plain.call_count == 0
+        assert first == second
 
-        # Second call - should fetch again (not cached)
-        await mod_api_client.get_mods_by_version(version_tagid)
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_cache_miss_for_other_tag(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """Another tag makes its own request (Story 18.3)."""
+        route_a = respx.get(
+            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}
+        ).mock(return_value=Response(200, json=_listing(1)))
+        route_b = respx.get(
+            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-2"}
+        ).mock(return_value=Response(200, json=_listing(2)))
+
+        a = await mod_api_client.get_mods_by_version(-1)
+        b = await mod_api_client.get_mods_by_version(-2)
+
+        assert route_a.call_count == 1
+        assert route_b.call_count == 1
+        assert [m["modid"] for m in a] == [1]
+        assert [m["modid"] for m in b] == [2]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_cache_expires(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """With the cache lifetime at zero the second call requests again (Story 18.3)."""
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        route = respx.get(
+            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}
+        ).mock(return_value=Response(200, json=_listing(1)))
+
+        await mod_api_client.get_mods_by_version(-1)
+        await mod_api_client.get_mods_by_version(-1)
+
         assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_failure_is_not_cached(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """A failed fetch raises, and the next call requests again (Story 18.3)."""
+        route = respx.get(
+            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}
+        ).mock(
+            side_effect=[
+                Response(500, content=b"error"),
+                Response(200, json=_listing(1)),
+            ]
+        )
+
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mods_by_version(-1)
+        result = await mod_api_client.get_mods_by_version(-1)
+
+        assert route.call_count == 2
+        assert [m["modid"] for m in result] == [1]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_get_mods_by_version_failure_with_expired_copy_raises(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """The filter path raises on failure even when an expired copy exists (Story 18.3)."""
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        respx.get(
+            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}
+        ).mock(
+            side_effect=[
+                Response(200, json=_listing(1)),
+                Response(500, content=b"error"),
+            ]
+        )
+
+        await mod_api_client.get_mods_by_version(-1)
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mods_by_version(-1)
 
     @respx.mock
     @pytest.mark.asyncio
@@ -2168,3 +2312,263 @@ class TestModApiClientModsByVersion:
             await mod_api_client.get_mods_by_version(version_tagid)
 
         assert "VintageStory mod API error" in str(exc_info.value)
+
+
+# --- Tests for the filtered listing cache and the browse flag lookup (Story 18.3) ---
+
+MODS_URL = "https://mods.vintagestory.at/api/mods"
+GAMEVERSIONS_URL = "https://mods.vintagestory.at/api/gameversions"
+TAG_1_22_7 = -7
+
+VERSION_LIST_RESPONSE: dict[str, Any] = {
+    "statuscode": "200",
+    "gameversions": [
+        {"tagid": TAG_1_22_7, "name": "1.22.7", "color": "#CCCCCC"},
+        {"tagid": -3, "name": "1.21.3", "color": "#CCCCCC"},
+    ],
+}
+
+
+def _listing(*modids: int) -> dict[str, Any]:
+    """A mod database listing body holding one minimal entry per mod ID."""
+    return {
+        "statuscode": "200",
+        "mods": [{"modid": i, "name": f"Mod {i}", "urlalias": f"mod{i}"} for i in modids],
+    }
+
+
+class TestModApiClientVersionListingCache:
+    """The cache of filtered listings and get_version_mod_ids() (Story 18.3)."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_eviction_keeps_three_newest(self, mod_api_client: ModApiClient) -> None:
+        """Fetching four tags evicts the oldest; the other three stay cached."""
+        routes = {
+            tag: respx.get(MODS_URL, params={"gameversion": str(tag)}).mock(
+                return_value=Response(200, json=_listing(-tag))
+            )
+            for tag in (-1, -2, -3, -4)
+        }
+
+        for tag in (-1, -2, -3, -4):
+            await mod_api_client.get_mods_by_version(tag)
+        for tag in (-4, -3, -2):
+            await mod_api_client.get_mods_by_version(tag)
+        assert [routes[t].call_count for t in (-1, -2, -3, -4)] == [1, 1, 1, 1]
+
+        await mod_api_client.get_mods_by_version(-1)
+        assert routes[-1].call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_concurrent_callers_share_one_fetch(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """The flag lookup and the version filter for one tag make one request together."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            return_value=Response(200, json=_listing(1, 2))
+        )
+
+        ids_a, mods, ids_b = await asyncio.gather(
+            mod_api_client.get_version_mod_ids("1.22.7"),
+            mod_api_client.get_mods_by_version(TAG_1_22_7),
+            mod_api_client.get_version_mod_ids("1.22.7"),
+        )
+
+        assert route.call_count == 1
+        assert ids_a == ids_b == frozenset({1, 2})
+        assert [m["modid"] for m in mods] == [1, 2]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_clear_browse_cache_drops_listings(self, mod_api_client: ModApiClient) -> None:
+        """clear_browse_cache() also drops the filtered listings."""
+        route = respx.get(MODS_URL, params={"gameversion": "-1"}).mock(
+            return_value=Response(200, json=_listing(1))
+        )
+
+        await mod_api_client.get_mods_by_version(-1)
+        mod_api_client.clear_browse_cache()
+        await mod_api_client.get_mods_by_version(-1)
+
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_mod_ids_hit(self, mod_api_client: ModApiClient) -> None:
+        """Returns the modid set (an entry without modid is left out); then served from cache."""
+        versions = respx.get(GAMEVERSIONS_URL).mock(
+            return_value=Response(200, json=VERSION_LIST_RESPONSE)
+        )
+        body = _listing(1, 2)
+        body["mods"].append({"name": "No ID", "urlalias": "noid"})
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            return_value=Response(200, json=body)
+        )
+
+        first = await mod_api_client.get_version_mod_ids("1.22.7")
+        second = await mod_api_client.get_version_mod_ids("1.22.7")
+
+        assert first == second == frozenset({1, 2})
+        assert route.call_count == 1
+        assert versions.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("game_version", ["9.9.9", "stable"])
+    async def test_version_mod_ids_unknown_version(
+        self, mod_api_client: ModApiClient, game_version: str
+    ) -> None:
+        """A version without a tag gives None and no filtered request."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            return_value=Response(200, json=_listing(1))
+        )
+
+        assert await mod_api_client.get_version_mod_ids(game_version) is None
+        assert await mod_api_client.get_version_mod_ids(game_version) is None
+        assert route.call_count == 0
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "effect",
+        [
+            Response(500, content=b"error"),
+            httpx.ConnectError("connection refused"),
+            Response(200, content=b"not json"),
+        ],
+    )
+    async def test_version_mod_ids_failure_without_copy(
+        self, mod_api_client: ModApiClient, effect: Response | Exception
+    ) -> None:
+        """A failed filtered listing with nothing cached gives None and does not raise."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(side_effect=[effect])
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_mod_ids_failure_with_expired_copy(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """A failed refresh returns the expired copy."""
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            side_effect=[Response(200, json=_listing(1)), Response(500, content=b"error")]
+        )
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1})
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1})
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_mod_ids_pause_after_failure(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """After a failure the lookup is not retried until VERSION_FLAGS_RETRY_AFTER passes."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            side_effect=[Response(500, content=b"error"), Response(200, json=_listing(1))]
+        )
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+        assert route.call_count == 1
+
+        mod_api_client.VERSION_FLAGS_RETRY_AFTER = timedelta(0)
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1})
+        assert route.call_count == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_mod_ids_version_list_fails_without_map(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """When the game version list fails and no map is known, the result is None."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(503, content=b"down"))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            return_value=Response(200, json=_listing(1))
+        )
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+        assert route.call_count == 0
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_version_mod_ids_version_list_fails_with_expired_map_and_listing(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """An expired version map and an expired listing still give the old set."""
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        mod_api_client.GAMEVERSIONS_CACHE_TTL = timedelta(0)
+        respx.get(GAMEVERSIONS_URL).mock(
+            side_effect=[
+                Response(200, json=VERSION_LIST_RESPONSE),
+                Response(503, content=b"down"),
+            ]
+        )
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            return_value=Response(200, json=_listing(1))
+        )
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1})
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1})
+        assert route.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_slow_fetch_is_bounded_and_fills_cache(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        """A slow fetch is not waited for beyond VERSION_FLAGS_WAIT and still fills the cache."""
+        mod_api_client.VERSION_FLAGS_WAIT = 0.05
+        release = asyncio.Event()
+        started: list[httpx.Request] = []
+
+        async def slow(request: httpx.Request) -> Response:
+            started.append(request)
+            await release.wait()
+            return Response(200, json=_listing(1, 2))
+
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            side_effect=slow
+        )
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+        # Within the pause it answers at once, even with a long wait configured
+        mod_api_client.VERSION_FLAGS_WAIT = 30.0
+        assert await asyncio.wait_for(mod_api_client.get_version_mod_ids("1.22.7"), 1) is None
+        assert len(started) == 1
+
+        release.set()
+        mods = await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        assert [m["modid"] for m in mods] == [1, 2]
+        assert await mod_api_client.get_version_mod_ids("1.22.7") == frozenset({1, 2})
+        assert len(started) == 1
+        assert route.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_close_cancels_running_fetch(self, mod_api_client: ModApiClient) -> None:
+        """close() cancels a fetch that is still running, without an error."""
+        mod_api_client.VERSION_FLAGS_WAIT = 0.05
+        never = asyncio.Event()
+
+        async def hang(request: httpx.Request) -> Response:
+            await never.wait()
+            return Response(200, json=_listing(1))
+
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(side_effect=hang)
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+        await mod_api_client.close()
+
+        assert await mod_api_client.get_version_mod_ids("1.22.7") is None

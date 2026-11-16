@@ -429,6 +429,15 @@ export interface ModBrowseItem {
   logoUrl: string | null;
   tags: string[];
   lastReleased: string | null;
+  /**
+   * Whether at least one release of this entry is tagged for exactly the installed game
+   * version (`ModBrowseData.gameVersion`); per entry, not per mod ID (Story 18.3). Not the
+   * detail page's compatibility verdict, which judges the one release an install would
+   * pick, so the two can differ. `null` when not known: no server installed, the version
+   * has no tag in the mod database, the mod database failed with no earlier copy, or the
+   * item has no numeric mod ID.
+   */
+  hasReleaseForGameVersion: boolean | null;
 }
 
 /**
@@ -449,6 +458,12 @@ export interface BrowsePaginationMeta {
 export interface ModBrowseData {
   mods: ModBrowseItem[];
   pagination: BrowsePaginationMeta;
+  /**
+   * The installed game version the items' `hasReleaseForGameVersion` flags refer to,
+   * without a "v" prefix (Story 18.3); a release tagged for it, not a compatibility
+   * verdict. `null` exactly when the flags are `null`.
+   */
+  gameVersion: string | null;
 }
 
 /**

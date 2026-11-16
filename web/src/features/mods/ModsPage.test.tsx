@@ -95,6 +95,7 @@ const mockBrowseModsResponse = {
         logoUrl: null,
         tags: ['test'],
         lastReleased: '2024-01-01T00:00:00Z',
+        hasReleaseForGameVersion: null,
       },
     ],
     // Story 17.7: enough pages for the Story 16.1 test that opens page 2 (a page beyond
@@ -107,6 +108,7 @@ const mockBrowseModsResponse = {
       hasNext: true,
       hasPrev: false,
     },
+    gameVersion: null,
   },
 };
 

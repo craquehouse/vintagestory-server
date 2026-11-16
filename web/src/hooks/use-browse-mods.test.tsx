@@ -54,6 +54,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: null,
     tags: ['utility', 'qol'],
     lastReleased: '2024-01-15T10:00:00Z',
+    hasReleaseForGameVersion: null,
   },
   {
     slug: 'primitivesurvival',
@@ -71,6 +72,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: 'https://example.com/logo.png',
     tags: ['survival', 'fishing', 'traps'],
     lastReleased: '2024-02-01T12:00:00Z',
+    hasReleaseForGameVersion: null,
   },
   {
     slug: 'wildcraft',
@@ -88,6 +90,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: null,
     tags: ['plants', 'foraging'],
     lastReleased: '2024-01-20T08:00:00Z',
+    hasReleaseForGameVersion: null,
   },
 ];
 
@@ -103,6 +106,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       hasNext: true,
       hasPrev: false,
     },
+    gameVersion: null,
   },
 };
 
@@ -319,6 +323,27 @@ describe('useBrowseMods', () => {
     expect(result.current.pagination?.totalItems).toBe(100);
   });
 
+  it('returns the game version the flags refer to (Story 18.3)', async () => {
+    const response: ApiResponse<ModBrowseData> = {
+      ...mockBrowseResponse,
+      data: { ...mockBrowseResponse.data, gameVersion: '1.22.7' },
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(response),
+    });
+
+    const { result } = renderHook(() => useBrowseMods(), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current.gameVersion).toBeNull();
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.gameVersion).toBe('1.22.7');
+  });
+
   it('passes API parameters correctly', async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -374,6 +399,7 @@ describe('useBrowseMods', () => {
           hasNext: false,
           hasPrev: false,
         },
+        gameVersion: null,
       },
     };
 
@@ -524,6 +550,7 @@ describe('useBrowseMods', () => {
           hasNext: false,
           hasPrev: false,
         },
+        gameVersion: null,
       },
     };
 
@@ -1101,6 +1128,7 @@ describe('useBrowseMods', () => {
             hasNext: page < totalPages,
             hasPrev: page > 1,
           },
+          gameVersion: null,
         },
       };
     }
@@ -1311,6 +1339,7 @@ describe('useBrowseMods', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
       mockFetchWith(apiOrder);
@@ -1343,6 +1372,7 @@ describe('useBrowseMods', () => {
             hasNext: true,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
       const mockFetch = mockFetchWith(page1);
@@ -1398,6 +1428,7 @@ describe('useBrowseMods', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       });
 
@@ -1614,6 +1645,7 @@ describe('useBrowseMods', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
 
@@ -1687,6 +1719,7 @@ describe('useBrowseMods', () => {
             hasNext: true,
             hasPrev: true,
           },
+          gameVersion: null,
         },
       };
 

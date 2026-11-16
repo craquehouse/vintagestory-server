@@ -9,6 +9,7 @@
  * VSS-y7u: Moved all filters (side, tags, modType) to server-side.
  * Story 16.8: The Name sort is server-side too (VSS-stm.1).
  * Story 17.7: A page beyond the results is reported to the caller (VSS-nhb).
+ * Story 18.3: Returns `gameVersion`, the installed game version the cards' flags refer to.
  */
 
 import { useCallback, useEffect } from 'react';
@@ -178,10 +179,14 @@ export function useBrowseMods(
   // VSS-y7u, Story 16.8: filtering and sorting are server-side; keep the API's order
   const mods = query.data?.data?.mods ?? [];
 
+  // Story 18.3: the version the items' hasReleaseForGameVersion flags refer to
+  const gameVersion = query.data?.data?.gameVersion ?? null;
+
   return {
     ...query,
     mods,
     pagination,
+    gameVersion,
     // Story 10.7: Expose page state and navigation functions
     currentPage,
     setPage,

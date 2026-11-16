@@ -151,6 +151,8 @@ export function BrowseTab() {
   const {
     mods,
     pagination,
+    // Story 18.3: the version the cards' flags were computed for (not installedVersion)
+    gameVersion,
     isLoading,
     isFetching,
     isError,
@@ -291,6 +293,7 @@ export function BrowseTab() {
         isLoading={isLoading}
         onModClick={openModDetail}
         installedMods={installedMods}
+        gameVersion={gameVersion}
       />
 
       {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name).

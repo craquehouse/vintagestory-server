@@ -398,6 +398,16 @@ class ModBrowseItem(BaseModel):
     last_released: str | None = None
     """ISO timestamp of the last release, or None if not available."""
 
+    has_release_for_game_version: bool | None = None
+    """Whether at least one release of this entry is tagged for exactly the installed game
+    version (the response's `game_version`); per entry, not per mod ID (Story 18.3).
+
+    Not the detail page's compatibility verdict, which judges the one release an install
+    would pick, so the two can differ. None when not known: no server installed, the
+    version has no tag in the mod database, the mod database failed with no earlier copy,
+    or the item has no numeric mod ID.
+    """
+
 
 class PaginationMeta(BaseModel):
     """Pagination metadata for paginated API responses.
@@ -437,3 +447,11 @@ class ModBrowseResponse(BaseModel):
 
     pagination: PaginationMeta
     """Pagination metadata."""
+
+    game_version: str | None = None
+    """The installed game version the items' `has_release_for_game_version` flags refer to,
+    without a "v" prefix (Story 18.3); a release tagged for it, not a compatibility verdict.
+
+    None exactly when the flags are None: no server installed, the version has no tag in the
+    mod database, or the mod database failed with no earlier copy.
+    """
