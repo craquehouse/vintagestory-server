@@ -1086,6 +1086,126 @@ describe('useBrowseMods', () => {
     });
   });
 
+  // Story 17.7: the API serves the last page for a page beyond the results (VSS-nhb)
+  describe('Story 17.7: page beyond the results', () => {
+    function servedPage(page: number, totalPages: number, totalItems: number): ApiResponse<ModBrowseData> {
+      return {
+        status: 'ok',
+        data: {
+          mods: totalItems > 0 ? mockMods : [],
+          pagination: {
+            page,
+            pageSize: 20,
+            totalItems,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1,
+          },
+        },
+      };
+    }
+
+    function stubFetch(response: ApiResponse<ModBrowseData>) {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(response),
+      });
+      globalThis.fetch = mockFetch;
+      return mockFetch;
+    }
+
+    it('reports the last page once and serves it from the stored response', async () => {
+      const mockFetch = stubFetch(servedPage(5, 5, 100));
+      const onPageOutOfRange = vi.fn();
+
+      const { result, rerender } = renderHook(
+        ({ page }: { page: number }) => useBrowseMods({ page }, { onPageOutOfRange }),
+        { wrapper: createWrapper(), initialProps: { page: 9999 } }
+      );
+
+      await waitFor(() => {
+        expect(onPageOutOfRange).toHaveBeenCalledWith(5);
+      });
+      expect(onPageOutOfRange).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      // The caller replaces the page in its URL
+      rerender({ page: 5 });
+
+      expect(result.current.isSuccess).toBe(true);
+      expect(result.current.isFetching).toBe(false);
+      expect(result.current.pagination?.page).toBe(5);
+      expect(result.current.mods).toHaveLength(3);
+      // Let a second request start if one were coming
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onPageOutOfRange).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['no results (totalPages 0)', 0, 0],
+      ['one page', 1, 5],
+    ])('reports page 1 when there is %s', async (_name, totalPages, totalItems) => {
+      stubFetch(servedPage(1, totalPages, totalItems));
+      const onPageOutOfRange = vi.fn();
+
+      renderHook(() => useBrowseMods({ page: 3 }, { onPageOutOfRange }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(onPageOutOfRange).toHaveBeenCalledWith(1);
+      });
+      expect(onPageOutOfRange).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report a page within the results', async () => {
+      const mockFetch = stubFetch(servedPage(3, 5, 100));
+      const onPageOutOfRange = vi.fn();
+
+      const { result } = renderHook(() => useBrowseMods({ page: 3 }, { onPageOutOfRange }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+      expect(onPageOutOfRange).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not report while loading', () => {
+      globalThis.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
+      const onPageOutOfRange = vi.fn();
+
+      const { result } = renderHook(() => useBrowseMods({ page: 9999 }, { onPageOutOfRange }), {
+        wrapper: createWrapper(),
+      });
+
+      expect(result.current.isLoading).toBe(true);
+      expect(onPageOutOfRange).not.toHaveBeenCalled();
+    });
+
+    it('does not report after an error', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: () => Promise.reject(new Error('Not JSON')),
+      });
+      const onPageOutOfRange = vi.fn();
+
+      const { result } = renderHook(() => useBrowseMods({ page: 9999 }, { onPageOutOfRange }), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+      expect(onPageOutOfRange).not.toHaveBeenCalled();
+    });
+  });
+
   // Story 16.8: the API sorts by name (VSS-stm.1)
   describe('Story 16.8: server-side name sorting', () => {
     function mockFetchWith(response: ApiResponse<ModBrowseData>) {

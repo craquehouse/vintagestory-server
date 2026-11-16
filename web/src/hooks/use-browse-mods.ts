@@ -8,10 +8,11 @@
  * Story VSS-vth: Added server-side game version filtering.
  * VSS-y7u: Moved all filters (side, tags, modType) to server-side.
  * Story 16.8: The Name sort is server-side too (VSS-stm.1).
+ * Story 17.7: A page beyond the results is reported to the caller (VSS-nhb).
  */
 
-import { useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
 import type { BrowseParams, ModBrowseItem, ModFilters } from '@/api/types';
@@ -25,6 +26,12 @@ const BROWSE_STALE_TIME = 5 * 60 * 1000;
 export interface UseBrowseModsOptions {
   /** Called with a validated page number when the page should change. */
   onPageChange?: (page: number) => void;
+  /**
+   * Called once the response shows that `params.page` is beyond the last page, with
+   * the last page (1 when there are no results). The caller replaces the page in its
+   * URL without adding a history entry (Story 17.7).
+   */
+  onPageOutOfRange?: (lastPage: number) => void;
 }
 
 /**
@@ -36,9 +43,13 @@ export interface UseBrowseModsOptions {
  * Story 10.7: Added pagination state management with setPage, goToNextPage, goToPrevPage.
  * Story 16.1: The page is controlled: `params.page` is the current page and page
  * changes are reported through `options.onPageChange`.
+ * Story 17.7: A page beyond the results is reported through `options.onPageOutOfRange`;
+ * the API serves the last page for it, and that response is stored as the last page,
+ * so moving there needs no second request.
  *
  * @param params - Browse parameters including page, pageSize, sort, and search
- * @param options - `onPageChange` receives validated page changes
+ * @param options - `onPageChange` receives validated page changes; `onPageOutOfRange`
+ *   receives the last page when `params.page` is beyond it
  * @returns Query result with filtered mods array, pagination metadata, and page control functions
  *
  * @example
@@ -81,7 +92,8 @@ export function useBrowseMods(
   // Story 16.1: The page is controlled by the caller (BrowseTab keeps it in the URL).
   // Resetting the page when search/filters/sort change is also the caller's job.
   const currentPage = params.page ?? 1;
-  const { onPageChange } = options;
+  const { onPageChange, onPageOutOfRange } = options;
+  const queryClient = useQueryClient();
 
   // VSS-y7u: All filters are now server-side for accurate pagination
   // Extract filters for API - support both new flat params and legacy filters object
@@ -97,37 +109,47 @@ export function useBrowseMods(
   const apiModType = params.modType ?? filters?.modType;
   const apiTags = params.tags ?? filters?.tags;
 
+  const requestParams = {
+    ...apiParams,
+    page: currentPage,
+    sort: apiSort,
+    pageSize: apiPageSize,
+    search: params.search,
+    version: apiVersion,
+    // VSS-y7u: Server-side filters
+    side: apiSide,
+    modType: apiModType,
+    tags: apiTags,
+  };
+
   const query = useQuery({
-    queryKey: queryKeys.mods.browse({
-      ...apiParams,
-      page: currentPage,
-      sort: apiSort,
-      pageSize: apiPageSize,
-      search: params.search,
-      version: apiVersion,
-      // VSS-y7u: Server-side filters
-      side: apiSide,
-      modType: apiModType,
-      tags: apiTags,
-    }),
-    queryFn: () =>
-      fetchBrowseMods({
-        ...apiParams,
-        page: currentPage,
-        sort: apiSort,
-        pageSize: apiPageSize,
-        search: params.search,
-        version: apiVersion,
-        // VSS-y7u: Server-side filters
-        side: apiSide,
-        modType: apiModType,
-        tags: apiTags,
-      }),
+    queryKey: queryKeys.mods.browse(requestParams),
+    queryFn: async () => {
+      const response = await fetchBrowseMods(requestParams);
+      // Story 17.7: For a page beyond the results the API serves the last page. Store
+      // the response under that page's key as well, so the caller's move to the last
+      // page renders from the cache instead of requesting the same page again.
+      const servedPage = response.data?.pagination?.page;
+      if (servedPage !== undefined && servedPage < currentPage) {
+        queryClient.setQueryData(
+          queryKeys.mods.browse({ ...requestParams, page: servedPage }),
+          response
+        );
+      }
+      return response;
+    },
     staleTime: BROWSE_STALE_TIME,
   });
 
   // Get pagination from response (if available)
   const pagination = query.data?.data?.pagination;
+
+  // Story 17.7: Report a page beyond the results; the move can only go down, so it
+  // cannot loop (after it, currentPage === lastPage)
+  const lastPage = pagination ? Math.max(1, pagination.totalPages) : undefined;
+  useEffect(() => {
+    if (lastPage !== undefined && currentPage > lastPage) onPageOutOfRange?.(lastPage);
+  }, [lastPage, currentPage, onPageOutOfRange]);
 
   // Story 10.7: Page navigation functions
   // Story 16.1: Validated page changes are reported through onPageChange

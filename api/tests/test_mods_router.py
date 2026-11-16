@@ -2143,6 +2143,39 @@ class TestBrowseModsEndpoint:
         assert data["data"]["pagination"]["page"] == 1
 
     @respx.mock
+    def test_browse_mods_serves_the_last_page_for_a_page_beyond_the_results(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A page beyond the results gets exactly the last page's response.
+
+        Story 17.7: the web stores this response as the last page, so moving the
+        URL there needs no second request.
+        """
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        beyond = client.get(
+            "/api/v1alpha1/mods/browse?page=100&page_size=1&sort=downloads",
+            headers=admin_headers,
+        )
+        last = client.get(
+            "/api/v1alpha1/mods/browse?page=3&page_size=1&sort=downloads",
+            headers=admin_headers,
+        )
+
+        assert beyond.status_code == 200
+        assert last.status_code == 200
+        beyond_data = beyond.json()["data"]
+        assert beyond_data == last.json()["data"]
+        assert beyond_data["pagination"]["page"] == 3
+        assert beyond_data["pagination"]["has_prev"] is True
+        assert beyond_data["pagination"]["has_next"] is False
+        assert len(beyond_data["mods"]) == 1
+
+    @respx.mock
     def test_browse_mods_mod_fields_transform(
         self,
         client: TestClient,

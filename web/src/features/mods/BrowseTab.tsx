@@ -20,6 +20,7 @@
  * Story VSS-vth: Game version filter
  * VSS-195: Slug/URL detection in search
  * Story 16.1: Search, filters, sort and page live in the URL (Epic 16 ADR-1)
+ * Story 17.7: A page beyond the results is replaced by the last page (VSS-nhb)
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -141,6 +142,12 @@ export function BrowseTab() {
     [updateBrowseState]
   );
 
+  // Story 17.7: A page beyond the results becomes the last page, without a history entry
+  const handlePageOutOfRange = useCallback(
+    (lastPage: number) => updateBrowseState({ page: lastPage }, { replace: true }),
+    [updateBrowseState]
+  );
+
   const {
     mods,
     pagination,
@@ -159,7 +166,7 @@ export function BrowseTab() {
       sort,
       page,
     },
-    { onPageChange: handlePageChange }
+    { onPageChange: handlePageChange, onPageOutOfRange: handlePageOutOfRange }
   );
 
   // Story 10.7 / 16.1: On a return from a mod's detail page, scroll to the card that

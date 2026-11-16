@@ -97,11 +97,13 @@ const mockBrowseModsResponse = {
         lastReleased: '2024-01-01T00:00:00Z',
       },
     ],
+    // Story 17.7: enough pages for the Story 16.1 test that opens page 2 (a page beyond
+    // the results would be replaced by the last page)
     pagination: {
       page: 1,
       pageSize: 20,
-      totalItems: 1,
-      totalPages: 1,
+      totalItems: 41,
+      totalPages: 3,
       hasNext: false,
       hasPrev: false,
     },
