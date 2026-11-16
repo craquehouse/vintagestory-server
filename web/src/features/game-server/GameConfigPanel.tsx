@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 
 /**
  * Setting definition with display metadata.
@@ -192,7 +193,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (isLoading) {
     return (
       <div className={className} data-testid="game-config-loading">
-        <div className="mx-auto max-w-[1280px] space-y-4">
+        <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`}>
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -205,7 +206,9 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (error) {
     return (
       <div className={className} data-testid="game-config-error">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <div
+          className={`${SETTINGS_CONTENT_WIDTH} flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4`}
+        >
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
             <p className="font-medium text-destructive">Failed to load settings</p>
@@ -292,7 +295,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
 
   return (
     <div className={className} data-testid="game-config-panel">
-      <div className="mx-auto max-w-[1280px] space-y-4" data-testid="game-config-layout">
+      <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
         {renderGroup(
           'Server Info',
           'Basic server identification',

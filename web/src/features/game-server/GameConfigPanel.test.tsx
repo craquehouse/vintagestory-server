@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { GameConfigPanel } from './GameConfigPanel';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -777,7 +778,7 @@ describe('GameConfigPanel', () => {
     it('limits the panel to 1280px and centers it', async () => {
       await renderFull();
 
-      expect(screen.getByTestId('game-config-layout')).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(screen.getByTestId('game-config-layout')).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
 
     it('puts Server Info above the columns with its fields in two columns from xl', async () => {
@@ -851,7 +852,7 @@ describe('GameConfigPanel', () => {
         expect(screen.getByTestId('game-config-error')).toBeInTheDocument();
       });
       const message = screen.getByTestId('game-config-error').firstElementChild;
-      expect(message).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(message).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
 
     it('limits the loading skeleton to the same width', () => {
@@ -859,7 +860,7 @@ describe('GameConfigPanel', () => {
       render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
 
       const skeletons = screen.getByTestId('game-config-loading').firstElementChild;
-      expect(skeletons).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(skeletons).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
   });
 });
