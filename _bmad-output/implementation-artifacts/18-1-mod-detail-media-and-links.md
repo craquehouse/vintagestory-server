@@ -1,6 +1,6 @@
 # Story 18.1: Mod Detail Page Media and Links
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR194-FR198. Beads: VSS-l4x (UI-083), VSS-tzl (UI-078). First story of Epic 18; stories are implemented in order 18.1, 18.2, 18.3, 18.4, each stacked on the previous. Governed by Epic 18 ADR-1 (media normalized in models/moddb.py, then filtered by an allow-list in services/mod_media.py) and ADR-2 (the trailer is a link, the gallery uses the existing Dialog, no new dependency), which extend Epic 17 ADR-1 (normalization at the boundary). Line references were verified at commit b9606f1 (branch epic-18-planning, on top of main 574e125) and must be re-checked at implementation time. Not in scope: VSS-z7e, VSS-do7 (18.2), VSS-4f3 (18.3), VSS-bgu, VSS-n2u (18.4); pre-existing VSS-1ar, VSS-hnl, VSS-6wj. No new npm or Python dependency. -->
 
@@ -76,48 +76,48 @@ so that **I can judge a mod before installing it without leaving the manager**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-18.1/task-N): ... ; feat/fix only for a change an admin can see, subject written for admins (Story 17.4 review L1). Red first. Every commit is green. -->
 
-- [ ] Task 1: The normalizer reads `screenshots` and `trailervideourl` + tests (AC: 1, 2, 3, 12)
-  - [ ] 1.1: `api/src/vintagestory_api/models/moddb.py`: add `SCREENSHOT_FIELDS: dict[str, FieldNormalizer]` (`mainfile` and `thumbnailfilename` `_as_optional_str`, `filename` `_as_str`, `fileid` `_as_optional_int`, `created` `_as_optional_str`) with a one-line docstring like `RELEASE_FIELDS` (`:104-114`). `MOD_FIELDS` (`:79-101`) gains `"screenshots": _as_screenshot_list` and `"trailervideourl": _as_optional_str`. Do not write a second copy of `_as_release_list` (`:67-76`) with its own `cast`: turn its body into one shared helper, `_as_object_list(value: object, fields: dict[str, FieldNormalizer]) -> list[dict[str, Any]]` (not a list gives `[]`; each element goes through `_normalize(item, fields)` (`:117-124`); `None` results, the non-objects, are dropped), and make `_as_release_list` and the new `_as_screenshot_list` one-line callers of it with `RELEASE_FIELDS` and `SCREENSHOT_FIELDS` (both tables are module globals read at call time, so their position below the functions is fine). The existing `cast(list[object], value)` moves into the helper; the file has four `cast(` calls before and four after. `normalize_release` (`:127-129`) is unchanged. Types only: no URL check in this module (ADR-1 decision 1)
-  - [ ] 1.2: Update the module docstring (`:1-22`): the rules line names three tables (`MOD_FIELDS`, `RELEASE_FIELDS`, `SCREENSHOT_FIELDS`) and says the normalizer checks types, not URLs (the URL policy is `services/mod_media.py`)
-  - [ ] 1.3: Tests in `api/tests/test_moddb_normalize.py` (Dev Notes "API tests", Task 1 rows) and the three changes to that file in "Existing tests that change"
-  - [ ] 1.4: Commit `refactor(story-18.1/task-1): normalize mod database screenshots and trailer field`
+- [x] Task 1: The normalizer reads `screenshots` and `trailervideourl` + tests (AC: 1, 2, 3, 12)
+  - [x] 1.1: `api/src/vintagestory_api/models/moddb.py`: add `SCREENSHOT_FIELDS: dict[str, FieldNormalizer]` (`mainfile` and `thumbnailfilename` `_as_optional_str`, `filename` `_as_str`, `fileid` `_as_optional_int`, `created` `_as_optional_str`) with a one-line docstring like `RELEASE_FIELDS` (`:104-114`). `MOD_FIELDS` (`:79-101`) gains `"screenshots": _as_screenshot_list` and `"trailervideourl": _as_optional_str`. Do not write a second copy of `_as_release_list` (`:67-76`) with its own `cast`: turn its body into one shared helper, `_as_object_list(value: object, fields: dict[str, FieldNormalizer]) -> list[dict[str, Any]]` (not a list gives `[]`; each element goes through `_normalize(item, fields)` (`:117-124`); `None` results, the non-objects, are dropped), and make `_as_release_list` and the new `_as_screenshot_list` one-line callers of it with `RELEASE_FIELDS` and `SCREENSHOT_FIELDS` (both tables are module globals read at call time, so their position below the functions is fine). The existing `cast(list[object], value)` moves into the helper; the file has four `cast(` calls before and four after. `normalize_release` (`:127-129`) is unchanged. Types only: no URL check in this module (ADR-1 decision 1)
+  - [x] 1.2: Update the module docstring (`:1-22`): the rules line names three tables (`MOD_FIELDS`, `RELEASE_FIELDS`, `SCREENSHOT_FIELDS`) and says the normalizer checks types, not URLs (the URL policy is `services/mod_media.py`)
+  - [x] 1.3: Tests in `api/tests/test_moddb_normalize.py` (Dev Notes "API tests", Task 1 rows) and the three changes to that file in "Existing tests that change"
+  - [x] 1.4: Commit `refactor(story-18.1/task-1): normalize mod database screenshots and trailer field`
 
-- [ ] Task 2: `screenshots` and `trailer_url` on the lookup response, behind the URL rules + tests (AC: 1, 2, 3, 12)
-  - [ ] 2.1: New `api/src/vintagestory_api/services/mod_media.py` (a pure helper module like `services/mod_release_selection.py`; no I/O, no client): `MOD_MEDIA_HOSTS`, `YOUTUBE_HOSTS`, `mod_image_url(url: str | None) -> str | None`, `trailer_watch_url(url: str | None) -> str | None` and `build_screenshots(screenshots: list[dict[str, Any]], slug: str) -> list[ModScreenshot]`, exactly as in Dev Notes "URL rules"
-  - [ ] 2.2: `api/src/vintagestory_api/models/mods.py`: new `ModScreenshot(BaseModel)` directly above `ModLookupResponse` (`:193`) with `image_url: str`, `thumbnail_url: str`, `filename: str` and docstrings (full-size image on the mod database CDN; the 55x60 thumbnail, or the image URL when the mod database gave no usable thumbnail; the uploaded file name, may be `""`). `ModLookupResponse` gains, after `last_released` (`:272-273`): `screenshots: list[ModScreenshot] = []` ("the entry's screenshots in mod database order; only `https` URLs on the mod database CDN, Epic 18 ADR-1") and `trailer_url: str | None = None` ("`https://www.youtube.com/watch?v=<id>` when the entry's trailer field names a YouTube video, else None; Epic 18 ADR-2"). Add `ModScreenshot` to the module docstring's list (`:8`). Careful: `ModBrowseItem` below has the same `created`/`last_released` lines (`:376`); the fields go in `ModLookupResponse` only
-  - [ ] 2.3: `api/src/vintagestory_api/services/mods.py` `lookup_mod` (`:536`): in the `ModLookupResponse(...)` call (`:660-680`), after `last_released=mod["lastreleased"]` (`:679`), add `screenshots=build_screenshots(mod["screenshots"], response_slug)` and `trailer_url=trailer_watch_url(mod["trailervideourl"])`; import both from `vintagestory_api.services.mod_media` with the other service imports (`:30-54`). `mod` is the normalized entry from `api_client.get_mod(slug)` (`:571`), so both keys always exist. Add one sentence to the docstring (`:539-561`). No other method changes; `logo_url` is not filtered (ADR-1 decision 6)
-  - [ ] 2.4: `api/src/vintagestory_api/routers/mods.py` `lookup_mod` docstring (`:589-602`): add `screenshots` and `trailer_url` to the field list. No code change in the router
-  - [ ] 2.5: New fixture `api/tests/fixtures/moddb/mod_betterruins.json` and its row in `api/tests/fixtures/moddb/README.md` (Dev Notes "The fixture")
-  - [ ] 2.6: Tests (Dev Notes "API tests", Task 2 rows) and the `test_mod_models.py` change in "Existing tests that change"
-  - [ ] 2.7: Commit `chore(story-18.1/task-2): add screenshots and trailer URL to the mod lookup response` (not `feat`: nothing an admin can see yet; the PR description cites "API contract changes")
+- [x] Task 2: `screenshots` and `trailer_url` on the lookup response, behind the URL rules + tests (AC: 1, 2, 3, 12)
+  - [x] 2.1: New `api/src/vintagestory_api/services/mod_media.py` (a pure helper module like `services/mod_release_selection.py`; no I/O, no client): `MOD_MEDIA_HOSTS`, `YOUTUBE_HOSTS`, `mod_image_url(url: str | None) -> str | None`, `trailer_watch_url(url: str | None) -> str | None` and `build_screenshots(screenshots: list[dict[str, Any]], slug: str) -> list[ModScreenshot]`, exactly as in Dev Notes "URL rules"
+  - [x] 2.2: `api/src/vintagestory_api/models/mods.py`: new `ModScreenshot(BaseModel)` directly above `ModLookupResponse` (`:193`) with `image_url: str`, `thumbnail_url: str`, `filename: str` and docstrings (full-size image on the mod database CDN; the 55x60 thumbnail, or the image URL when the mod database gave no usable thumbnail; the uploaded file name, may be `""`). `ModLookupResponse` gains, after `last_released` (`:272-273`): `screenshots: list[ModScreenshot] = []` ("the entry's screenshots in mod database order; only `https` URLs on the mod database CDN, Epic 18 ADR-1") and `trailer_url: str | None = None` ("`https://www.youtube.com/watch?v=<id>` when the entry's trailer field names a YouTube video, else None; Epic 18 ADR-2"). Add `ModScreenshot` to the module docstring's list (`:8`). Careful: `ModBrowseItem` below has the same `created`/`last_released` lines (`:376`); the fields go in `ModLookupResponse` only
+  - [x] 2.3: `api/src/vintagestory_api/services/mods.py` `lookup_mod` (`:536`): in the `ModLookupResponse(...)` call (`:660-680`), after `last_released=mod["lastreleased"]` (`:679`), add `screenshots=build_screenshots(mod["screenshots"], response_slug)` and `trailer_url=trailer_watch_url(mod["trailervideourl"])`; import both from `vintagestory_api.services.mod_media` with the other service imports (`:30-54`). `mod` is the normalized entry from `api_client.get_mod(slug)` (`:571`), so both keys always exist. Add one sentence to the docstring (`:539-561`). No other method changes; `logo_url` is not filtered (ADR-1 decision 6)
+  - [x] 2.4: `api/src/vintagestory_api/routers/mods.py` `lookup_mod` docstring (`:589-602`): add `screenshots` and `trailer_url` to the field list. No code change in the router
+  - [x] 2.5: New fixture `api/tests/fixtures/moddb/mod_betterruins.json` and its row in `api/tests/fixtures/moddb/README.md` (Dev Notes "The fixture")
+  - [x] 2.6: Tests (Dev Notes "API tests", Task 2 rows) and the `test_mod_models.py` change in "Existing tests that change"
+  - [x] 2.7: Commit `chore(story-18.1/task-2): add screenshots and trailer URL to the mod lookup response` (not `feat`: nothing an admin can see yet; the PR description cites "API contract changes")
 
-- [ ] Task 3: Screenshot gallery on the detail page + tests (AC: 4, 5, 6, 7, 8, 9, 12)
-  - [ ] 3.1: `web/src/api/types.ts`: new exported `ModScreenshot` interface (`imageUrl: string`, `thumbnailUrl: string`, `filename: string`, doc comments as in 2.2) above `ModLookupData` (`:173`); `ModLookupData` gains `screenshots: ModScreenshot[]` and `trailerUrl: string | null` after `lastReleased` (`:203`), both required (the API always sends them; `snakeToCamel` in `api/client.ts:46` maps the keys, nested ones too). Careful: `ModBrowseItem` has the same `lastReleased` line (`:415`). Fix the one typed literal this breaks (`src/api/mods.test.ts:584`, see "Existing tests that change")
-  - [ ] 3.2: New `web/src/components/ModScreenshotGallery.tsx` (Dev Notes "The gallery"), built from `Card`, `Button`, `Dialog` (`components/ui/dialog.tsx`), `lucide-react` icons and plain `<img>`. No new dependency, no document-level key listener
-  - [ ] 3.3: `web/src/features/mods/ModDetailPage.tsx`: after `<Separator />` (`:744`) and before the Description card (`:746-764`) render `<ModScreenshotGallery key={mod.slug} screenshots={screenshots} />` when the list is not empty, where `const screenshots = Array.isArray(mod.screenshots) ? mod.screenshots : [];` sits beside `sanitizedDescription` (`:561-564`) with a comment (media are optional: a response without the list shows no gallery, it does not fail the page; the guard at `:541-548` is not extended). Add "Story 18.1" to the header comment (`:1-39`)
-  - [ ] 3.4: Tests: new `web/src/components/ModScreenshotGallery.test.tsx` and additions to `web/src/features/mods/ModDetailPage.test.tsx` (Dev Notes "Web tests", Task 3 rows)
-  - [ ] 3.5: Commit `feat(story-18.1/task-3): show a mod's screenshots on its detail page`
+- [x] Task 3: Screenshot gallery on the detail page + tests (AC: 4, 5, 6, 7, 8, 9, 12)
+  - [x] 3.1: `web/src/api/types.ts`: new exported `ModScreenshot` interface (`imageUrl: string`, `thumbnailUrl: string`, `filename: string`, doc comments as in 2.2) above `ModLookupData` (`:173`); `ModLookupData` gains `screenshots: ModScreenshot[]` and `trailerUrl: string | null` after `lastReleased` (`:203`), both required (the API always sends them; `snakeToCamel` in `api/client.ts:46` maps the keys, nested ones too). Careful: `ModBrowseItem` has the same `lastReleased` line (`:415`). Fix the one typed literal this breaks (`src/api/mods.test.ts:584`, see "Existing tests that change")
+  - [x] 3.2: New `web/src/components/ModScreenshotGallery.tsx` (Dev Notes "The gallery"), built from `Card`, `Button`, `Dialog` (`components/ui/dialog.tsx`), `lucide-react` icons and plain `<img>`. No new dependency, no document-level key listener
+  - [x] 3.3: `web/src/features/mods/ModDetailPage.tsx`: after `<Separator />` (`:744`) and before the Description card (`:746-764`) render `<ModScreenshotGallery key={mod.slug} screenshots={screenshots} />` when the list is not empty, where `const screenshots = Array.isArray(mod.screenshots) ? mod.screenshots : [];` sits beside `sanitizedDescription` (`:561-564`) with a comment (media are optional: a response without the list shows no gallery, it does not fail the page; the guard at `:541-548` is not extended). Add "Story 18.1" to the header comment (`:1-39`)
+  - [x] 3.4: Tests: new `web/src/components/ModScreenshotGallery.test.tsx` and additions to `web/src/features/mods/ModDetailPage.test.tsx` (Dev Notes "Web tests", Task 3 rows)
+  - [x] 3.5: Commit `feat(story-18.1/task-3): show a mod's screenshots on its detail page`
 
-- [ ] Task 4: "Watch trailer" link + tests (AC: 10, 12)
-  - [ ] 4.1: `web/src/lib/mod-description.ts`: export `export const OPENS_IN_NEW_TAB = '(opens in a new tab)';` (used by the trailer link here and by the description hook in Task 5, so the two cannot drift)
-  - [ ] 4.2: `ModDetailPage.tsx` external links row (`:680-716`): after the Source link (`:704-715`) add, when `mod.trailerUrl` is set, an `<a>` with `href={mod.trailerUrl}`, `target="_blank"`, `rel="noopener noreferrer"`, the same classes as its siblings, `data-testid="mod-detail-trailer-link"`, the `ExternalLink` icon (already imported, `:49`; `aria-hidden="true"`), the text `Watch trailer` and `<span className="sr-only"> {OPENS_IN_NEW_TAB}</span>`. Add `flex-wrap gap-y-1` to the row's `className` (`:681`) so a fourth link wraps instead of widening the header. No `<iframe>`, no preconnect, no thumbnail from YouTube. The web does not re-check the URL (ADR-1 decision 5)
-  - [ ] 4.3: Tests in `ModDetailPage.test.tsx` `describe('external links')` (`:559`): with `trailer_url: 'https://www.youtube.com/watch?v=mJHZH_sThDM'` the link has that `href`, `target`, `rel`, and the accessible name `Watch trailer (opens in a new tab)` (`getByRole('link', { name: ... })`); with `trailer_url: null`, and with the field missing (the existing fixtures), there is no `mod-detail-trailer-link`; the rendered page contains no `iframe`. Extend "does not render optional links when null"
-  - [ ] 4.4: Commit `feat(story-18.1/task-4): link to a mod's trailer from its detail page`
+- [x] Task 4: "Watch trailer" link + tests (AC: 10, 12)
+  - [x] 4.1: `web/src/lib/mod-description.ts`: export `export const OPENS_IN_NEW_TAB = '(opens in a new tab)';` (used by the trailer link here and by the description hook in Task 5, so the two cannot drift)
+  - [x] 4.2: `ModDetailPage.tsx` external links row (`:680-716`): after the Source link (`:704-715`) add, when `mod.trailerUrl` is set, an `<a>` with `href={mod.trailerUrl}`, `target="_blank"`, `rel="noopener noreferrer"`, the same classes as its siblings, `data-testid="mod-detail-trailer-link"`, the `ExternalLink` icon (already imported, `:49`; `aria-hidden="true"`), the text `Watch trailer` and `<span className="sr-only"> {OPENS_IN_NEW_TAB}</span>`. Add `flex-wrap gap-y-1` to the row's `className` (`:681`) so a fourth link wraps instead of widening the header. No `<iframe>`, no preconnect, no thumbnail from YouTube. The web does not re-check the URL (ADR-1 decision 5)
+  - [x] 4.3: Tests in `ModDetailPage.test.tsx` `describe('external links')` (`:559`): with `trailer_url: 'https://www.youtube.com/watch?v=mJHZH_sThDM'` the link has that `href`, `target`, `rel`, and the accessible name `Watch trailer (opens in a new tab)` (`getByRole('link', { name: ... })`); with `trailer_url: null`, and with the field missing (the existing fixtures), there is no `mod-detail-trailer-link`; the rendered page contains no `iframe`. Extend "does not render optional links when null"
+  - [x] 4.4: Commit `feat(story-18.1/task-4): link to a mod's trailer from its detail page`
 
-- [ ] Task 5: Description links show that they open in a new tab + tests (AC: 11, 12)
-  - [ ] 5.1: `web/src/lib/mod-description.ts` hook (`:21-30`): after setting `target` and `rel`, for an HTML link only (`node.namespaceURI === 'http://www.w3.org/1999/xhtml'`), append `<span class="sr-only" data-new-tab-note=""> (opens in a new tab)</span>` built with `node.ownerDocument.createElement('span')` and `textContent` (leading space, then `OPENS_IN_NEW_TAB`), unless the link's last element child already has `data-new-tab-note` (sanitizing sanitized output must not add a second note). Do not use `aria-label` (it would replace the link's own text) and do not set `innerHTML`. Update the module comment (`:1-11`). Details and what the prototype showed: Dev Notes "Description links"
-  - [ ] 5.2: `web/src/styles/index.css`, inside the existing `@layer components` block (`:209-245`): the `.mod-description a[target='_blank']::after` rule of Dev Notes "Description links". `ModDetailPage.tsx:754`: add `mod-description` to the description container's `className` (leave the other classes as they are)
-  - [ ] 5.3: Tests in `web/src/lib/mod-description.test.ts` `describe('links')` (`:120-156`) and one in `ModDetailPage.test.tsx` `describe('description section')` (`:381`) (Dev Notes "Web tests", Task 5 rows)
-  - [ ] 5.4: Commit `fix(story-18.1/task-5): show that mod description links open in a new tab`
+- [x] Task 5: Description links show that they open in a new tab + tests (AC: 11, 12)
+  - [x] 5.1: `web/src/lib/mod-description.ts` hook (`:21-30`): after setting `target` and `rel`, for an HTML link only (`node.namespaceURI === 'http://www.w3.org/1999/xhtml'`), append `<span class="sr-only" data-new-tab-note=""> (opens in a new tab)</span>` built with `node.ownerDocument.createElement('span')` and `textContent` (leading space, then `OPENS_IN_NEW_TAB`), unless the link's last element child already has `data-new-tab-note` (sanitizing sanitized output must not add a second note). Do not use `aria-label` (it would replace the link's own text) and do not set `innerHTML`. Update the module comment (`:1-11`). Details and what the prototype showed: Dev Notes "Description links"
+  - [x] 5.2: `web/src/styles/index.css`, inside the existing `@layer components` block (`:209-245`): the `.mod-description a[target='_blank']::after` rule of Dev Notes "Description links". `ModDetailPage.tsx:754`: add `mod-description` to the description container's `className` (leave the other classes as they are)
+  - [x] 5.3: Tests in `web/src/lib/mod-description.test.ts` `describe('links')` (`:120-156`) and one in `ModDetailPage.test.tsx` `describe('description section')` (`:381`) (Dev Notes "Web tests", Task 5 rows)
+  - [x] 5.4: Commit `fix(story-18.1/task-5): show that mod description links open in a new tab`
 
 - [ ] Task 6: E2E against the Docker dev stack and browser check (AC: 4-11)
-  - [ ] 6.1: New `web/e2e/mod-detail-media.spec.ts` (Dev Notes "E2E"). Rebuild the stack from this branch first (`just docker restart`, as Stories 17.4 and 17.8 did; it recreates the container, so if a game server is running in the dev stack ask the maintainer before restarting, and never start or stop the game server through the UI or the API); run with `cd web && bunx playwright test e2e/mod-detail-media.spec.ts` and the admin key exported from `.env` (`just test-e2e-web` stops the stack afterwards). Also re-run `e2e/mod-detail-bad-data.spec.ts` and `e2e/installed-mod-any-modid.spec.ts` (both open the detail page)
-  - [ ] 6.2: Record in the Dev Agent Record the page widths measured at 390px with and without screenshots (Dev Notes "ADR and epic against the code", item 3)
+  - [x] 6.1: New `web/e2e/mod-detail-media.spec.ts` (Dev Notes "E2E"). Rebuild the stack from this branch first (`just docker restart`, as Stories 17.4 and 17.8 did; it recreates the container, so if a game server is running in the dev stack ask the maintainer before restarting, and never start or stop the game server through the UI or the API); run with `cd web && bunx playwright test e2e/mod-detail-media.spec.ts` and the admin key exported from `.env` (`just test-e2e-web` stops the stack afterwards). Also re-run `e2e/mod-detail-bad-data.spec.ts` and `e2e/installed-mod-any-modid.spec.ts` (both open the detail page)
+  - [x] 6.2: Record in the Dev Agent Record the page widths measured at 390px with and without screenshots (Dev Notes "ADR and epic against the code", item 3)
   - [ ] 6.3: Manual browser check (requires the user's confirmation before it is ticked, `project-context.md:160-161`): `betterruins` on the Docker stack in the light and the dark theme at desktop width and at 390px: gallery, dialog, trailer link, description link icons. No screenshots kept; do not start or stop the game server
-  - [ ] 6.4: Commit `test(story-18.1/task-6): e2e for the screenshot gallery, trailer link and description links`
+  - [x] 6.4: Commit `test(story-18.1/task-6): e2e for the screenshot gallery, trailer link and description links`
 
 - [ ] Task 7: Quality gate and review hand-off (AC: all)
-  - [ ] 7.1: `just check` (lint, typecheck, all tests) passes; the diff adds no lint or type suppression and no `cast` (`grep -c "cast(" api/src/vintagestory_api/models/moddb.py` is 4, as before; `services/mod_media.py` and the web code need none); after `just test-api`, `git status --short` shows nothing under `dev/`; `web/package.json`, `web/bun.lock`, `api/pyproject.toml` and `api/uv.lock` are unchanged
+  - [x] 7.1: `just check` (lint, typecheck, all tests) passes; the diff adds no lint or type suppression and no `cast` (`grep -c "cast(" api/src/vintagestory_api/models/moddb.py` is 4, as before; `services/mod_media.py` and the web code need none); after `just test-api`, `git status --short` shows nothing under `dev/`; `web/package.json`, `web/bun.lock`, `api/pyproject.toml` and `api/uv.lock` are unchanged
   - [ ] 7.2: Story status `review`, `just sprint set 18-1-mod-detail-media-and-links review`, PR against `main`; the PR description quotes the "API contract changes" section; PR link on `VSS-l4x` and `VSS-tzl`. Commit `docs(story-18.1/task-7): ...` for the story file
 
 ## Dev Notes
@@ -431,15 +431,60 @@ Found by running both suites against a throwaway prototype of Tasks 1, 2, 3 (typ
 
 ### Agent Model Used
 
+Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- `captured_logs` (`tests/conftest.py`) configures a DEBUG filtering logger, so it records debug events; its console renderer colors keys and values, so `test_mod_media.py` strips ANSI codes before matching `slug=` and `index=`.
+- `ruff format` on the changed API files also reformatted unrelated lines (the files were not formatted at the configured width). Those hunks were reverted; one slipped into the Task 1 commit (`test_moddb_normalize.py`, one assert) and was restored in the Task 2 commit, so the branch's net diff has no formatting churn.
+- jsdom's accessible-name computation trims each child element's text, so a leading space inside an `sr-only` span is dropped (`Watch trailer(opens in a new tab)`), while Chromium keeps it. See the deviations below.
+- E2E: the dialog's Previous measured 41.8px (44 x 0.95) during the `zoom-in-95` open animation; the phone test waits for the dialog's animations to finish before measuring.
+- Task 6.2, page widths at 390px (document `scrollWidth`, `e2e/mod-detail-media.spec.ts` phone test): light theme 674px without screenshots and 674px with; dark theme 674px and 674px. The page already overflows at 390px (the header, Dev Notes "ADR and epic against the code" item 3, now measured); the Screenshots section adds no width.
 
 ### Completion Notes List
 
 - Story created 2026-11-16 from Epic 18, ADR-1 and ADR-2, the two beads and the code at b9606f1: the normalizer, the lookup model, service and route, the detail page, the description sanitizer and its tests, the dialog and button components, the styles, and the E2E specs of Stories 17.1, 17.4 and 17.8. The live `betterruins` entry was fetched once to confirm the screenshot shape. The tests that change were found by running both suites against a throwaway prototype (normalizer fields, `mod_media.py`, response fields, web types with a page stub, and the description hook), since discarded.
 
+- Implemented 2026-11-16. Task 1: `SCREENSHOT_FIELDS`, `screenshots` and `trailervideourl` in `MOD_FIELDS`, one shared `_as_object_list` helper behind `_as_release_list` and `_as_screenshot_list`; still four `cast(` calls in `models/moddb.py`. Task 2: `services/mod_media.py` as specified in "URL rules", with the trailer target kept in one constant, `TRAILER_WATCH_URL`; `ModScreenshot` and the two `ModLookupResponse` fields; `lookup_mod` fills them; router docstring only. Task 3: `ModScreenshotGallery` (the `Dialog` root wraps the Card and `DialogContent`, which are siblings, so the two `onKeyDown` handlers are not nested); the page reads `screenshots` tolerantly. Task 4: "Watch trailer" link with `OPENS_IN_NEW_TAB`; the links row wraps. Task 5: the sanitizer hook appends the note to HTML links once; the `.mod-description` CSS draws the icon.
+- The `betterruins` fixture was captured once (unauthenticated, generic User-Agent) and matches planning: 10 screenshots, `youtube-nocookie.com/watch` trailer, 61 releases (first 3 kept). Tests still read counts and URLs from the fixture's raw JSON.
+- Deviation 1 (Task 4.2): the trailer link renders `Watch trailer{' '}<span className="sr-only">{OPENS_IN_NEW_TAB}</span>` instead of a leading space inside the span. The separating space is a text node before the span; in the `inline-flex` link a whitespace-only text node is not rendered, so nothing visible changes, and the accessible name is `Watch trailer (opens in a new tab)` in jsdom and in Chromium (both asserted exactly).
+- Deviation 2 (Task 5.3, page test): the description note keeps the story's shape (leading space inside the span; the link's `textContent` is exactly `CarryOn Lib (opens in a new tab)`). jsdom computes the name without that space, so the `ModDetailPage.test.tsx` test finds the link by `/^CarryOn Lib ?\(opens in a new tab\)$/` and asserts the exact `textContent`; the E2E test asserts the exact name `Docs (opens in a new tab)` in Chromium, which passes.
+- Deviation 3 (Task 5.3): "sanitizing the output again leaves exactly one note" is asserted by note count and text, not string equality: DOMPurify re-adds `target`/`rel` and the attribute order changes on the second pass.
+- Tests: API 2786 passed (was 2707 before Task 2; new `test_mod_media.py` 62 tests). Web 3291 passed, 4 skipped (`VSS-hnl`), new `ModScreenshotGallery.test.tsx` 18 tests. E2E: `mod-detail-media.spec.ts` 5 passed; `mod-detail-bad-data.spec.ts` and `installed-mod-any-modid.spec.ts` 5 passed, against the dev stack rebuilt from this branch (no game server running; none started or stopped; reads only).
+- `just check` green: 0 Pyright errors, the 3 known warnings (`VSS-1ar`). No lint or type suppression, no new dependency, nothing written under `dev/`.
+- Not done here: Task 6.3 (manual browser check in both themes) needs the maintainer's confirmation (`project-context.md:160-161`) and stays unticked. Task 7.2's PR and the PR links on `VSS-l4x` and `VSS-tzl` are left to the maintainer (no PR opened, beads unchanged).
+
 ### File List
+
+New:
+- `api/src/vintagestory_api/services/mod_media.py`
+- `api/tests/test_mod_media.py`
+- `api/tests/fixtures/moddb/mod_betterruins.json`
+- `web/src/components/ModScreenshotGallery.tsx`
+- `web/src/components/ModScreenshotGallery.test.tsx`
+- `web/e2e/mod-detail-media.spec.ts`
+
+Modified:
+- `api/src/vintagestory_api/models/moddb.py`
+- `api/src/vintagestory_api/models/mods.py`
+- `api/src/vintagestory_api/services/mods.py`
+- `api/src/vintagestory_api/routers/mods.py` (docstring)
+- `api/tests/test_moddb_normalize.py`
+- `api/tests/test_mod_models.py`
+- `api/tests/test_mod_service.py`
+- `api/tests/test_mods_router.py`
+- `api/tests/fixtures/moddb/README.md`
+- `web/src/api/types.ts`
+- `web/src/api/mods.test.ts`
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
+- `web/src/lib/mod-description.ts`
+- `web/src/lib/mod-description.test.ts`
+- `web/src/styles/index.css`
+- `_bmad-output/implementation-artifacts/18-1-mod-detail-media-and-links.md`
 
 ## Change Log
 
 - 2026-11-16: Story 18.1 created (ready-for-dev).
 - 2026-11-16: Validated against the create-story checklist: every cited path and line re-read at b9606f1; the URL rule tightened after the prototype showed `urlsplit` accepting whitespace, control characters and an empty port; AC 7 scoped to the Screenshots section because the page header already overflows at 390px; the tolerant read of `screenshots` added after 75 detail-page tests failed without it; the `test_unknown_keys_kept` example, the exact-dict model test and the one typed web literal listed; the missing description styles and the React portal key-event pitfall recorded.
+- 2026-11-16: Implemented Tasks 1-6 (6.3 manual check left for the maintainer); quality gate green; status review.
