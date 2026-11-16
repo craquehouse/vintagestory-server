@@ -120,6 +120,37 @@ const mockEmptyModsResponse = {
   },
 };
 
+/** GET /mods/updates with carrycapacity not checked yet (Story 17.4). */
+function notCheckedFetch() {
+  return vi.fn().mockImplementation((url: string) => {
+    const body = url.includes('/mods/updates')
+      ? {
+          status: 'ok',
+          data: {
+            game_version: '1.22.7',
+            checked_at: null,
+            update_count: 0,
+            mods: [
+              {
+                slug: 'carrycapacity',
+                name: 'Carry Capacity',
+                installed_version: '2.0.0',
+                status: 'unknown',
+                offered_version: null,
+                offered_compatibility: null,
+                offered_prerelease: null,
+                reason: 'not_checked',
+                checked_at: null,
+                error: null,
+              },
+            ],
+          },
+        }
+      : mockModsResponse;
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+  });
+}
+
 describe('ModTable', () => {
   const originalFetch = globalThis.fetch;
 
@@ -1612,6 +1643,21 @@ describe('ModTable', () => {
       });
       expect(screen.queryByTestId('version-change-dialog')).not.toBeInTheDocument();
     });
+
+    it('shows Not checked yet for a mod without update data (Story 17.4)', async () => {
+      globalThis.fetch = notCheckedFetch();
+
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(/^Not checked yet/);
+      });
+      expect(screen.getByTestId('mod-table')).toContainElement(
+        screen.getByTestId('mod-update-carrycapacity')
+      );
+      expect(screen.getByTestId('mod-update-carrycapacity')).not.toHaveTextContent('Unknown');
+    });
   });
   describe('Story 16.5: cards below md', () => {
     const updatesResponse = {
@@ -1710,6 +1756,18 @@ describe('ModTable', () => {
         expect(other).toContainElement(screen.getByTestId('mod-update-carrycapacity'));
       });
       expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent('Up to date');
+    });
+
+    it('shows Not checked yet on the card of a mod without update data (Story 17.4)', async () => {
+      globalThis.fetch = notCheckedFetch();
+      renderAtPhoneWidth();
+
+      const card = await screen.findByTestId('installed-mod-card-carrycapacity');
+      await waitFor(() => {
+        expect(card).toContainElement(screen.getByTestId('mod-update-carrycapacity'));
+      });
+      expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(/^Not checked yet/);
+      expect(screen.getByTestId('mod-update-carrycapacity')).not.toHaveTextContent('Unknown');
     });
 
     it('applies the offered update through the same version change request as the table', async () => {
