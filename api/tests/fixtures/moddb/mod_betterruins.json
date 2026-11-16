@@ -1,0 +1,134 @@
+{
+  "statuscode": "200",
+  "mod": {
+    "modid": 792,
+    "assetid": 3829,
+    "name": "BetterRuins",
+    "author": "NiclAss",
+    "urlalias": "betterruins",
+    "side": "both",
+    "type": "mod",
+    "lastreleased": "2026-09-20 20:42:49",
+    "trailervideourl": "https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM",
+    "releases": [
+      {
+        "releaseid": 57748,
+        "modversion": "0.6.4",
+        "modidstr": "betterruins",
+        "filename": "BetterRuinsv0.6.4.zip",
+        "fileid": 123882,
+        "downloads": 55414,
+        "tags": [
+          "1.22.7"
+        ],
+        "created": "2026-09-20 20:18:45"
+      },
+      {
+        "releaseid": 45652,
+        "modversion": "0.6.3",
+        "modidstr": "betterruins",
+        "filename": "BetterRuinsv0.6.3.zip",
+        "fileid": 100357,
+        "downloads": 161056,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3",
+          "1.22.4",
+          "1.22.5",
+          "1.22.6",
+          "1.22.7"
+        ],
+        "created": "2026-06-13 11:54:42"
+      },
+      {
+        "releaseid": 42147,
+        "modversion": "0.6.2",
+        "modidstr": "betterruins",
+        "filename": "BetterRuinsv0.6.2.zip",
+        "fileid": 93245,
+        "downloads": 57705,
+        "tags": [
+          "1.22.0",
+          "1.22.1",
+          "1.22.2",
+          "1.22.3"
+        ],
+        "created": "2026-05-17 15:36:35"
+      }
+    ],
+    "screenshots": [
+      {
+        "fileid": 18300,
+        "mainfile": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688.jpg",
+        "filename": "9.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688_55_60.jpg",
+        "created": "2024-01-28 14:36:08"
+      },
+      {
+        "fileid": 18308,
+        "mainfile": "https://moddbcdn.vintagestory.at/2024-01-27_19-12-44_385dd64f5b3642ede6d1ea1ad045cec2.jpg",
+        "filename": "2024-01-27_19-12-44.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-01-27_19-12-44_385dd64f5b3642ede6d1ea1ad045cec2_55_60.jpg",
+        "created": "2024-01-28 14:37:40"
+      },
+      {
+        "fileid": 27011,
+        "mainfile": "https://moddbcdn.vintagestory.at/2024-10-31_21-20-21_8b400ed9cd0f05522b0b567f75c461c6.jpg",
+        "filename": "2024-10-31_21-20-21.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-10-31_21-20-21_8b400ed9cd0f05522b0b567f75c461c6_55_60.jpg",
+        "created": "2024-11-03 17:05:59"
+      },
+      {
+        "fileid": 28558,
+        "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_04__3e88fc88753ffa806a424dd854a4dc6b.jpg",
+        "filename": "Timeline 1_01_02_04_26.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_04__3e88fc88753ffa806a424dd854a4dc6b_55_60.jpg",
+        "created": "2024-12-13 20:06:18"
+      },
+      {
+        "fileid": 28559,
+        "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_31__2f732f2addb9e1552b222c6d1b2bb20e.jpg",
+        "filename": "Timeline 1_01_02_31_14.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_31__2f732f2addb9e1552b222c6d1b2bb20e_55_60.jpg",
+        "created": "2024-12-13 20:06:26"
+      },
+      {
+        "fileid": 28560,
+        "mainfile": "https://moddbcdn.vintagestory.at/2024-12-13_16-30-29_8f9050720645a580429035819da6dc1e.jpg",
+        "filename": "2024-12-13_16-30-29.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-12-13_16-30-29_8f9050720645a580429035819da6dc1e_55_60.jpg",
+        "created": "2024-12-13 20:07:58"
+      },
+      {
+        "fileid": 28561,
+        "mainfile": "https://moddbcdn.vintagestory.at/2024-12-13_17-46-36_d166b7ee8844826cbe69cbecd2ce0e4a.jpg",
+        "filename": "2024-12-13_17-46-36.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-12-13_17-46-36_d166b7ee8844826cbe69cbecd2ce0e4a_55_60.jpg",
+        "created": "2024-12-13 20:07:58"
+      },
+      {
+        "fileid": 45442,
+        "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_35__8c65d894ffb9af819ef3741f78611700.jpg",
+        "filename": "Timeline 1_01_02_35_47.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_35__8c65d894ffb9af819ef3741f78611700_55_60.jpg",
+        "created": "2025-06-10 19:11:32"
+      },
+      {
+        "fileid": 45443,
+        "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_01_34__eeff9da2bd20a0671ab8dd64eb62b698.jpg",
+        "filename": "Timeline 1_01_01_34_51.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_01_34__eeff9da2bd20a0671ab8dd64eb62b698_55_60.jpg",
+        "created": "2025-06-10 19:22:51"
+      },
+      {
+        "fileid": 45444,
+        "mainfile": "https://moddbcdn.vintagestory.at/2025-03-02_17-35-11_3d5c69c5c4912c2f9f20ec0eea1a8e52.jpg",
+        "filename": "2025-03-02_17-35-11.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/2025-03-02_17-35-11_3d5c69c5c4912c2f9f20ec0eea1a8e52_55_60.jpg",
+        "created": "2025-06-10 19:23:40"
+      }
+    ]
+  }
+}

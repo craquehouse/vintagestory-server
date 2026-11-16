@@ -6,7 +6,7 @@ entry's `tags`). `ModApiClient` passes every entry through `normalize_mod` where
 enters the API, so callers can read each known field directly instead of defending
 each read.
 
-Rules (one table per object, `MOD_FIELDS` and `RELEASE_FIELDS`):
+Rules (one table per object, `MOD_FIELDS`, `RELEASE_FIELDS` and `SCREENSHOT_FIELDS`):
 
 - A missing key, a `null` or a value of the wrong type becomes the field's default:
   `""` for text, `0` for counts, `[]` for lists, `None` for optional text.
@@ -17,6 +17,8 @@ Rules (one table per object, `MOD_FIELDS` and `RELEASE_FIELDS`):
   list of strings is expected becomes a one-element list.
 - Unknown keys are copied unchanged. Inputs are never mutated, and normalizing a
   normalized dict changes nothing.
+- The normalizer checks types, not URLs: which media URLs the API passes on is decided
+  in `services/mod_media.py` (Epic 18 ADR-1).
 
 This module imports nothing from the rest of the package, so `models/` can use it.
 """
@@ -64,16 +66,26 @@ def _as_str_list(value: object) -> list[str]:
     return [item for item in cast(list[object], value) if isinstance(item, str)]
 
 
-def _as_release_list(value: object) -> list[ReleaseDict]:
-    """The object elements of a list, each normalized as a release."""
+def _as_object_list(value: object, fields: dict[str, FieldNormalizer]) -> list[dict[str, Any]]:
+    """The object elements of a list, each normalized with `fields`; else []."""
     if not isinstance(value, list):
         return []
-    releases: list[ReleaseDict] = []
+    items: list[dict[str, Any]] = []
     for item in cast(list[object], value):
-        release = normalize_release(item)
-        if release is not None:
-            releases.append(release)
-    return releases
+        normalized = _normalize(item, fields)
+        if normalized is not None:
+            items.append(normalized)
+    return items
+
+
+def _as_release_list(value: object) -> list[ReleaseDict]:
+    """The object elements of a list, each normalized as a release."""
+    return _as_object_list(value, RELEASE_FIELDS)
+
+
+def _as_screenshot_list(value: object) -> list[dict[str, Any]]:
+    """The object elements of a list, each normalized as a screenshot."""
+    return _as_object_list(value, SCREENSHOT_FIELDS)
 
 
 MOD_FIELDS: dict[str, FieldNormalizer] = {
@@ -98,6 +110,8 @@ MOD_FIELDS: dict[str, FieldNormalizer] = {
     "tags": _as_str_list,
     "modidstrs": _as_str_list,
     "releases": _as_release_list,
+    "screenshots": _as_screenshot_list,
+    "trailervideourl": _as_optional_str,
 }
 """Fields of a mod entry (`/api/mod/{slug}`) or listing item (`/api/mods`)."""
 
@@ -112,6 +126,15 @@ RELEASE_FIELDS: dict[str, FieldNormalizer] = {
     "fileid": _as_optional_int,
 }
 """Fields of a release. `fileid` is None when the release has no downloadable file."""
+
+SCREENSHOT_FIELDS: dict[str, FieldNormalizer] = {
+    "mainfile": _as_optional_str,
+    "thumbnailfilename": _as_optional_str,
+    "filename": _as_str,
+    "fileid": _as_optional_int,
+    "created": _as_optional_str,
+}
+"""Fields of a screenshot in a mod entry's `screenshots`; types only, URLs are not checked."""
 
 
 def _normalize(raw: object, fields: dict[str, FieldNormalizer]) -> dict[str, Any] | None:

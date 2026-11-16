@@ -164,6 +164,18 @@ export interface ModRelease {
 }
 
 /**
+ * One screenshot of a mod database entry (Story 18.1, Epic 18 ADR-1).
+ */
+export interface ModScreenshot {
+  /** Full-size image on the mod database CDN. */
+  imageUrl: string;
+  /** The 55x60 thumbnail, or the image URL when the mod database gave no usable thumbnail. */
+  thumbnailUrl: string;
+  /** The uploaded file name; may be `''`. */
+  filename: string;
+}
+
+/**
  * Mod lookup response from GET /api/v1alpha1/mods/lookup/{slug}.
  * Story 10.6: Extended to include full release data for detail views.
  *
@@ -201,6 +213,10 @@ export interface ModLookupData {
   sourceUrl: string | null;
   created: string | null;
   lastReleased: string | null;
+  /** The entry's screenshots in mod database order; only https URLs on the mod database CDN. */
+  screenshots: ModScreenshot[];
+  /** `https://www.youtube-nocookie.com/embed/<id>` when the entry names a YouTube trailer, else null. */
+  trailerUrl: string | null;
 }
 
 /**

@@ -600,6 +600,10 @@ async def lookup_mod(
         - side: "Both", "Client", or "Server"
         - compatibility: Nested object with status, game_version, mod_version, message,
           latest_supported_game_version
+        - screenshots: List of {image_url, thumbnail_url, filename} in mod database
+          order; only https URLs on the mod database CDN; [] when there are none
+        - trailer_url: https://www.youtube-nocookie.com/embed/<id> for the entry's trailer,
+          or null
 
     Raises:
         HTTPException: 400 if slug format is invalid

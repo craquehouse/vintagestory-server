@@ -379,6 +379,31 @@ describe('ModDetailPage', () => {
   });
 
   describe('description section (Subtask 2.3)', () => {
+    it('marks description links that open in a new tab (Story 18.1, VSS-tzl)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              description: '<p>Needs <a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      expect(description).toHaveClass('mod-description');
+      // jsdom trims the note's leading space when it computes the accessible name;
+      // the E2E test checks the exact name in a browser
+      const link = within(description).getByRole('link', {
+        name: /^CarryOn Lib ?\(opens in a new tab\)$/,
+      });
+      expect(link).toHaveTextContent('CarryOn Lib (opens in a new tab)', { normalizeWhitespace: false });
+    });
+
     it('renders sanitized HTML description', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -556,6 +581,74 @@ describe('ModDetailPage', () => {
     });
   });
 
+  describe('screenshots (Story 18.1)', () => {
+    beforeAll(() => {
+      // jsdom has no scrollIntoView; the gallery scrolls the selected thumbnail into view
+      Element.prototype.scrollIntoView ??= () => {};
+    });
+
+    const screenshots = [1, 2, 3].map((n) => ({
+      image_url: `https://moddbcdn.vintagestory.at/s${n}.png`,
+      thumbnail_url: `https://moddbcdn.vintagestory.at/s${n}_55_60.png`,
+      filename: `s${n}.png`,
+    }));
+
+    it('renders the section after the header and before the description', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, screenshots },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const section = await screen.findByTestId('mod-screenshots');
+      const header = screen.getByTestId('mod-detail-header');
+      const description = screen.getByTestId('mod-detail-description-card');
+      expect(header.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(
+        section.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(within(section).getByTestId('mod-screenshot-position')).toHaveTextContent('1 of 3');
+      expect(within(section).getByTestId('mod-screenshot-image')).toHaveAttribute(
+        'src',
+        'https://moddbcdn.vintagestory.at/s1.png'
+      );
+    });
+
+    it('renders no section for an empty list', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, screenshots: [] },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-description-card');
+      expect(screen.queryByTestId('mod-screenshots')).not.toBeInTheDocument();
+    });
+
+    it('renders the page without a section when the response has no list', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModDetailResponse),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-description-card');
+      expect(screen.queryByTestId('mod-screenshots')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mod-detail-error')).not.toBeInTheDocument();
+    });
+  });
+
   describe('external links', () => {
     it('renders ModDB link', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
@@ -608,6 +701,48 @@ describe('ModDetailPage', () => {
       await screen.findByTestId('mod-detail-page');
       expect(screen.queryByTestId('mod-detail-homepage-link')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-detail-source-link')).not.toBeInTheDocument();
+      // Story 18.1: a response without `trailer_url` has no trailer link
+      expect(screen.queryByTestId('mod-detail-trailer-link')).not.toBeInTheDocument();
+    });
+
+    it('renders the trailer link with the API URL (Story 18.1)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const link = await screen.findByTestId('mod-detail-trailer-link');
+      expect(link).toHaveAttribute('href', 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByRole('link', { name: 'Watch trailer (opens in a new tab)' })).toBe(link);
+      expect(document.querySelector('iframe')).toBeNull();
+    });
+
+    it('renders no trailer link when trailer_url is null (Story 18.1)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, trailer_url: null },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-moddb-link');
+      expect(screen.queryByTestId('mod-detail-trailer-link')).not.toBeInTheDocument();
+      expect(document.querySelector('iframe')).toBeNull();
     });
   });
 

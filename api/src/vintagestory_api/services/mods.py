@@ -48,6 +48,7 @@ from vintagestory_api.services.mod_compatibility import (
     compare_game_versions,
     supported_game_versions,
 )
+from vintagestory_api.services.mod_media import build_screenshots, trailer_link_url
 from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
@@ -544,7 +545,8 @@ class ModService:
         `version` when given (the Installed list asks about the installed release).
         `install_mod_id` and `latest_version` are what an install of this slug without
         a version picks, from the same `select_install_release` that install uses
-        (Epic 17 ADR-2 decisions 5 and 6).
+        (Epic 17 ADR-2 decisions 5 and 6). `screenshots` and `trailer_url` pass only
+        the media URLs that `services/mod_media.py` allows (Epic 18 ADR-1, ADR-2).
 
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
@@ -677,6 +679,8 @@ class ModService:
             source_url=mod["sourcecodeurl"],
             created=mod["created"],
             last_released=mod["lastreleased"],
+            screenshots=build_screenshots(mod["screenshots"], response_slug),
+            trailer_url=trailer_link_url(mod["trailervideourl"]),
         )
 
         logger.info(

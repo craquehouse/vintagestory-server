@@ -36,6 +36,11 @@
  * `installModId`, preselects `latestVersion` (what a plain install picks) and installs
  * `installModId`. "(Latest)" and the Releases list's "Latest" badge mark that release;
  * a release without a downloadable file is listed disabled (Epic 17 ADR-2).
+ *
+ * Story 18.1: A Screenshots section between the header and the description shows the
+ * mod's screenshots (`ModScreenshotGallery`), and a "Watch trailer" link joins the
+ * external links when the API sent a `trailerUrl`. Description links that open in a
+ * new tab show an icon (the `mod-description` class) and a screen reader note.
  */
 
 import { useState } from 'react';
@@ -72,12 +77,13 @@ import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
+import { ModScreenshotGallery } from '@/components/ModScreenshotGallery';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
 import { findInstalledModForEntry, versionChoices } from '@/lib/mod-ids';
-import { sanitizeModDescription } from '@/lib/mod-description';
+import { OPENS_IN_NEW_TAB, sanitizeModDescription } from '@/lib/mod-description';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -563,6 +569,10 @@ export function ModDetailPage() {
     ? sanitizeModDescription(mod.description)
     : null;
 
+  // Story 18.1: media are optional; a response without the list shows no gallery
+  // instead of failing the page (the guard above covers only the required fields)
+  const screenshots = Array.isArray(mod.screenshots) ? mod.screenshots : [];
+
   return (
     <div className="container mx-auto py-6 max-w-4xl space-y-6" data-testid="mod-detail-page">
       {/* Navigation: Back button and Breadcrumbs */}
@@ -678,7 +688,7 @@ export function ModDetailPage() {
           )}
 
           {/* External links */}
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-3 gap-y-1 pt-1">
             <a
               href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
               target="_blank"
@@ -713,6 +723,20 @@ export function ModDetailPage() {
                 Source
               </a>
             )}
+            {/* Story 18.1: a link, never an embed; the API built the URL from the video ID */}
+            {mod.trailerUrl && (
+              <a
+                href={mod.trailerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                data-testid="mod-detail-trailer-link"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Watch trailer{' '}
+                <span className="sr-only">{OPENS_IN_NEW_TAB}</span>
+              </a>
+            )}
           </div>
         </div>
 
@@ -743,6 +767,11 @@ export function ModDetailPage() {
 
       <Separator />
 
+      {/* Screenshots section (Story 18.1) */}
+      {screenshots.length > 0 && (
+        <ModScreenshotGallery key={mod.slug} screenshots={screenshots} />
+      )}
+
       {/* Description section */}
       <Card data-testid="mod-detail-description-card">
         <CardHeader>
@@ -751,7 +780,7 @@ export function ModDetailPage() {
         <CardContent>
           {sanitizedDescription ? (
             <div
-              className="prose prose-sm prose-invert max-w-none"
+              className="mod-description prose prose-sm prose-invert max-w-none"
               data-testid="mod-detail-description"
               dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
             />

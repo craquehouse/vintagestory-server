@@ -13,6 +13,7 @@ from vintagestory_api.models.mods import (
     ModLookupResponse,
     ModMetadata,
     ModRelease,
+    ModScreenshot,
     ModState,
     PaginationMeta,
 )
@@ -523,7 +524,41 @@ class TestModLookupResponse:
             "source_url": None,
             "created": None,
             "last_released": None,
+            "screenshots": [],
+            "trailer_url": None,
         }
+
+    def test_media_defaults(self) -> None:
+        """Story 18.1: no screenshots and no trailer by default."""
+        response = ModLookupResponse(
+            slug="m",
+            name="M",
+            author="a",
+            latest_version="1.0.0",
+            install_mod_id="m",
+            downloads=0,
+            side="Both",
+            compatibility=CompatibilityInfo(
+                status="compatible", game_version="1.21.3", mod_version="1.0.0"
+            ),
+        )
+        assert response.screenshots == []
+        assert response.trailer_url is None
+
+    def test_screenshot_round_trips(self) -> None:
+        """Story 18.1: ModScreenshot dumps and validates back unchanged."""
+        original = ModScreenshot(
+            image_url="https://moddbcdn.vintagestory.at/a.jpg",
+            thumbnail_url="https://moddbcdn.vintagestory.at/a_55_60.jpg",
+            filename="Timeline 1.jpg",
+        )
+        data = original.model_dump(mode="json")
+        assert data == {
+            "image_url": "https://moddbcdn.vintagestory.at/a.jpg",
+            "thumbnail_url": "https://moddbcdn.vintagestory.at/a_55_60.jpg",
+            "filename": "Timeline 1.jpg",
+        }
+        assert ModScreenshot.model_validate(data) == original
 
     def test_latest_version_none_dumps_as_null(self) -> None:
         """Story 17.2: no release of the install mod ID has a file."""

@@ -4,8 +4,10 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
-lastUpdated: '2026-11-15'
+lastUpdated: '2026-11-16'
 updates:
+  - date: '2026-11-16'
+    description: 'Added Epic 18 (4 stories) for Mod Media and Fixes; FR194-FR204'
   - date: '2026-11-15'
     description: 'Added Epic 17 (8 stories) for Mod Data Correctness and Fixes; FR177-FR193'
   - date: '2026-11-13'
@@ -399,6 +401,17 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR191 | Epic 17 | Installed mods fit tablet widths |
 | FR192 | Epic 17 | Settings tabs fit phones |
 | FR193 | Epic 17 | Game Settings title row aligned with the panel |
+| FR194 | Epic 18 | Screenshot gallery on the mod detail page |
+| FR195 | Epic 18 | Gallery keyboard, touch, alt text, lazy loading, phones |
+| FR196 | Epic 18 | Trailer link, no embedded player |
+| FR197 | Epic 18 | Only allow-listed media URLs leave the API |
+| FR198 | Epic 18 | Description links marked as opening in a new tab |
+| FR199 | Epic 18 | Install refuses a file-name collision with 409 |
+| FR200 | Epic 18 | Update record stored after a version change |
+| FR201 | Epic 18 | Game version indicator on browse cards, no per-card request |
+| FR202 | Epic 18 | No indicator when the version or data is unknown |
+| FR203 | Epic 18 | Sort control for installed mod cards |
+| FR204 | Epic 18 | Installed mods table fits at 1024px with a long name |
 
 ## Epic List
 
@@ -1911,7 +1924,8 @@ So that **I can monitor background task status**.
 | Epic 15: Release Engineering | 15.0, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6 | 7 |
 | Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8 | 9 |
 | Epic 17: Mod Data Correctness and Fixes | 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8 | 8 |
-| **Total** | | **102** |
+| Epic 18: Mod Media and Fixes | 18.1, 18.2, 18.3, 18.4 | 4 |
+| **Total** | | **106** |
 
 ---
 
@@ -4644,3 +4658,328 @@ So that **I do not scroll sideways to reach a control**.
 - [ ] Settings `TabsList`: wrap or scroll inside itself on small screens (`VSS-uni`)
 - [ ] Constrain the Game Settings header to the panel's maximum width, in all three states of `SettingsPage` (`VSS-143`)
 - [ ] Tests, and browser measurements at 390px, 768px, 900px, 1024px and 1920px
+
+---
+
+## Epic 18: Mod Media and Fixes
+
+**Goal:** Admins can see a mod's screenshots and trailer before installing it and tell from a browse card whether it has a release for their game version, and installing, changing versions and the Installed list behave correctly in the cases Epic 17 left open.
+
+**Architecture:** `architecture/epic-18-mod-media-and-fixes.md` (ADR-1 to ADR-6, with the mod database facts checked on 2026-11-16). There is no preparation story. Story 18.4 measures the table's columns before it settles the Name column's width.
+
+**Order:** Story 18.1 first, because the maintainer wants the gallery most. Then 18.2 (it holds the only bug, `VSS-z7e`, P2), 18.3 and 18.4.
+
+**Dependencies:** No story needs another's code. Stories 18.1, 18.2 and 18.3 each edit `routers/mods.py`, `models/mods.py` and `web/src/api/types.ts` in different places, so run them one after another or expect small merge conflicts. Story 18.4 is web only and touches none of their files.
+
+### Current State
+
+- The mod detail page shows the logo and description only; the mod database's screenshots and trailer are dropped by the API
+- Description links open in a new tab with nothing to say so
+- Installing a mod whose file name another installed mod already uses replaces that mod's file, and a failed import then deletes it
+- After a version change to a release newer than the last update check, the Installed list shows "Unknown" until the next check
+- Browse cards say nothing about the installed game version
+- Below 1024px the installed mod cards can only be re-sorted by widening the window to reach the table headers
+- At 1024px a long mod name makes the installed mods table scroll inside itself, with the toggle and remove button off screen
+
+### Target State
+
+- A mod's screenshots and trailer link are on its detail page, from URLs the API has checked
+- Description links show that they open in a new tab
+- An install never overwrites another mod's file, and a version change leaves a correct update status behind
+- Browse cards show whether the mod has a release for the installed game version, without a request per card
+- The Installed list can be sorted and fits its container at every width
+
+---
+
+### Story 18.1: Mod Detail Page Media and Links
+
+**Sprint key:** `18-1-mod-detail-media-and-links`
+**Beads:** `VSS-l4x` (UI-083), `VSS-tzl` (UI-078)
+**FRs:** FR194, FR195, FR196, FR197, FR198
+
+As an **administrator**,
+I want **to see a mod's screenshots and trailer on its detail page**,
+So that **I can judge a mod before installing it without leaving the manager**.
+
+**Acceptance Criteria:**
+
+**Given** a mod with screenshots in the mod database (for example `betterruins`, 10)
+**When** I request `GET /api/v1alpha1/mods/lookup/{slug}`
+**Then** the response has `screenshots`, one item per screenshot in the mod database's order, each with `image_url`, `thumbnail_url` and `filename`
+
+*(Covers FR194, FR197)*
+
+**Given** a screenshot whose image URL is not `https` on `moddbcdn.vintagestory.at`, a null element, or a `screenshots` value that is not a list
+**When** I look the mod up
+**Then** the response is 200, that screenshot is left out, and a screenshot with a missing or rejected thumbnail uses its image URL as the thumbnail
+
+*(Covers FR197)*
+
+**Given** a mod whose trailer field is a YouTube URL in any accepted form (for example `https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM`)
+**When** I look the mod up
+**Then** `trailer_url` is `https://www.youtube-nocookie.com/embed/<id>` (maintainer decision 2026-11-16; planned as `https://www.youtube.com/watch?v=<id>`); for an empty, null or any other URL (for example `https://apachegaming.net`) it is `null`
+
+*(Covers FR196, FR197)*
+
+**Given** a mod with several screenshots
+**When** I open its detail page
+**Then** a Screenshots section shows one image, its position ("3 of 10"), Previous and Next, and a strip of thumbnails; choosing a thumbnail or Previous/Next changes the image
+
+*(Covers FR194)*
+
+**Given** the Screenshots section
+**When** I activate the current image
+**Then** it opens larger in a dialog that I can step through and close
+
+*(Covers FR194)*
+
+**Given** a keyboard only
+**When** I tab to the gallery
+**Then** every thumbnail and control can be focused and activated, Left and Right move between images in the section and in the dialog, and Escape closes the dialog and returns focus to the gallery
+
+*(Covers FR195)*
+
+**Given** a 390px wide touch screen, in the light and the dark theme
+**When** I open the detail page of a mod with screenshots
+**Then** the page does not scroll sideways, Previous and Next are at least 44px targets, and the thumbnail strip scrolls inside itself
+
+*(Covers FR195)*
+
+**Given** the gallery
+**When** it renders
+**Then** each image has alt text built from its file name, images are lazy-loaded, only the current image's full-size file is requested, and no request carries a referrer
+
+*(Covers FR195)*
+
+**Given** a mod with no screenshots (for example `playercorpse`) or with one
+**When** I open its detail page
+**Then** with none there is no Screenshots section, and with one there are no Previous, Next or thumbnail controls
+
+*(Covers FR194)*
+
+**Given** a mod with a trailer
+**When** I open its detail page
+**Then** a "Watch trailer" link opens the video in a new tab with `rel="noopener noreferrer"`, and the page loads no iframe and nothing from YouTube
+
+*(Covers FR196)*
+
+**Given** a mod description with links
+**When** I read it
+**Then** each link shows an external-link icon, and a screen reader hears "(opens in a new tab)" after the link's own text
+
+*(Covers FR198)*
+
+**Tasks:**
+
+- [ ] `SCREENSHOT_FIELDS`, `screenshots` and `trailervideourl` in `models/moddb.py` (Epic 18 ADR-1 decision 1)
+- [ ] `services/mod_media.py`: the image URL allow-list and the trailer rewrite (ADR-1 decision 2, ADR-2 decision 2); `ModScreenshot`, `screenshots` and `trailer_url` on `ModLookupResponse`; web types
+- [ ] Gallery component from `Dialog`, `Button` and plain `<img>`; no new dependency (ADR-2 decisions 5 and 6) (`VSS-l4x`)
+- [ ] "Watch trailer" link beside the other external links (ADR-2 decisions 1 and 4)
+- [ ] Mark description links in `lib/mod-description.ts` and the description's styles (`VSS-tzl`)
+- [ ] Tests: normalizer and URL rules with a `betterruins`-shaped fixture and a synthetic bad-data fixture; component tests for navigation, none, one, keyboard and the dialog; `mod-description.test.ts` for the link marking
+- [ ] E2E against a stubbed mod with several screenshots at desktop and 390px; browser check of `betterruins` in both themes
+
+---
+
+### Story 18.2: Install and Version Change Keep Files and Records Right
+
+**Sprint key:** `18-2-install-and-version-change-keep-records-right`
+**Beads:** `VSS-z7e` (API-075, bug), `VSS-do7` (API-076)
+**FRs:** FR199, FR200
+
+As an **administrator**,
+I want **installing or changing one mod never to damage another mod or leave a wrong status behind**,
+So that **I can trust the Installed list after every operation**.
+
+**Acceptance Criteria:**
+
+**Given** mod A is installed as `Foo.zip`
+**When** I install mod B, whose release file is also named `Foo.zip`
+**Then** the response is 409 `MOD_FILE_CONFLICT` with a message naming `Foo.zip`, A's file has the same bytes as before, A's state entry is unchanged, and no `.tmp` file is left
+
+*(Covers FR199)*
+
+**Given** mod A is disabled, so its file is `Foo.zip.disabled`
+**When** I install mod B, whose release file is named `Foo.zip`
+**Then** the response is 409 `MOD_FILE_CONFLICT` and nothing is placed
+
+*(Covers FR199)*
+
+**Given** a file named like the download exists in the mods directory but belongs to no known mod, or the mod state has an entry under that file name with no file
+**When** I install the mod
+**Then** the response is 409 `MOD_FILE_CONFLICT` and nothing is placed or removed
+
+*(Covers FR199)*
+
+**Given** a download whose `modinfo.json` cannot be read, with a file name another mod uses
+**When** I install it
+**Then** the response is 409 `MOD_FILE_CONFLICT`
+
+*(Covers FR199)*
+
+**Given** no file-name collision, and the import or state save fails after the file is placed
+**When** the install cleans up
+**Then** only the newly placed file and its own state entry are removed, as today
+
+*(Covers FR199)*
+
+**Given** an installed mod whose stored update record does not list a release the mod database now has
+**When** I change the mod to that release from its detail page
+**Then** `GET /api/v1alpha1/mods/updates` reports a real status for it ("up to date" or an offered update), not `unknown` with reason `installed_release_not_listed`, without an update check
+
+*(Covers FR200)*
+
+**Given** a version change through `PUT /api/v1alpha1/mods/{slug}/version`
+**When** it succeeds
+**Then** the response has exactly the keys `slug`, `previous_version`, `version`, `filename`, `compatibility`, `changed` and `pending_restart`, as before
+
+*(Covers FR200)*
+
+**Given** Update All changes several mods
+**When** it finishes
+**Then** each changed mod's stored record comes from its own change
+
+*(Covers FR200)*
+
+**Given** storing the record fails, or the version change fails or is rolled back, or the requested version is already installed
+**When** the request ends
+**Then** a storing failure does not fail the version change, and in the other cases the stored record is untouched
+
+*(Covers FR200)*
+
+**Tasks:**
+
+- [ ] `ModFileConflictError` and the check at the start of `_place_install` (Epic 18 ADR-4) (`VSS-z7e`)
+- [ ] `ErrorCode.MOD_FILE_CONFLICT`, 409 on `POST /mods`; route docstring and API documentation
+- [ ] Confirm the web shows the API's message for a failed install; no other web change
+- [ ] `PreparedVersionChange.releases`, the `record_releases` parameter of `change_version`, and `ModUpdateService.record_releases` with `record_install` delegating to it (ADR-5) (`VSS-do7`)
+- [ ] Pass the recorder from the version change route and the Update All route
+- [ ] Tests: the four collision cases with file bytes and state compared before and after; a failing import after a clean placement; the version change record cases, including the response key set
+
+---
+
+### Story 18.3: Game Version Badge on Browse Cards
+
+**Sprint key:** `18-3-game-version-badge-on-browse-cards`
+**Beads:** `VSS-4f3` (UI-068)
+**FRs:** FR201, FR202
+
+As an **administrator**,
+I want **each mod browser card to tell me whether the mod has a release for my game version**,
+So that **I do not open mod after mod to find the ones I can use**.
+
+**Acceptance Criteria:**
+
+**Given** a game server is installed and its version has a tag in the mod database
+**When** I request `GET /api/v1alpha1/mods/browse`
+**Then** the response has `game_version` set to the installed version, and every item has `has_release_for_game_version` `true` or `false`
+
+*(Covers FR201)*
+
+**Given** two browse requests within the cache lifetime, for any pages, sorts or filters
+**When** they are served
+**Then** the mod database receives at most one filtered listing request for the installed version and no request per mod
+
+*(Covers FR201)*
+
+**Given** a card whose flag is `true`
+**When** I see it
+**Then** it shows "Has a release for 1.22.7" (with the installed version), and a card whose flag is `false` shows "No release for 1.22.7"; neither uses the words "Compatible" or "Incompatible"
+
+*(Covers FR201)*
+
+**Given** no game server is installed, or the installed version has no tag in the mod database
+**When** I browse
+**Then** the response is 200 with `game_version: null` and every flag `null`, and the cards show no game version indicator
+
+*(Covers FR202)*
+
+**Given** the mod database fails or times out on the filtered listing
+**When** I browse
+**Then** the response is 200; the flags come from the last copy for that version when one exists and are `null` otherwise
+
+*(Covers FR202)*
+
+**Given** I install a different game server version
+**When** I browse again
+**Then** the flags and `game_version` are for the new version on the next request, without restarting the API
+
+*(Covers FR201)*
+
+**Given** I pick a game version in the browse filter
+**When** I change pages
+**Then** the filtered listing is served from the same cache, and the cards' flags still refer to the installed version
+
+*(Covers FR201)*
+
+**Tasks:**
+
+- [ ] Cache filtered listings per tag ID in `ModApiClient`, with the `modid` set, a three-entry limit and the browse cache lifetime (Epic 18 ADR-3 decisions 1 and 2) (`VSS-4f3`)
+- [ ] Browse route: resolve the installed version, fetch concurrently when cold, fall back as ADR-3 decision 5 says; `has_release_for_game_version` and `game_version` in the models
+- [ ] Web types and the card indicator (ADR-3 decision 9); remove `getBrowseCardCompatibility` and its test
+- [ ] Tests: route cases for true, false, no server, untagged version, failure with and without an earlier copy, and a changed version; client cache tests for lifetime and the entry limit; `ModCard` tests for the three states
+- [ ] Browser check on the dev stack: `carryon` shows the badge and `playercorpse` shows "No release" on 1.22.7
+
+---
+
+### Story 18.4: Installed Mods List at Every Width
+
+**Sprint key:** `18-4-installed-mods-list-at-every-width`
+**Beads:** `VSS-bgu` (UI-077), `VSS-n2u` (UI-086)
+**FRs:** FR203, FR204
+
+As an **administrator**,
+I want **to sort my installed mods and reach every control at any window width**,
+So that **the list is as usable on a tablet or a small laptop as on a wide screen**.
+
+**Acceptance Criteria:**
+
+**Given** a viewport narrower than 1024px
+**When** I open Installed mods
+**Then** a sort control above the cards shows the current sort column (Name, Version or Status) and direction
+
+*(Covers FR203)*
+
+**Given** the sort control
+**When** I choose another column or flip the direction
+**Then** the cards reorder at once, and the choice is still there after a reload
+
+*(Covers FR203)*
+
+**Given** I sorted the cards by Version descending
+**When** I widen the window to 1024px or more
+**Then** the table is sorted by Version descending with its header showing it, and a sort made on a table header is the cards' sort when I narrow the window again
+
+*(Covers FR203)*
+
+**Given** a viewport of 1024px or wider
+**When** I open Installed mods
+**Then** there is no separate sort control; the table headers sort as today
+
+*(Covers FR203)*
+
+**Given** a 1024px viewport, sidebar expanded or collapsed, and a mod with a 63-character name and an offered pre-release update
+**When** I open Installed mods
+**Then** the table does not scroll inside its container, the page does not scroll sideways, the name wraps, and the mod's enable toggle and remove button are inside the viewport
+
+*(Covers FR204)*
+
+**Given** a viewport of 1440px or wider, or only mods with short names
+**When** I open Installed mods
+**Then** each row is on one line, as today
+
+*(Covers FR204)*
+
+**Given** the other tables in the app (Scheduled Jobs, Version)
+**When** this story is done
+**Then** their cells still do not wrap
+
+*(Covers FR204)*
+
+**Tasks:**
+
+- [ ] Sort control in `ModTable` above the cards, writing `installedModsSort` through `setInstalledModsSort` (Epic 18 ADR-6, sort) (`VSS-bgu`)
+- [ ] Extend `layout_widths.mjs` to record each column's width at 1024px; keep the before numbers
+- [ ] Wrap the Name column through its column `meta.className`, applied to body cells too; choose the minimum width from the measurements; stack the Available cell only if the numbers require it (ADR-6, long names) (`VSS-n2u`)
+- [ ] Tests: `ModTable.test.tsx` for the control and the shared preference; `layout-widths.spec.ts` now expects no scrolling element at 1024px in both sidebar states
+- [ ] Record the after measurements in the story file

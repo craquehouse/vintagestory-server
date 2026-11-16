@@ -609,6 +609,8 @@ describe('lookupMod', () => {
       sourceUrl: 'https://github.com/example/testmod',
       created: '2024-01-01T00:00:00Z',
       lastReleased: '2024-01-15T10:00:00Z',
+      screenshots: [],
+      trailerUrl: null,
     },
   };
 
@@ -680,6 +682,39 @@ describe('lookupMod', () => {
     expect(result.data.slug).toBe('testmod');
     expect(result.data.name).toBe('Test Mod');
     expect(result.data.compatibility.status).toBe('compatible');
+  });
+
+  it('maps screenshots and the trailer URL to camelCase (Story 18.1)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            slug: 'testmod',
+            screenshots: [
+              {
+                image_url: 'https://moddbcdn.vintagestory.at/a.png',
+                thumbnail_url: 'https://moddbcdn.vintagestory.at/a_55_60.png',
+                filename: 'a.png',
+              },
+            ],
+            trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM',
+          },
+        }),
+    });
+    globalThis.fetch = mockFetch;
+
+    const result = await lookupMod('testmod');
+
+    expect(result.data.screenshots).toEqual([
+      {
+        imageUrl: 'https://moddbcdn.vintagestory.at/a.png',
+        thumbnailUrl: 'https://moddbcdn.vintagestory.at/a_55_60.png',
+        filename: 'a.png',
+      },
+    ]);
+    expect(result.data.trailerUrl).toBe('https://www.youtube-nocookie.com/embed/mJHZH_sThDM');
   });
 });
 

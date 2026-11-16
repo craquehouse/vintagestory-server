@@ -5,6 +5,7 @@ These models support the mod service layer:
 - ModState: State index entry tracking installed mod status
 - ModInfo: Combined local + remote mod information for API responses
 - CompatibilityInfo: Compatibility status with game version
+- ModScreenshot: One screenshot of a mod on the mod lookup response
 - ModLookupResponse: Response from mod lookup endpoint
 """
 
@@ -190,6 +191,19 @@ class ModRelease(BaseModel):
     """Mod ID inside this release; one database entry can ship several mod IDs."""
 
 
+class ModScreenshot(BaseModel):
+    """One screenshot of a mod database entry (Story 18.1, Epic 18 ADR-1)."""
+
+    image_url: str
+    """Full-size image on the mod database CDN."""
+
+    thumbnail_url: str
+    """The 55x60 thumbnail, or the image URL when the mod database gave no usable thumbnail."""
+
+    filename: str
+    """The uploaded file name; may be ``""``."""
+
+
 class ModLookupResponse(BaseModel):
     """Response from mod lookup endpoint.
 
@@ -271,6 +285,14 @@ class ModLookupResponse(BaseModel):
 
     last_released: str | None = None
     """ISO timestamp of the most recent release."""
+
+    screenshots: list[ModScreenshot] = []
+    """The entry's screenshots in mod database order; only `https` URLs on the mod
+    database CDN (Epic 18 ADR-1)."""
+
+    trailer_url: str | None = None
+    """`https://www.youtube-nocookie.com/embed/<id>` when the entry's trailer field names a
+    YouTube video, else None (Epic 18 ADR-2)."""
 
 
 class EnableResult(BaseModel):
