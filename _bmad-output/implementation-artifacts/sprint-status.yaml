@@ -203,9 +203,9 @@ development_status:
   17-6-settings-behave-as-saved: done
   17-7-mods-navigation: done
   17-8-layout-at-tablet-and-phone-widths: done
-  epic-18: backlog
+  epic-18: in-progress
   epic-18-retrospective: optional
-  18-1-mod-detail-media-and-links: backlog
+  18-1-mod-detail-media-and-links: ready-for-dev
   18-2-install-and-version-change-keep-records-right: backlog
   18-3-game-version-badge-on-browse-cards: backlog
   18-4-installed-mods-list-at-every-width: backlog
