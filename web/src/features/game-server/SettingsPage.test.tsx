@@ -12,10 +12,18 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 import { SettingsPage } from './SettingsPage';
 import { SETTINGS_CONTENT_WIDTH } from './content-width';
 import * as serverStatusHook from '@/hooks/use-server-status';
+import type { ApiResponse, ServerState, ServerStatus } from '@/api/types';
+
+// The fields of useServerStatus's result that the page reads
+type StatusResult = Pick<
+  ReturnType<typeof serverStatusHook.useServerStatus>,
+  'data' | 'isLoading' | 'error'
+>;
 
 // Mock the server status hook. `statusMock` is the same function as the mocked
-// `useServerStatus`, untyped, so a test can return just the fields the page reads.
-const statusMock = vi.hoisted(() => vi.fn());
+// `useServerStatus`, typed with the fields the page reads, so a change to the hook's
+// result type breaks these tests at compile time.
+const statusMock = vi.hoisted(() => vi.fn<() => StatusResult>());
 vi.mock('@/hooks/use-server-status', () => ({
   useServerStatus: statusMock,
 }));
@@ -26,6 +34,23 @@ vi.mock('./GameConfigPanel', () => ({
     <div data-testid="game-config-panel">GameConfigPanel Mock</div>
   ),
 }));
+
+/** A complete status response for `state`. */
+function statusResponse(state: ServerState, version: string | null): ApiResponse<ServerStatus> {
+  return {
+    status: 'ok',
+    data: {
+      state,
+      version,
+      uptimeSeconds: null,
+      lastExitCode: null,
+      availableStableVersion: null,
+      availableUnstableVersion: null,
+      versionLastChecked: null,
+      diskSpace: null,
+    },
+  };
+}
 
 // Helper to create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -334,7 +359,7 @@ describe('SettingsPage', () => {
 
     it('puts the header with the status badge and the settings panel in the same width', () => {
       statusMock.mockReturnValue({
-        data: { data: { state: 'installed', version: '1.21.3' } },
+        data: statusResponse('installed', '1.21.3'),
         isLoading: false,
         error: null,
       });
@@ -350,7 +375,7 @@ describe('SettingsPage', () => {
 
     it('caps the empty state when the server is not installed', () => {
       statusMock.mockReturnValue({
-        data: { data: { state: 'not_installed', version: null } },
+        data: statusResponse('not_installed', null),
         isLoading: false,
         error: null,
       });
