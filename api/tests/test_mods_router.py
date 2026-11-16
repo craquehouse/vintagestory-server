@@ -4263,6 +4263,33 @@ class TestBrowseGameVersionFlag:
         assert filtered.call_count == 0
 
     @respx.mock
+    def test_unreadable_version_file(self, tmp_path: Path, client: TestClient) -> None:
+        """An error reading the installed version leaves the flags null; browse still
+        answers (ADR-3 decision 5, review L1)."""
+
+        def unreadable() -> str | None:
+            raise PermissionError("current_version")
+
+        data_dir = tmp_path / "data"
+        app.dependency_overrides[get_mod_service] = lambda: ModService(
+            state_dir=data_dir / "state",
+            mods_dir=data_dir / "mods",
+            cache_dir=data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version_provider=unreadable,
+        )
+        filtered = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        data = self.browse(client)
+
+        assert data["game_version"] is None
+        assert self.flags(data) == {"m1": None, "m2": None}
+        assert filtered.call_count == 0
+
+    @respx.mock
     @pytest.mark.parametrize("installed_version", ["1.99.0", "stable"])
     def test_version_without_tag(
         self,

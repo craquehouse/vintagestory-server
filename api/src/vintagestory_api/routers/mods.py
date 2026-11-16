@@ -347,7 +347,13 @@ async def browse_mods(
 
     # The version the cards' flags refer to (Story 18.3); None when no server is installed.
     # Read on every request, so another installed version is used at once (another tag).
-    game_version = (service.game_version() or "").lstrip("vV") or None
+    # A version file that cannot be read leaves the flags null; browse still answers.
+    try:
+        installed_version = service.game_version()
+    except OSError as e:
+        logger.warning("browse_game_version_unreadable", error=str(e))
+        installed_version = None
+    game_version = (installed_version or "").lstrip("vV") or None
 
     try:
         # Get mods - either filtered by version or all (both cached)
