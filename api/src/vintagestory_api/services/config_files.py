@@ -6,16 +6,24 @@ Provides read-only access to configuration files in the serverdata directory.
 Administrators and monitors can list and read JSON configuration files
 for troubleshooting purposes.
 
+Story 17.5 (FR186): only the Admin role receives secrets. For any other role,
+every top-level key that names a secret setting (Password, in any letter case)
+and has a value is replaced by "[redacted]", in every file; a file that does not
+parse as JSON is returned without its text (`_raw` is "[redacted]").
+
 Security:
     Path traversal prevention is critical. All file paths are validated
     using the _safe_path() pattern to prevent escaping the serverdata_dir.
 """
 
+import json
 from pathlib import Path
 
 import structlog
 
 from vintagestory_api.config import Settings
+from vintagestory_api.middleware.auth import UserRole
+from vintagestory_api.services.game_config import REDACTED, redact_secrets
 
 logger = structlog.get_logger()
 
@@ -168,23 +176,28 @@ class ConfigFilesService:
         logger.debug("config_files_listed", count=len(json_files), directory=directory)
         return json_files
 
-    def read_file(self, filename: str) -> dict[str, object]:
+    def read_file(self, filename: str, role: str | None = None) -> dict[str, object]:
         """Read a JSON configuration file and return its content.
+
+        Secrets are redacted unless the Admin role is passed (Story 17.5, Epic 17
+        ADR-4 decision 4): for any other role, None included, top-level secret keys
+        with a value are "[redacted]" and a file that does not parse has
+        `_raw: "[redacted]"` instead of its text. The Admin role gets the file as is.
 
         Args:
             filename: Name of the file to read (must be in serverdata_dir).
+            role: The caller's role. Only UserRole.ADMIN receives secret values.
 
         Returns:
             Dictionary with:
             - filename: The requested filename
-            - content: Parsed JSON content from the file
+            - content: Parsed JSON content from the file, or `_raw` and
+              `_parse_error` when it does not parse
 
         Raises:
             ConfigPathInvalidError: If filename contains path traversal.
             ConfigFileNotFoundError: If the file does not exist.
         """
-        import json
-
         serverdata_dir = self.settings.serverdata_dir
 
         # Validate path - this raises ConfigPathInvalidError if invalid
@@ -196,13 +209,19 @@ class ConfigFilesService:
             raise ConfigFileNotFoundError(filename)
 
         # Read and parse JSON
+        reveal_secrets = role == UserRole.ADMIN
+        text = safe_path.read_text(encoding="utf-8")
+        content: object
         try:
-            content = json.loads(safe_path.read_text(encoding="utf-8"))
+            content = json.loads(text)
         except json.JSONDecodeError as e:
             # Log but still return - let caller handle malformed JSON
             logger.warning("config_file_json_invalid", filename=filename, error=str(e))
-            # Return raw text as content if JSON parsing fails
-            content = {"_raw": safe_path.read_text(encoding="utf-8"), "_parse_error": str(e)}
+            # The text cannot be redacted structurally: only Admin receives it
+            content = {"_raw": text if reveal_secrets else REDACTED, "_parse_error": str(e)}
+        else:
+            if not reveal_secrets:
+                content = redact_secrets(content)
 
         logger.debug("config_file_read", filename=filename)
         return {"filename": filename, "content": content}

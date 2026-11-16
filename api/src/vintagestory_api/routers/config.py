@@ -3,11 +3,12 @@
 Story 6.2: Game Settings API
 Story 6.3: API Settings Service
 Story 6.5: Raw Config Viewer
+Story 17.5: Monitor keys cannot read the server password (FR186)
 
 Provides endpoints for reading and updating server configuration.
 
 Game Settings (6.2):
-- GET /config/game - Read all game settings with metadata
+- GET /config/game - Read all game settings with metadata (secrets for Admin only)
 - POST /config/game/settings/{key} - Update a specific game setting
 
 API Settings (6.3):
@@ -16,12 +17,16 @@ API Settings (6.3):
 
 Config Files (6.5):
 - GET /config/files - List all JSON config files (read-only)
-- GET /config/files/{filename} - Read raw config file content (read-only)
+- GET /config/files/{filename} - Read raw config file content (read-only; secrets,
+  and the text of files that are not valid JSON, for Admin only)
+
+Both read endpoints answer with Cache-Control: no-store, since what they return
+depends on the key's role.
 """
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel, Field
 
 from vintagestory_api.middleware.auth import get_current_user
@@ -98,7 +103,8 @@ def get_game_config_service(
 
 @router.get("/game", response_model=ApiResponse, summary="Get game settings")
 async def get_game_settings(
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: GameConfigService = Depends(get_game_config_service),
 ) -> ApiResponse:
     """Get all game settings with metadata.
@@ -109,7 +115,10 @@ async def get_game_settings(
     - Whether the setting supports live updates
     - Whether the setting is managed by an environment variable
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    Both Admin and Monitor roles can access this read-only endpoint. Monitor
+    receives secret settings (Password) redacted: `value` is null, `secret` is
+    true and `configured` says whether the secret is set (Story 17.5, FR186).
+    The response is never cached (Cache-Control: no-store).
 
     Returns:
         ApiResponse with data containing:
@@ -121,9 +130,10 @@ async def get_game_settings(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if serverconfig.json not found
     """
+    response.headers["Cache-Control"] = "no-store"
     try:
-        response = service.get_settings()
-        return ApiResponse(status="ok", data=response.to_dict())
+        settings = service.get_settings(role)
+        return ApiResponse(status="ok", data=settings.to_dict())
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,
@@ -453,7 +463,8 @@ async def read_config_file(
             max_length=255,
         ),
     ],
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: ConfigFilesService = Depends(get_config_files_service),
 ) -> ApiResponse:
     """Read raw content of a configuration file.
@@ -461,7 +472,11 @@ async def read_config_file(
     Returns the raw JSON content of the specified configuration file.
     Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    Both Admin and Monitor roles can access this read-only endpoint. Monitor
+    receives secrets redacted: top-level secret keys (Password, any letter case)
+    with a value are "[redacted]", and a file that is not valid JSON has
+    `_raw: "[redacted]"` instead of its text (Story 17.5, FR186). The response is
+    never cached (Cache-Control: no-store).
 
     Args:
         filename: Name of the file to read (must be in serverdata directory).
@@ -476,8 +491,9 @@ async def read_config_file(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if file not found
     """
+    response.headers["Cache-Control"] = "no-store"
     try:
-        result = service.read_file(filename)
+        result = service.read_file(filename, role)
         return ApiResponse(status="ok", data=result)
 
     except ConfigPathInvalidError as e:

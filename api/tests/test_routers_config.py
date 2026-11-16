@@ -28,6 +28,7 @@ import json
 import os
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -237,6 +238,127 @@ class TestGetGameSettings:
         response = client.get("/api/v1alpha1/config/game")
 
         assert response.status_code == 401
+
+
+# ==============================================================================
+# Story 17.5 (FR186): Monitor keys cannot read the server password
+# ==============================================================================
+
+# A made-up password for the redaction tests; never a real value.
+SECRET = "pw-Zq9-monitor-must-not-see"
+GAME_URL = "/api/v1alpha1/config/game"
+
+
+def _write_config(config_file: Path, config: dict[str, object]) -> None:
+    config_file.write_text(json.dumps(config, indent=2))
+
+
+def _settings_by_key(response_json: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    settings: list[dict[str, Any]] = response_json["data"]["settings"]
+    return {setting["key"]: setting for setting in settings}
+
+
+class TestGetGameSettingsSecrets:
+    """Story 17.5: GET /config/game withholds the password from a Monitor key."""
+
+    def test_monitor_gets_no_password(
+        self, client: TestClient, config_file: Path, sample_config: dict[str, object]
+    ) -> None:
+        """AC 1: value null, secret and configured true, the password nowhere in the body."""
+        _write_config(config_file, {**sample_config, "Password": SECRET})
+
+        response = client.get(GAME_URL, headers={"X-API-Key": TEST_MONITOR_KEY})
+
+        assert response.status_code == 200
+        assert SECRET not in response.text
+        password = _settings_by_key(response.json())["Password"]
+        assert password["value"] is None
+        assert password["secret"] is True
+        assert password["configured"] is True
+
+    def test_admin_gets_the_password(
+        self, client: TestClient, config_file: Path, sample_config: dict[str, object]
+    ) -> None:
+        """AC 5: Admin gets the value and secret: true, no configured."""
+        _write_config(config_file, {**sample_config, "Password": SECRET})
+
+        response = client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY})
+
+        password = _settings_by_key(response.json())["Password"]
+        assert password["value"] == SECRET
+        assert password["secret"] is True
+        assert "configured" not in password
+
+    @pytest.mark.parametrize("stored", [None, "", "missing"])
+    def test_no_password(
+        self,
+        client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+        stored: str | None,
+    ) -> None:
+        """AC 2, 5: not configured for Monitor; Admin reads the value as today."""
+        config = dict(sample_config)
+        if stored == "missing":
+            del config["Password"]
+        else:
+            config["Password"] = stored
+        _write_config(config_file, config)
+
+        monitor = client.get(GAME_URL, headers={"X-API-Key": TEST_MONITOR_KEY})
+        admin = client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY})
+
+        monitor_password = _settings_by_key(monitor.json())["Password"]
+        assert monitor_password["value"] is None
+        assert monitor_password["secret"] is True
+        assert monitor_password["configured"] is False
+        admin_password = _settings_by_key(admin.json())["Password"]
+        assert admin_password["value"] == (None if stored == "missing" else stored)
+        assert "configured" not in admin_password
+
+    def test_lower_case_key(
+        self, client: TestClient, config_file: Path, sample_config: dict[str, object]
+    ) -> None:
+        """A "password" key in another letter case counts as configured and never leaks."""
+        config = {k: v for k, v in sample_config.items() if k != "Password"}
+        config["password"] = SECRET
+        _write_config(config_file, config)
+
+        monitor = client.get(GAME_URL, headers={"X-API-Key": TEST_MONITOR_KEY})
+        admin = client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY})
+
+        assert SECRET not in monitor.text
+        assert _settings_by_key(monitor.json())["Password"]["configured"] is True
+        assert _settings_by_key(admin.json())["Password"]["value"] is None
+
+    def test_other_settings_equal_for_both_roles(
+        self, client: TestClient, config_file: Path, sample_config: dict[str, object]
+    ) -> None:
+        """Only Password carries secret (and, for Monitor, configured)."""
+        _write_config(config_file, {**sample_config, "Password": SECRET})
+
+        monitor = _settings_by_key(
+            client.get(GAME_URL, headers={"X-API-Key": TEST_MONITOR_KEY}).json()
+        )
+        admin = _settings_by_key(
+            client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY}).json()
+        )
+
+        assert monitor.keys() == admin.keys()
+        for key, setting in admin.items():
+            assert "configured" not in setting
+            if key == "Password":
+                continue
+            assert "secret" not in setting
+            assert "configured" not in monitor[key]
+            assert monitor[key] == setting
+
+    @pytest.mark.parametrize("key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    def test_no_store(self, client: TestClient, key: str) -> None:
+        """AC 7: the response is never cached, for either role."""
+        response = client.get(GAME_URL, headers={"X-API-Key": key})
+
+        assert response.headers["Cache-Control"] == "no-store"
 
 
 class TestGetGameSettingsConfigNotFound:
@@ -1236,6 +1358,157 @@ class TestReadConfigFile:
         )
 
         assert response.status_code == 401
+
+
+FILES_URL = "/api/v1alpha1/config/files"
+
+
+class TestReadConfigFileSecrets:
+    """Story 17.5: the config file viewer withholds secrets from a Monitor key."""
+
+    def _get(self, client: TestClient, path: str, key: str):
+        return client.get(f"{FILES_URL}/{path}", headers={"X-API-Key": key})
+
+    def test_monitor_gets_serverconfig_redacted(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """AC 3: Password is "[redacted]"; every other key is as for Admin."""
+        _write_config(config_file, {**sample_config, "Password": SECRET})
+
+        monitor = self._get(config_files_client, "serverconfig.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "serverconfig.json", TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert SECRET not in monitor.text
+        monitor_content = monitor.json()["data"]["content"]
+        admin_content = admin.json()["data"]["content"]
+        assert monitor_content["Password"] == "[redacted]"
+        assert admin_content["Password"] == SECRET
+        assert {k: v for k, v in monitor_content.items() if k != "Password"} == {
+            k: v for k, v in admin_content.items() if k != "Password"
+        }
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_unset_password_unchanged(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+        value: str | None,
+    ) -> None:
+        """AC 3: null and "" are returned as they are, to both roles."""
+        _write_config(config_file, {**sample_config, "Password": value})
+
+        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
+            response = self._get(config_files_client, "serverconfig.json", key)
+            assert response.json()["data"]["content"]["Password"] == value
+
+    @pytest.mark.parametrize(
+        "path",
+        ["ModConfig/copy.json", "serverconfig.backup.json", "serverconfig.tmp"],
+    )
+    def test_copies_are_redacted(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+        path: str,
+    ) -> None:
+        """AC 4: a copy under another name or directory is redacted too."""
+        copy = config_file.parent / path
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        _write_config(copy, {**sample_config, "Password": SECRET})
+
+        monitor = self._get(config_files_client, path, TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, path, TEST_ADMIN_KEY)
+
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"]["Password"] == "[redacted]"
+        assert admin.json()["data"]["content"] == {**sample_config, "Password": SECRET}
+
+    def test_every_letter_case_is_redacted(
+        self, config_files_client: TestClient, config_file: Path
+    ) -> None:
+        """AC 4: Password, password and PASSWORD are all redacted."""
+        path = config_file.parent / "cases.json"
+        _write_config(path, {"Password": "a1-x", "password": "b2-y", "PASSWORD": "c3-z"})
+
+        monitor = self._get(config_files_client, "cases.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "cases.json", TEST_ADMIN_KEY)
+
+        assert monitor.json()["data"]["content"] == {
+            "Password": "[redacted]",
+            "password": "[redacted]",
+            "PASSWORD": "[redacted]",
+        }
+        assert admin.json()["data"]["content"] == {
+            "Password": "a1-x",
+            "password": "b2-y",
+            "PASSWORD": "c3-z",
+        }
+
+    def test_nested_password_is_unchanged(
+        self, config_files_client: TestClient, config_file: Path
+    ) -> None:
+        """Only top-level keys are redacted (pins the documented limit)."""
+        _write_config(config_file.parent / "nested.json", {"Other": {"Password": "nested"}})
+
+        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
+            response = self._get(config_files_client, "nested.json", key)
+            assert response.json()["data"]["content"] == {"Other": {"Password": "nested"}}
+
+    def test_broken_serverconfig(
+        self, config_files_client: TestClient, config_file: Path
+    ) -> None:
+        """AC 4, 5: a file that does not parse returns its text to Admin only."""
+        config_file.write_text('{"Password": "' + SECRET + '", }')
+
+        monitor = self._get(config_files_client, "serverconfig.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "serverconfig.json", TEST_ADMIN_KEY)
+
+        assert SECRET not in monitor.text
+        monitor_content = monitor.json()["data"]["content"]
+        assert monitor_content["_raw"] == "[redacted]"
+        assert monitor_content["_parse_error"]
+        admin_content = admin.json()["data"]["content"]
+        assert SECRET in admin_content["_raw"]
+        assert admin_content["_parse_error"]
+
+    def test_game_log_is_withheld(
+        self, config_files_client: TestClient, config_file: Path
+    ) -> None:
+        """AC 4: a game log read through the viewer returns no text to Monitor."""
+        log = config_file.parent / "Logs" / "server-main.log"
+        log.parent.mkdir()
+        log.write_text(f"12:00:00 [Event] Handling /serverconfig password {SECRET}\n")
+
+        monitor = self._get(config_files_client, "Logs/server-main.log", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "Logs/server-main.log", TEST_ADMIN_KEY)
+
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"]["_raw"] == "[redacted]"
+        assert SECRET in admin.json()["data"]["content"]["_raw"]
+
+    @pytest.mark.parametrize("content", [[1, 2], "text"])
+    def test_arrays_and_strings_unchanged(
+        self, config_files_client: TestClient, config_file: Path, content: object
+    ) -> None:
+        """A JSON array or string file is returned as it is to both roles."""
+        (config_file.parent / "other.json").write_text(json.dumps(content))
+
+        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
+            response = self._get(config_files_client, "other.json", key)
+            assert response.json()["data"]["content"] == content
+
+    @pytest.mark.parametrize("key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    def test_no_store(self, config_files_client: TestClient, key: str) -> None:
+        """AC 7: the response is never cached, for either role."""
+        response = self._get(config_files_client, "serverconfig.json", key)
+
+        assert response.headers["Cache-Control"] == "no-store"
 
 
 class TestConfigFilePathTraversal:

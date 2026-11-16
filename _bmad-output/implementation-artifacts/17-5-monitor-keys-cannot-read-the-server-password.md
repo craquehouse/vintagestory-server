@@ -1,6 +1,6 @@
 # Story 17.5: Monitor Keys Can't Read the Server Password
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR186. Beads: VSS-qed. Security fix. Epic 17 ADR-4 governs this story (redact, do not restrict); the ADR's file viewer rule is widened, see Dev Notes "ADR against the code". Stacks on story/17-4-installed-status-is-right-everywhere. Line references were verified at commit 21457bf (the head of story/17-4 when this story was written) and must be re-checked before use: Stories 17.5-17.8 are implemented in order, each stacked on the previous. No new dependencies. Not in scope: secrets in other files beyond the rule in AC 4, Monitor's editable-looking fields on the settings page, the Monitor role's access to non-JSON files in general (see "Follow-ups"). -->
 
@@ -65,15 +65,15 @@ so that **I can hand out read-only access without handing out the password**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.5/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. Commit subjects are in Dev Notes "Git Intelligence": Task 1's is the security fix and is worded for the release notes. -->
 
-- [ ] Task 1: Monitor keys receive no secret from game settings or the config file viewer + tests (AC: 1, 2, 3, 4, 5, 6, 7 for the header)
-  - [ ] 1.1: `api/src/vintagestory_api/services/game_config.py` `ServerSetting` (`:37-83`): add `secret: bool = False` (attribute, constructor argument after `clear_command`, docstring: "the value is a secret: only the Admin role receives it (Story 17.5, FR186)"). Set `secret=True` on `Password` (`:119-126`) and on nothing else (Dev Notes "Which settings are secrets")
-  - [ ] 1.2: Same file, directly after `LIVE_SETTINGS` (`:192`): the constants and helpers in Dev Notes "The secret list and the helpers" (`REDACTED`, `SECRET_SETTING_KEYS`, `is_secret_key`, `has_secret_value`, `redact_secrets`). `SECRET_SETTING_KEYS` is derived from the `secret` flags, so the flag is the only place a secret is declared
-  - [ ] 1.3: `SettingInfo` (`:195-240`): add `secret: bool = False` and `configured: bool | None = None` (constructor, attributes, docstring). `to_dict`: `secret` is added as `True` only when set (like `requires_restart`, `:236-237`); `configured` is added only when it is not `None`
-  - [ ] 1.4: `GameConfigService.get_settings` (`:448-487`) becomes `get_settings(self, role: str | None = None)`. For a setting with `setting_def.secret`: when `role != UserRole.ADMIN`, `value` is `None` and `configured` is whether any key of the loaded config that equals the setting's key without regard to case has a value (`has_secret_value`); for Admin, `value` is read as today and `configured` stays `None`. Every `SettingInfo` gets `secret=setting_def.secret`. Docstring: redacted unless the Admin role is passed (ADR-4 decision 4). Import `UserRole` from `vintagestory_api.middleware.auth` (no cycle: that module imports only `config` and `models.errors`)
-  - [ ] 1.5: Same file, the two log guards `if key.lower() == "password":` (`:694`, `:759`) become `if setting_def.secret:` (`setting_def` is a parameter of both methods), so the log masking follows the same flag. Behavior is unchanged; `TestPasswordRedaction` (`tests/test_game_config.py:955`) still passes
-  - [ ] 1.6: `api/src/vintagestory_api/services/config_files.py` `read_file` (`:171-208`) becomes `read_file(self, filename: str, role: str | None = None)` as in Dev Notes "The file viewer". Move `import json` to the module top. Update the module docstring (`:1-12`) and the method docstring: what a role other than Admin receives
-  - [ ] 1.7: `api/src/vintagestory_api/routers/config.py`: `get_game_settings` (`:99-134`) and `read_config_file` (`:442-499`) name the dependency `role: RequireAuth` (today `_`), pass it to `service.get_settings(role)` / `service.read_file(filename, role)`, and take `response: Response` (import from `fastapi`) to set `response.headers["Cache-Control"] = "no-store"`. Update both docstrings (the "Both Admin and Monitor roles can access" sentences: Monitor receives secrets redacted) and the module docstring's endpoint list
-  - [ ] 1.8: Tests (Dev Notes "API tests", Task 1 rows), red first, including the raw-body assertions
+- [x] Task 1: Monitor keys receive no secret from game settings or the config file viewer + tests (AC: 1, 2, 3, 4, 5, 6, 7 for the header)
+  - [x] 1.1: `api/src/vintagestory_api/services/game_config.py` `ServerSetting` (`:37-83`): add `secret: bool = False` (attribute, constructor argument after `clear_command`, docstring: "the value is a secret: only the Admin role receives it (Story 17.5, FR186)"). Set `secret=True` on `Password` (`:119-126`) and on nothing else (Dev Notes "Which settings are secrets")
+  - [x] 1.2: Same file, directly after `LIVE_SETTINGS` (`:192`): the constants and helpers in Dev Notes "The secret list and the helpers" (`REDACTED`, `SECRET_SETTING_KEYS`, `is_secret_key`, `has_secret_value`, `redact_secrets`). `SECRET_SETTING_KEYS` is derived from the `secret` flags, so the flag is the only place a secret is declared
+  - [x] 1.3: `SettingInfo` (`:195-240`): add `secret: bool = False` and `configured: bool | None = None` (constructor, attributes, docstring). `to_dict`: `secret` is added as `True` only when set (like `requires_restart`, `:236-237`); `configured` is added only when it is not `None`
+  - [x] 1.4: `GameConfigService.get_settings` (`:448-487`) becomes `get_settings(self, role: str | None = None)`. For a setting with `setting_def.secret`: when `role != UserRole.ADMIN`, `value` is `None` and `configured` is whether any key of the loaded config that equals the setting's key without regard to case has a value (`has_secret_value`); for Admin, `value` is read as today and `configured` stays `None`. Every `SettingInfo` gets `secret=setting_def.secret`. Docstring: redacted unless the Admin role is passed (ADR-4 decision 4). Import `UserRole` from `vintagestory_api.middleware.auth` (no cycle: that module imports only `config` and `models.errors`)
+  - [x] 1.5: Same file, the two log guards `if key.lower() == "password":` (`:694`, `:759`) become `if setting_def.secret:` (`setting_def` is a parameter of both methods), so the log masking follows the same flag. Behavior is unchanged; `TestPasswordRedaction` (`tests/test_game_config.py:955`) still passes
+  - [x] 1.6: `api/src/vintagestory_api/services/config_files.py` `read_file` (`:171-208`) becomes `read_file(self, filename: str, role: str | None = None)` as in Dev Notes "The file viewer". Move `import json` to the module top. Update the module docstring (`:1-12`) and the method docstring: what a role other than Admin receives
+  - [x] 1.7: `api/src/vintagestory_api/routers/config.py`: `get_game_settings` (`:99-134`) and `read_config_file` (`:442-499`) name the dependency `role: RequireAuth` (today `_`), pass it to `service.get_settings(role)` / `service.read_file(filename, role)`, and take `response: Response` (import from `fastapi`) to set `response.headers["Cache-Control"] = "no-store"`. Update both docstrings (the "Both Admin and Monitor roles can access" sentences: Monitor receives secrets redacted) and the module docstring's endpoint list
+  - [x] 1.8: Tests (Dev Notes "API tests", Task 1 rows), red first, including the raw-body assertions
 
 - [ ] Task 2: Every other path checked for both roles + tests (AC: 7)
   - [ ] 2.1: Tests only (Dev Notes "API tests", Task 2 rows): the update endpoint, the two listing endpoints, and the default-redacted service calls. No source change is expected; if one of these tests fails, the path it covers is a leak: fix it in this task and add it to Dev Notes
@@ -395,13 +395,25 @@ ADR-4 is right about the bug and the decision. Two points are refined and one is
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Started from `story/17-7-mods-navigation` at 314d36d (Story 17.7 done), which stacks on Story 17.4. Story 17.7 changed only web mods navigation files, so every API line reference in the story (written at 21457bf) still matched; the web references (`GameConfigPanel.tsx`, `types.ts`, `SettingField.tsx`, `FileViewer.tsx`) were re-read before Task 3.
 
 ### Completion Notes List
 
 - Story created 2026-11-15: context analysis of `routers/config.py`, `services/game_config.py`, `services/config_files.py`, the auth and permission dependencies, every router and WebSocket for a path to the password, `SettingField`, `GameConfigPanel`, the file viewer components, the web key source (`/config.js`), the E2E specs' authentication, Story 16.8 and the reviews of 17.1-17.4. Task 1 was prototyped in the worktree and the API suite run against it (2525 passed, nothing broke); the helper code in Dev Notes was type-checked under pyright strict; the prototype was discarded.
+- Task 1: `ServerSetting.secret` (default `False`, `True` on `Password` only); `REDACTED`, `SECRET_SETTING_KEYS`, `is_secret_key`, `has_secret_value`, `redact_secrets` and the `TypeGuard` `_is_json_object` exactly as in Dev Notes; `SettingInfo` gained `secret`/`configured` (`to_dict` adds `secret: true` only when set, `configured` whenever it is not `None`). `get_settings(role=None)`: for a secret setting and any role but `UserRole.ADMIN`, `value` is `None` and `configured` is whether any key equal to `Password` without regard to case has a value; Admin reads `config.get(key)` as before. The two log guards now test `setting_def.secret`. `read_file(filename, role=None)` reads the file once, redacts top-level secret keys for any role but Admin, and returns `_raw: "[redacted]"` (with `_parse_error`) for a file that does not parse; `import json` is at the module top. Both routes take `role: RequireAuth` and `response: Response`, pass the role on and set `Cache-Control: no-store` (successful responses; the 404/400 error bodies carry no content). Tests: `test_game_config.py` (`TestServerSettingModel` 2 new, `TestSecretHelpers`, `TestSettingInfoSecretFields`, `TestGetSettingsSecrets`: roles `None`, `"monitor"`, `""`, `"ADMIN"`, `"Admin"`, `"someone"` redacted, only `"admin"` not; `null`/`""`/missing; lower-case `password`; other settings equal for both roles), `test_config_files.py` (`test_read_file_invalid_json` split into the Admin and no-role cases; `TestReadFileSecrets`: `serverconfig.json`, `./serverconfig.json`, `ModConfig/../serverconfig.json` and a symlink, for the same roles; unset values; a broken file), `test_routers_config.py` (`TestGetGameSettingsSecrets`, `TestReadConfigFileSecrets`: every row of the Task 1 table, raw-body `SECRET not in response.text`, `no-store` for both keys). Red first: the router tests failed (17) and the service test modules did not import. The three files: 270 passed; ruff clean; pyright 0 errors, the 3 pre-existing warnings.
 
 ### File List
+
+- `api/src/vintagestory_api/services/game_config.py`
+- `api/src/vintagestory_api/services/config_files.py`
+- `api/src/vintagestory_api/routers/config.py`
+- `api/tests/test_game_config.py`
+- `api/tests/test_config_files.py`
+- `api/tests/test_routers_config.py`
 
 ## Change Log
 

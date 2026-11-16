@@ -4,6 +4,7 @@ This service provides read and update operations for game server settings
 via console commands (live updates) or file updates (restart-required settings).
 
 Story 6.2: Game Settings API
+Story 17.5: secret settings (Password) are withheld from every role but Admin (FR186)
 """
 
 from __future__ import annotations
@@ -12,11 +13,12 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 
 import structlog
 
 from vintagestory_api.config import Settings
+from vintagestory_api.middleware.auth import UserRole
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.config_init import ENV_VAR_MAP, parse_env_value
 
@@ -45,6 +47,7 @@ class ServerSetting:
     bool_format: BoolFormat
     nullable: bool
     clear_command: str | None
+    secret: bool
 
     def __init__(
         self,
@@ -56,6 +59,7 @@ class ServerSetting:
         bool_format: BoolFormat = "true_false",
         nullable: bool = False,
         clear_command: str | None = None,
+        secret: bool = False,
     ) -> None:
         """Initialize a server setting definition.
 
@@ -72,6 +76,8 @@ class ServerSetting:
             clear_command: Console command (no {value}) that clears the setting while
                 the server runs. Without one, clearing a live setting writes the file
                 and requires a restart.
+            secret: The value is a secret: only the Admin role receives it (Story 17.5,
+                FR186).
         """
         self.key = key
         self.value_type = value_type
@@ -81,6 +87,7 @@ class ServerSetting:
         self.bool_format = bool_format
         self.nullable = nullable
         self.clear_command = clear_command
+        self.secret = secret
 
 
 # Settings that support live updates via console commands
@@ -123,6 +130,7 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         live_update=True,
         nullable=True,
         clear_command="/serverconfig nopassword",
+        secret=True,
     ),
     "AllowPvP": ServerSetting(
         key="AllowPvP",
@@ -191,6 +199,45 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
     ),
 }
 
+REDACTED = "[redacted]"
+"""What a role other than Admin receives in place of a secret value in a config file (FR186)."""
+
+SECRET_SETTING_KEYS: frozenset[str] = frozenset(
+    key for key, setting in LIVE_SETTINGS.items() if setting.secret
+)
+"""Keys of serverconfig.json whose values only the Admin role receives (Story 17.5)."""
+
+_SECRET_KEYS_FOLDED = frozenset(key.casefold() for key in SECRET_SETTING_KEYS)
+
+
+def _is_json_object(value: object) -> TypeGuard[dict[str, Any]]:
+    """Whether parsed JSON is an object. `json.loads` only builds dicts with string keys."""
+    return isinstance(value, dict)
+
+
+def is_secret_key(key: str) -> bool:
+    """Whether a config key names a secret setting, in any letter case."""
+    return key.casefold() in _SECRET_KEYS_FOLDED
+
+
+def has_secret_value(value: object) -> bool:
+    """Whether a secret is set: anything but null and the empty string."""
+    return value is not None and value != ""
+
+
+def redact_secrets(content: object) -> object:
+    """Parsed JSON with the value of every top-level secret key replaced by REDACTED.
+
+    Only an object is changed, and only its own keys; null and "" stay, since they
+    hold no secret.
+    """
+    if not _is_json_object(content):
+        return content
+    return {
+        key: REDACTED if is_secret_key(key) and has_secret_value(value) else value
+        for key, value in content.items()
+    }
+
 
 class SettingInfo:
     """Information about a single server setting."""
@@ -204,6 +251,8 @@ class SettingInfo:
         requires_restart: bool,
         env_managed: bool,
         env_var: str | None = None,
+        secret: bool = False,
+        configured: bool | None = None,
     ) -> None:
         """Initialize setting info.
 
@@ -215,6 +264,10 @@ class SettingInfo:
             requires_restart: Whether this setting requires server restart.
             env_managed: Whether this setting is managed by an environment variable.
             env_var: The environment variable name if env_managed is True.
+            secret: Whether the value is a secret that only the Admin role receives
+                (Story 17.5).
+            configured: Set only when a secret value was withheld: whether the secret
+                is set. None when the value is included.
         """
         self.key = key
         self.value = value
@@ -223,6 +276,8 @@ class SettingInfo:
         self.requires_restart = requires_restart
         self.env_managed = env_managed
         self.env_var = env_var
+        self.secret = secret
+        self.configured = configured
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API response."""
@@ -237,6 +292,10 @@ class SettingInfo:
             result["requires_restart"] = True
         if self.env_var:
             result["env_var"] = self.env_var
+        if self.secret:
+            result["secret"] = True
+        if self.configured is not None:
+            result["configured"] = self.configured
         return result
 
 
@@ -445,8 +504,16 @@ class GameConfigService:
         stat = self.config_path.stat()
         return datetime.fromtimestamp(stat.st_mtime, tz=UTC)
 
-    def get_settings(self) -> SettingsResponse:
+    def get_settings(self, role: str | None = None) -> SettingsResponse:
         """Get all managed settings with metadata.
+
+        Secret settings (Story 17.5, FR186) are redacted unless the Admin role is
+        passed (Epic 17 ADR-4 decision 4): their value is None and `configured` says
+        whether the secret is set. The Admin role receives the value.
+
+        Args:
+            role: The caller's role. Only UserRole.ADMIN receives secret values; any
+                other value, None included, receives the redacted form.
 
         Returns:
             SettingsResponse containing all settings with type, live_update, and env_managed info.
@@ -457,10 +524,18 @@ class GameConfigService:
         config = self._load_config()
         last_modified = self._get_config_mtime()
 
+        reveal_secrets = role == UserRole.ADMIN
         settings_list: list[SettingInfo] = []
 
         for key, setting_def in LIVE_SETTINGS.items():
             value = config.get(key)
+            configured: bool | None = None
+            if setting_def.secret and not reveal_secrets:
+                folded = key.casefold()
+                configured = any(
+                    has_secret_value(v) for k, v in config.items() if k.casefold() == folded
+                )
+                value = None
             env_var = self._get_env_var_for_setting(key)
 
             setting_info = SettingInfo(
@@ -471,6 +546,8 @@ class GameConfigService:
                 requires_restart=setting_def.requires_restart,
                 env_managed=env_var is not None,
                 env_var=env_var,
+                secret=setting_def.secret,
+                configured=configured,
             )
             settings_list.append(setting_info)
 
@@ -690,8 +767,8 @@ class GameConfigService:
             command = setting_def.console_command.format(value=formatted_value)
 
         # Execute command
-        # Don't log password values
-        if key.lower() == "password":
+        # Don't log secret values (Story 17.5: follows the secret flag)
+        if setting_def.secret:
             logger.info("executing_console_command", key=key, value="***")
         else:
             logger.info("executing_console_command", key=key, value=formatted_value)
@@ -755,8 +832,8 @@ class GameConfigService:
                     f"Setting '{key}' changed - requires server restart"
                 )
 
-            # Don't log password values
-            if key.lower() == "password":
+            # Don't log secret values (Story 17.5: follows the secret flag)
+            if setting_def.secret:
                 logger.info(
                     "setting_updated",
                     key=key,
