@@ -2,6 +2,7 @@
 
 import math
 from dataclasses import asdict
+from functools import partial
 from typing import Annotated, Any, Literal
 
 import structlog
@@ -38,6 +39,7 @@ from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModAlreadyInstalledError,
     ModConfirmationRequiredError,
+    ModFileConflictError,
     ModNotFoundError,
     ModOperationInProgressError,
     ModService,
@@ -156,12 +158,15 @@ async def apply_all_mod_updates(
 
     Not verified offers are skipped for individual review; a mod that fails does not stop
     the others. Each result is `updated`, `skipped` (with reasons) or `failed` (with error).
+    Each completed change stores that mod's update record from its own lookup (Story 18.2).
 
     Raises:
         HTTPException: 409 if update all is already running.
     """
     try:
-        summary = await update_service.apply_all(mod_service.change_version)
+        summary = await update_service.apply_all(
+            partial(mod_service.change_version, record_releases=update_service.record_releases)
+        )
     except ModUpdateAllInProgressError:
         raise HTTPException(
             status_code=409,
@@ -696,6 +701,8 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 409 if a file with the download's name (or its .disabled form) is
+            already in the mods directory or the mod state
         HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
@@ -721,6 +728,15 @@ async def install_mod(
                 "filename": result.filename,
                 "compatibility": result.compatibility,
                 "pending_restart": result.pending_restart,
+            },
+        )
+
+    except ModFileConflictError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_CONFLICT,
+                "message": str(e),
             },
         )
 
@@ -1037,15 +1053,22 @@ async def change_mod_version(
     _: RequireAdmin,
     slug: str = Path(..., description="Installed mod's modid"),
     service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
 ) -> ApiResponse:
     """Update or roll back an installed mod to a listed release (Admin only).
 
     The installed file is only replaced after the new release is validated; any
     failure leaves the mod unchanged. Returns 409 if another operation on this mod is
-    in progress.
+    in progress. A completed change stores the mod's update record from its own lookup,
+    so its update status shows without waiting for the next check (Story 18.2).
     """
     try:
-        result = await service.change_version(slug, request.version, confirm=request.confirm)
+        result = await service.change_version(
+            slug,
+            request.version,
+            confirm=request.confirm,
+            record_releases=update_service.record_releases,
+        )
     except ModNotFoundError as e:
         raise _version_change_error(404, ErrorCode.MOD_NOT_INSTALLED, e) from None
     except ApiModNotFoundError as e:

@@ -403,6 +403,54 @@ class TestInstallModEndpoint:
         assert data["detail"]["code"] == "MOD_ALREADY_INSTALLED"
         assert "1.0.0" in data["detail"]["message"]
 
+    @respx.mock
+    def test_install_refuses_a_file_name_another_mod_uses(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """Story 18.2 AC 1: 409 MOD_FILE_CONFLICT; the other mod's file is untouched."""
+        other = temp_data_dir / "mods" / "smithingplus_1.8.3.zip"
+        other.write_bytes(
+            create_mod_zip_bytes({"modid": "othermod", "name": "Other", "version": "2.0.0"})
+        )
+        other_bytes = other.read_bytes()
+        mod_service.state_manager.sync_state_with_disk()
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+        )
+        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+            return_value=Response(
+                200,
+                content=create_mod_zip_bytes(
+                    {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+                ),
+            )
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods", json={"slug": "smithingplus"}, headers=admin_headers
+        )
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_FILE_CONFLICT",
+                "message": (
+                    "Cannot install 'smithingplus': a file named smithingplus_1.8.3.zip "
+                    "already exists in the mods directory."
+                ),
+            }
+        }
+        assert other.read_bytes() == other_bytes
+        installed = client.get("/api/v1alpha1/mods", headers=admin_headers)
+        assert [m["slug"] for m in installed.json()["data"]["mods"]] == ["othermod"]
+        updates = client.get("/api/v1alpha1/mods/updates", headers=admin_headers)
+        assert "smithingplus" not in {m["slug"] for m in updates.json()["data"]["mods"]}
+        assert not (temp_data_dir / "state" / "mod-updates.json").exists()
+
     def test_install_mod_requires_admin(self, client: TestClient) -> None:
         """POST /mods requires Admin role."""
         response = client.post(

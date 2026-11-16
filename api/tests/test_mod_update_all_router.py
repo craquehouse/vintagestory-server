@@ -200,3 +200,135 @@ class TestApplyAllEndpoint:
 
     def test_requires_authentication(self, client: TestClient) -> None:
         assert client.post(URL).status_code == 401
+
+
+DEMO_URL = "https://mods.vintagestory.at/api/mod/demo"
+SEEDED_AT = datetime(2026, 11, 9, tzinfo=UTC)
+
+
+def demo() -> dict[str, Any]:
+    """A mod database entry for `demo`: 1.2.0-rc.1 (newest), 1.1.0 and 1.0.0."""
+    return {
+        "statuscode": "200",
+        "mod": {
+            "assetid": 2,
+            "releases": [
+                {
+                    "modversion": version,
+                    "modidstr": "demo",
+                    "fileid": fileid,
+                    "filename": f"demo-{version}.zip",
+                    "tags": ["1.22.7"],
+                }
+                for version, fileid in (("1.2.0-rc.1", 32), ("1.1.0", 31), ("1.0.0", 30))
+            ],
+        },
+    }
+
+
+class TestApplyAllStoresEachChangesRecord:
+    """Story 18.2 AC 10 (FR200, Epic 18 ADR-5)."""
+
+    @pytest.fixture
+    def seeded(
+        self, mod_service: ModService, update_service: ModUpdateService
+    ) -> dict[str, StoredModRecord]:
+        """`demo` 1.0.0 installed beside carryon; both records still offer an update."""
+        path = mod_service.state_manager.mods_dir / "demo-1.0.0.zip"
+        path.write_bytes(zip_bytes({"modid": "demo", "name": "Demo", "version": "1.0.0"}))
+        mod_service.state_manager.set_mod_state(
+            path.name,
+            ModState(
+                filename=path.name,
+                slug="demo",
+                version="1.0.0",
+                enabled=True,
+                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        mod_service.state_manager.save()
+        records = {
+            "carryon": StoredModRecord(
+                checked_at=SEEDED_AT,
+                found=True,
+                releases=[
+                    StoredRelease.from_api(r)
+                    for r in carryon()["mod"]["releases"]
+                    if r["modidstr"] == "carryon" and r["modversion"] in ("1.14.3", "1.14.1")
+                ],
+            ),
+            "demo": StoredModRecord(
+                checked_at=SEEDED_AT,
+                found=True,
+                releases=[StoredRelease.from_api(r) for r in demo()["mod"]["releases"][1:]],
+            ),
+        }
+        for slug, record in records.items():
+            update_service.store.set(slug, record)
+        return records
+
+    def mock_lookups(self, *, demo_download: Response) -> None:
+        carryon_release = next(
+            r for r in carryon()["mod"]["releases"] if r["modversion"] == "1.14.3"
+        )
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        respx.get(DOWNLOAD_URL, params={"fileid": str(carryon_release["fileid"])}).mock(
+            return_value=Response(
+                200, content=zip_bytes({"modid": "carryon", "name": "x", "version": "1.14.3"})
+            )
+        )
+        respx.get(DEMO_URL).mock(return_value=Response(200, json=demo()))
+        respx.get(DOWNLOAD_URL, params={"fileid": "31"}).mock(return_value=demo_download)
+
+    @respx.mock
+    def test_each_changed_mod_stores_its_own_lookup(
+        self,
+        client: TestClient,
+        update_service: ModUpdateService,
+        seeded: dict[str, StoredModRecord],
+    ) -> None:
+        self.mock_lookups(
+            demo_download=Response(
+                200, content=zip_bytes({"modid": "demo", "name": "Demo", "version": "1.1.0"})
+            )
+        )
+
+        response = client.post(URL, headers=ADMIN)
+
+        assert response.status_code == 200
+        outcomes = {r["slug"]: r["outcome"] for r in response.json()["data"]["results"]}
+        assert outcomes == {"carryon": "updated", "demo": "updated"}
+        stored_carryon = update_service.store.get("carryon")
+        stored_demo = update_service.store.get("demo")
+        assert stored_carryon is not None
+        assert stored_demo is not None
+        assert stored_carryon.releases == [
+            StoredRelease.from_api(r) for r in carryon()["mod"]["releases"]
+        ]
+        assert stored_demo.releases == [
+            StoredRelease.from_api(r) for r in demo()["mod"]["releases"]
+        ]
+        assert stored_carryon.checked_at > SEEDED_AT
+        assert stored_demo.checked_at > SEEDED_AT
+
+    @respx.mock
+    def test_a_failed_mod_keeps_its_record(
+        self,
+        client: TestClient,
+        update_service: ModUpdateService,
+        seeded: dict[str, StoredModRecord],
+    ) -> None:
+        self.mock_lookups(demo_download=Response(500))
+
+        response = client.post(URL, headers=ADMIN)
+
+        assert response.status_code == 200
+        outcomes = {r["slug"]: r["outcome"] for r in response.json()["data"]["results"]}
+        assert outcomes == {"carryon": "updated", "demo": "failed"}
+        assert update_service.store.get("demo") == seeded["demo"]
+        stored_carryon = update_service.store.get("carryon")
+        assert stored_carryon is not None
+        assert stored_carryon.releases == [
+            StoredRelease.from_api(r) for r in carryon()["mod"]["releases"]
+        ]
+        assert stored_carryon.checked_at > SEEDED_AT

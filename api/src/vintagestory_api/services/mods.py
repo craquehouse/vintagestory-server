@@ -188,6 +188,18 @@ class ModOperationInProgressError(Exception):
         )
 
 
+class ModFileConflictError(Exception):
+    """Raised when an install's file name is already in use (Story 18.2, Epic 18 ADR-4)."""
+
+    def __init__(self, slug: str, filename: str) -> None:
+        self.slug = slug
+        self.filename = filename
+        super().__init__(
+            f"Cannot install '{slug}': a file named {filename} "
+            "already exists in the mods directory."
+        )
+
+
 class ModVersionChangeFailedError(Exception):
     """Raised when placing the new file or updating state fails; the change is rolled back."""
 
@@ -217,6 +229,9 @@ class PreparedVersionChange:
     target: StoredRelease
     archive: Path
     compatibility: CompatibilityStatus
+    releases: list[StoredRelease]
+    """Every release of the mod database entry, newest first, from the change's lookup;
+    internal, never serialized (Epic 18 ADR-5)."""
 
 
 @dataclass
@@ -910,7 +925,12 @@ class ModService:
             logger.debug("mod_api_client_closed")
 
     async def change_version(
-        self, slug: str, version: str, *, confirm: bool = False
+        self,
+        slug: str,
+        version: str,
+        *,
+        confirm: bool = False,
+        record_releases: Callable[[str, list[StoredRelease]], None] | None = None,
     ) -> VersionChangeResult:
         """Move an installed mod to another listed release: update or rollback (ADR-2).
 
@@ -919,6 +939,10 @@ class ModService:
 
         Holds the mod's lock (Epic 17 ADR-3) for the whole call, so no other operation on
         the mod can run during the lookup and the download.
+
+        A completed change hands its lookup's releases to `record_releases`, under the
+        mod's lock (Story 18.2, Epic 18 ADR-5). The same-version return and every raise
+        never call it. The recorder must not raise.
 
         Raises:
             ModOperationInProgressError: An install or version change is running for this mod.
@@ -943,6 +967,8 @@ class ModService:
 
             prepared = await self._prepare_version_change(slug, version, confirm=confirm)
             filename = self._apply_version_change(state, prepared)
+            if record_releases is not None:
+                record_releases(slug, prepared.releases)
 
             pending_restart = False
             if self._server_running:
@@ -1107,7 +1133,9 @@ class ModService:
             raise ModConfirmationRequiredError(slug, version, reasons, compatibility)
 
         archive = await self._acquire_release_archive(slug, target)
-        return PreparedVersionChange(target=target, archive=archive, compatibility=compatibility)
+        return PreparedVersionChange(
+            target=target, archive=archive, compatibility=compatibility, releases=releases
+        )
 
     async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
         """Return a validated archive for the release: a valid cached copy, or a download."""
@@ -1180,6 +1208,8 @@ class ModService:
                 requested slug, the install mod ID or the archive's mod ID.
             ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
                 or the archive's mod ID) is already installed.
+            ModFileConflictError: If the download's file name, or its .disabled form, is
+                already in the mods directory or the mod state (Epic 18 ADR-4).
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1240,9 +1270,25 @@ class ModService:
     ) -> InstallResult:
         """Copy a downloaded archive into the mods directory, import it and save state.
 
+        Refuses before writing anything when the download's file name, or its .disabled
+        form, is already in the mods directory or the mod state (Epic 18 ADR-4), so an
+        install never replaces another mod's file and its cleanup never removes one.
+
         Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
         and no other operation may run between that check and the state save.
+
+        Raises:
+            ModFileConflictError: The file name, or its .disabled form, is in use.
         """
+        name = download_result.filename
+        mods_dir = self._state_manager.mods_dir
+        for candidate in (name, f"{name}.disabled"):
+            if (
+                (mods_dir / candidate).exists(follow_symlinks=False)
+                or self._state_manager.get_mod(candidate) is not None
+            ):
+                raise ModFileConflictError(slug, candidate)
+
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
