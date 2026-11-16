@@ -2097,9 +2097,9 @@ describe('ModTable', () => {
     describe('sort control below lg (Story 18.4)', () => {
       beforeAll(() => {
         // Radix Select needs these in jsdom
-        Element.prototype.hasPointerCapture = vi.fn(() => false);
-        Element.prototype.releasePointerCapture = vi.fn();
-        Element.prototype.scrollIntoView = vi.fn();
+        Element.prototype.hasPointerCapture ??= () => false;
+        Element.prototype.releasePointerCapture ??= () => {};
+        Element.prototype.scrollIntoView ??= () => {};
       });
 
       function renderAtWidth(width: number) {

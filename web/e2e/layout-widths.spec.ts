@@ -382,6 +382,7 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
       await openTable(page, 1024, collapsed, SHORT_MODS);
 
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expectInsideViewport(page, 'mod-toggle-shortmod', 1024);
       await expectInsideViewport(page, 'mod-remove-shortmod', 1024);
     });
 
