@@ -20,8 +20,9 @@ Config Files (6.5):
 - GET /config/files/{filename} - Read raw config file content (read-only; secrets,
   and the text of files that are not valid JSON, for Admin only)
 
-Both read endpoints answer with Cache-Control: no-store, since what they return
-depends on the key's role.
+Both read endpoints answer with Cache-Control: no-store, error responses included,
+since what they return depends on the key's role. An unhandled error (500) carries
+only "Internal Server Error", without the header.
 """
 
 from typing import Annotated, Any
@@ -57,6 +58,10 @@ router = APIRouter(prefix="/config", tags=["Config"])
 
 # Type alias for authenticated user (Admin or Monitor)
 RequireAuth = Annotated[str, Depends(get_current_user)]
+
+# Story 17.5: the two read endpoints answer depending on the key's role, so no response
+# of theirs, error responses included, may be cached
+NO_STORE = {"Cache-Control": "no-store"}
 
 
 class SettingUpdateRequest(BaseModel):
@@ -118,7 +123,7 @@ async def get_game_settings(
     Both Admin and Monitor roles can access this read-only endpoint. Monitor
     receives secret settings (Password) redacted: `value` is null, `secret` is
     true and `configured` says whether the secret is set (Story 17.5, FR186).
-    The response is never cached (Cache-Control: no-store).
+    The response, an error included, is never cached (Cache-Control: no-store).
 
     Returns:
         ApiResponse with data containing:
@@ -130,7 +135,7 @@ async def get_game_settings(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if serverconfig.json not found
     """
-    response.headers["Cache-Control"] = "no-store"
+    response.headers.update(NO_STORE)
     try:
         settings = service.get_settings(role)
         return ApiResponse(status="ok", data=settings.to_dict())
@@ -141,6 +146,7 @@ async def get_game_settings(
                 "code": ErrorCode.CONFIG_NOT_FOUND,
                 "message": "Server configuration file not found. Start the server first.",
             },
+            headers=NO_STORE,
         )
 
 
@@ -476,7 +482,7 @@ async def read_config_file(
     receives secrets redacted: top-level secret keys (Password, any letter case)
     with a value are "[redacted]", and a file that is not valid JSON has
     `_raw: "[redacted]"` instead of its text (Story 17.5, FR186). The response is
-    never cached (Cache-Control: no-store).
+    never cached (Cache-Control: no-store), an error response included.
 
     Args:
         filename: Name of the file to read (must be in serverdata directory).
@@ -491,7 +497,7 @@ async def read_config_file(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if file not found
     """
-    response.headers["Cache-Control"] = "no-store"
+    response.headers.update(NO_STORE)
     try:
         result = service.read_file(filename, role)
         return ApiResponse(status="ok", data=result)
@@ -503,6 +509,7 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_PATH_INVALID,
                 "message": e.message,
             },
+            headers=NO_STORE,
         )
 
     except ConfigFileNotFoundError as e:
@@ -512,4 +519,5 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_FILE_NOT_FOUND,
                 "message": e.message,
             },
+            headers=NO_STORE,
         )

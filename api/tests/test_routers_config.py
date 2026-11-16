@@ -405,6 +405,16 @@ class TestGetGameSettingsConfigNotFound:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.CONFIG_NOT_FOUND
 
+    @pytest.mark.parametrize("key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    def test_404_is_not_cached(self, app_without_config: FastAPI, key: str) -> None:
+        """Story 17.5 (AC 7, review L1): the error response is not cached either."""
+        client = TestClient(app_without_config)
+
+        response = client.get("/api/v1alpha1/config/game", headers={"X-API-Key": key})
+
+        assert response.status_code == 404
+        assert response.headers["Cache-Control"] == "no-store"
+
 
 # ==============================================================================
 # POST /config/game/settings/{key} endpoint tests (AC: 2, 3, 4, 5)
@@ -1508,6 +1518,20 @@ class TestReadConfigFileSecrets:
         """AC 7: the response is never cached, for either role."""
         response = self._get(config_files_client, "serverconfig.json", key)
 
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    @pytest.mark.parametrize(
+        ("path", "status"),
+        [("nonexistent.json", 404), ("/etc/passwd", 400)],
+    )
+    def test_errors_are_not_cached(
+        self, config_files_client: TestClient, key: str, path: str, status: int
+    ) -> None:
+        """AC 7 (review L1): a 404 and a 400 are not cached either, for either role."""
+        response = self._get(config_files_client, path, key)
+
+        assert response.status_code == status
         assert response.headers["Cache-Control"] == "no-store"
 
 
