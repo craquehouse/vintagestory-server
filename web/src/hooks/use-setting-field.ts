@@ -135,6 +135,13 @@ export interface UseSettingFieldOptions<T> {
    * Whether the field is disabled (e.g., env-managed).
    */
   disabled?: boolean;
+
+  /**
+   * Return to the initial value when a save fails (Story 17.6 review). For a switch,
+   * whose position is the value: a failed save must not leave it showing a state that
+   * was never saved. Text and number fields leave it off and keep the typed input.
+   */
+  revertOnError?: boolean;
 }
 
 /**
@@ -222,7 +229,8 @@ export interface UseSettingFieldReturn<T> {
 export function useSettingField<T extends string | number | boolean>(
   options: UseSettingFieldOptions<T>
 ): UseSettingFieldReturn<T> {
-  const { initialValue, settingKey, validate, onSave, disabled } = options;
+  const { initialValue, settingKey, validate, onSave, disabled, revertOnError = false } =
+    options;
 
   // Track the initial value so we can detect changes
   const initialRef = useRef(initialValue);
@@ -279,10 +287,13 @@ export function useSettingField<T extends string | number | boolean>(
           ? err.message
           : 'Failed to save setting';
       setError(message);
+      if (revertOnError) {
+        setValueState(initialRef.current);
+      }
     } finally {
       setIsPending(false);
     }
-  }, [disabled, validate, value, onSave, settingKey]);
+  }, [disabled, validate, value, onSave, settingKey, revertOnError]);
 
   const reset = useCallback(() => {
     setValueState(initialRef.current);

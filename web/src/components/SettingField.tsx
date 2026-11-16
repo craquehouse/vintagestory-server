@@ -134,6 +134,9 @@ export function SettingField({
     validate,
     onSave,
     disabled: envManaged,
+    // Story 17.6 review: a switch that failed to save goes back to the stored state
+    // (for a setting with no value, the default or "Not set"); typed text is kept
+    revertOnError: type === 'bool',
   });
 
   const isDisabled = envManaged || field.isPending;
@@ -141,7 +144,8 @@ export function SettingField({
 
   // Story 17.6: a boolean with no value whose switch has not been moved from the
   // position it started in. Once switched, the label is the plain switch state (the
-  // optimistic cache write then gives the setting its value).
+  // optimistic cache write then gives the setting its value); a failed save puts the
+  // switch back (revertOnError), so the label returns to the default or "Not set".
   const isUnset = type === 'bool' && value === null && field.value === initialValue;
   const boolStateLabel = !isUnset
     ? Boolean(field.value)

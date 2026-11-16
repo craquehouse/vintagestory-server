@@ -696,6 +696,53 @@ describe('SettingField', () => {
       expect(stateLabel()).toHaveTextContent(/^Enabled$/);
     });
 
+    it('returns to "Enabled (default)" when the save fails (review M1)', async () => {
+      const onSave = vi
+        .fn<SettingFieldProps['onSave']>()
+        .mockRejectedValue(new Error('Save failed'));
+      render(
+        <SettingField
+          settingKey="EntitySpawning"
+          label="Entity Spawning"
+          value={null}
+          type="bool"
+          gameDefault={true}
+          onSave={onSave}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('switch'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Save failed');
+      });
+      expect(screen.getByRole('switch')).toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Enabled \(default\)$/);
+    });
+
+    it('returns to "Not set" when the save fails (review M1)', async () => {
+      const onSave = vi
+        .fn<SettingFieldProps['onSave']>()
+        .mockRejectedValue(new Error('Save failed'));
+      render(
+        <SettingField
+          settingKey="EntitySpawning"
+          label="Entity Spawning"
+          value={null}
+          type="bool"
+          onSave={onSave}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('switch'));
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Save failed');
+      });
+      expect(screen.getByRole('switch')).not.toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Not set$/);
+    });
+
     it('ignores the default when the setting has a value', () => {
       render(
         <SettingField
@@ -710,6 +757,42 @@ describe('SettingField', () => {
 
       expect(screen.getByRole('switch')).toBeChecked();
       expect(stateLabel()).toHaveTextContent(/^Enabled$/);
+    });
+  });
+
+  describe('a failed save (review M1)', () => {
+    it('keeps the typed text in a text field', async () => {
+      const onSave = vi
+        .fn<SettingFieldProps['onSave']>()
+        .mockRejectedValue(new Error('Save failed'));
+      render(<SettingField {...defaultProps} onSave={onSave} />);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'Typed Name' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Save failed');
+      });
+      expect(input).toHaveValue('Typed Name');
+    });
+
+    it('keeps the typed number in a number field', async () => {
+      const onSave = vi
+        .fn<SettingFieldProps['onSave']>()
+        .mockRejectedValue(new Error('Save failed'));
+      render(
+        <SettingField settingKey="Port" label="Port" value={42420} type="int" onSave={onSave} />
+      );
+
+      const input = screen.getByRole('spinbutton');
+      fireEvent.change(input, { target: { value: '42421' } });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Save failed');
+      });
+      expect(input).toHaveValue(42421);
     });
   });
 });
