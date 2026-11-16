@@ -5,6 +5,7 @@
  * ("Up to date", "No compatible update", "Not checked yet", "Unknown") with the reason
  * as a tooltip. Story 17.4: a mod with no stored update data (`not_checked`) says
  * "Not checked yet" rather than "Unknown".
+ * Story 18.4: the Update button wraps under the version when the column is narrow.
  */
 
 import { Loader2 } from 'lucide-react';
@@ -57,7 +58,10 @@ export function ModUpdateCell({
   switch (status?.status) {
     case 'update_available':
       return (
-        <div className="flex items-center gap-2" data-testid={`mod-update-${slug}`}>
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1"
+          data-testid={`mod-update-${slug}`}
+        >
           <span className="text-sm">
             v{status.offeredVersion}
             {status.offeredPrerelease && (

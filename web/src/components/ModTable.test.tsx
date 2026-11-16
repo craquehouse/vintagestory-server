@@ -331,6 +331,33 @@ describe('ModTable', () => {
     });
   });
 
+  // Story 18.4 (FR204): the Name column wraps so the table fits its container at 1024px
+  describe('long names (Story 18.4)', () => {
+    it('lets the Name header and cells wrap, with a minimum width, and leaves the others on one line', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockModsResponse),
+      });
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await screen.findByTestId('mod-table');
+      const nameHeader = screen.getAllByRole('columnheader')[0];
+      expect(nameHeader).toHaveTextContent('Name');
+      const nameCells = screen
+        .getAllByTestId(/^mod-row-/)
+        .map((row) => row.querySelector('td'));
+      expect(nameCells).toHaveLength(2);
+      for (const element of [nameHeader, ...nameCells]) {
+        expect(element).toHaveClass('whitespace-normal', 'wrap-anywhere', 'min-w-36');
+        expect(element).not.toHaveClass('whitespace-nowrap');
+      }
+      const versionCell = screen.getByTestId('mod-row-smithingplus').querySelectorAll('td')[1];
+      expect(versionCell).toHaveTextContent('v1.5.0');
+      expect(versionCell).toHaveClass('whitespace-nowrap');
+    });
+  });
+
   describe('enable/disable toggle (AC: 7)', () => {
     it('toggles enabled state when switch is clicked', async () => {
       const disableFetch = vi.fn().mockResolvedValue({
