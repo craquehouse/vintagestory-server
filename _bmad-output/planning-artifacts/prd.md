@@ -11,8 +11,10 @@ documentCounts:
   research: 0
   brainstorming: 1
   projectDocs: 1
-lastUpdated: '2026-11-15'
+lastUpdated: '2026-11-16'
 updates:
+  - date: '2026-11-16'
+    description: 'Added FR194-FR204 for Epic 18 (Mod Media and Fixes)'
   - date: '2026-11-15'
     description: 'Added FR177-FR193 for Epic 17 (Mod Data Correctness and Fixes)'
   - date: '2026-11-13'
@@ -693,3 +695,28 @@ If trivial to implement:
 - FR191: At tablet widths (768-1023px) the installed mods list fits the screen without horizontal scrolling
 - FR192: On phones, the Settings tab list does not make the page scroll horizontally
 - FR193: On wide screens, the Game Settings title row is aligned with the centered settings panel
+
+### Epic 18: Mod Media and Fixes
+
+#### Mod Detail Page
+
+- FR194: The mod detail page shows the mod's screenshots from the mod database as a gallery with thumbnails, previous and next, and a larger view; the gallery is hidden when the mod has no screenshots
+- FR195: The gallery works with the keyboard and on touch screens, gives each image alt text from its file name, loads images lazily, and fits phone widths in the light and dark themes
+- FR196: A mod with a trailer video has a link on its detail page that opens the trailer in a new tab; no video player is embedded
+- FR197: The API passes on only screenshot URLs that use https on the mod database's image host, and only trailer URLs that name a YouTube video; anything else is left out and never fails the lookup
+- FR198: Links in a mod description are marked as opening in a new tab, visibly and for screen readers
+
+#### Install and Version Change
+
+- FR199: Installing a mod whose file name is already used in the mods directory, enabled or disabled, is refused with 409 and changes no file and no state
+- FR200: After a version change, the mod's stored update record comes from that change's own lookup, so the Installed list shows a real status for the new version without waiting for the next update check
+
+#### Mod Browser
+
+- FR201: Mod browser cards show whether the mod has a release tagged for the installed game version, from one cached request per game version and never a request per card
+- FR202: When the installed game version is unknown or the mod database cannot answer, cards show no game version indicator and browsing works as before
+
+#### Installed Mods
+
+- FR203: The installed mod cards have a sort control (name, version or status, ascending or descending) that uses the same saved preference as the table headers
+- FR204: At 1024px and wider, the installed mods table fits its container when a mod has a long name: nothing scrolls sideways and the enable toggle and remove action are on screen
