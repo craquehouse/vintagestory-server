@@ -1,6 +1,6 @@
 # Story 18.3: Game Version Badge on Browse Cards
 
-Status: review
+Status: done
 
 <!-- Implements FR201-FR202. Beads: VSS-4f3 (UI-068), parent VSS-5w8. Governed by Epic 18 ADR-3 (supersedes Epic 10 ADR-2 for browse cards and replaces decision 6 of Epic 16 ADR-2). Stories are implemented in the order 18.1, 18.2, 18.3, 18.4, each stacked on the previous one: branch story/18-3-game-version-badge-on-browse-cards from the head of story/18-2-install-and-version-change-keep-records-right (or from main once 18.2 is merged). Line references were verified at b9606f1 (epic-18-planning, code identical to main 574e125) and MUST be re-checked at implementation time: Stories 18.1 and 18.2 edit routers/mods.py, models/mods.py and web/src/api/types.ts in other places. No new npm or Python dependency. -->
 
@@ -458,7 +458,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - **Task 1 (client cache).** `VersionListing`, the three constants, `_fresh_version_listing`, `_refresh_version_listing`, `_version_fetch`, `get_mods_by_version` and `get_version_mod_ids` follow Dev Notes "The client cache". The old body is now `_fetch_mods_by_version`, unchanged. A failed lookup logs `version_flags_unavailable` at warning level with `game_version`, `tagid` and `error`. `clear_browse_cache` also clears the listings and the pause. `close()` cancels running fetches and awaits them (`gather(..., return_exceptions=True)`) before closing the HTTP client. `get_game_versions` skips malformed entries, and raises `ExternalApiError("VintageStory mod API returned an unexpected response")` for a body that is not an object or a `gameversions` that is not a list. Tests:
   - `TestModApiClientModsByVersion`: `test_get_mods_by_version_cache_hit` (replaces `test_get_mods_by_version_not_cached`), `_cache_miss_for_other_tag`, `_cache_expires`, `_failure_is_not_cached`, `_failure_with_expired_copy_raises`.
   - `TestModApiClientGameVersions`: `test_get_game_versions_skips_malformed_entries`, `_unexpected_body_raises` (a list body, and `"gameversions": "x"`), `_missing_key_is_empty`.
-  - `TestModApiClientVersionListingCache` (14 cases): eviction at three; one shared fetch under `asyncio.gather`; `clear_browse_cache`; a hit, where an entry without `modid` is left out; an unknown version (`9.9.9`, `stable`); failure without a copy (HTTP 500, connect error, bad JSON); failure with an expired copy; the pause and its expiry; the version list failing with no map; an expired map with an expired listing; a slow fetch that is bounded and still fills the cache; `close()` with a fetch running.
+  - `TestModApiClientVersionListingCache` (15 cases with parametrization; corrected in review): eviction at three; one shared fetch under `asyncio.gather`; `clear_browse_cache`; a hit, where an entry without `modid` is left out; an unknown version (`9.9.9`, `stable`); failure without a copy (HTTP 500, connect error, bad JSON); failure with an expired copy; the pause and its expiry; the version list failing with no map; an expired map with an expired listing; a slow fetch that is bounded and still fills the cache; `close()` with a fetch running.
 - **Task 2 (browse API).** `ModBrowseItem.has_release_for_game_version` and `ModBrowseResponse.game_version` were added, with docstrings that say what `null` means. The route reads the installed version once and strips a leading `v`/`V`. The `?version=` lookup and its 400 are unchanged. The route awaits the listing together with `get_version_mod_ids` in one `asyncio.gather`. `game_version` is `null` exactly when the flags are.
   - Existing tests changed: the four browse fixtures in `test_mods_router.py` (`TestBrowseModsEndpoint`, `TestBrowseItemSlugUrlalias`, `TestBrowseModsFilters`, `TestBrowseWithIncompleteModData`) now use `game_version_provider=lambda: None`. The exact dicts in `TestBrowseWithIncompleteModData::test_every_sort_succeeds_with_defaults` and `TestModBrowseItem::test_serialization_for_api_response` gained the new field.
   - New tests in `TestBrowseGameVersionFlag` (16 cases): `test_true_and_false` (`1.22.7`, `v1.22.7`), `test_one_filtered_request_for_many_browse_requests`, `test_no_server_installed`, `test_version_without_tag` (`1.99.0`, `stable`), `test_filtered_listing_fails_without_copy`, `test_filtered_listing_fails_with_earlier_copy`, `test_version_list_fails`, `test_main_listing_fails_is_still_502`, `test_changed_installed_version`, `test_item_without_modid_is_null`, `test_version_filter_with_flags`, `test_version_filter_by_installed_version`, `test_unknown_filter_version_is_still_400`, `test_filter_listing_fails_is_still_502`.
@@ -510,8 +510,26 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive
 - `web/e2e/browse-game-version.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/18-3-game-version-badge-on-browse-cards.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-16
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `e7045ce..ad84497`
+**Outcome:** Approve → resolved
+
+**Summary:** No HIGH or MEDIUM finding; all 8 acceptance criteria met. The reviewer checked the per-tag cache in detail: one shared fetch per tag with a done callback that retrieves exceptions, eviction at three, the shielded 5-second wait that lets the fetch finish in the background, the 60-second pause, expired copies used only on the flag path, `close()` cancelling and awaiting fetches; `_fetch_mods_by_version` is byte-identical to the old `get_mods_by_version` body; the type guards are sound; no "Compatible" wording; nothing references the removed default. Reviewer ran `just test-api` (2857 passed, nothing under `dev/`), `just test-web` (3300 passed, 4 skipped), `just lint` and `just typecheck` (0 errors, the 3 known warnings). E2E not re-run by the reviewer (no Docker access).
+
+### Action Items
+
+- [x] [Low] L1 `routers/mods.py`: the installed version was read outside the `try`, so an unreadable `current_version` file made every browse request a 500, against ADR-3 decision 5 (fixed, eaf0807: an `OSError` is logged as `browse_game_version_unreadable` and the flags are null; new `test_unreadable_version_file`, red before the fix)
+- [x] [Low] L2 two cold-cache browse requests can each fetch `/api/gameversions` (the version list has no shared fetch; AC 2 bounds only the filtered listing). Not changed: pre-existing, recorded here.
+- [x] [Nit] N2 the Dev Agent Record said 14 cache cases; it is 15 with parametrization (corrected).
+- Nits not changed: N1 the E2E stub puts slugs in `mod_ids` (installed matching is not exercised there); N3 the `close()` test asserts only that no error is raised.
+
+After the fix: `test_mods_router.py` and `test_mod_api.py` 309 passed; ruff clean; pyright on the changed files 0 errors (the one warning is a pre-existing VSS-1ar one).
+
 ## Change Log
 
 - 2026-11-16: Story 18.3 created (ready-for-dev).
 - 2026-11-16: Validated against the create-story checklist: every cited path and line re-read at b9606f1; the client cache and route prototyped and run; added the bounded wait, the retry pause and the shared fetch (AC 2, AC 5) after working out the 30 s client timeout and the concurrent case; added the four browse fixture changes after 44 tests failed on an unmocked game version request; added the game version list hardening (Task 1.5); settled the item without a `modid`, the `v` prefix and what is removed from `mod-compatibility.ts`.
 - 2026-11-16: Implemented Tasks 1-5 and ran the quality gate; status review. Manual check 5.2 and the PR (6.2) left open.
+- 2026-11-16: Code review (GLM-5.3-Flash): approved, two low findings and three nits; L1 fixed, N2 corrected. Status done.
