@@ -45,10 +45,10 @@ so that **I do not scroll sideways to reach a control**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.8/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: Measurement script and "before" numbers (AC: 1, 3, 4, 5)
-  - [ ] 1.1: New `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs` (Dev Notes "Measurement method"), in the style of `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs`. It reads only; it stubs the installed mods and their update status with `page.route` and refuses every write
-  - [ ] 1.2: Run it against the Docker dev stack built from this branch before any source change (`just docker restart`, then `cd web && bun ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs > ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.before.json`). Compare with the numbers in Dev Notes "Measured on the dev stack"; a large difference means a story before this one changed the layout, so re-check before going on
-  - [ ] 1.3: Commit the script and `layout_widths.before.json` only (no screenshots): `docs(story-17.8/task-1): measure page layouts from phone to wide desktop widths`
+- [x] Task 1: Measurement script and "before" numbers (AC: 1, 3, 4, 5)
+  - [x] 1.1: New `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs` (Dev Notes "Measurement method"), in the style of `_bmad-output/implementation-artifacts/16-6-browser/settings_layout.mjs`. It reads only; it stubs the installed mods and their update status with `page.route` and refuses every write
+  - [x] 1.2: Run it against the Docker dev stack built from this branch before any source change (`just docker restart`, then `cd web && bun ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs > ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.before.json`). Compare with the numbers in Dev Notes "Measured on the dev stack"; a large difference means a story before this one changed the layout, so re-check before going on
+  - [x] 1.3: Commit the script and `layout_widths.before.json` only (no screenshots): `docs(story-17.8/task-1): measure page layouts from phone to wide desktop widths`
 
 - [ ] Task 2: Installed mods use the cards up to `lg` + tests (AC: 1, 2, 6)
   - [ ] 2.1: `web/src/hooks/use-media-query.ts:10-11`: add `LG_UP_QUERY = '(min-width: 64rem)'` with a doc comment (Tailwind v4's `lg`, 1024px at the default root font size) next to `MD_UP_QUERY`; update the module comment's example (`:3-5`, "table at md and up" becomes "table at lg and up")
@@ -248,13 +248,23 @@ This story is implemented after 17.5, 17.6 and 17.7, each stacked on the previou
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Started from `story/17-6-settings-behave-as-saved` at 684c83d (Stories 17.7, 17.5 and 17.6 done, each stacked on the previous); the story file was cherry-picked from `draft/17-8-layout-at-tablet-and-phone-widths` (1f216da). Every line reference written at 21457bf was re-read before use. Unchanged: `use-media-query.ts`, `ModTable.tsx` (`:11-12`, `:57`, `:129-130`), `InstalledModCard.tsx:1-9`, `InstalledTab.tsx` (`:87`, `:97`, `:108`), `features/settings/SettingsPage.tsx`, `features/game-server/SettingsPage.tsx`, `e2e/installed-mods-phone.spec.ts`. Moved by Story 17.6: `GameConfigPanel.tsx`'s 1280px caps are now `:195`, `:208` and `:295` (`data-testid="game-config-layout"`, still `mx-auto max-w-[1280px]`). Story 17.7 left the Mods tab list's labels and triggers as they were (two tabs, Installed and Browse).
+- The web takes its API key from `/config.js` since Story 17.5, not from `localStorage`; the measurement script answers `/config.js` with `VS_API_KEY_ADMIN`, as the 17.5/17.6 E2E specs do.
 
 ### Completion Notes List
 
 - Story created 2026-11-15: context analysis of `ModTable`/`InstalledModCard`/`InstalledTab`/`useMediaQuery` and the jsdom viewport stand-in, the shadcn `Table`/`Tabs` components, the three tab lists, both `SettingsPage`s, `GameConfigPanel`'s 1280px cap and `Layout`; read-only measurements on the running dev stack at 320-1920px with the sidebar expanded and collapsed; a throwaway prototype of Tasks 2-4 measured in the browser and run against the whole web suite to find the tests that change.
 
+- Task 1: `17-8-browser/layout_widths.mjs` measures every width (320, 390, 430, 768, 900, 1023, 1024, 1440, 1600, 1920; height 900) with the sidebar expanded and collapsed (the `vs_ui_prefs` cookie), a fresh browser context per page and state: Installed mods (stubbed with the three mods of `installed-mods-phone.spec.ts`), `/config` and each of its four tabs, the Version page (320-430), Game Settings at every width (not only from 1024, because Stories 17.5/17.6 added inline labels to the settings fields), and at 1920 expanded the content span of five other pages. Every non-GET API request is refused. Run on the stack rebuilt from this branch before any source change (`layout_widths.before.json`); checked that the output holds no key, server name, description, welcome message or password. Against the story's numbers: the same picture, with the long-name table now 1183px wide (story: 1163; 20px more from the update cell since 21457bf) and the Scheduled Jobs table 523px (story: 530). `/config` overflows the document by 214/144/104px at 320/390/430 on every tab; Installed mods at 768-1024 scrolls inside `table-container` (1183/560 ... 1183/912); Game Settings is misaligned at 1600 expanded (title 208, header right 1552, panel 240-1520) and at 1600/1920 collapsed and 1920 expanded (panel 400-1680, title 208, badge right 1872), aligned at 1024 and 1440. Game Settings at 320-430: no overflow (the 17.5/17.6 labels do not widen a field).
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs` (new)
+- `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.before.json` (new)
 
 ## Change Log
 
