@@ -36,6 +36,9 @@
  * `installModId`, preselects `latestVersion` (what a plain install picks) and installs
  * `installModId`. "(Latest)" and the Releases list's "Latest" badge mark that release;
  * a release without a downloadable file is listed disabled (Epic 17 ADR-2).
+ *
+ * Story 18.1: A Screenshots section between the header and the description shows the
+ * mod's screenshots (`ModScreenshotGallery`).
  */
 
 import { useState } from 'react';
@@ -72,6 +75,7 @@ import { CompatibilityBadge } from '@/components/CompatibilityBadge';
 import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
+import { ModScreenshotGallery } from '@/components/ModScreenshotGallery';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
@@ -563,6 +567,10 @@ export function ModDetailPage() {
     ? sanitizeModDescription(mod.description)
     : null;
 
+  // Story 18.1: media are optional; a response without the list shows no gallery
+  // instead of failing the page (the guard above covers only the required fields)
+  const screenshots = Array.isArray(mod.screenshots) ? mod.screenshots : [];
+
   return (
     <div className="container mx-auto py-6 max-w-4xl space-y-6" data-testid="mod-detail-page">
       {/* Navigation: Back button and Breadcrumbs */}
@@ -742,6 +750,11 @@ export function ModDetailPage() {
       </div>
 
       <Separator />
+
+      {/* Screenshots section (Story 18.1) */}
+      {screenshots.length > 0 && (
+        <ModScreenshotGallery key={mod.slug} screenshots={screenshots} />
+      )}
 
       {/* Description section */}
       <Card data-testid="mod-detail-description-card">
