@@ -676,6 +676,48 @@ describe('ModDetailPage', () => {
       await screen.findByTestId('mod-detail-page');
       expect(screen.queryByTestId('mod-detail-homepage-link')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-detail-source-link')).not.toBeInTheDocument();
+      // Story 18.1: a response without `trailer_url` has no trailer link
+      expect(screen.queryByTestId('mod-detail-trailer-link')).not.toBeInTheDocument();
+    });
+
+    it('renders the trailer link with the API URL (Story 18.1)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              trailer_url: 'https://www.youtube.com/watch?v=mJHZH_sThDM',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const link = await screen.findByTestId('mod-detail-trailer-link');
+      expect(link).toHaveAttribute('href', 'https://www.youtube.com/watch?v=mJHZH_sThDM');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByRole('link', { name: 'Watch trailer (opens in a new tab)' })).toBe(link);
+      expect(document.querySelector('iframe')).toBeNull();
+    });
+
+    it('renders no trailer link when trailer_url is null (Story 18.1)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, trailer_url: null },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-moddb-link');
+      expect(screen.queryByTestId('mod-detail-trailer-link')).not.toBeInTheDocument();
+      expect(document.querySelector('iframe')).toBeNull();
     });
   });
 

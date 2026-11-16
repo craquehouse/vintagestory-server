@@ -38,7 +38,8 @@
  * a release without a downloadable file is listed disabled (Epic 17 ADR-2).
  *
  * Story 18.1: A Screenshots section between the header and the description shows the
- * mod's screenshots (`ModScreenshotGallery`).
+ * mod's screenshots (`ModScreenshotGallery`), and a "Watch trailer" link joins the
+ * external links when the API sent a `trailerUrl`.
  */
 
 import { useState } from 'react';
@@ -81,7 +82,7 @@ import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
 import { findInstalledModForEntry, versionChoices } from '@/lib/mod-ids';
-import { sanitizeModDescription } from '@/lib/mod-description';
+import { OPENS_IN_NEW_TAB, sanitizeModDescription } from '@/lib/mod-description';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -686,7 +687,7 @@ export function ModDetailPage() {
           )}
 
           {/* External links */}
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-wrap items-center gap-3 gap-y-1 pt-1">
             <a
               href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
               target="_blank"
@@ -719,6 +720,20 @@ export function ModDetailPage() {
               >
                 <Code className="h-3.5 w-3.5" />
                 Source
+              </a>
+            )}
+            {/* Story 18.1: a link, never an embed; the API built the URL from the video ID */}
+            {mod.trailerUrl && (
+              <a
+                href={mod.trailerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                data-testid="mod-detail-trailer-link"
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Watch trailer{' '}
+                <span className="sr-only">{OPENS_IN_NEW_TAB}</span>
               </a>
             )}
           </div>

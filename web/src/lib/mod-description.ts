@@ -13,6 +13,12 @@
 import DOMPurify, { type Config } from 'dompurify';
 
 /**
+ * Screen reader text after a link that opens in a new tab (Story 18.1). Shared by the
+ * description links and the detail page's trailer link so the two cannot drift.
+ */
+export const OPENS_IN_NEW_TAB = '(opens in a new tab)';
+
+/**
  * Private instance: hooks are per instance, so the link hook below never affects
  * other code that calls the shared `DOMPurify.sanitize`.
  */
