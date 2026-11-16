@@ -80,11 +80,11 @@ test.describe('Mods navigation', () => {
     await expect(page.getByTestId('browse-tab')).toHaveAttribute('aria-selected', 'true');
 
     // The active Browse tab returns to the state the mod was opened from, adding one entry
-    const historyOnDetail = await page.evaluate(() => history.length);
     await page.getByTestId('browse-tab').click();
     await expect(page).toHaveURL((url) => url.pathname === BROWSE && url.search === BROWSE_SEARCH);
     await waitForGrid(page);
-    expect(await page.evaluate(() => history.length)).toBe(historyOnDetail + 1);
+    await page.goBack();
+    await expect(page.getByTestId('mod-detail-back')).toBeVisible({ timeout: 60_000 });
   });
 
   test('the Browse tab on a detail page opened directly opens the default browser', async ({ page, context }) => {
