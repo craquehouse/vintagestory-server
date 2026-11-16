@@ -708,6 +708,52 @@ class TestRecordInstall:
         assert "mod_update_record_after_install_failed" in captured_logs.getvalue()
 
 
+class TestRecordReleases:
+    """Story 18.2 (Epic 18 ADR-5): a version change stores its own lookup's releases."""
+
+    def test_stores_the_record_and_reports_a_real_status(self, tmp_path: Path) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.3")])
+        store.set("carryon", record([release("1.14.1", ["1.22.7"], modid="carryon")]))
+        store.set_lookup_error("carryon", "mod database unavailable")
+        assert service.get_status()[0].reason == "installed_release_not_listed"
+
+        service.record_releases("carryon", fixture_releases("carryon"))
+
+        item = service.get_status()[0]
+        assert item.status != "unknown"
+        assert item.reason is None
+        assert item.checked_at is not None
+        assert item.checked_at > datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
+        assert store.lookup_error("carryon") is None
+        reloaded = ModUpdateStore(tmp_path / "state").get("carryon")
+        assert reloaded is not None
+        assert reloaded.found is True
+        assert reloaded.releases == fixture_releases("carryon")
+
+    def test_save_failure_is_logged_and_does_not_raise(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, captured_logs: StringIO
+    ) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.3")])
+
+        def fail_save() -> None:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(store, "save", fail_save)
+
+        service.record_releases("carryon", fixture_releases("carryon"))
+
+        warning = next(
+            line
+            for line in captured_logs.getvalue().splitlines()
+            if "mod_update_record_after_version_change_failed" in line
+        )
+        assert "warning" in warning
+        assert "disk full" in warning
+        assert "carryon" in warning
+        assert "mod_update_record_after_install_failed" not in captured_logs.getvalue()
+        assert not (tmp_path / "state").exists()
+
+
 class ChangingModSource:
     """Installed mods that tests change while a check runs (Story 17.4)."""
 

@@ -229,6 +229,9 @@ class PreparedVersionChange:
     target: StoredRelease
     archive: Path
     compatibility: CompatibilityStatus
+    releases: list[StoredRelease]
+    """Every release of the mod database entry, newest first, from the change's lookup;
+    internal, never serialized (Epic 18 ADR-5)."""
 
 
 @dataclass
@@ -922,7 +925,12 @@ class ModService:
             logger.debug("mod_api_client_closed")
 
     async def change_version(
-        self, slug: str, version: str, *, confirm: bool = False
+        self,
+        slug: str,
+        version: str,
+        *,
+        confirm: bool = False,
+        record_releases: Callable[[str, list[StoredRelease]], None] | None = None,
     ) -> VersionChangeResult:
         """Move an installed mod to another listed release: update or rollback (ADR-2).
 
@@ -931,6 +939,10 @@ class ModService:
 
         Holds the mod's lock (Epic 17 ADR-3) for the whole call, so no other operation on
         the mod can run during the lookup and the download.
+
+        A completed change hands its lookup's releases to `record_releases`, under the
+        mod's lock (Story 18.2, Epic 18 ADR-5). The same-version return and every raise
+        never call it. The recorder must not raise.
 
         Raises:
             ModOperationInProgressError: An install or version change is running for this mod.
@@ -955,6 +967,8 @@ class ModService:
 
             prepared = await self._prepare_version_change(slug, version, confirm=confirm)
             filename = self._apply_version_change(state, prepared)
+            if record_releases is not None:
+                record_releases(slug, prepared.releases)
 
             pending_restart = False
             if self._server_running:
@@ -1119,7 +1133,9 @@ class ModService:
             raise ModConfirmationRequiredError(slug, version, reasons, compatibility)
 
         archive = await self._acquire_release_archive(slug, target)
-        return PreparedVersionChange(target=target, archive=archive, compatibility=compatibility)
+        return PreparedVersionChange(
+            target=target, archive=archive, compatibility=compatibility, releases=releases
+        )
 
     async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
         """Return a validated archive for the release: a valid cached copy, or a download."""

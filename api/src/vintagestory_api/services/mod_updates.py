@@ -261,7 +261,11 @@ class ModUpdateAllInProgressError(Exception):
 UpdateAllOutcome = Literal["updated", "skipped", "failed"]
 
 ChangeVersion = Callable[[str, str], Awaitable["VersionChangeResult"]]
-"""Changes an installed mod to a version without confirmation (ModService.change_version)."""
+"""Changes an installed mod to a version without confirmation (ModService.change_version).
+
+The Update All route binds `record_releases` to it, so each completed change stores that
+mod's update record from its own lookup (Story 18.2).
+"""
 
 
 @dataclass(frozen=True)
@@ -354,16 +358,32 @@ class ModUpdateService:
         (or, if only the save failed, the record lives in memory until restart, as in `check`).
         """
         try:
-            record = StoredModRecord(
-                checked_at=datetime.now(UTC),
-                found=True,
-                releases=[StoredRelease.from_api(r) for r in releases],
-            )
-            self._store.set(modid, record)
-            self._store.clear_lookup_error(modid)
-            self._store.save()
+            self._store_record(modid, [StoredRelease.from_api(r) for r in releases])
         except (OSError, ValueError, TypeError) as e:
             logger.warning("mod_update_record_after_install_failed", slug=modid, error=str(e))
+
+    def record_releases(self, modid: str, releases: list[StoredRelease]) -> None:
+        """Store a mod's releases from a completed version change's lookup (Story 18.2).
+
+        The change has just fetched the whole mod database entry, so the Installed list
+        shows the mod's status for its new version without waiting for the next check
+        (Epic 18 ADR-5). Never raises: a failure is logged and the mod keeps its previous
+        record until the next check (or, if only the save failed, the record lives in
+        memory until restart).
+        """
+        try:
+            self._store_record(modid, releases)
+        except (OSError, ValueError, TypeError) as e:
+            logger.warning(
+                "mod_update_record_after_version_change_failed", slug=modid, error=str(e)
+            )
+
+    def _store_record(self, modid: str, releases: list[StoredRelease]) -> None:
+        """Store a found record with `releases`, clear the lookup error and save. May raise."""
+        record = StoredModRecord(checked_at=datetime.now(UTC), found=True, releases=releases)
+        self._store.set(modid, record)
+        self._store.clear_lookup_error(modid)
+        self._store.save()
 
     async def apply_all(self, change_version: ChangeVersion) -> UpdateAllSummary:
         """Update every mod whose offered update is compatible, one at a time (Story 14.4).

@@ -11,6 +11,7 @@ import pytest
 import respx
 from httpx import Response
 
+from vintagestory_api.models.mod_updates import StoredRelease
 from vintagestory_api.models.mods import ModState
 from vintagestory_api.services.mod_api import (
     DownloadError,
@@ -690,3 +691,124 @@ class TestChangeVersion:
 
         assert result.pending_restart is True
         assert service.restart_state.pending_restart is True
+
+
+class RecordedReleases:
+    """A `record_releases` callback that keeps each call and whether the mod was held."""
+
+    def __init__(self, service: ModService) -> None:
+        self._service = service
+        self.calls: list[tuple[str, list[StoredRelease]]] = []
+        self.held: list[bool] = []
+
+    def __call__(self, slug: str, releases: list[StoredRelease]) -> None:
+        self.held.append(slug in self._service.busy_mod_ids)
+        self.calls.append((slug, releases))
+
+
+class TestChangeVersionRecordsReleases:
+    """Story 18.2 (FR200, Epic 18 ADR-5): a completed change hands over its lookup."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_completed_change_records_its_lookup_under_the_lock(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        lookup = respx.get(MOD_URL.format("carryon")).mock(
+            return_value=Response(200, json=fixture_json("carryon"))
+        )
+        mock_download(fixture_release("carryon", "carryon", "1.14.3"))
+        recorder = RecordedReleases(service)
+
+        await service.change_version("carryon", "1.14.3", record_releases=recorder)
+
+        expected = [
+            StoredRelease.from_api(r) for r in fixture_json("carryon")["mod"]["releases"]
+        ]
+        assert recorder.calls == [("carryon", expected)]
+        assert recorder.held == [True]
+        assert lookup.call_count == 1
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_same_version_records_nothing(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        recorder = RecordedReleases(service)
+
+        result = await service.change_version("carryon", "1.14.1", record_releases=recorder)
+
+        assert result.changed is False
+        assert recorder.calls == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_confirmation_required_records_nothing(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        mock_download(fixture_release("carryon", "carryon", "2.0.0-rc.1"))
+        recorder = RecordedReleases(service)
+
+        with pytest.raises(ModConfirmationRequiredError):
+            await service.change_version("carryon", "2.0.0-rc.1", record_releases=recorder)
+
+        assert recorder.calls == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_failed_validation_records_nothing(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        mock_download(
+            fixture_release("carryon", "carryon", "1.14.3"),
+            {"modid": "carryon", "name": "x", "version": "9.9.9"},
+        )
+        recorder = RecordedReleases(service)
+
+        with pytest.raises(ModValidationError):
+            await service.change_version("carryon", "1.14.3", record_releases=recorder)
+
+        assert recorder.calls == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_rolled_back_change_records_nothing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo.zip")
+        mock_demo("Demo-1.1.0.zip", "Demo.zip")
+        real_save = service.state_manager.save
+        calls = {"n": 0}
+
+        def failing_save() -> None:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise OSError("disk full")
+            real_save()
+
+        monkeypatch.setattr(service.state_manager, "save", failing_save)
+        recorder = RecordedReleases(service)
+
+        with pytest.raises(ModVersionChangeFailedError):
+            await service.change_version("demo", "1.1.0", record_releases=recorder)
+
+        assert recorder.calls == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_another_mods_file_in_the_way_records_nothing(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")
+        install_existing(service, "other", "3.0.0", "Demo-1.1.0.zip")
+        mock_demo("Demo-1.1.0.zip", "Demo-1.0.0.zip")
+        recorder = RecordedReleases(service)
+
+        with pytest.raises(ModVersionChangeFailedError):
+            await service.change_version("demo", "1.1.0", record_releases=recorder)
+
+        assert recorder.calls == []

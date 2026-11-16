@@ -5,6 +5,7 @@ import json
 import zipfile
 from collections.abc import Generator
 from datetime import UTC, datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,13 @@ from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
+from vintagestory_api.models.mod_updates import StoredModRecord, StoredRelease
 from vintagestory_api.models.mods import ModState
+from vintagestory_api.services.mod_updates import (
+    ModUpdateService,
+    ModUpdateStore,
+    get_mod_update_service,
+)
 from vintagestory_api.services.mods import (
     ModOperationInProgressError,
     ModService,
@@ -78,12 +85,25 @@ def service(tmp_path: Path) -> ModService:
 
 
 @pytest.fixture
-def client(tmp_path: Path, service: ModService) -> Generator[TestClient]:
+def update_service(tmp_path: Path, service: ModService) -> ModUpdateService:
+    """Update service on the temp directory: a version change stores records (Story 18.2)."""
+    return ModUpdateService(
+        store=ModUpdateStore(tmp_path / "state"),
+        mod_source=service,
+        game_version_provider=lambda: "1.22.7",
+    )
+
+
+@pytest.fixture
+def client(
+    tmp_path: Path, service: ModService, update_service: ModUpdateService
+) -> Generator[TestClient]:
     settings = Settings(
         api_key_admin=TEST_ADMIN_KEY, api_key_monitor=TEST_MONITOR_KEY, data_dir=tmp_path
     )
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_mod_service] = lambda: service
+    app.dependency_overrides[get_mod_update_service] = lambda: update_service
     try:
         yield TestClient(app)
     finally:
@@ -281,3 +301,127 @@ class TestChangeVersionEndpoint:
 
     def test_version_is_required(self, client: TestClient) -> None:
         assert client.put(URL, json={}, headers=ADMIN).status_code == 422
+
+
+SEEDED_AT = datetime(2026, 11, 9, 12, 0, tzinfo=UTC)
+
+
+def seed_record(update_service: ModUpdateService) -> StoredModRecord:
+    """A stored carryon record listing only the installed 1.14.1."""
+    seeded = StoredModRecord(
+        checked_at=SEEDED_AT, found=True, releases=[StoredRelease.from_api(release("1.14.1"))]
+    )
+    update_service.store.set("carryon", seeded)
+    update_service.store.save()
+    return seeded
+
+
+def carryon_status(client: TestClient) -> dict[str, Any]:
+    response = client.get("/api/v1alpha1/mods/updates", headers=ADMIN)
+    assert response.status_code == 200
+    item: dict[str, Any] = next(
+        m for m in response.json()["data"]["mods"] if m["slug"] == "carryon"
+    )
+    return item
+
+
+class TestVersionChangeStoresTheUpdateRecord:
+    """Story 18.2 (FR200, Epic 18 ADR-5)."""
+
+    @respx.mock
+    def test_status_is_real_right_after_the_change(
+        self, client: TestClient, update_service: ModUpdateService
+    ) -> None:
+        """AC 8: no `installed_release_not_listed`, with one lookup and no check."""
+        seed_record(update_service)
+        lookup = respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        mock_download("1.14.3")
+        assert carryon_status(client)["status"] == "up_to_date"
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert response.status_code == 200
+        item = carryon_status(client)
+        assert item["status"] == "up_to_date"
+        assert item["reason"] is None
+        assert item["installed_version"] == "1.14.3"
+        assert lookup.call_count == 1
+
+    @respx.mock
+    def test_response_keys_are_unchanged(self, client: TestClient) -> None:
+        """AC 9."""
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        mock_download("1.14.3")
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert set(response.json()["data"]) == {
+            "slug",
+            "previous_version",
+            "version",
+            "filename",
+            "compatibility",
+            "changed",
+            "pending_restart",
+        }
+
+    @respx.mock
+    def test_a_failed_save_does_not_fail_the_change(
+        self,
+        client: TestClient,
+        service: ModService,
+        update_service: ModUpdateService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """AC 11: 200 with the same body, and a warning."""
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        mock_download("1.14.3")
+
+        def fail_save() -> None:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(update_service.store, "save", fail_save)
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "ok",
+            "data": {
+                "slug": "carryon",
+                "previous_version": "1.14.1",
+                "version": "1.14.3",
+                "filename": release("1.14.3")["filename"],
+                "compatibility": "compatible",
+                "changed": True,
+                "pending_restart": False,
+            },
+        }
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert state.version == "1.14.3"
+        warning = next(
+            line
+            for line in captured_logs.getvalue().splitlines()
+            if "mod_update_record_after_version_change_failed" in line
+        )
+        assert "warning" in warning
+        assert "disk full" in warning
+
+    @respx.mock
+    @pytest.mark.parametrize(
+        ("version", "status"), [("2.0.0-rc.1", 409), ("1.14.1", 200)], ids=["confirm", "same"]
+    )
+    def test_no_change_leaves_the_record(
+        self, client: TestClient, update_service: ModUpdateService, version: str, status: int
+    ) -> None:
+        """AC 11: confirmation required, or the installed version requested."""
+        seeded = seed_record(update_service)
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+
+        response = client.put(URL, json={"version": version}, headers=ADMIN)
+
+        assert response.status_code == status
+        assert update_service.store.get("carryon") == seeded
+        assert ModUpdateStore(update_service.store.path.parent).get("carryon") == seeded
