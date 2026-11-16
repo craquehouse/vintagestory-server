@@ -188,6 +188,18 @@ class ModOperationInProgressError(Exception):
         )
 
 
+class ModFileConflictError(Exception):
+    """Raised when an install's file name is already in use (Story 18.2, Epic 18 ADR-4)."""
+
+    def __init__(self, slug: str, filename: str) -> None:
+        self.slug = slug
+        self.filename = filename
+        super().__init__(
+            f"Cannot install '{slug}': a file named {filename} "
+            "already exists in the mods directory."
+        )
+
+
 class ModVersionChangeFailedError(Exception):
     """Raised when placing the new file or updating state fails; the change is rolled back."""
 
@@ -1180,6 +1192,8 @@ class ModService:
                 requested slug, the install mod ID or the archive's mod ID.
             ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
                 or the archive's mod ID) is already installed.
+            ModFileConflictError: If the download's file name, or its .disabled form, is
+                already in the mods directory or the mod state (Epic 18 ADR-4).
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1240,9 +1254,25 @@ class ModService:
     ) -> InstallResult:
         """Copy a downloaded archive into the mods directory, import it and save state.
 
+        Refuses before writing anything when the download's file name, or its .disabled
+        form, is already in the mods directory or the mod state (Epic 18 ADR-4), so an
+        install never replaces another mod's file and its cleanup never removes one.
+
         Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
         and no other operation may run between that check and the state save.
+
+        Raises:
+            ModFileConflictError: The file name, or its .disabled form, is in use.
         """
+        name = download_result.filename
+        mods_dir = self._state_manager.mods_dir
+        for candidate in (name, f"{name}.disabled"):
+            if (
+                (mods_dir / candidate).exists(follow_symlinks=False)
+                or self._state_manager.get_mod(candidate) is not None
+            ):
+                raise ModFileConflictError(slug, candidate)
+
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 

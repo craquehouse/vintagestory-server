@@ -38,6 +38,7 @@ from vintagestory_api.services.mods import (
     InvalidSlugError,
     ModAlreadyInstalledError,
     ModConfirmationRequiredError,
+    ModFileConflictError,
     ModNotFoundError,
     ModOperationInProgressError,
     ModService,
@@ -696,6 +697,8 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 409 if a file with the download's name (or its .disabled form) is
+            already in the mods directory or the mod state
         HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
@@ -721,6 +724,15 @@ async def install_mod(
                 "filename": result.filename,
                 "compatibility": result.compatibility,
                 "pending_restart": result.pending_restart,
+            },
+        )
+
+    except ModFileConflictError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_CONFLICT,
+                "message": str(e),
             },
         )
 

@@ -23,9 +23,11 @@ from test_mod_version_change import (
 
 from vintagestory_api.services.mod_api import DownloadError
 from vintagestory_api.services.mod_api import ModNotFoundError as ApiModNotFoundError
+from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
     InstallResult,
     ModAlreadyInstalledError,
+    ModFileConflictError,
     ModNotFoundError,
     ModOperationInProgressError,
     ModService,
@@ -712,4 +714,154 @@ class TestInstallReleasesTheLock:
         assert mod_files(service) == []
         assert service.state_manager.list_mods() == []
         assert (await service.install_mod("demo")).slug == "demo"
+        assert service.busy_mod_ids == frozenset()
+
+
+def mock_foo_zip(modid: str, *, readable: bool = True) -> None:
+    """Lookup and download of `modid` 1.0.0, whose release file is named `Foo.zip`.
+
+    With `readable=False` the archive has no modinfo.json.
+    """
+    respx.get(MOD_URL.format(modid)).mock(
+        return_value=Response(
+            200,
+            json={
+                "statuscode": "200",
+                "mod": {
+                    "assetid": 2,
+                    "releases": [
+                        {"modversion": "1.0.0", "modidstr": modid, "fileid": 20,
+                         "filename": "Foo.zip", "tags": ["1.22.7"]},
+                    ],
+                },
+            },
+        )
+    )
+    content = (
+        mod_zip_bytes({"modid": modid, "name": modid, "version": "1.0.0"})
+        if readable
+        else mod_zip_bytes("not a mod", member="readme.txt")
+    )
+    respx.get(DOWNLOAD_URL, params={"fileid": "20"}).mock(
+        return_value=Response(200, content=content)
+    )
+
+
+def saved_slugs(service: ModService) -> list[str]:
+    """Mod IDs in the state file on disk."""
+    manager = ModStateManager(
+        state_dir=service.state_manager.state_dir, mods_dir=service.state_manager.mods_dir
+    )
+    manager.load()
+    return sorted(m.slug for m in manager.list_mods())
+
+
+class TestInstallRefusesAFileNameInUse:
+    """Story 18.2 (FR199, Epic 18 ADR-4): an install never replaces another mod's file."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
+    @pytest.mark.parametrize("readable", [True, False], ids=["modinfo", "no-modinfo"])
+    async def test_another_mods_file_is_untouched(
+        self, tmp_path: Path, enabled: bool, readable: bool
+    ) -> None:
+        service = make_service(tmp_path)
+        other = install_existing(service, "moda", "1.0.0", "Foo.zip", enabled=enabled)
+        other_bytes = other.read_bytes()
+        other_state = state_of(service, "moda")
+        files_before = mod_files(service)
+        mock_foo_zip("modb", readable=readable)
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        in_use = "Foo.zip" if enabled else "Foo.zip.disabled"
+        assert raised.value.filename == in_use
+        assert raised.value.slug == "modb"
+        assert str(raised.value) == (
+            f"Cannot install 'modb': a file named {in_use} already exists in the mods directory."
+        )
+        assert other.read_bytes() == other_bytes
+        assert state_of(service, "moda") == other_state
+        assert mod_files(service) == files_before
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert service.busy_mod_ids == frozenset()
+        assert saved_slugs(service) == ["moda"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_stray_file_without_state_is_untouched(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        mods_dir = service.state_manager.mods_dir
+        mods_dir.mkdir(parents=True)
+        stray = mods_dir / "Foo.zip"
+        stray.write_bytes(b"stray bytes")
+        mock_foo_zip("modb")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert stray.read_bytes() == b"stray bytes"
+        assert mod_files(service) == ["Foo.zip"]
+        assert service.state_manager.list_mods() == []
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_state_entry_without_a_file_is_untouched(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip").unlink()
+        entry_before = service.state_manager.get_mod("Foo.zip")
+        mock_foo_zip("modb")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert service.state_manager.get_mod("Foo.zip") == entry_before
+        assert mod_files(service) == []
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("installed_as", ["modb", "ModB"])
+    async def test_reinstalling_the_same_mod_is_still_already_installed(
+        self, tmp_path: Path, installed_as: str
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, installed_as, "1.0.0", "Foo.zip")
+        mock_foo_zip("modb")
+
+        with pytest.raises(ModAlreadyInstalledError):
+            await service.install_mod("modb")
+
+        assert mod_files(service) == ["Foo.zip"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_failed_import_cleans_up_only_the_new_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        other = install_existing(service, "moda", "1.0.0", "Other.zip")
+        other_bytes = other.read_bytes()
+        other_state = state_of(service, "moda")
+        mock_foo_zip("modb")
+
+        def failing_import(path: Path) -> Any:
+            raise ValueError("bad archive")
+
+        monkeypatch.setattr(service.state_manager, "import_mod", failing_import)
+
+        with pytest.raises(ValueError, match="bad archive"):
+            await service.install_mod("modb")
+
+        assert mod_files(service) == ["Other.zip"]
+        assert other.read_bytes() == other_bytes
+        assert state_of(service, "moda") == other_state
+        assert service.state_manager.get_mod("Foo.zip") is None
         assert service.busy_mod_ids == frozenset()
