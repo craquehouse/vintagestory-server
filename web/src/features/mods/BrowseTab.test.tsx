@@ -1650,6 +1650,28 @@ describe('BrowseTab', () => {
       );
     });
 
+    it('never shows the page beyond the results in the pagination', async () => {
+      const shownPages = new Set<string>();
+      const observer = new MutationObserver(() => {
+        const info = document.querySelector('[data-testid="pagination"] p')?.textContent;
+        if (info) shownPages.add(info.replace(/\s*\(.*$/, ''));
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      mockClampingBrowseApi(100);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?page=9999`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Page 5 of 5/)).toBeInTheDocument();
+      });
+      await settle();
+      observer.disconnect();
+
+      expect([...shownPages]).toEqual(['Page 5 of 5']);
+    });
+
     it('replaces a page beyond a search without results by page 1', async () => {
       const mockFetch = mockClampingBrowseApi(0);
       const queryClient = createTestQueryClient();

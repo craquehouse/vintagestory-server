@@ -293,8 +293,10 @@ export function BrowseTab() {
         installedMods={installedMods}
       />
 
-      {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name) */}
-      {!isLoading && pagination && pagination.totalPages > 1 && (
+      {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name).
+          Story 17.7: not for a page beyond the results, which is about to be replaced by
+          the last page (otherwise "Page 9999 of N" shows for one paint) */}
+      {!isLoading && pagination && pagination.totalPages > 1 && currentPage <= pagination.totalPages && (
         <Pagination
           currentPage={currentPage}
           totalPages={pagination.totalPages}
