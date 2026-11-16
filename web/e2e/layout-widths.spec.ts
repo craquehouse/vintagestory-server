@@ -7,6 +7,13 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
  * - Installed mods: below `lg` (1024px) each mod is a card, so from 768 to 1023px, with the
  *   sidebar expanded or collapsed, nothing scrolls sideways and every control is inside the
  *   viewport; from 1024px the table is unchanged.
+ * Story 18.4 (FR203-FR204; VSS-bgu, VSS-n2u):
+ * - From 1024px the table fits its container with a long name, in both sidebar states: the
+ *   Name column wraps (and the Update button may drop under the offered version), so the
+ *   long-named mod's toggle and remove button are on screen. Where the table has room
+ *   (AC 6), names and Available cells stay on one line.
+ * - Below `lg` the cards have a sort control that shares the `installedModsSort` preference
+ *   with the table headers.
  * - Settings (`/config`): at 320-430px the four tabs wrap inside the content, so the page
  *   does not scroll sideways and every tab can be selected by click and by arrow keys.
  * - The Mods and Version page tab lists fit at 320 and 390px.
@@ -35,10 +42,29 @@ const HEIGHT = 900;
 
 const LONG_NAME = 'An Extraordinarily Long Mod Name That Must Wrap Inside Its Card';
 
-const MODS = [
-  { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true },
+interface FakeMod {
+  slug: string;
+  name: string;
+  version: string;
+  enabled: boolean;
+  /** Offered pre-release update, if any */
+  offered?: string;
+}
+
+const OTHER_MODS: FakeMod[] = [
   { slug: 'oldmod', name: 'Old Mod', version: '2.3.4', enabled: true },
   { slug: 'offmod', name: 'Off Mod', version: '0.1.0', enabled: false },
+];
+
+const MODS: FakeMod[] = [
+  { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '1.0.0-rc.13' },
+  ...OTHER_MODS,
+];
+
+// Story 18.4: short names only, one of them with an offered pre-release update
+const SHORT_MODS: FakeMod[] = [
+  { slug: 'shortmod', name: 'Short Mod', version: '1.4.0', enabled: true, offered: '1.5.0-rc.1' },
+  ...OTHER_MODS,
 ];
 
 const COMPATIBILITY: Record<string, { status: string; message: string; latest: string }> = {
@@ -49,16 +75,16 @@ const COMPATIBILITY: Record<string, { status: string; message: string; latest: s
     latest: '1.21.1',
   },
   offmod: { status: 'compatible', message: 'Compatible with 1.22.7.', latest: '1.22.7' },
+  shortmod: { status: 'compatible', message: 'Compatible with 1.22.7.', latest: '1.22.7' },
 };
 
-function updateStatus(slug: string, name: string, version: string) {
-  const offered = slug === 'longnamemod';
+function updateStatus({ slug, name, version, offered }: FakeMod) {
   return {
     slug,
     name,
     installed_version: version,
     status: offered ? 'update_available' : 'up_to_date',
-    offered_version: offered ? '1.0.0-rc.13' : null,
+    offered_version: offered ?? null,
     offered_compatibility: offered ? 'compatible' : null,
     offered_prerelease: offered ? true : null,
     reason: null,
@@ -86,7 +112,7 @@ async function readOnly(page: Page) {
 }
 
 /** Serve the installed mods, their update status and lookups (registered after readOnly, so it runs first). */
-async function fakeInstalledMods(page: Page) {
+async function fakeInstalledMods(page: Page, mods: FakeMod[] = MODS) {
   await page.route(/\/api\/v1alpha1\/mods(\/[^?]*)?(\?.*)?$/, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/v1alpha1/mods', '');
@@ -96,7 +122,7 @@ async function fakeInstalledMods(page: Page) {
         json: {
           status: 'ok',
           data: {
-            mods: MODS.map(({ slug, name, version, enabled }) => ({
+            mods: mods.map(({ slug, name, version, enabled }) => ({
               filename: `${slug}_${version}.zip`,
               slug,
               version,
@@ -116,7 +142,7 @@ async function fakeInstalledMods(page: Page) {
     }
 
     if (request.method() === 'GET' && path === '/updates') {
-      const updates = MODS.map(({ slug, name, version }) => updateStatus(slug, name, version));
+      const updates = mods.map(updateStatus);
       await route.fulfill({
         json: {
           status: 'ok',
@@ -134,7 +160,7 @@ async function fakeInstalledMods(page: Page) {
     const lookup = path.match(/^\/lookup\/([^/]+)$/);
     if (request.method() === 'GET' && lookup) {
       const slug = decodeURIComponent(lookup[1]);
-      const mod = MODS.find((item) => item.slug === slug);
+      const mod = mods.find((item) => item.slug === slug);
       const compatibility = COMPATIBILITY[slug];
       if (!mod || !compatibility) {
         await route.fulfill({ status: 404, json: { detail: { code: 'MOD_NOT_FOUND', message: slug } } });
@@ -230,7 +256,13 @@ async function expectInsideViewport(page: Page, target: string | Locator, width:
 }
 
 /** A page in a fresh context with the sidebar expanded or collapsed (vs_ui_prefs cookie). */
-async function openPage(page: Page, width: number, collapsed: boolean, url: string, { mods = false } = {}) {
+async function openPage(
+  page: Page,
+  width: number,
+  collapsed: boolean,
+  url: string,
+  { mods = false, fixture = MODS }: { mods?: boolean; fixture?: FakeMod[] } = {}
+) {
   await page.context().addCookies([
     {
       name: 'vs_ui_prefs',
@@ -240,7 +272,7 @@ async function openPage(page: Page, width: number, collapsed: boolean, url: stri
   ]);
   await page.setViewportSize({ width, height: HEIGHT });
   await readOnly(page);
-  if (mods) await fakeInstalledMods(page);
+  if (mods) await fakeInstalledMods(page, fixture);
   await page.goto(url);
 }
 
@@ -281,10 +313,8 @@ test.describe('Installed mods at every width (Story 17.8, AC 1-2)', () => {
         }
         await expect(page.getByTestId(/^mod-row-/)).toHaveCount(3);
 
-        const overflow = await horizontalOverflow(page);
-        expect(overflow.document).toBe(0);
-        // At 1024px the long-name table still scrolls inside its own container (follow-up)
-        if (width > 1024) expect(overflow.scrolling).toEqual([]);
+        // Story 18.4: no width scrolls, 1024px included
+        expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
       });
     }
   }
@@ -297,6 +327,164 @@ test.describe('Installed mods at every width (Story 17.8, AC 1-2)', () => {
     await page.getByTestId('version-change-cancel').click();
     await expect(page.getByTestId('version-change-dialog')).toHaveCount(0);
   });
+});
+
+/** Height of a test ID's box. */
+async function heightOf(page: Page, testId: string): Promise<number> {
+  return (await boxOf(page.getByTestId(testId), testId)).height;
+}
+
+/** Open Installed mods as the table, with every update status rendered. */
+async function openTable(page: Page, width: number, collapsed: boolean, fixture: FakeMod[]) {
+  await openPage(page, width, collapsed, INSTALLED, { mods: true, fixture });
+  await expect(page.getByTestId('mod-table')).toBeVisible({ timeout: 30_000 });
+  for (const mod of fixture) {
+    await expect(page.getByTestId(`mod-update-${mod.slug}`)).toBeVisible({ timeout: 30_000 });
+  }
+}
+
+/** Every name and Available cell on one line: names as tall as Off Mod's, Update beside its version. */
+async function expectOneLine(page: Page, fixture: FakeMod[], where: string) {
+  const oneLine = await heightOf(page, 'mod-link-offmod');
+  for (const mod of fixture) {
+    expect(
+      Math.abs((await heightOf(page, `mod-link-${mod.slug}`)) - oneLine),
+      `${mod.slug} name on one line, ${where}`
+    ).toBeLessThanOrEqual(1);
+    if (mod.offered) {
+      const cell = await boxOf(page.getByTestId(`mod-update-${mod.slug}`), `mod-update-${mod.slug}`);
+      const button = await boxOf(
+        page.getByTestId(`mod-update-button-${mod.slug}`),
+        `mod-update-button-${mod.slug}`
+      );
+      expect(
+        Math.abs(button.y + button.height / 2 - (cell.y + cell.height / 2)),
+        `${mod.slug} Update button beside its version, ${where}`
+      ).toBeLessThanOrEqual(2);
+    }
+  }
+}
+
+test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () => {
+  for (const { collapsed, label } of SIDEBAR) {
+    test(`the long name wraps and its controls are on screen at 1024px, ${label}`, async ({ page }) => {
+      await openTable(page, 1024, collapsed, MODS);
+
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expectInsideViewport(page, 'mod-toggle-longnamemod', 1024);
+      await expectInsideViewport(page, 'mod-remove-longnamemod', 1024);
+      expect(await heightOf(page, 'mod-link-longnamemod')).toBeGreaterThan(
+        await heightOf(page, 'mod-link-offmod')
+      );
+    });
+
+    test(`short names fit at 1024px, ${label}`, async ({ page }) => {
+      await openTable(page, 1024, collapsed, SHORT_MODS);
+
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expectInsideViewport(page, 'mod-remove-shortmod', 1024);
+    });
+
+    for (const width of [1280, 1440, 1920]) {
+      test(`short names and the Available cell on one line at ${width}px, ${label}`, async ({ page }) => {
+        await openTable(page, width, collapsed, SHORT_MODS);
+
+        expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+        await expectOneLine(page, SHORT_MODS, `${width}px, ${label}`);
+      });
+    }
+  }
+
+  // AC 6: at 1440px with the sidebar expanded the long name may wrap (measured), so only
+  // 1440 collapsed and 1920 in both states keep it on one line
+  for (const { width, collapsed, label } of [
+    { width: 1440, collapsed: true, label: 'sidebar collapsed' },
+    { width: 1920, collapsed: false, label: 'sidebar expanded' },
+    { width: 1920, collapsed: true, label: 'sidebar collapsed' },
+  ]) {
+    test(`the long name and the Available cell on one line at ${width}px, ${label}`, async ({ page }) => {
+      await openTable(page, width, collapsed, MODS);
+
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expectOneLine(page, MODS, `${width}px, ${label}`);
+    });
+  }
+});
+
+/** Card slugs in display order. */
+async function cardOrder(page: Page): Promise<string[]> {
+  const ids = await page.getByTestId(/^installed-mod-card-/).evaluateAll((cards) =>
+    cards.map((card) => card.getAttribute('data-testid') ?? '')
+  );
+  return ids.map((id) => id.replace('installed-mod-card-', ''));
+}
+
+/** Table row slugs in display order. */
+async function rowOrder(page: Page): Promise<string[]> {
+  const ids = await page.getByTestId(/^mod-row-/).evaluateAll((rows) =>
+    rows.map((row) => row.getAttribute('data-testid') ?? '')
+  );
+  return ids.map((id) => id.replace('mod-row-', ''));
+}
+
+async function expectSortControl(page: Page, column: string, direction: string) {
+  await expect(page.getByTestId('installed-mods-sort-column')).toHaveText(column);
+  await expect(page.getByTestId('installed-mods-sort-direction')).toHaveText(direction);
+}
+
+const BY_NAME = ['longnamemod', 'offmod', 'oldmod'];
+const BY_VERSION = ['offmod', 'longnamemod', 'oldmod'];
+
+test.describe('Sort control above the installed mod cards (Story 18.4, AC 1-4)', () => {
+  for (const { width, collapsed, label } of [
+    { width: 900, collapsed: false, label: 'sidebar expanded' },
+    { width: 390, collapsed: false, label: 'phone' },
+  ]) {
+    test(`sorts the cards and shares the sort with the table at ${width}px, ${label}`, async ({ page }) => {
+      await openPage(page, width, collapsed, INSTALLED, { mods: true });
+      await expect(page.getByTestId('installed-mod-cards')).toBeVisible({ timeout: 30_000 });
+
+      const control = page.getByTestId('installed-mods-sort');
+      await expect(control).toBeVisible();
+      await expectInsideViewport(page, 'installed-mods-sort-column', width);
+      await expectInsideViewport(page, 'installed-mods-sort-direction', width);
+      await expect(page.getByRole('combobox', { name: 'Sort by' })).toBeVisible();
+      await expectSortControl(page, 'Name', 'Ascending');
+      expect(await cardOrder(page)).toEqual(BY_NAME);
+
+      await page.getByTestId('installed-mods-sort-column').click();
+      const options = page.getByRole('option');
+      await expect(options).toHaveText(['Name', 'Version', 'Status']);
+      await page.getByTestId('installed-mods-sort-option-version').click();
+      await expectSortControl(page, 'Version', 'Ascending');
+      expect(await cardOrder(page)).toEqual(BY_VERSION);
+
+      await page.getByTestId('installed-mods-sort-direction').click();
+      await expectSortControl(page, 'Version', 'Descending');
+      expect(await cardOrder(page)).toEqual([...BY_VERSION].reverse());
+
+      await page.reload();
+      await expect(page.getByTestId('installed-mod-cards')).toBeVisible({ timeout: 30_000 });
+      await expectSortControl(page, 'Version', 'Descending');
+      expect(await cardOrder(page)).toEqual([...BY_VERSION].reverse());
+
+      await page.setViewportSize({ width: 1024, height: HEIGHT });
+      const table = page.getByTestId('mod-table');
+      await expect(table).toBeVisible();
+      await expect(control).toHaveCount(0);
+      expect(await rowOrder(page)).toEqual([...BY_VERSION].reverse());
+      await expect(
+        table.getByRole('columnheader', { name: 'Version' }).locator('.lucide-chevron-down')
+      ).toHaveCount(1);
+
+      await table.getByRole('columnheader', { name: 'Name' }).getByRole('button', { name: 'Name' }).click();
+      expect(await rowOrder(page)).toEqual(BY_NAME);
+      await page.setViewportSize({ width, height: HEIGHT });
+      await expect(control).toBeVisible();
+      await expectSortControl(page, 'Name', 'Ascending');
+      expect(await cardOrder(page)).toEqual(BY_NAME);
+    });
+  }
 });
 
 const CONFIG_TABS = ['ui-preferences', 'api-settings', 'file-manager', 'scheduled-jobs'];
