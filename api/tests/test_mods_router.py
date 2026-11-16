@@ -19,10 +19,29 @@ from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
-from vintagestory_api.services.mods import ModService, get_mod_service
+from vintagestory_api.services.mods import (
+    ModOperationInProgressError,
+    ModService,
+    get_mod_service,
+)
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+BUSY_BODY = {
+    "detail": {
+        "code": "MOD_OPERATION_IN_PROGRESS",
+        "message": (
+            "Another operation on mod 'smithingplus' is in progress. "
+            "Try again when it has finished."
+        ),
+    }
+}
+"""The 409 body every mod operation returns while the mod is busy (Story 17.3, AC 1)."""
+
+
+def raise_busy(*_args: object, **_kwargs: object) -> object:
+    raise ModOperationInProgressError("smithingplus")
 
 
 def all_null_mod() -> dict[str, Any]:
@@ -897,6 +916,21 @@ class TestEnableModEndpoint:
 
         assert response.status_code == 401
 
+    def test_enable_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "enable_mod", raise_busy)
+
+        response = client.post("/api/v1alpha1/mods/smithingplus/enable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
+
 
 class TestDisableModEndpoint:
     """Tests for POST /api/v1alpha1/mods/{slug}/disable endpoint."""
@@ -1059,6 +1093,21 @@ class TestDisableModEndpoint:
         response = client.post("/api/v1alpha1/mods/testmod/disable")
 
         assert response.status_code == 401
+
+    def test_disable_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "disable_mod", raise_busy)
+
+        response = client.post("/api/v1alpha1/mods/smithingplus/disable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
 
 
 class TestRemoveModEndpoint:
@@ -1248,6 +1297,21 @@ class TestRemoveModEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["pending_restart"] is True
+
+    def test_remove_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "remove_mod", raise_busy)
+
+        response = client.delete("/api/v1alpha1/mods/smithingplus", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
 
 
 class TestListModsEndpoint:
