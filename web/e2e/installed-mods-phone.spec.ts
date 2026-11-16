@@ -5,7 +5,8 @@ import { test, expect, type Page } from '@playwright/test';
  *
  * Story 16.5 (FR172, VSS-rr5): below the `md` breakpoint (768px) each installed mod is
  * a card with its version, update status and Update action, enable toggle and remove
- * action, and nothing scrolls sideways; at `md` and up the table is unchanged.
+ * action, and nothing scrolls sideways; at `lg` and up the table is unchanged (Story 17.8:
+ * cards up to `lg`).
  *
  * The installed mods list, the update status, the compatibility lookups and every
  * write (version change, enable/disable, remove) are answered with `page.route`, so the
