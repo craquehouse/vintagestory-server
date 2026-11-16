@@ -34,6 +34,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
@@ -47,6 +48,7 @@ from vintagestory_api.routers.config import (
     get_game_config_service,
     get_pending_restart_state,
 )
+from vintagestory_api.routers.config import router as config_router
 from vintagestory_api.services.api_settings import ApiSettingsService
 from vintagestory_api.services.config_files import ConfigFilesService
 from vintagestory_api.services.game_config import GameConfigService
@@ -1636,6 +1638,28 @@ class TestOtherConfigPathsWithAPassword:
             "/api/v1alpha1/config/files",
             "/api/v1alpha1/config/files/{filename}",
         }
+
+        # Review L2: the OpenAPI paths leave out routes with include_in_schema=False, so
+        # also read the config router's own routes, which include hidden ones. (FastAPI
+        # 0.162 keeps included routers as private wrappers, so the app's route list
+        # cannot be walked through a public API.)
+        router_get_routes = {
+            route.path
+            for route in config_router.routes
+            if isinstance(route, APIRoute) and "GET" in (route.methods or set[str]())
+        }
+        assert router_get_routes == {
+            "/config/game",
+            "/config/api",
+            "/config/directories",
+            "/config/files",
+            "/config/files/{filename:path}",
+        }
+        assert all(
+            route.include_in_schema
+            for route in config_router.routes
+            if isinstance(route, APIRoute)
+        )
 
 
 class TestConfigFilePathTraversal:
