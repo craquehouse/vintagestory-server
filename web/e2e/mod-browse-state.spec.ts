@@ -165,8 +165,7 @@ test.describe('Mod browser state survives mod details', () => {
     const state = await setUpBrowseState(page);
     await openCardBelowTheFold(page);
 
-    // Leave through the Mods breadcrumb (the Installed tab is inert on a detail page: VSS-2oz)
-    await page.getByTestId('mod-detail-breadcrumb-mods').click();
+    await page.getByTestId('installed-tab').click();
     await expect(page).toHaveURL(/\/mods\/installed$/);
     await page.getByTestId('browse-tab').click();
 
