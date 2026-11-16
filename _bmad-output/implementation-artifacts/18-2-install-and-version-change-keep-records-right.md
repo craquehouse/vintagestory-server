@@ -1,6 +1,6 @@
 # Story 18.2: Install and Version Change Keep Files and Records Right
 
-Status: review
+Status: done
 
 <!-- Implements FR199-FR200, Epic 18 ADR-4 and ADR-5. Beads: VSS-z7e (API-075, bug, P2), VSS-do7 (API-076). Stacked on Story 18.1 (stories run in order 18.1, 18.2, 18.3, 18.4). Line references were verified at b9606f1 (epic-18-planning; its api/ and web/ are identical to 574e125, the commit the ADRs cite) and must be re-checked at implementation time: Story 18.1 edits routers/mods.py and models/mods.py first. API change only, plus web tests and an E2E spec; no web source change. No new dependencies. -->
 
@@ -321,7 +321,23 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 - `web/e2e/install-file-conflict.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/18-2-install-and-version-change-keep-records-right.md` (modified)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-16
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `fed7250..ad014e5`
+**Outcome:** Approve → resolved
+
+**Summary:** No HIGH or MEDIUM finding; all 12 acceptance criteria met, each new test discriminating (AC 5, 6, 7 and 9 are regression guards, as planned). The collision check runs before anything is written and outside both `try` blocks; nothing is awaited between the check and the state save, so two mods racing for one name cannot both place it; the 409 message names only the file. The version change records releases only after a completed change, inside the mod's lock, and the response keys are unchanged. Reviewer ran `just test-api` (2811 passed, nothing under `dev/`), `just test-web` (3293 passed, 4 skipped), `just lint` and `just typecheck` (0 errors, the 3 known warnings).
+
+### Action Items
+
+- [x] [Low] L1 the collision check compares file names exactly, so on a case-sensitive volume `foo.zip` is placed next to another mod's `Foo.zip` (nothing overwritten; ADR-4 asks only for exact names). Not changed: filed as VSS-52fy [API-085].
+- [x] [Low] L2 the dangling-symlink case of ADR-4 decision 1 (`exists(follow_symlinks=False)`) had no test (fixed, bd80790: `test_a_dangling_symlink_is_a_name_in_use`; fails with a plain `exists()`)
+- Nits not changed: unused `path` parameter in a test helper; the E2E opens the live detail and browse pages (documented in the spec).
+- Pre-existing, filed: VSS-oc28 [UI-096] a failed install shows two toasts.
+
 ## Change Log
 
 - 2026-11-16: Story 18.2 created and validated (ready-for-dev).
 - 2026-11-16: Tasks 1-3 and 4.1 implemented (dev-story); status review. 4.2 (manual) and the PR part of 4.3 left open.
+- 2026-11-16: Code review (GLM-5.3-Flash): approved, two low findings; L2 fixed, L1 filed as VSS-52fy. Status done.
