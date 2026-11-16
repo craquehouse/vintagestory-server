@@ -1,6 +1,6 @@
 # Story 18.4: Installed Mods List at Every Width
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR203-FR204. Beads: VSS-bgu (UI-077), VSS-n2u (UI-086). Branch story/18-4-installed-mods-list-at-every-width, stacked on Story 18.3's branch (18.1, 18.2, 18.3 come first, each stacked on the previous). Line references were verified at b9606f1 (epic-18-planning) and must be re-checked on the 18.3 head before editing; 18.1-18.3 are not expected to touch any file this story edits (epics.md, Epic 18 "Dependencies"). Governed by Epic 18 ADR-6 (one sort preference; the Name column wraps; `components/ui/table.tsx` unchanged; `LG_UP_QUERY` unchanged). Changes acceptance criterion 2 of Story 17.8 for rows with long names. Web only: no API change, no new dependency. -->
 
@@ -55,35 +55,35 @@ so that **the list is as usable on a tablet or a small laptop as on a wide scree
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-18.4/task-N): ... ; feat/fix only for changes an admin can see, subject written for admins. Red first. -->
 
-- [ ] Task 1: Measure the table's columns before any change (AC: 5, 6)
-  - [ ] 1.1: New `_bmad-output/implementation-artifacts/18-4-browser/column_widths.mjs` (Dev Notes "Measurement method"). It reads only: the installed mods, update status and lookups are stubbed with `page.route`, every non-GET API request is refused, no screenshot. Do not edit `17-8-browser/layout_widths.mjs` or its JSON files: they are Story 17.8's record and the before numbers the epic asks to keep
-  - [ ] 1.2: Rebuild the stack from this branch (`just docker restart`), then `cd web && bun ../_bmad-output/implementation-artifacts/18-4-browser/column_widths.mjs > ../_bmad-output/implementation-artifacts/18-4-browser/column_widths.before.json` with `VS_API_KEY_ADMIN` exported. Check the output holds no key, server name or password
-  - [ ] 1.3: Record in the Dev Agent Record a table of the column widths at 1024px (both sidebar states, long-name fixture) and compare with Dev Notes "Planning measurements". Choose the Name column's minimum width by the rule in Dev Notes "Decision: the Name column and the Available cell" and write down the numbers that decided it
-  - [ ] 1.4: Commit the script and `column_widths.before.json`: `docs(story-18.4/task-1): measure the installed mods table's columns at 1024px and wider`
+- [x] Task 1: Measure the table's columns before any change (AC: 5, 6)
+  - [x] 1.1: New `_bmad-output/implementation-artifacts/18-4-browser/column_widths.mjs` (Dev Notes "Measurement method"). It reads only: the installed mods, update status and lookups are stubbed with `page.route`, every non-GET API request is refused, no screenshot. Do not edit `17-8-browser/layout_widths.mjs` or its JSON files: they are Story 17.8's record and the before numbers the epic asks to keep
+  - [x] 1.2: Rebuild the stack from this branch (`just docker restart`), then `cd web && bun ../_bmad-output/implementation-artifacts/18-4-browser/column_widths.mjs > ../_bmad-output/implementation-artifacts/18-4-browser/column_widths.before.json` with `VS_API_KEY_ADMIN` exported. Check the output holds no key, server name or password
+  - [x] 1.3: Record in the Dev Agent Record a table of the column widths at 1024px (both sidebar states, long-name fixture) and compare with Dev Notes "Planning measurements". Choose the Name column's minimum width by the rule in Dev Notes "Decision: the Name column and the Available cell" and write down the numbers that decided it
+  - [x] 1.4: Commit the script and `column_widths.before.json`: `docs(story-18.4/task-1): measure the installed mods table's columns at 1024px and wider`
 
-- [ ] Task 2: Sort control above the installed mod cards + tests (AC: 1, 2, 3, 4, 8)
-  - [ ] 2.1: New `web/src/components/InstalledModsSortControl.tsx` (Dev Notes "The sort control"): exports `SORT_COLUMN_LABELS: Record<InstalledModsSortColumn, string>` (`name: 'Name'`, `version: 'Version'`, `enabled: 'Status'`) and `InstalledModsSortControl({ value, onChange }: { value: InstalledModsSort; onChange: (sort: InstalledModsSort) => void })`. Uses `Select`/`SelectTrigger`/`SelectValue`/`SelectContent`/`SelectItem` (`components/ui/select.tsx`) and `Button` (`components/ui/button.tsx`); no new component in `components/ui/`, no new dependency
-  - [ ] 2.2: `web/src/components/ModTable.tsx`: the three `SortableHeader` labels (`:254`, `:269`, `:309`) use `SORT_COLUMN_LABELS.name`, `.version`, `.enabled`, so the control and the headers cannot drift. In the cards branch (`:401-418`) render `<div className="space-y-3">` holding `<InstalledModsSortControl value={preferences.installedModsSort} onChange={setInstalledModsSort} />` and the existing `<ul ...>` unchanged (`preferences` and `setInstalledModsSort` are already read at `:128`). Nothing in the table branch changes for this task. Header comment (`:1-14`): add "Story 18.4: below `lg`, a sort control above the cards writes the same preference as the headers"
-  - [ ] 2.3: `onSortingChange` (`:155-175`), the `sorting` memo (`:149-153`) and `PreferencesContext.tsx` do not change: the control calls `setInstalledModsSort` (`PreferencesContext.tsx:195-197`), which the cookie effect (`:168-171`) persists, and the table reads the same `preferences.installedModsSort`
-  - [ ] 2.4: Tests (Dev Notes "Web tests", Task 2 rows), red first
+- [x] Task 2: Sort control above the installed mod cards + tests (AC: 1, 2, 3, 4, 8)
+  - [x] 2.1: New `web/src/components/InstalledModsSortControl.tsx` (Dev Notes "The sort control"): exports `SORT_COLUMN_LABELS: Record<InstalledModsSortColumn, string>` (`name: 'Name'`, `version: 'Version'`, `enabled: 'Status'`) and `InstalledModsSortControl({ value, onChange }: { value: InstalledModsSort; onChange: (sort: InstalledModsSort) => void })`. Uses `Select`/`SelectTrigger`/`SelectValue`/`SelectContent`/`SelectItem` (`components/ui/select.tsx`) and `Button` (`components/ui/button.tsx`); no new component in `components/ui/`, no new dependency
+  - [x] 2.2: `web/src/components/ModTable.tsx`: the three `SortableHeader` labels (`:254`, `:269`, `:309`) use `SORT_COLUMN_LABELS.name`, `.version`, `.enabled`, so the control and the headers cannot drift. In the cards branch (`:401-418`) render `<div className="space-y-3">` holding `<InstalledModsSortControl value={preferences.installedModsSort} onChange={setInstalledModsSort} />` and the existing `<ul ...>` unchanged (`preferences` and `setInstalledModsSort` are already read at `:128`). Nothing in the table branch changes for this task. Header comment (`:1-14`): add "Story 18.4: below `lg`, a sort control above the cards writes the same preference as the headers"
+  - [x] 2.3: `onSortingChange` (`:155-175`), the `sorting` memo (`:149-153`) and `PreferencesContext.tsx` do not change: the control calls `setInstalledModsSort` (`PreferencesContext.tsx:195-197`), which the cookie effect (`:168-171`) persists, and the table reads the same `preferences.installedModsSort`
+  - [x] 2.4: Tests (Dev Notes "Web tests", Task 2 rows), red first
 
-- [ ] Task 3: The Name column wraps so the table fits at 1024px + tests (AC: 5, 6, 7, 8)
-  - [ ] 3.1: New `web/src/lib/table-column-meta.d.ts`: module augmentation of TanStack Table's `ColumnMeta` with `className?: string` (Dev Notes "Typed column meta"). In `ModTable.tsx` the header's `(header.column.columnDef.meta as { className?: string } | undefined)?.className` (`:377-379`) becomes `header.column.columnDef.meta?.className`; no type assertion is added anywhere
-  - [ ] 3.2: `ModTable.tsx` Name column (`:251-265`): add `meta: { className: 'min-w-36 whitespace-normal wrap-anywhere' }` (`min-w-36` is the planning value; use the value Task 1.3 chose). Body cells (`:392-396`): `<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>`, so the Name cells get the same classes as the Name header. The Actions column's `meta` (`w-[80px]`, `:334`) now also reaches its body cells; that is intended and changes nothing measurable (it is a width hint on the same column)
-  - [ ] 3.3: `web/src/components/ModUpdateCell.tsx:60`: the `update_available` container becomes `flex flex-wrap items-center gap-x-2 gap-y-1`, so the Update button can drop under the offered version when the column is narrow (Dev Notes "Decision"). It is shared with the cards (`InstalledModCard.tsx:73-79`), where it only wraps if the card is narrower than the line. Header comment: add "Story 18.4: the Update button wraps under the version when the column is narrow"
-  - [ ] 3.4: `web/src/components/ui/table.tsx` is not edited (ADR-6 decision 1); `JobsTable.tsx` and `VersionTable.tsx` are not edited
-  - [ ] 3.5: Tests (Dev Notes "Web tests", Task 3 rows), red first
+- [x] Task 3: The Name column wraps so the table fits at 1024px + tests (AC: 5, 6, 7, 8)
+  - [x] 3.1: New `web/src/lib/table-column-meta.d.ts`: module augmentation of TanStack Table's `ColumnMeta` with `className?: string` (Dev Notes "Typed column meta"). In `ModTable.tsx` the header's `(header.column.columnDef.meta as { className?: string } | undefined)?.className` (`:377-379`) becomes `header.column.columnDef.meta?.className`; no type assertion is added anywhere
+  - [x] 3.2: `ModTable.tsx` Name column (`:251-265`): add `meta: { className: 'min-w-36 whitespace-normal wrap-anywhere' }` (`min-w-36` is the planning value; use the value Task 1.3 chose). Body cells (`:392-396`): `<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>`, so the Name cells get the same classes as the Name header. The Actions column's `meta` (`w-[80px]`, `:334`) now also reaches its body cells; that is intended and changes nothing measurable (it is a width hint on the same column)
+  - [x] 3.3: `web/src/components/ModUpdateCell.tsx:60`: the `update_available` container becomes `flex flex-wrap items-center gap-x-2 gap-y-1`, so the Update button can drop under the offered version when the column is narrow (Dev Notes "Decision"). It is shared with the cards (`InstalledModCard.tsx:73-79`), where it only wraps if the card is narrower than the line. Header comment: add "Story 18.4: the Update button wraps under the version when the column is narrow"
+  - [x] 3.4: `web/src/components/ui/table.tsx` is not edited (ADR-6 decision 1); `JobsTable.tsx` and `VersionTable.tsx` are not edited
+  - [x] 3.5: Tests (Dev Notes "Web tests", Task 3 rows), red first
 
 - [ ] Task 4: E2E, after measurements and browser check (AC: 1-7)
-  - [ ] 4.1: `web/e2e/layout-widths.spec.ts` (Dev Notes "E2E"): the 1024px table tests expect no scrolling element; new long-name and short-name assertions at 1024/1280/1440/1920; new sort control tests. Update its header comment (`:6-9`). `web/e2e/installed-mods-phone.spec.ts`: add the two sort controls to the 44px touch target test (`:231-256`)
-  - [ ] 4.2: Rebuild the stack from this branch (`just docker restart`); run `cd web && bunx playwright test e2e/layout-widths.spec.ts e2e/installed-mods-phone.spec.ts` with `VS_API_KEY_ADMIN` exported. Both specs read only (every write refused; sort preference only in the test browser's cookie); the game server is not started or stopped
-  - [ ] 4.3: Run the measurement script again into `18-4-browser/column_widths.after.json`; record a before/after table in the Dev Agent Record (per width and sidebar state: table scroll width / container width, each column's width, row heights of the three fixture mods, toggle and remove inside the viewport)
-  - [ ] 4.4: Browser check on the stack (Admin key, every write refused or nothing clicked that writes, no screenshot kept): at 900px and 390px choose Version, flip to Descending, reload, widen to 1024px and see the table sorted the same way; at 1024px with the sidebar expanded and collapsed the table does not scroll sideways. This is a manual check: per `project-context.md` it is ticked only after the maintainer confirms it; record the agent's scripted check separately, as Story 17.8 did
-  - [ ] 4.5: Commit the specs and `column_widths.after.json`: `test(story-18.4/task-4): check the installed mods list and its sort at every width`
+  - [x] 4.1: `web/e2e/layout-widths.spec.ts` (Dev Notes "E2E"): the 1024px table tests expect no scrolling element; new long-name and short-name assertions at 1024/1280/1440/1920; new sort control tests. Update its header comment (`:6-9`). `web/e2e/installed-mods-phone.spec.ts`: add the two sort controls to the 44px touch target test (`:231-256`)
+  - [x] 4.2: Rebuild the stack from this branch (`just docker restart`); run `cd web && bunx playwright test e2e/layout-widths.spec.ts e2e/installed-mods-phone.spec.ts` with `VS_API_KEY_ADMIN` exported. Both specs read only (every write refused; sort preference only in the test browser's cookie); the game server is not started or stopped
+  - [x] 4.3: Run the measurement script again into `18-4-browser/column_widths.after.json`; record a before/after table in the Dev Agent Record (per width and sidebar state: table scroll width / container width, each column's width, row heights of the three fixture mods, toggle and remove inside the viewport)
+  - [ ] 4.4: (Maintainer check, left open. The agent's scripted check is in the Debug Log.) Browser check on the stack (Admin key, every write refused or nothing clicked that writes, no screenshot kept): at 900px and 390px choose Version, flip to Descending, reload, widen to 1024px and see the table sorted the same way; at 1024px with the sidebar expanded and collapsed the table does not scroll sideways. This is a manual check: per `project-context.md` it is ticked only after the maintainer confirms it; record the agent's scripted check separately, as Story 17.8 did
+  - [x] 4.5: Commit the specs and `column_widths.after.json`: `test(story-18.4/task-4): check the installed mods list and its sort at every width`
 
 - [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `just check` passes (lint, typecheck, all tests); the diff adds no lint or type suppression, no `cast`, no `as` type assertion and no non-null assertion in source (the existing `!` in test helpers such as `ModTable.test.tsx:1723` is not new); `git status --short` shows nothing under `dev/`
-  - [ ] 5.2: Story status `review`, `just sprint set 18-4-installed-mods-list-at-every-width review`, PR (base: Story 18.3's branch while its PR is open, otherwise `main`), PR link on `VSS-bgu` and `VSS-n2u`. The PR description lists the follow-ups in Dev Notes "Follow-ups" and the two AC 6 exceptions
+  - [x] 5.1: `just check` passes (lint, typecheck, all tests); the diff adds no lint or type suppression, no `cast`, no `as` type assertion and no non-null assertion in source (the existing `!` in test helpers such as `ModTable.test.tsx:1723` is not new); `git status --short` shows nothing under `dev/`
+  - [ ] 5.2: (Done: story status `review` and `just sprint set ... review`. Not done: PR and PR links on the beads; the dev brief forbids push, PR and bead changes, so they are left for the orchestrator.) Story status `review`, `just sprint set 18-4-installed-mods-list-at-every-width review`, PR (base: Story 18.3's branch while its PR is open, otherwise `main`), PR link on `VSS-bgu` and `VSS-n2u`. The PR description lists the follow-ups in Dev Notes "Follow-ups" and the two AC 6 exceptions
 
 ## Dev Notes
 
@@ -324,16 +324,74 @@ Found by running the whole web suite against a throwaway prototype of Tasks 2 an
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive
 
 ### Debug Log References
 
+**Task 1: column widths before the change** (`18-4-browser/column_widths.before.json`, stack rebuilt from this branch at f594209, before any code change, long-name fixture, `th` widths with padding):
+
+| Viewport | Sidebar | Table / container | Name | Version | Available | Side | Compatibility | Status | Actions |
+|---|---|---|---|---|---|---|---|---|---|
+| 1024 | expanded | 1183 / 816 | 447 | 90 | 234 | 154 | 131 | 76 | 52 |
+| 1024 | collapsed | 1183 / 912 | 447 | 90 | 234 | 154 | 131 | 76 | 52 |
+
+Identical to Dev Notes "Planning measurements". At 1024 the long-named mod's toggle and remove button end outside the viewport in both states. Short-name fixture (`Short Mod` offering `1.5.0-rc.1`): 818 / 816 at 1024 expanded (scrolls; the planning run with a longer offered version gave 841), fits collapsed.
+
+**Task 1.3: Name minimum width.** Measured at 1024 expanded: the Available cell's parts are 139px (`v1.0.0-rc.13 pre-release`) and 71px (Update), so once it can wrap its minimum is 139 + 16 padding = 155px. The other minimums are Version 90, Side 154, Compatibility 131, Status 76, Actions 52, so the six other columns need 90 + 155 + 154 + 131 + 76 + 52 = 658px. Candidates: `min-w-32` 658 + 128 = 786, `min-w-36` 658 + 144 = 802, `min-w-40` 658 + 160 = 818. Limit 808 (816 − 8), so **`min-w-36`** (the planning value). The widest word of the long name is 89px.
+
+**Task 4.3: before / after** (`column_widths.after.json`). Columns: Name, Version, Available, Side, Compatibility, Status, Actions. Rows: longnamemod (or shortmod), oldmod, offmod. "On screen": the first mod's toggle and remove end inside the viewport.
+
+| Fixture | Viewport | Sidebar | Table / container before → after | Columns after | Row heights before → after | On screen before → after |
+|---|---|---|---|---|---|---|
+| long | 1024 | expanded | 1183/816 → 816/816 | 144, 90, 155, 154, 131, 76, 67 | 57/63/57 → 117/63/57 | no → yes |
+| long | 1024 | collapsed | 1183/912 → 912/912 | 195, 90, 168, 154, 149, 76, 80 | 57/63/57 → 97/63/57 | no → yes |
+| long | 1280 | expanded | 1183/1072 → 1072/1072 | 294, 90, 194, 154, 185, 76, 80 | 57/63/57 → 77/63/57 | toggle only → yes |
+| long | 1280 | collapsed | 1183/1168 → 1168/1168 | 353, 90, 209, 154, 207, 76, 80 | 57/63/57 → 77/63/57 | toggle only → yes |
+| long | 1440 | expanded | 1232/1232 → 1232/1232 | 392, 90, 219, 154, 221, 76, 80 | 57/63/57 → 77/63/57 | yes → yes |
+| long | 1440 | collapsed | 1328/1328 → 1328/1328 | 449, 90, 235, 155, 242, 76, 80 | 57/57/57 → 57/57/57 | yes → yes |
+| long | 1920 | expanded | 1712/1712 → 1712/1712 | 588, 118, 307, 203, 317, 100, 80 | 57/57/57 → 57/57/57 | yes → yes |
+| long | 1920 | collapsed | 1808/1808 → 1808/1808 | 622, 125, 325, 214, 335, 105, 80 | 57/57/57 → 57/57/57 | yes → yes |
+| short | 1024 | expanded | 818/816 → 816/816 | 144, 83, 148, 154, 132, 76, 80 | 57/63/57 → 73/63/57 | yes → yes |
+| short | 1024 | collapsed | 912/912 → 912/912 | 144, 83, 188, 154, 188, 76, 80 | 57/63/57 → 73/63/57 | yes → yes |
+| short | 1280-1920 | both | fits → fits | | 57/57/57 → 57/57/57 | yes → yes |
+
+Document overflow is 0 everywhere, before and after; after the change no element scrolls at any measured width. At 1024 the long name wraps (117px row expanded, 97px collapsed); at 1280 it wraps to two lines in both states (allowed: AC 6 asks one line for the long name only at 1440 collapsed and 1920); at 1440 expanded it wraps (the AC 6 exception). The Short Mod row at 1024 is 73px because its Update button drops under the version (the other AC 6 exception).
+
+**Task 4.2: E2E** on the rebuilt stack (no game server running before or after; checked with `ps` in the container): `bunx playwright test e2e/layout-widths.spec.ts e2e/installed-mods-phone.spec.ts`, 56 passed. The e2e files are not in `tsconfig.json`'s `include`; a separate `tsc --noEmit --strict` over the two specs is clean.
+
+**Task 4.4: the agent's scripted check** (not the maintainer's check): the E2E "Sort control above the installed mod cards" tests drive exactly the 4.4 flow at 900px (sidebar expanded) and 390px: choose Version, flip to Descending, reload (still Version / Descending), widen to 1024 (table in version descending order with the chevron on Version), sort by the Name header, narrow again (control reads Name / Ascending). The 1024px tables in both sidebar states have no scrolling element. Every write was refused, nothing real was changed, no screenshot.
+
+**Task 5.1:** `just check` passed (lint, typecheck, API 2858 passed, web 3312 passed and 4 skipped (VSS-hnl), script tests; Pyright 0 errors, 3 warnings (VSS-1ar)). No suppression, `cast`, `as` assertion or non-null assertion added in source or tests (the new ModTable test helper uses `?? ''`). Nothing under `dev/` in `git status`.
+
 ### Completion Notes List
+
+- AC 1-4 (FR203, VSS-bgu): `InstalledModsSortControl` above the cards (below `lg` only, absent while loading and when no mods are installed): a "Sort by" `Select` (Name, Version, Status, the same `SORT_COLUMN_LABELS` the table headers now use) and a direction button that shows "Ascending"/"Descending" with the header chevron and flips it. Both are `min-h-11` (44px, measured in the phone E2E). Choosing a column keeps the direction. The control calls the existing `setInstalledModsSort`, so the `vs_ui_prefs` cookie and the table share one sort; `onSortingChange`, the `sorting` memo and `PreferencesContext.tsx` are unchanged.
+- AC 5 (FR204, VSS-n2u): the Name column has `meta.className = 'min-w-36 whitespace-normal wrap-anywhere'`, applied to its header and, new, its body cells (body cells now get `meta.className` like headers, so the Actions column's `w-[80px]` reaches its cells too). The Available cell's container is `flex flex-wrap`, so the Update button drops under the offered version when the column is narrow; this is shared with the cards. At 1024px the long-name table fits 816/816 and 912/912, and the long-named mod's toggle and remove are on screen.
+- AC 6 is narrower than the epic's text, as written in the story: below 1280px the Update button of an offered update may sit under the offered version, and at 1440px with the sidebar expanded the 63-character name wraps (measured: 77px row). Between 1280 and 1439px the long name also wraps (the AC requires one line for the long name only at 1440 collapsed and 1920). Short names stay on one line, with the Available cell on one line, from 1280px in both sidebar states; the long name does at 1440 collapsed and at 1920.
+- AC 7: `components/ui/table.tsx`, `JobsTable.tsx` and `VersionTable.tsx` are not edited; `table.test.tsx` still asserts `whitespace-nowrap` on `TableHead`/`TableCell`.
+- `ColumnMeta` is augmented in `web/src/lib/table-column-meta.d.ts`, so `ModTable` reads `columnDef.meta?.className` without the former type assertion.
+- No API change, no new dependency. Prettier was not run: the existing `ModTable.tsx`, `ModTable.test.tsx` and `ModUpdateCell.tsx` do not match Prettier's defaults (the repo has no Prettier config), so formatting them would rewrite unrelated lines; the new code follows the files' existing style.
+- Manual check 4.4 is left for the maintainer. Task 5.2's PR and bead links are not done (the dev brief forbids push, PR and bead changes).
+- Follow-ups (from Dev Notes, unchanged): Version column ordering of pre-releases; the short-name scroll at 1024 expanded (fixed here) to note on `VSS-n2u`; `VersionTable.tsx` can drop its `as { className?: string }` assertions now that `ColumnMeta` is augmented; sortable headers have no `aria-sort`.
 
 - Story created 2026-11-16 at b9606f1: context analysis of `ModTable`, `InstalledModParts`, `InstalledModCard`, `ModUpdateCell`, `SideBadge`, `PreferencesContext`, `use-media-query`, the shadcn `Table` and `Select`, the browse `SortControl`, `VersionTable`'s meta use, TanStack Table's `ColumnMeta` and auto sort, the 17.8 measurement script, specs and story, and ADR-6. Read-only column measurements and CSS simulations on the running dev stack (Dev Notes "Planning measurements"). A throwaway prototype of Tasks 2-3 run against the whole web suite (no failure) and a prototype test of the control in jsdom; both discarded.
 
 ### File List
 
+- `_bmad-output/implementation-artifacts/18-4-browser/column_widths.mjs` (new)
+- `_bmad-output/implementation-artifacts/18-4-browser/column_widths.before.json` (new)
+- `_bmad-output/implementation-artifacts/18-4-browser/column_widths.after.json` (new)
+- `web/src/components/InstalledModsSortControl.tsx` (new)
+- `web/src/lib/table-column-meta.d.ts` (new)
+- `web/src/components/ModTable.tsx` (modified)
+- `web/src/components/ModTable.test.tsx` (modified)
+- `web/src/components/ModUpdateCell.tsx` (modified)
+- `web/src/components/ModUpdateCell.test.tsx` (modified)
+- `web/e2e/layout-widths.spec.ts` (modified)
+- `web/e2e/installed-mods-phone.spec.ts` (modified)
+- `_bmad-output/implementation-artifacts/18-4-installed-mods-list-at-every-width.md` (this story)
+
 ## Change Log
 
 - 2026-11-16: Story 18.4 created and validated (ready-for-dev). Validation against the create-story checklist, every cited path and line re-read at b9606f1: measured the columns instead of assuming them (Name wrapping alone does not fit at 1024 expanded, so the Available cell wraps too); `wrap-anywhere` instead of ADR-6's `break-words` (long slugs); `min-h-11` instead of `h-11` (the `SelectTrigger` data-size height outranks it); typed `ColumnMeta` so the body-cell change adds no type assertion; AC 6 narrowed to what any wrapping table can do, with the two exceptions measured; the planning note on Version sorting checked and not reproduced (follow-up 1 states the real defect); the 17.8 script kept unchanged and a new one added; the jsdom stubs Radix `Select` needs; the 44px E2E list extended.
+- 2026-11-16: Story 18.4 implemented (Tasks 1-4, 5.1); status review. Maintainer check 4.4 and the PR (5.2) open.
