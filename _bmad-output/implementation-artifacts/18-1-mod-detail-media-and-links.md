@@ -1,6 +1,6 @@
 # Story 18.1: Mod Detail Page Media and Links
 
-Status: review
+Status: done
 
 <!-- Implements FR194-FR198. Beads: VSS-l4x (UI-083), VSS-tzl (UI-078). First story of Epic 18; stories are implemented in order 18.1, 18.2, 18.3, 18.4, each stacked on the previous. Governed by Epic 18 ADR-1 (media normalized in models/moddb.py, then filtered by an allow-list in services/mod_media.py) and ADR-2 (the trailer is a link, the gallery uses the existing Dialog, no new dependency), which extend Epic 17 ADR-1 (normalization at the boundary). Line references were verified at commit b9606f1 (branch epic-18-planning, on top of main 574e125) and must be re-checked at implementation time. Not in scope: VSS-z7e, VSS-do7 (18.2), VSS-4f3 (18.3), VSS-bgu, VSS-n2u (18.4); pre-existing VSS-1ar, VSS-hnl, VSS-6wj. No new npm or Python dependency. -->
 
@@ -483,8 +483,26 @@ Modified:
 - `web/src/styles/index.css`
 - `_bmad-output/implementation-artifacts/18-1-mod-detail-media-and-links.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-16
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `6285da4..9051973`
+**Outcome:** Approve → resolved
+
+**Summary:** No HIGH or MEDIUM finding. All 12 acceptance criteria met with discriminating tests. The reviewer probed the URL validation with 20 hostile inputs beyond the story's tables (userinfo, ports, look-alike and suffix hosts, encoded separators, `javascript:`/`data:`, control characters) and could not get one through; the rebuilt trailer URL takes only an 11-character ID. Reviewer re-ran `just test-api` (2786 passed), `just test-web` (3291 passed, 4 skipped), `just lint` and `just typecheck` (0 errors, the 3 known warnings); nothing written under `dev/`.
+
+### Action Items
+
+- [x] [Low] L1 `mod-description.ts`: the idempotency check looked only at the link's last child, so a mod author's own `<span data-new-tab-note>` inside a link suppressed the screen reader note (fixed, 3f96136: every marked span inside a link is removed before the one real note is appended; a second pass still gives one note; new unit test with both author-marker positions)
+- [x] [Low] L2 `mod-detail-media.spec.ts`: the exact full-size request check depended on Chromium's lazy-load distance (fixed, 1cafa38: the section is scrolled into view before the poll)
+- [x] [Low] L3 bookkeeping: `sprint-status.yaml` is not in the File List and task 7.2 is partial (not changed: the project keeps `sprint-status.yaml` out of File Lists; task 7.2's PR is opened by the controller)
+- Nits not changed: a weak `"debug" in output` substring next to stronger assertions; `step` computed from render-time state (safe with React's synchronous discrete events).
+
+After the fixes: `mod-description.test.ts` and the mods feature tests 235 passed; `just lint-web` and `just typecheck-web` clean; on the stack rebuilt from this branch (`just docker restart`, no game server running, none started or stopped) `mod-detail-media.spec.ts` and `mod-detail-bad-data.spec.ts` 7 passed.
+
 ## Change Log
 
 - 2026-11-16: Story 18.1 created (ready-for-dev).
 - 2026-11-16: Validated against the create-story checklist: every cited path and line re-read at b9606f1; the URL rule tightened after the prototype showed `urlsplit` accepting whitespace, control characters and an empty port; AC 7 scoped to the Screenshots section because the page header already overflows at 390px; the tolerant read of `screenshots` added after 75 detail-page tests failed without it; the `test_unknown_keys_kept` example, the exact-dict model test and the one typed web literal listed; the missing description styles and the React portal key-event pitfall recorded.
 - 2026-11-16: Implemented Tasks 1-6 (6.3 manual check left for the maintainer); quality gate green; status review.
+- 2026-11-16: Code review (GLM-5.3-Flash): approved, three low findings; L1 and L2 fixed, L3 not changed. Status done.
