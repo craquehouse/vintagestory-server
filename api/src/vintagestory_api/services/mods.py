@@ -240,6 +240,12 @@ class InstallResult:
     pending_restart: bool
     """Whether a server restart is required."""
 
+    releases: list[ReleaseDict]
+    """Every release of the mod database entry, newest first, from the install's lookup.
+
+    Not part of the API response: Story 17.4 stores them as the new mod's update record.
+    """
+
 
 class ModService:
     """Orchestrates mod management operations.
@@ -1203,7 +1209,7 @@ class ModService:
                     self._refuse_if_busy(archive.modid)
                 self._refuse_if_installed(archive.modid)
             # 7. Place the file and save state
-            return self._place_install(slug, download_result)
+            return self._place_install(slug, download_result, resolved.releases)
 
     def _refuse_if_installed(self, mod_id: str) -> None:
         """Raise ModAlreadyInstalledError if `mod_id` is installed, ignoring case.
@@ -1225,7 +1231,9 @@ class ModService:
             )
             raise ModAlreadyInstalledError(existing.slug, existing.version)
 
-    def _place_install(self, slug: str, download_result: DownloadResult) -> InstallResult:
+    def _place_install(
+        self, slug: str, download_result: DownloadResult, releases: list[ReleaseDict]
+    ) -> InstallResult:
         """Copy a downloaded archive into the mods directory, import it and save state.
 
         Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
@@ -1320,4 +1328,5 @@ class ModService:
             filename=download_result.filename,
             compatibility=compatibility,
             pending_restart=pending_restart,
+            releases=releases,
         )

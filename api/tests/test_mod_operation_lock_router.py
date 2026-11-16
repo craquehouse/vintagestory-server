@@ -22,6 +22,11 @@ from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.moddb import ModDict, normalize_mod
 from vintagestory_api.models.mods import ModState
+from vintagestory_api.services.mod_updates import (
+    ModUpdateService,
+    ModUpdateStore,
+    get_mod_update_service,
+)
 from vintagestory_api.services.mods import ModService, get_mod_service
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -111,8 +116,16 @@ async def client(tmp_path: Path, service: ModService) -> AsyncGenerator[httpx.As
     settings = Settings(
         api_key_admin=TEST_ADMIN_KEY, api_key_monitor=TEST_MONITOR_KEY, data_dir=tmp_path
     )
+    # Install stores the new mod's update record (Story 17.4): keep it in tmp_path,
+    # never in the real singleton's data directory
+    update_service = ModUpdateService(
+        store=ModUpdateStore(tmp_path / "state"),
+        mod_source=service,
+        game_version_provider=lambda: "1.22.7",
+    )
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_mod_service] = lambda: service
+    app.dependency_overrides[get_mod_update_service] = lambda: update_service
     try:
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"

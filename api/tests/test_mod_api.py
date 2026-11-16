@@ -9,7 +9,7 @@ import pytest
 import respx
 from httpx import Response
 
-from vintagestory_api.models.moddb import ModDict, normalize_mod_list
+from vintagestory_api.models.moddb import ModDict, normalize_mod, normalize_mod_list
 from vintagestory_api.services.mod_api import (
     DownloadError,
     DownloadResult,
@@ -1140,6 +1140,10 @@ class TestResolveInstall:
         assert resolved.release["modidstr"] == mod_id
         assert (resolved.file_id, resolved.asset_id) == (file_id, asset_id)
         assert not download.called
+        # Story 17.4: the whole entry's releases, newest first, for the update record
+        entry = normalize_mod(_fixture_payload(fixture)["mod"])
+        assert entry is not None
+        assert resolved.releases == entry["releases"]
 
     @respx.mock
     @pytest.mark.asyncio

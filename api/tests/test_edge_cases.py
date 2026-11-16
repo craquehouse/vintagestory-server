@@ -268,7 +268,12 @@ class TestModServiceEdgeCases:
         client = MagicMock()
         client.resolve_install = AsyncMock(
             return_value=ResolvedInstall(
-                slug="demo", mod_id="demo", release=DEMO_RELEASE, file_id=1, asset_id=1
+                slug="demo",
+                mod_id="demo",
+                release=DEMO_RELEASE,
+                file_id=1,
+                asset_id=1,
+                releases=[DEMO_RELEASE],
             )
         )
         client.download_resolved = AsyncMock(

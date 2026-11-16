@@ -76,6 +76,13 @@ class ResolvedInstall:
     asset_id: int
     """The mod database entry's asset ID."""
 
+    releases: list[ReleaseDict]
+    """Every release of the mod database entry, newest first, as `get_mod` returned them.
+
+    Story 17.4 stores them as the new mod's update record, so the Installed list shows
+    its update status without another lookup.
+    """
+
 
 class ModApiError(Exception):
     """Base exception for mod API errors."""
@@ -476,6 +483,7 @@ class ModApiClient:
             release=release,
             file_id=file_id,
             asset_id=mod["assetid"],
+            releases=releases,
         )
 
     async def download_resolved(self, resolved: ResolvedInstall) -> DownloadResult:

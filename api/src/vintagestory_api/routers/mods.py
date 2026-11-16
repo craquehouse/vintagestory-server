@@ -667,13 +667,15 @@ async def install_mod(
     request: ModInstallRequest,
     _: RequireAdmin,
     service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
 ) -> ApiResponse:
     """Install a mod from the VintageStory mod database.
 
     Downloads and installs a mod by slug or URL. If version is not specified,
     installs the newest stable release of the mod ID that has a downloadable file
     (Epic 17 ADR-2). Returns compatibility status with the
-    installed game version.
+    installed game version. The new mod's update status is stored from the install's
+    own lookup, so it shows without waiting for the next update check (Story 17.4).
 
     Args:
         request: Installation request with slug and optional version.
@@ -698,6 +700,8 @@ async def install_mod(
     logger.debug("router_install_mod_start", slug=request.slug, version=request.version)
     try:
         result = await service.install_mod(request.slug, request.version)
+        # Never raises; a failure is logged and the install still succeeds
+        update_service.record_install(result.slug, result.releases)
         logger.debug(
             "router_install_mod_complete",
             slug=result.slug,

@@ -20,6 +20,7 @@ import {
   useChangeModVersion,
   useApplyAllModUpdates,
 } from './use-mods';
+import { queryKeys } from '@/api/query-keys';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -182,6 +183,37 @@ describe('useInstallMod', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  describe('update status after an install (Story 17.4)', () => {
+    it('invalidates the update status, so the Installed list shows the new mod status', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: {
+              slug: 'newmod',
+              version: '1.5.0',
+              filename: 'newmod-1.5.0.zip',
+              compatibility: 'compatible',
+              pending_restart: false,
+            },
+          }),
+      });
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(queryKeys.mods.updateStatus, { status: 'ok', data: { mods: [] } });
+      const { result } = renderHook(() => useInstallMod(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.mutate({ slug: 'newmod' });
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(queryClient.getQueryState(queryKeys.mods.updateStatus)?.isInvalidated).toBe(true);
+    });
   });
 
   describe('mutation behavior', () => {
