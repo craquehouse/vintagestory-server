@@ -30,6 +30,14 @@ const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
 const BROWSE = '/game-server/mods/browse';
 const BROWSE_API = /\/api\/v1alpha1\/mods\/browse(\?.*)?$/;
 const PHONE = { width: 390, height: 844 };
+const COLOR_SCHEMES: Array<'light' | 'dark'> = ['light', 'dark'];
+
+interface LiveBrowseBody {
+  data: {
+    game_version: string | null;
+    mods: Array<{ slug: string; has_release_for_game_version: boolean | null }>;
+  };
+}
 
 function item(slug: string, name: string, hasRelease: boolean | null) {
   return {
@@ -119,7 +127,7 @@ test.describe('Game version indicator on browse cards', () => {
     await expect(page.locator('[data-testid^="mod-card-game-version-"]')).toHaveCount(0);
   });
 
-  for (const colorScheme of ['light', 'dark'] as const) {
+  for (const colorScheme of COLOR_SCHEMES) {
     test(`indicators stay inside the card at phone width (${colorScheme} theme)`, async ({
       page,
     }) => {
@@ -165,12 +173,7 @@ test.describe('Game version indicator on browse cards', () => {
       { timeout: 60_000 }
     );
     await page.goto(`${BROWSE}?q=carry+on&sort=downloads`);
-    const body = (await (await browse).json()) as {
-      data: {
-        game_version: string | null;
-        mods: Array<{ slug: string; has_release_for_game_version: boolean | null }>;
-      };
-    };
+    const body: LiveBrowseBody = await (await browse).json();
     const gameVersion = body.data.game_version;
     const mods = body.data.mods;
     expect(mods.length).toBeGreaterThan(0);
