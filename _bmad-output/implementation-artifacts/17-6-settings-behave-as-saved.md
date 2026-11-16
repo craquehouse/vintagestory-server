@@ -80,11 +80,11 @@ so that **I do not have to restart the API or guess what the game is using**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.6/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: One function applies an interval setting to the scheduler; startup uses it + tests (AC: 1, 2, 3, 4, 8, 13)
-  - [ ] 1.1: `api/src/vintagestory_api/jobs/__init__.py`: add `INTERVAL_JOBS` (setting key → job ID; the three pairs in AC 1) and `apply_interval_setting(scheduler: SchedulerService, key: str, seconds: int, *, startup: bool = False) -> None` (Dev Notes "The function"). Unknown key: `KeyError` from the table (a programming error, not caught)
-  - [ ] 1.2: `register_default_jobs` (`:35-109`) becomes: read settings as today (`ApiSettingsService().get_settings()`, `:52`; tests patch `vintagestory_api.jobs.ApiSettingsService`), then `apply_interval_setting(scheduler, key, getattr(settings, key), startup=True)` for each key. Keep the `job_registered` log event with its fields (`job_id`, `interval_seconds`, and `run_immediately=True` for `server_versions_check`) and the `default_jobs_registered` count: the three `*_logs_registration` tests assert them (the prototype that dropped them failed exactly those three). Module docstring: interval settings drive their jobs at startup and on change (Story 17.6, Epic 17 ADR-5)
-  - [ ] 1.3: Tests (Dev Notes "API tests", Task 1 rows). Real `SchedulerService`, inspected through `job_to_info` (typed; no suppression needed), not a mock
-  - [ ] Commit: `refactor(story-17.6/task-1): ...` (no visible change yet)
+- [x] Task 1: One function applies an interval setting to the scheduler; startup uses it + tests (AC: 1, 2, 3, 4, 8, 13)
+  - [x] 1.1: `api/src/vintagestory_api/jobs/__init__.py`: add `INTERVAL_JOBS` (setting key → job ID; the three pairs in AC 1) and `apply_interval_setting(scheduler: SchedulerService, key: str, seconds: int, *, startup: bool = False) -> None` (Dev Notes "The function"). Unknown key: `KeyError` from the table (a programming error, not caught)
+  - [x] 1.2: `register_default_jobs` (`:35-109`) becomes: read settings as today (`ApiSettingsService().get_settings()`, `:52`; tests patch `vintagestory_api.jobs.ApiSettingsService`), then `apply_interval_setting(scheduler, key, getattr(settings, key), startup=True)` for each key. Keep the `job_registered` log event with its fields (`job_id`, `interval_seconds`, and `run_immediately=True` for `server_versions_check`) and the `default_jobs_registered` count: the three `*_logs_registration` tests assert them (the prototype that dropped them failed exactly those three). Module docstring: interval settings drive their jobs at startup and on change (Story 17.6, Epic 17 ADR-5)
+  - [x] 1.3: Tests (Dev Notes "API tests", Task 1 rows). Real `SchedulerService`, inspected through `job_to_info` (typed; no suppression needed), not a mock
+  - [x] Commit: `refactor(story-17.6/task-1): ...` (no visible change yet)
 
 - [ ] Task 2: Saving an interval reschedules its job; bounds; failure reported + tests (AC: 1, 2, 3, 6, 7, 13)
   - [ ] 2.1: `services/api_settings.py` `ApiSettings` (`:41-55`): `le=31_536_000` on the three interval fields; descriptions add "at most 365 days". Name the bound once (`MAX_INTERVAL_SECONDS = 31_536_000`, module level, docstring: longer intervals cannot be scheduled reliably and 0 disables a job)
@@ -297,13 +297,22 @@ Found by running the affected API files against a throwaway prototype of Task 1 
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Started from `story/17-5-monitor-keys-cannot-read-the-server-password` at 252498e (Story 17.5 done, stacked on 17.7 and 17.4); the story file was cherry-picked from `draft/17-6-settings-behave-as-saved` (5d70c5e). Every line reference written at 21457bf was re-read before use. Unchanged since 21457bf: `jobs/__init__.py`, `services/api_settings.py`, `services/scheduler.py`, `routers/jobs.py`, `models/jobs.py`, `models/errors.py`. Moved by Story 17.5: in `routers/config.py` `get_api_settings_service` is now `:242-265` (was `:226-249`) and `update_api_setting` `:297-358`.
 
 ### Completion Notes List
 
 - Story created 2026-11-15: context from the interval wiring (`ApiSettingsService`, `get_api_settings_service`, `register_default_jobs`, `SchedulerService`, `main.py` lifespan, `routers/jobs.py`, `job_to_info`), the web API Settings and Scheduled Jobs tabs and their hooks, the game settings service and `SettingField`/`GameConfigPanel`, Story 16.8, the Epic 17 ADRs and the 17.1-17.4 reviews. The scheduler half was prototyped (apply function, router wiring, a real-scheduler test) and the affected API test files run against it; the prototype was discarded.
 
+- Task 1: `jobs/__init__.py` gained `INTERVAL_JOBS`, a lazy-import `_job_function(key)` and `apply_interval_setting(scheduler, key, seconds, *, startup=False)`: above 0 it calls `add_interval_job` (which replaces with a new `IntervalTrigger`, so the next run is one interval from now), with `run_immediately` only for `server_versions_check` at startup; 0 removes the job only when `get_job` finds it; an unknown key raises `KeyError`. It logs `job_registered` (`job_id`, `interval_seconds`, and `run_immediately=True` for the startup run of `server_versions_check`). `register_default_jobs` reads the settings as before and calls it for each key with `startup=True`, then logs `default_jobs_registered` with the count. No suppression: the function only uses `add_interval_job`, `get_job(...) is not None` and `remove_job`. Tests (`TestApplyIntervalSetting`, 17): the table; changed, to 0, from 0 and 0 to 0 for each key (real started scheduler, read through `job_to_info`, next run between `before + N - 1 s` and `after + N`); startup leaves the other two jobs one interval away, and on a scheduler not yet started `server_versions_check` has `next_run_time` between before and after (on a started scheduler the immediate run would fire at once, so the "now" is checked before start); unknown key; a running execution under `mod_cache_refresh` survives a change to 600 and then 0 and finishes (not cancelled). A `no_real_jobs` fixture replaces the three job functions with a no-op so no test reaches the network. The existing classes are unchanged and pass, including the three `*_logs_registration` tests. Red first: the module did not import (`INTERVAL_JOBS`, `apply_interval_setting` missing). The file: 49 passed; ruff clean; pyright 0 errors, the 3 pre-existing warnings.
+
 ### File List
+
+- `api/src/vintagestory_api/jobs/__init__.py`
+- `api/tests/test_jobs_registration.py`
 
 ## Change Log
 

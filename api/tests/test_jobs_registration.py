@@ -2,6 +2,7 @@
 
 Story 8.0: Epic 8 Preparation
 Story 8.2: Server Versions Check Job
+Story 17.6: Settings behave as saved (apply_interval_setting)
 
 Tests cover:
 - Task 1: register_default_jobs() functionality and job patterns
@@ -13,14 +14,22 @@ Tests cover:
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from vintagestory_api.jobs import register_default_jobs
+from vintagestory_api.jobs import (
+    INTERVAL_JOBS,
+    apply_interval_setting,
+    register_default_jobs,
+)
 from vintagestory_api.jobs.base import safe_job
+from vintagestory_api.models.jobs import JobInfo, job_to_info
 from vintagestory_api.services.scheduler import SchedulerService
 
 if TYPE_CHECKING:
@@ -704,3 +713,192 @@ class TestMetricsCollectionJobRegistration:
 
             assert "job_registered" in captured.out
             assert "metrics_collection" in captured.out
+
+
+# =============================================================================
+# Story 17.6: one function makes the scheduler match an interval setting
+# =============================================================================
+
+INTERVAL_KEYS = list(INTERVAL_JOBS)
+
+
+async def _no_op_job() -> None:
+    """Stands in for a real job so no test reaches the network or the game server."""
+
+
+@pytest.fixture
+def no_real_jobs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Replace the three job functions that apply_interval_setting imports lazily."""
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job
+    )
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job
+    )
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job
+    )
+
+
+@pytest.fixture
+async def started_scheduler(no_real_jobs: None) -> AsyncIterator[SchedulerService]:
+    """A started scheduler whose interval jobs are no-ops."""
+    svc = SchedulerService()
+    svc.start()
+    yield svc
+    svc.shutdown(wait=False)
+
+
+def _job_info(scheduler: SchedulerService, job_id: str) -> JobInfo | None:
+    job = scheduler.get_job(job_id)
+    return None if job is None else job_to_info(job)
+
+
+def _assert_next_run_one_interval_away(
+    info: JobInfo, before: datetime, after: datetime, seconds: int
+) -> None:
+    assert info.next_run_time is not None
+    assert (
+        before + timedelta(seconds=seconds - 1)
+        <= info.next_run_time
+        <= after + timedelta(seconds=seconds)
+    )
+
+
+class TestApplyIntervalSetting:
+    """apply_interval_setting makes the scheduler match one setting (Story 17.6, AC 1-4, 8)."""
+
+    def test_interval_jobs_table(self) -> None:
+        """Each interval setting drives exactly one job."""
+        assert INTERVAL_JOBS == {
+            "mod_list_refresh_interval": "mod_cache_refresh",
+            "server_versions_refresh_interval": "server_versions_check",
+            "metrics_collection_interval": "metrics_collection",
+        }
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_changed_interval_replaces_the_job(
+        self, started_scheduler: SchedulerService, key: str
+    ) -> None:
+        """A new value above 0 replaces the job; its next run is one new interval away."""
+        job_id = INTERVAL_JOBS[key]
+        apply_interval_setting(started_scheduler, key, 3600)
+
+        before = datetime.now(UTC)
+        apply_interval_setting(started_scheduler, key, 600)
+        after = datetime.now(UTC)
+
+        infos = [job_to_info(job) for job in started_scheduler.get_jobs()]
+        assert [info.id for info in infos] == [job_id]
+        assert infos[0].trigger_details == "every 600 seconds"
+        _assert_next_run_one_interval_away(infos[0], before, after, 600)
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_zero_removes_the_job(
+        self, started_scheduler: SchedulerService, key: str
+    ) -> None:
+        """0 removes a registered job."""
+        apply_interval_setting(started_scheduler, key, 3600)
+
+        apply_interval_setting(started_scheduler, key, 0)
+
+        assert _job_info(started_scheduler, INTERVAL_JOBS[key]) is None
+        assert started_scheduler.get_jobs() == []
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_from_zero_adds_the_job(
+        self, started_scheduler: SchedulerService, key: str
+    ) -> None:
+        """A value above 0 with no job registered adds it, first run one interval away."""
+        before = datetime.now(UTC)
+        apply_interval_setting(started_scheduler, key, 900)
+        after = datetime.now(UTC)
+
+        info = _job_info(started_scheduler, INTERVAL_JOBS[key])
+        assert info is not None
+        assert info.trigger_details == "every 900 seconds"
+        _assert_next_run_one_interval_away(info, before, after, 900)
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_zero_to_zero_changes_nothing(
+        self, started_scheduler: SchedulerService, key: str
+    ) -> None:
+        """0 with no job registered is not an error and registers nothing."""
+        apply_interval_setting(started_scheduler, key, 0)
+
+        assert started_scheduler.get_jobs() == []
+
+    async def test_startup_does_not_run_the_other_jobs_at_once(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        """startup=True leaves mod_cache_refresh and metrics_collection one interval away."""
+        before = datetime.now(UTC)
+        for key in INTERVAL_KEYS:
+            apply_interval_setting(started_scheduler, key, 3600, startup=True)
+        after = datetime.now(UTC)
+
+        assert _job_info(started_scheduler, "server_versions_check") is not None
+        for job_id in ("mod_cache_refresh", "metrics_collection"):
+            info = _job_info(started_scheduler, job_id)
+            assert info is not None
+            _assert_next_run_one_interval_away(info, before, after, 3600)
+
+    def test_startup_server_versions_check_next_run_is_now(
+        self, no_real_jobs: None
+    ) -> None:
+        """On a scheduler not yet started the immediate run is visible as next_run_time ≈ now."""
+        scheduler = SchedulerService()
+        before = datetime.now(UTC)
+        apply_interval_setting(
+            scheduler, "server_versions_refresh_interval", 3600, startup=True
+        )
+        after = datetime.now(UTC)
+
+        info = _job_info(scheduler, "server_versions_check")
+        assert info is not None
+        assert info.next_run_time is not None
+        assert before <= info.next_run_time <= after
+
+    def test_unknown_key_is_a_programming_error(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        """A key that drives no job raises KeyError."""
+        with pytest.raises(KeyError):
+            apply_interval_setting(started_scheduler, "auto_start_server", 60)
+
+    async def test_running_execution_finishes_when_interval_changes(
+        self, started_scheduler: SchedulerService
+    ) -> None:
+        """Replacing or removing a job does not cancel an execution in progress (AC 4)."""
+        started = asyncio.Event()
+        release = asyncio.Event()
+        outcome: list[str] = []
+
+        async def long_job() -> None:
+            started.set()
+            try:
+                await release.wait()
+            except asyncio.CancelledError:
+                outcome.append("cancelled")
+                raise
+            outcome.append("finished")
+
+        started_scheduler.add_interval_job(
+            long_job, seconds=3600, job_id="mod_cache_refresh", run_immediately=True
+        )
+        await asyncio.wait_for(started.wait(), timeout=5)
+
+        apply_interval_setting(started_scheduler, "mod_list_refresh_interval", 600)
+        info = _job_info(started_scheduler, "mod_cache_refresh")
+        assert info is not None
+        assert info.trigger_details == "every 600 seconds"
+
+        apply_interval_setting(started_scheduler, "mod_list_refresh_interval", 0)
+        assert _job_info(started_scheduler, "mod_cache_refresh") is None
+
+        release.set()
+        for _ in range(50):
+            if outcome:
+                break
+            await asyncio.sleep(0.01)
+        assert outcome == ["finished"]
