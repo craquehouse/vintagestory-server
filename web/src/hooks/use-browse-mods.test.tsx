@@ -1142,6 +1142,51 @@ describe('useBrowseMods', () => {
       expect(onPageOutOfRange).toHaveBeenCalledTimes(1);
     });
 
+    it('moves down again when the results shrink between responses', async () => {
+      const mockFetch = stubFetch(servedPage(5, 5, 100));
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const reported: number[] = [];
+      const { result } = renderHook(
+        () => {
+          const [page, setPage] = useState(5);
+          return useBrowseMods(
+            { page },
+            {
+              onPageOutOfRange: (lastPage) => {
+                reported.push(lastPage);
+                setPage(lastPage);
+              },
+            }
+          );
+        },
+        {
+          wrapper: ({ children }: { children: React.ReactNode }) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        }
+      );
+      await waitFor(() => {
+        expect(result.current.pagination?.page).toBe(5);
+      });
+      expect(reported).toEqual([]);
+
+      // The next response for page 5 has only 3 pages: the API serves page 3
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(servedPage(3, 3, 60)) });
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+
+      await waitFor(() => {
+        expect(result.current.currentPage).toBe(3);
+      });
+      expect(reported).toEqual([3]);
+      expect(result.current.pagination?.page).toBe(3);
+      expect(result.current.isFetching).toBe(false);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(reported).toEqual([3]);
+    });
+
     it.each([
       ['no results (totalPages 0)', 0, 0],
       ['one page', 1, 5],
