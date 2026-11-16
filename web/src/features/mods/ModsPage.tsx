@@ -8,9 +8,11 @@
  *
  * Story 10.2: Mods Tab Restructure - AC1, AC4
  * Story 16.1: The Browse tab returns to the last browse state
- * Story 17.7: Browse is the active tab on a mod detail page, and Installed opens the list from there
+ * Story 17.7: Browse is the active tab on a mod detail page, and Installed opens the list from there;
+ * a tab change adds one history entry
  */
 
+import { useEffect, useRef } from 'react';
 import { useLocation, useMatch, useNavigate, Outlet } from 'react-router';
 import { Package, Search } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -61,9 +63,19 @@ export function ModsPage() {
     navigate(`${BROWSE_PATH}${getLastBrowseSearch() ?? ''}`);
   };
 
+  // Story 17.7: Radix reports a mouse click twice in one mousedown (it focuses the
+  // trigger, whose onFocus reports the value, then reports it itself), before the
+  // navigation commits. Remember the tab requested since the last tab change and drop
+  // the repeat, so a click adds one history entry.
+  const requestedTabRef = useRef<string | null>(null);
+  useEffect(() => {
+    requestedTabRef.current = null;
+  }, [activeTab]);
+
   const handleTabChange = (value: string) => {
     // Radix Tabs does not report the active value, but never push a duplicate entry
-    if (value === activeTab) return;
+    if (value === activeTab || value === requestedTabRef.current) return;
+    requestedTabRef.current = value;
     if (value === 'browse') {
       openBrowse();
       return;

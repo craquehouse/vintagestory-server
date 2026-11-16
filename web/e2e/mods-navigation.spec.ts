@@ -58,7 +58,7 @@ test.describe('Mods navigation', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('on a mod detail page Browse is the active tab, Browse returns to the list and Installed opens the list', async ({
+  test('on a mod detail page Browse is the active tab, Installed opens the list, Browse returns', async ({
     page,
   }) => {
     await page.goto(`${BROWSE}${BROWSE_SEARCH}`);
@@ -70,24 +70,21 @@ test.describe('Mods navigation', () => {
     await expect(page.getByTestId('browse-tab')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('installed-tab')).toHaveAttribute('aria-selected', 'false');
 
+    // One history entry per tab click, so back returns to the detail page
+    await page.getByTestId('installed-tab').click();
+    await expect(page).toHaveURL((url) => url.pathname === INSTALLED);
+    await expect(page.getByTestId('installed-tab-content')).toBeVisible();
+
+    await page.goBack();
+    await expect(page.getByTestId('mod-detail-back')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('browse-tab')).toHaveAttribute('aria-selected', 'true');
+
     // The active Browse tab returns to the state the mod was opened from, adding one entry
     const historyOnDetail = await page.evaluate(() => history.length);
     await page.getByTestId('browse-tab').click();
     await expect(page).toHaveURL((url) => url.pathname === BROWSE && url.search === BROWSE_SEARCH);
     await waitForGrid(page);
     expect(await page.evaluate(() => history.length)).toBe(historyOnDetail + 1);
-
-    // Browser back is the detail page again; from there Installed opens the list.
-    // (Back is tested after Browse, not after Installed: a mouse click on an inactive
-    // Mods tab adds two history entries, on every Mods page; see the story's notes.)
-    await page.goBack();
-    await expect(page.getByTestId('mod-detail-back')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId('browse-tab')).toHaveAttribute('aria-selected', 'true');
-
-    await page.getByTestId('installed-tab').click();
-    await expect(page).toHaveURL((url) => url.pathname === INSTALLED);
-    await expect(page.getByTestId('installed-tab-content')).toBeVisible();
-    await expect(page.getByTestId('installed-tab')).toHaveAttribute('aria-selected', 'true');
   });
 
   test('the Browse tab on a detail page opened directly opens the default browser', async ({ page, context }) => {
