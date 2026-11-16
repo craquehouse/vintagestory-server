@@ -8,6 +8,7 @@
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { ApiError } from '@/api/errors';
+import { handleApiError } from '@/api/error-handler';
 import {
   fetchMods,
   lookupMod,
@@ -146,11 +147,13 @@ export function useEnableMod() {
 
       return { previous };
     },
-    onError: (_err, _slug, context) => {
+    onError: (error, _slug, context) => {
       // Rollback to previous state on error
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.mods.all, context.previous);
       }
+      // This onError replaces the query client's default one, so report the error here
+      handleApiError(error);
     },
     onSettled: () => {
       // Always refetch after error or success to ensure server state
@@ -194,10 +197,12 @@ export function useDisableMod() {
 
       return { previous };
     },
-    onError: (_err, _slug, context) => {
+    onError: (error, _slug, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.mods.all, context.previous);
       }
+      // This onError replaces the query client's default one, so report the error here
+      handleApiError(error);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });
@@ -238,10 +243,12 @@ export function useRemoveMod() {
 
       return { previous };
     },
-    onError: (_err, _slug, context) => {
+    onError: (error, _slug, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKeys.mods.all, context.previous);
       }
+      // This onError replaces the query client's default one, so report the error here
+      handleApiError(error);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mods.all });

@@ -21,9 +21,9 @@ from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.mods import ModState
 from vintagestory_api.services.mods import (
+    ModOperationInProgressError,
     ModService,
     ModVersionChangeFailedError,
-    ModVersionChangeInProgressError,
     get_mod_service,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
@@ -243,9 +243,9 @@ class TestChangeVersionEndpoint:
         ("error", "status", "code"),
         [
             (
-                ModVersionChangeInProgressError("carryon"),
+                ModOperationInProgressError("carryon"),
                 409,
-                ErrorCode.MOD_VERSION_CHANGE_IN_PROGRESS,
+                ErrorCode.MOD_OPERATION_IN_PROGRESS,
             ),
             (
                 ModVersionChangeFailedError("carryon", "disk"),

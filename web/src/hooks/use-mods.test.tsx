@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+}));
+
+import { toast } from 'sonner';
 import {
   useMods,
   useInstallMod,
@@ -1618,3 +1623,67 @@ describe('mod update hooks', () => {
   });
 });
 
+// Story 17.3 review (AC 8): the hooks' own onError replaces the query client's default
+// one, so they report the error themselves after rolling back.
+describe('enable, disable and remove report errors', () => {
+  const originalFetch = globalThis.fetch;
+  const BUSY =
+    "Another operation on mod 'smithingplus' is in progress. Try again when it has finished.";
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function failWith(status: number, code: string, message: string) {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      statusText: 'Error',
+      json: () => Promise.resolve({ detail: { code, message } }),
+    });
+  }
+
+  const hooks = [
+    { name: 'useEnableMod', useHook: useEnableMod },
+    { name: 'useDisableMod', useHook: useDisableMod },
+    { name: 'useRemoveMod', useHook: useRemoveMod },
+  ] as const;
+
+  for (const { name, useHook } of hooks) {
+    it(`${name} rolls back and shows the API message for a busy mod`, async () => {
+      failWith(409, 'MOD_OPERATION_IN_PROGRESS', BUSY);
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(['mods'], mockModsList);
+      const { result } = renderHook(() => useHook(), { wrapper: createWrapper(queryClient) });
+
+      await act(async () => {
+        result.current.mutate('smithingplus');
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });
+      expect(queryClient.getQueryData(['mods'])).toEqual(mockModsList);
+    });
+
+    it(`${name} shows the message of any other failure`, async () => {
+      failWith(500, 'INTERNAL_ERROR', 'disk full');
+      const queryClient = createTestQueryClient();
+      const { result } = renderHook(() => useHook(), { wrapper: createWrapper(queryClient) });
+
+      await act(async () => {
+        result.current.mutate('smithingplus');
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: 'disk full' });
+    });
+  }
+});

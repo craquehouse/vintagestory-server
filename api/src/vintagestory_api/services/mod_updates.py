@@ -360,9 +360,9 @@ class ModUpdateService:
         from vintagestory_api.services.mods import (
             ModConfirmationRequiredError,
             ModNotFoundError,
+            ModOperationInProgressError,
             ModValidationError,
             ModVersionChangeFailedError,
-            ModVersionChangeInProgressError,
         )
 
         if self._apply_lock.locked():
@@ -387,7 +387,7 @@ class ModUpdateService:
                     ModNotFoundError,
                     ModValidationError,
                     ModVersionChangeFailedError,
-                    ModVersionChangeInProgressError,
+                    ModOperationInProgressError,
                     OSError,
                     # Unexpected data or state errors from one mod must not abort the run
                     # and hide which mods were already changed.
