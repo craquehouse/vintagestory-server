@@ -197,7 +197,7 @@ development_status:
   epic-17-retrospective: optional
   17-1-mod-detail-pages-cannot-fail-on-bad-data: done
   17-2-install-picks-the-right-release: done
-  17-3-mod-operations-are-safe-against-each-other: ready-for-dev
+  17-3-mod-operations-are-safe-against-each-other: review
   17-4-installed-status-is-right-everywhere: backlog
   17-5-monitor-keys-cannot-read-the-server-password: backlog
   17-6-settings-behave-as-saved: backlog
