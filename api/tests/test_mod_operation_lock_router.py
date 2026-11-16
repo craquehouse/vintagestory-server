@@ -187,3 +187,28 @@ class TestBusyModThroughTheApi:
         assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.3", True)]
         assert gate.downloads == 1
         assert service.busy_mod_ids == frozenset()
+
+    @pytest.mark.asyncio
+    async def test_install_of_a_mod_installed_in_another_case_gets_409(
+        self,
+        client: httpx.AsyncClient,
+        service: ModService,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Review M1: `carryon` installed, `POST /mods {"slug": "CarryOn"}` is refused as
+        already installed (naming the installed spelling), with no lookup or download."""
+        gate = Gate(service, tmp_path, monkeypatch)
+        gate.release.set()
+
+        response = await client.post(MODS, json={"slug": "CarryOn"}, headers=ADMIN)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_ALREADY_INSTALLED",
+                "message": "Mod 'carryon' is already installed (version 1.14.1)",
+            }
+        }
+        assert gate.downloads == 0
+        assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.1", True)]

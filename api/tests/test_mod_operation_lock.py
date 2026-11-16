@@ -593,6 +593,50 @@ class TestInstallHoldsTheInstallModId:
         assert service.busy_mod_ids == frozenset()
 
 
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_installed_check_ignores_case(self, tmp_path: Path) -> None:
+        """Review M1: a mod installed as `Demo` (its archive spelled it so) is found when
+        `demo` is installed again, even if that archive says `demo`: no second file or
+        entry. Refused before the lookup, naming the installed spelling."""
+        service = make_service(tmp_path)
+        installed = install_existing(service, "Demo", "1.0.0", "Demo-1.0.0.zip")
+        before = installed.read_bytes()
+        lookup = mock_mod("demo")
+
+        for slug in ("demo", "DEMO"):
+            with pytest.raises(ModAlreadyInstalledError) as raised:
+                await service.install_mod(slug)
+            assert (raised.value.slug, raised.value.current_version) == ("Demo", "1.0.0")
+
+        assert not lookup.called
+        assert mod_files(service) == ["Demo-1.0.0.zip"]
+        assert installed.read_bytes() == before
+        assert [m.slug for m in service.state_manager.list_mods()] == ["Demo"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_install_mod_id_installed_in_another_case_is_refused(
+        self, tmp_path: Path
+    ) -> None:
+        """The install mod ID check ignores case too, and refuses before the download."""
+        service = make_service(tmp_path)
+        install_existing(service, "EgocaribAutoMapMarkers", "5.0.2", "amm-5.0.2.zip")
+        downloads = mock_fixture(
+            "egocaribautomapmarkers",
+            ["automapmarkers"],
+            {90054: ("egocaribautomapmarkers", "5.0.3")},
+        )
+
+        with pytest.raises(ModAlreadyInstalledError) as raised:
+            await service.install_mod("automapmarkers")
+
+        assert raised.value.slug == "EgocaribAutoMapMarkers"
+        assert not downloads.called
+        assert mod_files(service) == ["amm-5.0.2.zip"]
+
+
 class TestInstallReleasesTheLock:
     @respx.mock
     @pytest.mark.asyncio

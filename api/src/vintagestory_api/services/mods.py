@@ -1206,13 +1206,24 @@ class ModService:
             return self._place_install(slug, download_result)
 
     def _refuse_if_installed(self, mod_id: str) -> None:
-        """Raise ModAlreadyInstalledError if `mod_id` is an installed mod ID (exact match)."""
-        existing = self._state_manager.get_mod_by_slug(mod_id)
+        """Raise ModAlreadyInstalledError if `mod_id` is installed, ignoring case.
+
+        Compared like the lock key, since an archive may spell its mod ID differently
+        from the mod database (an installed `Demo` is the mod `demo`). The error names
+        the installed spelling.
+        """
+        key = self._lock_key(mod_id)
+        existing = next(
+            (m for m in self._state_manager.list_mods() if self._lock_key(m.slug) == key), None
+        )
         if existing is not None:
             logger.debug(
-                "install_mod_already_installed", slug=mod_id, current_version=existing.version
+                "install_mod_already_installed",
+                slug=existing.slug,
+                requested=mod_id,
+                current_version=existing.version,
             )
-            raise ModAlreadyInstalledError(mod_id, existing.version)
+            raise ModAlreadyInstalledError(existing.slug, existing.version)
 
     def _place_install(self, slug: str, download_result: DownloadResult) -> InstallResult:
         """Copy a downloaded archive into the mods directory, import it and save state.
