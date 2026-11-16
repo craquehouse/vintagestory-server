@@ -1,43 +1,15 @@
 /**
  * Mod Compatibility Utilities
  *
- * Story 10.5: Conservative default for browse grid cards.
- * Story 10.6: Full compatibility check will be implemented here.
+ * Story 10.6: Full compatibility check will be implemented here (placeholder).
  *
- * The browse API endpoint does NOT include version compatibility data.
- * Full compatibility checks require fetching individual mod details.
+ * Story 18.3 (Epic 18 ADR-3): browse cards no longer use a compatibility default. The
+ * browse API reports whether each entry has a release tagged for the installed game
+ * version (`hasReleaseForGameVersion`), and the card shows that, not a compatibility
+ * verdict; the compatibility of a specific release is judged on the detail page.
  */
 
 import type { CompatibilityStatus } from '@/api/types';
-
-/**
- * Default compatibility status for browse grid cards.
- *
- * We use 'not_verified' as a conservative default because:
- * 1. The browse endpoint doesn't include version compatibility data
- * 2. lastReleased is a timestamp, NOT a game version
- * 3. Full compatibility requires mod detail API call (Story 10.6)
- *
- * This aligns with UX spec's "Trust through transparency" principle -
- * users see accurate "Not verified" rather than false "Compatible".
- */
-export const BROWSE_CARD_DEFAULT_STATUS: CompatibilityStatus = 'not_verified';
-
-/**
- * Get compatibility status for a mod in the browse grid.
- *
- * For browse grid, always returns 'not_verified' since the browse API
- * doesn't include version compatibility data.
- *
- * @returns 'not_verified' - conservative default for browse cards
- *
- * @example
- * const status = getBrowseCardCompatibility();
- * // Always returns 'not_verified'
- */
-export function getBrowseCardCompatibility(): CompatibilityStatus {
-  return BROWSE_CARD_DEFAULT_STATUS;
-}
 
 /**
  * Placeholder for full compatibility check (Story 10.6).
