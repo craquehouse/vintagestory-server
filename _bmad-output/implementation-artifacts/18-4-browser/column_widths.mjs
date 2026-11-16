@@ -11,7 +11,8 @@
 //
 // Fixtures: "long" is Story 17.8's (a 63-character name with an offered pre-release update,
 // an incompatible mod, a disabled mod); "short" replaces the long name with `Short Mod`, which
-// still offers a pre-release update (the SHORT_MODS of e2e/layout-widths.spec.ts).
+// still offers a pre-release update (the SHORT_MODS of e2e/layout-widths.spec.ts); "longVersion"
+// is "long" with the offered version 10.10.10-rc.130 (LONG_VERSION_MODS of the e2e).
 //
 // For each fixture, width (height 900) and sidebar state (the vs_ui_prefs cookie), in a fresh
 // browser context:
@@ -37,6 +38,11 @@ const OTHER_MODS = [
 const FIXTURES = {
   long: [
     { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '1.0.0-rc.13' },
+    ...OTHER_MODS,
+  ],
+  // Story 18.4 review: the long name offering a longer version string (margin check)
+  longVersion: [
+    { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '10.10.10-rc.130' },
     ...OTHER_MODS,
   ],
   short: [

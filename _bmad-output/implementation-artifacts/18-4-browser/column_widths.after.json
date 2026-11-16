@@ -10,16 +10,16 @@
       816
     ],
     "columns": {
-      "Name": 144,
+      "Name": 130,
       "Version": 90,
       "Available": 155,
       "Side": 154,
       "Compatibility": 131,
       "Status": 76,
-      "(actions)": 67
+      "(actions)": 80
     },
     "rowHeights": {
-      "longnamemod": 117,
+      "longnamemod": 137,
       "oldmod": 63,
       "offmod": 57
     },
@@ -37,11 +37,11 @@
       1072
     ],
     "columns": {
-      "Name": 294,
+      "Name": 291,
       "Version": 90,
-      "Available": 194,
+      "Available": 195,
       "Side": 154,
-      "Compatibility": 185,
+      "Compatibility": 187,
       "Status": 76,
       "(actions)": 80
     },
@@ -64,9 +64,9 @@
       1232
     ],
     "columns": {
-      "Name": 392,
+      "Name": 391,
       "Version": 90,
-      "Available": 219,
+      "Available": 220,
       "Side": 154,
       "Compatibility": 221,
       "Status": 76,
@@ -118,11 +118,11 @@
       912
     ],
     "columns": {
-      "Name": 195,
+      "Name": 190,
       "Version": 90,
-      "Available": 168,
+      "Available": 170,
       "Side": 154,
-      "Compatibility": 149,
+      "Compatibility": 152,
       "Status": 76,
       "(actions)": 80
     },
@@ -145,11 +145,11 @@
       1168
     ],
     "columns": {
-      "Name": 353,
+      "Name": 351,
       "Version": 90,
-      "Available": 209,
+      "Available": 210,
       "Side": 154,
-      "Compatibility": 207,
+      "Compatibility": 208,
       "Status": 76,
       "(actions)": 80
     },
@@ -216,6 +216,222 @@
     "removeInside": true
   },
   {
+    "fixture": "longVersion",
+    "width": 1024,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      816,
+      816
+    ],
+    "columns": {
+      "Name": 128,
+      "Version": 90,
+      "Available": 186,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "longnamemod": 137,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1280,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1072,
+      1072
+    ],
+    "columns": {
+      "Name": 271,
+      "Version": 90,
+      "Available": 221,
+      "Side": 154,
+      "Compatibility": 180,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 77,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1440,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1232,
+      1232
+    ],
+    "columns": {
+      "Name": 371,
+      "Version": 90,
+      "Available": 246,
+      "Side": 154,
+      "Compatibility": 215,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 77,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1920,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1712,
+      1712
+    ],
+    "columns": {
+      "Name": 573,
+      "Version": 115,
+      "Available": 340,
+      "Side": 198,
+      "Compatibility": 309,
+      "Status": 97,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1024,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      912,
+      912
+    ],
+    "columns": {
+      "Name": 171,
+      "Version": 90,
+      "Available": 196,
+      "Side": 154,
+      "Compatibility": 145,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 97,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1280,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1168,
+      1168
+    ],
+    "columns": {
+      "Name": 331,
+      "Version": 90,
+      "Available": 236,
+      "Side": 154,
+      "Compatibility": 201,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 77,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1440,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1328,
+      1328
+    ],
+    "columns": {
+      "Name": 432,
+      "Version": 90,
+      "Available": 261,
+      "Side": 154,
+      "Compatibility": 236,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 77,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "longVersion",
+    "width": 1920,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1808,
+      1808
+    ],
+    "columns": {
+      "Name": 607,
+      "Version": 122,
+      "Available": 360,
+      "Side": 209,
+      "Compatibility": 327,
+      "Status": 103,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
     "fixture": "short",
     "width": 1024,
     "sidebar": "expanded",
@@ -226,11 +442,11 @@
       816
     ],
     "columns": {
-      "Name": 144,
+      "Name": 128,
       "Version": 83,
-      "Available": 148,
+      "Available": 154,
       "Side": 154,
-      "Compatibility": 132,
+      "Compatibility": 141,
       "Status": 76,
       "(actions)": 80
     },
@@ -253,12 +469,12 @@
       1072
     ],
     "columns": {
-      "Name": 155,
-      "Version": 89,
-      "Available": 243,
-      "Side": 166,
-      "Compatibility": 259,
-      "Status": 81,
+      "Name": 140,
+      "Version": 90,
+      "Available": 247,
+      "Side": 168,
+      "Compatibility": 263,
+      "Status": 83,
       "(actions)": 80
     },
     "rowHeights": {
@@ -280,12 +496,12 @@
       1232
     ],
     "columns": {
-      "Name": 180,
-      "Version": 103,
-      "Available": 282,
-      "Side": 192,
-      "Compatibility": 300,
-      "Status": 95,
+      "Name": 163,
+      "Version": 105,
+      "Available": 287,
+      "Side": 196,
+      "Compatibility": 306,
+      "Status": 96,
       "(actions)": 80
     },
     "rowHeights": {
@@ -307,12 +523,12 @@
       1712
     ],
     "columns": {
-      "Name": 255,
-      "Version": 146,
-      "Available": 399,
-      "Side": 272,
-      "Compatibility": 426,
-      "Status": 134,
+      "Name": 230,
+      "Version": 149,
+      "Available": 407,
+      "Side": 277,
+      "Compatibility": 433,
+      "Status": 136,
       "(actions)": 80
     },
     "rowHeights": {
@@ -334,11 +550,11 @@
       912
     ],
     "columns": {
-      "Name": 144,
+      "Name": 128,
       "Version": 83,
-      "Available": 188,
+      "Available": 195,
       "Side": 154,
-      "Compatibility": 188,
+      "Compatibility": 197,
       "Status": 76,
       "(actions)": 80
     },
@@ -361,12 +577,12 @@
       1168
     ],
     "columns": {
-      "Name": 170,
-      "Version": 97,
-      "Available": 266,
-      "Side": 182,
-      "Compatibility": 284,
-      "Status": 89,
+      "Name": 154,
+      "Version": 99,
+      "Available": 271,
+      "Side": 185,
+      "Compatibility": 289,
+      "Status": 91,
       "(actions)": 80
     },
     "rowHeights": {
@@ -388,12 +604,12 @@
       1328
     ],
     "columns": {
-      "Name": 195,
-      "Version": 112,
-      "Available": 305,
-      "Side": 208,
-      "Compatibility": 326,
-      "Status": 102,
+      "Name": 176,
+      "Version": 114,
+      "Available": 311,
+      "Side": 212,
+      "Compatibility": 331,
+      "Status": 104,
       "(actions)": 80
     },
     "rowHeights": {
@@ -415,12 +631,12 @@
       1808
     ],
     "columns": {
-      "Name": 270,
-      "Version": 155,
-      "Available": 423,
-      "Side": 288,
-      "Compatibility": 451,
-      "Status": 142,
+      "Name": 244,
+      "Version": 158,
+      "Available": 430,
+      "Side": 293,
+      "Compatibility": 459,
+      "Status": 144,
       "(actions)": 80
     },
     "rowHeights": {

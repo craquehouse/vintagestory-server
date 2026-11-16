@@ -349,7 +349,7 @@ describe('ModTable', () => {
         .map((row) => row.querySelector('td'));
       expect(nameCells).toHaveLength(2);
       for (const element of [nameHeader, ...nameCells]) {
-        expect(element).toHaveClass('whitespace-normal', 'wrap-anywhere', 'min-w-36');
+        expect(element).toHaveClass('whitespace-normal', 'wrap-anywhere', 'min-w-32');
         expect(element).not.toHaveClass('whitespace-nowrap');
       }
       const versionCell = screen.getByTestId('mod-row-smithingplus').querySelectorAll('td')[1];

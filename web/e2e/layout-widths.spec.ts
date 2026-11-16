@@ -61,6 +61,12 @@ const MODS: FakeMod[] = [
   ...OTHER_MODS,
 ];
 
+// Story 18.4 review: the long name offering a longer version string than any of MODS
+const LONG_VERSION_MODS: FakeMod[] = [
+  { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '10.10.10-rc.130' },
+  ...OTHER_MODS,
+];
+
 // Story 18.4: short names only, one of them with an offered pre-release update
 const SHORT_MODS: FakeMod[] = [
   { slug: 'shortmod', name: 'Short Mod', version: '1.4.0', enabled: true, offered: '1.5.0-rc.1' },
@@ -384,6 +390,16 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
       await expectInsideViewport(page, 'mod-toggle-shortmod', 1024);
       await expectInsideViewport(page, 'mod-remove-shortmod', 1024);
+    });
+
+    // Story 18.4 review: the 1024px fit keeps a margin for a longer offered version
+    test(`a long name with a long offered version fits at 1024px, ${label}`, async ({ page }) => {
+      await openTable(page, 1024, collapsed, LONG_VERSION_MODS);
+
+      await expect(page.getByTestId('mod-update-longnamemod')).toContainText('v10.10.10-rc.130');
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expectInsideViewport(page, 'mod-toggle-longnamemod', 1024);
+      await expectInsideViewport(page, 'mod-remove-longnamemod', 1024);
     });
 
     for (const width of [1280, 1440, 1920]) {

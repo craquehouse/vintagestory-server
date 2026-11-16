@@ -261,7 +261,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       ),
       cell: ({ row }) => <ModNameLink mod={row.original} />,
       // Story 18.4: long names (and slugs without spaces) wrap so the table fits at 1024px
-      meta: { className: 'min-w-36 whitespace-normal wrap-anywhere' },
+      meta: { className: 'min-w-32 whitespace-normal wrap-anywhere' },
       sortFn: (rowA, rowB) => {
         const a = (rowA.original.name || rowA.original.slug).toLowerCase();
         const b = (rowB.original.name || rowB.original.slug).toLowerCase();
