@@ -8,6 +8,8 @@
  * Story 6.4: Settings UI
  * Story 16.8: a setting with no value (null) is an empty field; `masked` hides the
  * value (password) behind a show/hide toggle.
+ * Story 17.6: a boolean with no value shows the game's default ("Enabled (default)")
+ * when it is known, otherwise "Not set", never a plain "Disabled".
  */
 
 import { useState } from 'react';
@@ -79,6 +81,12 @@ export interface SettingFieldProps {
   masked?: boolean;
 
   /**
+   * The game's value for a setting with no value (Story 17.6). Used only for
+   * `type === 'bool'` with `value === null`; absent when the default is unknown.
+   */
+  gameDefault?: boolean;
+
+  /**
    * Additional CSS class names.
    */
   className?: string;
@@ -108,11 +116,14 @@ export function SettingField({
   description,
   onSave,
   masked = false,
+  gameDefault,
   className,
 }: SettingFieldProps) {
   // Coerce value to appropriate type and use as initial.
   // Story 16.8: no value (null) is an empty field, so it never shows or saves "null".
-  const initialValue = type === 'bool' ? Boolean(value) : (value ?? '');
+  // Story 17.6: a boolean with no value starts at the game's default when it is known.
+  const initialValue =
+    type === 'bool' ? (value === null ? (gameDefault ?? false) : Boolean(value)) : (value ?? '');
   const [isRevealed, setIsRevealed] = useState(false);
 
   // Use the setting field hook for state management
@@ -127,6 +138,18 @@ export function SettingField({
 
   const isDisabled = envManaged || field.isPending;
   const isNumber = type === 'int' || type === 'float';
+
+  // Story 17.6: a boolean with no value whose switch has not been moved from the
+  // position it started in. Once switched, the label is the plain switch state (the
+  // optimistic cache write then gives the setting its value).
+  const isUnset = type === 'bool' && value === null && field.value === initialValue;
+  const boolStateLabel = !isUnset
+    ? Boolean(field.value)
+      ? 'Enabled'
+      : 'Disabled'
+    : gameDefault === undefined
+      ? 'Not set'
+      : `${gameDefault ? 'Enabled' : 'Disabled'} (default)`;
 
   // Props shared by the plain and masked text inputs, so the two cannot drift apart
   const sharedInputProps = {
@@ -186,8 +209,11 @@ export function SettingField({
             disabled={isDisabled}
             aria-describedby={description ? `${settingKey}-desc` : undefined}
           />
-          <span className="text-sm text-muted-foreground">
-            {Boolean(field.value) ? 'Enabled' : 'Disabled'}
+          <span
+            className="text-sm text-muted-foreground"
+            data-testid={`setting-state-${settingKey}`}
+          >
+            {boolStateLabel}
           </span>
         </div>
       ) : masked ? (

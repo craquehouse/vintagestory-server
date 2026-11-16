@@ -1877,6 +1877,36 @@ class TestDependencyInjection:
 
 
 # ==============================================================================
+# Story 17.6: a setting with no value carries the game's default (AC 9)
+# ==============================================================================
+
+
+class TestGameSettingsDefault:
+    """GET /config/game: EntitySpawning carries `default: true`; no other setting does."""
+
+    @pytest.mark.parametrize("api_key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    def test_entity_spawning_missing_from_the_file(
+        self,
+        client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+        api_key: str,
+    ) -> None:
+        config = {k: v for k, v in sample_config.items() if k != "EntitySpawning"}
+        _write_config(config_file, config)
+
+        response = client.get(GAME_URL, headers={"X-API-Key": api_key})
+
+        assert response.status_code == 200
+        settings = _settings_by_key(response.json())
+        assert settings["EntitySpawning"]["value"] is None
+        assert settings["EntitySpawning"]["default"] is True
+        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+        assert settings["AllowPvP"]["value"] is True
+        assert "default" not in settings["AllowPvP"]
+
+
+# ==============================================================================
 # Story 17.6: a saved interval setting reschedules its job (AC 1, 2, 3, 6, 7)
 # ==============================================================================
 

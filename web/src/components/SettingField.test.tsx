@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { SettingField } from './SettingField';
+import { SettingField, type SettingFieldProps } from './SettingField';
 
 describe('SettingField', () => {
   const defaultProps = {
@@ -631,6 +631,85 @@ describe('SettingField', () => {
         const error = screen.getByRole('alert');
         expect(error).toHaveTextContent('Error message');
       });
+    });
+  });
+
+  describe('Story 17.6: booleans with no value', () => {
+    function renderNullBool(props: { gameDefault?: boolean }) {
+      const onSave = vi.fn<SettingFieldProps['onSave']>().mockResolvedValue({});
+      render(
+        <SettingField
+          settingKey="EntitySpawning"
+          label="Entity Spawning"
+          value={null}
+          type="bool"
+          gameDefault={props.gameDefault}
+          onSave={onSave}
+        />
+      );
+      return onSave;
+    }
+
+    const stateLabel = () => screen.getByTestId('setting-state-EntitySpawning');
+
+    it('shows a known default of on as checked and "Enabled (default)"', () => {
+      renderNullBool({ gameDefault: true });
+
+      expect(screen.getByRole('switch')).toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Enabled \(default\)$/);
+    });
+
+    it('shows a known default of off as unchecked and "Disabled (default)"', () => {
+      renderNullBool({ gameDefault: false });
+
+      expect(screen.getByRole('switch')).not.toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Disabled \(default\)$/);
+    });
+
+    it('shows "Not set", unchecked, when the default is unknown', () => {
+      renderNullBool({});
+
+      expect(screen.getByRole('switch')).not.toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Not set$/);
+      expect(stateLabel().textContent).not.toMatch(/Enabled|Disabled/);
+    });
+
+    it('saves false from "Enabled (default)" and then reads "Disabled"', async () => {
+      const onSave = renderNullBool({ gameDefault: true });
+
+      fireEvent.click(screen.getByRole('switch'));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({ key: 'EntitySpawning', value: false });
+      });
+      expect(stateLabel()).toHaveTextContent(/^Disabled$/);
+    });
+
+    it('saves true from "Not set" and then reads "Enabled"', async () => {
+      const onSave = renderNullBool({});
+
+      fireEvent.click(screen.getByRole('switch'));
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith({ key: 'EntitySpawning', value: true });
+      });
+      expect(stateLabel()).toHaveTextContent(/^Enabled$/);
+    });
+
+    it('ignores the default when the setting has a value', () => {
+      render(
+        <SettingField
+          settingKey="EntitySpawning"
+          label="Entity Spawning"
+          value={true}
+          type="bool"
+          gameDefault={false}
+          onSave={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole('switch')).toBeChecked();
+      expect(stateLabel()).toHaveTextContent(/^Enabled$/);
     });
   });
 });

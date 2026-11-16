@@ -13,6 +13,8 @@
  * Story 6.4: Settings UI
  * Story 17.5: a secret setting whose value the API withheld (it has `configured`, which
  * only a key that is not Admin receives) shows whether it is set instead of a field.
+ * Story 17.6: a boolean with no value is shown at the game's `default` when the API
+ * sends one (the secret branch above stays first; a secret never has a default).
  */
 
 import { AlertCircle } from 'lucide-react';
@@ -254,6 +256,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         envManaged={setting.envManaged}
         description={def.description}
         masked={def.masked}
+        gameDefault={setting.default}
         onSave={handleSave}
       />
     );

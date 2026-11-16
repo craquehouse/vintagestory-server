@@ -5,6 +5,7 @@ via console commands (live updates) or file updates (restart-required settings).
 
 Story 6.2: Game Settings API
 Story 17.5: secret settings (Password) are withheld from every role but Admin (FR186)
+Story 17.6: a setting whose game default is known carries it (FR188)
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ class ServerSetting:
     nullable: bool
     clear_command: str | None
     secret: bool
+    default: bool | None
 
     def __init__(
         self,
@@ -60,6 +62,7 @@ class ServerSetting:
         nullable: bool = False,
         clear_command: str | None = None,
         secret: bool = False,
+        default: bool | None = None,
     ) -> None:
         """Initialize a server setting definition.
 
@@ -78,6 +81,9 @@ class ServerSetting:
                 and requires a restart.
             secret: The value is a secret: only the Admin role receives it (Story 17.5,
                 FR186).
+            default: The value VintageStory uses when `serverconfig.json` has no value
+                for the setting; None when the manager does not know it. Story 17.6.
+                This table is the one place defaults live.
         """
         self.key = key
         self.value_type = value_type
@@ -88,6 +94,7 @@ class ServerSetting:
         self.nullable = nullable
         self.clear_command = clear_command
         self.secret = secret
+        self.default = default
 
 
 # Settings that support live updates via console commands
@@ -159,6 +166,9 @@ LIVE_SETTINGS: dict[str, ServerSetting] = {
         console_command="/serverconfig entityspawning {value}",
         live_update=True,
         bool_format="true_false",
+        # Story 17.6: "default: on" per agentdocs/vs-serverconfig-commands.md; the game
+        # does not write this key to serverconfig.json, so it is usually null here
+        default=True,
     ),
     "PassTimeWhenEmpty": ServerSetting(
         key="PassTimeWhenEmpty",
@@ -253,6 +263,7 @@ class SettingInfo:
         env_var: str | None = None,
         secret: bool = False,
         configured: bool | None = None,
+        default: bool | None = None,
     ) -> None:
         """Initialize setting info.
 
@@ -268,6 +279,8 @@ class SettingInfo:
                 (Story 17.5).
             configured: Set only when a secret value was withheld: whether the secret
                 is set. None when the value is included.
+            default: The game's value when `value` is None, if the manager knows it
+                (Story 17.6). None when unknown.
         """
         self.key = key
         self.value = value
@@ -278,6 +291,7 @@ class SettingInfo:
         self.env_var = env_var
         self.secret = secret
         self.configured = configured
+        self.default = default
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API response."""
@@ -296,6 +310,8 @@ class SettingInfo:
             result["secret"] = True
         if self.configured is not None:
             result["configured"] = self.configured
+        if self.default is not None:
+            result["default"] = self.default
         return result
 
 
@@ -548,6 +564,7 @@ class GameConfigService:
                 env_var=env_var,
                 secret=setting_def.secret,
                 configured=configured,
+                default=setting_def.default,
             )
             settings_list.append(setting_info)
 
