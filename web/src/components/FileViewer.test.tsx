@@ -126,6 +126,19 @@ describe('FileViewer', () => {
       expect(contentElement.textContent).toBe(expectedJson);
     });
 
+    it('shows a redacted value as the string "[redacted]" (Story 17.5)', () => {
+      render(
+        <FileViewer
+          filename="serverconfig.json"
+          content={{ ServerName: 'My Test Server', Password: '[redacted]' }}
+        />
+      );
+
+      expect(screen.getByTestId('file-viewer-content')).toHaveTextContent(
+        '"Password": "[redacted]"'
+      );
+    });
+
     it('displays filename in header', () => {
       render(
         <FileViewer

@@ -591,6 +591,77 @@ describe('GameConfigPanel', () => {
     });
   });
 
+  describe('Story 17.5: secret settings', () => {
+    // The API's Password setting, with everything else as in mockGameConfig
+    const configWithPassword = (password: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: mockGameConfig.data.settings.map((setting) =>
+          setting.key === 'Password' ? { ...setting, env_managed: false, ...password } : setting
+        ),
+      },
+    });
+
+    async function renderWith(config: unknown) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(config),
+      });
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+    }
+
+    function expectOtherSettingsAsFields() {
+      expect(screen.getByLabelText('Server Name')).toHaveValue('My Test Server');
+      expect(screen.getByLabelText('Description')).toHaveValue('A test server');
+      expect(screen.getByLabelText('Max Players')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Allow PvP' })).toBeInTheDocument();
+    }
+
+    it('with a Monitor response, shows "Set" and no password field', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true, configured: true }));
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with a Monitor response and no password, shows "Not set"', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true, configured: false }));
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Not set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with an Admin response, keeps the masked field with its value', async () => {
+      await renderWith(configWithPassword({ value: 'admin-sees-this', secret: true }));
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveAttribute('type', 'password');
+      expect(input).toHaveValue('admin-sees-this');
+      expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
+      expect(screen.queryByTestId('secret-setting-Password')).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with an Admin response and no password, shows an empty masked field', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true }));
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveAttribute('type', 'password');
+      expect(input).toHaveValue('');
+      expect(screen.queryByText('Not set')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('secret-setting-Password')).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+  });
+
   describe('Story 16.6: desktop layout', () => {
     const setting = (key: string, value: string | number | boolean, type: string) => ({
       key,

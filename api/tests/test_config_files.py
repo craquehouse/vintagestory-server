@@ -17,6 +17,10 @@ from vintagestory_api.services.config_files import (
     ConfigFilesService,
     ConfigPathInvalidError,
 )
+from vintagestory_api.services.game_config import REDACTED
+
+# Story 17.5: a made-up password for the redaction tests; never a real value.
+SECRET = "pw-Zq9-monitor-must-not-see"
 
 
 @pytest.fixture
@@ -250,20 +254,124 @@ class TestReadFile:
         assert exc_info.value.filename == "nonexistent.json"
         assert "Config file not found" in exc_info.value.message
 
-    def test_read_file_invalid_json(
+    def test_read_file_invalid_json_admin_gets_the_text(
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
-        """Should handle malformed JSON gracefully."""
+        """Should handle malformed JSON gracefully: Admin gets the text as _raw."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "broken.json").write_text("not valid json {")
+
+        result = service.read_file("broken.json", "admin")
+
+        assert result["filename"] == "broken.json"
+        content = result["content"]
+        assert isinstance(content, dict)
+        assert content["_raw"] == "not valid json {"
+        assert "_parse_error" in content
+
+    def test_read_file_invalid_json_redacted_without_a_role(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """Story 17.5: without the Admin role the text of a broken file is withheld."""
         serverdata = mock_settings.serverdata_dir
         (serverdata / "broken.json").write_text("not valid json {")
 
         result = service.read_file("broken.json")
 
-        assert result["filename"] == "broken.json"
         content = result["content"]
         assert isinstance(content, dict)
-        assert "_raw" in content
-        assert "_parse_error" in content
+        assert content["_raw"] == REDACTED
+        assert content["_parse_error"]
+
+
+class TestReadFileSecrets:
+    """Story 17.5 (FR186): read_file withholds secrets unless the role is Admin."""
+
+    @pytest.fixture
+    def serverconfig(self, mock_settings: MagicMock) -> Path:
+        path = mock_settings.serverdata_dir / "serverconfig.json"
+        path.write_text(json.dumps({"ServerName": "Test", "Password": SECRET, "Port": 42420}))
+        (mock_settings.serverdata_dir / "ModConfig").mkdir()
+        return path
+
+    @pytest.mark.parametrize(
+        "filename",
+        ["serverconfig.json", "./serverconfig.json", "ModConfig/../serverconfig.json"],
+    )
+    @pytest.mark.parametrize("role", [None, "monitor", "", "ADMIN", "Admin"])
+    def test_any_path_to_serverconfig_is_redacted(
+        self,
+        service: ConfigFilesService,
+        serverconfig: Path,
+        filename: str,
+        role: str | None,
+    ) -> None:
+        """AC 3, 6: every path to the file, every role but Admin: redacted."""
+        result = (
+            service.read_file(filename) if role is None else service.read_file(filename, role)
+        )
+
+        assert result["content"] == {"ServerName": "Test", "Password": REDACTED, "Port": 42420}
+        assert SECRET not in json.dumps(result)
+
+    @pytest.mark.parametrize(
+        "filename",
+        ["serverconfig.json", "./serverconfig.json", "ModConfig/../serverconfig.json"],
+    )
+    def test_admin_gets_the_password(
+        self, service: ConfigFilesService, serverconfig: Path, filename: str
+    ) -> None:
+        """AC 5: Admin gets the file as it is."""
+        result = service.read_file(filename, "admin")
+
+        assert result["content"] == {"ServerName": "Test", "Password": SECRET, "Port": 42420}
+
+    def test_symlink_to_serverconfig_is_redacted(
+        self, service: ConfigFilesService, serverconfig: Path, mock_settings: MagicMock
+    ) -> None:
+        """AC 3: a symlink that resolves to the file is redacted too."""
+        (mock_settings.serverdata_dir / "ModConfig" / "link.json").symlink_to(serverconfig)
+
+        monitor = service.read_file("ModConfig/link.json", "monitor")
+        admin = service.read_file("ModConfig/link.json", "admin")
+
+        assert SECRET not in json.dumps(monitor)
+        content = monitor["content"]
+        assert isinstance(content, dict)
+        assert content["Password"] == REDACTED
+        admin_content = admin["content"]
+        assert isinstance(admin_content, dict)
+        assert admin_content["Password"] == SECRET
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_unset_password_is_unchanged(
+        self, service: ConfigFilesService, mock_settings: MagicMock, value: str | None
+    ) -> None:
+        """AC 3: null and "" are returned as they are."""
+        (mock_settings.serverdata_dir / "serverconfig.json").write_text(
+            json.dumps({"Password": value})
+        )
+
+        assert service.read_file("serverconfig.json")["content"] == {"Password": value}
+
+    def test_broken_serverconfig_is_withheld(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """AC 4: a serverconfig.json that does not parse returns no text to Monitor."""
+        text = '{"Password": "' + SECRET + '", }'
+        (mock_settings.serverdata_dir / "serverconfig.json").write_text(text)
+
+        monitor = service.read_file("serverconfig.json", "monitor")
+        admin = service.read_file("serverconfig.json", "admin")
+
+        assert SECRET not in json.dumps(monitor)
+        content = monitor["content"]
+        assert isinstance(content, dict)
+        assert content["_raw"] == REDACTED
+        assert content["_parse_error"]
+        admin_content = admin["content"]
+        assert isinstance(admin_content, dict)
+        assert admin_content["_raw"] == text
 
 
 class TestPathTraversalPrevention:

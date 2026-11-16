@@ -85,6 +85,36 @@ describe('api/config', () => {
       expect(result.data.settings[0].key).toBe('Port');
     });
 
+    it('passes secret and configured through to the caller (Story 17.5)', async () => {
+      const mockResponse: ApiResponse<GameConfigData> = {
+        status: 'ok',
+        data: {
+          settings: [
+            {
+              key: 'Password',
+              value: null,
+              type: 'string',
+              liveUpdate: true,
+              envManaged: false,
+              secret: true,
+              configured: true,
+            },
+          ],
+          sourceFile: 'serverconfig.json',
+          lastModified: '2026-01-18T10:00:00Z',
+        },
+      };
+
+      vi.mocked(apiClient).mockResolvedValue(mockResponse);
+
+      const result = await fetchGameConfig();
+
+      const [password] = result.data.settings;
+      expect(password.value).toBeNull();
+      expect(password.secret).toBe(true);
+      expect(password.configured).toBe(true);
+    });
+
     it('propagates errors from apiClient', async () => {
       const mockError = new Error('Network error');
       vi.mocked(apiClient).mockRejectedValue(mockError);

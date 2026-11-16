@@ -243,12 +243,22 @@ export type SettingType = 'string' | 'int' | 'bool' | 'float';
  */
 export interface GameSetting {
   key: string;
-  /** Story 16.8: null when the setting has no value */
+  /**
+   * Story 16.8: null when the setting has no value. Story 17.5: null also when the
+   * value is a secret withheld from this key (`configured` is then present).
+   */
   value: string | number | boolean | null;
   type: SettingType;
   liveUpdate: boolean;
   envManaged: boolean;
   requiresRestart?: boolean;
+  /** Story 17.5: the value is a secret; only an Admin key receives it */
+  secret?: boolean;
+  /**
+   * Story 17.5: present only when the value was withheld: whether the secret is set;
+   * `value` is then null
+   */
+  configured?: boolean;
 }
 
 /**

@@ -11,12 +11,15 @@
  * moves its own column and no card stretches to its neighbor's height.
  *
  * Story 6.4: Settings UI
+ * Story 17.5: a secret setting whose value the API withheld (it has `configured`, which
+ * only a key that is not Admin receives) shows whether it is set instead of a field.
  */
 
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
+import { SecretSettingStatus } from '@/components/SecretSettingStatus';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
@@ -225,6 +228,19 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
     // Skip if setting not available from API
     if (!setting) {
       return null;
+    }
+
+    // Story 17.5: the value was withheld from this key; show only whether it is set.
+    // `configured` decides, not `secret`: Admin responses carry `secret` too.
+    if (setting.configured !== undefined) {
+      return (
+        <SecretSettingStatus
+          key={def.key}
+          settingKey={def.key}
+          label={def.label}
+          configured={setting.configured}
+        />
+      );
     }
 
     return (
