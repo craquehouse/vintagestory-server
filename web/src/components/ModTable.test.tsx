@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 
 // Mock next-themes before importing components that use PreferencesContext
@@ -52,7 +53,7 @@ import { toast } from 'sonner';
 import { ModTable } from './ModTable';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { handleApiError } from '@/api/error-handler';
-import { getCookie } from '@/lib/cookies';
+import { getCookie, setCookie } from '@/lib/cookies';
 import { setViewportWidth } from '../../tests/viewport';
 
 // Create a fresh QueryClient for each test
@@ -2061,6 +2062,170 @@ describe('ModTable', () => {
           const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'DELETE');
           expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus');
         });
+      });
+    });
+
+    // Story 18.4 (FR203): below lg the cards have a sort control that writes the same
+    // preference as the table headers
+    describe('sort control below lg (Story 18.4)', () => {
+      beforeAll(() => {
+        // Radix Select needs these in jsdom
+        Element.prototype.hasPointerCapture = vi.fn(() => false);
+        Element.prototype.releasePointerCapture = vi.fn();
+        Element.prototype.scrollIntoView = vi.fn();
+      });
+
+      function renderAtWidth(width: number) {
+        setViewportWidth(width);
+        const queryClient = createTestQueryClient();
+        return render(<ModTable />, { wrapper: createWrapper(queryClient) });
+      }
+
+      /** The installedModsSort of the last vs_ui_prefs cookie written. */
+      function persistedSort(): unknown {
+        const calls = vi.mocked(setCookie).mock.calls;
+        const last = calls[calls.length - 1];
+        return last ? JSON.parse(last[1]).installedModsSort : undefined;
+      }
+
+      function tableSlugs(): string[] {
+        return screen
+          .getAllByTestId(/^mod-row-/)
+          .map((row) => (row.getAttribute('data-testid') ?? '').replace('mod-row-', ''));
+      }
+
+      it.each([390, 900])('shows the current sort above the cards at %ipx', async (width) => {
+        mockApi();
+        renderAtWidth(width);
+
+        await screen.findByTestId('installed-mod-cards');
+        const control = screen.getByTestId('installed-mods-sort');
+        const picker = screen.getByRole('combobox', { name: 'Sort by' });
+        expect(control).toContainElement(picker);
+        expect(picker).toHaveTextContent('Name');
+        const direction = screen.getByTestId('installed-mods-sort-direction');
+        expect(direction).toHaveAccessibleName('Ascending');
+        expect(picker).toHaveClass('min-h-11');
+        expect(direction).toHaveClass('min-h-11');
+      });
+
+      it('offers exactly the columns the table headers sort by', async () => {
+        mockApi();
+        const { unmount } = renderAtWidth(1024);
+        await screen.findByTestId('mod-table');
+        const headerLabels = screen
+          .getAllByRole('columnheader')
+          .flatMap((header) => [...header.querySelectorAll('button')])
+          .map((button) => button.textContent);
+        unmount();
+
+        const user = userEvent.setup();
+        renderAtWidth(390);
+        await user.click(await screen.findByRole('combobox', { name: 'Sort by' }));
+        const options = await screen.findAllByRole('option');
+        expect(options.map((option) => option.textContent)).toEqual(['Name', 'Version', 'Status']);
+        expect(headerLabels).toEqual(['Name', 'Version', 'Status']);
+      });
+
+      it('shows a stored sort preference', async () => {
+        vi.mocked(getCookie).mockReturnValueOnce(
+          JSON.stringify({
+            theme: 'system',
+            consoleFontSize: 14,
+            sidebarCollapsed: false,
+            gameServerNavExpanded: true,
+            installedModsSort: { column: 'enabled', direction: 'desc' },
+          })
+        );
+        mockApi();
+        renderAtWidth(390);
+
+        await screen.findByTestId('installed-mod-cards');
+        expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Status');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Descending');
+      });
+
+      it('reorders the cards when another column is chosen, keeping the direction', async () => {
+        const user = userEvent.setup();
+        mockApi();
+        renderAtWidth(390);
+
+        await screen.findByTestId('installed-mod-cards');
+        expect(cardSlugs()).toEqual(['carrycapacity', 'smithingplus']);
+        await user.click(screen.getByRole('combobox', { name: 'Sort by' }));
+        await user.click(await screen.findByRole('option', { name: 'Version' }));
+
+        expect(cardSlugs()).toEqual(['smithingplus', 'carrycapacity']);
+        expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Version');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Ascending');
+        expect(persistedSort()).toEqual({ column: 'version', direction: 'asc' });
+      });
+
+      it('flips only the direction when the direction button is pressed', async () => {
+        const user = userEvent.setup();
+        mockApi();
+        renderAtWidth(390);
+
+        await screen.findByTestId('installed-mod-cards');
+        const direction = screen.getByTestId('installed-mods-sort-direction');
+        await user.click(direction);
+
+        expect(cardSlugs()).toEqual(['smithingplus', 'carrycapacity']);
+        expect(direction).toHaveAccessibleName('Descending');
+        expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Name');
+        expect(persistedSort()).toEqual({ column: 'name', direction: 'desc' });
+
+        await user.click(direction);
+        expect(cardSlugs()).toEqual(['carrycapacity', 'smithingplus']);
+        expect(direction).toHaveAccessibleName('Ascending');
+        expect(persistedSort()).toEqual({ column: 'name', direction: 'asc' });
+      });
+
+      it('shares the sort with the table headers both ways', async () => {
+        const user = userEvent.setup();
+        mockApi();
+        renderAtWidth(900);
+
+        await screen.findByTestId('installed-mod-cards');
+        await user.click(screen.getByRole('combobox', { name: 'Sort by' }));
+        await user.click(await screen.findByRole('option', { name: 'Version' }));
+        await user.click(screen.getByTestId('installed-mods-sort-direction'));
+
+        act(() => setViewportWidth(1024));
+        expect(screen.getByTestId('mod-table')).toBeInTheDocument();
+        expect(screen.queryByTestId('installed-mods-sort')).not.toBeInTheDocument();
+        // version descending: carrycapacity 2.0.0, smithingplus 1.5.0
+        expect(tableSlugs()).toEqual(['carrycapacity', 'smithingplus']);
+
+        await user.click(screen.getByRole('button', { name: 'Name' }));
+        act(() => setViewportWidth(900));
+        expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Name');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Ascending');
+        expect(cardSlugs()).toEqual(['carrycapacity', 'smithingplus']);
+      });
+
+      it.each([1024, 1440])('shows no sort control at %ipx', async (width) => {
+        mockApi();
+        renderAtWidth(width);
+
+        await screen.findByTestId('mod-table');
+        expect(screen.queryByTestId('installed-mods-sort')).not.toBeInTheDocument();
+      });
+
+      it('shows no sort control while loading or when no mods are installed', async () => {
+        globalThis.fetch = vi.fn().mockImplementation(() => new Promise(() => {}));
+        const { unmount } = renderAtWidth(390);
+        expect(screen.getByTestId('mod-table-loading')).toBeInTheDocument();
+        expect(screen.queryByTestId('installed-mods-sort')).not.toBeInTheDocument();
+        unmount();
+
+        globalThis.fetch = vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve(mockEmptyModsResponse),
+        });
+        renderAtWidth(390);
+        expect(await screen.findByTestId('mod-table-empty')).toBeInTheDocument();
+        expect(screen.queryByTestId('installed-mods-sort')).not.toBeInTheDocument();
       });
     });
   });
