@@ -379,6 +379,31 @@ describe('ModDetailPage', () => {
   });
 
   describe('description section (Subtask 2.3)', () => {
+    it('marks description links that open in a new tab (Story 18.1, VSS-tzl)', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: {
+              ...mockModDetailResponse.data,
+              description: '<p>Needs <a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>',
+            },
+          }),
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      expect(description).toHaveClass('mod-description');
+      // jsdom trims the note's leading space when it computes the accessible name;
+      // the E2E test checks the exact name in a browser
+      const link = within(description).getByRole('link', {
+        name: /^CarryOn Lib ?\(opens in a new tab\)$/,
+      });
+      expect(link).toHaveTextContent('CarryOn Lib (opens in a new tab)', { normalizeWhitespace: false });
+    });
+
     it('renders sanitized HTML description', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,

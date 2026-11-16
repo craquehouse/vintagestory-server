@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import DOMPurify from 'dompurify';
-import { sanitizeModDescription } from './mod-description';
+import { OPENS_IN_NEW_TAB, sanitizeModDescription } from './mod-description';
 
 /** Parse sanitized markup so assertions inspect elements, not substrings. */
 function parse(html: string | null): HTMLElement {
@@ -155,6 +155,53 @@ describe('sanitizeModDescription', () => {
     });
   });
 
+  describe('new tab note (Story 18.1, VSS-tzl)', () => {
+    it('ends a link with one screen reader note', () => {
+      const el = parse(sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>'));
+      const link = el.querySelector('a');
+      const notes = link?.querySelectorAll('span.sr-only[data-new-tab-note]') ?? [];
+      expect(notes).toHaveLength(1);
+      expect(link?.lastElementChild).toBe(notes[0]);
+      expect(notes[0].textContent).toBe(` ${OPENS_IN_NEW_TAB}`);
+      expect(link?.textContent).toBe('CarryOn Lib (opens in a new tab)');
+    });
+
+    it('takes its text from OPENS_IN_NEW_TAB', () => {
+      expect(OPENS_IN_NEW_TAB).toBe('(opens in a new tab)');
+    });
+
+    it('puts the note after an image in a link', () => {
+      const el = parse(sanitize('<a href="https://example.com"><img src="https://i.imgur.com/a.png" alt="logo"></a>'));
+      const link = el.querySelector('a');
+      expect(link?.firstElementChild?.tagName).toBe('IMG');
+      expect(link?.lastElementChild?.hasAttribute('data-new-tab-note')).toBe(true);
+      expect(link?.children).toHaveLength(2);
+    });
+
+    it('adds no note to anchors without an href or with a removed javascript: href', () => {
+      const el = parse(sanitize('<p><a name="top">Top</a> and <a href="javascript:x()">bad</a></p>'));
+      expect(el.querySelectorAll('[data-new-tab-note]')).toHaveLength(0);
+      expect(el.textContent).toBe('Top and bad');
+    });
+
+    it('adds no note to an SVG link, which keeps target and rel', () => {
+      const el = parse(
+        sanitize('<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>')
+      );
+      const link = el.querySelector('svg a');
+      expect(link?.getAttribute('target')).toBe('_blank');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(el.querySelectorAll('[data-new-tab-note]')).toHaveLength(0);
+    });
+
+    it('adds no second note when sanitized output is sanitized again', () => {
+      const once = sanitize('<a href="https://example.com">Docs</a>');
+      const twice = sanitize(once);
+      expect(parse(twice).querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
+      expect(parse(twice).textContent).toBe('Docs (opens in a new tab)');
+    });
+  });
+
   it('keeps text formatting', () => {
     const el = parse(
       sanitize('<h3>Title</h3><p><strong>Bold</strong> <em>italic</em></p><ul><li>One</li></ul>')
@@ -185,5 +232,7 @@ describe('hook isolation', () => {
     sanitizeModDescription('<a href="https://example.com">x</a>');
     const el = parse(DOMPurify.sanitize('<a href="https://example.com">x</a>'));
     expect(el.querySelector('a')?.hasAttribute('target')).toBe(false);
+    expect(el.querySelector('[data-new-tab-note]')).toBeNull();
+    expect(el.textContent).toBe('x');
   });
 });

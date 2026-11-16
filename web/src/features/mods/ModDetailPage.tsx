@@ -39,7 +39,8 @@
  *
  * Story 18.1: A Screenshots section between the header and the description shows the
  * mod's screenshots (`ModScreenshotGallery`), and a "Watch trailer" link joins the
- * external links when the API sent a `trailerUrl`.
+ * external links when the API sent a `trailerUrl`. Description links that open in a
+ * new tab show an icon (the `mod-description` class) and a screen reader note.
  */
 
 import { useState } from 'react';
@@ -779,7 +780,7 @@ export function ModDetailPage() {
         <CardContent>
           {sanitizedDescription ? (
             <div
-              className="prose prose-sm prose-invert max-w-none"
+              className="mod-description prose prose-sm prose-invert max-w-none"
               data-testid="mod-detail-description"
               dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
             />
