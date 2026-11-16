@@ -1,6 +1,7 @@
 """API settings service for management API configuration.
 
 Story 6.3: API Settings Service
+Story 17.6: Settings behave as saved (interval bound, ApiSettingNotAppliedError)
 
 This service provides read and update operations for API operational settings
 stored in api-settings.json. Unlike game settings, these are direct file
@@ -22,6 +23,13 @@ from vintagestory_api.config import Settings
 
 logger = structlog.get_logger()
 
+MAX_INTERVAL_SECONDS = 31_536_000
+"""Upper bound of the refresh interval settings: 365 days (Story 17.6).
+
+Longer intervals cannot be scheduled reliably (now + interval can pass the largest date
+the scheduler holds), and 0 already disables a job, so anything longer means "never".
+"""
+
 
 class ApiSettings(BaseModel):
     """API server operational settings."""
@@ -41,17 +49,25 @@ class ApiSettings(BaseModel):
     mod_list_refresh_interval: int = Field(
         default=14400,
         ge=0,
-        description="Seconds between mod API cache refreshes (0 = disabled). Default: 4 hours",
+        le=MAX_INTERVAL_SECONDS,
+        description=(
+            "Seconds between mod API cache refreshes (0 = disabled, at most 365 days). "
+            "Default: 4 hours"
+        ),
     )
     server_versions_refresh_interval: int = Field(
         default=86400,
         ge=0,
-        description="Seconds between checking for new VS versions (0 = disabled)",
+        le=MAX_INTERVAL_SECONDS,
+        description=(
+            "Seconds between checking for new VS versions (0 = disabled, at most 365 days)"
+        ),
     )
     metrics_collection_interval: int = Field(
         default=10,
         ge=0,
-        description="Seconds between metrics collection (0 = disabled)",
+        le=MAX_INTERVAL_SECONDS,
+        description="Seconds between metrics collection (0 = disabled, at most 365 days)",
     )
     mod_update_webhook_url: str | None = Field(
         default=None,
@@ -82,6 +98,20 @@ class ApiSettings(BaseModel):
 
 SECRET_SETTINGS = frozenset({"mod_update_webhook_url"})
 """Settings whose values are never logged or returned (FR149)."""
+
+INTERVAL_SETTINGS = frozenset(
+    {
+        "mod_list_refresh_interval",
+        "server_versions_refresh_interval",
+        "metrics_collection_interval",
+    }
+)
+"""Settings whose saved value is passed to the scheduler callback (Story 17.6).
+
+The same keys as `vintagestory_api.jobs.INTERVAL_JOBS`; this module cannot import that
+one (`jobs` imports this module), and a test asserts the two match. The web's
+`INTERVAL_API_SETTINGS` (`web/src/api/config.ts`) lists them too.
+"""
 
 
 def _describe_validation_errors(error: ValidationError) -> str:
@@ -122,6 +152,30 @@ class ApiSettingInvalidError(Exception):
         super().__init__(self.message)
 
 
+class ApiSettingNotAppliedError(Exception):
+    """Raised when an interval setting was saved but its job could not be rescheduled.
+
+    Story 17.6 (Epic 17 ADR-5 decision 5): the value stays saved and applies at the
+    next API start; the failure is reported instead of leaving the screen and the
+    scheduler silently disagreeing.
+    """
+
+    def __init__(self, key: str, reason: str) -> None:
+        """Initialize error with key and the scheduler's reason.
+
+        Args:
+            key: The setting key that was saved.
+            reason: Why its job could not be rescheduled.
+        """
+        self.key = key
+        self.reason = reason
+        self.message = (
+            f"Saved '{key}', but its job could not be rescheduled: {reason}. "
+            "The saved value applies when the API restarts."
+        )
+        super().__init__(self.message)
+
+
 class ApiSettingsService:
     """Service for managing API operational settings.
 
@@ -139,9 +193,10 @@ class ApiSettingsService:
 
         Args:
             settings: Application settings. If None, creates new Settings instance.
-            scheduler_callback: Optional callback invoked when refresh interval
-                settings change. Called with (setting_key, new_value).
-                This is a stub for Epic 7 scheduler integration.
+            scheduler_callback: Optional callback invoked after a refresh interval
+                setting is saved, with (setting_key, new_value). The config router
+                passes `apply_interval_setting` bound to the scheduler, so the job
+                follows the saved value (Story 17.6).
         """
         self._settings = settings or Settings()
         self._scheduler_callback = scheduler_callback
@@ -206,6 +261,8 @@ class ApiSettingsService:
         Raises:
             ApiSettingUnknownError: If key is not a valid setting.
             ApiSettingInvalidError: If value fails validation.
+            ApiSettingNotAppliedError: If the value was saved but the scheduler
+                callback failed (Story 17.6).
         """
         # Validate key exists in model
         if key not in ApiSettings.model_fields:
@@ -268,16 +325,22 @@ class ApiSettingsService:
 
         # Notify scheduler if refresh interval changed.
         # Note: validated_value is safe to pass here because Pydantic validation
-        # (including ge=0 constraint) has already succeeded above. The callback
-        # will only receive valid, type-checked integer values.
-        interval_settings = (
-            "mod_list_refresh_interval",
-            "server_versions_refresh_interval",
-            "metrics_collection_interval",
-        )
-        if key in interval_settings:
-            if self._scheduler_callback:
+        # (including the ge=0 and le=MAX_INTERVAL_SECONDS constraints) has already
+        # succeeded above. The callback will only receive valid integer values.
+        if key in INTERVAL_SETTINGS and self._scheduler_callback:
+            try:
                 self._scheduler_callback(key, validated_value)
+            except Exception as e:
+                # Deliberately broad (Story 17.6, ADR-5 decision 5): any scheduler
+                # failure after the save must be reported. It is re-raised as a typed
+                # error, not swallowed.
+                logger.error(
+                    "api_setting_not_applied",
+                    key=key,
+                    value=validated_value,
+                    error=str(e),
+                )
+                raise ApiSettingNotAppliedError(key, str(e)) from e
 
         if key in SECRET_SETTINGS:
             configured = getattr(updated, key) is not None

@@ -5,11 +5,13 @@
  * Includes optimistic updates and proper cache invalidation.
  *
  * Story 6.4: Settings UI
+ * Story 17.6: Saving a refresh interval refreshes the Scheduled Jobs tab
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import {
+  INTERVAL_API_SETTINGS,
   SECRET_API_SETTINGS,
   fetchApiSettings,
   setModUpdateWebhook,
@@ -56,7 +58,8 @@ export function useApiSettings() {
  * Hook to update an API setting.
  *
  * Includes optimistic updates and proper rollback on error.
- * Invalidates the API settings query on success.
+ * Invalidates the API settings query when it settles, and for a refresh interval
+ * also the jobs query, since the API reschedules the job (Story 17.6).
  *
  * @example
  * function AutoStartToggle() {
@@ -120,9 +123,14 @@ export function useUpdateApiSetting() {
         queryClient.setQueryData(queryKeys.config.api, context.previous);
       }
     },
-    onSettled: () => {
+    onSettled: (_data, _error, { key }) => {
       // Always refetch after error or success to ensure server state
       queryClient.invalidateQueries({ queryKey: queryKeys.config.api });
+      // A saved interval reschedules its job (Story 17.6). On error too: a save that
+      // was not applied (API_SETTING_NOT_APPLIED) still changed the saved value.
+      if (INTERVAL_API_SETTINGS.has(key)) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      }
     },
   });
 }

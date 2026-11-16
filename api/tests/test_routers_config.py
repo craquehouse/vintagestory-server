@@ -20,17 +20,23 @@ Config Files (6.5):
 - GET /config/files - List JSON config files (read-only)
 - GET /config/files/{filename} - Read raw config file content (read-only)
 - RBAC: Both Admin and Monitor can access (read-only)
+
+Story 17.6: a saved interval setting reschedules its job through the real
+dependency chain (`TestIntervalSettingsReschedule`).
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
-from collections.abc import Generator
+from collections.abc import AsyncIterator, Generator
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not-found]
 from fastapi import FastAPI
@@ -38,6 +44,7 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
+from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
@@ -49,10 +56,12 @@ from vintagestory_api.routers.config import (
     get_pending_restart_state,
 )
 from vintagestory_api.routers.config import router as config_router
+from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import ApiSettingsService
 from vintagestory_api.services.config_files import ConfigFilesService
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.scheduler import SchedulerService
 from vintagestory_api.services.server import ServerService, get_server_service
 
 
@@ -1842,11 +1851,13 @@ class TestDependencyInjection:
     ) -> None:
         """Test that get_api_settings_service creates service correctly.
 
-        This covers line 249 where ApiSettingsService is instantiated.
+        Story 17.6: the scheduler is passed too, so a saved interval reschedules its job.
         """
         from vintagestory_api.routers.config import get_api_settings_service
 
-        service = get_api_settings_service(server_service=mock_server_service)
+        service = get_api_settings_service(
+            server_service=mock_server_service, scheduler=SchedulerService()
+        )
 
         assert isinstance(service, ApiSettingsService)
         # Verify the service was created with the correct settings
@@ -1866,3 +1877,222 @@ class TestDependencyInjection:
         assert isinstance(service, ConfigFilesService)
         # Verify the service was created with the correct settings
         assert service.settings == temp_settings
+
+
+# ==============================================================================
+# Story 17.6: a setting with no value carries the game's default (AC 9)
+# ==============================================================================
+
+
+class TestGameSettingsDefault:
+    """GET /config/game: EntitySpawning carries `default: true`; no other setting does."""
+
+    @pytest.mark.parametrize("api_key", [TEST_ADMIN_KEY, TEST_MONITOR_KEY])
+    def test_entity_spawning_missing_from_the_file(
+        self,
+        client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+        api_key: str,
+    ) -> None:
+        config = {k: v for k, v in sample_config.items() if k != "EntitySpawning"}
+        _write_config(config_file, config)
+
+        response = client.get(GAME_URL, headers={"X-API-Key": api_key})
+
+        assert response.status_code == 200
+        settings = _settings_by_key(response.json())
+        assert settings["EntitySpawning"]["value"] is None
+        assert settings["EntitySpawning"]["default"] is True
+        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+        assert settings["AllowPvP"]["value"] is True
+        assert "default" not in settings["AllowPvP"]
+
+
+# ==============================================================================
+# Story 17.6: a saved interval setting reschedules its job (AC 1, 2, 3, 6, 7)
+# ==============================================================================
+
+INTERVAL_SETTING_JOBS = list(INTERVAL_JOBS.items())
+
+
+async def _no_op_job() -> None:
+    """Stands in for a real job so no test reaches the network or the game server."""
+
+
+@pytest.fixture
+async def reschedule_scheduler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> AsyncIterator[SchedulerService]:
+    """A real started scheduler whose interval jobs are no-ops."""
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job
+    )
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job
+    )
+    monkeypatch.setattr(
+        "vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job
+    )
+    svc = SchedulerService()
+    svc.start()
+    yield svc
+    svc.shutdown(wait=False)
+
+
+@pytest.fixture
+async def reschedule_client(
+    temp_settings: Settings,
+    mock_server_service: MagicMock,
+    reschedule_scheduler: SchedulerService,
+) -> AsyncIterator[httpx.AsyncClient]:
+    """Client over the real get_api_settings_service; writes go to the temp dir.
+
+    httpx over ASGITransport runs the app on the test's event loop, the loop the
+    scheduler was started on.
+    """
+    app.dependency_overrides[get_settings] = lambda: temp_settings
+    app.dependency_overrides[get_server_service] = lambda: mock_server_service
+    app.dependency_overrides[get_scheduler] = lambda: reschedule_scheduler
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as async_client:
+            yield async_client
+    finally:
+        app.dependency_overrides.clear()
+
+
+ADMIN = {"X-API-Key": TEST_ADMIN_KEY}
+
+
+async def _jobs(client: httpx.AsyncClient) -> dict[str, dict[str, Any]]:
+    response = await client.get("/api/v1alpha1/jobs", headers=ADMIN)
+    assert response.status_code == 200
+    jobs: list[dict[str, Any]] = response.json()["data"]["jobs"]
+    return {job["id"]: job for job in jobs}
+
+
+async def _save(client: httpx.AsyncClient, key: str, value: int) -> httpx.Response:
+    return await client.post(
+        f"/api/v1alpha1/config/api/settings/{key}", json={"value": value}, headers=ADMIN
+    )
+
+
+class TestIntervalSettingsReschedule:
+    """POST /config/api/settings/{interval} changes the scheduler without a restart."""
+
+    @pytest.mark.parametrize(("key", "job_id"), INTERVAL_SETTING_JOBS)
+    async def test_change_zero_and_back(
+        self,
+        reschedule_client: httpx.AsyncClient,
+        temp_settings: Settings,
+        key: str,
+        job_id: str,
+    ) -> None:
+        response = await _save(reschedule_client, key, 600)
+        assert response.status_code == 200
+        assert response.json()["data"] == {"key": key, "value": 600}
+        jobs = await _jobs(reschedule_client)
+        assert jobs[job_id]["trigger_details"] == "every 600 seconds"
+
+        response = await _save(reschedule_client, key, 0)
+        assert response.status_code == 200
+        assert job_id not in await _jobs(reschedule_client)
+
+        response = await _save(reschedule_client, key, 3600)
+        assert response.status_code == 200
+        jobs = await _jobs(reschedule_client)
+        assert jobs[job_id]["trigger_details"] == "every 3600 seconds"
+
+        # The writes went to the temp state directory
+        saved = json.loads(
+            (temp_settings.state_dir / "api-settings.json").read_text()
+        )
+        assert saved[key] == 3600
+
+    async def test_same_value_again_restarts_the_countdown(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        """Saving N over N keeps the job and moves its next run forward (review L4)."""
+        assert (await _save(reschedule_client, "mod_list_refresh_interval", 600)).status_code == 200
+        first = (await _jobs(reschedule_client))["mod_cache_refresh"]
+        await asyncio.sleep(0.05)
+
+        assert (await _save(reschedule_client, "mod_list_refresh_interval", 600)).status_code == 200
+
+        second = (await _jobs(reschedule_client))["mod_cache_refresh"]
+        assert second["trigger_details"] == "every 600 seconds"
+        assert datetime.fromisoformat(second["next_run_time"]) > datetime.fromisoformat(
+            first["next_run_time"]
+        )
+
+    async def test_a_deleted_job_comes_back_on_the_next_save(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        """A job removed with DELETE /jobs/{id} is registered again by a save (review L4)."""
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        deleted = await reschedule_client.delete(
+            "/api/v1alpha1/jobs/mod_cache_refresh", headers=ADMIN
+        )
+        assert deleted.status_code == 200
+        assert "mod_cache_refresh" not in await _jobs(reschedule_client)
+
+        response = await _save(reschedule_client, "mod_list_refresh_interval", 600)
+
+        assert response.status_code == 200
+        jobs = await _jobs(reschedule_client)
+        assert jobs["mod_cache_refresh"]["trigger_details"] == "every 600 seconds"
+
+    async def test_other_settings_leave_the_jobs_alone(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        before = await _jobs(reschedule_client)
+
+        response = await reschedule_client.post(
+            "/api/v1alpha1/config/api/settings/auto_start_server",
+            json={"value": True},
+            headers=ADMIN,
+        )
+
+        assert response.status_code == 200
+        assert await _jobs(reschedule_client) == before
+
+    async def test_value_above_the_bound_is_refused(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        before = await _jobs(reschedule_client)
+
+        response = await _save(reschedule_client, "mod_list_refresh_interval", 31_536_001)
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.API_SETTING_INVALID
+        assert await _jobs(reschedule_client) == before
+        settings = await reschedule_client.get("/api/v1alpha1/config/api", headers=ADMIN)
+        assert settings.json()["data"]["settings"]["mod_list_refresh_interval"] == 600
+
+    async def test_scheduler_failure_is_reported_and_the_value_stays_saved(
+        self,
+        reschedule_client: httpx.AsyncClient,
+        reschedule_scheduler: SchedulerService,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        def failing_add_interval_job(*_args: object, **_kwargs: object) -> None:
+            raise RuntimeError("scheduler unavailable")
+
+        monkeypatch.setattr(
+            reschedule_scheduler, "add_interval_job", failing_add_interval_job
+        )
+
+        response = await _save(reschedule_client, "mod_list_refresh_interval", 1800)
+
+        assert response.status_code == 500
+        detail = response.json()["detail"]
+        assert detail["code"] == ErrorCode.API_SETTING_NOT_APPLIED
+        assert "mod_list_refresh_interval" in detail["message"]
+        assert "scheduler unavailable" in detail["message"]
+        assert "applies when the API restarts" in detail["message"]
+        settings = await reschedule_client.get("/api/v1alpha1/config/api", headers=ADMIN)
+        assert settings.json()["data"]["settings"]["mod_list_refresh_interval"] == 1800

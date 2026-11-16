@@ -274,6 +274,48 @@ describe('useSettingField', () => {
       });
     });
 
+    it('keeps the unsaved value after a failed save by default', async () => {
+      const onSave = vi.fn().mockRejectedValue(new Error('Save failed'));
+      const { result } = renderHook(() =>
+        useSettingField<string>({
+          initialValue: 'Old',
+          settingKey: 'ServerName',
+          settingType: 'string',
+          onSave,
+        })
+      );
+
+      act(() => result.current.setValue('Typed'));
+      await act(async () => {
+        await result.current.save();
+      });
+
+      expect(result.current.error).toBe('Save failed');
+      expect(result.current.value).toBe('Typed');
+    });
+
+    it('returns to the initial value after a failed save with revertOnError (Story 17.6 review)', async () => {
+      const onSave = vi.fn().mockRejectedValue(new Error('Save failed'));
+      const { result } = renderHook(() =>
+        useSettingField<boolean>({
+          initialValue: true,
+          settingKey: 'EntitySpawning',
+          settingType: 'bool',
+          onSave,
+          revertOnError: true,
+        })
+      );
+
+      act(() => result.current.setValue(false));
+      await act(async () => {
+        await result.current.save(false);
+      });
+
+      expect(result.current.error).toBe('Save failed');
+      expect(result.current.value).toBe(true);
+      expect(result.current.isDirty).toBe(false);
+    });
+
     it('handles non-Error objects in catch block', async () => {
       const onSave = vi.fn().mockRejectedValue('String error');
 

@@ -259,6 +259,10 @@ export interface GameSetting {
    * `value` is then null
    */
   configured?: boolean;
+  /**
+   * Story 17.6: the game's value when `value` is null; absent when unknown
+   */
+  default?: boolean;
 }
 
 /**

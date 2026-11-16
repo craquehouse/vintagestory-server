@@ -200,7 +200,7 @@ development_status:
   17-3-mod-operations-are-safe-against-each-other: done
   17-4-installed-status-is-right-everywhere: done
   17-5-monitor-keys-cannot-read-the-server-password: done
-  17-6-settings-behave-as-saved: backlog
+  17-6-settings-behave-as-saved: done
   17-7-mods-navigation: done
   17-8-layout-at-tablet-and-phone-widths: backlog
 # RETRO ACTION ITEMS

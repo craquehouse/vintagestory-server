@@ -662,6 +662,69 @@ describe('GameConfigPanel', () => {
     });
   });
 
+  describe('Story 17.6: booleans with no value', () => {
+    const withSettings = (extra: Record<string, unknown>[], password?: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: [
+          ...mockGameConfig.data.settings.map((setting) => {
+            if (setting.key === 'AllowPvP') return { ...setting, value: null };
+            if (setting.key === 'Password' && password) {
+              return { ...setting, env_managed: false, ...password };
+            }
+            return setting;
+          }),
+          ...extra,
+        ],
+      },
+    });
+    const entitySpawning = {
+      key: 'EntitySpawning',
+      value: null,
+      default: true,
+      type: 'bool',
+      live_update: true,
+      env_managed: false,
+    };
+
+    async function renderWith(config: unknown) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(config),
+      });
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+    }
+
+    it('shows the known default and "Not set" for a boolean without one', async () => {
+      await renderWith(withSettings([entitySpawning]));
+
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(
+        'Enabled (default)'
+      );
+      expect(screen.getByRole('switch', { name: 'Entity Spawning' })).toBeChecked();
+      expect(screen.getByTestId('setting-state-AllowPvP')).toHaveTextContent(/^Not set$/);
+      expect(screen.getByRole('switch', { name: 'Allow PvP' })).not.toBeChecked();
+    });
+
+    it('leaves a withheld secret to Story 17.5 (the two do not interfere)', async () => {
+      await renderWith(
+        withSettings([entitySpawning], { value: null, secret: true, configured: true })
+      );
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByTestId('setting-state-Password')).not.toBeInTheDocument();
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(
+        'Enabled (default)'
+      );
+      expect(screen.getByTestId('setting-state-AllowPvP')).toHaveTextContent(/^Not set$/);
+    });
+  });
+
   describe('Story 16.6: desktop layout', () => {
     const setting = (key: string, value: string | number | boolean, type: string) => ({
       key,
