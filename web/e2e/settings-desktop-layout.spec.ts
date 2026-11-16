@@ -35,6 +35,14 @@ async function open(page: Page, width: number, height = 900) {
   await page.addInitScript((apiKey) => {
     localStorage.setItem('apiKey', apiKey);
   }, API_KEY);
+  // Story 17.5: the page takes its key from /config.js, which may serve a Monitor key;
+  // the #Password field checked below only exists for an Admin key
+  await page.route('**/config.js', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey: API_KEY })};`,
+    })
+  );
   await page.goto(SETTINGS);
   await expect(page.getByTestId('game-config-panel')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#Port')).toBeVisible();
