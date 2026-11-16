@@ -1511,6 +1511,109 @@ class TestReadConfigFileSecrets:
         assert response.headers["Cache-Control"] == "no-store"
 
 
+class TestOtherConfigPathsWithAPassword:
+    """Story 17.5 (AC 7): no other config path gives a Monitor key the password."""
+
+    @pytest.fixture
+    def password_set(
+        self, config_file: Path, sample_config: dict[str, object]
+    ) -> dict[str, object]:
+        config = {**sample_config, "Password": SECRET}
+        _write_config(config_file, config)
+        (config_file.parent / "ModConfig").mkdir()
+        _write_config(config_file.parent / "ModConfig" / "copy.json", config)
+        return config
+
+    def test_monitor_update_is_refused_without_echo(
+        self, client: TestClient, config_file: Path, password_set: dict[str, object]
+    ) -> None:
+        """POST /game/settings/Password: 403, the body does not echo it, the file is unchanged."""
+        before = config_file.read_text()
+
+        response = client.post(
+            f"{GAME_URL}/settings/Password",
+            json={"value": SECRET + "-new"},
+            headers={"X-API-Key": TEST_MONITOR_KEY},
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"]["code"] == ErrorCode.FORBIDDEN
+        assert SECRET not in response.text
+        assert config_file.read_text() == before
+
+    def test_admin_update_echoes_the_value(
+        self, client: TestClient, password_set: dict[str, object]
+    ) -> None:
+        """AC 5: the Admin update response is unchanged and carries the new value."""
+        new_value = SECRET + "-new"
+
+        response = client.post(
+            f"{GAME_URL}/settings/Password",
+            json={"value": new_value},
+            headers={"X-API-Key": TEST_ADMIN_KEY},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["data"]["value"] == new_value
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/api/v1alpha1/config/files",
+            "/api/v1alpha1/config/files?directory=ModConfig",
+            "/api/v1alpha1/config/directories",
+            "/api/v1alpha1/config/directories?directory=ModConfig",
+        ],
+    )
+    def test_listings_carry_names_only(
+        self, client: TestClient, password_set: dict[str, object], path: str
+    ) -> None:
+        """GET /config/files and /config/directories list names, never content."""
+        response = client.get(path, headers={"X-API-Key": TEST_MONITOR_KEY})
+
+        assert response.status_code == 200
+        assert SECRET not in response.text
+
+    def test_every_config_route_a_monitor_may_read(
+        self, client: TestClient, password_set: dict[str, object]
+    ) -> None:
+        """Sweep: every GET route under /config that Monitor may call.
+
+        The list is written out by hand: a new route has to be added here.
+        """
+        monitor_routes = [
+            "/api/v1alpha1/config/game",
+            "/api/v1alpha1/config/files",
+            "/api/v1alpha1/config/directories",
+            "/api/v1alpha1/config/files/serverconfig.json",
+            "/api/v1alpha1/config/files/ModConfig/copy.json",
+        ]
+        admin_only_routes = ["/api/v1alpha1/config/api"]
+
+        for path in monitor_routes:
+            response = client.get(path, headers={"X-API-Key": TEST_MONITOR_KEY})
+            assert response.status_code == 200, path
+            assert SECRET not in response.text, path
+        for path in admin_only_routes:
+            response = client.get(path, headers={"X-API-Key": TEST_MONITOR_KEY})
+            assert response.status_code == 403, path
+            assert SECRET not in response.text, path
+
+        paths: dict[str, dict[str, object]] = app.openapi()["paths"]
+        config_get_routes = {
+            path
+            for path, operations in paths.items()
+            if path.startswith("/api/v1alpha1/config") and "get" in operations
+        }
+        assert config_get_routes == {
+            "/api/v1alpha1/config/game",
+            "/api/v1alpha1/config/api",
+            "/api/v1alpha1/config/directories",
+            "/api/v1alpha1/config/files",
+            "/api/v1alpha1/config/files/{filename}",
+        }
+
+
 class TestConfigFilePathTraversal:
     """Tests for path traversal prevention - Story 6.5 AC 3.
 
