@@ -30,6 +30,7 @@ from vintagestory_api.models.mods import (
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
+    DownloadResult,
     ModApiClient,
     ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
@@ -1149,6 +1150,12 @@ class ModService:
         Downloads the mod from mods.vintagestory.at and installs it to the
         mods directory. Uses the download cache to avoid re-downloading.
 
+        Holds the lock (Epic 17 ADR-3) of the install mod ID (Epic 17 ADR-2), which is
+        only known after the mod database lookup, from then until it returns. A busy or
+        installed mod is refused before the lookup when it is the requested slug, before
+        the download when it is the install mod ID, and before anything is placed when
+        it is the mod ID the downloaded archive's modinfo.json names.
+
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
                          (e.g., "https://mods.vintagestory.at/smithingplus").
@@ -1159,7 +1166,10 @@ class ModService:
             InstallResult with installation details.
 
         Raises:
-            ModAlreadyInstalledError: If the mod is already installed.
+            ModOperationInProgressError: An install or version change is running for the
+                requested slug, the install mod ID or the archive's mod ID.
+            ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
+                or the archive's mod ID) is already installed.
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1170,21 +1180,46 @@ class ModService:
         slug = extract_slug(slug_or_url)
         logger.debug("install_mod_start", slug=slug, input=slug_or_url, version=version)
 
-        # Check if already installed
-        existing = self._state_manager.get_mod_by_slug(slug)
+        # 1-2. Fast paths for the requested slug, before any network request
+        self._refuse_if_busy(slug)
+        self._refuse_if_installed(slug)
+
+        # 3. Resolve the install mod ID; no lock is held and nothing is written yet
+        api_client = self._get_mod_api_client()
+        resolved = await api_client.resolve_install(slug, version)
+
+        # 4. No await since the lookup: the state may have changed during it
+        self._refuse_if_busy(resolved.mod_id)
+        self._refuse_if_installed(resolved.mod_id)
+
+        # 5. Hold the install mod ID until the install returns
+        with self._hold(resolved.mod_id):
+            download_result = await api_client.download_resolved(resolved)
+            # 6. Check the archive's own mod ID before anything is placed. No await
+            # from here to the state save, so it is checked, not held.
+            archive = self._state_manager.read_modinfo(download_result.path)
+            if archive is not None and archive.modid != resolved.mod_id:
+                if self._lock_key(archive.modid) != self._lock_key(resolved.mod_id):
+                    self._refuse_if_busy(archive.modid)
+                self._refuse_if_installed(archive.modid)
+            # 7. Place the file and save state
+            return self._place_install(slug, download_result)
+
+    def _refuse_if_installed(self, mod_id: str) -> None:
+        """Raise ModAlreadyInstalledError if `mod_id` is an installed mod ID (exact match)."""
+        existing = self._state_manager.get_mod_by_slug(mod_id)
         if existing is not None:
             logger.debug(
-                "install_mod_already_installed", slug=slug, current_version=existing.version
+                "install_mod_already_installed", slug=mod_id, current_version=existing.version
             )
-            raise ModAlreadyInstalledError(slug, existing.version)
+            raise ModAlreadyInstalledError(mod_id, existing.version)
 
-        # Download mod via API client
-        api_client = self._get_mod_api_client()
-        download_result = await api_client.download_mod(slug, version)
+    def _place_install(self, slug: str, download_result: DownloadResult) -> InstallResult:
+        """Copy a downloaded archive into the mods directory, import it and save state.
 
-        if download_result is None:
-            raise ApiModNotFoundError(slug)
-
+        Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
+        and no other operation may run between that check and the state save.
+        """
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 

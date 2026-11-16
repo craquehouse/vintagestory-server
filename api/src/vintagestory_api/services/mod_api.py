@@ -57,6 +57,26 @@ class DownloadResult:
     """Unique asset ID for constructing reliable moddb URLs."""
 
 
+@dataclass(frozen=True)
+class ResolvedInstall:
+    """The release an install will download, known before the download (Story 17.3)."""
+
+    slug: str
+    """The requested slug after `extract_slug`, for logs and errors."""
+
+    mod_id: str
+    """The install mod ID (`select_install_release`, Epic 17 ADR-2)."""
+
+    release: ReleaseDict
+    """The selected release."""
+
+    file_id: int
+    """The selected release's file ID."""
+
+    asset_id: int
+    """The mod database entry's asset ID."""
+
+
 class ModApiError(Exception):
     """Base exception for mod API errors."""
 
@@ -379,7 +399,7 @@ class ModApiClient:
     ) -> DownloadResult | None:
         """Lookup mod, select release, and download to cache.
 
-        This is the full download flow:
+        This is the full download flow: `resolve_install`, then `download_resolved`.
         1. Lookup mod by slug
         2. Select release with `select_install_release` (Epic 17 ADR-2): only releases
            of the install mod ID with a downloadable file; "latest" is the newest
@@ -401,6 +421,27 @@ class ModApiClient:
                 version was named and no release of the mod ID has a file.
             ExternalApiError: If the mod API is unavailable.
             DownloadError: If the download fails.
+        """
+        resolved = await self.resolve_install(slug, version)
+        return await self.download_resolved(resolved)
+
+    async def resolve_install(self, slug: str, version: str | None = None) -> ResolvedInstall:
+        """Lookup mod and select the release an install downloads, without downloading.
+
+        Steps 1 and 2 of `download_mod`. Install calls this first so that it knows the
+        install mod ID, and can refuse a mod that is busy or installed, before the download.
+
+        Args:
+            slug: Mod slug or URL (e.g., "smithingplus").
+            version: Specific version, or None for the newest stable release of the
+                mod ID that has a downloadable file.
+
+        Raises:
+            ModNotFoundError: If the mod doesn't exist or has no releases.
+            ModVersionNotFoundError: If no release of the mod ID has that version.
+            ModReleaseNotDownloadableError: If the named release has no file, or no
+                version was named and no release of the mod ID has a file.
+            ExternalApiError: If the mod API is unavailable.
         """
         # Extract slug from URL if needed
         slug = extract_slug(slug)
@@ -429,15 +470,29 @@ class ModApiClient:
             version=release["modversion"],
             requested_version=version,
         )
+        return ResolvedInstall(
+            slug=slug,
+            mod_id=selection.mod_id,
+            release=release,
+            file_id=file_id,
+            asset_id=mod["assetid"],
+        )
 
-        # 3. Download file
-        path = await self.download_release_file(slug, file_id, release["filename"])
+    async def download_resolved(self, resolved: ResolvedInstall) -> DownloadResult:
+        """Download a resolved release into the cache (step 3 of `download_mod`).
+
+        Raises:
+            DownloadError: If the download fails.
+        """
+        path = await self.download_release_file(
+            resolved.slug, resolved.file_id, resolved.release["filename"]
+        )
         return DownloadResult(
             path=path,
             filename=path.name,
-            version=release["modversion"],
-            release=release,
-            asset_id=mod["assetid"],
+            version=resolved.release["modversion"],
+            release=resolved.release,
+            asset_id=resolved.asset_id,
         )
 
     async def download_release_file(self, slug: str, fileid: int, filename: str) -> Path:

@@ -100,8 +100,10 @@ def make_service(tmp_path: Path, *, installed: str | None) -> ModService:
 
 
 @pytest.fixture
-def service(tmp_path: Path) -> ModService:
-    return make_service(tmp_path, installed="1.14.1")
+def service(tmp_path: Path, request: pytest.FixtureRequest) -> ModService:
+    """carryon 1.14.1 installed; parametrize indirectly with None for nothing installed."""
+    version: str | None = getattr(request, "param", "1.14.1")
+    return make_service(tmp_path, installed=version)
 
 
 @pytest.fixture
@@ -145,6 +147,7 @@ class TestBusyModThroughTheApi:
             await client.post(f"{MODS}/carryon/enable", headers=ADMIN),
             await client.delete(f"{MODS}/carryon", headers=ADMIN),
             await client.put(f"{MODS}/carryon/version", json={"version": "1.14.3"}, headers=ADMIN),
+            await client.post(MODS, json={"slug": "carryon"}, headers=ADMIN),
         ]
         gate.release.set()
         response = await first
@@ -153,6 +156,34 @@ class TestBusyModThroughTheApi:
             assert (refused.status_code, refused.json()) == (409, BUSY_BODY)
         assert response.status_code == 200
         assert response.json()["data"]["version"] == "1.14.3"
+        assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.3", True)]
+        assert gate.downloads == 1
+        assert service.busy_mod_ids == frozenset()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("service", [None], indirect=True)
+    async def test_two_installs_of_the_same_mod_install_it_once(
+        self,
+        client: httpx.AsyncClient,
+        service: ModService,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        gate = Gate(service, tmp_path, monkeypatch)
+
+        requests = {
+            asyncio.create_task(client.post(MODS, json={"slug": "carryon"}, headers=ADMIN)),
+            asyncio.create_task(client.post(MODS, json={"slug": "carryon"}, headers=ADMIN)),
+        }
+        await gate.started.wait()
+        # The refused request finishes while the other is held at its download.
+        await asyncio.wait(requests, return_when=asyncio.FIRST_COMPLETED)
+        gate.release.set()
+        responses = await asyncio.gather(*requests)
+
+        assert sorted(r.status_code for r in responses) == [200, 409]
+        refused = next(r for r in responses if r.status_code == 409)
+        assert refused.json() == BUSY_BODY
         assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.3", True)]
         assert gate.downloads == 1
         assert service.busy_mod_ids == frozenset()

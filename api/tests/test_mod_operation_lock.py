@@ -15,13 +15,17 @@ from httpx import Response
 from test_mod_version_change import (
     DOWNLOAD_URL,
     MOD_URL,
+    fixture_json,
     install_existing,
     make_service,
     mod_zip_bytes,
 )
 
+from vintagestory_api.services.mod_api import DownloadError
 from vintagestory_api.services.mod_api import ModNotFoundError as ApiModNotFoundError
 from vintagestory_api.services.mods import (
+    InstallResult,
+    ModAlreadyInstalledError,
     ModNotFoundError,
     ModOperationInProgressError,
     ModService,
@@ -52,20 +56,43 @@ def mock_mod(
     fileids: tuple[int, int] = (11, 10),
     *,
     archive_version: str | None = None,
-) -> None:
-    """Lookup and both downloads for `modid`; files are named `<modid>-<version>.zip`."""
-    respx.get(MOD_URL.format(modid)).mock(
+    archive_modinfo: dict[str, Any] | None = None,
+) -> respx.Route:
+    """Lookup and both downloads for `modid`; files are named `<modid>-<version>.zip`.
+
+    `archive_modinfo` replaces the modinfo.json of both archives. Returns the lookup route.
+    """
+    lookup = respx.get(MOD_URL.format(modid)).mock(
         return_value=Response(
             200, json=entry(modid, f"{modid}-1.1.0.zip", f"{modid}-1.0.0.zip", fileids)
         )
     )
     for fileid, version in zip(fileids, ("1.1.0", "1.0.0"), strict=True):
         content = mod_zip_bytes(
-            {"modid": modid, "name": modid, "version": archive_version or version}
+            archive_modinfo
+            or {"modid": modid, "name": modid, "version": archive_version or version}
         )
         respx.get(DOWNLOAD_URL, params={"fileid": str(fileid)}).mock(
             return_value=Response(200, content=content)
         )
+    return lookup
+
+
+def mock_fixture(
+    fixture: str, slugs: list[str], downloads: dict[int, tuple[str, str]]
+) -> respx.Route:
+    """Lookups of `slugs` served by a captured entry; downloads by file ID as (modid,
+    version). Returns the route of all downloads."""
+    for slug in slugs:
+        respx.get(MOD_URL.format(slug)).mock(return_value=Response(200, json=fixture_json(fixture)))
+
+    def archive(request: Any) -> Response:
+        modid, version = downloads[int(request.url.params["fileid"])]
+        return Response(
+            200, content=mod_zip_bytes({"modid": modid, "name": modid, "version": version})
+        )
+
+    return respx.get(DOWNLOAD_URL).mock(side_effect=archive)
 
 
 def gate_download(
@@ -86,7 +113,8 @@ def gate_download(
 
 
 def mod_files(service: ModService) -> list[str]:
-    return sorted(p.name for p in service.state_manager.mods_dir.iterdir())
+    mods_dir = service.state_manager.mods_dir
+    return sorted(p.name for p in mods_dir.iterdir()) if mods_dir.exists() else []
 
 
 def state_of(service: ModService, slug: str) -> tuple[str, str, bool] | None:
@@ -241,6 +269,29 @@ class TestVersionChangeHoldsTheLock:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_v5_install_of_a_mod_being_changed_is_refused_as_busy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Busy, not "already installed", and refused before any lookup."""
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "demo-1.0.0.zip")
+        lookup = mock_mod("demo")
+        started, release = gate_download(service, monkeypatch)
+
+        first = asyncio.create_task(service.change_version("demo", "1.1.0"))
+        await started.wait()
+        for slug in ("demo", "DEMO"):
+            with pytest.raises(ModOperationInProgressError):
+                await service.install_mod(slug)
+        assert lookup.call_count == 1
+        release.set()
+        await first
+
+        assert mod_files(service) == ["demo-1.1.0.zip"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_v6_other_mods_proceed_while_one_is_held(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -333,3 +384,288 @@ class TestLockIsReleased:
         service.remove_mod("demo")
         assert mod_files(service) == []
         assert state_of(service, "demo") is None
+
+
+class TestInstallHoldsTheInstallModId:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i1_two_installs_of_the_same_mod_install_it_once(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_mod("demo")
+        started, release = gate_download(service, monkeypatch)
+
+        tasks = {
+            asyncio.create_task(service.install_mod("demo")),
+            asyncio.create_task(service.install_mod("demo")),
+        }
+        await started.wait()
+        # The other one is refused at once; it cannot finish before the gate opens.
+        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        refused = done.pop()
+        with pytest.raises(ModOperationInProgressError):
+            refused.result()
+        release.set()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        assert sum(isinstance(r, InstallResult) for r in results) == 1
+        assert sum(isinstance(r, ModOperationInProgressError) for r in results) == 1
+        assert mod_files(service) == ["demo-1.1.0.zip"]
+        assert [m.slug for m in service.state_manager.list_mods()] == ["demo"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i2_operations_on_a_mod_being_installed_are_refused_as_busy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_mod("demo")
+        started, release = gate_download(service, monkeypatch)
+
+        first = asyncio.create_task(service.install_mod("demo"))
+        await started.wait()
+        for operation in (service.remove_mod, service.enable_mod, service.disable_mod):
+            with pytest.raises(ModOperationInProgressError):
+                operation("demo")
+        with pytest.raises(ModOperationInProgressError):
+            await service.change_version("demo", "1.0.0")
+        assert mod_files(service) == []
+        release.set()
+        result = await first
+
+        assert (result.slug, result.version) == ("demo", "1.1.0")
+        assert state_of(service, "demo") == ("demo-1.1.0.zip", "1.1.0", True)
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i3_another_slug_of_the_same_install_mod_id_is_refused(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        downloads = mock_fixture(
+            "egocaribautomapmarkers",
+            ["automapmarkers", "egocaribautomapmarkers"],
+            {90054: ("egocaribautomapmarkers", "5.0.3")},
+        )
+        started, release = gate_download(service, monkeypatch)
+
+        first = asyncio.create_task(service.install_mod("automapmarkers"))
+        await started.wait()
+        assert service.busy_mod_ids == frozenset({"egocaribautomapmarkers"})
+        with pytest.raises(ModOperationInProgressError) as raised:
+            await service.install_mod("egocaribautomapmarkers")
+        assert raised.value.slug == "egocaribautomapmarkers"
+        release.set()
+        await first
+
+        assert downloads.call_count == 1
+        assert [m.slug for m in service.state_manager.list_mods()] == ["egocaribautomapmarkers"]
+        assert len(mod_files(service)) == 1
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i4_another_mod_id_of_the_same_entry_is_not_blocked(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_fixture(
+            "instruments",
+            ["instruments", "vsinstrumentsbase"],
+            {12840: ("instruments", "1.2.2"), 72936: ("vsinstrumentsbase", "2.0.7")},
+        )
+        started, release = gate_download(service, monkeypatch, slug="instruments")
+
+        first = asyncio.create_task(service.install_mod("instruments"))
+        await started.wait()
+        second = await service.install_mod("vsinstrumentsbase")
+        assert (second.slug, second.version) == ("vsinstrumentsbase", "2.0.7")
+        assert service.busy_mod_ids == frozenset({"instruments"})
+        release.set()
+        await first
+
+        assert mod_files(service) == ["instruments_1.2.2.zip", "vsinstrumentsbase_2.0.7.zip"]
+        assert sorted(m.slug for m in service.state_manager.list_mods()) == [
+            "instruments",
+            "vsinstrumentsbase",
+        ]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i5_install_mod_id_already_installed_under_another_slug(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        installed = install_existing(
+            service, "egocaribautomapmarkers", "5.0.2", "automapmarkers-5.0.2.zip"
+        )
+        before = installed.read_bytes()
+        downloads = mock_fixture(
+            "egocaribautomapmarkers",
+            ["automapmarkers"],
+            {90054: ("egocaribautomapmarkers", "5.0.3")},
+        )
+
+        with pytest.raises(ModAlreadyInstalledError) as raised:
+            await service.install_mod("automapmarkers")
+
+        assert (raised.value.slug, raised.value.current_version) == (
+            "egocaribautomapmarkers",
+            "5.0.2",
+        )
+        assert not downloads.called
+        assert mod_files(service) == ["automapmarkers-5.0.2.zip"]
+        assert installed.read_bytes() == before
+        assert state_of(service, "egocaribautomapmarkers") == (
+            "automapmarkers-5.0.2.zip",
+            "5.0.2",
+            True,
+        )
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i6_archive_naming_an_installed_mod_places_nothing(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        # Same filename as the download, to prove the installed file is not replaced
+        other = install_existing(service, "other", "1.0.0", "demo-1.1.0.zip")
+        service.state_manager.import_mod(other)
+        cached = service.state_manager.state_dir / "mods" / "other" / "1.0.0" / "modinfo.json"
+        before = (other.read_bytes(), cached.read_bytes(), state_of(service, "other"))
+        mock_mod("demo", archive_modinfo={"modid": "other", "name": "Other", "version": "2.0.0"})
+
+        with pytest.raises(ModAlreadyInstalledError) as raised:
+            await service.install_mod("demo")
+
+        assert (raised.value.slug, raised.value.current_version) == ("other", "1.0.0")
+        assert mod_files(service) == ["demo-1.1.0.zip"]
+        assert (other.read_bytes(), cached.read_bytes(), state_of(service, "other")) == before
+        assert [m.slug for m in service.state_manager.list_mods()] == ["other"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i7_archive_naming_a_busy_mod_places_nothing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "other", "1.0.0", "other-1.0.0.zip")
+        mock_mod("other", (21, 20))
+        mock_mod("demo", archive_modinfo={"modid": "other", "name": "Other", "version": "1.1.0"})
+        started, release = gate_download(service, monkeypatch, slug="other")
+
+        first = asyncio.create_task(service.change_version("other", "1.1.0"))
+        await started.wait()
+        with pytest.raises(ModOperationInProgressError) as raised:
+            await service.install_mod("demo")
+        assert raised.value.slug == "other"
+        assert mod_files(service) == ["other-1.0.0.zip"]
+        assert service.busy_mod_ids == frozenset({"other"})
+        release.set()
+        await first
+
+        assert mod_files(service) == ["other-1.1.0.zip"]
+        assert [m.slug for m in service.state_manager.list_mods()] == ["other"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i8_archive_spelling_the_mod_id_differently_installs(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_mod("demo", archive_modinfo={"ModID": "Demo", "Name": "Demo", "Version": "1.1.0"})
+
+        result = await service.install_mod("demo")
+
+        assert result.slug == "Demo"
+        assert state_of(service, "Demo") == ("demo-1.1.0.zip", "1.1.0", True)
+        with pytest.raises(ModAlreadyInstalledError) as raised:
+            await service.install_mod("demo")
+        assert raised.value.slug == "Demo"
+        assert mod_files(service) == ["demo-1.1.0.zip"]
+        assert service.busy_mod_ids == frozenset()
+
+
+class TestInstallReleasesTheLock:
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i9_after_cancellation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_mod("demo")
+        started, release = gate_download(service, monkeypatch)
+
+        first = asyncio.create_task(service.install_mod("demo"))
+        await started.wait()
+        first.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await first
+
+        assert service.busy_mod_ids == frozenset()
+        assert mod_files(service) == []
+        assert service.state_manager.list_mods() == []
+        release.set()
+        result = await service.install_mod("demo")
+        assert result.slug == "demo"
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i9_after_a_failed_download(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        respx.get(MOD_URL.format("demo")).mock(
+            return_value=Response(200, json=entry("demo", "demo-1.1.0.zip", "demo-1.0.0.zip",
+                                                  (11, 10)))
+        )
+        respx.get(DOWNLOAD_URL).mock(
+            side_effect=[
+                Response(500),
+                Response(
+                    200,
+                    content=mod_zip_bytes({"modid": "demo", "name": "Demo", "version": "1.1.0"}),
+                ),
+            ]
+        )
+
+        with pytest.raises(DownloadError):
+            await service.install_mod("demo")
+
+        assert service.busy_mod_ids == frozenset()
+        assert mod_files(service) == []
+        assert (await service.install_mod("demo")).slug == "demo"
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_i9_after_a_failed_import(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        service = make_service(tmp_path)
+        mock_mod("demo")
+        real_import = service.state_manager.import_mod
+        calls = {"n": 0}
+
+        def failing_import(path: Path) -> Any:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise ValueError("bad archive")
+            return real_import(path)
+
+        monkeypatch.setattr(service.state_manager, "import_mod", failing_import)
+
+        with pytest.raises(ValueError, match="bad archive"):
+            await service.install_mod("demo")
+
+        assert service.busy_mod_ids == frozenset()
+        assert mod_files(service) == []
+        assert service.state_manager.list_mods() == []
+        assert (await service.install_mod("demo")).slug == "demo"
+        assert service.busy_mod_ids == frozenset()

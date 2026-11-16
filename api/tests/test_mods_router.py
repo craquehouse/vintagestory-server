@@ -343,6 +343,23 @@ class TestInstallModEndpoint:
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
 
+    def test_install_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "install_mod", raise_busy)
+
+        response = client.post(
+            "/api/v1alpha1/mods", json={"slug": "smithingplus"}, headers=admin_headers
+        )
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
+
 
 class TestLookupModEndpoint:
     """Tests for GET /api/v1alpha1/mods/lookup/{slug} endpoint."""

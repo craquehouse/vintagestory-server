@@ -1204,27 +1204,6 @@ class TestModServiceInstallMod:
         assert (mods_dir / "smithingplus_1.8.3.zip").exists()
 
     @pytest.mark.asyncio
-    async def test_install_mod_download_returns_none(
-        self, install_service: ModService
-    ) -> None:
-        """install_mod() raises ModNotFoundError when download_mod returns None."""
-        from unittest.mock import AsyncMock
-
-        from vintagestory_api.services.mod_api import ModNotFoundError
-
-        # Mock the api_client's download_mod to return None
-        mock_client = AsyncMock()
-        mock_client.download_mod.return_value = None
-
-        with patch.object(
-            install_service, "_get_mod_api_client", return_value=mock_client
-        ):
-            with pytest.raises(ModNotFoundError) as exc_info:
-                await install_service.install_mod("nonexistent")
-
-            assert exc_info.value.slug == "nonexistent"
-
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("slug", "version", "file_id", "filename"),
         [

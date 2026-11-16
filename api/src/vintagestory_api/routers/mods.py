@@ -688,6 +688,7 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
         HTTPException: 502 if download fails
@@ -719,6 +720,15 @@ async def install_mod(
             detail={
                 "code": ErrorCode.MOD_ALREADY_INSTALLED,
                 "message": f"Mod '{e.slug}' is already installed (version {e.current_version})",
+            },
+        )
+
+    except ModOperationInProgressError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
             },
         )
 
