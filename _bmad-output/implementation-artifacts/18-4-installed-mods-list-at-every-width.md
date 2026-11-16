@@ -1,6 +1,6 @@
 # Story 18.4: Installed Mods List at Every Width
 
-Status: review
+Status: done
 
 <!-- Implements FR203-FR204. Beads: VSS-bgu (UI-077), VSS-n2u (UI-086). Branch story/18-4-installed-mods-list-at-every-width, stacked on Story 18.3's branch (18.1, 18.2, 18.3 come first, each stacked on the previous). Line references were verified at b9606f1 (epic-18-planning) and must be re-checked on the 18.3 head before editing; 18.1-18.3 are not expected to touch any file this story edits (epics.md, Epic 18 "Dependencies"). Governed by Epic 18 ADR-6 (one sort preference; the Name column wraps; `components/ui/table.tsx` unchanged; `LG_UP_QUERY` unchanged). Changes acceptance criterion 2 of Story 17.8 for rows with long names. Web only: no API change, no new dependency. -->
 
@@ -396,8 +396,26 @@ Document overflow is 0 everywhere, before and after; after the change no element
 - `web/e2e/installed-mods-phone.spec.ts` (modified)
 - `_bmad-output/implementation-artifacts/18-4-installed-mods-list-at-every-width.md` (this story)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-16
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `f594209..b662f7e`, then a re-review of the fixes `b662f7e..e0f06dc`
+**Outcome:** Approve → resolved
+
+**Summary:** No HIGH or MEDIUM finding; all 8 acceptance criteria met (AC 6 as narrowed by the story). The sort control and the table headers share one preference and one label map, in both directions; `ui/table.tsx`, `JobsTable` and `VersionTable` are unchanged; the `ColumnMeta` augmentation matches the installed `@tanstack/table-core`; the measurement script is read-only. The reviewer reproduced the record's numbers and ran `just test-web` (3312 passed, 4 skipped), `just lint-web` and `just typecheck-web`. E2E was not re-run by the reviewer (no Docker access).
+
+### Action Items
+
+- [x] [Low] L1 the minimum width rule was applied to the column widths from before the change, so at 1024px with the sidebar expanded the table fitted with no slack and a longer offered version would scroll again (fixed, c597d2c: Name minimum `min-w-36` -> `min-w-32`, re-measured with a new long-version fixture, 30px margin with the 17.8 fixture; new E2E `a long name with a long offered version fits at 1024px` in both sidebar states, failing with `min-w-36`)
+- [x] [Low] L2 `ModTable.test.tsx` overwrote jsdom prototype methods unconditionally (fixed, 353b891: `??=` as in `ModDetailPage.test.tsx`)
+- [x] [Low] L3 the recorded e2e typecheck command did not run under TypeScript 7 (fixed, e0f06dc)
+- [x] [Low] L4 `sprint-status.yaml` not in the File List (not changed: project convention keeps it out)
+- [x] [Low] L5 the short-name 1024px test did not check the toggle (fixed, 353b891)
+- Re-review: approve; all four fixes verified, the 24 measurement entries match the record, `just test-web` 3312 passed, 4 skipped. Info only: Dev Notes "Decision" still shows the planned `min-w-36` (the record and Completion Notes give the final `min-w-32`); the long-version E2E fits with zero slack by design.
+
 ## Change Log
 
 - 2026-11-16: Story 18.4 created and validated (ready-for-dev). Validation against the create-story checklist, every cited path and line re-read at b9606f1: measured the columns instead of assuming them (Name wrapping alone does not fit at 1024 expanded, so the Available cell wraps too); `wrap-anywhere` instead of ADR-6's `break-words` (long slugs); `min-h-11` instead of `h-11` (the `SelectTrigger` data-size height outranks it); typed `ColumnMeta` so the body-cell change adds no type assertion; AC 6 narrowed to what any wrapping table can do, with the two exceptions measured; the planning note on Version sorting checked and not reproduced (follow-up 1 states the real defect); the 17.8 script kept unchanged and a new one added; the jsdom stubs Radix `Select` needs; the 44px E2E list extended.
 - 2026-11-16: Story 18.4 implemented (Tasks 1-4, 5.1); status review. Maintainer check 4.4 and the PR (5.2) open.
 - 2026-11-16: Code review fixes: L1 Name minimum `min-w-32` chosen on the post-change minimums, long-version E2E and measurement fixture; L2 jsdom stubs with `??=`; L3 e2e typecheck command; L5 short mod's toggle checked at 1024px.
+- 2026-11-16: Code review (GLM-5.3-Flash): approved with five low findings; L1, L2, L3, L5 fixed and re-reviewed (approved), L4 not changed. Status done.
