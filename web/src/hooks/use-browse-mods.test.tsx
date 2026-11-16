@@ -40,6 +40,7 @@ function createWrapper() {
 const mockMods: ModBrowseItem[] = [
   {
     slug: 'carrycapacity',
+    modIds: ['carrycapacity'],
     urlalias: 'carrycapacity',
     assetId: 12345,
     name: 'Carry Capacity',
@@ -56,6 +57,7 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'primitivesurvival',
+    modIds: ['primitivesurvival'],
     urlalias: 'primitivesurvival',
     assetId: 23456,
     name: 'Primitive Survival',
@@ -72,6 +74,7 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'wildcraft',
+    modIds: ['wildcraft'],
     urlalias: 'wildcraft',
     assetId: 34567,
     name: 'Wildcraft',

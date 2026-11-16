@@ -77,6 +77,7 @@ vi.mock('@/hooks/use-mod-detail', async () => {
 const mockMods: ModBrowseItem[] = [
   {
     slug: 'carrycapacity',
+    modIds: ['carrycapacity'],
     urlalias: 'carrycapacity',
     assetId: 12345,
     name: 'Carry Capacity',
@@ -93,6 +94,7 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'primitivesurvival',
+    modIds: ['primitivesurvival'],
     urlalias: 'primitivesurvival',
     assetId: 23456,
     name: 'Primitive Survival',
@@ -109,6 +111,7 @@ const mockMods: ModBrowseItem[] = [
   },
   {
     slug: 'wildcraft',
+    modIds: ['wildcraft'],
     urlalias: 'wildcraft',
     assetId: 34567,
     name: 'Wildcraft',
@@ -250,11 +253,11 @@ describe('ModBrowseGrid', () => {
     });
   });
 
-  describe('installedSlugs prop (F8)', () => {
-    it('passes installedSlugs to ModCard components', () => {
-      const installedSlugs = new Set(['carrycapacity', 'wildcraft']);
+  describe('installedMods prop (F8)', () => {
+    it('passes installedMods to ModCard components', () => {
+      const installedMods = [{ slug: 'carrycapacity' }, { slug: 'wildcraft' }];
 
-      render(<ModBrowseGrid mods={mockMods} installedSlugs={installedSlugs} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       // Installed mods should show "Installed" indicator
       expect(screen.getByTestId('mod-card-installed-carrycapacity')).toBeInTheDocument();
@@ -264,7 +267,7 @@ describe('ModBrowseGrid', () => {
       expect(screen.getByTestId('mod-card-install-primitivesurvival')).toBeInTheDocument();
     });
 
-    it('does not pass installedSlugs when not provided', () => {
+    it('does not pass installedMods when not provided', () => {
       render(<ModBrowseGrid mods={mockMods} />, { wrapper: createWrapper() });
 
       // No install buttons or installed indicators should be visible
@@ -276,7 +279,7 @@ describe('ModBrowseGrid', () => {
   describe('lazy loading integration (F10)', () => {
     it('triggers useModDetail when install button is clicked on card in grid', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return compatible data after click
       vi.mocked(useModDetail.useModDetail).mockReturnValue({
@@ -334,7 +337,7 @@ describe('ModBrowseGrid', () => {
         isEnabled: true,
       } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
-      render(<ModBrowseGrid mods={mockMods} installedSlugs={installedSlugs} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       // Click install on first card
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
@@ -349,7 +352,7 @@ describe('ModBrowseGrid', () => {
   describe('error handling (F12)', () => {
     it('handles useModDetail error gracefully in grid context', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return error state
       vi.mocked(useModDetail.useModDetail).mockReturnValue({
@@ -381,7 +384,7 @@ describe('ModBrowseGrid', () => {
         isEnabled: true,
       } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
-      render(<ModBrowseGrid mods={mockMods} installedSlugs={installedSlugs} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       // Click install button
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));

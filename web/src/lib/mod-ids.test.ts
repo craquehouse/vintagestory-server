@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { entryModIds, findInstalledModForEntry, versionChoices } from './mod-ids';
+import {
+  entryModIds,
+  findInstalledModByIds,
+  findInstalledModForEntry,
+  versionChoices,
+} from './mod-ids';
 
 /** Releases shaped like the Instruments entry (fixture mod_instruments.json): newest first. */
 const instrumentsReleases = [
@@ -69,13 +74,51 @@ describe('findInstalledModForEntry', () => {
     expect(findInstalledModForEntry(installed('smithingplus'), entry)).toBeUndefined();
   });
 
-  it('compares mod IDs exactly', () => {
-    expect(findInstalledModForEntry(installed('VSInstrumentsBase'), entry)).toBeUndefined();
+  it('matches an installed mod ID without case (Story 17.4)', () => {
+    const mods = installed('VSInstrumentsBase');
+    expect(findInstalledModForEntry(mods, entry)).toBe(mods[0]);
   });
 
   it('returns undefined when the installed list is empty or not loaded', () => {
     expect(findInstalledModForEntry([], entry)).toBeUndefined();
     expect(findInstalledModForEntry(undefined, entry)).toBeUndefined();
+  });
+});
+
+describe('findInstalledModByIds (Story 17.4)', () => {
+  const instrumentsIds = ['instruments', 'vsinstruments', 'vsinstrumentsbase'];
+
+  it('finds an installed mod whose ID is any of the IDs', () => {
+    const mods = installed('othermod', 'vsinstrumentsbase');
+    expect(findInstalledModByIds(mods, instrumentsIds)).toBe(mods[1]);
+  });
+
+  it('lets the first matching ID win', () => {
+    const mods = installed('vsinstrumentsbase', 'vsinstruments');
+    expect(findInstalledModByIds(mods, instrumentsIds)).toBe(mods[1]);
+    expect(findInstalledModByIds(mods, ['vsinstrumentsbase', 'vsinstruments'])).toBe(mods[0]);
+  });
+
+  it('matches without case', () => {
+    const mods = installed('VSInstrumentsBase');
+    expect(findInstalledModByIds(mods, ['vsinstrumentsbase'])).toBe(mods[0]);
+    expect(findInstalledModByIds(installed('carryon'), ['CarryOn'])).toEqual({
+      slug: 'carryon',
+      version: '1.0.0',
+    });
+  });
+
+  it('returns undefined when nothing matches', () => {
+    expect(findInstalledModByIds(installed('smithingplus'), instrumentsIds)).toBeUndefined();
+  });
+
+  it('returns undefined for no IDs', () => {
+    expect(findInstalledModByIds(installed('instruments'), [])).toBeUndefined();
+  });
+
+  it('returns undefined when the installed list is empty or not loaded', () => {
+    expect(findInstalledModByIds([], instrumentsIds)).toBeUndefined();
+    expect(findInstalledModByIds(undefined, instrumentsIds)).toBeUndefined();
   });
 });
 

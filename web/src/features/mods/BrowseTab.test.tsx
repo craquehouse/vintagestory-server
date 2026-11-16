@@ -32,6 +32,7 @@ import { BrowseTab } from './BrowseTab';
 import { BROWSE_PATH, BROWSE_LAST_SEARCH_KEY } from '@/lib/browse-search';
 import { BROWSE_OPENED_MOD_KEY } from '@/hooks/use-browse-scroll-restoration';
 import type { ApiResponse, ModBrowseData } from '@/api/types';
+import { useMods } from '@/hooks/use-mods';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -170,6 +171,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
     mods: [
       {
         slug: 'carrycapacity',
+        modIds: ['carrycapacity'],
         urlalias: 'carrycapacity',
         assetId: 12345,
         name: 'Carry Capacity',
@@ -186,6 +188,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       },
       {
         slug: 'primitivesurvival',
+        modIds: ['primitivesurvival'],
         urlalias: 'primitivesurvival',
         assetId: 23456,
         name: 'Primitive Survival',
@@ -1603,6 +1606,66 @@ describe('BrowseTab', () => {
 
       const card = screen.getByTestId('mod-card-carrycapacity');
       expect(card.className).toContain('cursor-pointer');
+    });
+  });
+
+  describe('Story 17.4: a card shows Installed for any of its mod IDs', () => {
+    it('shows Installed on the Instruments card when vsinstrumentsbase is installed', async () => {
+      // The real useMods, so the installed list comes from GET /mods
+      const actual =
+        await vi.importActual<typeof import('@/hooks/use-mods')>('@/hooks/use-mods');
+      vi.mocked(useMods).mockImplementation(actual.useMods);
+      const instrumentsResponse: ApiResponse<ModBrowseData> = {
+        ...mockBrowseResponse,
+        data: {
+          ...mockBrowseResponse.data,
+          mods: [
+            {
+              ...mockBrowseResponse.data.mods[0],
+              slug: 'instruments',
+              modIds: ['instruments', 'vsinstruments', 'vsinstrumentsbase'],
+              urlalias: 'instruments',
+              name: 'Instruments',
+            },
+          ],
+        },
+      };
+      const installedResponse = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'vsinstrumentsbase.zip',
+              slug: 'vsinstrumentsbase',
+              version: '2.0.7',
+              enabled: true,
+              installed_at: '2026-01-01T00:00:00Z',
+              name: 'Instruments',
+              authors: [],
+              description: null,
+              side: 'both',
+            },
+          ],
+          pending_restart: false,
+        },
+      };
+      globalThis.fetch = vi.fn().mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              new URL(url).pathname === '/api/v1alpha1/mods' ? installedResponse : instrumentsResponse
+            ),
+        })
+      );
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-card-installed-instruments')).toHaveTextContent('Installed');
+      });
+      expect(screen.queryByTestId('mod-card-install-instruments')).not.toBeInTheDocument();
     });
   });
 

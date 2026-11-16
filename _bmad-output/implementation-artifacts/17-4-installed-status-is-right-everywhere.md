@@ -60,11 +60,11 @@ so that **I do not install a mod twice or wonder whether a new mod is up to date
   - [x] 1.2: `routers/mods.py` `_api_mod_to_browse_item` (`:197-228`): `mod_ids=list(dict.fromkeys(m for m in modidstrs if m))` (reuse the `modidstrs` local at `:209`). `_as_str_list` (`models/moddb.py:58-64`) already drops non-strings but keeps empty strings, hence the filter
   - [x] 1.3: Tests. `tests/test_mods_router.py` `TestBrowseItemSlugUrlalias` (`:2560`): an item with `modidstrs: ["instruments", "vsinstruments", "vsinstrumentsbase"]` has `mod_ids` equal to that list; `["a", "", "a", "b"]` gives `["a", "b"]`; `[]` gives `[]` with the existing slug fallback. `tests/test_mod_models.py` `TestModBrowseItem`: default `[]`. Update the two exact-dict tests in "Existing tests that change"
 
-- [ ] Task 2: Browse cards recognize any installed mod ID, ignoring case + tests (AC: 2, 3, 8)
-  - [ ] 2.1: `web/src/api/types.ts` `ModBrowseItem` (`:378-395`): `modIds: string[]` after `slug`, with a doc comment (every mod ID of the entry, `slug` first). Required, not optional: the API always sends it. Careful: `ModLookupData` above it has the same `slug`/`urlalias` lines
-  - [ ] 2.2: `web/src/lib/mod-ids.ts`: add `findInstalledModByIds<T extends { slug: string }>(installedMods: readonly T[] | undefined, modIds: readonly string[]): T | undefined` (Dev Notes "The helper"); `findInstalledModForEntry` (`:35-54`) becomes `findInstalledModByIds(installedMods, [entry.slug, ...entryModIds(entry.releases)])`, keeping its doc and preference order. Update the module comment (`:9`, "compared exactly") and `findInstalledModForEntry`'s doc: installed mod IDs are matched without case, as Story 17.3's install check does; `entryModIds` and `versionChoices` stay exact
-  - [ ] 2.3: `web/src/components/ModCard.tsx`: prop `installedSlugs?: Set<string>` (`:29-30`) becomes `installedMods?: readonly { slug: string }[]` ("installed mods, their `slug` is the mod ID; omit to hide the install footer"); `isInstalled` (`:47`) is `findInstalledModByIds(installedMods, [mod.slug, ...mod.modIds]) !== undefined`; the footer condition (`:190`) is `installedMods !== undefined`. Add "Story 17.4" to the header comment. `ModBrowseGrid.tsx` (`:24`, `:70`, `:106`): same rename and type. `features/mods/BrowseTab.tsx` (`:82-87`): `const installedMods = useMemo(() => modsData?.data?.mods ?? [], [modsData]);` passed at `:287`. An empty array while the list loads keeps today's behavior (Install button shown until the list arrives)
-  - [ ] 2.4: Tests (Dev Notes "Web tests", Task 2 rows) and the changes in "Existing tests that change" that belong to Task 2
+- [x] Task 2: Browse cards recognize any installed mod ID, ignoring case + tests (AC: 2, 3, 8)
+  - [x] 2.1: `web/src/api/types.ts` `ModBrowseItem` (`:378-395`): `modIds: string[]` after `slug`, with a doc comment (every mod ID of the entry, `slug` first). Required, not optional: the API always sends it. Careful: `ModLookupData` above it has the same `slug`/`urlalias` lines
+  - [x] 2.2: `web/src/lib/mod-ids.ts`: add `findInstalledModByIds<T extends { slug: string }>(installedMods: readonly T[] | undefined, modIds: readonly string[]): T | undefined` (Dev Notes "The helper"); `findInstalledModForEntry` (`:35-54`) becomes `findInstalledModByIds(installedMods, [entry.slug, ...entryModIds(entry.releases)])`, keeping its doc and preference order. Update the module comment (`:9`, "compared exactly") and `findInstalledModForEntry`'s doc: installed mod IDs are matched without case, as Story 17.3's install check does; `entryModIds` and `versionChoices` stay exact
+  - [x] 2.3: `web/src/components/ModCard.tsx`: prop `installedSlugs?: Set<string>` (`:29-30`) becomes `installedMods?: readonly { slug: string }[]` ("installed mods, their `slug` is the mod ID; omit to hide the install footer"); `isInstalled` (`:47`) is `findInstalledModByIds(installedMods, [mod.slug, ...mod.modIds]) !== undefined`; the footer condition (`:190`) is `installedMods !== undefined`. Add "Story 17.4" to the header comment. `ModBrowseGrid.tsx` (`:24`, `:70`, `:106`): same rename and type. `features/mods/BrowseTab.tsx` (`:82-87`): `const installedMods = useMemo(() => modsData?.data?.mods ?? [], [modsData]);` passed at `:287`. An empty array while the list loads keeps today's behavior (Install button shown until the list arrives)
+  - [x] 2.4: Tests (Dev Notes "Web tests", Task 2 rows) and the changes in "Existing tests that change" that belong to Task 2
 
 - [ ] Task 3: Install stores the new mod's update record + tests (AC: 4, 5, 6, 8)
   - [ ] 3.1: `services/mod_api.py` `ResolvedInstall` (`:60-77`): add `releases: list[ReleaseDict]` ("every release of the mod database entry, newest first, as `get_mod` returned them; Story 17.4 stores them as the new mod's update record"), required, no default. `resolve_install` (`:473-479`) passes the `releases` local (`:454`)
@@ -293,6 +293,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Story created 2026-11-15: context analysis of the browse mapping and model, the normalized listing, `ModCard`/`ModBrowseGrid`/`BrowseTab`, `mod-ids.ts` and the detail page's use of it, the install flow after Stories 17.2/17.3 (`resolve_install`, `ResolvedInstall`, `InstallResult`, `_place_install`), `ModUpdateService` (store, `check`, prune, `get_mod_update_service`), `ModUpdateCell` and its two callers, the install hook's invalidation, the E2E specs of Stories 16.2, 16.5 and 17.2, and the reviews of 17.1-17.3. The tests that change were found by running both suites against a throwaway prototype of Tasks 1-4.
 - Task 1: `ModBrowseItem.mod_ids: list[str] = []` directly after `slug` (not in `ModLookupResponse`); `_api_mod_to_browse_item` sets `mod_ids=list(dict.fromkeys(m for m in modidstrs if m))`. Tests: `TestBrowseItemSlugUrlalias::test_browse_item_lists_every_mod_id`, parametrized (Instruments' three mod IDs in order; `["a", "", "a", "b"]` gives `["a", "b"]`; `[]` gives `[]` with the `modid` fallback slug `"4321"`), each asserting the listing was the only request; `TestModBrowseItem` default `[]`; the two exact dicts gain `"mod_ids": []`. Red first: the 3 new cases failed with `KeyError: 'mod_ids'`. `just test-api tests/test_mods_router.py tests/test_mod_models.py` 182 passed; ruff clean; pyright 0 errors, the same 3 warnings.
+- Task 2: `ModBrowseItem.modIds: string[]` (required) after `slug`. `mod-ids.ts`: `findInstalledModByIds` exactly as in Dev Notes "The helper"; `findInstalledModForEntry` now returns `findInstalledModByIds(installedMods, [entry.slug, ...entryModIds(entry.releases)])`; module comment and doc say installed mod IDs match without case, `entryModIds`/`versionChoices` stay exact. `ModCard`: `installedMods?: readonly { slug: string }[]` replaces `installedSlugs`, `isInstalled` uses the helper with `[mod.slug, ...mod.modIds]`, footer shown when `installedMods !== undefined`, "Story 17.4" in the header comment; `ModBrowseGrid` the same prop; `BrowseTab` passes `useMemo(() => modsData?.data?.mods ?? [], [modsData])`. Tests: `findInstalledModByIds` (any ID, first matching ID wins, case, no match, `[]` IDs, empty or not loaded list); "compares mod IDs exactly" replaced by "matches an installed mod ID without case"; four Instruments card tests (`vsinstrumentsbase`, `VSInstrumentsBase`, another mod, `[]`); the ModCard/ModBrowseGrid prop rename; `BrowseTab`: the Instruments card shows Installed with `vsinstrumentsbase` in the installed list. That test runs the real `useMods` (`vi.importActual`, the file mocks the hook) so the list comes from a stubbed `GET /api/v1alpha1/mods`, as the story asks, without a type assertion on a hand-built query result. `modIds` added to the browse fixtures listed in "Existing tests that change". Red first: 26 tests failed (helper missing; prop not read, so no footer). The 8 affected files (including `ModDetailPage.test.tsx`): 372 passed, 2 skipped; `just typecheck-web` and `just lint-web` clean.
 
 ### File List
 
@@ -300,6 +301,18 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `api/src/vintagestory_api/routers/mods.py`
 - `api/tests/test_mods_router.py`
 - `api/tests/test_mod_models.py`
+- `web/src/api/types.ts`
+- `web/src/lib/mod-ids.ts`
+- `web/src/lib/mod-ids.test.ts`
+- `web/src/components/ModCard.tsx`
+- `web/src/components/ModCard.test.tsx`
+- `web/src/components/ModBrowseGrid.tsx`
+- `web/src/components/ModBrowseGrid.test.tsx`
+- `web/src/features/mods/BrowseTab.tsx`
+- `web/src/features/mods/BrowseTab.test.tsx`
+- `web/src/features/mods/ModsPage.test.tsx`
+- `web/src/api/mods.test.ts`
+- `web/src/hooks/use-browse-mods.test.tsx`
 
 ## Change Log
 
