@@ -211,9 +211,14 @@ export function SettingField({
               field.save(checked);
             }}
             disabled={isDisabled}
-            aria-describedby={description ? `${settingKey}-desc` : undefined}
+            // Story 17.6 review: the state ("Enabled (default)", "Not set") is announced
+            // with the switch, before the description
+            aria-describedby={
+              description ? `${settingKey}-state ${settingKey}-desc` : `${settingKey}-state`
+            }
           />
           <span
+            id={`${settingKey}-state`}
             className="text-sm text-muted-foreground"
             data-testid={`setting-state-${settingKey}`}
           >

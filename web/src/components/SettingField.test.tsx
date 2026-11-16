@@ -743,6 +743,32 @@ describe('SettingField', () => {
       expect(stateLabel()).toHaveTextContent(/^Not set$/);
     });
 
+    it('announces the state label with the switch (review L1)', () => {
+      render(
+        <SettingField
+          settingKey="EntitySpawning"
+          label="Entity Spawning"
+          value={null}
+          type="bool"
+          gameDefault={true}
+          description="Whether creatures can spawn naturally"
+          onSave={vi.fn()}
+        />
+      );
+
+      const describedBy = screen.getByRole('switch').getAttribute('aria-describedby') ?? '';
+      expect(describedBy.split(' ')).toEqual(['EntitySpawning-state', 'EntitySpawning-desc']);
+      expect(screen.getByRole('switch')).toHaveAccessibleDescription(
+        'Enabled (default) Whether creatures can spawn naturally'
+      );
+    });
+
+    it('announces the state label when there is no description (review L1)', () => {
+      renderNullBool({});
+
+      expect(screen.getByRole('switch')).toHaveAccessibleDescription('Not set');
+    });
+
     it('ignores the default when the setting has a value', () => {
       render(
         <SettingField
