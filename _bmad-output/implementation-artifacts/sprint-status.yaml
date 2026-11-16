@@ -201,7 +201,7 @@ development_status:
   17-4-installed-status-is-right-everywhere: done
   17-5-monitor-keys-cannot-read-the-server-password: backlog
   17-6-settings-behave-as-saved: backlog
-  17-7-mods-navigation: backlog
+  17-7-mods-navigation: done
   17-8-layout-at-tablet-and-phone-widths: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
