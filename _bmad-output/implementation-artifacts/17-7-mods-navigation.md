@@ -55,11 +55,11 @@ so that **I am not stuck on a detail page or looking at a page number that does 
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.7/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: Browse is the active Mods tab on a mod's page, and Installed opens the list + tests (AC: 1, 2, 3, 4, 8)
-  - [ ] 1.1: `web/src/features/mods/ModsPage.tsx` `getActiveTab` (`:29-34`): return `'browse'` when `pathname === BROWSE_PATH || pathname.startsWith(`${BROWSE_PATH}/`)`, otherwise `'installed'`. Update its doc comment (`:23-28`): add `/game-server/mods/browse/:slug → "browse"`. `BROWSE_PATH` is already imported (`:17`)
-  - [ ] 1.2: Same file: `const isDetailPage = useMatch(`${BROWSE_PATH}/:slug`) !== null;` (add `useMatch` to the `react-router` import, `:13`). It replaces the `startsWith` test inside `handleTabChange` (`:56`): with a plain `startsWith`, `/game-server/mods/browse/` (trailing slash, the list) would count as a detail page
-  - [ ] 1.3: Same file: move the Browse branch of `handleTabChange` (`:53-63`, the Story 16.1 precedence) unchanged into `const openBrowse = () => { ... }`; `handleTabChange` keeps its `value === activeTab` guard (`:52`) and calls `openBrowse()` for `'browse'`. Give the Browse trigger (`:88-91`) `onClick={isDetailPage ? openBrowse : undefined}`. Comment why (Dev Notes "Why an onClick"). Add "Story 17.7" to the header comment (`:9-10`)
-  - [ ] 1.4: Tests in `web/src/features/mods/ModsPage.test.tsx` (Dev Notes "Web tests", Task 1 rows). No existing test changes in this task
+- [x] Task 1: Browse is the active Mods tab on a mod's page, and Installed opens the list + tests (AC: 1, 2, 3, 4, 8)
+  - [x] 1.1: `web/src/features/mods/ModsPage.tsx` `getActiveTab` (`:29-34`): return `'browse'` when `pathname === BROWSE_PATH || pathname.startsWith(`${BROWSE_PATH}/`)`, otherwise `'installed'`. Update its doc comment (`:23-28`): add `/game-server/mods/browse/:slug → "browse"`. `BROWSE_PATH` is already imported (`:17`)
+  - [x] 1.2: Same file: `const isDetailPage = useMatch(`${BROWSE_PATH}/:slug`) !== null;` (add `useMatch` to the `react-router` import, `:13`). It replaces the `startsWith` test inside `handleTabChange` (`:56`): with a plain `startsWith`, `/game-server/mods/browse/` (trailing slash, the list) would count as a detail page
+  - [x] 1.3: Same file: move the Browse branch of `handleTabChange` (`:53-63`, the Story 16.1 precedence) unchanged into `const openBrowse = () => { ... }`; `handleTabChange` keeps its `value === activeTab` guard (`:52`) and calls `openBrowse()` for `'browse'`. Give the Browse trigger (`:88-91`) `onClick={isDetailPage ? openBrowse : undefined}`. Comment why (Dev Notes "Why an onClick"). Add "Story 17.7" to the header comment (`:9-10`)
+  - [x] 1.4: Tests in `web/src/features/mods/ModsPage.test.tsx` (Dev Notes "Web tests", Task 1 rows). No existing test changes in this task
 
 - [ ] Task 2: A browse link past the last page opens the last page + tests (AC: 5, 6, 7, 8)
   <!-- The ModsPage.test.tsx fixture change in "Existing tests that change" goes in this task's commit: it fails only once the clamp exists. -->
@@ -205,13 +205,22 @@ Found by running the web suite (128 files) and `tests/test_mods_router.py` again
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Started from `story/17-4-installed-status-is-right-everywhere` at 21457bf (Story 17.4 done), not from a Story 17.6 branch: every line reference in the story was re-checked there and matches.
 
 ### Completion Notes List
 
 - Story created 2026-11-15: context analysis of the Mods routes, `ModsPage` (`getActiveTab`, `handleTabChange`), Radix Tabs' trigger and controlled-state code, `browse-search.ts`, `useBrowseMods`, `BrowseTab`, `Pagination`, `useBrowseScrollRestoration`, `ModDetailPage`'s links, the browse API's page handling and its tests, the existing ModsPage/BrowseTab/hook tests and `e2e/mod-browse-state.spec.ts`, and the reviews of 17.1-17.4. Tasks 1 and 2 and their key tests were prototyped and discarded (see "Existing tests that change").
 
+- Task 1: `getActiveTab` returns `browse` for `BROWSE_PATH` and anything below it; `isDetailPage = useMatch(`${BROWSE_PATH}/:slug`) !== null`; the Story 16.1 precedence moved unchanged into `openBrowse`, called by `handleTabChange` (its `value === activeTab` guard kept) and by the Browse trigger's `onClick` on a detail page only (comment on why). Tests (new describe "Story 17.7: Mods tabs on a mod detail page"): Browse active (`data-state`, `aria-selected`) on a detail page and on `/browse/`; Installed opens `/game-server/mods/installed` by click and by focus + Enter; the active Browse tab on a detail page opened with `browseSearch: '?q=food'` (and `?q=farming` saved for the session) opens `?q=food` with `fromModDetail`, adding exactly one location key, by click, Space and Enter. Red first: the four tab/Installed tests failed against the old source. With the new `getActiveTab` but no `onClick`, the three new Browse tests and both Story 16.1 detail-page tests failed, so they run through the `onClick`. Focusing Installed already opens it (Radix automatic activation, unchanged); the Enter that follows is then a no-op. `ModsPage.test.tsx` 24 passed; `just typecheck-web` clean.
+
 ### File List
+
+- `web/src/features/mods/ModsPage.tsx`
+- `web/src/features/mods/ModsPage.test.tsx`
 
 ## Change Log
 
