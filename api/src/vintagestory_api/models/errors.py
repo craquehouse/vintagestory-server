@@ -47,6 +47,8 @@ class ErrorCode:
     # These apply to API operational settings (auto_start, refresh intervals, etc.)
     API_SETTING_UNKNOWN = "API_SETTING_UNKNOWN"
     API_SETTING_INVALID = "API_SETTING_INVALID"
+    # Story 17.6: saved, but its job could not be rescheduled (applies at restart)
+    API_SETTING_NOT_APPLIED = "API_SETTING_NOT_APPLIED"
 
     # External APIs
     EXTERNAL_API_ERROR = "EXTERNAL_API_ERROR"

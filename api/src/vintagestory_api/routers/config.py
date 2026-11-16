@@ -4,6 +4,7 @@ Story 6.2: Game Settings API
 Story 6.3: API Settings Service
 Story 6.5: Raw Config Viewer
 Story 17.5: Monitor keys cannot read the server password (FR186)
+Story 17.6: A saved refresh interval reschedules its job (FR187)
 
 Provides endpoints for reading and updating server configuration.
 
@@ -25,17 +26,21 @@ since what they return depends on the key's role. An unhandled error (500) carri
 only "Internal Server Error", without the header.
 """
 
+from functools import partial
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel, Field
 
+from vintagestory_api.jobs import apply_interval_setting
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
+from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import (
     ApiSettingInvalidError,
+    ApiSettingNotAppliedError,
     ApiSettingsService,
     ApiSettingUnknownError,
 )
@@ -52,6 +57,7 @@ from vintagestory_api.services.game_config import (
     SettingValueInvalidError,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.scheduler import SchedulerService
 from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(prefix="/config", tags=["Config"])
@@ -241,28 +247,22 @@ async def update_game_setting(
 
 def get_api_settings_service(
     server_service: Any = Depends(get_server_service),
+    scheduler: SchedulerService = Depends(get_scheduler),
 ) -> ApiSettingsService:
     """Dependency to get ApiSettingsService instance.
 
     Args:
         server_service: ServerService for accessing application settings.
+        scheduler: The running scheduler; a saved interval setting is applied to it
+            through `apply_interval_setting` (Story 17.6, Epic 17 ADR-5).
 
     Returns:
-        ApiSettingsService instance with settings dependency injected.
-
-    Note:
-        TODO(Epic-7): When implementing the scheduler service, inject the
-        scheduler_callback parameter here to enable automatic rescheduling
-        when mod_list_refresh_interval or server_versions_refresh_interval
-        settings are updated. Example:
-
-            scheduler = get_scheduler_service()
-            return ApiSettingsService(
-                settings=server_service.settings,
-                scheduler_callback=scheduler.reschedule_job,
-            )
+        ApiSettingsService instance with settings and scheduler callback injected.
     """
-    return ApiSettingsService(settings=server_service.settings)
+    return ApiSettingsService(
+        settings=server_service.settings,
+        scheduler_callback=partial(apply_interval_setting, scheduler),
+    )
 
 
 @router.get("/api", response_model=ApiResponse, summary="Get API settings")
@@ -315,9 +315,11 @@ async def update_api_setting(
     """Update a specific API setting.
 
     Updates the setting in api-settings.json and returns the updated value.
-    For refresh interval settings (mod_list_refresh_interval,
-    server_versions_refresh_interval), the scheduler will be notified
-    to reschedule the job (Epic 7 integration).
+    For the refresh interval settings (mod_list_refresh_interval,
+    server_versions_refresh_interval, metrics_collection_interval) the
+    setting's job is then rescheduled without an API restart: its next run is
+    one new interval after the save, and 0 removes the job (Story 17.6).
+    Intervals are at most 31,536,000 seconds (365 days).
 
     **Admin role required.**
 
@@ -334,6 +336,8 @@ async def update_api_setting(
         HTTPException: 400 if setting unknown or value invalid
         HTTPException: 401 if not authenticated
         HTTPException: 403 if not Admin role
+        HTTPException: 500 API_SETTING_NOT_APPLIED if the value was saved but its
+            job could not be rescheduled (the value applies at the next API start)
     """
     try:
         result = await service.update_setting(key, request.value)
@@ -353,6 +357,15 @@ async def update_api_setting(
             status_code=400,
             detail={
                 "code": ErrorCode.API_SETTING_INVALID,
+                "message": e.message,
+            },
+        )
+
+    except ApiSettingNotAppliedError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": ErrorCode.API_SETTING_NOT_APPLIED,
                 "message": e.message,
             },
         )
