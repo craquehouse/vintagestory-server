@@ -4,6 +4,7 @@ import io
 import json
 import zipfile
 from collections.abc import Generator
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -207,8 +208,12 @@ class TestInstallModEndpoint:
         temp_data_dir: Path,
         update_service: ModUpdateService,
         monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
     ) -> None:
-        """Story 17.4 AC 5: a failed save of the update record does not fail the install."""
+        """Story 17.4 AC 5: a failed save of the update record does not fail the install.
+
+        The failure is logged as a warning.
+        """
 
         def fail_save() -> None:
             raise OSError("disk full")
@@ -243,6 +248,14 @@ class TestInstallModEndpoint:
         }
         assert (temp_data_dir / "mods" / "smithingplus_1.8.3.zip").exists()
         assert not (temp_data_dir / "state" / "mod-updates.json").exists()
+        warning = next(
+            line
+            for line in captured_logs.getvalue().splitlines()
+            if "mod_update_record_after_install_failed" in line
+        )
+        assert "warning" in warning
+        assert "disk full" in warning
+        assert "smithingplus" in warning
 
     @respx.mock
     def test_install_mod_success(
