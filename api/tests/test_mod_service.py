@@ -1194,6 +1194,50 @@ class TestModServiceInstallMod:
 
             assert exc_info.value.slug == "nonexistent"
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("slug", "version", "file_id", "filename"),
+        [
+            # Story 17.2: the requested mod ID, not vsinstrumentsbase (releases[0])
+            ("instruments", "1.2.2", 12840, "instruments_1.2.2.zip"),
+            # Story 17.2: the newest stable release, not 2.0.0-rc.1 (releases[0])
+            ("carryon", "1.14.3", 113014, "CarryOn-1.22.0_v1.14.3.zip"),
+        ],
+    )
+    async def test_install_picks_the_mod_id_newest_stable_release(
+        self,
+        install_service: ModService,
+        temp_dirs: tuple[Path, Path],
+        slug: str,
+        version: str,
+        file_id: int,
+        filename: str,
+    ) -> None:
+        import respx
+        from httpx import Response
+
+        _state_dir, mods_dir = temp_dirs
+        payload = json.loads((FIXTURES / f"mod_{slug}.json").read_text())
+        mod_zip_content = create_mod_zip_bytes({"modid": slug, "name": slug, "version": version})
+
+        with respx.mock:
+            respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+                return_value=Response(200, json=payload)
+            )
+            respx.get(
+                "https://mods.vintagestory.at/download", params={"fileid": str(file_id)}
+            ).mock(return_value=Response(200, content=mod_zip_content))
+
+            result = await install_service.install_mod(slug)
+
+        assert result.slug == slug
+        assert result.version == version
+        assert result.filename == filename
+        assert (mods_dir / filename).exists()
+        state = install_service.state_manager.get_mod_by_slug(slug)
+        assert state is not None
+        assert state.version == version
+
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""
     import io
@@ -1736,7 +1780,9 @@ class TestModServiceLookupMod:
         assert result.name == "allnull"
         assert result.author == "Unknown"
         assert result.description is None
-        assert result.latest_version == "unknown"
+        # Story 17.2: the only release has no file and an empty mod ID
+        assert result.latest_version is None
+        assert result.install_mod_id == ""
         assert result.downloads == 0
         assert result.follows == 0
         assert result.side == "Both"
@@ -2122,13 +2168,14 @@ class TestLookupLatestSupportedGameVersion:
         assert result.compatibility.latest_supported_game_version == "1.22.7"
 
     @pytest.mark.asyncio
-    async def test_not_installed_entry_uses_the_newest_release_mod_id(self, tmp_path: Path) -> None:
+    async def test_not_installed_entry_uses_the_install_mod_id(self, tmp_path: Path) -> None:
         result = await self.lookup(self.make(tmp_path), "instruments", _fixture_mod("instruments"))
 
-        assert result.compatibility.mod_version == "2.0.7"
-        assert result.compatibility.latest_supported_game_version == "1.21.6"
-        assert result.compatibility.message == "Last supported game version: 1.21.6."
-        assert result.latest_version == "2.0.7"
+        # Story 17.2 (Epic 17 ADR-2 decision 6): instruments, not releases[0]'s mod ID
+        assert result.compatibility.mod_version == "1.2.2"
+        assert result.compatibility.latest_supported_game_version == "1.18.6"
+        assert result.compatibility.message == "Last supported game version: 1.18.6."
+        assert result.latest_version == "1.2.2"
 
     @pytest.mark.asyncio
     async def test_installed_mod_id_decides_compatibility(self, tmp_path: Path) -> None:
@@ -2140,7 +2187,7 @@ class TestLookupLatestSupportedGameVersion:
         assert result.compatibility.mod_version == "1.2.7"
         assert result.compatibility.latest_supported_game_version == "1.19.3"
         assert result.compatibility.message == "Last supported game version: 1.19.3."
-        assert result.latest_version == "2.0.7"
+        assert result.latest_version == "1.2.2"
 
     @pytest.mark.asyncio
     async def test_looked_up_slug_wins_over_newer_installed_mod_id(self, tmp_path: Path) -> None:
@@ -2171,7 +2218,8 @@ class TestLookupLatestSupportedGameVersion:
 
         result = await self.lookup(service, "instruments", _fixture_mod("instruments"))
 
-        assert result.compatibility.mod_version == "2.0.7"
+        # Matches nothing installed; the fallback is the install mod ID (Story 17.2)
+        assert result.compatibility.mod_version == "1.2.2"
 
     @pytest.mark.asyncio
     async def test_version_evaluates_that_release(self, tmp_path: Path) -> None:
@@ -2286,3 +2334,98 @@ class TestLookupLatestSupportedGameVersion:
         )
 
         assert message == expected
+
+
+class TestLookupInstallModId:
+    """Story 17.2 (Epic 17 ADR-2 decisions 5 and 6): what a plain install would pick."""
+
+    make = staticmethod(TestLookupLatestSupportedGameVersion.make)
+    lookup = staticmethod(TestLookupLatestSupportedGameVersion.lookup)
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("fixture", "key", "install_mod_id", "latest_version"),
+        [
+            ("instruments", "instruments", "instruments", "1.2.2"),
+            ("instruments", "vsinstruments", "vsinstruments", "1.2.7"),
+            ("carryon", "carryon", "carryon", "1.14.3"),
+            # A slug no release carries: the newest release's mod ID
+            ("egocaribautomapmarkers", "automapmarkers", "egocaribautomapmarkers", "5.0.3"),
+            ("canjewelry", "canjewelry", "canjewelry", "0.8.2"),
+        ],
+    )
+    async def test_install_mod_id_and_latest_version(
+        self,
+        tmp_path: Path,
+        fixture: str,
+        key: str,
+        install_mod_id: str,
+        latest_version: str,
+    ) -> None:
+        result = await self.lookup(self.make(tmp_path), key, _fixture_mod(fixture))
+
+        assert result.install_mod_id == install_mod_id
+        assert result.latest_version == latest_version
+
+    @pytest.mark.asyncio
+    async def test_compatibility_still_describes_the_newest_release(
+        self, tmp_path: Path
+    ) -> None:
+        """Epic 16 ADR-2 decision 3 is unchanged: carryon's header is 2.0.0-rc.1."""
+        result = await self.lookup(self.make(tmp_path), "carryon", _fixture_mod("carryon"))
+
+        assert result.latest_version == "1.14.3"
+        assert result.compatibility.mod_version == "2.0.0-rc.1"
+
+    @pytest.mark.asyncio
+    async def test_mod_id_without_a_file_has_no_latest_version(self, tmp_path: Path) -> None:
+        mod: dict[str, object] = {
+            "modid": 9997,
+            "name": "No File",
+            "releases": [
+                {"modversion": v, "modidstr": "nofile", "fileid": None, "filename": ""}
+                for v in ("2.0.0", "1.0.0")
+            ],
+        }
+
+        result = await self.lookup(self.make(tmp_path), "nofile", mod)
+
+        assert result.install_mod_id == "nofile"
+        assert result.latest_version is None
+        assert [r.version for r in result.releases] == ["2.0.0", "1.0.0"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("fixture", "key"),
+        [
+            ("instruments", "instruments"),
+            ("instruments", "vsinstruments"),
+            ("instruments", "vsinstrumentsbase"),
+            ("carryon", "carryon"),
+            ("egocaribautomapmarkers", "automapmarkers"),
+            ("egocaribautomapmarkers", "egocaribresinmapmarkers"),
+            ("canjewelry", "canjewelry"),
+            ("playercorpse", "playercorpse"),
+        ],
+    )
+    async def test_latest_version_is_what_download_mod_selects(
+        self, tmp_path: Path, fixture: str, key: str
+    ) -> None:
+        import respx
+        from httpx import Response
+
+        service = self.make(tmp_path)
+        mod = _fixture_mod(fixture)
+        with respx.mock:
+            respx.get(f"https://mods.vintagestory.at/api/mod/{key}").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": mod})
+            )
+            respx.get("https://mods.vintagestory.at/download").mock(
+                return_value=Response(200, content=b"zip")
+            )
+            looked_up = await service.lookup_mod(key)
+            downloaded = await service.api_client.download_mod(key)
+
+        assert downloaded is not None
+        assert looked_up.latest_version == downloaded.version
+        assert looked_up.install_mod_id == downloaded.release["modidstr"]

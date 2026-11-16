@@ -31,6 +31,7 @@ from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
     ModApiClient,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     ReleaseDict,
     check_compatibility,
@@ -46,6 +47,7 @@ from vintagestory_api.services.mod_compatibility import (
     compare_game_versions,
     supported_game_versions,
 )
+from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
 from vintagestory_api.services.pending_restart import PendingRestartState
@@ -467,14 +469,16 @@ class ModService:
             return f"Requires game version {supported.lowest} or newer (installed: {game})."
         return f"Not tagged for {game}; supports {supported.lowest} to {supported.highest}."
 
-    def _compatibility_modid(self, slug: str, releases: list[ReleaseDict]) -> str:
+    def _compatibility_modid(
+        self, slug: str, releases: list[ReleaseDict], default: str
+    ) -> str:
         """The mod ID whose releases decide a lookup's compatibility (ADR-2 decision 2).
 
         Mirrors the web's `findInstalledModForEntry` (Story 16.2): the installed mod
         whose ID is the looked-up slug, otherwise the installed mod whose ID has the
         entry's newest release (exact comparison). When none of them is installed, or
-        the match has no releases in the entry, the mod ID of `releases[0]`, which is
-        the release the install flow installs.
+        the match has no releases in the entry, `default`: the install mod ID, the mod
+        ID an install of this slug installs (Epic 17 ADR-2 decision 6).
         """
         entry_ids: list[str] = []
         for release in releases:
@@ -483,7 +487,6 @@ class ModService:
                 entry_ids.append(modid)
 
         installed = {state.slug for state in self._state_manager.list_mods()}
-        default: str = releases[0].get("modidstr") or ""
         match = next((c for c in (slug, *entry_ids) if c in installed), None)
         if match is None or not any((r.get("modidstr") or "") == match for r in releases):
             return default
@@ -498,6 +501,9 @@ class ModService:
         with the current game version. Compatibility is reported for one mod ID of
         the entry (`_compatibility_modid`): for its newest release, or for its release
         `version` when given (the Installed list asks about the installed release).
+        `install_mod_id` and `latest_version` are what an install of this slug without
+        a version picks, from the same `select_install_release` that install uses
+        (Epic 17 ADR-2 decisions 5 and 6).
 
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
@@ -532,11 +538,16 @@ class ModService:
         if not releases:
             raise ModNotFoundError(slug)
 
-        latest_release = releases[0]
-        latest_version: str = latest_release["modversion"] or "unknown"
+        # Story 17.2 (Epic 17 ADR-2): what a plain install of this slug picks
+        selection = select_install_release(slug, releases)
+        latest_version = (
+            (selection.release["modversion"] or "unknown")
+            if selection.release is not None
+            else None
+        )
 
         # Story 16.3 (ADR-2 decisions 2 and 3): evaluate one mod ID's release
-        modid = self._compatibility_modid(slug, releases)
+        modid = self._compatibility_modid(slug, releases, selection.mod_id)
         own = [r for r in releases if (r.get("modidstr") or "") == modid]
         supported = supported_game_versions(own, modid)
         if version is None:
@@ -613,6 +624,7 @@ class ModService:
             author=mod["author"] or "Unknown",
             description=mod["text"],
             latest_version=latest_version,
+            install_mod_id=selection.mod_id,
             downloads=total_downloads,
             follows=mod["follows"],
             side=side,
@@ -839,6 +851,7 @@ class ModService:
         Raises:
             ModVersionChangeInProgressError: A change for this mod is already running.
             ModVersionChangeFailedError: Placing the file or saving state failed.
+            ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
         """
         lock = self._version_locks.setdefault(slug, asyncio.Lock())
@@ -983,6 +996,8 @@ class ModService:
             ModNotFoundError: The mod is not installed.
             ApiModNotFoundError: The mod is not in the mod database.
             ModVersionNotFoundError: No release with this version for the installed modid.
+            ModReleaseNotDownloadableError: That release has no downloadable file
+                (checked before confirmation).
             ModConfirmationRequiredError: Confirmation is needed and `confirm` is false.
             ModValidationError: The archive is unusable or is not the requested release.
             ExternalApiError, DownloadError: The mod database or download failed.
@@ -1002,6 +1017,9 @@ class ModService:
         if target_index is None:
             raise ModVersionNotFoundError(slug, version)
         target = own[target_index]
+        # StoredRelease stores "no file" as 0 (Epic 17 ADR-1); refuse before confirming
+        if target.fileid <= 0:
+            raise ModReleaseNotDownloadableError(slug, version)
         installed_index = next(
             (i for i, r in enumerate(own) if r.modversion == state.version), None
         )
@@ -1076,7 +1094,8 @@ class ModService:
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
                          (e.g., "https://mods.vintagestory.at/smithingplus").
-            version: Specific version to install, or None for latest.
+            version: Specific version to install, or None for the newest stable
+                release of the mod ID that has a downloadable file (Epic 17 ADR-2).
 
         Returns:
             InstallResult with installation details.
@@ -1084,7 +1103,8 @@ class ModService:
         Raises:
             ModAlreadyInstalledError: If the mod is already installed.
             ApiModNotFoundError: If the mod doesn't exist in the database.
-            ModVersionNotFoundError: If the specific version doesn't exist.
+            ModVersionNotFoundError: If no release of the mod ID has that version.
+            ModReleaseNotDownloadableError: If the release to install has no file.
             ExternalApiError: If the mod API is unavailable.
             DownloadError: If the download fails.
         """

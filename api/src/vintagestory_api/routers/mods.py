@@ -18,6 +18,7 @@ from vintagestory_api.services.mod_api import (
     ExternalApiError,
     GameVersionNotFoundError,
     ModDict,
+    ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
     SortOption,
     search_mods,
@@ -574,8 +575,8 @@ async def lookup_mod(
     access this read-only endpoint.
 
     Compatibility is reported for one mod ID of the entry: the installed one when
-    any of the entry's mod IDs is installed, otherwise the mod ID of the newest
-    release (Epic 16 ADR-2).
+    any of the entry's mod IDs is installed, otherwise the install mod ID (Epic 16
+    ADR-2, Epic 17 ADR-2 decision 6).
 
     Args:
         slug: Mod slug or full URL to look up.
@@ -588,7 +589,11 @@ async def lookup_mod(
         - name: Display name
         - author: Mod author
         - description: Mod description (may be null)
-        - latest_version: Latest release version
+        - latest_version: The version an install without a named version picks for
+          install_mod_id (its newest stable release with a downloadable file); null
+          when none of its releases has a file
+        - install_mod_id: The mod ID an install of this slug installs (the slug when
+          a release carries it, otherwise the newest release's mod ID)
         - downloads: Total download count
         - side: "Both", "Client", or "Server"
         - compatibility: Nested object with status, game_version, mod_version, message,
@@ -650,7 +655,8 @@ class ModInstallRequest(BaseModel):
     version: str | None = Field(
         default=None,
         description="Specific version to install (e.g., '1.8.3'). "
-        "If not specified, installs the latest version.",
+        "If not specified, installs the newest stable release of the mod ID that has a "
+        "downloadable file.",
     )
 
 
@@ -663,7 +669,8 @@ async def install_mod(
     """Install a mod from the VintageStory mod database.
 
     Downloads and installs a mod by slug or URL. If version is not specified,
-    installs the latest version. Returns compatibility status with the
+    installs the newest stable release of the mod ID that has a downloadable file
+    (Epic 17 ADR-2). Returns compatibility status with the
     installed game version.
 
     Args:
@@ -681,6 +688,7 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
         HTTPException: 502 if download fails
     """
@@ -729,6 +737,15 @@ async def install_mod(
             detail={
                 "code": ErrorCode.MOD_VERSION_NOT_FOUND,
                 "message": f"Version '{e.version}' not found for mod '{e.slug}'",
+            },
+        )
+
+    except ModReleaseNotDownloadableError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": ErrorCode.MOD_RELEASE_NOT_DOWNLOADABLE,
+                "message": str(e),
             },
         )
 
@@ -984,6 +1001,8 @@ async def change_mod_version(
         raise _version_change_error(404, ErrorCode.MOD_NOT_FOUND, e) from None
     except ModVersionNotFoundError as e:
         raise _version_change_error(404, ErrorCode.MOD_VERSION_NOT_FOUND, e) from None
+    except ModReleaseNotDownloadableError as e:
+        raise _version_change_error(422, ErrorCode.MOD_RELEASE_NOT_DOWNLOADABLE, e) from None
     except ModConfirmationRequiredError as e:
         raise _version_change_error(
             409,

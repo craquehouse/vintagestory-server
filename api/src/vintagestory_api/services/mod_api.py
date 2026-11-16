@@ -23,6 +23,7 @@ from vintagestory_api.models.moddb import (
     normalize_mod,
     normalize_mod_list,
 )
+from vintagestory_api.services.mod_release_selection import select_install_release
 
 if TYPE_CHECKING:
     from vintagestory_api.services.cache_eviction import CacheEvictionService
@@ -75,6 +76,25 @@ class ModVersionNotFoundError(ModApiError):
         self.slug = slug
         self.version = version
         super().__init__(f"Version '{version}' not found for mod '{slug}'")
+
+
+class ModReleaseNotDownloadableError(ModApiError):
+    """Raised when the release to install has no downloadable file (Epic 17 ADR-2).
+
+    `version` is the named version, or None when no version was named and no release
+    of the mod ID has a file.
+    """
+
+    def __init__(self, slug: str, version: str | None = None) -> None:
+        self.slug = slug
+        self.version = version
+        if version is None:
+            message = f"Mod '{slug}' has no release with a downloadable file in the mod database"
+        else:
+            message = (
+                f"Version '{version}' of mod '{slug}' has no downloadable file in the mod database"
+            )
+        super().__init__(message)
 
 
 class ExternalApiError(ModApiError):
@@ -361,19 +381,24 @@ class ModApiClient:
 
         This is the full download flow:
         1. Lookup mod by slug
-        2. Select release (latest or specific version)
+        2. Select release with `select_install_release` (Epic 17 ADR-2): only releases
+           of the install mod ID with a downloadable file; "latest" is the newest
+           stable one
         3. Download file to cache with atomic write
 
         Args:
             slug: Mod slug (e.g., "smithingplus").
-            version: Specific version to download, or None for latest.
+            version: Specific version to download, or None for the newest stable
+                release of the mod ID that has a downloadable file.
 
         Returns:
             DownloadResult with path and metadata, or None on failure.
 
         Raises:
             ModNotFoundError: If the mod doesn't exist.
-            ModVersionNotFoundError: If the specific version doesn't exist.
+            ModVersionNotFoundError: If no release of the mod ID has that version.
+            ModReleaseNotDownloadableError: If the named release has no file, or no
+                version was named and no release of the mod ID has a file.
             ExternalApiError: If the mod API is unavailable.
             DownloadError: If the download fails.
         """
@@ -389,21 +414,24 @@ class ModApiClient:
         if not releases:
             raise ModNotFoundError(slug)
 
-        # 2. Select release
-        if version is None:
-            release = releases[0]  # Latest (releases are newest-first)
-            logger.debug("selected_latest_release", slug=slug, version=release["modversion"])
-        else:
-            release = next(
-                (r for r in releases if r["modversion"] == version),
-                None,
-            )
-            if release is None:
-                raise ModVersionNotFoundError(slug, version)
-            logger.debug("selected_specific_version", slug=slug, version=version)
+        # 2. Select release (Epic 17 ADR-2)
+        selection = select_install_release(slug, releases, version)
+        if selection.refusal == "version_not_found" and version is not None:
+            raise ModVersionNotFoundError(slug, version)
+        release = selection.release
+        file_id = selection.file_id
+        if release is None or file_id is None:
+            raise ModReleaseNotDownloadableError(slug, version)
+        logger.debug(
+            "selected_install_release",
+            slug=slug,
+            mod_id=selection.mod_id,
+            version=release["modversion"],
+            requested_version=version,
+        )
 
         # 3. Download file
-        path = await self.download_release_file(slug, release["fileid"], release["filename"])
+        path = await self.download_release_file(slug, file_id, release["filename"])
         return DownloadResult(
             path=path,
             filename=path.name,
@@ -424,8 +452,11 @@ class ModApiClient:
             Path of the downloaded file in the cache.
 
         Raises:
+            ModReleaseNotDownloadableError: If `fileid` is not a positive file ID.
             DownloadError: If the filename is unusable or the download fails.
         """
+        if fileid <= 0:
+            raise ModReleaseNotDownloadableError(slug)
         try:
             safe_name = safe_release_filename(filename)
         except ValueError as e:

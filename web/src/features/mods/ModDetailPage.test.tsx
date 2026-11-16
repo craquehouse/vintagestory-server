@@ -70,6 +70,7 @@ const mockModDetailResponse = {
     author: 'jayu',
     description: '<p>Enhanced smithing mechanics with <strong>bold text</strong></p>',
     latest_version: '1.8.3',
+    install_mod_id: 'smithingplus',
     downloads: 204656,
     follows: 2348,
     side: 'Both',
@@ -120,6 +121,7 @@ const mockMinimalResponse = {
     author: 'author1',
     description: null,
     latest_version: '1.0.0',
+    install_mod_id: 'simplemod',
     downloads: 100,
     follows: 10,
     side: 'Server',
@@ -1127,7 +1129,9 @@ describe('ModDetailPage', () => {
             ...mockModDetailResponse.data,
             slug: 'instruments',
             name: 'Instruments',
-            latest_version: '2.0.7',
+            // Story 17.2: what a plain install of `instruments` picks
+            install_mod_id: 'instruments',
+            latest_version: '1.2.2',
             releases: [
               release('vsinstrumentsbase', '2.0.7'),
               release('vsinstrumentsbase', '2.0.6'),
@@ -1203,7 +1207,8 @@ describe('ModDetailPage', () => {
           expect(await screen.findByTestId('mod-detail-update-button')).toHaveTextContent(
             'Update to v2.0.7'
           );
-          expect(await versionOptions(user)).toEqual(['v2.0.7 (Latest)', 'v2.0.6 (Installed)']);
+          // Story 17.2: the installed mod ID is not the install mod ID, so no "(Latest)"
+          expect(await versionOptions(user)).toEqual(['v2.0.7', 'v2.0.6 (Installed)']);
           await user.keyboard('{Escape}');
           await user.click(screen.getByTestId('mod-detail-update-button'));
 
@@ -1230,7 +1235,7 @@ describe('ModDetailPage', () => {
           expect(await screen.findByTestId('mod-detail-installed-indicator')).toHaveTextContent(
             'Installed: v1.2.6'
           );
-          expect(await versionOptions(user)).toEqual(['v1.2.7 (Latest)', 'v1.2.6 (Installed)']);
+          expect(await versionOptions(user)).toEqual(['v1.2.7', 'v1.2.6 (Installed)']);
         });
 
         it('prefers the installed mod whose ID is the URL slug', async () => {
@@ -1289,22 +1294,331 @@ describe('ModDetailPage', () => {
         // Latest version is 1.8.3
         expect(versionSelect).toHaveTextContent('v1.8.3');
       });
+    });
 
-      it('marks latest version with "(Latest)" label', async () => {
-        globalThis.fetch = mockFetchForInstallTests(
-          mockModDetailResponse,
-          mockEmptyModsResponse
+    describe('Story 17.2: install picks the right release', () => {
+      beforeAll(() => {
+        // Radix Select needs these in jsdom
+        Element.prototype.hasPointerCapture ??= () => false;
+        Element.prototype.releasePointerCapture ??= () => {};
+        Element.prototype.scrollIntoView ??= () => {};
+      });
+
+      const release = (modidstr: string, version: string, fileId: number | null = 1) => ({
+        version,
+        filename: fileId ? `${modidstr}_${version}.zip` : '',
+        file_id: fileId,
+        modidstr,
+        downloads: 1,
+        game_versions: ['1.21.3'],
+        created: '2025-11-01 00:00:00',
+        changelog: null,
+      });
+
+      function entry(
+        fields: {
+          slug: string;
+          install_mod_id: string;
+          latest_version: string | null;
+        },
+        releases: ReturnType<typeof release>[]
+      ) {
+        return {
+          ...mockModDetailResponse,
+          data: { ...mockModDetailResponse.data, ...fields, name: fields.slug, releases },
+        };
+      }
+
+      const instrumentsEntry = entry(
+        { slug: 'instruments', install_mod_id: 'instruments', latest_version: '1.2.2' },
+        [
+          release('vsinstrumentsbase', '2.0.7'),
+          release('vsinstrumentsbase', '1.0.1'),
+          release('vsinstruments', '1.2.7'),
+          release('instruments', '1.2.2'),
+          release('instruments', '1.0.1'),
+        ]
+      );
+
+      const carryonEntry = entry(
+        { slug: 'carryon', install_mod_id: 'carryon', latest_version: '1.14.3' },
+        [release('carryon', '2.0.0-rc.1'), release('carryon', '1.14.3')]
+      );
+
+      /** Lookup, installed mods and updates; records POST /mods bodies and answers ok. */
+      function mockEntry(detail: unknown, installed: unknown[] = [], updateMods: unknown[] = []) {
+        return vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+          const respond = (body: unknown) =>
+            Promise.resolve({
+              ok: true,
+              status: 200,
+              statusText: 'OK',
+              json: () => Promise.resolve(body),
+            });
+          if (url.includes('/mods/lookup/')) return respond(detail);
+          if (url.includes('/mods/updates')) {
+            return respond({
+              status: 'ok',
+              data: {
+                game_version: '1.21.3',
+                checked_at: null,
+                update_count: updateMods.length,
+                mods: updateMods,
+              },
+            });
+          }
+          if (url.endsWith('/api/v1alpha1/mods')) {
+            if (options?.method === 'POST') {
+              const body = JSON.parse(String(options.body)) as { slug: string; version?: string };
+              return respond({
+                status: 'ok',
+                data: {
+                  slug: body.slug,
+                  version: body.version ?? 'x',
+                  filename: 'stub.zip',
+                  compatibility: 'compatible',
+                  pending_restart: false,
+                },
+              });
+            }
+            return respond({ status: 'ok', data: { mods: installed, pending_restart: false } });
+          }
+          return Promise.reject(new Error(`Unexpected URL: ${url}`));
+        });
+      }
+
+      function postBodies(mockFetch: ReturnType<typeof vi.fn>) {
+        return mockFetch.mock.calls
+          .filter(([, options]) => options?.method === 'POST')
+          .map(([, options]) => JSON.parse(options.body));
+      }
+
+      async function optionTexts(user: ReturnType<typeof userEvent.setup>) {
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+        const options = await screen.findAllByRole('option');
+        return options.map((o) => o.textContent);
+      }
+
+      async function installAndConfirm(user: ReturnType<typeof userEvent.setup>) {
+        await user.click(screen.getByTestId('mod-detail-install-button'));
+        await user.click(await screen.findByTestId('install-dialog-confirm'));
+      }
+
+      it('lists only the install mod ID releases and installs its latest version', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockEntry(instrumentsEntry);
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/instruments' });
+
+        expect(await screen.findByTestId('mod-detail-version-select')).toHaveTextContent('v1.2.2');
+        expect(await optionTexts(user)).toEqual(['v1.2.2 (Latest)', 'v1.0.1']);
+        await user.keyboard('{Escape}');
+        await installAndConfirm(user);
+
+        await waitFor(() => {
+          expect(postBodies(mockFetch)).toEqual([{ slug: 'instruments', version: '1.2.2' }]);
+        });
+      });
+
+      it('preselects the newest stable release and still offers a newer pre-release', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockEntry(carryonEntry);
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/carryon' });
+
+        expect(await screen.findByTestId('mod-detail-version-select')).toHaveTextContent('v1.14.3');
+        expect(await optionTexts(user)).toEqual(['v2.0.0-rc.1', 'v1.14.3 (Latest)']);
+        await user.click(screen.getByRole('option', { name: 'v2.0.0-rc.1' }));
+        await installAndConfirm(user);
+
+        await waitFor(() => {
+          expect(postBodies(mockFetch)).toEqual([{ slug: 'carryon', version: '2.0.0-rc.1' }]);
+        });
+      });
+
+      it('puts the Releases list "Latest" badge on the release a plain install picks', async () => {
+        globalThis.fetch = mockEntry(carryonEntry);
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/carryon' });
+
+        const stable = await screen.findByTestId('mod-detail-release-1.14.3');
+        expect(within(stable).getByText('Latest')).toBeInTheDocument();
+        expect(
+          within(screen.getByTestId('mod-detail-release-2.0.0-rc.1')).queryByText('Latest')
+        ).not.toBeInTheDocument();
+      });
+
+      it('installs the install mod ID, not the entry slug', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockEntry(
+          entry({ slug: 'instruments', install_mod_id: 'vsinstruments', latest_version: '1.2.7' }, [
+            release('vsinstrumentsbase', '2.0.7'),
+            release('vsinstruments', '1.2.7'),
+            release('instruments', '1.2.2'),
+          ])
+        );
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, {
+          route: '/game-server/mods/browse/vsinstruments',
+        });
+        await screen.findByTestId('mod-detail-install-button');
+        await installAndConfirm(user);
+
+        await waitFor(() => {
+          expect(postBodies(mockFetch)).toEqual([{ slug: 'vsinstruments', version: '1.2.7' }]);
+        });
+      });
+
+      it('lists a release without a file disabled', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockEntry(
+          entry({ slug: 'demo', install_mod_id: 'demo', latest_version: '1.0.0' }, [
+            release('demo', '2.0.0', null),
+            release('demo', '1.0.0'),
+          ])
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/demo' });
+
+        expect(await optionTexts(user)).toEqual(['v2.0.0 (no file)', 'v1.0.0 (Latest)']);
+        expect(screen.getByRole('option', { name: 'v2.0.0 (no file)' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+        expect(screen.getByRole('option', { name: 'v1.0.0 (Latest)' })).not.toHaveAttribute(
+          'aria-disabled'
+        );
+      });
+
+      it('disables Install when no release has a file', async () => {
+        globalThis.fetch = mockEntry(
+          entry({ slug: 'demo', install_mod_id: 'demo', latest_version: null }, [
+            release('demo', '2.0.0', null),
+            release('demo', '1.0.0', 0),
+          ])
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/demo' });
+
+        const button = await screen.findByTestId('mod-detail-install-button');
+        expect(button).toBeDisabled();
+        expect(button).toHaveTextContent('No downloadable release');
+      });
+
+      it('renders an entry whose mod IDs share a version without duplicate keys', async () => {
+        const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+        try {
+          globalThis.fetch = mockEntry(instrumentsEntry);
+
+          renderWithProviders(<ModDetailPage />, {
+            route: '/game-server/mods/browse/instruments',
+          });
+          await screen.findByTestId('mod-detail-releases-list');
+
+          // vsinstrumentsbase and instruments both list 1.0.1
+          const duplicateKeys = errors.mock.calls.filter((call) =>
+            call.some((arg) => String(arg).includes('same key'))
+          );
+          expect(duplicateKeys).toEqual([]);
+        } finally {
+          errors.mockRestore();
+        }
+      });
+
+      it('does not offer an update to a release without a file (review M1)', async () => {
+        const user = userEvent.setup();
+        const mockFetch = mockEntry(
+          entry({ slug: 'smithingplus', install_mod_id: 'smithingplus', latest_version: '1.8.2' }, [
+            release('smithingplus', '1.8.3', null),
+            release('smithingplus', '1.8.2'),
+          ]),
+          [
+            {
+              name: 'Smithing Plus',
+              slug: 'smithingplus',
+              version: '1.8.2',
+              enabled: true,
+              side: 'Both',
+            },
+          ],
+          [
+            {
+              slug: 'smithingplus',
+              name: 'Smithing Plus',
+              installed_version: '1.8.2',
+              status: 'update_available',
+              offered_version: '1.8.3',
+              offered_compatibility: 'compatible',
+              offered_prerelease: false,
+              reason: null,
+              checked_at: null,
+              error: null,
+            },
+          ]
+        );
+
+        globalThis.fetch = mockFetch;
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await screen.findByTestId('mod-detail-installed-indicator');
+        await waitFor(() => {
+          expect(
+            mockFetch.mock.calls.some(([url]) => String(url).endsWith('/mods/updates'))
+          ).toBe(true);
+        });
+
+        expect(await optionTexts(user)).toEqual([
+          'v1.8.3 (no file)',
+          'v1.8.2 (Latest) (Installed)',
+        ]);
+        expect(screen.getByRole('option', { name: 'v1.8.3 (no file)' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+        await user.keyboard('{Escape}');
+        // The update status has loaded by now; the offer has no file, so it is not
+        // preselected and the action is the disabled "Installed" button
+        expect(screen.getByTestId('mod-detail-version-select')).toHaveTextContent('v1.8.2');
+        expect(screen.getByTestId('mod-detail-current-button')).toBeDisabled();
+        expect(screen.queryByTestId('mod-detail-update-button')).not.toBeInTheDocument();
+      });
+
+      it('labels "(Latest)" in the installed list when the installed mod ID is the install mod ID', async () => {
+        const user = userEvent.setup();
+        globalThis.fetch = mockEntry(
+          entry({ slug: 'smithingplus', install_mod_id: 'smithingplus', latest_version: '1.8.3' }, [
+            release('smithingplus', '1.9.0-rc.1'),
+            release('smithingplus', '1.8.3'),
+            release('smithingplus', '1.8.2'),
+            release('smithingplus', '1.8.1', null),
+          ]),
+          [
+            {
+              name: 'Smithing Plus',
+              slug: 'smithingplus',
+              version: '1.8.2',
+              enabled: true,
+              side: 'Both',
+            },
+          ]
         );
 
         renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+        await screen.findByTestId('mod-detail-installed-indicator');
 
-        // Wait for install section
-        await screen.findByTestId('mod-detail-install-section');
-
-        // The default selected value shows "v1.8.3 (Latest)" in dropdown
-        // Note: The "(Latest)" text appears in SelectItem, not necessarily in trigger
-        const versionSelect = screen.getByTestId('mod-detail-version-select');
-        expect(versionSelect).toBeInTheDocument();
+        expect(await optionTexts(user)).toEqual([
+          'v1.9.0-rc.1',
+          'v1.8.3 (Latest)',
+          'v1.8.2 (Installed)',
+          'v1.8.1 (no file)',
+        ]);
+        expect(screen.getByRole('option', { name: 'v1.8.1 (no file)' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
     });
 

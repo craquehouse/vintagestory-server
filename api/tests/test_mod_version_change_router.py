@@ -174,6 +174,43 @@ class TestChangeVersionEndpoint:
         assert error_code(response) == ErrorCode.MOD_VERSION_NOT_FOUND
 
     @respx.mock
+    def test_release_without_a_file_is_refused(
+        self, client: TestClient, service: ModService
+    ) -> None:
+        """Story 17.2: canjewelry 0.2.20 has no file; 422 before any confirmation."""
+        path = service.state_manager.mods_dir / "canjewelry_0.2.19.zip"
+        path.write_bytes(zip_bytes({"modid": "canjewelry", "name": "x", "version": "0.2.19"}))
+        service.state_manager.set_mod_state(
+            path.name,
+            ModState(
+                filename=path.name,
+                slug="canjewelry",
+                version="0.2.19",
+                enabled=True,
+                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        service.state_manager.save()
+        respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+            )
+        )
+        download = respx.get(DOWNLOAD_URL).mock(return_value=Response(200, content=b"zip"))
+
+        response = client.put(
+            "/api/v1alpha1/mods/canjewelry/version", json={"version": "0.2.20"}, headers=ADMIN
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["code"] == ErrorCode.MOD_RELEASE_NOT_DOWNLOADABLE
+        assert detail["message"] == (
+            "Version '0.2.20' of mod 'canjewelry' has no downloadable file in the mod database"
+        )
+        assert not download.called
+
+    @respx.mock
     def test_archive_validation_failure(self, client: TestClient) -> None:
         respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
         mock_download("1.14.3", modid="someothermod")

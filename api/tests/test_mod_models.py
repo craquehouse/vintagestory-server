@@ -404,6 +404,7 @@ class TestModLookupResponse:
             name="Smithing Plus",
             author="jayu",
             latest_version="1.8.3",
+            install_mod_id="smithingplus",
             downloads=49726,
             side="Both",
             compatibility=compat,
@@ -433,6 +434,7 @@ class TestModLookupResponse:
             author="jayu",
             description="Expanded smithing mechanics for VintageStory",
             latest_version="1.8.2",
+            install_mod_id="smithingplus",
             downloads=49726,
             side="Both",
             compatibility=compat,
@@ -455,6 +457,7 @@ class TestModLookupResponse:
             author="TestAuthor",
             description="A test mod",
             latest_version="2.0.0",
+            install_mod_id="testmod",
             downloads=12345,
             side="Server",
             compatibility=compat,
@@ -467,6 +470,7 @@ class TestModLookupResponse:
         assert restored.author == original.author
         assert restored.description == original.description
         assert restored.latest_version == original.latest_version
+        assert restored.install_mod_id == "testmod"
         assert restored.downloads == original.downloads
         assert restored.side == original.side
         assert restored.compatibility.status == original.compatibility.status
@@ -486,6 +490,7 @@ class TestModLookupResponse:
             author="jayu",
             description="Expanded smithing",
             latest_version="1.8.3",
+            install_mod_id="smithingplus",
             downloads=49726,
             side="Both",
             compatibility=compat,
@@ -500,6 +505,7 @@ class TestModLookupResponse:
             "author": "jayu",
             "description": "Expanded smithing",
             "latest_version": "1.8.3",
+            "install_mod_id": "smithingplus",
             "downloads": 49726,
             "follows": 0,
             "side": "Both",
@@ -519,6 +525,45 @@ class TestModLookupResponse:
             "last_released": None,
         }
 
+    def test_latest_version_none_dumps_as_null(self) -> None:
+        """Story 17.2: no release of the install mod ID has a file."""
+        response = ModLookupResponse(
+            slug="nofile",
+            name="No File",
+            author="someone",
+            latest_version=None,
+            install_mod_id="nofile",
+            downloads=0,
+            side="Both",
+            compatibility=CompatibilityInfo(
+                status="not_verified", game_version="1.22.7", mod_version="1.0.0"
+            ),
+        )
+
+        data = response.model_dump(mode="json")
+
+        assert data["latest_version"] is None
+        assert data["install_mod_id"] == "nofile"
+        assert ModLookupResponse.model_validate(data).latest_version is None
+
+    def test_install_mod_id_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            ModLookupResponse.model_validate(
+                {
+                    "slug": "x",
+                    "name": "X",
+                    "author": "a",
+                    "latest_version": "1.0.0",
+                    "downloads": 0,
+                    "side": "Both",
+                    "compatibility": {
+                        "status": "compatible",
+                        "game_version": "1.22.7",
+                        "mod_version": "1.0.0",
+                    },
+                }
+            )
+
     def test_nested_compatibility_info(self) -> None:
         """ModLookupResponse properly nests CompatibilityInfo."""
         compat = CompatibilityInfo(
@@ -533,6 +578,7 @@ class TestModLookupResponse:
             name="Old Mod",
             author="someone",
             latest_version="1.5.0",
+            install_mod_id="oldmod",
             downloads=1000,
             side="Client",
             compatibility=compat,
@@ -578,6 +624,7 @@ class TestModLookupResponse:
             author="jayu",
             description="<p>HTML description</p>",
             latest_version="1.8.3",
+            install_mod_id="smithingplus",
             downloads=204656,
             follows=2348,
             side="Both",

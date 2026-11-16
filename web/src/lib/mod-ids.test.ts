@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { entryModIds, findInstalledModForEntry } from './mod-ids';
+import { entryModIds, findInstalledModForEntry, versionChoices } from './mod-ids';
 
 /** Releases shaped like the Instruments entry (fixture mod_instruments.json): newest first. */
 const instrumentsReleases = [
@@ -76,5 +76,52 @@ describe('findInstalledModForEntry', () => {
   it('returns undefined when the installed list is empty or not loaded', () => {
     expect(findInstalledModForEntry([], entry)).toBeUndefined();
     expect(findInstalledModForEntry(undefined, entry)).toBeUndefined();
+  });
+});
+
+describe('versionChoices (Story 17.2)', () => {
+  const release = (modidstr: string, version: string, fileId: number | null = 1) => ({
+    modidstr,
+    version,
+    fileId,
+  });
+
+  it('lists only the releases of that exact mod ID, newest first', () => {
+    const releases = [
+      release('vsinstrumentsbase', '2.0.7'),
+      release('vsinstrumentsbase', '1.0.1'),
+      release('instruments', '1.2.2'),
+      release('Instruments', '1.2.1'),
+      release('instruments', '1.0.1'),
+    ];
+
+    expect(versionChoices(releases, 'instruments')).toEqual([
+      { version: '1.2.2', installable: true },
+      { version: '1.0.1', installable: true },
+    ]);
+  });
+
+  it('keeps the first listing of a repeated version', () => {
+    const releases = [release('demo', '1.0.0', null), release('demo', '1.0.0', 7)];
+
+    expect(versionChoices(releases, 'demo')).toEqual([{ version: '1.0.0', installable: false }]);
+  });
+
+  it('marks a release without a positive file ID as not installable', () => {
+    const releases = [
+      release('demo', '3.0.0', null),
+      release('demo', '2.0.0', 0),
+      release('demo', '1.0.0', 5),
+    ];
+
+    expect(versionChoices(releases, 'demo')).toEqual([
+      { version: '3.0.0', installable: false },
+      { version: '2.0.0', installable: false },
+      { version: '1.0.0', installable: true },
+    ]);
+  });
+
+  it('returns nothing for an unknown mod ID', () => {
+    expect(versionChoices([release('demo', '1.0.0')], 'other')).toEqual([]);
   });
 });

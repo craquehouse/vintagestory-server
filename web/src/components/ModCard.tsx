@@ -6,6 +6,9 @@
  *
  * Story 10.5: Enhanced with thumbnail.
  * Story 10.8: Added install button with confirmation dialog.
+ * Story 17.2: Install sends the lookup's `installModId` and `latestVersion` (what a
+ * plain install picks); when the details could not be loaded it sends the card's
+ * slug and no version, and the API picks (never the string 'latest').
  */
 
 import { useState, useEffect } from 'react';
@@ -26,11 +29,6 @@ interface ModCardProps {
   /** Set of installed mod slugs (optional, used for install button) */
   installedSlugs?: Set<string>;
 }
-
-/**
- * Version string used when installing from browse cards (latest available).
- */
-const LATEST_VERSION = 'latest';
 
 /**
  * Card displaying mod information in the browse grid.
@@ -229,9 +227,10 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
     {/* Install confirmation dialog */}
     <InstallConfirmDialog
       mod={{
-        slug: mod.slug,
+        // An empty install mod ID (an entry without mod IDs) falls back to the card slug
+        slug: modDetails?.data?.installModId || mod.slug,
         name: mod.name,
-        version: modDetails?.data?.latestVersion ?? LATEST_VERSION,
+        version: modDetails?.data?.latestVersion,
         logoUrl: mod.logoUrl,
         author: mod.author,
       }}

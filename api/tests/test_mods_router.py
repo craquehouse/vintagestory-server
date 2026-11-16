@@ -653,7 +653,9 @@ class TestLookupModEndpoint:
         assert data["follows"] == 0
         assert data["downloads"] == 0
         assert data["tags"] == ["Utility"]
-        assert data["latest_version"] == "unknown"
+        # Story 17.2: the only release has no file and an empty mod ID
+        assert data["latest_version"] is None
+        assert data["install_mod_id"] == ""
         assert data["releases"] == [
             {
                 "version": "unknown",
@@ -667,6 +669,70 @@ class TestLookupModEndpoint:
             }
         ]
 
+
+    @respx.mock
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "install_mod_id", "latest_version"),
+        [
+            ("instruments", "instruments", "instruments", "1.2.2"),
+            ("instruments", "vsinstruments", "vsinstruments", "1.2.7"),
+            ("carryon", "carryon", "carryon", "1.14.3"),
+            ("egocaribautomapmarkers", "automapmarkers", "egocaribautomapmarkers", "5.0.3"),
+            ("canjewelry", "canjewelry", "canjewelry", "0.8.2"),
+        ],
+    )
+    def test_lookup_reports_what_install_picks(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        fixture: str,
+        slug: str,
+        install_mod_id: str,
+        latest_version: str,
+    ) -> None:
+        """Story 17.2: install_mod_id and latest_version are what a plain install picks."""
+        respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / f"mod_{fixture}.json").read_text())
+            )
+        )
+
+        response = client.get(f"/api/v1alpha1/mods/lookup/{slug}", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["install_mod_id"] == install_mod_id
+        assert data["latest_version"] == latest_version
+        if slug == "carryon":
+            # Compatibility still describes the newest release (Epic 16 ADR-2)
+            assert data["compatibility"]["mod_version"] == "2.0.0-rc.1"
+
+    @respx.mock
+    def test_lookup_mod_id_without_a_file_has_null_latest_version(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 17.2: no release of the install mod ID has a file: 200, null."""
+        mod = {
+            "modid": 9997,
+            "name": "No File",
+            "modidstrs": ["nofile"],
+            "releases": [
+                {"modversion": v, "modidstr": "nofile", "fileid": None, "filename": ""}
+                for v in ("2.0.0", "1.0.0")
+            ],
+        }
+        respx.get("https://mods.vintagestory.at/api/mod/nofile").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/nofile", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["install_mod_id"] == "nofile"
+        assert data["latest_version"] is None
 
 def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:
     """Create a mod zip file at the given path."""
@@ -3085,6 +3151,82 @@ class TestInstallModVersionNotFound:
         data = response.json()
         assert data["detail"]["code"] == "MOD_VERSION_NOT_FOUND"
         assert "99.99.99" in data["detail"]["message"]
+
+    @respx.mock
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "version"),
+        [
+            # 2.0.7 exists only under vsinstrumentsbase, another mod ID of the entry
+            ("instruments", "instruments", "2.0.7"),
+            # The web used to send the string "latest" as a version name
+            ("carryon", "carryon", "latest"),
+        ],
+    )
+    def test_install_version_the_mod_id_does_not_have_is_not_found(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        temp_data_dir: Path,
+        mod_service: ModService,
+        fixture: str,
+        slug: str,
+        version: str,
+    ) -> None:
+        """Story 17.2: only releases of the requested mod ID are considered."""
+        respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / f"mod_{fixture}.json").read_text())
+            )
+        )
+        download = respx.get("https://mods.vintagestory.at/download").mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": slug, "version": version},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["code"] == "MOD_VERSION_NOT_FOUND"
+        assert not download.called
+        assert list((temp_data_dir / "mods").iterdir()) == []
+        assert mod_service.state_manager.list_mods() == []
+
+    @respx.mock
+    def test_install_release_without_a_file_is_refused(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        temp_data_dir: Path,
+        mod_service: ModService,
+    ) -> None:
+        """Story 17.2: a named release without a file is a 422, nothing downloaded."""
+        respx.get("https://mods.vintagestory.at/api/mod/canjewelry").mock(
+            return_value=Response(
+                200, json=json.loads((FIXTURES / "mod_canjewelry.json").read_text())
+            )
+        )
+        download = respx.get("https://mods.vintagestory.at/download").mock(
+            return_value=Response(200, content=b"zip")
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods",
+            json={"slug": "canjewelry", "version": "0.2.20"},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["code"] == "MOD_RELEASE_NOT_DOWNLOADABLE"
+        assert detail["message"] == (
+            "Version '0.2.20' of mod 'canjewelry' has no downloadable file in the mod database"
+        )
+        assert not download.called
+        assert list((temp_data_dir / "mods").iterdir()) == []
+        assert mod_service.state_manager.list_mods() == []
 
     @respx.mock
     def test_install_mod_download_error(

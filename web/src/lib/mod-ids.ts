@@ -11,6 +11,13 @@
 
 import type { ModRelease } from '@/api/types';
 
+/** One version a version list offers (Story 17.2). */
+export interface VersionChoice {
+  version: string;
+  /** Whether the release has a downloadable file (a positive file ID) */
+  installable: boolean;
+}
+
 /**
  * The entry's mod IDs, each once, in release order (newest release first).
  * Releases without a mod ID are skipped.
@@ -44,4 +51,28 @@ export function findInstalledModForEntry<T extends { slug: string }>(
     if (match) return match;
   }
   return undefined;
+}
+
+/**
+ * The versions a version list offers for one mod ID (Story 17.2, Epic 17 ADR-2).
+ *
+ * Only the releases whose `modidstr` is exactly `modId`, newest first. A re-uploaded
+ * version is listed once, by its first (newest) listing, as the update check and the
+ * version change API do. A release without a positive file ID is not installable.
+ */
+export function versionChoices(
+  releases: readonly Pick<ModRelease, 'modidstr' | 'version' | 'fileId'>[],
+  modId: string
+): VersionChoice[] {
+  const seen = new Set<string>();
+  const choices: VersionChoice[] = [];
+  for (const release of releases) {
+    if (release.modidstr !== modId || seen.has(release.version)) continue;
+    seen.add(release.version);
+    choices.push({
+      version: release.version,
+      installable: typeof release.fileId === 'number' && release.fileId > 0,
+    });
+  }
+  return choices;
 }
