@@ -10,6 +10,7 @@ import pytest
 from vintagestory_api.models.moddb import (
     MOD_FIELDS,
     RELEASE_FIELDS,
+    SCREENSHOT_FIELDS,
     normalize_mod,
     normalize_mod_list,
     normalize_release,
@@ -29,6 +30,7 @@ MOD_OPTIONAL_STR_FIELDS = [
     "sourcecodeurl",
     "created",
     "lastreleased",
+    "trailervideourl",
 ]
 MOD_STR_LIST_FIELDS = ["tags", "modidstrs"]
 
@@ -67,6 +69,7 @@ class TestFieldTables:
             *MOD_OPTIONAL_STR_FIELDS,
             *MOD_STR_LIST_FIELDS,
             "releases",
+            "screenshots",
         }
 
     def test_release_fields(self) -> None:
@@ -76,6 +79,15 @@ class TestFieldTables:
             "changelog",
             "tags",
             "fileid",
+        }
+
+    def test_screenshot_fields(self) -> None:
+        assert set(SCREENSHOT_FIELDS) == {
+            "mainfile",
+            "thumbnailfilename",
+            "filename",
+            "fileid",
+            "created",
         }
 
 
@@ -94,6 +106,7 @@ class TestNormalizeModRules:
         for field in MOD_STR_LIST_FIELDS:
             assert mod[field] == []
         assert mod["releases"] == []
+        assert mod["screenshots"] == []
 
     @pytest.mark.parametrize("field", MOD_INT_FIELDS)
     @pytest.mark.parametrize("value", NOT_INT)
@@ -141,9 +154,7 @@ class TestNormalizeModRules:
             {"releases": [None, "oops", 3, ["a"], {"modversion": "1.0.0", "fileid": None}]}
         )
         assert len(mod["releases"]) == 1
-        assert mod["releases"][0] == normalized_release(
-            {"modversion": "1.0.0", "fileid": None}
-        )
+        assert mod["releases"][0] == normalized_release({"modversion": "1.0.0", "fileid": None})
 
     @pytest.mark.parametrize("raw", [None, "mod", 3, True, [1, 2], ["a"]])
     def test_non_object_entry_is_none(self, raw: object) -> None:
@@ -217,6 +228,74 @@ class TestNormalizeReleaseRules:
         assert normalize_release(raw) is None
 
 
+class TestNormalizeScreenshots:
+    """A mod entry's `screenshots` (Story 18.1): types only, no URL check."""
+
+    EMPTY_SCREENSHOT: dict[str, Any] = {
+        "mainfile": None,
+        "thumbnailfilename": None,
+        "filename": "",
+        "fileid": None,
+        "created": None,
+    }
+
+    VALID: dict[str, Any] = {
+        "fileid": 7,
+        "mainfile": "https://moddbcdn.vintagestory.at/a_1.jpg",
+        "filename": "Timeline 1.jpg",
+        "thumbnailfilename": "https://moddbcdn.vintagestory.at/a_1_55_60.jpg",
+        "created": "2025-01-01 10:00:00",
+    }
+
+    @pytest.mark.parametrize("value", [None, "x", 3, True, {}])
+    def test_wrong_value_is_empty(self, value: object) -> None:
+        assert normalized_mod({"screenshots": value})["screenshots"] == []
+
+    def test_drops_non_objects(self) -> None:
+        screenshots = normalized_mod({"screenshots": [None, "x", 3, {"mainfile": "u"}]})[
+            "screenshots"
+        ]
+        assert screenshots == [{**self.EMPTY_SCREENSHOT, "mainfile": "u"}]
+
+    def test_empty_object_has_every_field_with_its_default(self) -> None:
+        empty: dict[str, Any] = {}
+        assert normalized_mod({"screenshots": [empty]})["screenshots"] == [self.EMPTY_SCREENSHOT]
+
+    @pytest.mark.parametrize(
+        ("field", "value", "expected"),
+        [
+            ("mainfile", 5, None),
+            ("thumbnailfilename", [], None),
+            ("filename", None, ""),
+            ("fileid", "7", None),
+            ("fileid", True, None),
+            ("created", 5, None),
+        ],
+    )
+    def test_wrong_type_per_field(self, field: str, value: object, expected: object) -> None:
+        screenshot = normalized_mod({"screenshots": [{**self.VALID, field: value}]})["screenshots"][
+            0
+        ]
+        assert screenshot[field] == expected
+
+    def test_valid_item_unchanged(self) -> None:
+        assert normalized_mod({"screenshots": [self.VALID]})["screenshots"] == [self.VALID]
+
+    def test_unknown_key_kept(self) -> None:
+        screenshot = normalized_mod({"screenshots": [{**self.VALID, "extra": 1}]})["screenshots"][0]
+        assert screenshot["extra"] == 1
+
+    def test_input_not_mutated(self) -> None:
+        raw: dict[str, Any] = {"screenshots": [None, {"mainfile": 5}, dict(self.VALID)]}
+        before = copy.deepcopy(raw)
+        normalize_mod(raw)
+        assert raw == before
+
+    def test_idempotent(self) -> None:
+        once = normalized_mod({"screenshots": [None, {"filename": None}, self.VALID]})
+        assert normalize_mod(once) == once
+
+
 class TestNormalizeModList:
     """A listing's `mods` array."""
 
@@ -240,12 +319,12 @@ class TestNormalizeProperties:
     def test_unknown_keys_kept(self) -> None:
         raw: dict[str, Any] = {
             "comments": 3,
-            "screenshots": [{"fileid": 1}],
+            "wikiurl": "https://example.com",
             "releases": [{"releaseid": 9, "mainfile": "", "extra": None}],
         }
         mod = normalized_mod(raw)
         assert mod["comments"] == 3
-        assert mod["screenshots"] == [{"fileid": 1}]
+        assert mod["wikiurl"] == "https://example.com"
         release = mod["releases"][0]
         assert release["releaseid"] == 9
         assert release["mainfile"] == ""
