@@ -45,6 +45,7 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
 
 import { ModTable } from './ModTable';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { handleApiError } from '@/api/error-handler';
 import { getCookie } from '@/lib/cookies';
 import { setViewportWidth } from '../../tests/viewport';
 
@@ -1912,6 +1913,114 @@ describe('ModTable', () => {
       act(() => setViewportWidth(768));
       expect(screen.getByTestId('mod-table')).toBeInTheDocument();
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+    });
+  });
+
+  // Story 17.3 (AC 8): a 409 MOD_OPERATION_IN_PROGRESS rolls back the optimistic change.
+  // These tests do not assert a toast: the hooks' own onError (the rollback) replaces the
+  // query client's default onError, so no message is shown today (see the story's
+  // Completion Notes).
+  describe('another operation on the mod is in progress (Story 17.3)', () => {
+    const BUSY =
+      "Another operation on mod 'smithingplus' is in progress. Try again when it has finished.";
+
+    function busy() {
+      return Promise.resolve({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () =>
+          Promise.resolve({ detail: { code: 'MOD_OPERATION_IN_PROGRESS', message: BUSY } }),
+      });
+    }
+
+    // Built like the app's query client (global mutation error handler)
+    function createAppLikeQueryClient() {
+      return new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false, onError: (error) => handleApiError(error) },
+        },
+      });
+    }
+
+    // The first list request answers; later ones (the refetch after the mutation) never
+    // do, so what the table shows afterwards comes from the rollback alone.
+    function mockFetch(isBusy: (url: string, options?: RequestInit) => boolean) {
+      let listRequests = 0;
+      const fetchMock = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (isBusy(url, options)) return busy();
+        listRequests += 1;
+        if (listRequests > 1) return new Promise(() => {});
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockModsResponse) });
+      });
+      globalThis.fetch = fetchMock;
+      return fetchMock;
+    }
+
+    function busyRequestMade(fetchMock: ReturnType<typeof vi.fn>, path: string) {
+      return fetchMock.mock.calls.some(([url]) => String(url).endsWith(path));
+    }
+
+    it('rolls back a refused disable', async () => {
+      const fetchMock = mockFetch((url) => url.includes('/disable'));
+      const onToggled = vi.fn();
+      render(<ModTable onToggled={onToggled} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      const toggle = await screen.findByTestId('mod-toggle-smithingplus');
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/smithingplus/disable')).toBe(true);
+        expect(screen.getByTestId('mod-toggle-smithingplus')).not.toBeDisabled();
+      });
+      expect(screen.getByTestId('mod-toggle-smithingplus')).toHaveAttribute(
+        'aria-checked',
+        'true'
+      );
+      expect(onToggled).not.toHaveBeenCalled();
+    });
+
+    it('rolls back a refused enable', async () => {
+      const fetchMock = mockFetch((url) => url.includes('/enable'));
+      const onToggled = vi.fn();
+      render(<ModTable onToggled={onToggled} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      const toggle = await screen.findByTestId('mod-toggle-carrycapacity');
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/carrycapacity/enable')).toBe(true);
+        expect(screen.getByTestId('mod-toggle-carrycapacity')).not.toBeDisabled();
+      });
+      expect(screen.getByTestId('mod-toggle-carrycapacity')).toHaveAttribute(
+        'aria-checked',
+        'false'
+      );
+      expect(onToggled).not.toHaveBeenCalled();
+    });
+
+    it('keeps the row of a refused removal and closes the dialog', async () => {
+      const fetchMock = mockFetch((_url, options) => options?.method === 'DELETE');
+      const onRemoved = vi.fn();
+      render(<ModTable onRemoved={onRemoved} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      fireEvent.click(await screen.findByTestId('mod-remove-smithingplus'));
+      fireEvent.click(await screen.findByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/smithingplus')).toBe(true);
+        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
+      expect(onRemoved).not.toHaveBeenCalled();
     });
   });
 });

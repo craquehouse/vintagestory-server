@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { InstallConfirmDialog } from './InstallConfirmDialog';
 import * as useMods from '@/hooks/use-mods';
+import { ApiError } from '@/api/errors';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -448,6 +449,32 @@ describe('InstallConfirmDialog', () => {
 
       expect(mockOnError).toHaveBeenCalledWith(testError);
       // Dialog should remain open on error
+      expect(mockOnOpenChange).not.toHaveBeenCalledWith(false);
+    });
+
+    it('shows the API message when another operation on the mod is in progress', async () => {
+      const user = userEvent.setup();
+      const busy =
+        "Another operation on mod 'carrycapacity' is in progress. Try again when it has finished.";
+      mockMutate.mockImplementation((_params, options) => {
+        options?.onError?.(new ApiError('MOD_OPERATION_IN_PROGRESS', busy, 409));
+      });
+
+      render(
+        <InstallConfirmDialog
+          mod={mockMod}
+          compatibility={{ status: 'compatible' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('install-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Installation failed', { description: busy });
+      });
       expect(mockOnOpenChange).not.toHaveBeenCalledWith(false);
     });
   });

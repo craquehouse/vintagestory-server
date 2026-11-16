@@ -178,14 +178,14 @@ describe('useVersionChangeFlow', () => {
   });
 
   it('shows the API message when a change fails', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(conflict('MOD_VERSION_CHANGE_IN_PROGRESS'));
+    globalThis.fetch = vi.fn().mockResolvedValue(conflict('MOD_OPERATION_IN_PROGRESS'));
     const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
 
     act(() => result.current.start(update));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Failed to update Carry On', {
-        description: 'MOD_VERSION_CHANGE_IN_PROGRESS message',
+        description: 'MOD_OPERATION_IN_PROGRESS message',
       });
     });
     expect(result.current.confirmation).toBeNull();
