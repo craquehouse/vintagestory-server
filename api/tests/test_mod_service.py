@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS, normalize_mod
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
 from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
@@ -1246,6 +1246,43 @@ class TestModServiceInstallMod:
         state = install_service.state_manager.get_mod_by_slug(slug)
         assert state is not None
         assert state.version == version
+
+    @pytest.mark.asyncio
+    async def test_install_returns_every_release_of_the_entry(
+        self, install_service: ModService
+    ) -> None:
+        """Story 17.4: the install keeps the whole entry from its one lookup."""
+        import respx
+        from httpx import Response
+
+        payload = json.loads((FIXTURES / "mod_instruments.json").read_text())
+        entry = normalize_mod(payload["mod"])
+        assert entry is not None
+
+        with respx.mock:
+            lookup = respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+                return_value=Response(200, json=payload)
+            )
+            respx.get(
+                "https://mods.vintagestory.at/download", params={"fileid": "12840"}
+            ).mock(
+                return_value=Response(
+                    200,
+                    content=create_mod_zip_bytes(
+                        {"modid": "instruments", "name": "Instruments", "version": "1.2.2"}
+                    ),
+                )
+            )
+
+            result = await install_service.install_mod("instruments")
+
+        assert result.releases == entry["releases"]
+        assert {r["modidstr"] for r in result.releases} == {
+            "instruments",
+            "vsinstruments",
+            "vsinstrumentsbase",
+        }
+        assert lookup.call_count == 1
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""

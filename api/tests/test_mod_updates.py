@@ -3,6 +3,7 @@
 import asyncio
 import json
 from datetime import UTC, datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any, get_args
 
@@ -12,7 +13,7 @@ import respx
 from httpx import Response
 
 from vintagestory_api.models.mod_updates import Compatibility, StoredModRecord, StoredRelease
-from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS, ReleaseDict, normalize_mod
 from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import CompatibilityStatus, ModApiClient
 from vintagestory_api.services.mod_updates import (
@@ -634,6 +635,123 @@ class TestCheckRobustness:
         assert reloaded.get("removed") is None
         assert reloaded.lookup_error("removed-too") is None
         assert reloaded.get("carryon") is not None
+
+
+def install_releases(name: str) -> list[ReleaseDict]:
+    """The normalized releases `get_mod` hands an install, from a captured lookup."""
+    mod = normalize_mod(json.loads((FIXTURES / f"mod_{name}.json").read_text())["mod"])
+    assert mod is not None
+    return mod["releases"]
+
+
+class TestRecordInstall:
+    """Story 17.4: an install stores the new mod's releases from its own lookup."""
+
+    def test_stores_the_record_and_reports_the_status(self, tmp_path: Path) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        store.set_lookup_error("carryon", "mod database unavailable")
+
+        service.record_install("carryon", install_releases("carryon"))
+
+        item = service.get_status()[0]
+        assert item.status == "update_available"
+        assert item.offered_version == "1.14.3"
+        assert item.reason is None
+        assert item.error is None
+        assert item.checked_at is not None
+        assert store.lookup_error("carryon") is None
+        reloaded = ModUpdateStore(tmp_path / "state").get("carryon")
+        assert reloaded is not None
+        assert reloaded.found is True
+        assert len(reloaded.releases) == len(install_releases("carryon"))
+
+    def test_same_record_as_a_check(self, tmp_path: Path) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+
+        service.record_install("carryon", install_releases("carryon"))
+
+        stored = store.get("carryon")
+        assert stored is not None
+        assert stored.releases == fixture_releases("carryon")
+
+    def test_save_failure_is_logged_and_does_not_raise(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, captured_logs: StringIO
+    ) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+
+        def fail_save() -> None:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(store, "save", fail_save)
+
+        service.record_install("carryon", install_releases("carryon"))
+
+        output = captured_logs.getvalue()
+        assert "mod_update_record_after_install_failed" in output
+        assert "disk full" in output
+        assert "warning" in output
+        # The record lives in memory until restart, as after a check whose save failed
+        assert service.get_status()[0].status == "update_available"
+        assert not (tmp_path / "state").exists()
+
+    def test_bad_release_data_stores_nothing(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
+        bad: list[ReleaseDict] = json.loads("[1]")
+
+        service.record_install("carryon", bad)
+
+        assert store.get("carryon") is None
+        item = service.get_status()[0]
+        assert (item.status, item.reason) == ("unknown", "not_checked")
+        assert "mod_update_record_after_install_failed" in captured_logs.getvalue()
+
+
+class ChangingModSource:
+    """Installed mods that tests change while a check runs (Story 17.4)."""
+
+    def __init__(self, mods: list[ModInfo], cache_dir: Path) -> None:
+        self.mods = mods
+        self.api_client = ModApiClient(cache_dir=cache_dir)
+
+    def list_mods(self) -> list[ModInfo]:
+        return list(self.mods)
+
+
+class TestCheckWhileInstalling:
+    """Story 17.4 AC 6: a check prunes against the installed mods when it ends."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_install_during_a_check_keeps_its_record(self, tmp_path: Path) -> None:
+        source = ChangingModSource(
+            [installed("carryon", "1.14.1"), installed("removed", "1.0.0")], tmp_path / "cache"
+        )
+        store = ModUpdateStore(tmp_path / "state")
+        service = ModUpdateService(
+            store=store, mod_source=source, game_version_provider=lambda: "1.22.7"
+        )
+
+        def install_and_remove_during_lookup(request: httpx.Request) -> Response:
+            # An install finishes, and a removal happens, while the check awaits a lookup
+            source.mods = [installed("carryon", "1.14.1"), installed("instruments", "1.2.2")]
+            service.record_install("instruments", install_releases("instruments"))
+            return fixture_response("carryon")
+
+        respx.get(MOD_URL.format("carryon")).mock(side_effect=install_and_remove_during_lookup)
+        respx.get(MOD_URL.format("removed")).mock(return_value=fixture_response("not_found"))
+
+        await service.check()
+
+        assert store.get("instruments") is not None
+        assert store.get("removed") is None
+        statuses = {item.slug: item for item in service.get_status()}
+        assert statuses["instruments"].reason != "not_checked"
+        assert statuses["instruments"].status != "unknown"
+        reloaded = ModUpdateStore(tmp_path / "state")
+        assert reloaded.get("instruments") is not None
+        assert reloaded.get("removed") is None
 
 
 class TestModelHardening:

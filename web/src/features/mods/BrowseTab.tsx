@@ -81,10 +81,9 @@ export function BrowseTab() {
 
   // Story 10.8: Get installed mods to show install state on cards
   const { data: modsData } = useMods();
-  const installedSlugs = useMemo(
-    () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
-    [modsData]
-  );
+  // Story 17.4: the cards match any of an entry's mod IDs; an empty list while the
+  // installed list loads shows the Install button until it arrives
+  const installedMods = useMemo(() => modsData?.data?.mods ?? [], [modsData]);
 
   // VSS-1u2: Get installed server version to show first in version filter
   const { data: serverStatus } = useServerStatus();
@@ -284,7 +283,7 @@ export function BrowseTab() {
         mods={mods}
         isLoading={isLoading}
         onModClick={openModDetail}
-        installedSlugs={installedSlugs}
+        installedMods={installedMods}
       />
 
       {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name) */}

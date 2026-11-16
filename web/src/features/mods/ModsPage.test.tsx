@@ -83,6 +83,7 @@ const mockBrowseModsResponse = {
     mods: [
       {
         slug: 'testmod',
+        modIds: ['testmod'],
         name: 'Test Mod',
         author: 'Test Author',
         summary: 'A test mod',

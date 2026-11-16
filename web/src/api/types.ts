@@ -378,6 +378,13 @@ export type BrowseModSide = 'client' | 'server' | 'both';
 export interface ModBrowseItem {
   /** Mod identifier from modidstrs[0] - use this for API calls like /mods/lookup/{slug} */
   slug: string;
+  /**
+   * Every mod ID of the mod database entry (the listing's modidstrs), in listing
+   * order, each once; `slug` is the first when the entry has mod IDs (an entry with
+   * none has `[]`, and `slug` falls back to its numeric ID). Used to recognize an
+   * installed mod by any of them (Story 17.4).
+   */
+  modIds: string[];
   /** URL alias for website links (mods.vintagestory.at/{urlalias}). May differ from slug. */
   urlalias: string | null;
   assetId: number;

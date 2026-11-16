@@ -2,7 +2,9 @@
  * ModUpdateCell - "Available" column cell for the installed mods table (Story 14.3).
  *
  * Shows the offered update with an Update action, or a quiet status label
- * ("Up to date", "No compatible update", "Unknown") with the reason as a tooltip.
+ * ("Up to date", "No compatible update", "Not checked yet", "Unknown") with the reason
+ * as a tooltip. Story 17.4: a mod with no stored update data (`not_checked`) says
+ * "Not checked yet" rather than "Unknown".
  */
 
 import { Loader2 } from 'lucide-react';
@@ -10,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import type { ModUpdateStatus, ModUpdateUnknownReason } from '@/api/types';
 
 const UNKNOWN_REASONS: Record<ModUpdateUnknownReason, string> = {
-  not_checked: 'Not checked yet. Use "Check for updates".',
+  not_checked: 'Use "Check for updates" to look it up now.',
   not_in_database: 'Not found in the mod database.',
   installed_release_not_listed: 'The installed version is not listed in the mod database.',
   version_unparsable: 'The installed version could not be compared with newer releases.',
@@ -101,7 +103,7 @@ export function ModUpdateCell({
     case 'unknown':
       return (
         <StatusLabel
-          label="Unknown"
+          label={status.reason === 'not_checked' ? 'Not checked yet' : 'Unknown'}
           title={withError(
             (status.reason && UNKNOWN_REASONS[status.reason]) || 'Update status is unknown.',
             status

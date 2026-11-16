@@ -686,6 +686,7 @@ class TestModBrowseItem:
         assert item.logo_url is None
         assert item.tags == []
         assert item.last_released is None
+        assert item.mod_ids == []
 
     def test_create_with_all_fields(self) -> None:
         """ModBrowseItem can be created with all fields populated."""
@@ -838,6 +839,7 @@ class TestModBrowseItem:
 
         assert data == {
             "slug": "smithingplus",
+            "mod_ids": [],
             "urlalias": "smithingplus",
             "asset_id": 15312,
             "name": "Smithing Plus",

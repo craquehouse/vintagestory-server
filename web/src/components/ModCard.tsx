@@ -9,6 +9,8 @@
  * Story 17.2: Install sends the lookup's `installModId` and `latestVersion` (what a
  * plain install picks); when the details could not be loaded it sends the card's
  * slug and no version, and the API picks (never the string 'latest').
+ * Story 17.4: the card shows Installed when any of the entry's mod IDs is installed,
+ * matched without case, with the same helper as the detail page.
  */
 
 import { useState, useEffect } from 'react';
@@ -19,6 +21,7 @@ import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { formatNumber } from '@/lib/utils';
 import { SideBadge } from '@/components/SideBadge';
+import { findInstalledModByIds } from '@/lib/mod-ids';
 import type { ModBrowseItem } from '@/api/types';
 
 interface ModCardProps {
@@ -26,8 +29,8 @@ interface ModCardProps {
   mod: ModBrowseItem;
   /** Click handler for card navigation (optional) */
   onClick?: () => void;
-  /** Set of installed mod slugs (optional, used for install button) */
-  installedSlugs?: Set<string>;
+  /** Installed mods, their `slug` is the mod ID; omit to hide the install footer */
+  installedMods?: readonly { slug: string }[];
 }
 
 /**
@@ -39,12 +42,12 @@ interface ModCardProps {
  * @example
  * <ModCard mod={modBrowseItem} />
  */
-export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
+export function ModCard({ mod, onClick, installedMods }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [shouldFetchDetails, setShouldFetchDetails] = useState(false);
 
-  // Check if this mod is already installed
-  const isInstalled = installedSlugs?.has(mod.slug) ?? false;
+  // Check if this mod is already installed, under any of its mod IDs (Story 17.4)
+  const isInstalled = findInstalledModByIds(installedMods, [mod.slug, ...mod.modIds]) !== undefined;
 
   // Only apply clickable styles when onClick handler is provided
   const clickableStyles = onClick
@@ -187,7 +190,7 @@ export function ModCard({ mod, onClick, installedSlugs }: ModCardProps) {
         </div>
 
         {/* Install button or Installed indicator (Story 10.8) */}
-        {installedSlugs !== undefined && (
+        {installedMods !== undefined && (
           <div className="mt-auto pt-3 border-t">
             {isInstalled ? (
               <div

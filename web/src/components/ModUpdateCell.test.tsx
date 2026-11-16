@@ -85,7 +85,6 @@ describe('ModUpdateCell', () => {
   });
 
   it.each([
-    ['not_checked', 'Not checked yet. Use "Check for updates".'],
     ['not_in_database', 'Not found in the mod database.'],
     ['installed_release_not_listed', 'The installed version is not listed in the mod database.'],
     ['version_unparsable', 'The installed version could not be compared with newer releases.'],
@@ -94,7 +93,25 @@ describe('ModUpdateCell', () => {
 
     const label = screen.getByTestId('mod-update-carryon');
     expect(label).toHaveTextContent('Unknown');
+    expect(label).not.toHaveTextContent(/^Not checked yet/);
     expect(label).toHaveAttribute('title', text);
+  });
+
+  it('shows Unknown when no reason is given', () => {
+    render(<ModUpdateCell status={item({ status: 'unknown' })} />);
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent('Unknown');
+    expect(label).toHaveAttribute('title', 'Update status is unknown.');
+  });
+
+  it('shows Not checked yet for a mod without update data (Story 17.4)', () => {
+    render(<ModUpdateCell status={item({ status: 'unknown', reason: 'not_checked' })} />);
+
+    const label = screen.getByTestId('mod-update-carryon');
+    expect(label).toHaveTextContent(/^Not checked yet/);
+    expect(label).not.toHaveTextContent('Unknown');
+    expect(label).toHaveAttribute('title', 'Use "Check for updates" to look it up now.');
   });
 
   it('adds the last check error to the tooltip', () => {
@@ -106,7 +123,7 @@ describe('ModUpdateCell', () => {
 
     expect(screen.getByTestId('mod-update-carryon')).toHaveAttribute(
       'title',
-      'Not checked yet. Use "Check for updates". Last check failed: mod database unavailable'
+      'Use "Check for updates" to look it up now. Last check failed: mod database unavailable'
     );
   });
 

@@ -281,7 +281,8 @@ test.describe('Install picks the right release: real API (Story 17.2)', () => {
     );
 
     const after = await installedSlugs(request);
-    expect(after.filter((slug) => !before.includes(slug))).toEqual([]);
+    // Only this spec's mods: another spec running in parallel may install its own
+    expect(after.filter((slug) => TOUCHED.includes(slug) && !before.includes(slug))).toEqual([]);
   });
 
   test('a plain install of carryon installs its newest stable release', async ({ request }) => {
