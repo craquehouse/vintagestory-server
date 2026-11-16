@@ -193,7 +193,7 @@ development_status:
   16-6-settings-layout-on-desktop: done
   16-7-file-browser-breadcrumbs: done
   16-8-name-sort-and-empty-settings: done
-  epic-17: in-progress
+  epic-17: done
   epic-17-retrospective: optional
   17-1-mod-detail-pages-cannot-fail-on-bad-data: done
   17-2-install-picks-the-right-release: done
