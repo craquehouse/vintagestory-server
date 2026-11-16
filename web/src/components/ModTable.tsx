@@ -11,6 +11,8 @@
  * - Below the `lg` breakpoint (Story 16.5 below `md`, Story 17.8 up to `lg`), one card
  *   per mod instead of the table, rendered from the same sorted rows with the same
  *   handlers and dialogs
+ * - Story 18.4: below `lg`, a sort control above the cards writes the same preference as
+ *   the headers; the Name column wraps so the table fits its container from 1024px
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -53,6 +55,7 @@ import {
 } from '@/components/InstalledModParts';
 import { ModUpdateCell } from '@/components/ModUpdateCell';
 import { InstalledModCard } from '@/components/InstalledModCard';
+import { InstalledModsSortControl, SORT_COLUMN_LABELS } from '@/components/InstalledModsSortControl';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { useMediaQuery, LG_UP_QUERY } from '@/hooks/use-media-query';
@@ -251,12 +254,14 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     columnHelper.accessor('name', {
       header: ({ column }) => (
         <SortableHeader
-          label="Name"
+          label={SORT_COLUMN_LABELS.name}
           sorted={column.getIsSorted()}
           onClick={() => column.toggleSorting()}
         />
       ),
       cell: ({ row }) => <ModNameLink mod={row.original} />,
+      // Story 18.4: long names (and slugs without spaces) wrap so the table fits at 1024px
+      meta: { className: 'min-w-32 whitespace-normal wrap-anywhere' },
       sortFn: (rowA, rowB) => {
         const a = (rowA.original.name || rowA.original.slug).toLowerCase();
         const b = (rowB.original.name || rowB.original.slug).toLowerCase();
@@ -266,7 +271,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     columnHelper.accessor('version', {
       header: ({ column }) => (
         <SortableHeader
-          label="Version"
+          label={SORT_COLUMN_LABELS.version}
           sorted={column.getIsSorted()}
           onClick={() => column.toggleSorting()}
         />
@@ -306,7 +311,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     columnHelper.accessor('enabled', {
       header: ({ column }) => (
         <SortableHeader
-          label="Status"
+          label={SORT_COLUMN_LABELS.enabled}
           sorted={column.getIsSorted()}
           onClick={() => column.toggleSorting()}
         />
@@ -372,12 +377,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={
-                      (header.column.columnDef.meta as { className?: string } | undefined)?.className
-                    }
-                  >
+                  <TableHead key={header.id} className={header.column.columnDef.meta?.className}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -390,7 +390,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} data-testid={`mod-row-${row.original.slug}`}>
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -399,23 +399,29 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
           </TableBody>
         </Table>
       ) : (
-        <ul className="space-y-3" aria-label="Installed mods" data-testid="installed-mod-cards">
-          {table.getRowModel().rows.map((row) => {
-            const mod = row.original;
-            return (
-              <InstalledModCard
-                key={row.id}
-                mod={mod}
-                gameVersion={gameVersion}
-                isToggling={isTogglingMod(mod.slug)}
-                isUpdating={isChangingVersion(mod.slug)}
-                onToggle={() => handleToggle(mod)}
-                onUpdate={() => handleUpdate(mod)}
-                onRemove={() => handleRemoveClick(mod)}
-              />
-            );
-          })}
-        </ul>
+        <div className="space-y-3">
+          <InstalledModsSortControl
+            value={preferences.installedModsSort}
+            onChange={setInstalledModsSort}
+          />
+          <ul className="space-y-3" aria-label="Installed mods" data-testid="installed-mod-cards">
+            {table.getRowModel().rows.map((row) => {
+              const mod = row.original;
+              return (
+                <InstalledModCard
+                  key={row.id}
+                  mod={mod}
+                  gameVersion={gameVersion}
+                  isToggling={isTogglingMod(mod.slug)}
+                  isUpdating={isChangingVersion(mod.slug)}
+                  onToggle={() => handleToggle(mod)}
+                  onUpdate={() => handleUpdate(mod)}
+                  onRemove={() => handleRemoveClick(mod)}
+                />
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       <VersionChangeConfirmDialog

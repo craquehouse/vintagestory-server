@@ -244,6 +244,9 @@ test.describe('Installed mods on phones (Story 16.5)', () => {
       'mod-remove-longnamemod',
       'mod-updates-update-all',
       'mod-updates-check',
+      // Story 18.4: the sort control above the cards
+      'installed-mods-sort-column',
+      'installed-mods-sort-direction',
     ]) {
       await expectTouchTarget(page, testId);
     }

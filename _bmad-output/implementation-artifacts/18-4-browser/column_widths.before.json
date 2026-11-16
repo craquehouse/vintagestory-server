@@ -1,0 +1,444 @@
+[
+  {
+    "fixture": "long",
+    "width": 1024,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [
+      "table-container:1183/816"
+    ],
+    "table": [
+      1183,
+      816
+    ],
+    "columns": {
+      "Name": 447,
+      "Version": 90,
+      "Available": 234,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": false,
+    "removeInside": false
+  },
+  {
+    "fixture": "long",
+    "width": 1280,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [
+      "table-container:1183/1072"
+    ],
+    "table": [
+      1183,
+      1072
+    ],
+    "columns": {
+      "Name": 447,
+      "Version": 90,
+      "Available": 234,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": false
+  },
+  {
+    "fixture": "long",
+    "width": 1440,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1232,
+      1232
+    ],
+    "columns": {
+      "Name": 447,
+      "Version": 90,
+      "Available": 234,
+      "Side": 154,
+      "Compatibility": 152,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "long",
+    "width": 1920,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1712,
+      1712
+    ],
+    "columns": {
+      "Name": 588,
+      "Version": 118,
+      "Available": 307,
+      "Side": 203,
+      "Compatibility": 317,
+      "Status": 100,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "long",
+    "width": 1024,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [
+      "table-container:1183/912"
+    ],
+    "table": [
+      1183,
+      912
+    ],
+    "columns": {
+      "Name": 447,
+      "Version": 90,
+      "Available": 234,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": false,
+    "removeInside": false
+  },
+  {
+    "fixture": "long",
+    "width": 1280,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [
+      "table-container:1183/1168"
+    ],
+    "table": [
+      1183,
+      1168
+    ],
+    "columns": {
+      "Name": 447,
+      "Version": 90,
+      "Available": 234,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "long",
+    "width": 1440,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1328,
+      1328
+    ],
+    "columns": {
+      "Name": 449,
+      "Version": 90,
+      "Available": 235,
+      "Side": 155,
+      "Compatibility": 242,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "long",
+    "width": 1920,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1808,
+      1808
+    ],
+    "columns": {
+      "Name": 622,
+      "Version": 125,
+      "Available": 325,
+      "Side": 214,
+      "Compatibility": 335,
+      "Status": 105,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "longnamemod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1024,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [
+      "table-container:818/816"
+    ],
+    "table": [
+      818,
+      816
+    ],
+    "columns": {
+      "Name": 97,
+      "Version": 83,
+      "Available": 226,
+      "Side": 154,
+      "Compatibility": 131,
+      "Status": 76,
+      "(actions)": 52
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1280,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1072,
+      1072
+    ],
+    "columns": {
+      "Name": 109,
+      "Version": 94,
+      "Available": 256,
+      "Side": 174,
+      "Compatibility": 273,
+      "Status": 86,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1440,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1232,
+      1232
+    ],
+    "columns": {
+      "Name": 127,
+      "Version": 109,
+      "Available": 297,
+      "Side": 203,
+      "Compatibility": 317,
+      "Status": 100,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1920,
+    "sidebar": "expanded",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1712,
+      1712
+    ],
+    "columns": {
+      "Name": 180,
+      "Version": 154,
+      "Available": 421,
+      "Side": 287,
+      "Compatibility": 449,
+      "Status": 141,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1024,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      912,
+      912
+    ],
+    "columns": {
+      "Name": 97,
+      "Version": 83,
+      "Available": 226,
+      "Side": 154,
+      "Compatibility": 197,
+      "Status": 76,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 63,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1280,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1168,
+      1168
+    ],
+    "columns": {
+      "Name": 120,
+      "Version": 103,
+      "Available": 281,
+      "Side": 191,
+      "Compatibility": 299,
+      "Status": 94,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1440,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1328,
+      1328
+    ],
+    "columns": {
+      "Name": 138,
+      "Version": 118,
+      "Available": 322,
+      "Side": 219,
+      "Compatibility": 343,
+      "Status": 108,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  },
+  {
+    "fixture": "short",
+    "width": 1920,
+    "sidebar": "collapsed",
+    "documentOverflowX": 0,
+    "scrolling": [],
+    "table": [
+      1808,
+      1808
+    ],
+    "columns": {
+      "Name": 191,
+      "Version": 163,
+      "Available": 446,
+      "Side": 304,
+      "Compatibility": 475,
+      "Status": 149,
+      "(actions)": 80
+    },
+    "rowHeights": {
+      "shortmod": 57,
+      "oldmod": 57,
+      "offmod": 57
+    },
+    "toggleInside": true,
+    "removeInside": true
+  }
+]

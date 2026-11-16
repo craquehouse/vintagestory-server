@@ -157,4 +157,20 @@ describe('ModUpdateCell', () => {
 
     expect(screen.getByTestId('mod-update-button-carryon')).toHaveClass('min-h-11');
   });
+
+  it('lets the Update button wrap under the offered version (Story 18.4)', () => {
+    render(
+      <ModUpdateCell
+        status={item({
+          status: 'update_available',
+          offeredVersion: '1.15.0-rc.1',
+          offeredCompatibility: 'compatible',
+          offeredPrerelease: true,
+        })}
+        onUpdate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('mod-update-carryon')).toHaveClass('flex', 'flex-wrap');
+  });
 });
