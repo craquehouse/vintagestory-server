@@ -48,7 +48,7 @@ async function stubConflict(page: Page): Promise<string[]> {
       await route.fallback();
       return;
     }
-    const body = route.request().postDataJSON() as { slug: string };
+    const body: { slug: string } = route.request().postDataJSON();
     posted.push(body.slug);
     await route.fulfill({
       status: 409,
