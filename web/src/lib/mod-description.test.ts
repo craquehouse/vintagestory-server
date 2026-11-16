@@ -200,6 +200,20 @@ describe('sanitizeModDescription', () => {
       expect(parse(twice).querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
       expect(parse(twice).textContent).toBe('Docs (opens in a new tab)');
     });
+
+    it('replaces a marker span written by the mod author with the real note', () => {
+      const el = parse(
+        sanitize(
+          '<a href="https://example.com">Docs<span data-new-tab-note></span></a>' +
+            '<a href="https://example.com/b"><span data-new-tab-note>fake</span>Wiki</a>'
+        )
+      );
+      const [first, second] = Array.from(el.querySelectorAll('a'));
+      expect(first.querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
+      expect(first.textContent).toBe('Docs (opens in a new tab)');
+      expect(second.querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
+      expect(second.textContent).toBe('Wiki (opens in a new tab)');
+    });
   });
 
   it('keeps text formatting', () => {

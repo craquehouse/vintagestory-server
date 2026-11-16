@@ -38,11 +38,13 @@ purifier.addHook('afterSanitizeAttributes', (node) => {
   if (isLink) {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
-    // HTML links only; the marker keeps a second pass from adding a second note
-    if (
-      node.namespaceURI === HTML_NAMESPACE &&
-      !node.lastElementChild?.hasAttribute('data-new-tab-note')
-    ) {
+    // HTML links only. Any marked span already inside the link is removed first: a
+    // second pass then still ends with one note, and a marker the mod author wrote
+    // cannot stand in for the real note.
+    if (node.namespaceURI === HTML_NAMESPACE) {
+      for (const existing of Array.from(node.querySelectorAll('[data-new-tab-note]'))) {
+        existing.remove();
+      }
       const note = node.ownerDocument.createElement('span');
       note.className = 'sr-only';
       note.setAttribute('data-new-tab-note', '');
