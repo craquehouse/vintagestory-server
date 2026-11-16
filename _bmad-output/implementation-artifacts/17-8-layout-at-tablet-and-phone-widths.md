@@ -57,9 +57,9 @@ so that **I do not scroll sideways to reach a control**.
   - [x] 2.4: `web/src/features/mods/InstalledTab.tsx:97` and `:108`: `max-md:h-11` becomes `max-lg:h-11` on "Update all" and "Check for updates", so the toolbar has the same 44px touch targets as the cards in the whole card band. The comment at `:87` ("wraps on phones") stays; add one line that the 44px height applies up to `lg` (Story 17.8)
   - [x] 2.5: Tests (Dev Notes "Web tests", Task 2 rows) and the changes in "Existing tests that change" that belong to Task 2
 
-- [ ] Task 3: The Settings tab list wraps on narrow screens + tests (AC: 3, 4, 6)
-  - [ ] 3.1: `web/src/features/settings/SettingsPage.tsx:44`: `<TabsList className="h-auto max-w-full flex-wrap">` (Dev Notes "Decision: the Settings tabs wrap"). Do not change `web/src/components/ui/tabs.tsx`, `ModsPage.tsx` or `ChannelFilter.tsx`. Add "Story 17.8" to the header comment (`:1-14`)
-  - [ ] 3.2: Tests (Dev Notes "Web tests", Task 3 row)
+- [x] Task 3: The Settings tab list wraps on narrow screens + tests (AC: 3, 4, 6)
+  - [x] 3.1: `web/src/features/settings/SettingsPage.tsx:44`: `<TabsList className="h-auto max-w-full flex-wrap">` (Dev Notes "Decision: the Settings tabs wrap"). Do not change `web/src/components/ui/tabs.tsx`, `ModsPage.tsx` or `ChannelFilter.tsx`. Add "Story 17.8" to the header comment (`:1-14`)
+  - [x] 3.2: Tests (Dev Notes "Web tests", Task 3 row)
 
 - [ ] Task 4: The Game Settings title row shares the panel's width + tests (AC: 5, 6)
   - [ ] 4.1: `web/src/features/game-server/SettingsPage.tsx`: in each of the three returns (loading `:34-44`, error `:46-57`, main `:59-85`) wrap everything inside the outer `div` in `<div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">`. The outer `div`s keep their classes and test IDs (`p-4 lg:p-6 h-full overflow-auto`). Give the header row (`:66`) `data-testid="settings-page-header"`. `GameConfigPanel` keeps its own `mx-auto max-w-[1280px]` (`GameConfigPanel.tsx:190`, `:203`, `:276`): inside a 1280px wrapper it is a no-op, and it keeps the panel capped where `GameConfigPanel` is used elsewhere. Header comment: Story 17.8, the title row and the panel share one centered 1280px width (Epic 16 ADR-3)
@@ -261,6 +261,7 @@ Claude Opus 5.5 (claude-opus-5-5)
 
 - Task 1: `17-8-browser/layout_widths.mjs` measures every width (320, 390, 430, 768, 900, 1023, 1024, 1440, 1600, 1920; height 900) with the sidebar expanded and collapsed (the `vs_ui_prefs` cookie), a fresh browser context per page and state: Installed mods (stubbed with the three mods of `installed-mods-phone.spec.ts`), `/config` and each of its four tabs, the Version page (320-430), Game Settings at every width (not only from 1024, because Stories 17.5/17.6 added inline labels to the settings fields), and at 1920 expanded the content span of five other pages. Every non-GET API request is refused. Run on the stack rebuilt from this branch before any source change (`layout_widths.before.json`); checked that the output holds no key, server name, description, welcome message or password. Against the story's numbers: the same picture, with the long-name table now 1183px wide (story: 1163; 20px more from the update cell since 21457bf) and the Scheduled Jobs table 523px (story: 530). `/config` overflows the document by 214/144/104px at 320/390/430 on every tab; Installed mods at 768-1024 scrolls inside `table-container` (1183/560 ... 1183/912); Game Settings is misaligned at 1600 expanded (title 208, header right 1552, panel 240-1520) and at 1600/1920 collapsed and 1920 expanded (panel 400-1680, title 208, badge right 1872), aligned at 1024 and 1440. Game Settings at 320-430: no overflow (the 17.5/17.6 labels do not widen a field).
 - Task 2: `LG_UP_QUERY = '(min-width: 64rem)'` next to `MD_UP_QUERY` (module comment example now "table at lg and up"); `ModTable` uses it (`:130-131`, comment "Story 16.5, Story 17.8"), header comment updated; `InstalledModCard` comment says narrower than `lg`; `InstalledTab`'s two toolbar buttons are `max-lg:h-11`, with a one-line Story 17.8 comment under the 16.5 one. Tests (red first: 15 failed before the change): `use-media-query.test.tsx` `LG_UP_QUERY` at 1024/1440 true, 1023/900/768/390 false, and at the default width; `ModTable.test.tsx` block renamed "cards below lg (Stories 16.5, 17.8)", a nested "at tablet widths (Story 17.8)" block: one card per mod and no table at 768/900/1023 (`it.each`), the 1023px card's Update button sends the same `PUT .../version` `{version: '1.6.0', confirm: false}` as at 390, the 900px card's toggle sends `disable`, the 900px card's remove button opens `remove-dialog` and confirming sends `DELETE`; the crossing test now goes 1024 table → 1023 cards → 1024 table → 767 cards; `InstalledTab.test.tsx` "44px tall below lg" asserts `max-lg:h-11`. Whole web suite: 129 files, 3254 passed, 4 skipped.
+- Task 3: `features/settings/SettingsPage.tsx` `<TabsList className="h-auto max-w-full flex-wrap">` with a one-line comment, and "Story 17.8" in the header comment; `tabs.tsx`, `ModsPage.tsx` and `ChannelFilter.tsx` unchanged. Test (red first): the `layout` block checks that the tab list has `flex-wrap`, `max-w-full` and `h-auto`. `src/features/settings/`: 6 files, 135 passed.
 
 ### File List
 
@@ -273,6 +274,8 @@ Claude Opus 5.5 (claude-opus-5-5)
 - `web/src/components/InstalledModCard.tsx`
 - `web/src/features/mods/InstalledTab.tsx`
 - `web/src/features/mods/InstalledTab.test.tsx`
+- `web/src/features/settings/SettingsPage.tsx`
+- `web/src/features/settings/SettingsPage.test.tsx`
 
 ## Change Log
 
