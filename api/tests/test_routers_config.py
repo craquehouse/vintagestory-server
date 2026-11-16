@@ -27,9 +27,11 @@ dependency chain (`TestIntervalSettingsReschedule`).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from collections.abc import AsyncIterator, Generator
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -2008,6 +2010,39 @@ class TestIntervalSettingsReschedule:
             (temp_settings.state_dir / "api-settings.json").read_text()
         )
         assert saved[key] == 3600
+
+    async def test_same_value_again_restarts_the_countdown(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        """Saving N over N keeps the job and moves its next run forward (review L4)."""
+        assert (await _save(reschedule_client, "mod_list_refresh_interval", 600)).status_code == 200
+        first = (await _jobs(reschedule_client))["mod_cache_refresh"]
+        await asyncio.sleep(0.05)
+
+        assert (await _save(reschedule_client, "mod_list_refresh_interval", 600)).status_code == 200
+
+        second = (await _jobs(reschedule_client))["mod_cache_refresh"]
+        assert second["trigger_details"] == "every 600 seconds"
+        assert datetime.fromisoformat(second["next_run_time"]) > datetime.fromisoformat(
+            first["next_run_time"]
+        )
+
+    async def test_a_deleted_job_comes_back_on_the_next_save(
+        self, reschedule_client: httpx.AsyncClient
+    ) -> None:
+        """A job removed with DELETE /jobs/{id} is registered again by a save (review L4)."""
+        await _save(reschedule_client, "mod_list_refresh_interval", 600)
+        deleted = await reschedule_client.delete(
+            "/api/v1alpha1/jobs/mod_cache_refresh", headers=ADMIN
+        )
+        assert deleted.status_code == 200
+        assert "mod_cache_refresh" not in await _jobs(reschedule_client)
+
+        response = await _save(reschedule_client, "mod_list_refresh_interval", 600)
+
+        assert response.status_code == 200
+        jobs = await _jobs(reschedule_client)
+        assert jobs["mod_cache_refresh"]["trigger_details"] == "every 600 seconds"
 
     async def test_other_settings_leave_the_jobs_alone(
         self, reschedule_client: httpx.AsyncClient
