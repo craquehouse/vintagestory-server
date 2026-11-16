@@ -477,6 +477,34 @@ describe('InstallConfirmDialog', () => {
       });
       expect(mockOnOpenChange).not.toHaveBeenCalledWith(false);
     });
+
+    it('shows the API message naming the file when its name is in use (Story 18.2)', async () => {
+      const user = userEvent.setup();
+      const conflict =
+        "Cannot install 'carrycapacity': a file named Foo.zip already exists in the mods directory.";
+      mockMutate.mockImplementation((_params, options) => {
+        options?.onError?.(new ApiError('MOD_FILE_CONFLICT', conflict, 409));
+      });
+
+      render(
+        <InstallConfirmDialog
+          mod={mockMod}
+          compatibility={{ status: 'compatible' }}
+          open={true}
+          onOpenChange={mockOnOpenChange}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      await user.click(screen.getByTestId('install-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Installation failed', {
+          description: conflict,
+        });
+      });
+      expect(mockOnOpenChange).not.toHaveBeenCalledWith(false);
+    });
   });
 
   describe('dialog visibility', () => {
