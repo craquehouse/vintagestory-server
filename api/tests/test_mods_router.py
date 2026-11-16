@@ -892,6 +892,88 @@ class TestLookupModEndpoint:
         assert data["install_mod_id"] == "nofile"
         assert data["latest_version"] is None
 
+    @staticmethod
+    def betterruins() -> dict[str, Any]:
+        payload: dict[str, Any] = json.loads((FIXTURES / "mod_betterruins.json").read_text())
+        return payload
+
+    @respx.mock
+    def test_lookup_mod_screenshots_and_trailer(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 18.1: screenshots with exactly three keys, and the trailer watch URL."""
+        payload = self.betterruins()
+        respx.get("https://mods.vintagestory.at/api/mod/betterruins").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/betterruins", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        raw = payload["mod"]["screenshots"]
+        assert isinstance(data["screenshots"], list)
+        assert len(data["screenshots"]) == len(raw)
+        for item, raw_item in zip(data["screenshots"], raw, strict=True):
+            assert set(item) == {"image_url", "thumbnail_url", "filename"}
+            assert item["image_url"] == raw_item["mainfile"]
+        assert data["trailer_url"] == "https://www.youtube.com/watch?v=mJHZH_sThDM"
+
+    @respx.mock
+    def test_lookup_mod_bad_media_is_filtered(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 18.1: bad screenshots are left out and a bad trailer is null; still 200."""
+        payload = self.betterruins()
+        good = payload["mod"]["screenshots"][0]
+        payload["mod"]["screenshots"] = [
+            {"mainfile": "https://i.imgur.com/x.png"},
+            None,
+            {**good, "thumbnailfilename": "http://moddbcdn.vintagestory.at/x.jpg"},
+        ]
+        payload["mod"]["trailervideourl"] = "https://apachegaming.net"
+        respx.get("https://mods.vintagestory.at/api/mod/betterruins").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/betterruins", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["screenshots"] == [
+            {
+                "image_url": good["mainfile"],
+                "thumbnail_url": good["mainfile"],
+                "filename": good["filename"],
+            }
+        ]
+        assert data["trailer_url"] is None
+
+    @respx.mock
+    def test_lookup_mod_without_media_has_the_keys(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 18.1: an entry without either key gives `[]` and null, keys present."""
+        payload = json.loads((FIXTURES / "mod_carryon.json").read_text())
+        respx.get("https://mods.vintagestory.at/api/mod/carryon").mock(
+            return_value=Response(200, json=payload)
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/carryon", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["screenshots"] == []
+        assert "trailer_url" in data
+        assert data["trailer_url"] is None
+
+
 def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:
     """Create a mod zip file at the given path."""
     with zipfile.ZipFile(path, "w") as zf:

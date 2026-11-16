@@ -154,7 +154,9 @@ class TestNormalizeModRules:
             {"releases": [None, "oops", 3, ["a"], {"modversion": "1.0.0", "fileid": None}]}
         )
         assert len(mod["releases"]) == 1
-        assert mod["releases"][0] == normalized_release({"modversion": "1.0.0", "fileid": None})
+        assert mod["releases"][0] == normalized_release(
+            {"modversion": "1.0.0", "fileid": None}
+        )
 
     @pytest.mark.parametrize("raw", [None, "mod", 3, True, [1, 2], ["a"]])
     def test_non_object_entry_is_none(self, raw: object) -> None:
@@ -373,7 +375,7 @@ def _assert_valid_values_unchanged(
 ) -> None:
     """Every key of `raw` other than `releases` keeps its value unless it was invalid."""
     for key, value in raw.items():
-        if key == "releases":
+        if key in ("releases", "screenshots"):
             continue
         if key not in fields:
             assert normalized[key] == value, key
@@ -391,7 +393,15 @@ class TestFixtures:
     """Captured mod database entries normalize without changing a valid value."""
 
     @pytest.mark.parametrize(
-        "name", ["canjewelry", "carryon", "instruments", "egocaribautomapmarkers", "playercorpse"]
+        "name",
+        [
+            "canjewelry",
+            "carryon",
+            "instruments",
+            "egocaribautomapmarkers",
+            "playercorpse",
+            "betterruins",
+        ],
     )
     def test_fixture_values_kept(self, name: str) -> None:
         raw = load_fixture(name)
@@ -401,6 +411,8 @@ class TestFixtures:
         for raw_release, release in zip(raw["releases"], mod["releases"], strict=True):
             _assert_valid_values_unchanged(raw_release, release, RELEASE_FIELDS)
             assert release["fileid"] == raw_release["fileid"]
+        # Story 18.1: captured screenshots are valid and come back unchanged
+        assert mod["screenshots"] == raw.get("screenshots", [])
 
     def test_canjewelry_nulls(self) -> None:
         mod = normalized_mod(load_fixture("canjewelry"))

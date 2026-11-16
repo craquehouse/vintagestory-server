@@ -4,6 +4,7 @@ import json
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -1850,6 +1851,110 @@ class TestModServiceLookupMod:
         assert release.created == ""
         assert release.changelog is None
         assert release.modidstr == ""
+
+
+class TestModServiceLookupMedia:
+    """`screenshots` and `trailer_url` on the lookup (Story 18.1, Epic 18 ADR-1, ADR-2)."""
+
+    @pytest.fixture
+    def lookup_service(
+        self,
+        temp_dirs: tuple[Path, Path],
+        restart_state: PendingRestartState,
+    ) -> ModService:
+        state_dir, mods_dir = temp_dirs
+        cache_dir = state_dir.parent / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            cache_dir=cache_dir,
+            restart_state=restart_state,
+            game_version="1.21.3",
+        )
+
+    @staticmethod
+    def betterruins() -> dict[str, Any]:
+        payload: dict[str, Any] = json.loads((FIXTURES / "mod_betterruins.json").read_text())
+        return payload
+
+    @staticmethod
+    async def lookup(service: ModService, slug: str, payload: dict[str, Any]) -> ModLookupResponse:
+        import respx
+        from httpx import Response
+
+        with respx.mock:
+            respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+                return_value=Response(200, json=payload)
+            )
+            return await service.lookup_mod(slug)
+
+    @pytest.mark.asyncio
+    async def test_fixture_screenshots_and_trailer(self, lookup_service: ModService) -> None:
+        payload = self.betterruins()
+        raw = payload["mod"]["screenshots"]
+        result = await self.lookup(lookup_service, "betterruins", payload)
+
+        assert len(result.screenshots) == len(raw)
+        assert [s.image_url for s in result.screenshots] == [r["mainfile"] for r in raw]
+        first = result.screenshots[0]
+        assert first.image_url == raw[0]["mainfile"]
+        assert first.thumbnail_url == raw[0]["thumbnailfilename"]
+        assert first.filename == raw[0]["filename"]
+        assert result.trailer_url == "https://www.youtube.com/watch?v=mJHZH_sThDM"
+
+    @pytest.mark.asyncio
+    async def test_bad_screenshots_are_filtered(self, lookup_service: ModService) -> None:
+        payload = self.betterruins()
+        good = payload["mod"]["screenshots"][0]
+        payload["mod"]["screenshots"] = [
+            good,
+            {"mainfile": "http://moddbcdn.vintagestory.at/x.jpg"},
+            {"mainfile": "https://i.imgur.com/x.png"},
+            None,
+            "x",
+            {**good, "thumbnailfilename": None},
+        ]
+        result = await self.lookup(lookup_service, "betterruins", payload)
+
+        assert len(result.screenshots) == 2
+        assert result.screenshots[0].thumbnail_url == good["thumbnailfilename"]
+        assert result.screenshots[1].image_url == good["mainfile"]
+        assert result.screenshots[1].thumbnail_url == result.screenshots[1].image_url
+
+    @pytest.mark.parametrize("value", [None, "x", "missing"])
+    @pytest.mark.asyncio
+    async def test_screenshots_not_a_list(self, lookup_service: ModService, value: object) -> None:
+        payload = self.betterruins()
+        if value == "missing":
+            del payload["mod"]["screenshots"]
+        else:
+            payload["mod"]["screenshots"] = value
+        result = await self.lookup(lookup_service, "betterruins", payload)
+        assert result.screenshots == []
+
+    @pytest.mark.parametrize("value", [None, "", 5, "https://apachegaming.net", "missing"])
+    @pytest.mark.asyncio
+    async def test_trailer_not_a_youtube_url(
+        self, lookup_service: ModService, value: object
+    ) -> None:
+        payload = self.betterruins()
+        if value == "missing":
+            del payload["mod"]["trailervideourl"]
+        else:
+            payload["mod"]["trailervideourl"] = value
+        result = await self.lookup(lookup_service, "betterruins", payload)
+        assert result.trailer_url is None
+        assert len(result.screenshots) == len(payload["mod"]["screenshots"])
+
+    @pytest.mark.asyncio
+    async def test_fixture_without_media(self, lookup_service: ModService) -> None:
+        payload: dict[str, Any] = json.loads((FIXTURES / "mod_carryon.json").read_text())
+        assert "screenshots" not in payload["mod"]
+        assert "trailervideourl" not in payload["mod"]
+        result = await self.lookup(lookup_service, "carryon", payload)
+        assert result.screenshots == []
+        assert result.trailer_url is None
 
 
 class TestModServiceCleanup:
