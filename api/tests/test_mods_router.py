@@ -4,6 +4,7 @@ import io
 import json
 import zipfile
 from collections.abc import Generator
+from datetime import timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -1901,7 +1902,8 @@ class TestBrowseModsEndpoint:
             mods_dir=temp_data_dir / "mods",
             cache_dir=temp_data_dir / "cache",
             restart_state=PendingRestartState(),
-            game_version="1.21.3",
+            # No server installed: no game version flags (Story 18.3 tests them)
+            game_version_provider=lambda: None,
         )
 
     @pytest.fixture
@@ -2877,7 +2879,8 @@ class TestBrowseItemSlugUrlalias:
             mods_dir=temp_data_dir / "mods",
             cache_dir=temp_data_dir / "cache",
             restart_state=PendingRestartState(),
-            game_version="1.21.3",
+            # No server installed: no game version flags (Story 18.3 tests them)
+            game_version_provider=lambda: None,
         )
 
     @pytest.fixture
@@ -3210,7 +3213,8 @@ class TestBrowseModsFilters:
             mods_dir=temp_data_dir / "mods",
             cache_dir=temp_data_dir / "cache",
             restart_state=PendingRestartState(),
-            game_version="1.21.3",
+            # No server installed: no game version flags (Story 18.3 tests them)
+            game_version_provider=lambda: None,
         )
 
     @pytest.fixture
@@ -3963,7 +3967,8 @@ class TestBrowseWithIncompleteModData:
             mods_dir=data_dir / "mods",
             cache_dir=data_dir / "cache",
             restart_state=PendingRestartState(),
-            game_version="1.21.3",
+            # No server installed: no game version flags (Story 18.3 tests them)
+            game_version_provider=lambda: None,
         )
         app.dependency_overrides[get_mod_service] = lambda: service
         app.dependency_overrides[get_settings] = lambda: settings
@@ -4009,6 +4014,7 @@ class TestBrowseWithIncompleteModData:
             "logo_url": None,
             "tags": [],
             "last_released": None,
+            "has_release_for_game_version": None,
         }
         assert by_slug["qolmod"]["tags"] == ["QoL"]
 
@@ -4097,3 +4103,351 @@ class TestBrowseWithIncompleteModData:
 
         assert browse.status_code == 502
         assert tags.status_code == 502
+
+
+# --- Story 18.3: game version flag on browse items ---
+
+MODS_URL = "https://mods.vintagestory.at/api/mods"
+GAMEVERSIONS_URL = "https://mods.vintagestory.at/api/gameversions"
+TAG_1_22_7 = -7
+TAG_1_21_3 = -3
+TAG_1_22_8 = -8
+
+
+def flag_listing(*modids: int) -> dict[str, Any]:
+    """A mod database listing with one entry per mod ID (`m<id>` as its mod ID string)."""
+    return {
+        "statuscode": "200",
+        "mods": [
+            {
+                "modid": i,
+                "modidstrs": [f"m{i}"],
+                "name": f"Mod {i}",
+                "urlalias": f"m{i}",
+                "downloads": 100 - i,
+            }
+            for i in modids
+        ],
+    }
+
+
+FLAG_VERSIONS = {
+    "statuscode": "200",
+    "gameversions": [
+        {"tagid": TAG_1_22_7, "name": "1.22.7", "color": "#CCCCCC"},
+        {"tagid": TAG_1_21_3, "name": "1.21.3", "color": "#CCCCCC"},
+        {"tagid": TAG_1_22_8, "name": "1.22.8", "color": "#CCCCCC"},
+    ],
+}
+
+
+def filtered_route(tagid: int) -> respx.Route:
+    """The route for the listing filtered by a tag; register before the plain listing."""
+    return respx.get(MODS_URL, params={"gameversion": str(tagid)})
+
+
+class TestBrowseGameVersionFlag:
+    """GET /mods/browse reports whether each entry has a release for the installed version."""
+
+    @pytest.fixture
+    def installed(self) -> dict[str, str | None]:
+        """The installed game version; tests change it."""
+        return {"version": "1.22.7"}
+
+    @pytest.fixture
+    def mod_service(self, tmp_path: Path, installed: dict[str, str | None]) -> ModService:
+        data_dir = tmp_path / "data"
+        for sub in ("state", "mods", "cache"):
+            (data_dir / sub).mkdir(parents=True)
+        return ModService(
+            state_dir=data_dir / "state",
+            mods_dir=data_dir / "mods",
+            cache_dir=data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version_provider=lambda: installed["version"],
+        )
+
+    @pytest.fixture
+    def client(self, tmp_path: Path, mod_service: ModService) -> Generator[TestClient]:
+        settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=tmp_path / "data",
+            debug=True,
+        )
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: settings
+        yield TestClient(app)
+        app.dependency_overrides.clear()
+
+    def browse(self, client: TestClient, query: str = "") -> dict[str, Any]:
+        response = client.get(
+            f"/api/v1alpha1/mods/browse{query}", headers={"X-API-Key": TEST_ADMIN_KEY}
+        )
+        assert response.status_code == 200, response.text
+        return response.json()["data"]
+
+    @staticmethod
+    def flags(data: dict[str, Any]) -> dict[str, bool | None]:
+        return {m["slug"]: m["has_release_for_game_version"] for m in data["mods"]}
+
+    @respx.mock
+    @pytest.mark.parametrize("installed_version", ["1.22.7", "v1.22.7"])
+    def test_true_and_false(
+        self,
+        client: TestClient,
+        installed: dict[str, str | None],
+        installed_version: str,
+    ) -> None:
+        """Items in the filtered listing are true, the others false (AC 1); a v prefix is
+        stripped."""
+        installed["version"] = installed_version
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2, 3)))
+
+        data = self.browse(client)
+
+        assert data["game_version"] == "1.22.7"
+        assert self.flags(data) == {"m1": True, "m2": False, "m3": False}
+        assert filtered.call_count == 1
+        assert plain.call_count == 1
+
+    @respx.mock
+    def test_one_filtered_request_for_many_browse_requests(self, client: TestClient) -> None:
+        """Pages, sorts and searches share one filtered listing request; no per-mod request
+        (AC 2). respx fails any request to /api/mod/<slug>, which has no route."""
+        versions = respx.get(GAMEVERSIONS_URL).mock(
+            return_value=Response(200, json=FLAG_VERSIONS)
+        )
+        filtered = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2, 3)))
+
+        page_1 = self.browse(client, "?page=1&page_size=2&sort=downloads")
+        page_2 = self.browse(client, "?page=2&page_size=2&sort=downloads")
+        by_name = self.browse(client, "?sort=name")
+        searched = self.browse(client, "?search=Mod%201")
+
+        assert self.flags(page_1) == {"m1": True, "m2": False}
+        assert self.flags(page_2) == {"m3": False}
+        assert self.flags(by_name) == {"m1": True, "m2": False, "m3": False}
+        assert self.flags(searched) == {"m1": True}
+        assert filtered.call_count == 1
+        assert versions.call_count == 1
+        assert plain.call_count == 1
+
+    @respx.mock
+    def test_no_server_installed(
+        self, client: TestClient, installed: dict[str, str | None]
+    ) -> None:
+        """No server: game_version and every flag null, no version list or filtered request
+        (AC 4)."""
+        installed["version"] = None
+        versions = respx.get(GAMEVERSIONS_URL).mock(
+            return_value=Response(200, json=FLAG_VERSIONS)
+        )
+        filtered = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        data = self.browse(client)
+
+        assert data["game_version"] is None
+        assert self.flags(data) == {"m1": None, "m2": None}
+        assert versions.call_count == 0
+        assert filtered.call_count == 0
+
+    @respx.mock
+    @pytest.mark.parametrize("installed_version", ["1.99.0", "stable"])
+    def test_version_without_tag(
+        self,
+        client: TestClient,
+        installed: dict[str, str | None],
+        installed_version: str,
+    ) -> None:
+        """An installed version with no tag: nulls, one version list request (AC 4)."""
+        installed["version"] = installed_version
+        versions = respx.get(GAMEVERSIONS_URL).mock(
+            return_value=Response(200, json=FLAG_VERSIONS)
+        )
+        filtered = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        data = self.browse(client)
+        self.browse(client)
+
+        assert data["game_version"] is None
+        assert self.flags(data) == {"m1": None, "m2": None}
+        assert versions.call_count == 1
+        assert filtered.call_count == 0
+
+    @respx.mock
+    def test_filtered_listing_fails_without_copy(self, client: TestClient) -> None:
+        """A failed filtered listing with no earlier copy: 200 with nulls (AC 5)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered_route(TAG_1_22_7).mock(return_value=Response(500, content=b"error"))
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        data = self.browse(client)
+
+        assert data["game_version"] is None
+        assert self.flags(data) == {"m1": None, "m2": None}
+
+    @respx.mock
+    def test_filtered_listing_fails_with_earlier_copy(
+        self, client: TestClient, mod_service: ModService
+    ) -> None:
+        """A failed refresh serves the flags of the last copy, even an expired one (AC 5)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered = filtered_route(TAG_1_22_7).mock(
+            side_effect=[
+                Response(200, json=flag_listing(1)),
+                Response(500, content=b"error"),
+            ]
+        )
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        first = self.browse(client)
+        mod_service.api_client.BROWSE_CACHE_TTL = timedelta(0)
+        second = self.browse(client)
+
+        assert filtered.call_count == 2
+        assert second["game_version"] == "1.22.7"
+        assert self.flags(second) == self.flags(first) == {"m1": True, "m2": False}
+
+    @respx.mock
+    def test_version_list_fails(self, client: TestClient) -> None:
+        """A failed game version list: 200 with nulls (AC 5)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(503, content=b"down"))
+        respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        data = self.browse(client)
+
+        assert data["game_version"] is None
+        assert self.flags(data) == {"m1": None, "m2": None}
+
+    @respx.mock
+    def test_main_listing_fails_is_still_502(self, client: TestClient) -> None:
+        """A failed main listing is still 502 EXTERNAL_API_ERROR (AC 5)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
+        respx.get(MODS_URL).mock(side_effect=httpx.ConnectError("refused"))
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse", headers={"X-API-Key": TEST_ADMIN_KEY}
+        )
+
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+    @respx.mock
+    def test_changed_installed_version(
+        self, client: TestClient, installed: dict[str, str | None]
+    ) -> None:
+        """Another installed version is used on the next request, without clearing (AC 6)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        route_7 = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1))
+        )
+        route_8 = filtered_route(TAG_1_22_8).mock(
+            return_value=Response(200, json=flag_listing(2))
+        )
+        plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
+
+        before = self.browse(client)
+        installed["version"] = "1.22.8"
+        after = self.browse(client)
+
+        assert before["game_version"] == "1.22.7"
+        assert self.flags(before) == {"m1": True, "m2": False}
+        assert after["game_version"] == "1.22.8"
+        assert self.flags(after) == {"m1": False, "m2": True}
+        assert route_7.call_count == 1
+        assert route_8.call_count == 1
+        assert plain.call_count == 1
+
+    @respx.mock
+    def test_item_without_modid_is_null(self, client: TestClient) -> None:
+        """An item without a numeric modid cannot be matched: its flag is null."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
+        listing = flag_listing(1, 2)
+        listing["mods"].append({"modidstrs": ["noid"], "name": "No ID", "urlalias": "noid"})
+        respx.get(MODS_URL).mock(return_value=Response(200, json=listing))
+
+        data = self.browse(client)
+
+        assert self.flags(data) == {"m1": True, "m2": False, "noid": None}
+
+    @respx.mock
+    def test_version_filter_with_flags(self, client: TestClient) -> None:
+        """A version filter is cached per version; flags still refer to the installed one
+        (AC 7)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        route_3 = filtered_route(TAG_1_21_3).mock(
+            return_value=Response(200, json=flag_listing(4, 5, 6))
+        )
+        route_7 = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(5))
+        )
+        plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1)))
+
+        page_1 = self.browse(client, "?version=1.21.3&page=1&page_size=2&sort=downloads")
+        page_2 = self.browse(client, "?version=1.21.3&page=2&page_size=2&sort=downloads")
+
+        assert self.flags(page_1) == {"m4": False, "m5": True}
+        assert self.flags(page_2) == {"m6": False}
+        assert page_1["game_version"] == page_2["game_version"] == "1.22.7"
+        assert page_1["pagination"]["total_items"] == 3
+        assert route_3.call_count == 1
+        assert route_7.call_count == 1
+        assert plain.call_count == 0
+
+    @respx.mock
+    def test_version_filter_by_installed_version(self, client: TestClient) -> None:
+        """Filtering by the installed version makes one filtered request in total (AC 2, 7)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        route_7 = filtered_route(TAG_1_22_7).mock(
+            return_value=Response(200, json=flag_listing(1, 2))
+        )
+        plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1)))
+
+        data = self.browse(client, "?version=1.22.7")
+        self.browse(client, "?version=1.22.7&page=2&page_size=1")
+
+        assert self.flags(data) == {"m1": True, "m2": True}
+        assert route_7.call_count == 1
+        assert plain.call_count == 0
+
+    @respx.mock
+    def test_unknown_filter_version_is_still_400(self, client: TestClient) -> None:
+        """An unknown filter version is still 400 GAME_VERSION_NOT_FOUND (AC 7)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=9.9.9", headers={"X-API-Key": TEST_ADMIN_KEY}
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == "GAME_VERSION_NOT_FOUND"
+
+    @respx.mock
+    def test_filter_listing_fails_is_still_502(self, client: TestClient) -> None:
+        """A failed filter listing is still 502 EXTERNAL_API_ERROR (AC 7)."""
+        respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered_route(TAG_1_21_3).mock(side_effect=httpx.ConnectError("refused"))
+        filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
+
+        response = client.get(
+            "/api/v1alpha1/mods/browse?version=1.21.3", headers={"X-API-Key": TEST_ADMIN_KEY}
+        )
+
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
