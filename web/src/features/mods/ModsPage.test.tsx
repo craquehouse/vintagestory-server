@@ -104,7 +104,7 @@ const mockBrowseModsResponse = {
       pageSize: 20,
       totalItems: 41,
       totalPages: 3,
-      hasNext: false,
+      hasNext: true,
       hasPrev: false,
     },
   },
