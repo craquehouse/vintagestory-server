@@ -6,6 +6,7 @@
  * - Loading skeleton state
  * - Empty state when no mods match filters
  * - Story 10.8: Install buttons on cards with confirmation dialog
+ * - Story 18.3: Cards say whether a mod has a release for the installed game version
  */
 
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +26,8 @@ interface ModBrowseGridProps {
    * Omit to hide the cards' install footer (Story 17.4: a card matches any of its mod IDs).
    */
   installedMods?: readonly { slug: string }[];
+  /** The game version the cards' flags refer to; from the browse response (Story 18.3) */
+  gameVersion?: string | null;
 }
 
 /**
@@ -71,6 +74,7 @@ export function ModBrowseGrid({
   isLoading = false,
   onModClick,
   installedMods,
+  gameVersion,
 }: ModBrowseGridProps) {
   if (isLoading) {
     return (
@@ -107,6 +111,7 @@ export function ModBrowseGrid({
           mod={mod}
           onClick={onModClick ? () => onModClick(mod.slug) : undefined}
           installedMods={installedMods}
+          gameVersion={gameVersion}
         />
       ))}
     </div>

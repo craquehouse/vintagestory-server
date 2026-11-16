@@ -91,6 +91,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: null,
     tags: ['utility', 'qol'],
     lastReleased: '2024-01-15T10:00:00Z',
+    hasReleaseForGameVersion: null,
   },
   {
     slug: 'primitivesurvival',
@@ -108,6 +109,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: 'https://example.com/logo.png',
     tags: ['survival', 'fishing', 'traps'],
     lastReleased: '2024-02-01T12:00:00Z',
+    hasReleaseForGameVersion: null,
   },
   {
     slug: 'wildcraft',
@@ -125,6 +127,7 @@ const mockMods: ModBrowseItem[] = [
     logoUrl: null,
     tags: ['plants', 'foraging'],
     lastReleased: '2024-01-20T08:00:00Z',
+    hasReleaseForGameVersion: null,
   },
 ];
 
@@ -393,6 +396,23 @@ describe('ModBrowseGrid', () => {
       expect(screen.getByTestId('install-confirm-dialog')).toBeInTheDocument();
       // Should show not_verified warning as fallback
       expect(screen.getByTestId('install-dialog-warning')).toBeInTheDocument();
+    });
+  });
+
+  describe('gameVersion prop (Story 18.3)', () => {
+    it('passes the game version to the cards', () => {
+      const mods: ModBrowseItem[] = [
+        { ...mockMods[0], hasReleaseForGameVersion: true },
+        { ...mockMods[1], hasReleaseForGameVersion: false },
+      ];
+      render(<ModBrowseGrid mods={mods} gameVersion="1.22.7" />);
+
+      expect(screen.getByTestId('mod-card-game-version-carrycapacity')).toHaveTextContent(
+        'Has a release for 1.22.7'
+      );
+      expect(screen.getByTestId('mod-card-game-version-primitivesurvival')).toHaveTextContent(
+        'No release for 1.22.7'
+      );
     });
   });
 });

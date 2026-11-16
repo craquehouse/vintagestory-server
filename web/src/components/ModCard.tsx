@@ -11,11 +11,14 @@
  * slug and no version, and the API picks (never the string 'latest').
  * Story 17.4: the card shows Installed when any of the entry's mod IDs is installed,
  * matched without case, with the same helper as the detail page.
+ * Story 18.3: the card says whether the entry has a release tagged for the installed
+ * game version (Epic 18 ADR-3); not a compatibility verdict.
  */
 
 import { useState, useEffect } from 'react';
 import { Download, Users, TrendingUp, ExternalLink, Package, Check, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { useModDetail } from '@/hooks/use-mod-detail';
@@ -31,6 +34,47 @@ interface ModCardProps {
   onClick?: () => void;
   /** Installed mods, their `slug` is the mod ID; omit to hide the install footer */
   installedMods?: readonly { slug: string }[];
+  /** The game version the cards' flags refer to; from the browse response (Story 18.3) */
+  gameVersion?: string | null;
+}
+
+/**
+ * Whether the entry has a release tagged for the installed game version (Story 18.3,
+ * Epic 18 ADR-3). Not a compatibility verdict: the detail page judges the release an
+ * install would pick. Shows nothing when the flag or the version is unknown.
+ */
+function GameVersionIndicator({
+  slug,
+  hasRelease,
+  gameVersion,
+}: {
+  slug: string;
+  hasRelease: boolean | null;
+  gameVersion: string | null | undefined;
+}) {
+  if (!gameVersion) return null;
+  if (hasRelease === true) {
+    return (
+      <div className="mt-2" data-testid={`mod-card-game-version-${slug}`} data-has-release="true">
+        <Badge variant="secondary" className="max-w-full whitespace-normal text-left">
+          Has a release for {gameVersion}
+        </Badge>
+      </div>
+    );
+  }
+  // VSS-4f3, maintainer's open choice: delete this block for positive-only cards
+  if (hasRelease === false) {
+    return (
+      <p
+        className="mt-2 text-xs text-muted-foreground"
+        data-testid={`mod-card-game-version-${slug}`}
+        data-has-release="false"
+      >
+        No release for {gameVersion}
+      </p>
+    );
+  }
+  return null;
 }
 
 /**
@@ -42,7 +86,7 @@ interface ModCardProps {
  * @example
  * <ModCard mod={modBrowseItem} />
  */
-export function ModCard({ mod, onClick, installedMods }: ModCardProps) {
+export function ModCard({ mod, onClick, installedMods, gameVersion }: ModCardProps) {
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [shouldFetchDetails, setShouldFetchDetails] = useState(false);
 
@@ -188,6 +232,11 @@ export function ModCard({ mod, onClick, installedMods }: ModCardProps) {
         <div className="mt-2" data-testid={`mod-card-side-${mod.slug}`}>
           <SideBadge side={mod.side} />
         </div>
+        <GameVersionIndicator
+          slug={mod.slug}
+          hasRelease={mod.hasReleaseForGameVersion}
+          gameVersion={gameVersion}
+        />
 
         {/* Install button or Installed indicator (Story 10.8) */}
         {installedMods !== undefined && (

@@ -185,6 +185,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
         logoUrl: null,
         tags: ['utility'],
         lastReleased: '2024-01-15T10:00:00Z',
+        hasReleaseForGameVersion: null,
       },
       {
         slug: 'primitivesurvival',
@@ -202,6 +203,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
         logoUrl: null,
         tags: ['survival'],
         lastReleased: '2024-02-01T12:00:00Z',
+        hasReleaseForGameVersion: null,
       },
     ],
     pagination: {
@@ -212,6 +214,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       hasNext: true,
       hasPrev: false,
     },
+    gameVersion: null,
   },
 };
 
@@ -237,6 +240,7 @@ function mockClampingBrowseApi(totalItems: number) {
           hasNext: page < totalPages,
           hasPrev: page > 1,
         },
+        gameVersion: null,
       },
     };
     return Promise.resolve({ ok: true, json: () => Promise.resolve(response) });
@@ -360,6 +364,7 @@ describe('BrowseTab', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
 
@@ -417,6 +422,7 @@ describe('BrowseTab', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
 
@@ -710,6 +716,7 @@ describe('BrowseTab', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
 
@@ -792,6 +799,7 @@ describe('BrowseTab', () => {
             hasNext: false,
             hasPrev: false,
           },
+          gameVersion: null,
         },
       };
 
@@ -1984,6 +1992,58 @@ describe('BrowseTab', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/smithingplus', {
         state: { browseSearch: '' },
       });
+    });
+  });
+
+  describe('Story 18.3: game version indicator on the cards', () => {
+    const [first, second] = mockBrowseResponse.data.mods;
+    const flaggedResponse = (gameVersion: string | null): ApiResponse<ModBrowseData> => ({
+      status: 'ok',
+      data: {
+        ...mockBrowseResponse.data,
+        mods: [
+          { ...first, hasReleaseForGameVersion: gameVersion ? true : null },
+          { ...second, hasReleaseForGameVersion: gameVersion ? false : null },
+          { ...first, slug: 'unknownflag', modIds: ['unknownflag'], hasReleaseForGameVersion: null },
+        ],
+        gameVersion,
+      },
+    });
+
+    it('shows the badge, the muted text and nothing for true, false and null', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(flaggedResponse('1.22.7')),
+      });
+
+      render(<BrowseTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('mod-card-game-version-carrycapacity')).toHaveTextContent(
+        'Has a release for 1.22.7'
+      );
+      expect(screen.getByTestId('mod-card-game-version-primitivesurvival')).toHaveTextContent(
+        'No release for 1.22.7'
+      );
+      expect(screen.getByTestId('mod-card-unknownflag')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-card-game-version-unknownflag')).not.toBeInTheDocument();
+    });
+
+    it('shows no indicator when the game version is null', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(flaggedResponse(null)),
+      });
+
+      render(<BrowseTab />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(screen.queryAllByTestId(/^mod-card-game-version-/)).toHaveLength(0);
     });
   });
 });

@@ -59,6 +59,7 @@ describe('fetchBrowseMods', () => {
           logoUrl: 'https://example.com/logo.png',
           tags: ['utility', 'tools'],
           lastReleased: '2024-01-15T10:00:00Z',
+          hasReleaseForGameVersion: null,
         },
       ],
       pagination: {
@@ -69,6 +70,7 @@ describe('fetchBrowseMods', () => {
         hasNext: true,
         hasPrev: false,
       },
+      gameVersion: null,
     },
   };
 
@@ -193,6 +195,26 @@ describe('fetchBrowseMods', () => {
     expect(result.data.mods).toHaveLength(1);
     expect(result.data.mods[0].slug).toBe('test-mod');
     expect(result.data.pagination.totalItems).toBe(100);
+  });
+
+  it('converts the game version fields from the wire format (Story 18.3)', async () => {
+    const wire = {
+      status: 'ok',
+      data: {
+        mods: [{ slug: 'test-mod', has_release_for_game_version: true }],
+        pagination: { page: 1, page_size: 20, total_items: 1, total_pages: 1 },
+        game_version: '1.22.7',
+      },
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(wire),
+    });
+
+    const result = await fetchBrowseMods();
+
+    expect(result.data.gameVersion).toBe('1.22.7');
+    expect(result.data.mods[0].hasReleaseForGameVersion).toBe(true);
   });
 
   it('includes page=0 when explicitly set (API validates min value)', async () => {
