@@ -1,6 +1,6 @@
 /**
- * InstalledModCard - one installed mod as a card, for screens narrower than `md`
- * (Story 16.5, FR172).
+ * InstalledModCard - one installed mod as a card, for screens narrower than `lg`
+ * (Story 16.5, FR172; Story 17.8, FR191: tablets too).
  *
  * Shows what the table row shows (name, version, side, compatibility, update status
  * with the Update action, enable toggle, remove) without horizontal scrolling. ModTable

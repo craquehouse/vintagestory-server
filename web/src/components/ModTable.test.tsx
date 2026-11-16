@@ -1659,7 +1659,7 @@ describe('ModTable', () => {
       expect(screen.getByTestId('mod-update-carrycapacity')).not.toHaveTextContent('Unknown');
     });
   });
-  describe('Story 16.5: cards below md', () => {
+  describe('cards below lg (Stories 16.5, 17.8)', () => {
     const updatesResponse = {
       status: 'ok',
       data: {
@@ -1962,7 +1962,7 @@ describe('ModTable', () => {
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
     });
 
-    it('switches between table and cards when the viewport crosses md', async () => {
+    it('switches between table and cards when the viewport crosses lg, and stays cards below md', async () => {
       mockApi();
       const queryClient = createTestQueryClient();
       render(<ModTable />, { wrapper: createWrapper(queryClient) });
@@ -1970,13 +1970,98 @@ describe('ModTable', () => {
       expect(await screen.findByTestId('mod-table')).toBeInTheDocument();
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
 
-      act(() => setViewportWidth(767));
+      act(() => setViewportWidth(1023));
       expect(screen.getByTestId('installed-mod-cards')).toBeInTheDocument();
       expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
 
-      act(() => setViewportWidth(768));
+      act(() => setViewportWidth(1024));
       expect(screen.getByTestId('mod-table')).toBeInTheDocument();
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+
+      act(() => setViewportWidth(767));
+      expect(screen.getByTestId('installed-mod-cards')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+    });
+
+    // Story 17.8 (FR191): from md up to lg the table cannot fit, so the cards are used
+    describe('at tablet widths (Story 17.8)', () => {
+      function renderAtWidth(width: number) {
+        setViewportWidth(width);
+        const queryClient = createTestQueryClient();
+        return render(<ModTable />, { wrapper: createWrapper(queryClient) });
+      }
+
+      it.each([768, 900, 1023])('renders one card per mod and no table at %ipx', async (width) => {
+        mockApi();
+        renderAtWidth(width);
+
+        expect(await screen.findByTestId('installed-mod-cards')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId(/^installed-mod-card-/)).toHaveLength(2);
+      });
+
+      it('shows the Update button on the card at 1023px and applies the offered update', async () => {
+        const mockFetch = mockApi(() => ({
+          status: 'ok',
+          data: {
+            slug: 'smithingplus',
+            previous_version: '1.5.0',
+            version: '1.6.0',
+            filename: 'smithingplus-1.6.0.zip',
+            compatibility: 'compatible',
+            changed: true,
+            pending_restart: false,
+          },
+        }));
+        renderAtWidth(1023);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const update = await screen.findByTestId('mod-update-button-smithingplus');
+        expect(card).toContainElement(update);
+        fireEvent.click(update);
+
+        await waitFor(() => {
+          const put = mockFetch.mock.calls.find(([, options]) => options?.method === 'PUT');
+          expect(put?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/version');
+          expect(JSON.parse(put?.[1].body)).toEqual({ version: '1.6.0', confirm: false });
+        });
+      });
+
+      it('toggles a mod from its card at 900px', async () => {
+        const mockFetch = mockApi(() => ({
+          status: 'ok',
+          data: { slug: 'smithingplus', enabled: false, pending_restart: false },
+        }));
+        renderAtWidth(900);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const toggle = screen.getByTestId('mod-toggle-smithingplus');
+        expect(card).toContainElement(toggle);
+        expect(toggle).toHaveAccessibleName('Disable mod');
+        fireEvent.click(toggle);
+
+        await waitFor(() => {
+          const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
+          expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/disable');
+        });
+      });
+
+      it('opens the remove dialog from a card at 900px', async () => {
+        const mockFetch = mockApi(() => ({ status: 'ok', data: { slug: 'smithingplus' } }));
+        renderAtWidth(900);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const remove = screen.getByRole('button', { name: 'Remove Smithing Plus' });
+        expect(card).toContainElement(remove);
+        fireEvent.click(remove);
+        expect(await screen.findByTestId('remove-dialog')).toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+        await waitFor(() => {
+          const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'DELETE');
+          expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus');
+        });
+      });
     });
   });
 

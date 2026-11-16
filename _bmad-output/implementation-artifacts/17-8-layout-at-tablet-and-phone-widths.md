@@ -50,12 +50,12 @@ so that **I do not scroll sideways to reach a control**.
   - [x] 1.2: Run it against the Docker dev stack built from this branch before any source change (`just docker restart`, then `cd web && bun ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs > ../_bmad-output/implementation-artifacts/17-8-browser/layout_widths.before.json`). Compare with the numbers in Dev Notes "Measured on the dev stack"; a large difference means a story before this one changed the layout, so re-check before going on
   - [x] 1.3: Commit the script and `layout_widths.before.json` only (no screenshots): `docs(story-17.8/task-1): measure page layouts from phone to wide desktop widths`
 
-- [ ] Task 2: Installed mods use the cards up to `lg` + tests (AC: 1, 2, 6)
-  - [ ] 2.1: `web/src/hooks/use-media-query.ts:10-11`: add `LG_UP_QUERY = '(min-width: 64rem)'` with a doc comment (Tailwind v4's `lg`, 1024px at the default root font size) next to `MD_UP_QUERY`; update the module comment's example (`:3-5`, "table at md and up" becomes "table at lg and up")
-  - [ ] 2.2: `web/src/components/ModTable.tsx`: `isTableLayout = useMediaQuery(LG_UP_QUERY)` (`:129-130`, import `:57`); comment "Story 16.5, Story 17.8: the table at lg and up, cards below". Header comment (`:11-12`): "Below the `lg` breakpoint (Story 16.5 below `md`, Story 17.8 up to `lg`) ...". Nothing else in the file changes: columns (`:249-335`), table markup (`:368-399`) and the cards branch (`:400-418`) stay as they are
-  - [ ] 2.3: `web/src/components/InstalledModCard.tsx:1-9`: "for screens narrower than `lg`" (and Story 17.8 in the comment). No markup change
-  - [ ] 2.4: `web/src/features/mods/InstalledTab.tsx:97` and `:108`: `max-md:h-11` becomes `max-lg:h-11` on "Update all" and "Check for updates", so the toolbar has the same 44px touch targets as the cards in the whole card band. The comment at `:87` ("wraps on phones") stays; add one line that the 44px height applies up to `lg` (Story 17.8)
-  - [ ] 2.5: Tests (Dev Notes "Web tests", Task 2 rows) and the changes in "Existing tests that change" that belong to Task 2
+- [x] Task 2: Installed mods use the cards up to `lg` + tests (AC: 1, 2, 6)
+  - [x] 2.1: `web/src/hooks/use-media-query.ts:10-11`: add `LG_UP_QUERY = '(min-width: 64rem)'` with a doc comment (Tailwind v4's `lg`, 1024px at the default root font size) next to `MD_UP_QUERY`; update the module comment's example (`:3-5`, "table at md and up" becomes "table at lg and up")
+  - [x] 2.2: `web/src/components/ModTable.tsx`: `isTableLayout = useMediaQuery(LG_UP_QUERY)` (`:129-130`, import `:57`); comment "Story 16.5, Story 17.8: the table at lg and up, cards below". Header comment (`:11-12`): "Below the `lg` breakpoint (Story 16.5 below `md`, Story 17.8 up to `lg`) ...". Nothing else in the file changes: columns (`:249-335`), table markup (`:368-399`) and the cards branch (`:400-418`) stay as they are
+  - [x] 2.3: `web/src/components/InstalledModCard.tsx:1-9`: "for screens narrower than `lg`" (and Story 17.8 in the comment). No markup change
+  - [x] 2.4: `web/src/features/mods/InstalledTab.tsx:97` and `:108`: `max-md:h-11` becomes `max-lg:h-11` on "Update all" and "Check for updates", so the toolbar has the same 44px touch targets as the cards in the whole card band. The comment at `:87` ("wraps on phones") stays; add one line that the 44px height applies up to `lg` (Story 17.8)
+  - [x] 2.5: Tests (Dev Notes "Web tests", Task 2 rows) and the changes in "Existing tests that change" that belong to Task 2
 
 - [ ] Task 3: The Settings tab list wraps on narrow screens + tests (AC: 3, 4, 6)
   - [ ] 3.1: `web/src/features/settings/SettingsPage.tsx:44`: `<TabsList className="h-auto max-w-full flex-wrap">` (Dev Notes "Decision: the Settings tabs wrap"). Do not change `web/src/components/ui/tabs.tsx`, `ModsPage.tsx` or `ChannelFilter.tsx`. Add "Story 17.8" to the header comment (`:1-14`)
@@ -260,11 +260,19 @@ Claude Opus 5.5 (claude-opus-5-5)
 - Story created 2026-11-15: context analysis of `ModTable`/`InstalledModCard`/`InstalledTab`/`useMediaQuery` and the jsdom viewport stand-in, the shadcn `Table`/`Tabs` components, the three tab lists, both `SettingsPage`s, `GameConfigPanel`'s 1280px cap and `Layout`; read-only measurements on the running dev stack at 320-1920px with the sidebar expanded and collapsed; a throwaway prototype of Tasks 2-4 measured in the browser and run against the whole web suite to find the tests that change.
 
 - Task 1: `17-8-browser/layout_widths.mjs` measures every width (320, 390, 430, 768, 900, 1023, 1024, 1440, 1600, 1920; height 900) with the sidebar expanded and collapsed (the `vs_ui_prefs` cookie), a fresh browser context per page and state: Installed mods (stubbed with the three mods of `installed-mods-phone.spec.ts`), `/config` and each of its four tabs, the Version page (320-430), Game Settings at every width (not only from 1024, because Stories 17.5/17.6 added inline labels to the settings fields), and at 1920 expanded the content span of five other pages. Every non-GET API request is refused. Run on the stack rebuilt from this branch before any source change (`layout_widths.before.json`); checked that the output holds no key, server name, description, welcome message or password. Against the story's numbers: the same picture, with the long-name table now 1183px wide (story: 1163; 20px more from the update cell since 21457bf) and the Scheduled Jobs table 523px (story: 530). `/config` overflows the document by 214/144/104px at 320/390/430 on every tab; Installed mods at 768-1024 scrolls inside `table-container` (1183/560 ... 1183/912); Game Settings is misaligned at 1600 expanded (title 208, header right 1552, panel 240-1520) and at 1600/1920 collapsed and 1920 expanded (panel 400-1680, title 208, badge right 1872), aligned at 1024 and 1440. Game Settings at 320-430: no overflow (the 17.5/17.6 labels do not widen a field).
+- Task 2: `LG_UP_QUERY = '(min-width: 64rem)'` next to `MD_UP_QUERY` (module comment example now "table at lg and up"); `ModTable` uses it (`:130-131`, comment "Story 16.5, Story 17.8"), header comment updated; `InstalledModCard` comment says narrower than `lg`; `InstalledTab`'s two toolbar buttons are `max-lg:h-11`, with a one-line Story 17.8 comment under the 16.5 one. Tests (red first: 15 failed before the change): `use-media-query.test.tsx` `LG_UP_QUERY` at 1024/1440 true, 1023/900/768/390 false, and at the default width; `ModTable.test.tsx` block renamed "cards below lg (Stories 16.5, 17.8)", a nested "at tablet widths (Story 17.8)" block: one card per mod and no table at 768/900/1023 (`it.each`), the 1023px card's Update button sends the same `PUT .../version` `{version: '1.6.0', confirm: false}` as at 390, the 900px card's toggle sends `disable`, the 900px card's remove button opens `remove-dialog` and confirming sends `DELETE`; the crossing test now goes 1024 table → 1023 cards → 1024 table → 767 cards; `InstalledTab.test.tsx` "44px tall below lg" asserts `max-lg:h-11`. Whole web suite: 129 files, 3254 passed, 4 skipped.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.mjs` (new)
 - `_bmad-output/implementation-artifacts/17-8-browser/layout_widths.before.json` (new)
+- `web/src/hooks/use-media-query.ts`
+- `web/src/hooks/use-media-query.test.tsx`
+- `web/src/components/ModTable.tsx`
+- `web/src/components/ModTable.test.tsx`
+- `web/src/components/InstalledModCard.tsx`
+- `web/src/features/mods/InstalledTab.tsx`
+- `web/src/features/mods/InstalledTab.test.tsx`
 
 ## Change Log
 
