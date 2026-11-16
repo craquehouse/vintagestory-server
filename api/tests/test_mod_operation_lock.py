@@ -810,6 +810,26 @@ class TestInstallRefusesAFileNameInUse:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_a_dangling_symlink_is_a_name_in_use(self, tmp_path: Path) -> None:
+        # ADR-4 decision 1: exists(follow_symlinks=False), so a link to nothing counts
+        service = make_service(tmp_path)
+        mods_dir = service.state_manager.mods_dir
+        mods_dir.mkdir(parents=True)
+        link = mods_dir / "Foo.zip"
+        link.symlink_to(tmp_path / "missing-target.zip")
+        mock_foo_zip("modb")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert link.is_symlink()
+        assert not (tmp_path / "missing-target.zip").exists()
+        assert service.state_manager.list_mods() == []
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_a_state_entry_without_a_file_is_untouched(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         install_existing(service, "moda", "1.0.0", "Foo.zip").unlink()
