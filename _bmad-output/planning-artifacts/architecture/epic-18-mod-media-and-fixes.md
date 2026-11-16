@@ -64,7 +64,7 @@ So gallery images load today without any configuration change. If a deployment p
 
 ## ADR-2: The Trailer Is a Link, and the Gallery Uses Existing Components
 
-**Status:** Accepted (Epic 18 planning). Implemented by Story 18.1.
+**Status:** Accepted (Epic 18 planning). Implemented by Story 18.1. Amended 2026-11-16 by the maintainer: the link targets the privacy-enhanced `youtube-nocookie.com/embed/<id>` page instead of `youtube.com/watch` (decision 2 and the first consequence).
 
 **Context:**
 
@@ -75,7 +75,7 @@ So gallery images load today without any configuration change. If a deployment p
 **Decision:**
 
 1. **Link, not embed.** The detail page shows a "Watch trailer" link when the API returns a trailer URL. Nothing from YouTube loads until the admin clicks it.
-2. **The API rewrites the URL.** `services/mod_media.py` accepts an `https` URL whose host is `www.youtube-nocookie.com`, `youtube-nocookie.com`, `www.youtube.com`, `youtube.com`, `m.youtube.com` or `youtu.be`, in the forms `/watch?v=<id>`, `/embed/<id>` and `youtu.be/<id>`, where the ID matches `^[A-Za-z0-9_-]{11}$`. It returns `https://www.youtube.com/watch?v=<id>`, built from the ID alone. Everything else, including `https://apachegaming.net`, gives `None`.
+2. **The API rewrites the URL.** `services/mod_media.py` accepts an `https` URL whose host is `www.youtube-nocookie.com`, `youtube-nocookie.com`, `www.youtube.com`, `youtube.com`, `m.youtube.com` or `youtu.be`, in the forms `/watch?v=<id>`, `/embed/<id>` and `youtu.be/<id>`, where the ID matches `^[A-Za-z0-9_-]{11}$`. It returns `https://www.youtube-nocookie.com/embed/<id>` (`TRAILER_EMBED_URL` + ID), built from the ID alone. (Planned as `https://www.youtube.com/watch?v=<id>`; changed by the maintainer on 2026-11-16 to stay on the privacy-enhanced domain.) Everything else, including `https://apachegaming.net`, gives `None`.
 3. **API.** `ModLookupResponse` gains `trailer_url: str | None` (`trailerUrl` in the web types).
 4. **Link attributes.** `target="_blank"`, `rel="noopener noreferrer"`, an external-link icon and the "(opens in a new tab)" text for screen readers, the same marking Story 18.1 gives description links.
 5. **Gallery from existing components, no new dependency.** A "Screenshots" card between the header and the description, hidden when the list is empty. It shows one current image with Previous and Next buttons and a position such as "3 of 10", and a strip of thumbnail buttons. Activating the current image opens it in a `Dialog`, which gives focus trapping and Escape. Left and Right arrow keys move between images in the card and in the dialog. Previous and Next are 44px targets, so touch works without a gesture library. Swipe gestures are not required.
@@ -85,14 +85,14 @@ So gallery images load today without any configuration change. If a deployment p
 **Consequences:**
 
 - No CSP consequence. `img-src https://moddbcdn.vintagestory.at` is already needed for logos, and no `frame-src` is needed.
-- Clicking the trailer link opens `youtube.com`, not the privacy-enhanced domain, because that domain has no watch page. The click is the admin's choice and sends no referrer. The alternative target, `https://www.youtube-nocookie.com/embed/<id>` opened as a page, is an open question for the maintainer.
+- Clicking the trailer link opens the privacy-enhanced `youtube-nocookie.com/embed/<id>` page (a bare full-window player; that domain has no watch page). The click is the admin's choice and sends no referrer. Maintainer decision, 2026-11-16; the planned default was `youtube.com/watch`.
 - A mod whose trailer field holds a non-video URL shows no trailer link. Its Homepage link is unaffected.
 
 **Related, same story (`VSS-tzl`).** `lib/mod-description.ts:21-30` adds `target="_blank"` to every description link. The same hook appends a visually hidden `(opens in a new tab)` span to each such link, and the description container's CSS draws an external-link icon after it. `aria-label` is not used, because it would replace the link's own text for screen readers. No separate decision is needed.
 
 ## ADR-3: The Game Version Flag on Browse Cards Comes from One Cached, Filtered Listing
 
-**Status:** Accepted (Epic 18 planning). Implemented by Story 18.3. Supersedes Epic 10 ADR-2 (Conservative Compatibility Badge) for browse cards and replaces decision 6 of Epic 16 ADR-2 ("Browse cards are unchanged"). Epic 16 ADR-2 decisions 1 to 5 stand.
+**Status:** Accepted (Epic 18 planning). Implemented by Story 18.3. The maintainer confirmed on 2026-11-16 that cards show both the badge and the muted "No release" text. Supersedes Epic 10 ADR-2 (Conservative Compatibility Badge) for browse cards and replaces decision 6 of Epic 16 ADR-2 ("Browse cards are unchanged"). Epic 16 ADR-2 decisions 1 to 5 stand.
 
 **Context:**
 
@@ -124,7 +124,7 @@ So gallery images load today without any configuration change. If a deployment p
 
 ## ADR-4: Install Refuses a File-Name Collision
 
-**Status:** Accepted (Epic 18 planning). Implemented by Story 18.2.
+**Status:** Accepted (Epic 18 planning). Implemented by Story 18.2. The maintainer confirmed 409 on 2026-11-16.
 
 **Context:**
 

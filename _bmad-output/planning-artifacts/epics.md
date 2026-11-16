@@ -4717,7 +4717,7 @@ So that **I can judge a mod before installing it without leaving the manager**.
 
 **Given** a mod whose trailer field is a YouTube URL in any accepted form (for example `https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM`)
 **When** I look the mod up
-**Then** `trailer_url` is `https://www.youtube.com/watch?v=<id>`; for an empty, null or any other URL (for example `https://apachegaming.net`) it is `null`
+**Then** `trailer_url` is `https://www.youtube-nocookie.com/embed/<id>` (maintainer decision 2026-11-16; planned as `https://www.youtube.com/watch?v=<id>`); for an empty, null or any other URL (for example `https://apachegaming.net`) it is `null`
 
 *(Covers FR196, FR197)*
 

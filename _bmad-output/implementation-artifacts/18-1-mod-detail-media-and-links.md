@@ -24,7 +24,7 @@ so that **I can judge a mod before installing it without leaving the manager**.
 
 3. **Given** a mod whose trailer field is an `https` YouTube URL in an accepted form (`/watch?v=<id>`, `/embed/<id>` or `youtu.be/<id>` on the hosts of Dev Notes "URL rules"; for example `https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM`)
    **When** I look the mod up
-   **Then** `trailer_url` is `https://www.youtube.com/watch?v=<id>`, built from the ID alone; for `null`, `""`, a missing field, a non-string, an `http:` URL, a non-YouTube host (for example `https://apachegaming.net`) or a YouTube URL without a valid 11-character ID it is `null`, and the lookup is still 200
+   **Then** `trailer_url` is `https://www.youtube-nocookie.com/embed/<id>`, built from the ID alone (maintainer decision 2026-11-16; planned as `https://www.youtube.com/watch?v=<id>`); for `null`, `""`, a missing field, a non-string, an `http:` URL, a non-YouTube host (for example `https://apachegaming.net`) or a YouTube URL without a valid 11-character ID it is `null`, and the lookup is still 200
    *(Covers FR196, FR197)*
 
 4. **Given** a mod with several screenshots
@@ -365,7 +365,7 @@ Found by running both suites against a throwaway prototype of Tasks 1, 2, 3 (typ
 `v1alpha1`, both additive; cite these in the PR description and the release note.
 
 - `GET /api/v1alpha1/mods/lookup/{slug}`: new field `screenshots`, a list of `{ "image_url": string, "thumbnail_url": string, "filename": string }` in mod database order, `[]` when the mod has none. Only `https` URLs on `moddbcdn.vintagestory.at` are passed on; `thumbnail_url` equals `image_url` when the mod database gave no usable thumbnail.
-- `GET /api/v1alpha1/mods/lookup/{slug}`: new field `trailer_url`, `"https://www.youtube.com/watch?v=<id>"` or `null`.
+- `GET /api/v1alpha1/mods/lookup/{slug}`: new field `trailer_url`, `"https://www.youtube-nocookie.com/embed/<id>"` or `null` (maintainer decision 2026-11-16; planned as `https://www.youtube.com/watch?v=<id>`).
 - No new error code, no changed status code, no change to any other endpoint. A lookup never fails because of media data.
 
 ### Testing Requirements
@@ -453,6 +453,7 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story, non-interactive.
 - Tests: API 2786 passed (was 2707 before Task 2; new `test_mod_media.py` 62 tests). Web 3291 passed, 4 skipped (`VSS-hnl`), new `ModScreenshotGallery.test.tsx` 18 tests. E2E: `mod-detail-media.spec.ts` 5 passed; `mod-detail-bad-data.spec.ts` and `installed-mod-any-modid.spec.ts` 5 passed, against the dev stack rebuilt from this branch (no game server running; none started or stopped; reads only).
 - `just check` green: 0 Pyright errors, the 3 known warnings (`VSS-1ar`). No lint or type suppression, no new dependency, nothing written under `dev/`.
 - Not done here: Task 6.3 (manual browser check in both themes) needs the maintainer's confirmation (`project-context.md:160-161`) and stays unticked. Task 7.2's PR and the PR links on `VSS-l4x` and `VSS-tzl` are left to the maintainer (no PR opened, beads unchanged).
+- Maintainer decision 2026-11-16 (after review): the trailer link targets the privacy-enhanced `https://www.youtube-nocookie.com/embed/<id>` page instead of `youtube.com/watch` (its `/watch` path is a 404; `/embed/<id>` was checked live: 200). `TRAILER_WATCH_URL` and `trailer_watch_url` were renamed `TRAILER_EMBED_URL` and `trailer_link_url`; the API, web and E2E tests expect the embed URL (red first, then the constant changed). The Dev Notes code sample and test tables keep the planned names. ADR-2 and the change proposal record the amendment.
 
 ### File List
 
@@ -506,3 +507,4 @@ After the fixes: `mod-description.test.ts` and the mods feature tests 235 passed
 - 2026-11-16: Validated against the create-story checklist: every cited path and line re-read at b9606f1; the URL rule tightened after the prototype showed `urlsplit` accepting whitespace, control characters and an empty port; AC 7 scoped to the Screenshots section because the page header already overflows at 390px; the tolerant read of `screenshots` added after 75 detail-page tests failed without it; the `test_unknown_keys_kept` example, the exact-dict model test and the one typed web literal listed; the missing description styles and the React portal key-event pitfall recorded.
 - 2026-11-16: Implemented Tasks 1-6 (6.3 manual check left for the maintainer); quality gate green; status review.
 - 2026-11-16: Code review (GLM-5.3-Flash): approved, three low findings; L1 and L2 fixed, L3 not changed. Status done.
+- 2026-11-16: Maintainer chose the youtube-nocookie embed URL as the trailer target; AC 3 and the API contract changes amended, code and tests changed.

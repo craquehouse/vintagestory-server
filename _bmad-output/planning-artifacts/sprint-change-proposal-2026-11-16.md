@@ -63,7 +63,7 @@
 | Story | Endpoint | Change | Kind |
 |---|---|---|---|
 | 18.1 | `GET /mods/lookup/{slug}` | New `screenshots`: list of `{image_url, thumbnail_url, filename}`, `[]` when none | Added field |
-| 18.1 | `GET /mods/lookup/{slug}` | New `trailer_url`: a `https://www.youtube.com/watch?v=<id>` URL or `null` | Added field |
+| 18.1 | `GET /mods/lookup/{slug}` | New `trailer_url`: a `https://www.youtube-nocookie.com/embed/<id>` URL or `null` | Added field |
 | 18.2 | `POST /mods` | New error: 409 `MOD_FILE_CONFLICT` when a file with the download's name, or its `.disabled` form, is already in the mods directory. Before, the install succeeded and overwrote the file | New error code, behavior change |
 | 18.2 | `PUT /mods/{slug}/version`, `POST /mods/updates/apply-all` | Response unchanged. A completed change now stores that mod's update record, so `GET /mods/updates` reports its status at once | Side effect only |
 | 18.3 | `GET /mods/browse` | New `game_version` (string or `null`) beside `mods` and `pagination` | Added field |
@@ -231,7 +231,7 @@ So that **I can judge a mod before installing it without leaving the manager**.
 
 **Given** a mod whose trailer field is a YouTube URL in any accepted form (for example `https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM`)
 **When** I look the mod up
-**Then** `trailer_url` is `https://www.youtube.com/watch?v=<id>`; for an empty, null or any other URL (for example `https://apachegaming.net`) it is `null`
+**Then** `trailer_url` is `https://www.youtube-nocookie.com/embed/<id>`; for an empty, null or any other URL (for example `https://apachegaming.net`) it is `null`
 
 *(Covers FR196, FR197)*
 
@@ -503,7 +503,7 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 | ADR | Decision | Story |
 |---|---|---|
 | ADR-1 | Screenshots and the trailer field go through the Epic 17 normalizer for types, then one function in the API keeps only `https` URLs on `moddbcdn.vintagestory.at`; a screenshot with a rejected image URL is dropped, a rejected thumbnail falls back to the image URL, and the lookup never fails over it | 18.1 |
-| ADR-2 | The trailer is a link, not an embed: the API accepts only YouTube URLs, extracts the video ID and returns `https://www.youtube.com/watch?v=<id>`; the gallery is built from the existing `Dialog` and buttons with no carousel library; no CSP consequence | 18.1 |
+| ADR-2 | The trailer is a link, not an embed: the API accepts only YouTube URLs, extracts the video ID and returns `https://www.youtube-nocookie.com/embed/<id>` (maintainer decision 2026-11-16; planned as `https://www.youtube.com/watch?v=<id>`); the gallery is built from the existing `Dialog` and buttons with no carousel library; no CSP consequence | 18.1 |
 | ADR-3 | The browse card flag comes from `/api/mods?gameversion=<tagid>` for the installed version, cached per tag ID for 5 minutes and matched by numeric `modid`; `null` and no indicator when the version is unknown or the request fails; supersedes Epic 10 ADR-2 for cards and replaces Epic 16 ADR-2 decision 6 | 18.3 |
 | ADR-4 | `_place_install` refuses before writing anything when `<name>` or `<name>.disabled` exists or is in the mod state; 409 `MOD_FILE_CONFLICT` | 18.2 |
 | ADR-5 | `change_version` takes an optional recorder and calls it with the lookup's releases after a completed change; `VersionChangeResult` and the response do not change | 18.2 |
@@ -530,7 +530,7 @@ The file also records the mod database facts and the CSP check the decisions res
 | Reviewer (`code-review`) | Delegated read-only review per story |
 | Maintainer (Matt) | Reviews this proposal and answers the open questions below; can overturn any recommended default at story creation |
 
-**Open questions for the maintainer** (each has a default the stories use unless overturned):
+**Open questions for the maintainer** (each has a default the stories use unless overturned). Answered 2026-11-16: 1 changed to the alternative (`youtube-nocookie.com/embed/<id>`); 2 and 3 confirmed as defaulted (both card texts, 409); 4 and 5 not overturned.
 
 1. **Trailer link target.** Default: `https://www.youtube.com/watch?v=<id>`, a normal video page. Alternative: `https://www.youtube-nocookie.com/embed/<id>` opened in a new tab, which stays on the privacy-enhanced domain and shows a bare full-window player.
 2. **Card wording and the `false` case.** Default: "Has a release for 1.22.7" as a badge and "No release for 1.22.7" as muted text. Alternative: show only the positive badge and nothing for `false`.
