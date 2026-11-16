@@ -55,10 +55,10 @@ so that **I do not install a mod twice or wonder whether a new mod is up to date
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-17.4/task-N): ... ; feat/fix only for user-visible changes, subject written for users. Red first. -->
 
-- [ ] Task 1: Browse items list every mod ID of the entry + tests (AC: 1, 8)
-  - [ ] 1.1: `api/src/vintagestory_api/models/mods.py` `ModBrowseItem` (`:312-369`): add `mod_ids: list[str] = []` directly after `slug` (`:319-324`), docstring: every mod ID of the mod database entry (the listing's `modidstrs`), in listing order, each once; `slug` is the first; used by the web to recognize an installed mod by any of them (Story 17.4). Careful: `ModLookupResponse` (`:193`) has the same `slug`/`urlalias` docstrings; the field goes in `ModBrowseItem` only (the prototype put it in the wrong class first)
-  - [ ] 1.2: `routers/mods.py` `_api_mod_to_browse_item` (`:197-228`): `mod_ids=list(dict.fromkeys(m for m in modidstrs if m))` (reuse the `modidstrs` local at `:209`). `_as_str_list` (`models/moddb.py:58-64`) already drops non-strings but keeps empty strings, hence the filter
-  - [ ] 1.3: Tests. `tests/test_mods_router.py` `TestBrowseItemSlugUrlalias` (`:2560`): an item with `modidstrs: ["instruments", "vsinstruments", "vsinstrumentsbase"]` has `mod_ids` equal to that list; `["a", "", "a", "b"]` gives `["a", "b"]`; `[]` gives `[]` with the existing slug fallback. `tests/test_mod_models.py` `TestModBrowseItem`: default `[]`. Update the two exact-dict tests in "Existing tests that change"
+- [x] Task 1: Browse items list every mod ID of the entry + tests (AC: 1, 8)
+  - [x] 1.1: `api/src/vintagestory_api/models/mods.py` `ModBrowseItem` (`:312-369`): add `mod_ids: list[str] = []` directly after `slug` (`:319-324`), docstring: every mod ID of the mod database entry (the listing's `modidstrs`), in listing order, each once; `slug` is the first; used by the web to recognize an installed mod by any of them (Story 17.4). Careful: `ModLookupResponse` (`:193`) has the same `slug`/`urlalias` docstrings; the field goes in `ModBrowseItem` only (the prototype put it in the wrong class first)
+  - [x] 1.2: `routers/mods.py` `_api_mod_to_browse_item` (`:197-228`): `mod_ids=list(dict.fromkeys(m for m in modidstrs if m))` (reuse the `modidstrs` local at `:209`). `_as_str_list` (`models/moddb.py:58-64`) already drops non-strings but keeps empty strings, hence the filter
+  - [x] 1.3: Tests. `tests/test_mods_router.py` `TestBrowseItemSlugUrlalias` (`:2560`): an item with `modidstrs: ["instruments", "vsinstruments", "vsinstrumentsbase"]` has `mod_ids` equal to that list; `["a", "", "a", "b"]` gives `["a", "b"]`; `[]` gives `[]` with the existing slug fallback. `tests/test_mod_models.py` `TestModBrowseItem`: default `[]`. Update the two exact-dict tests in "Existing tests that change"
 
 - [ ] Task 2: Browse cards recognize any installed mod ID, ignoring case + tests (AC: 2, 3, 8)
   - [ ] 2.1: `web/src/api/types.ts` `ModBrowseItem` (`:378-395`): `modIds: string[]` after `slug`, with a doc comment (every mod ID of the entry, `slug` first). Required, not optional: the API always sends it. Careful: `ModLookupData` above it has the same `slug`/`urlalias` lines
@@ -283,13 +283,23 @@ Found by running both suites against a throwaway prototype of Tasks 1-4 (since d
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5)
+
 ### Debug Log References
+
+- Baseline before Task 1 (6bda35d): `just test-api` 2514 passed; `just typecheck-api` 0 errors, 3 warnings (the pre-existing three in tests).
 
 ### Completion Notes List
 
 - Story created 2026-11-15: context analysis of the browse mapping and model, the normalized listing, `ModCard`/`ModBrowseGrid`/`BrowseTab`, `mod-ids.ts` and the detail page's use of it, the install flow after Stories 17.2/17.3 (`resolve_install`, `ResolvedInstall`, `InstallResult`, `_place_install`), `ModUpdateService` (store, `check`, prune, `get_mod_update_service`), `ModUpdateCell` and its two callers, the install hook's invalidation, the E2E specs of Stories 16.2, 16.5 and 17.2, and the reviews of 17.1-17.3. The tests that change were found by running both suites against a throwaway prototype of Tasks 1-4.
+- Task 1: `ModBrowseItem.mod_ids: list[str] = []` directly after `slug` (not in `ModLookupResponse`); `_api_mod_to_browse_item` sets `mod_ids=list(dict.fromkeys(m for m in modidstrs if m))`. Tests: `TestBrowseItemSlugUrlalias::test_browse_item_lists_every_mod_id`, parametrized (Instruments' three mod IDs in order; `["a", "", "a", "b"]` gives `["a", "b"]`; `[]` gives `[]` with the `modid` fallback slug `"4321"`), each asserting the listing was the only request; `TestModBrowseItem` default `[]`; the two exact dicts gain `"mod_ids": []`. Red first: the 3 new cases failed with `KeyError: 'mod_ids'`. `just test-api tests/test_mods_router.py tests/test_mod_models.py` 182 passed; ruff clean; pyright 0 errors, the same 3 warnings.
 
 ### File List
+
+- `api/src/vintagestory_api/models/mods.py`
+- `api/src/vintagestory_api/routers/mods.py`
+- `api/tests/test_mods_router.py`
+- `api/tests/test_mod_models.py`
 
 ## Change Log
 

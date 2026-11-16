@@ -323,6 +323,13 @@ class ModBrowseItem(BaseModel):
     API only accepts modidstrs for lookups. Some mods have different urlalias values.
     """
 
+    mod_ids: list[str] = []
+    """Every mod ID of the mod database entry (the listing's modidstrs), in listing order.
+
+    Each appears once and `slug` is the first. The web uses it to recognize an
+    installed mod by any of its mod IDs (Story 17.4).
+    """
+
     urlalias: str | None = None
     """URL alias for website links (e.g., mods.vintagestory.at/{urlalias}).
 

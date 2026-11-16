@@ -2836,6 +2836,64 @@ class TestBrowseItemSlugUrlalias:
         assert mod["slug"] == "matchingmod"
         assert mod["urlalias"] == "matchingmod"
 
+    @respx.mock
+    @pytest.mark.parametrize(
+        ("modidstrs", "expected_slug", "expected_mod_ids"),
+        [
+            (
+                ["instruments", "vsinstruments", "vsinstrumentsbase"],
+                "instruments",
+                ["instruments", "vsinstruments", "vsinstrumentsbase"],
+            ),
+            (["a", "", "a", "b"], "a", ["a", "b"]),
+            ([], "4321", []),
+        ],
+    )
+    def test_browse_item_lists_every_mod_id(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        modidstrs: list[str],
+        expected_slug: str,
+        expected_mod_ids: list[str],
+    ) -> None:
+        """Story 17.4: `mod_ids` holds the listing's `modidstrs`, in order, each once.
+
+        Empty strings are dropped; the slug is unchanged (`modidstrs[0]`, or the
+        existing fallback for an entry with no mod IDs).
+        """
+        listing_mod: dict[str, Any] = {
+            "modid": 4321,
+            "assetid": 1234,
+            "name": "Instruments",
+            "summary": "Play music",
+            "author": "author",
+            "downloads": 50,
+            "follows": 5,
+            "trendingpoints": 1,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2024-06-01 00:00:00",
+            "urlalias": "instruments",
+            "modidstrs": modidstrs,
+        }
+        listing_route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": [listing_mod]})
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        mod = response.json()["data"]["mods"][0]
+        assert mod["slug"] == expected_slug
+        assert mod["mod_ids"] == expected_mod_ids
+        # No request per mod: the listing is the only mocked route, and respx
+        # refuses any request that is not mocked
+        assert listing_route.call_count == 1
+        assert len(respx.calls) == 1
+
 
 class TestBrowseModsFilters:
     """Tests for browse endpoint filters: side, mod_type, and tags."""
@@ -3652,6 +3710,7 @@ class TestBrowseWithIncompleteModData:
         assert set(by_slug) == {"unknown", "qolmod", "trendingnew"}
         assert by_slug["unknown"] == {
             "slug": "unknown",
+            "mod_ids": [],
             "urlalias": None,
             "asset_id": 0,
             "name": "",

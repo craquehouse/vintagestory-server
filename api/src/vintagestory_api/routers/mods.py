@@ -211,6 +211,8 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
 
     return ModBrowseItem(
         slug=slug,
+        # Every mod ID once, in listing order; the listing can hold empty strings
+        mod_ids=list(dict.fromkeys(m for m in modidstrs if m)),
         # Kept separate from the slug for website URL construction
         urlalias=mod["urlalias"],
         asset_id=mod["assetid"],
