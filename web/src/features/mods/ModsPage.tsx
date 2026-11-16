@@ -8,9 +8,12 @@
  *
  * Story 10.2: Mods Tab Restructure - AC1, AC4
  * Story 16.1: The Browse tab returns to the last browse state
+ * Story 17.7: Browse is the active tab on a mod detail page, and Installed opens the list from there;
+ * a tab change adds one history entry
  */
 
-import { useLocation, useNavigate, Outlet } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { useLocation, useMatch, useNavigate, Outlet } from 'react-router';
 import { Package, Search } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -23,13 +26,12 @@ import {
 /**
  * Extract the active tab from the current URL path.
  * /game-server/mods/installed → "installed"
- * /game-server/mods/browse → "browse"
+ * /game-server/mods/browse → "browse" (also with a trailing slash)
+ * /game-server/mods/browse/:slug → "browse" (Story 17.7: a mod detail page)
  * /game-server/mods → "installed" (fallback)
  */
 function getActiveTab(pathname: string): string {
-  const segments = pathname.split('/');
-  const lastSegment = segments[segments.length - 1];
-  if (lastSegment === 'browse') return 'browse';
+  if (pathname === BROWSE_PATH || pathname.startsWith(`${BROWSE_PATH}/`)) return 'browse';
   return 'installed';
 }
 
@@ -46,20 +48,36 @@ export function ModsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const activeTab = getActiveTab(location.pathname);
+  // Story 17.7: an exact match, so the browse list with a trailing slash
+  // (`/game-server/mods/browse/`, empty slug) is not a detail page
+  const isDetailPage = useMatch(`${BROWSE_PATH}/:slug`) !== null;
+
+  const openBrowse = () => {
+    // Story 16.1: On a detail page opened from browse, return to the state it was
+    // opened from; otherwise to the last browse state of this session, or the default.
+    const openedFrom = isDetailPage ? readBrowseSearchState(location.state) : undefined;
+    if (openedFrom !== undefined) {
+      navigate(`${BROWSE_PATH}${openedFrom}`, { state: MOD_DETAIL_RETURN_STATE });
+      return;
+    }
+    navigate(`${BROWSE_PATH}${getLastBrowseSearch() ?? ''}`);
+  };
+
+  // Story 17.7: Radix reports a mouse click twice in one mousedown (it focuses the
+  // trigger, whose onFocus reports the value, then reports it itself), before the
+  // navigation commits. Remember the tab requested since the last tab change and drop
+  // the repeat, so a click adds one history entry.
+  const requestedTabRef = useRef<string | null>(null);
+  useEffect(() => {
+    requestedTabRef.current = null;
+  }, [activeTab]);
 
   const handleTabChange = (value: string) => {
     // Radix Tabs does not report the active value, but never push a duplicate entry
-    if (value === activeTab) return;
+    if (value === activeTab || value === requestedTabRef.current) return;
+    requestedTabRef.current = value;
     if (value === 'browse') {
-      // Story 16.1: On a detail page opened from browse, return to the state it was
-      // opened from; otherwise to the last browse state of this session, or the default.
-      const isDetailPage = location.pathname.startsWith(`${BROWSE_PATH}/`);
-      const openedFrom = isDetailPage ? readBrowseSearchState(location.state) : undefined;
-      if (openedFrom !== undefined) {
-        navigate(`${BROWSE_PATH}${openedFrom}`, { state: MOD_DETAIL_RETURN_STATE });
-        return;
-      }
-      navigate(`${BROWSE_PATH}${getLastBrowseSearch() ?? ''}`);
+      openBrowse();
       return;
     }
     navigate(`/game-server/mods/${value}`);
@@ -85,7 +103,18 @@ export function ModsPage() {
             <Package className="h-4 w-4" />
             Installed
           </TabsTrigger>
-          <TabsTrigger value="browse" data-testid="browse-tab">
+          {/*
+            Story 17.7: on a detail page Browse is already the active tab, so Radix never
+            calls onValueChange('browse') there. The trigger is a native button, so onClick
+            fires for a click and for Enter and Space; Radix's own call for the same value
+            is dropped by the controlled state, so exactly one navigation happens. On the
+            browse list there is no handler: the active tab stays inert.
+          */}
+          <TabsTrigger
+            value="browse"
+            data-testid="browse-tab"
+            onClick={isDetailPage ? openBrowse : undefined}
+          >
             <Search className="h-4 w-4" />
             Browse
           </TabsTrigger>

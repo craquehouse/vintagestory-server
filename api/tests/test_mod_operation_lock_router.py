@@ -1,0 +1,227 @@
+"""A real race through the API: one request holds a mod, others for it get 409 (Story 17.3).
+
+`TestClient` is synchronous and cannot hold one request open while sending another, so
+these tests use `httpx.AsyncClient` over `ASGITransport`. The mod database is replaced by
+the captured `carryon` entry and the download by a gate that writes the archive.
+"""
+
+import asyncio
+import json
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import httpx
+import pytest
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY
+from test_mod_version_change import mod_zip_bytes
+
+from vintagestory_api.config import Settings
+from vintagestory_api.main import app
+from vintagestory_api.middleware.auth import get_settings
+from vintagestory_api.models.moddb import ModDict, normalize_mod
+from vintagestory_api.models.mods import ModState
+from vintagestory_api.services.mod_updates import (
+    ModUpdateService,
+    ModUpdateStore,
+    get_mod_update_service,
+)
+from vintagestory_api.services.mods import ModService, get_mod_service
+from vintagestory_api.services.pending_restart import PendingRestartState
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+ADMIN = {"X-API-Key": TEST_ADMIN_KEY}
+MODS = "/api/v1alpha1/mods"
+BUSY_BODY = {
+    "detail": {
+        "code": "MOD_OPERATION_IN_PROGRESS",
+        "message": (
+            "Another operation on mod 'carryon' is in progress. Try again when it has finished."
+        ),
+    }
+}
+
+
+def carryon() -> ModDict:
+    mod = normalize_mod(json.loads((FIXTURES / "mod_carryon.json").read_text())["mod"])
+    assert mod is not None
+    return mod
+
+
+class Gate:
+    """Replaces the mod database lookup and holds every download until `release` is set."""
+
+    def __init__(self, service: ModService, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+        self.downloads = 0
+        self._dir = tmp_path / "downloads"
+        self._dir.mkdir()
+        self._versions = {r["fileid"]: r["modversion"] for r in carryon()["releases"]}
+        monkeypatch.setattr(service.api_client, "get_mod", self.get_mod)
+        monkeypatch.setattr(service.api_client, "download_release_file", self.download)
+
+    async def get_mod(self, slug: str) -> ModDict | None:
+        return carryon() if slug == "carryon" else None
+
+    async def download(self, slug: str, fileid: int, filename: str) -> Path:
+        self.downloads += 1
+        self.started.set()
+        await self.release.wait()
+        path = self._dir / Path(filename).name
+        path.write_bytes(
+            mod_zip_bytes({"modid": slug, "name": "Carry On", "version": self._versions[fileid]})
+        )
+        return path
+
+
+def make_service(tmp_path: Path, *, installed: str | None) -> ModService:
+    service = ModService(
+        state_dir=tmp_path / "state",
+        mods_dir=tmp_path / "mods",
+        restart_state=PendingRestartState(),
+        cache_dir=tmp_path / "cache",
+        game_version_provider=lambda: "1.22.7",
+    )
+    service.state_manager.mods_dir.mkdir(parents=True)
+    if installed is not None:
+        name = f"carryon_{installed}.zip"
+        (service.state_manager.mods_dir / name).write_bytes(
+            mod_zip_bytes({"modid": "carryon", "name": "Carry On", "version": installed})
+        )
+        service.state_manager.set_mod_state(
+            name,
+            ModState(
+                filename=name,
+                slug="carryon",
+                version=installed,
+                enabled=True,
+                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        service.state_manager.save()
+    return service
+
+
+@pytest.fixture
+def service(tmp_path: Path, request: pytest.FixtureRequest) -> ModService:
+    """carryon 1.14.1 installed; parametrize indirectly with None for nothing installed."""
+    version: str | None = getattr(request, "param", "1.14.1")
+    return make_service(tmp_path, installed=version)
+
+
+@pytest.fixture
+async def client(tmp_path: Path, service: ModService) -> AsyncGenerator[httpx.AsyncClient]:
+    settings = Settings(
+        api_key_admin=TEST_ADMIN_KEY, api_key_monitor=TEST_MONITOR_KEY, data_dir=tmp_path
+    )
+    # Install stores the new mod's update record (Story 17.4): keep it in tmp_path,
+    # never in the real singleton's data directory
+    update_service = ModUpdateService(
+        store=ModUpdateStore(tmp_path / "state"),
+        mod_source=service,
+        game_version_provider=lambda: "1.22.7",
+    )
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_mod_service] = lambda: service
+    app.dependency_overrides[get_mod_update_service] = lambda: update_service
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as async_client:
+            yield async_client
+    finally:
+        app.dependency_overrides.clear()
+
+
+def installed(response: httpx.Response) -> list[tuple[str, str, bool]]:
+    mods: list[dict[str, Any]] = response.json()["data"]["mods"]
+    return [(m["slug"], m["version"], m["enabled"]) for m in mods]
+
+
+class TestBusyModThroughTheApi:
+    @pytest.mark.asyncio
+    async def test_operations_during_a_version_change_get_409(
+        self,
+        client: httpx.AsyncClient,
+        service: ModService,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        gate = Gate(service, tmp_path, monkeypatch)
+
+        first = asyncio.create_task(
+            client.put(f"{MODS}/carryon/version", json={"version": "1.14.3"}, headers=ADMIN)
+        )
+        await gate.started.wait()
+        busy = [
+            await client.post(f"{MODS}/carryon/disable", headers=ADMIN),
+            await client.post(f"{MODS}/carryon/enable", headers=ADMIN),
+            await client.delete(f"{MODS}/carryon", headers=ADMIN),
+            await client.put(f"{MODS}/carryon/version", json={"version": "1.14.3"}, headers=ADMIN),
+            await client.post(MODS, json={"slug": "carryon"}, headers=ADMIN),
+        ]
+        gate.release.set()
+        response = await first
+
+        for refused in busy:
+            assert (refused.status_code, refused.json()) == (409, BUSY_BODY)
+        assert response.status_code == 200
+        assert response.json()["data"]["version"] == "1.14.3"
+        assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.3", True)]
+        assert gate.downloads == 1
+        assert service.busy_mod_ids == frozenset()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("service", [None], indirect=True)
+    async def test_two_installs_of_the_same_mod_install_it_once(
+        self,
+        client: httpx.AsyncClient,
+        service: ModService,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        gate = Gate(service, tmp_path, monkeypatch)
+
+        requests = {
+            asyncio.create_task(client.post(MODS, json={"slug": "carryon"}, headers=ADMIN)),
+            asyncio.create_task(client.post(MODS, json={"slug": "carryon"}, headers=ADMIN)),
+        }
+        await gate.started.wait()
+        # The refused request finishes while the other is held at its download.
+        await asyncio.wait(requests, return_when=asyncio.FIRST_COMPLETED)
+        gate.release.set()
+        responses = await asyncio.gather(*requests)
+
+        assert sorted(r.status_code for r in responses) == [200, 409]
+        refused = next(r for r in responses if r.status_code == 409)
+        assert refused.json() == BUSY_BODY
+        assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.3", True)]
+        assert gate.downloads == 1
+        assert service.busy_mod_ids == frozenset()
+
+    @pytest.mark.asyncio
+    async def test_install_of_a_mod_installed_in_another_case_gets_409(
+        self,
+        client: httpx.AsyncClient,
+        service: ModService,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Review M1: `carryon` installed, `POST /mods {"slug": "CarryOn"}` is refused as
+        already installed (naming the installed spelling), with no lookup or download."""
+        gate = Gate(service, tmp_path, monkeypatch)
+        gate.release.set()
+
+        response = await client.post(MODS, json={"slug": "CarryOn"}, headers=ADMIN)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_ALREADY_INSTALLED",
+                "message": "Mod 'carryon' is already installed (version 1.14.1)",
+            }
+        }
+        assert gate.downloads == 0
+        assert installed(await client.get(MODS, headers=ADMIN)) == [("carryon", "1.14.1", True)]

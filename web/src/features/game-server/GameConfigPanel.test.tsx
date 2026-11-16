@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { GameConfigPanel } from './GameConfigPanel';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -591,6 +592,140 @@ describe('GameConfigPanel', () => {
     });
   });
 
+  describe('Story 17.5: secret settings', () => {
+    // The API's Password setting, with everything else as in mockGameConfig
+    const configWithPassword = (password: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: mockGameConfig.data.settings.map((setting) =>
+          setting.key === 'Password' ? { ...setting, env_managed: false, ...password } : setting
+        ),
+      },
+    });
+
+    async function renderWith(config: unknown) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(config),
+      });
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+    }
+
+    function expectOtherSettingsAsFields() {
+      expect(screen.getByLabelText('Server Name')).toHaveValue('My Test Server');
+      expect(screen.getByLabelText('Description')).toHaveValue('A test server');
+      expect(screen.getByLabelText('Max Players')).toBeInTheDocument();
+      expect(screen.getByRole('switch', { name: 'Allow PvP' })).toBeInTheDocument();
+    }
+
+    it('with a Monitor response, shows "Set" and no password field', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true, configured: true }));
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with a Monitor response and no password, shows "Not set"', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true, configured: false }));
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Not set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Show password' })).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with an Admin response, keeps the masked field with its value', async () => {
+      await renderWith(configWithPassword({ value: 'admin-sees-this', secret: true }));
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveAttribute('type', 'password');
+      expect(input).toHaveValue('admin-sees-this');
+      expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
+      expect(screen.queryByTestId('secret-setting-Password')).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+
+    it('with an Admin response and no password, shows an empty masked field', async () => {
+      await renderWith(configWithPassword({ value: null, secret: true }));
+
+      const input = screen.getByLabelText('Password');
+      expect(input).toHaveAttribute('type', 'password');
+      expect(input).toHaveValue('');
+      expect(screen.queryByText('Not set')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('secret-setting-Password')).not.toBeInTheDocument();
+      expectOtherSettingsAsFields();
+    });
+  });
+
+  describe('Story 17.6: booleans with no value', () => {
+    const withSettings = (extra: Record<string, unknown>[], password?: Record<string, unknown>) => ({
+      ...mockGameConfig,
+      data: {
+        ...mockGameConfig.data,
+        settings: [
+          ...mockGameConfig.data.settings.map((setting) => {
+            if (setting.key === 'AllowPvP') return { ...setting, value: null };
+            if (setting.key === 'Password' && password) {
+              return { ...setting, env_managed: false, ...password };
+            }
+            return setting;
+          }),
+          ...extra,
+        ],
+      },
+    });
+    const entitySpawning = {
+      key: 'EntitySpawning',
+      value: null,
+      default: true,
+      type: 'bool',
+      live_update: true,
+      env_managed: false,
+    };
+
+    async function renderWith(config: unknown) {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(config),
+      });
+      render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+      await waitFor(() => {
+        expect(screen.getByTestId('game-config-panel')).toBeInTheDocument();
+      });
+    }
+
+    it('shows the known default and "Not set" for a boolean without one', async () => {
+      await renderWith(withSettings([entitySpawning]));
+
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(
+        'Enabled (default)'
+      );
+      expect(screen.getByRole('switch', { name: 'Entity Spawning' })).toBeChecked();
+      expect(screen.getByTestId('setting-state-AllowPvP')).toHaveTextContent(/^Not set$/);
+      expect(screen.getByRole('switch', { name: 'Allow PvP' })).not.toBeChecked();
+    });
+
+    it('leaves a withheld secret to Story 17.5 (the two do not interfere)', async () => {
+      await renderWith(
+        withSettings([entitySpawning], { value: null, secret: true, configured: true })
+      );
+
+      expect(screen.getByTestId('secret-setting-status-Password')).toHaveTextContent('Set');
+      expect(document.getElementById('Password')).toBeNull();
+      expect(screen.queryByTestId('setting-state-Password')).not.toBeInTheDocument();
+      expect(screen.getByTestId('setting-state-EntitySpawning')).toHaveTextContent(
+        'Enabled (default)'
+      );
+      expect(screen.getByTestId('setting-state-AllowPvP')).toHaveTextContent(/^Not set$/);
+    });
+  });
+
   describe('Story 16.6: desktop layout', () => {
     const setting = (key: string, value: string | number | boolean, type: string) => ({
       key,
@@ -643,7 +778,7 @@ describe('GameConfigPanel', () => {
     it('limits the panel to 1280px and centers it', async () => {
       await renderFull();
 
-      expect(screen.getByTestId('game-config-layout')).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(screen.getByTestId('game-config-layout')).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
 
     it('puts Server Info above the columns with its fields in two columns from xl', async () => {
@@ -717,7 +852,7 @@ describe('GameConfigPanel', () => {
         expect(screen.getByTestId('game-config-error')).toBeInTheDocument();
       });
       const message = screen.getByTestId('game-config-error').firstElementChild;
-      expect(message).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(message).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
 
     it('limits the loading skeleton to the same width', () => {
@@ -725,7 +860,7 @@ describe('GameConfigPanel', () => {
       render(<GameConfigPanel />, { wrapper: createWrapper(createTestQueryClient()) });
 
       const skeletons = screen.getByTestId('game-config-loading').firstElementChild;
-      expect(skeletons).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(skeletons).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
     });
   });
 });

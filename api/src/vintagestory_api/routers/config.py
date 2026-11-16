@@ -3,11 +3,13 @@
 Story 6.2: Game Settings API
 Story 6.3: API Settings Service
 Story 6.5: Raw Config Viewer
+Story 17.5: Monitor keys cannot read the server password (FR186)
+Story 17.6: A saved refresh interval reschedules its job (FR187)
 
 Provides endpoints for reading and updating server configuration.
 
 Game Settings (6.2):
-- GET /config/game - Read all game settings with metadata
+- GET /config/game - Read all game settings with metadata (secrets for Admin only)
 - POST /config/game/settings/{key} - Update a specific game setting
 
 API Settings (6.3):
@@ -16,20 +18,29 @@ API Settings (6.3):
 
 Config Files (6.5):
 - GET /config/files - List all JSON config files (read-only)
-- GET /config/files/{filename} - Read raw config file content (read-only)
+- GET /config/files/{filename} - Read raw config file content (read-only; secrets,
+  and the text of files that are not valid JSON, for Admin only)
+
+Both read endpoints answer with Cache-Control: no-store, error responses included,
+since what they return depends on the key's role. An unhandled error (500) carries
+only "Internal Server Error", without the header.
 """
 
+from functools import partial
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from pydantic import BaseModel, Field
 
+from vintagestory_api.jobs import apply_interval_setting
 from vintagestory_api.middleware.auth import get_current_user
 from vintagestory_api.middleware.permissions import RequireAdmin
 from vintagestory_api.models.errors import ErrorCode
 from vintagestory_api.models.responses import ApiResponse
+from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import (
     ApiSettingInvalidError,
+    ApiSettingNotAppliedError,
     ApiSettingsService,
     ApiSettingUnknownError,
 )
@@ -46,12 +57,17 @@ from vintagestory_api.services.game_config import (
     SettingValueInvalidError,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
+from vintagestory_api.services.scheduler import SchedulerService
 from vintagestory_api.services.server import get_server_service
 
 router = APIRouter(prefix="/config", tags=["Config"])
 
 # Type alias for authenticated user (Admin or Monitor)
 RequireAuth = Annotated[str, Depends(get_current_user)]
+
+# Story 17.5: the two read endpoints answer depending on the key's role, so no response
+# of theirs, error responses included, may be cached
+NO_STORE = {"Cache-Control": "no-store"}
 
 
 class SettingUpdateRequest(BaseModel):
@@ -98,7 +114,8 @@ def get_game_config_service(
 
 @router.get("/game", response_model=ApiResponse, summary="Get game settings")
 async def get_game_settings(
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: GameConfigService = Depends(get_game_config_service),
 ) -> ApiResponse:
     """Get all game settings with metadata.
@@ -109,7 +126,10 @@ async def get_game_settings(
     - Whether the setting supports live updates
     - Whether the setting is managed by an environment variable
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    Both Admin and Monitor roles can access this read-only endpoint. Monitor
+    receives secret settings (Password) redacted: `value` is null, `secret` is
+    true and `configured` says whether the secret is set (Story 17.5, FR186).
+    The response, an error included, is never cached (Cache-Control: no-store).
 
     Returns:
         ApiResponse with data containing:
@@ -121,9 +141,10 @@ async def get_game_settings(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if serverconfig.json not found
     """
+    response.headers.update(NO_STORE)
     try:
-        response = service.get_settings()
-        return ApiResponse(status="ok", data=response.to_dict())
+        settings = service.get_settings(role)
+        return ApiResponse(status="ok", data=settings.to_dict())
     except FileNotFoundError:
         raise HTTPException(
             status_code=404,
@@ -131,6 +152,7 @@ async def get_game_settings(
                 "code": ErrorCode.CONFIG_NOT_FOUND,
                 "message": "Server configuration file not found. Start the server first.",
             },
+            headers=NO_STORE,
         )
 
 
@@ -225,28 +247,22 @@ async def update_game_setting(
 
 def get_api_settings_service(
     server_service: Any = Depends(get_server_service),
+    scheduler: SchedulerService = Depends(get_scheduler),
 ) -> ApiSettingsService:
     """Dependency to get ApiSettingsService instance.
 
     Args:
         server_service: ServerService for accessing application settings.
+        scheduler: The running scheduler; a saved interval setting is applied to it
+            through `apply_interval_setting` (Story 17.6, Epic 17 ADR-5).
 
     Returns:
-        ApiSettingsService instance with settings dependency injected.
-
-    Note:
-        TODO(Epic-7): When implementing the scheduler service, inject the
-        scheduler_callback parameter here to enable automatic rescheduling
-        when mod_list_refresh_interval or server_versions_refresh_interval
-        settings are updated. Example:
-
-            scheduler = get_scheduler_service()
-            return ApiSettingsService(
-                settings=server_service.settings,
-                scheduler_callback=scheduler.reschedule_job,
-            )
+        ApiSettingsService instance with settings and scheduler callback injected.
     """
-    return ApiSettingsService(settings=server_service.settings)
+    return ApiSettingsService(
+        settings=server_service.settings,
+        scheduler_callback=partial(apply_interval_setting, scheduler),
+    )
 
 
 @router.get("/api", response_model=ApiResponse, summary="Get API settings")
@@ -299,9 +315,11 @@ async def update_api_setting(
     """Update a specific API setting.
 
     Updates the setting in api-settings.json and returns the updated value.
-    For refresh interval settings (mod_list_refresh_interval,
-    server_versions_refresh_interval), the scheduler will be notified
-    to reschedule the job (Epic 7 integration).
+    For the refresh interval settings (mod_list_refresh_interval,
+    server_versions_refresh_interval, metrics_collection_interval) the
+    setting's job is then rescheduled without an API restart: its next run is
+    one new interval after the save, and 0 removes the job (Story 17.6).
+    Intervals are at most 31,536,000 seconds (365 days).
 
     **Admin role required.**
 
@@ -318,6 +336,8 @@ async def update_api_setting(
         HTTPException: 400 if setting unknown or value invalid
         HTTPException: 401 if not authenticated
         HTTPException: 403 if not Admin role
+        HTTPException: 500 API_SETTING_NOT_APPLIED if the value was saved but its
+            job could not be rescheduled (the value applies at the next API start)
     """
     try:
         result = await service.update_setting(key, request.value)
@@ -337,6 +357,15 @@ async def update_api_setting(
             status_code=400,
             detail={
                 "code": ErrorCode.API_SETTING_INVALID,
+                "message": e.message,
+            },
+        )
+
+    except ApiSettingNotAppliedError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": ErrorCode.API_SETTING_NOT_APPLIED,
                 "message": e.message,
             },
         )
@@ -453,7 +482,8 @@ async def read_config_file(
             max_length=255,
         ),
     ],
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: ConfigFilesService = Depends(get_config_files_service),
 ) -> ApiResponse:
     """Read raw content of a configuration file.
@@ -461,7 +491,11 @@ async def read_config_file(
     Returns the raw JSON content of the specified configuration file.
     Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    Both Admin and Monitor roles can access this read-only endpoint. Monitor
+    receives secrets redacted: top-level secret keys (Password, any letter case)
+    with a value are "[redacted]", and a file that is not valid JSON has
+    `_raw: "[redacted]"` instead of its text (Story 17.5, FR186). The response is
+    never cached (Cache-Control: no-store), an error response included.
 
     Args:
         filename: Name of the file to read (must be in serverdata directory).
@@ -476,8 +510,9 @@ async def read_config_file(
         HTTPException: 401 if not authenticated
         HTTPException: 404 if file not found
     """
+    response.headers.update(NO_STORE)
     try:
-        result = service.read_file(filename)
+        result = service.read_file(filename, role)
         return ApiResponse(status="ok", data=result)
 
     except ConfigPathInvalidError as e:
@@ -487,6 +522,7 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_PATH_INVALID,
                 "message": e.message,
             },
+            headers=NO_STORE,
         )
 
     except ConfigFileNotFoundError as e:
@@ -496,4 +532,5 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_FILE_NOT_FOUND,
                 "message": e.message,
             },
+            headers=NO_STORE,
         )

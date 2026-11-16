@@ -11,6 +11,7 @@
  * Story 6.6: File Manager UI
  * Story 8.3: Job Configuration UI
  * Story UI-017: User preferences cookie persistence
+ * Story 17.8: the tab list wraps on phones instead of widening the page
  */
 
 import { Settings, FolderOpen, Palette, Clock } from 'lucide-react';
@@ -41,7 +42,8 @@ export function SettingsPage() {
       aria-label="Settings page"
     >
       <Tabs defaultValue="ui-preferences" className="flex-1 flex flex-col">
-        <TabsList>
+        {/* Story 17.8: never wider than the content; a second row stays inside the background */}
+        <TabsList className="h-auto max-w-full flex-wrap">
           <TabsTrigger value="ui-preferences" data-testid="ui-preferences-tab">
             <Palette className="h-4 w-4" />
             UI Preferences

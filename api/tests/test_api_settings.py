@@ -1,6 +1,7 @@
 """Tests for ApiSettingsService.
 
 Story 6.3: API Settings Service
+Story 17.6: Settings behave as saved (interval bound, not-applied error)
 """
 
 import json
@@ -9,10 +10,14 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from vintagestory_api.config import Settings
+from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
+    MAX_INTERVAL_SECONDS,
     ApiSettingInvalidError,
+    ApiSettingNotAppliedError,
     ApiSettings,
     ApiSettingsService,
     ApiSettingUnknownError,
@@ -725,9 +730,17 @@ class TestIntegerStringValidation:
     async def test_accepts_very_large_integer_string(
         self, service: ApiSettingsService
     ) -> None:
-        """update_setting accepts very large valid integer strings."""
-        result = await service.update_setting("mod_list_refresh_interval", "999999999")
-        assert result["value"] == 999999999
+        """update_setting accepts the largest interval as a string (Story 17.6 bound)."""
+        result = await service.update_setting("mod_list_refresh_interval", "31536000")
+        assert result["value"] == 31536000
+
+    @pytest.mark.asyncio
+    async def test_rejects_integer_string_above_the_bound(
+        self, service: ApiSettingsService
+    ) -> None:
+        """update_setting rejects an interval string above 365 days (Story 17.6)."""
+        with pytest.raises(ApiSettingInvalidError):
+            await service.update_setting("mod_list_refresh_interval", "31536001")
 
 
 class TestLoggingVerification:
@@ -939,3 +952,81 @@ class TestModUpdateWebhookSetting:
         assert service.get_settings() == ApiSettings()
         assert "api_settings_load_failed" in capsys.readouterr().out
 
+
+
+# =============================================================================
+# Story 17.6: interval bound and a scheduler failure after the save
+# =============================================================================
+
+INTERVAL_KEYS = list(INTERVAL_JOBS)
+
+
+class TestIntervalBound:
+    """Intervals above 365 days are refused (Story 17.6, AC 6)."""
+
+    def test_bound_is_365_days(self) -> None:
+        assert MAX_INTERVAL_SECONDS == 365 * 24 * 60 * 60 == 31_536_000
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    def test_model_accepts_the_bound(self, key: str) -> None:
+        settings = ApiSettings.model_validate({key: 31_536_000})
+        assert getattr(settings, key) == 31_536_000
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    def test_model_rejects_above_the_bound(self, key: str) -> None:
+        with pytest.raises(ValidationError):
+            ApiSettings.model_validate({key: 31_536_001})
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_update_above_the_bound_saves_nothing_and_skips_the_callback(
+        self, settings: Settings, key: str
+    ) -> None:
+        callback = MagicMock()
+        service = ApiSettingsService(settings=settings, scheduler_callback=callback)
+        await service.update_setting(key, 600)
+        before = service.settings_file.read_bytes()
+
+        with pytest.raises(ApiSettingInvalidError) as exc_info:
+            await service.update_setting(key, 31_536_001)
+
+        assert exc_info.value.key == key
+        assert service.settings_file.read_bytes() == before
+        callback.assert_called_once_with(key, 600)
+
+
+class TestSchedulerCallbackFailure:
+    """A failed callback after the save is reported, not swallowed (Story 17.6, AC 7)."""
+
+    def test_error_message(self) -> None:
+        error = ApiSettingNotAppliedError("mod_list_refresh_interval", "boom")
+
+        assert error.key == "mod_list_refresh_interval"
+        assert error.reason == "boom"
+        assert error.message == (
+            "Saved 'mod_list_refresh_interval', but its job could not be rescheduled: "
+            "boom. The saved value applies when the API restarts."
+        )
+        assert str(error) == error.message
+
+    @pytest.mark.parametrize("key", INTERVAL_KEYS)
+    async def test_failed_callback_raises_after_saving(
+        self, settings: Settings, key: str, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        def failing_callback(_key: str, _value: int) -> None:
+            raise RuntimeError("scheduler exploded")
+
+        service = ApiSettingsService(
+            settings=settings, scheduler_callback=failing_callback
+        )
+        capsys.readouterr()
+
+        with pytest.raises(ApiSettingNotAppliedError) as exc_info:
+            await service.update_setting(key, 1234)
+
+        assert exc_info.value.key == key
+        assert key in exc_info.value.message
+        assert "scheduler exploded" in exc_info.value.message
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        assert getattr(service.get_settings(), key) == 1234
+        out = capsys.readouterr().out
+        assert "api_setting_not_applied" in out

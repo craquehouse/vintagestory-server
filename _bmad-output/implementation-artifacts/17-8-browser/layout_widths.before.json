@@ -1,0 +1,2084 @@
+{
+  "widths": [
+    {
+      "width": 320,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          304,
+          288
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              198,
+              320,
+              122
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              177,
+              317,
+              140
+            ],
+            "documentOverflowX": 214,
+            "scrolling": [
+              "table-container:523/238"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:361/256"
+        ]
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          188,
+          156
+        ],
+        "header": [
+          32,
+          288,
+          256
+        ],
+        "badge": [
+          188,
+          288,
+          100
+        ],
+        "panel": [
+          32,
+          288,
+          256
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 390,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          374,
+          358
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              268,
+              390,
+              122
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              247,
+              387,
+              140
+            ],
+            "documentOverflowX": 144,
+            "scrolling": [
+              "table-container:523/308"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:361/326"
+        ]
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          200,
+          168
+        ],
+        "header": [
+          32,
+          358,
+          326
+        ],
+        "badge": [
+          258,
+          358,
+          100
+        ],
+        "panel": [
+          32,
+          358,
+          326
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 430,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          414,
+          398
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              269,
+              391,
+              122
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              290,
+              430,
+              140
+            ],
+            "documentOverflowX": 104,
+            "scrolling": [
+              "table-container:523/348"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          200,
+          168
+        ],
+        "header": [
+          32,
+          398,
+          366
+        ],
+        "badge": [
+          298,
+          398,
+          100
+        ],
+        "panel": [
+          32,
+          398,
+          366
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 768,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/560"
+        ],
+        "table": [
+          184,
+          1367,
+          1183
+        ],
+        "tableContainer": [
+          184,
+          744,
+          560
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": [
+              "table-container:523/510"
+            ]
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          200,
+          368,
+          168
+        ],
+        "header": [
+          200,
+          728,
+          528
+        ],
+        "badge": [
+          628,
+          728,
+          100
+        ],
+        "panel": [
+          200,
+          728,
+          528
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 900,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/692"
+        ],
+        "table": [
+          184,
+          1367,
+          1183
+        ],
+        "tableContainer": [
+          184,
+          876,
+          692
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          200,
+          368,
+          168
+        ],
+        "header": [
+          200,
+          860,
+          660
+        ],
+        "badge": [
+          760,
+          860,
+          100
+        ],
+        "panel": [
+          200,
+          860,
+          660
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1023,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/815"
+        ],
+        "table": [
+          184,
+          1367,
+          1183
+        ],
+        "tableContainer": [
+          184,
+          999,
+          815
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          200,
+          368,
+          168
+        ],
+        "header": [
+          200,
+          983,
+          783
+        ],
+        "badge": [
+          883,
+          983,
+          100
+        ],
+        "panel": [
+          200,
+          983,
+          783
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1024,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/816"
+        ],
+        "table": [
+          184,
+          1367,
+          1183
+        ],
+        "tableContainer": [
+          184,
+          1000,
+          816
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          208,
+          376,
+          168
+        ],
+        "header": [
+          208,
+          976,
+          768
+        ],
+        "badge": [
+          876,
+          976,
+          100
+        ],
+        "panel": [
+          208,
+          976,
+          768
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1440,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          184,
+          1416,
+          1232
+        ],
+        "tableContainer": [
+          184,
+          1416,
+          1232
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          208,
+          376,
+          168
+        ],
+        "header": [
+          208,
+          1392,
+          1184
+        ],
+        "badge": [
+          1292,
+          1392,
+          100
+        ],
+        "panel": [
+          208,
+          1392,
+          1184
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1600,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          184,
+          1576,
+          1392
+        ],
+        "tableContainer": [
+          184,
+          1576,
+          1392
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          208,
+          376,
+          168
+        ],
+        "header": [
+          208,
+          1552,
+          1344
+        ],
+        "badge": [
+          1452,
+          1552,
+          100
+        ],
+        "panel": [
+          240,
+          1520,
+          1280
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1920,
+      "sidebar": "expanded",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          184,
+          1896,
+          1712
+        ],
+        "tableContainer": [
+          184,
+          1896,
+          1712
+        ],
+        "cards": null,
+        "tabsList": [
+          184,
+          369,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          184,
+          702,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              187,
+              320,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              320,
+              437,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              437,
+              559,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              559,
+              699,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          208,
+          376,
+          168
+        ],
+        "header": [
+          208,
+          1872,
+          1664
+        ],
+        "badge": [
+          1772,
+          1872,
+          100
+        ],
+        "panel": [
+          400,
+          1680,
+          1280
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 320,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          304,
+          288
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              198,
+              320,
+              122
+            ],
+            "documentOverflowX": 214,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              177,
+              317,
+              140
+            ],
+            "documentOverflowX": 214,
+            "scrolling": [
+              "table-container:523/238"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:361/256"
+        ]
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          188,
+          156
+        ],
+        "header": [
+          32,
+          288,
+          256
+        ],
+        "badge": [
+          188,
+          288,
+          100
+        ],
+        "panel": [
+          32,
+          288,
+          256
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 390,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          374,
+          358
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              268,
+              390,
+              122
+            ],
+            "documentOverflowX": 144,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              247,
+              387,
+              140
+            ],
+            "documentOverflowX": 144,
+            "scrolling": [
+              "table-container:523/308"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:361/326"
+        ]
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          200,
+          168
+        ],
+        "header": [
+          32,
+          358,
+          326
+        ],
+        "badge": [
+          258,
+          358,
+          100
+        ],
+        "panel": [
+          32,
+          358,
+          326
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 430,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "cards",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": null,
+        "tableContainer": null,
+        "cards": [
+          16,
+          414,
+          398
+        ],
+        "tabsList": [
+          16,
+          201,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          16,
+          534,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              19,
+              152,
+              133
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              152,
+              269,
+              117
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              269,
+              391,
+              122
+            ],
+            "documentOverflowX": 104,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              290,
+              430,
+              140
+            ],
+            "documentOverflowX": 104,
+            "scrolling": [
+              "table-container:523/348"
+            ]
+          }
+        }
+      },
+      "version": {
+        "tabsList": [
+          32,
+          203,
+          171
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      },
+      "gameSettings": {
+        "title": [
+          32,
+          200,
+          168
+        ],
+        "header": [
+          32,
+          398,
+          366
+        ],
+        "badge": [
+          298,
+          398,
+          100
+        ],
+        "panel": [
+          32,
+          398,
+          366
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 768,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/656"
+        ],
+        "table": [
+          88,
+          1271,
+          1183
+        ],
+        "tableContainer": [
+          88,
+          744,
+          656
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          104,
+          272,
+          168
+        ],
+        "header": [
+          104,
+          728,
+          624
+        ],
+        "badge": [
+          628,
+          728,
+          100
+        ],
+        "panel": [
+          104,
+          728,
+          624
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 900,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/788"
+        ],
+        "table": [
+          88,
+          1271,
+          1183
+        ],
+        "tableContainer": [
+          88,
+          876,
+          788
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          104,
+          272,
+          168
+        ],
+        "header": [
+          104,
+          860,
+          756
+        ],
+        "badge": [
+          760,
+          860,
+          100
+        ],
+        "panel": [
+          104,
+          860,
+          756
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1023,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/911"
+        ],
+        "table": [
+          88,
+          1271,
+          1183
+        ],
+        "tableContainer": [
+          88,
+          999,
+          911
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          104,
+          272,
+          168
+        ],
+        "header": [
+          104,
+          983,
+          879
+        ],
+        "badge": [
+          883,
+          983,
+          100
+        ],
+        "panel": [
+          104,
+          983,
+          879
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1024,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [
+          "table-container:1183/912"
+        ],
+        "table": [
+          88,
+          1271,
+          1183
+        ],
+        "tableContainer": [
+          88,
+          1000,
+          912
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          112,
+          280,
+          168
+        ],
+        "header": [
+          112,
+          976,
+          864
+        ],
+        "badge": [
+          876,
+          976,
+          100
+        ],
+        "panel": [
+          112,
+          976,
+          864
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1440,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          88,
+          1416,
+          1328
+        ],
+        "tableContainer": [
+          88,
+          1416,
+          1328
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          112,
+          280,
+          168
+        ],
+        "header": [
+          112,
+          1392,
+          1280
+        ],
+        "badge": [
+          1292,
+          1392,
+          100
+        ],
+        "panel": [
+          112,
+          1392,
+          1280
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1600,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          88,
+          1576,
+          1488
+        ],
+        "tableContainer": [
+          88,
+          1576,
+          1488
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          112,
+          280,
+          168
+        ],
+        "header": [
+          112,
+          1552,
+          1440
+        ],
+        "badge": [
+          1452,
+          1552,
+          100
+        ],
+        "panel": [
+          192,
+          1472,
+          1280
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    },
+    {
+      "width": 1920,
+      "sidebar": "collapsed",
+      "installedMods": {
+        "layout": "table",
+        "documentOverflowX": 0,
+        "scrolling": [],
+        "table": [
+          88,
+          1896,
+          1808
+        ],
+        "tableContainer": [
+          88,
+          1896,
+          1808
+        ],
+        "cards": null,
+        "tabsList": [
+          88,
+          273,
+          185
+        ]
+      },
+      "config": {
+        "tabsList": [
+          88,
+          606,
+          518
+        ],
+        "tabs": {
+          "ui-preferences": {
+            "selected": "true",
+            "trigger": [
+              91,
+              224,
+              133
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "api-settings": {
+            "selected": "true",
+            "trigger": [
+              224,
+              341,
+              117
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "file-manager": {
+            "selected": "true",
+            "trigger": [
+              341,
+              463,
+              122
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          },
+          "scheduled-jobs": {
+            "selected": "true",
+            "trigger": [
+              463,
+              603,
+              140
+            ],
+            "documentOverflowX": 0,
+            "scrolling": []
+          }
+        }
+      },
+      "gameSettings": {
+        "title": [
+          112,
+          280,
+          168
+        ],
+        "header": [
+          112,
+          1872,
+          1760
+        ],
+        "badge": [
+          1772,
+          1872,
+          100
+        ],
+        "panel": [
+          352,
+          1632,
+          1280
+        ],
+        "documentOverflowX": 0,
+        "scrolling": []
+      }
+    }
+  ],
+  "wideAt1920": [
+    {
+      "url": "/",
+      "content": [
+        184,
+        1896,
+        1712
+      ],
+      "documentOverflowX": 0,
+      "scrolling": []
+    },
+    {
+      "url": "/game-server/console",
+      "content": [
+        184,
+        1896,
+        1712
+      ],
+      "documentOverflowX": 0,
+      "scrolling": []
+    },
+    {
+      "url": "/game-server/version",
+      "content": [
+        184,
+        1896,
+        1712
+      ],
+      "documentOverflowX": 0,
+      "scrolling": []
+    },
+    {
+      "url": "/game-server/mods/browse",
+      "content": [
+        184,
+        1896,
+        1712
+      ],
+      "documentOverflowX": 0,
+      "scrolling": []
+    },
+    {
+      "url": "/config",
+      "content": [
+        184,
+        1896,
+        1712
+      ],
+      "documentOverflowX": 0,
+      "scrolling": []
+    }
+  ]
+}

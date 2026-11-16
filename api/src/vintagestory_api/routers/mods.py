@@ -39,10 +39,10 @@ from vintagestory_api.services.mods import (
     ModAlreadyInstalledError,
     ModConfirmationRequiredError,
     ModNotFoundError,
+    ModOperationInProgressError,
     ModService,
     ModValidationError,
     ModVersionChangeFailedError,
-    ModVersionChangeInProgressError,
     get_mod_service,
 )
 
@@ -211,6 +211,8 @@ def _api_mod_to_browse_item(mod: ModDict) -> ModBrowseItem:
 
     return ModBrowseItem(
         slug=slug,
+        # Every mod ID once, in listing order; the listing can hold empty strings
+        mod_ids=list(dict.fromkeys(m for m in modidstrs if m)),
         # Kept separate from the slug for website URL construction
         urlalias=mod["urlalias"],
         asset_id=mod["assetid"],
@@ -665,13 +667,15 @@ async def install_mod(
     request: ModInstallRequest,
     _: RequireAdmin,
     service: ModService = Depends(get_mod_service),
+    update_service: ModUpdateService = Depends(get_mod_update_service),
 ) -> ApiResponse:
     """Install a mod from the VintageStory mod database.
 
     Downloads and installs a mod by slug or URL. If version is not specified,
     installs the newest stable release of the mod ID that has a downloadable file
     (Epic 17 ADR-2). Returns compatibility status with the
-    installed game version.
+    installed game version. The new mod's update status is stored from the install's
+    own lookup, so it shows without waiting for the next update check (Story 17.4).
 
     Args:
         request: Installation request with slug and optional version.
@@ -688,6 +692,7 @@ async def install_mod(
         HTTPException: 404 if mod not found in database
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
+        HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
         HTTPException: 502 if download fails
@@ -695,6 +700,8 @@ async def install_mod(
     logger.debug("router_install_mod_start", slug=request.slug, version=request.version)
     try:
         result = await service.install_mod(request.slug, request.version)
+        # Never raises; a failure is logged and the install still succeeds
+        update_service.record_install(result.slug, result.releases)
         logger.debug(
             "router_install_mod_complete",
             slug=result.slug,
@@ -719,6 +726,15 @@ async def install_mod(
             detail={
                 "code": ErrorCode.MOD_ALREADY_INSTALLED,
                 "message": f"Mod '{e.slug}' is already installed (version {e.current_version})",
+            },
+        )
+
+    except ModOperationInProgressError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
             },
         )
 
@@ -801,6 +817,7 @@ async def enable_mod(
     Raises:
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
+        HTTPException: 409 if another operation on this mod is in progress
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -830,6 +847,15 @@ async def enable_mod(
             detail={
                 "code": ErrorCode.MOD_NOT_INSTALLED,
                 "message": f"Mod '{e.slug}' is not installed",
+            },
+        )
+
+    except ModOperationInProgressError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
             },
         )
 
@@ -867,6 +893,7 @@ async def disable_mod(
     Raises:
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
+        HTTPException: 409 if another operation on this mod is in progress
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -896,6 +923,15 @@ async def disable_mod(
             detail={
                 "code": ErrorCode.MOD_NOT_INSTALLED,
                 "message": f"Mod '{e.slug}' is not installed",
+            },
+        )
+
+    except ModOperationInProgressError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
             },
         )
 
@@ -929,6 +965,7 @@ async def remove_mod(
     Raises:
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
+        HTTPException: 409 if another operation on this mod is in progress
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -958,6 +995,15 @@ async def remove_mod(
             detail={
                 "code": ErrorCode.MOD_NOT_INSTALLED,
                 "message": f"Mod '{e.slug}' is not installed",
+            },
+        )
+
+    except ModOperationInProgressError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
             },
         )
 
@@ -991,7 +1037,8 @@ async def change_mod_version(
     """Update or roll back an installed mod to a listed release (Admin only).
 
     The installed file is only replaced after the new release is validated; any
-    failure leaves the mod unchanged.
+    failure leaves the mod unchanged. Returns 409 if another operation on this mod is
+    in progress.
     """
     try:
         result = await service.change_version(slug, request.version, confirm=request.confirm)
@@ -1011,8 +1058,8 @@ async def change_mod_version(
             reasons=e.reasons,
             compatibility=e.compatibility,
         ) from None
-    except ModVersionChangeInProgressError as e:
-        raise _version_change_error(409, ErrorCode.MOD_VERSION_CHANGE_IN_PROGRESS, e) from None
+    except ModOperationInProgressError as e:
+        raise _version_change_error(409, ErrorCode.MOD_OPERATION_IN_PROGRESS, e) from None
     except ModValidationError as e:
         raise _version_change_error(422, ErrorCode.MOD_VALIDATION_FAILED, e) from None
     except ExternalApiError as e:

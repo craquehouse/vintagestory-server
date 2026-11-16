@@ -96,6 +96,7 @@ function createWrapper() {
 // Mock mod data for testing
 const mockMod: ModBrowseItem = {
   slug: 'carrycapacity',
+  modIds: ['carrycapacity'],
   urlalias: 'carrycapacity',
   assetId: 12345,
   name: 'Carry Capacity',
@@ -474,18 +475,63 @@ describe('ModCard', () => {
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({}));
     });
 
-    it('does not show install button when installedSlugs is not provided', () => {
+    it('does not show install button when installedMods is not provided', () => {
       render(<ModCard mod={mockMod} />, { wrapper: createWrapper() });
 
       expect(screen.queryByTestId('mod-card-install-carrycapacity')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-card-installed-carrycapacity')).not.toBeInTheDocument();
     });
 
+    describe('an entry with several mod IDs (Story 17.4)', () => {
+      const instrumentsMod: ModBrowseItem = {
+        ...mockMod,
+        slug: 'instruments',
+        modIds: ['instruments', 'vsinstruments', 'vsinstrumentsbase'],
+        name: 'Instruments',
+      };
+
+      it('shows Installed when a mod ID other than the first is installed', () => {
+        render(<ModCard mod={instrumentsMod} installedMods={[{ slug: 'vsinstrumentsbase' }]} />, {
+          wrapper: createWrapper(),
+        });
+
+        expect(screen.getByTestId('mod-card-installed-instruments')).toHaveTextContent('Installed');
+        expect(screen.queryByTestId('mod-card-install-instruments')).not.toBeInTheDocument();
+      });
+
+      it('shows Installed when the installed mod ID differs only in case', () => {
+        render(<ModCard mod={instrumentsMod} installedMods={[{ slug: 'VSInstrumentsBase' }]} />, {
+          wrapper: createWrapper(),
+        });
+
+        expect(screen.getByTestId('mod-card-installed-instruments')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-card-install-instruments')).not.toBeInTheDocument();
+      });
+
+      it('shows the Install button when only another entry is installed', () => {
+        render(<ModCard mod={instrumentsMod} installedMods={[{ slug: 'smithingplus' }]} />, {
+          wrapper: createWrapper(),
+        });
+
+        expect(screen.getByTestId('mod-card-install-instruments')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-card-installed-instruments')).not.toBeInTheDocument();
+      });
+
+      it('shows the Install button when nothing is installed', () => {
+        render(<ModCard mod={instrumentsMod} installedMods={[]} />, {
+          wrapper: createWrapper(),
+        });
+
+        expect(screen.getByTestId('mod-card-install-instruments')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-card-installed-instruments')).not.toBeInTheDocument();
+      });
+    });
+
     it('shows Install button when mod is not installed', () => {
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -495,10 +541,10 @@ describe('ModCard', () => {
     });
 
     it('shows Installed indicator when mod is already installed', () => {
-      const installedSlugs = new Set(['carrycapacity']);
+      const installedMods = [{ slug: 'carrycapacity' }];
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -510,7 +556,7 @@ describe('ModCard', () => {
 
     it('opens confirmation dialog when Install button is clicked', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod data (simulating successful fetch)
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -545,7 +591,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -559,7 +605,7 @@ describe('ModCard', () => {
     it('does not trigger card onClick when Install button is clicked', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod data
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -594,7 +640,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} onClick={handleClick} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} onClick={handleClick} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -605,7 +651,7 @@ describe('ModCard', () => {
     });
 
     it('shows loading state when Install button is clicked', async () => {
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return loading state
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -613,7 +659,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -626,7 +672,7 @@ describe('ModCard', () => {
 
     it('opens dialog with compatible status after fetch completes', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return compatible mod
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -661,7 +707,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -675,7 +721,7 @@ describe('ModCard', () => {
 
     it('falls back to not_verified when fetch fails', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return error state
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -684,7 +730,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -698,7 +744,7 @@ describe('ModCard', () => {
 
     it('shows the version a plain install picks, from the fetched details', async () => {
       const user = userEvent.setup();
-      const installedSlugs = new Set<string>();
+      const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod with specific version
       vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
@@ -733,7 +779,7 @@ describe('ModCard', () => {
       }));
 
       render(
-        <ModCard mod={mockMod} installedSlugs={installedSlugs} />,
+        <ModCard mod={mockMod} installedMods={installedMods} />,
         { wrapper: createWrapper() }
       );
 
@@ -777,7 +823,7 @@ describe('ModCard', () => {
           isSuccess: true,
         }));
 
-        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+        render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),
         });
         await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
@@ -825,7 +871,7 @@ describe('ModCard', () => {
           isSuccess: true,
         }));
 
-        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+        render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),
         });
         await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
@@ -844,7 +890,7 @@ describe('ModCard', () => {
           error: new Error('Network error'),
         }));
 
-        render(<ModCard mod={mockMod} installedSlugs={new Set<string>()} />, {
+        render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),
         });
         await user.click(screen.getByTestId('mod-card-install-carrycapacity'));

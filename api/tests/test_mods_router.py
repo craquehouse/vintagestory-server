@@ -4,6 +4,7 @@ import io
 import json
 import zipfile
 from collections.abc import Generator
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -19,10 +20,34 @@ from vintagestory_api.config import Settings
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
-from vintagestory_api.services.mods import ModService, get_mod_service
+from vintagestory_api.services.mod_updates import (
+    ModUpdateService,
+    ModUpdateStore,
+    get_mod_update_service,
+)
+from vintagestory_api.services.mods import (
+    ModOperationInProgressError,
+    ModService,
+    get_mod_service,
+)
 from vintagestory_api.services.pending_restart import PendingRestartState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
+
+BUSY_BODY = {
+    "detail": {
+        "code": "MOD_OPERATION_IN_PROGRESS",
+        "message": (
+            "Another operation on mod 'smithingplus' is in progress. "
+            "Try again when it has finished."
+        ),
+    }
+}
+"""The 409 body every mod operation returns while the mod is busy (Story 17.3, AC 1)."""
+
+
+def raise_busy(*_args: object, **_kwargs: object) -> object:
+    raise ModOperationInProgressError("smithingplus")
 
 
 def all_null_mod() -> dict[str, Any]:
@@ -97,12 +122,22 @@ class TestInstallModEndpoint:
         )
 
     @pytest.fixture
+    def update_service(self, mod_service: ModService, temp_data_dir: Path) -> ModUpdateService:
+        """Update service on the temp directory: install stores records (Story 17.4)."""
+        return ModUpdateService(
+            store=ModUpdateStore(temp_data_dir / "state"),
+            mod_source=mod_service,
+            game_version_provider=lambda: "1.21.3",
+        )
+
+    @pytest.fixture
     def test_app(
-        self, mod_service: ModService, test_settings: Settings
+        self, mod_service: ModService, test_settings: Settings, update_service: ModUpdateService
     ) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
+        app.dependency_overrides[get_mod_update_service] = lambda: update_service
         yield app
         app.dependency_overrides.clear()
 
@@ -115,6 +150,112 @@ class TestInstallModEndpoint:
     def admin_headers(self) -> dict[str, str]:
         """Return headers for admin authentication."""
         return {"X-API-Key": TEST_ADMIN_KEY}
+
+    @respx.mock
+    def test_install_shows_its_update_status_without_a_check(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Story 17.4 AC 4: the install's own lookup gives the new mod a real status."""
+        # SMITHINGPLUS_MOD's release has no modidstr, which would leave the status
+        # `installed_release_not_listed`; this lookup's release names its mod ID
+        lookup: dict[str, object] = {
+            **SMITHINGPLUS_MOD,
+            "releases": [
+                {
+                    "releaseid": 27001,
+                    "modversion": "1.8.3",
+                    "modidstr": "smithingplus",
+                    "filename": "smithingplus_1.8.3.zip",
+                    "fileid": 59176,
+                    "downloads": 49726,
+                    "tags": ["1.21.0", "1.21.1", "1.21.2", "1.21.3"],
+                }
+            ],
+        }
+        lookup_route = respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": lookup})
+        )
+        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+            return_value=Response(
+                200,
+                content=create_mod_zip_bytes(
+                    {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+                ),
+            )
+        )
+
+        install = client.post(
+            "/api/v1alpha1/mods", json={"slug": "smithingplus"}, headers=admin_headers
+        )
+        updates = client.get("/api/v1alpha1/mods/updates", headers=admin_headers)
+
+        assert install.status_code == 200
+        assert updates.status_code == 200
+        items = {m["slug"]: m for m in updates.json()["data"]["mods"]}
+        assert items["smithingplus"]["status"] == "up_to_date"
+        assert items["smithingplus"].get("reason") is None
+        assert items["smithingplus"]["checked_at"] is not None
+        # No extra mod database request for the status
+        assert lookup_route.call_count == 1
+
+    @respx.mock
+    def test_install_succeeds_when_storing_the_update_record_fails(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        temp_data_dir: Path,
+        update_service: ModUpdateService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """Story 17.4 AC 5: a failed save of the update record does not fail the install.
+
+        The failure is logged as a warning.
+        """
+
+        def fail_save() -> None:
+            raise OSError("disk full")
+
+        monkeypatch.setattr(update_service.store, "save", fail_save)
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+        )
+        respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+            return_value=Response(
+                200,
+                content=create_mod_zip_bytes(
+                    {"modid": "smithingplus", "name": "Smithing Plus", "version": "1.8.3"}
+                ),
+            )
+        )
+
+        response = client.post(
+            "/api/v1alpha1/mods", json={"slug": "smithingplus"}, headers=admin_headers
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "ok",
+            "data": {
+                "slug": "smithingplus",
+                "version": "1.8.3",
+                "filename": "smithingplus_1.8.3.zip",
+                "compatibility": "compatible",
+                "pending_restart": False,
+            },
+        }
+        assert (temp_data_dir / "mods" / "smithingplus_1.8.3.zip").exists()
+        assert not (temp_data_dir / "state" / "mod-updates.json").exists()
+        warning = next(
+            line
+            for line in captured_logs.getvalue().splitlines()
+            if "mod_update_record_after_install_failed" in line
+        )
+        assert "warning" in warning
+        assert "disk full" in warning
+        assert "smithingplus" in warning
 
     @respx.mock
     def test_install_mod_success(
@@ -323,6 +464,23 @@ class TestInstallModEndpoint:
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+    def test_install_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "install_mod", raise_busy)
+
+        response = client.post(
+            "/api/v1alpha1/mods", json={"slug": "smithingplus"}, headers=admin_headers
+        )
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
 
 
 class TestLookupModEndpoint:
@@ -897,6 +1055,21 @@ class TestEnableModEndpoint:
 
         assert response.status_code == 401
 
+    def test_enable_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "enable_mod", raise_busy)
+
+        response = client.post("/api/v1alpha1/mods/smithingplus/enable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
+
 
 class TestDisableModEndpoint:
     """Tests for POST /api/v1alpha1/mods/{slug}/disable endpoint."""
@@ -1059,6 +1232,21 @@ class TestDisableModEndpoint:
         response = client.post("/api/v1alpha1/mods/testmod/disable")
 
         assert response.status_code == 401
+
+    def test_disable_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "disable_mod", raise_busy)
+
+        response = client.post("/api/v1alpha1/mods/smithingplus/disable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
 
 
 class TestRemoveModEndpoint:
@@ -1248,6 +1436,21 @@ class TestRemoveModEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["pending_restart"] is True
+
+    def test_remove_busy_mod_returns_409(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        admin_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A mod an install or version change is running for answers 409 (Story 17.3)."""
+        monkeypatch.setattr(mod_service, "remove_mod", raise_busy)
+
+        response = client.delete("/api/v1alpha1/mods/smithingplus", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == BUSY_BODY
 
 
 class TestListModsEndpoint:
@@ -1938,6 +2141,39 @@ class TestBrowseModsEndpoint:
         data = response.json()
         # With 3 mods and page_size=20, there's only 1 page
         assert data["data"]["pagination"]["page"] == 1
+
+    @respx.mock
+    def test_browse_mods_serves_the_last_page_for_a_page_beyond_the_results(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A page beyond the results gets exactly the last page's response.
+
+        Story 17.7: the web stores this response as the last page, so moving the
+        URL there needs no second request.
+        """
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
+        )
+
+        beyond = client.get(
+            "/api/v1alpha1/mods/browse?page=100&page_size=1&sort=downloads",
+            headers=admin_headers,
+        )
+        last = client.get(
+            "/api/v1alpha1/mods/browse?page=3&page_size=1&sort=downloads",
+            headers=admin_headers,
+        )
+
+        assert beyond.status_code == 200
+        assert last.status_code == 200
+        beyond_data = beyond.json()["data"]
+        assert beyond_data == last.json()["data"]
+        assert beyond_data["pagination"]["page"] == 3
+        assert beyond_data["pagination"]["has_prev"] is True
+        assert beyond_data["pagination"]["has_next"] is False
+        assert len(beyond_data["mods"]) == 1
 
     @respx.mock
     def test_browse_mods_mod_fields_transform(
@@ -2755,6 +2991,64 @@ class TestBrowseItemSlugUrlalias:
         assert mod["slug"] == "matchingmod"
         assert mod["urlalias"] == "matchingmod"
 
+    @respx.mock
+    @pytest.mark.parametrize(
+        ("modidstrs", "expected_slug", "expected_mod_ids"),
+        [
+            (
+                ["instruments", "vsinstruments", "vsinstrumentsbase"],
+                "instruments",
+                ["instruments", "vsinstruments", "vsinstrumentsbase"],
+            ),
+            (["a", "", "a", "b"], "a", ["a", "b"]),
+            ([], "4321", []),
+        ],
+    )
+    def test_browse_item_lists_every_mod_id(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        modidstrs: list[str],
+        expected_slug: str,
+        expected_mod_ids: list[str],
+    ) -> None:
+        """Story 17.4: `mod_ids` holds the listing's `modidstrs`, in order, each once.
+
+        Empty strings are dropped; the slug is unchanged (`modidstrs[0]`, or the
+        existing fallback for an entry with no mod IDs).
+        """
+        listing_mod: dict[str, Any] = {
+            "modid": 4321,
+            "assetid": 1234,
+            "name": "Instruments",
+            "summary": "Play music",
+            "author": "author",
+            "downloads": 50,
+            "follows": 5,
+            "trendingpoints": 1,
+            "side": "both",
+            "type": "mod",
+            "logo": None,
+            "tags": [],
+            "lastreleased": "2024-06-01 00:00:00",
+            "urlalias": "instruments",
+            "modidstrs": modidstrs,
+        }
+        listing_route = respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json={"statuscode": "200", "mods": [listing_mod]})
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+
+        assert response.status_code == 200
+        mod = response.json()["data"]["mods"][0]
+        assert mod["slug"] == expected_slug
+        assert mod["mod_ids"] == expected_mod_ids
+        # No request per mod: the listing is the only mocked route, and respx
+        # refuses any request that is not mocked
+        assert listing_route.call_count == 1
+        assert len(respx.calls) == 1
+
 
 class TestBrowseModsFilters:
     """Tests for browse endpoint filters: side, mod_type, and tags."""
@@ -3571,6 +3865,7 @@ class TestBrowseWithIncompleteModData:
         assert set(by_slug) == {"unknown", "qolmod", "trendingnew"}
         assert by_slug["unknown"] == {
             "slug": "unknown",
+            "mod_ids": [],
             "urlalias": None,
             "asset_id": 0,
             "name": "",

@@ -1,6 +1,7 @@
 """Tests for GameConfigService.
 
 Story 6.2: Game Settings API
+Story 17.6: settings with a game default known to the manager carry `default`
 
 Tests are organized by task/AC:
 - Task 1: GameConfigService class + LIVE_SETTINGS + get_settings() + update_setting()
@@ -19,13 +20,22 @@ from vintagestory_api.config import Settings
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.game_config import (
     LIVE_SETTINGS,
+    REDACTED,
+    SECRET_SETTING_KEYS,
     GameConfigService,
     ServerSetting,
     SettingEnvManagedError,
+    SettingInfo,
     SettingUnknownError,
     SettingUpdateFailedError,
     SettingValueInvalidError,
+    has_secret_value,
+    is_secret_key,
+    redact_secrets,
 )
+
+# Story 17.5: a made-up password for the redaction tests; never a real value.
+SECRET = "pw-Zq9-monitor-must-not-see"
 
 
 @pytest.fixture
@@ -223,6 +233,132 @@ class TestServerSettingModel:
         advertise = LIVE_SETTINGS["AdvertiseServer"]
         assert advertise.bool_format == "0_1"
 
+    def test_server_setting_is_not_secret_by_default(self) -> None:
+        """Story 17.5: a setting is a secret only when it says so."""
+        setting = ServerSetting(key="TestSetting", value_type="string")
+        assert setting.secret is False
+
+    def test_password_is_the_only_secret_setting(self) -> None:
+        """Story 17.5: Password is the one secret among the managed settings."""
+        assert LIVE_SETTINGS["Password"].secret is True
+        assert SECRET_SETTING_KEYS == frozenset({"Password"})
+        others = [key for key, setting in LIVE_SETTINGS.items() if setting.secret]
+        assert others == ["Password"]
+
+
+# ==============================================================================
+# Story 17.5: secret helpers
+# ==============================================================================
+
+
+class TestSecretHelpers:
+    """Story 17.5: is_secret_key, has_secret_value and redact_secrets."""
+
+    @pytest.mark.parametrize("key", ["Password", "password", "PASSWORD", "pAsSwOrD"])
+    def test_secret_key_in_any_letter_case(self, key: str) -> None:
+        """A secret setting's key is recognized in any letter case."""
+        assert is_secret_key(key) is True
+
+    @pytest.mark.parametrize("key", ["ServerName", "Passwords", "Pass", "", "ServerIdentifier"])
+    def test_other_keys_are_not_secret(self, key: str) -> None:
+        """Only a secret setting's key is a secret key."""
+        assert is_secret_key(key) is False
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [(None, False), ("", False), (SECRET, True), (" ", True), (0, True), (False, True)],
+    )
+    def test_has_secret_value(self, value: object, expected: bool) -> None:
+        """Anything but null and the empty string counts as a set secret."""
+        assert has_secret_value(value) is expected
+
+    def test_redact_object(self) -> None:
+        """Top-level secret keys with a value are replaced; other keys stay."""
+        content = {"ServerName": "Test", "Password": SECRET, "Port": 42420}
+        assert redact_secrets(content) == {
+            "ServerName": "Test",
+            "Password": REDACTED,
+            "Port": 42420,
+        }
+
+    def test_redact_every_letter_case(self) -> None:
+        """Password, password and PASSWORD are all redacted."""
+        content = {"Password": "a1", "password": "b2", "PASSWORD": "c3"}
+        assert redact_secrets(content) == {
+            "Password": REDACTED,
+            "password": REDACTED,
+            "PASSWORD": REDACTED,
+        }
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_unset_secret_is_unchanged(self, value: object) -> None:
+        """null and "" hold no secret and are returned as they are."""
+        assert redact_secrets({"Password": value}) == {"Password": value}
+
+    def test_non_string_secret_value_is_redacted(self) -> None:
+        """A secret value that is not a string is redacted too."""
+        assert redact_secrets({"Password": 123}) == {"Password": REDACTED}
+
+    def test_nested_secret_is_unchanged(self) -> None:
+        """Only top-level keys are redacted (documented limit)."""
+        content = {"Other": {"Password": "nested"}}
+        assert redact_secrets(content) == content
+
+    @pytest.mark.parametrize("content", [[1, 2], "text", 42, None, True])
+    def test_arrays_and_scalars_are_unchanged(self, content: object) -> None:
+        """Only a JSON object is changed."""
+        assert redact_secrets(content) == content
+
+    def test_does_not_change_its_argument(self) -> None:
+        """The parsed content is not modified in place."""
+        content = {"Password": SECRET}
+        redact_secrets(content)
+        assert content == {"Password": SECRET}
+
+
+class TestSettingInfoSecretFields:
+    """Story 17.5: SettingInfo carries secret and configured."""
+
+    def _info(self, secret: bool = False, configured: bool | None = None) -> SettingInfo:
+        return SettingInfo(
+            key="Password",
+            value=None,
+            value_type="string",
+            live_update=True,
+            requires_restart=False,
+            env_managed=False,
+            secret=secret,
+            configured=configured,
+        )
+
+    def test_defaults_omit_both_fields(self) -> None:
+        """A setting that is not secret carries neither field."""
+        info = SettingInfo(
+            key="ServerName",
+            value="x",
+            value_type="string",
+            live_update=True,
+            requires_restart=False,
+            env_managed=False,
+        )
+        assert info.secret is False
+        assert info.configured is None
+        result = info.to_dict()
+        assert "secret" not in result
+        assert "configured" not in result
+
+    def test_secret_is_included_when_set(self) -> None:
+        """secret: true is in the dict when the setting is a secret."""
+        result = self._info(secret=True).to_dict()
+        assert result["secret"] is True
+        assert "configured" not in result
+
+    @pytest.mark.parametrize("configured", [True, False])
+    def test_configured_is_included_when_not_none(self, configured: bool) -> None:
+        """configured is in the dict whenever it is known, False included."""
+        result = self._info(secret=True, configured=configured).to_dict()
+        assert result["configured"] is configured
+
 
 # ==============================================================================
 # Task 1.3: get_settings() method - returns enriched settings with metadata
@@ -347,6 +483,118 @@ class TestGetSettings:
         assert "source_file" in result
         assert "last_modified" in result
         assert isinstance(result["settings"], list)
+
+
+def _write_config(config_file: Path, sample_config: dict[str, object], **changes: object) -> None:
+    """Rewrite the temp serverconfig.json with some keys changed."""
+    config_file.write_text(json.dumps({**sample_config, **changes}, indent=2))
+
+
+def _password(response_settings: list[SettingInfo]) -> SettingInfo:
+    return next(s for s in response_settings if s.key == "Password")
+
+
+class TestGetSettingsSecrets:
+    """Story 17.5 (FR186): get_settings withholds secrets unless the role is Admin."""
+
+    def test_admin_receives_the_password(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """Admin gets the value, secret is set and configured is not."""
+        _write_config(config_file, sample_config, Password=SECRET)
+
+        password = _password(game_config_service.get_settings("admin").settings)
+
+        assert password.value == SECRET
+        assert password.secret is True
+        assert password.configured is None
+
+    @pytest.mark.parametrize("role", [None, "monitor", "", "ADMIN", "Admin", "someone"])
+    def test_any_other_role_gets_it_redacted(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+        role: str | None,
+    ) -> None:
+        """AC 6: no role, Monitor and unknown roles all get the redacted form."""
+        _write_config(config_file, sample_config, Password=SECRET)
+
+        response = (
+            game_config_service.get_settings()
+            if role is None
+            else game_config_service.get_settings(role)
+        )
+        password = _password(response.settings)
+
+        assert password.value is None
+        assert password.secret is True
+        assert password.configured is True
+        assert SECRET not in json.dumps(response.to_dict())
+
+    @pytest.mark.parametrize("stored", [None, "", "missing"])
+    def test_no_password_is_not_configured(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+        stored: str | None,
+    ) -> None:
+        """AC 2: null, "" or a missing key reads as not configured."""
+        config = dict(sample_config)
+        if stored == "missing":
+            del config["Password"]
+        else:
+            config["Password"] = stored
+        config_file.write_text(json.dumps(config))
+
+        monitor = _password(game_config_service.get_settings("monitor").settings)
+        admin = _password(game_config_service.get_settings("admin").settings)
+
+        assert monitor.value is None
+        assert monitor.configured is False
+        assert admin.value == (None if stored == "missing" else stored)
+        assert admin.configured is None
+
+    def test_lower_case_key_counts_as_configured(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """A hand-edited "password" key is a set password; Admin reads Password as today."""
+        config = {k: v for k, v in sample_config.items() if k != "Password"}
+        config["password"] = SECRET
+        config_file.write_text(json.dumps(config))
+
+        monitor = game_config_service.get_settings("monitor")
+        admin = game_config_service.get_settings("admin")
+
+        assert _password(monitor.settings).configured is True
+        assert SECRET not in json.dumps(monitor.to_dict())
+        assert _password(admin.settings).value is None
+
+    def test_other_settings_are_the_same_for_both_roles(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """Only Password differs between the roles."""
+        _write_config(config_file, sample_config, Password=SECRET)
+
+        monitor = {s.key: s.to_dict() for s in game_config_service.get_settings().settings}
+        admin = {s.key: s.to_dict() for s in game_config_service.get_settings("admin").settings}
+
+        for key, setting in admin.items():
+            if key == "Password":
+                continue
+            assert monitor[key] == setting
+            assert "secret" not in setting
+            assert "configured" not in setting
 
 
 # ==============================================================================
@@ -1139,3 +1387,92 @@ class TestMissingCoverage:
             # Lines 727-729: exception handling
             assert exc_info.value.code == "SETTING_UPDATE_FAILED"
             assert "ServerName" in str(exc_info.value)
+
+
+# ==============================================================================
+# Story 17.6: the game's default for a setting with no value (FR188)
+# ==============================================================================
+
+
+def _write_raw_config(config_file: Path, config: dict[str, object]) -> None:
+    config_file.write_text(json.dumps(config, indent=2))
+
+
+class TestGameDefaults:
+    """Story 17.6: a setting the game defaults carries `default`; no other does."""
+
+    def test_server_setting_has_no_default_by_default(self) -> None:
+        setting = ServerSetting(key="TestSetting", value_type="bool")
+        assert setting.default is None
+
+    def test_entity_spawning_is_the_only_setting_with_a_default(self) -> None:
+        defaults = {
+            key: setting.default
+            for key, setting in LIVE_SETTINGS.items()
+            if setting.default is not None
+        }
+        assert defaults == {"EntitySpawning": True}
+
+    def test_no_secret_setting_has_a_default(self) -> None:
+        assert all(
+            setting.default is None for setting in LIVE_SETTINGS.values() if setting.secret
+        )
+
+    def test_setting_info_omits_default_when_none(self) -> None:
+        info = SettingInfo(
+            key="AllowPvP",
+            value=None,
+            value_type="bool",
+            live_update=True,
+            requires_restart=False,
+            env_managed=False,
+        )
+        assert info.default is None
+        assert "default" not in info.to_dict()
+
+    def test_setting_info_includes_default_when_set(self) -> None:
+        info = SettingInfo(
+            key="EntitySpawning",
+            value=None,
+            value_type="bool",
+            live_update=True,
+            requires_restart=False,
+            env_managed=False,
+            default=False,
+        )
+        assert info.to_dict()["default"] is False
+
+    @pytest.mark.parametrize("role", ["admin", "monitor"])
+    def test_entity_spawning_default_with_a_value_in_the_file(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        role: str,
+    ) -> None:
+        settings = {
+            s["key"]: s for s in game_config_service.get_settings(role).to_dict()["settings"]
+        }
+
+        assert settings["EntitySpawning"]["value"] is True
+        assert settings["EntitySpawning"]["default"] is True
+        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]
+
+    @pytest.mark.parametrize("role", ["admin", "monitor"])
+    def test_entity_spawning_missing_from_the_file(
+        self,
+        game_config_service: GameConfigService,
+        config_file: Path,
+        sample_config: dict[str, object],
+        role: str,
+    ) -> None:
+        """The game does not write EntitySpawning to serverconfig.json (1.22.7)."""
+        config = {k: v for k, v in sample_config.items() if k != "EntitySpawning"}
+        _write_raw_config(config_file, config)
+
+        settings = {
+            s["key"]: s for s in game_config_service.get_settings(role).to_dict()["settings"]
+        }
+
+        assert settings["EntitySpawning"]["value"] is None
+        assert settings["EntitySpawning"]["default"] is True
+        assert [key for key, s in settings.items() if "default" in s] == ["EntitySpawning"]

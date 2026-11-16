@@ -20,6 +20,7 @@
  * Story VSS-vth: Game version filter
  * VSS-195: Slug/URL detection in search
  * Story 16.1: Search, filters, sort and page live in the URL (Epic 16 ADR-1)
+ * Story 17.7: A page beyond the results is replaced by the last page (VSS-nhb)
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
@@ -81,10 +82,9 @@ export function BrowseTab() {
 
   // Story 10.8: Get installed mods to show install state on cards
   const { data: modsData } = useMods();
-  const installedSlugs = useMemo(
-    () => new Set(modsData?.data?.mods?.map((mod) => mod.slug) ?? []),
-    [modsData]
-  );
+  // Story 17.4: the cards match any of an entry's mod IDs; an empty list while the
+  // installed list loads shows the Install button until it arrives
+  const installedMods = useMemo(() => modsData?.data?.mods ?? [], [modsData]);
 
   // VSS-1u2: Get installed server version to show first in version filter
   const { data: serverStatus } = useServerStatus();
@@ -142,6 +142,12 @@ export function BrowseTab() {
     [updateBrowseState]
   );
 
+  // Story 17.7: A page beyond the results becomes the last page, without a history entry
+  const handlePageOutOfRange = useCallback(
+    (lastPage: number) => updateBrowseState({ page: lastPage }, { replace: true }),
+    [updateBrowseState]
+  );
+
   const {
     mods,
     pagination,
@@ -160,7 +166,7 @@ export function BrowseTab() {
       sort,
       page,
     },
-    { onPageChange: handlePageChange }
+    { onPageChange: handlePageChange, onPageOutOfRange: handlePageOutOfRange }
   );
 
   // Story 10.7 / 16.1: On a return from a mod's detail page, scroll to the card that
@@ -284,11 +290,13 @@ export function BrowseTab() {
         mods={mods}
         isLoading={isLoading}
         onModClick={openModDetail}
-        installedSlugs={installedSlugs}
+        installedMods={installedMods}
       />
 
-      {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name) */}
-      {!isLoading && pagination && pagination.totalPages > 1 && (
+      {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name).
+          Story 17.7: not for a page beyond the results, which is about to be replaced by
+          the last page (otherwise "Page 9999 of N" shows for one paint) */}
+      {!isLoading && pagination && pagination.totalPages > 1 && currentPage <= pagination.totalPages && (
         <Pagination
           currentPage={currentPage}
           totalPages={pagination.totalPages}

@@ -9,7 +9,7 @@ import pytest
 import respx
 from httpx import Response
 
-from vintagestory_api.models.moddb import ModDict, normalize_mod_list
+from vintagestory_api.models.moddb import ModDict, normalize_mod, normalize_mod_list
 from vintagestory_api.services.mod_api import (
     DownloadError,
     DownloadResult,
@@ -1100,6 +1100,93 @@ class TestDownloadModReleaseSelection:
 
 
 # --- Tests for ModApiClient lifecycle ---
+
+
+class TestResolveInstall:
+    """resolve_install() is download_mod's lookup and selection without the download
+    (Story 17.3): install needs the install mod ID before it downloads anything."""
+
+    DOWNLOAD = "https://mods.vintagestory.at/download"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("fixture", "slug", "mod_id", "version", "file_id", "asset_id"),
+        [
+            ("instruments", "instruments", "instruments", "1.2.2", 12840, 463),
+            ("egocaribautomapmarkers", "automapmarkers", "egocaribautomapmarkers", "5.0.3",
+             90054, 797),
+        ],
+    )
+    async def test_resolves_without_downloading(
+        self,
+        mod_api_client: ModApiClient,
+        fixture: str,
+        slug: str,
+        mod_id: str,
+        version: str,
+        file_id: int,
+        asset_id: int,
+    ) -> None:
+        respx.get(f"https://mods.vintagestory.at/api/mod/{slug}").mock(
+            return_value=Response(200, json=_fixture_payload(fixture))
+        )
+        download = respx.get(self.DOWNLOAD).mock(return_value=Response(200, content=b"zip"))
+
+        resolved = await mod_api_client.resolve_install(slug)
+
+        assert (resolved.slug, resolved.mod_id) == (slug, mod_id)
+        assert resolved.release["modversion"] == version
+        assert resolved.release["modidstr"] == mod_id
+        assert (resolved.file_id, resolved.asset_id) == (file_id, asset_id)
+        assert not download.called
+        # Story 17.4: the whole entry's releases, newest first, for the update record
+        entry = normalize_mod(_fixture_payload(fixture)["mod"])
+        assert entry is not None
+        assert resolved.releases == entry["releases"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_resolve_accepts_a_url_and_a_version(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+            return_value=Response(200, json=_fixture_payload("instruments"))
+        )
+
+        resolved = await mod_api_client.resolve_install(
+            "https://mods.vintagestory.at/instruments", "1.0.1"
+        )
+
+        assert (resolved.slug, resolved.mod_id, resolved.file_id) == (
+            "instruments",
+            "instruments",
+            1002,
+        )
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_download_resolved_downloads_that_file(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+            return_value=Response(200, json=_fixture_payload("instruments"))
+        )
+        download = respx.get(self.DOWNLOAD, params={"fileid": "12840"}).mock(
+            return_value=Response(200, content=b"zip")
+        )
+        resolved = await mod_api_client.resolve_install("instruments")
+
+        result = await mod_api_client.download_resolved(resolved)
+
+        assert download.call_count == 1
+        assert (result.filename, result.version, result.asset_id) == (
+            "instruments_1.2.2.zip",
+            "1.2.2",
+            463,
+        )
+        assert result.release is resolved.release
+        assert result.path.read_bytes() == b"zip"
 
 
 class TestModApiClientLifecycle:

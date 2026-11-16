@@ -11,16 +11,22 @@
  * moves its own column and no card stretches to its neighbor's height.
  *
  * Story 6.4: Settings UI
+ * Story 17.5: a secret setting whose value the API withheld (it has `configured`, which
+ * only a key that is not Admin receives) shows whether it is set instead of a field.
+ * Story 17.6: a boolean with no value is shown at the game's `default` when the API
+ * sends one (the secret branch above stays first; a secret never has a default).
  */
 
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { SettingField } from '@/components/SettingField';
 import { SettingGroup } from '@/components/SettingGroup';
+import { SecretSettingStatus } from '@/components/SecretSettingStatus';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
+import { SETTINGS_CONTENT_WIDTH } from './content-width';
 
 /**
  * Setting definition with display metadata.
@@ -187,7 +193,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (isLoading) {
     return (
       <div className={className} data-testid="game-config-loading">
-        <div className="mx-auto max-w-[1280px] space-y-4">
+        <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`}>
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -200,7 +206,9 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (error) {
     return (
       <div className={className} data-testid="game-config-error">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <div
+          className={`${SETTINGS_CONTENT_WIDTH} flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4`}
+        >
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
             <p className="font-medium text-destructive">Failed to load settings</p>
@@ -227,6 +235,19 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
       return null;
     }
 
+    // Story 17.5: the value was withheld from this key; show only whether it is set.
+    // `configured` decides, not `secret`: Admin responses carry `secret` too.
+    if (setting.configured !== undefined) {
+      return (
+        <SecretSettingStatus
+          key={def.key}
+          settingKey={def.key}
+          label={def.label}
+          configured={setting.configured}
+        />
+      );
+    }
+
     return (
       <SettingField
         key={def.key}
@@ -238,6 +259,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         envManaged={setting.envManaged}
         description={def.description}
         masked={def.masked}
+        gameDefault={setting.default}
         onSave={handleSave}
       />
     );
@@ -273,7 +295,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
 
   return (
     <div className={className} data-testid="game-config-panel">
-      <div className="mx-auto max-w-[1280px] space-y-4" data-testid="game-config-layout">
+      <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
         {renderGroup(
           'Server Info',
           'Basic server identification',

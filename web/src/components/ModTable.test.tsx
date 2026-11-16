@@ -13,6 +13,11 @@ vi.mock('next-themes', () => ({
   }),
 }));
 
+// Story 17.3: the busy tests read the error toast
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+}));
+
 // Mock cookies
 vi.mock('@/lib/cookies', () => ({
   getCookie: vi.fn(() => null),
@@ -43,8 +48,10 @@ vi.mock('@/hooks/use-mods', async (importOriginal) => {
   };
 });
 
+import { toast } from 'sonner';
 import { ModTable } from './ModTable';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { handleApiError } from '@/api/error-handler';
 import { getCookie } from '@/lib/cookies';
 import { setViewportWidth } from '../../tests/viewport';
 
@@ -112,6 +119,37 @@ const mockEmptyModsResponse = {
     pendingRestart: false,
   },
 };
+
+/** GET /mods/updates with carrycapacity not checked yet (Story 17.4). */
+function notCheckedFetch() {
+  return vi.fn().mockImplementation((url: string) => {
+    const body = url.includes('/mods/updates')
+      ? {
+          status: 'ok',
+          data: {
+            game_version: '1.22.7',
+            checked_at: null,
+            update_count: 0,
+            mods: [
+              {
+                slug: 'carrycapacity',
+                name: 'Carry Capacity',
+                installed_version: '2.0.0',
+                status: 'unknown',
+                offered_version: null,
+                offered_compatibility: null,
+                offered_prerelease: null,
+                reason: 'not_checked',
+                checked_at: null,
+                error: null,
+              },
+            ],
+          },
+        }
+      : mockModsResponse;
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+  });
+}
 
 describe('ModTable', () => {
   const originalFetch = globalThis.fetch;
@@ -1605,8 +1643,23 @@ describe('ModTable', () => {
       });
       expect(screen.queryByTestId('version-change-dialog')).not.toBeInTheDocument();
     });
+
+    it('shows Not checked yet for a mod without update data (Story 17.4)', async () => {
+      globalThis.fetch = notCheckedFetch();
+
+      const queryClient = createTestQueryClient();
+      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(/^Not checked yet/);
+      });
+      expect(screen.getByTestId('mod-table')).toContainElement(
+        screen.getByTestId('mod-update-carrycapacity')
+      );
+      expect(screen.getByTestId('mod-update-carrycapacity')).not.toHaveTextContent('Unknown');
+    });
   });
-  describe('Story 16.5: cards below md', () => {
+  describe('cards below lg (Stories 16.5, 17.8)', () => {
     const updatesResponse = {
       status: 'ok',
       data: {
@@ -1703,6 +1756,18 @@ describe('ModTable', () => {
         expect(other).toContainElement(screen.getByTestId('mod-update-carrycapacity'));
       });
       expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent('Up to date');
+    });
+
+    it('shows Not checked yet on the card of a mod without update data (Story 17.4)', async () => {
+      globalThis.fetch = notCheckedFetch();
+      renderAtPhoneWidth();
+
+      const card = await screen.findByTestId('installed-mod-card-carrycapacity');
+      await waitFor(() => {
+        expect(card).toContainElement(screen.getByTestId('mod-update-carrycapacity'));
+      });
+      expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(/^Not checked yet/);
+      expect(screen.getByTestId('mod-update-carrycapacity')).not.toHaveTextContent('Unknown');
     });
 
     it('applies the offered update through the same version change request as the table', async () => {
@@ -1897,7 +1962,7 @@ describe('ModTable', () => {
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
     });
 
-    it('switches between table and cards when the viewport crosses md', async () => {
+    it('switches between table and cards when the viewport crosses lg, and stays cards below md', async () => {
       mockApi();
       const queryClient = createTestQueryClient();
       render(<ModTable />, { wrapper: createWrapper(queryClient) });
@@ -1905,13 +1970,215 @@ describe('ModTable', () => {
       expect(await screen.findByTestId('mod-table')).toBeInTheDocument();
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
 
-      act(() => setViewportWidth(767));
+      act(() => setViewportWidth(1023));
       expect(screen.getByTestId('installed-mod-cards')).toBeInTheDocument();
       expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
 
-      act(() => setViewportWidth(768));
+      act(() => setViewportWidth(1024));
       expect(screen.getByTestId('mod-table')).toBeInTheDocument();
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
+
+      act(() => setViewportWidth(767));
+      expect(screen.getByTestId('installed-mod-cards')).toBeInTheDocument();
+      expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+    });
+
+    // Story 17.8 (FR191): from md up to lg the table cannot fit, so the cards are used
+    describe('at tablet widths (Story 17.8)', () => {
+      function renderAtWidth(width: number) {
+        setViewportWidth(width);
+        const queryClient = createTestQueryClient();
+        return render(<ModTable />, { wrapper: createWrapper(queryClient) });
+      }
+
+      it.each([768, 900, 1023])('renders one card per mod and no table at %ipx', async (width) => {
+        mockApi();
+        renderAtWidth(width);
+
+        expect(await screen.findByTestId('installed-mod-cards')).toBeInTheDocument();
+        expect(screen.queryByTestId('mod-table')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId(/^installed-mod-card-/)).toHaveLength(2);
+      });
+
+      it('shows the Update button on the card at 1023px and applies the offered update', async () => {
+        const mockFetch = mockApi(() => ({
+          status: 'ok',
+          data: {
+            slug: 'smithingplus',
+            previous_version: '1.5.0',
+            version: '1.6.0',
+            filename: 'smithingplus-1.6.0.zip',
+            compatibility: 'compatible',
+            changed: true,
+            pending_restart: false,
+          },
+        }));
+        renderAtWidth(1023);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const update = await screen.findByTestId('mod-update-button-smithingplus');
+        expect(card).toContainElement(update);
+        fireEvent.click(update);
+
+        await waitFor(() => {
+          const put = mockFetch.mock.calls.find(([, options]) => options?.method === 'PUT');
+          expect(put?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/version');
+          expect(JSON.parse(put?.[1].body)).toEqual({ version: '1.6.0', confirm: false });
+        });
+      });
+
+      it('toggles a mod from its card at 900px', async () => {
+        const mockFetch = mockApi(() => ({
+          status: 'ok',
+          data: { slug: 'smithingplus', enabled: false, pending_restart: false },
+        }));
+        renderAtWidth(900);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const toggle = screen.getByTestId('mod-toggle-smithingplus');
+        expect(card).toContainElement(toggle);
+        expect(toggle).toHaveAccessibleName('Disable mod');
+        fireEvent.click(toggle);
+
+        await waitFor(() => {
+          const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
+          expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus/disable');
+        });
+      });
+
+      it('opens the remove dialog from a card at 900px', async () => {
+        const mockFetch = mockApi(() => ({ status: 'ok', data: { slug: 'smithingplus' } }));
+        renderAtWidth(900);
+
+        const card = await screen.findByTestId('installed-mod-card-smithingplus');
+        const remove = screen.getByRole('button', { name: 'Remove Smithing Plus' });
+        expect(card).toContainElement(remove);
+        fireEvent.click(remove);
+        expect(await screen.findByTestId('remove-dialog')).toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
+
+        await waitFor(() => {
+          const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'DELETE');
+          expect(call?.[0]).toBe('http://localhost:8080/api/v1alpha1/mods/smithingplus');
+        });
+      });
+    });
+  });
+
+  // Story 17.3 (AC 8): a 409 MOD_OPERATION_IN_PROGRESS rolls back the optimistic change
+  // and shows the API's message once.
+  describe('another operation on the mod is in progress (Story 17.3)', () => {
+    const BUSY =
+      "Another operation on mod 'smithingplus' is in progress. Try again when it has finished.";
+    const BUSY_CARRY =
+      "Another operation on mod 'carrycapacity' is in progress. Try again when it has finished.";
+
+    function busy(message = BUSY) {
+      return Promise.resolve({
+        ok: false,
+        status: 409,
+        statusText: 'Conflict',
+        json: () =>
+          Promise.resolve({ detail: { code: 'MOD_OPERATION_IN_PROGRESS', message } }),
+      });
+    }
+
+    // Built like the app's query client (global mutation error handler)
+    function createAppLikeQueryClient() {
+      return new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false, onError: (error) => handleApiError(error) },
+        },
+      });
+    }
+
+    // The first list request answers; later ones (the refetch after the mutation) never
+    // do, so what the table shows afterwards comes from the rollback alone.
+    function mockFetch(
+      isBusy: (url: string, options?: RequestInit) => boolean,
+      message = BUSY
+    ) {
+      let listRequests = 0;
+      const fetchMock = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (isBusy(url, options)) return busy(message);
+        listRequests += 1;
+        if (listRequests > 1) return new Promise(() => {});
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(mockModsResponse) });
+      });
+      globalThis.fetch = fetchMock;
+      return fetchMock;
+    }
+
+    function busyRequestMade(fetchMock: ReturnType<typeof vi.fn>, path: string) {
+      return fetchMock.mock.calls.some(([url]) => String(url).endsWith(path));
+    }
+
+    it('rolls back a refused disable and shows the message', async () => {
+      const fetchMock = mockFetch((url) => url.includes('/disable'));
+      const onToggled = vi.fn();
+      render(<ModTable onToggled={onToggled} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      const toggle = await screen.findByTestId('mod-toggle-smithingplus');
+      expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/smithingplus/disable')).toBe(true);
+        expect(screen.getByTestId('mod-toggle-smithingplus')).not.toBeDisabled();
+      });
+      expect(screen.getByTestId('mod-toggle-smithingplus')).toHaveAttribute(
+        'aria-checked',
+        'true'
+      );
+      expect(onToggled).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });
+    });
+
+    it('rolls back a refused enable and shows the message', async () => {
+      const fetchMock = mockFetch((url) => url.includes('/enable'), BUSY_CARRY);
+      const onToggled = vi.fn();
+      render(<ModTable onToggled={onToggled} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      const toggle = await screen.findByTestId('mod-toggle-carrycapacity');
+      expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+      fireEvent.click(toggle);
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/carrycapacity/enable')).toBe(true);
+        expect(screen.getByTestId('mod-toggle-carrycapacity')).not.toBeDisabled();
+      });
+      expect(screen.getByTestId('mod-toggle-carrycapacity')).toHaveAttribute(
+        'aria-checked',
+        'false'
+      );
+      expect(onToggled).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY_CARRY });
+    });
+
+    it('keeps the row of a refused removal, closes the dialog and shows the message', async () => {
+      const fetchMock = mockFetch((_url, options) => options?.method === 'DELETE');
+      const onRemoved = vi.fn();
+      render(<ModTable onRemoved={onRemoved} />, {
+        wrapper: createWrapper(createAppLikeQueryClient()),
+      });
+      fireEvent.click(await screen.findByTestId('mod-remove-smithingplus'));
+      fireEvent.click(await screen.findByTestId('remove-dialog-confirm'));
+
+      await waitFor(() => {
+        expect(busyRequestMade(fetchMock, '/mods/smithingplus')).toBe(true);
+        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+      });
+      expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
+      expect(onRemoved).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });
     });
   });
 });

@@ -32,6 +32,7 @@ import { BrowseTab } from './BrowseTab';
 import { BROWSE_PATH, BROWSE_LAST_SEARCH_KEY } from '@/lib/browse-search';
 import { BROWSE_OPENED_MOD_KEY } from '@/hooks/use-browse-scroll-restoration';
 import type { ApiResponse, ModBrowseData } from '@/api/types';
+import { useMods } from '@/hooks/use-mods';
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -170,6 +171,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
     mods: [
       {
         slug: 'carrycapacity',
+        modIds: ['carrycapacity'],
         urlalias: 'carrycapacity',
         assetId: 12345,
         name: 'Carry Capacity',
@@ -186,6 +188,7 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
       },
       {
         slug: 'primitivesurvival',
+        modIds: ['primitivesurvival'],
         urlalias: 'primitivesurvival',
         assetId: 23456,
         name: 'Primitive Survival',
@@ -211,6 +214,41 @@ const mockBrowseResponse: ApiResponse<ModBrowseData> = {
     },
   },
 };
+
+/**
+ * Story 17.7: A browse fetch that answers like the API: the requested page clamped to
+ * the last page (`min(requested, max(1, ceil(totalItems / 20)))`), with that page's
+ * number in the pagination.
+ */
+function mockClampingBrowseApi(totalItems: number) {
+  const mockFetch = vi.fn().mockImplementation((url: string) => {
+    const requested = Number(new URL(String(url)).searchParams.get('page') ?? '1');
+    const totalPages = Math.max(1, Math.ceil(totalItems / 20));
+    const page = Math.min(requested, totalPages);
+    const response: ApiResponse<ModBrowseData> = {
+      status: 'ok',
+      data: {
+        mods: totalItems > 0 ? (mockBrowseResponse.data?.mods ?? []) : [],
+        pagination: {
+          page,
+          pageSize: 20,
+          totalItems,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+      },
+    };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve(response) });
+  });
+  globalThis.fetch = mockFetch;
+  return mockFetch;
+}
+
+/** Story 17.7: Number of browse requests a fetch mock has received. */
+function browseFetchCount(mockFetch: ReturnType<typeof vi.fn>): number {
+  return mockFetch.mock.calls.filter(([url]) => String(url).includes('/mods/browse')).length;
+}
 
 describe('BrowseTab', () => {
   const originalFetch = globalThis.fetch;
@@ -1539,6 +1577,150 @@ describe('BrowseTab', () => {
       expect(browseRequestUrl().searchParams.get('version')).toBe('1.21.2');
     });
 
+    it('Story 17.7: returning to a page beyond the results moves to the last page and still scrolls to the card', async () => {
+      window.sessionStorage.setItem(
+        BROWSE_OPENED_MOD_KEY,
+        JSON.stringify({ search: '?page=9', slug: 'primitivesurvival' })
+      );
+      const mockFetch = mockClampingBrowseApi(100);
+      const queryClient = createTestQueryClient();
+      const router = createMemoryRouter(
+        [{ path: BROWSE_PATH, element: <><BrowseTab /><LocationProbe /></> }],
+        {
+          initialEntries: [
+            { pathname: BROWSE_PATH, search: '?page=9', state: { fromModDetail: true } },
+          ],
+        }
+      );
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(currentSearch()).toBe('?page=5');
+      });
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByTestId('mod-card-primitivesurvival'));
+      expect(browseFetchCount(mockFetch)).toBe(1);
+    });
+  });
+
+  describe('Story 17.7: a page beyond the results', () => {
+    beforeEach(() => {
+      window.sessionStorage.clear();
+    });
+
+    /** Let a second browse request start if one were coming. */
+    async function settle() {
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+    }
+
+    it('replaces the URL with the last page and shows it, with one request', async () => {
+      const mockFetch = mockClampingBrowseApi(100);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=food&version=1.21.2&page=9999`),
+      });
+
+      await waitFor(() => {
+        expect(currentSearch()).toBe('?q=food&version=1.21.2&page=5');
+      });
+      await settle();
+
+      expect(locationLog.at(-1)?.navigationType).toBe('REPLACE');
+      expect(locationLog.map((entry) => entry.search)).toEqual([
+        '?q=food&version=1.21.2&page=9999',
+        '?q=food&version=1.21.2&page=5',
+      ]);
+      expect(screen.getByText(/Page 5 of 5/)).toBeInTheDocument();
+      expect(screen.getByTestId('mod-card-carrycapacity')).toBeInTheDocument();
+      expect(browseFetchCount(mockFetch)).toBe(1);
+      expect(window.sessionStorage.getItem(BROWSE_LAST_SEARCH_KEY)).toBe(
+        '?q=food&version=1.21.2&page=5'
+      );
+    });
+
+    it('never shows the page beyond the results in the pagination', async () => {
+      const shownPages = new Set<string>();
+      const observer = new MutationObserver(() => {
+        const info = document.querySelector('[data-testid="pagination"] p')?.textContent;
+        if (info) shownPages.add(info.replace(/\s*\(.*$/, ''));
+      });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      mockClampingBrowseApi(100);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?page=9999`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Page 5 of 5/)).toBeInTheDocument();
+      });
+      await settle();
+      observer.disconnect();
+
+      expect([...shownPages]).toEqual(['Page 5 of 5']);
+    });
+
+    it('replaces a page beyond a search without results by page 1', async () => {
+      const mockFetch = mockClampingBrowseApi(0);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=zzz&page=3`),
+      });
+
+      await waitFor(() => {
+        expect(currentSearch()).toBe('?q=zzz');
+      });
+      await settle();
+
+      expect(locationLog.at(-1)?.navigationType).toBe('REPLACE');
+      expect(screen.getByTestId('mod-browse-grid-empty')).toBeInTheDocument();
+      expect(browseFetchCount(mockFetch)).toBe(1);
+    });
+
+    it('leaves page 1 of a search without results as it is', async () => {
+      const mockFetch = mockClampingBrowseApi(0);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=zzz`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-browse-grid-empty')).toBeInTheDocument();
+      });
+      await settle();
+
+      expect(locationLog.map((entry) => entry.search)).toEqual(['?q=zzz']);
+      expect(browseFetchCount(mockFetch)).toBe(1);
+    });
+
+    it('requests a page within the results directly and leaves the URL alone', async () => {
+      const mockFetch = mockClampingBrowseApi(100);
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?page=3`),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Page 3 of 5/)).toBeInTheDocument();
+      });
+      await settle();
+
+      expect(browseFetchCount(mockFetch)).toBe(1);
+      expect(browseRequestUrl().searchParams.get('page')).toBe('3');
+      expect(locationLog.map((entry) => entry.search)).toEqual(['?page=3']);
+    });
   });
 
   describe('Story 10.5: Card Navigation (AC 3)', () => {
@@ -1603,6 +1785,66 @@ describe('BrowseTab', () => {
 
       const card = screen.getByTestId('mod-card-carrycapacity');
       expect(card.className).toContain('cursor-pointer');
+    });
+  });
+
+  describe('Story 17.4: a card shows Installed for any of its mod IDs', () => {
+    it('shows Installed on the Instruments card when vsinstrumentsbase is installed', async () => {
+      // The real useMods, so the installed list comes from GET /mods
+      const actual =
+        await vi.importActual<typeof import('@/hooks/use-mods')>('@/hooks/use-mods');
+      vi.mocked(useMods).mockImplementation(actual.useMods);
+      const instrumentsResponse: ApiResponse<ModBrowseData> = {
+        ...mockBrowseResponse,
+        data: {
+          ...mockBrowseResponse.data,
+          mods: [
+            {
+              ...mockBrowseResponse.data.mods[0],
+              slug: 'instruments',
+              modIds: ['instruments', 'vsinstruments', 'vsinstrumentsbase'],
+              urlalias: 'instruments',
+              name: 'Instruments',
+            },
+          ],
+        },
+      };
+      const installedResponse = {
+        status: 'ok',
+        data: {
+          mods: [
+            {
+              filename: 'vsinstrumentsbase.zip',
+              slug: 'vsinstrumentsbase',
+              version: '2.0.7',
+              enabled: true,
+              installed_at: '2026-01-01T00:00:00Z',
+              name: 'Instruments',
+              authors: [],
+              description: null,
+              side: 'both',
+            },
+          ],
+          pending_restart: false,
+        },
+      };
+      globalThis.fetch = vi.fn().mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve(
+              new URL(url).pathname === '/api/v1alpha1/mods' ? installedResponse : instrumentsResponse
+            ),
+        })
+      );
+
+      const queryClient = createTestQueryClient();
+      render(<BrowseTab />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mod-card-installed-instruments')).toHaveTextContent('Installed');
+      });
+      expect(screen.queryByTestId('mod-card-install-instruments')).not.toBeInTheDocument();
     });
   });
 

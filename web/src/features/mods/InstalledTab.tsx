@@ -85,6 +85,7 @@ export function InstalledTab() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Installed Mods</h2>
         {/* Story 16.5: wraps on phones instead of widening the page */}
+        {/* Story 17.8: the buttons are 44px tall up to lg, like the cards */}
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-muted-foreground" data-testid="mod-updates-last-checked">
             {lastChecked
@@ -94,7 +95,7 @@ export function InstalledTab() {
           {compatibleCount > 0 && (
             <Button
               size="sm"
-              className="max-md:h-11"
+              className="max-lg:h-11"
               onClick={() => setUpdateAllOpen(true)}
               data-testid="mod-updates-update-all"
             >
@@ -105,7 +106,7 @@ export function InstalledTab() {
           <Button
             variant="outline"
             size="sm"
-            className="max-md:h-11"
+            className="max-lg:h-11"
             onClick={handleCheck}
             disabled={isChecking}
             data-testid="mod-updates-check"

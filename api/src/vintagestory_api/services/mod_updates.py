@@ -24,7 +24,7 @@ from vintagestory_api.models.mod_updates import (
     UnknownReason,
     UpdateState,
 )
-from vintagestory_api.models.moddb import ModDict
+from vintagestory_api.models.moddb import ModDict, ReleaseDict
 from vintagestory_api.models.mods import ModInfo
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
@@ -345,6 +345,26 @@ class ModUpdateService:
         """Update status for every installed mod, computed from stored data."""
         return build_status_items(self._mod_source.list_mods(), self._store, self.game_version())
 
+    def record_install(self, modid: str, releases: list[ReleaseDict]) -> None:
+        """Store a newly installed mod's releases from the install's lookup (Story 17.4).
+
+        The install has just fetched the whole mod database entry, so the Installed list
+        can show the new mod's status without waiting for the next check, and without a
+        second request. Never raises: a failure is logged and leaves the mod `not_checked`
+        (or, if only the save failed, the record lives in memory until restart, as in `check`).
+        """
+        try:
+            record = StoredModRecord(
+                checked_at=datetime.now(UTC),
+                found=True,
+                releases=[StoredRelease.from_api(r) for r in releases],
+            )
+            self._store.set(modid, record)
+            self._store.clear_lookup_error(modid)
+            self._store.save()
+        except (OSError, ValueError, TypeError) as e:
+            logger.warning("mod_update_record_after_install_failed", slug=modid, error=str(e))
+
     async def apply_all(self, change_version: ChangeVersion) -> UpdateAllSummary:
         """Update every mod whose offered update is compatible, one at a time (Story 14.4).
 
@@ -360,9 +380,9 @@ class ModUpdateService:
         from vintagestory_api.services.mods import (
             ModConfirmationRequiredError,
             ModNotFoundError,
+            ModOperationInProgressError,
             ModValidationError,
             ModVersionChangeFailedError,
-            ModVersionChangeInProgressError,
         )
 
         if self._apply_lock.locked():
@@ -387,7 +407,7 @@ class ModUpdateService:
                     ModNotFoundError,
                     ModValidationError,
                     ModVersionChangeFailedError,
-                    ModVersionChangeInProgressError,
+                    ModOperationInProgressError,
                     OSError,
                     # Unexpected data or state errors from one mod must not abort the run
                     # and hide which mods were already changed.
@@ -420,7 +440,7 @@ class ModUpdateService:
 
         A failed lookup keeps that mod's previous data and records the error.
         `last_full_check` is only updated when every lookup succeeds. Records for
-        mods that are no longer installed are removed.
+        mods that are no longer installed when the check ends are removed.
 
         Raises:
             ModUpdateCheckInProgressError: If a check is already running.
@@ -434,7 +454,9 @@ class ModUpdateService:
             for mod in mods:
                 if not await self._check_one(mod.slug):
                     failed.append(mod.slug)
-            self._store.prune({mod.slug for mod in mods})
+            # Prune against the installed mods as they are now, not as they were at the
+            # start: an install during the lookups has stored its record (Story 17.4)
+            self._store.prune({mod.slug for mod in self._mod_source.list_mods()})
             if not failed:
                 self._store.last_full_check = datetime.now(UTC)
             try:

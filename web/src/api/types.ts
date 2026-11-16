@@ -243,12 +243,26 @@ export type SettingType = 'string' | 'int' | 'bool' | 'float';
  */
 export interface GameSetting {
   key: string;
-  /** Story 16.8: null when the setting has no value */
+  /**
+   * Story 16.8: null when the setting has no value. Story 17.5: null also when the
+   * value is a secret withheld from this key (`configured` is then present).
+   */
   value: string | number | boolean | null;
   type: SettingType;
   liveUpdate: boolean;
   envManaged: boolean;
   requiresRestart?: boolean;
+  /** Story 17.5: the value is a secret; only an Admin key receives it */
+  secret?: boolean;
+  /**
+   * Story 17.5: present only when the value was withheld: whether the secret is set;
+   * `value` is then null
+   */
+  configured?: boolean;
+  /**
+   * Story 17.6: the game's value when `value` is null; absent when unknown
+   */
+  default?: boolean;
 }
 
 /**
@@ -378,6 +392,13 @@ export type BrowseModSide = 'client' | 'server' | 'both';
 export interface ModBrowseItem {
   /** Mod identifier from modidstrs[0] - use this for API calls like /mods/lookup/{slug} */
   slug: string;
+  /**
+   * Every mod ID of the mod database entry (the listing's modidstrs), in listing
+   * order, each once; `slug` is the first when the entry has mod IDs (an entry with
+   * none has `[]`, and `slug` falls back to its numeric ID). Used to recognize an
+   * installed mod by any of them (Story 17.4).
+   */
+  modIds: string[];
   /** URL alias for website links (mods.vintagestory.at/{urlalias}). May differ from slug. */
   urlalias: string | null;
   assetId: number;

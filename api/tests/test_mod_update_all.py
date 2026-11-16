@@ -5,6 +5,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import respx
+from test_mod_operation_lock import gate_download, mock_mod
+from test_mod_version_change import install_existing
+from test_mod_version_change import make_service as make_mod_service
 
 from vintagestory_api.models.mod_updates import StoredModRecord, StoredRelease
 from vintagestory_api.models.mods import ModInfo
@@ -21,6 +25,7 @@ from vintagestory_api.services.mod_updates import (
 )
 from vintagestory_api.services.mods import (
     ModConfirmationRequiredError,
+    ModOperationInProgressError,
     ModVersionChangeFailedError,
     VersionChangeResult,
 )
@@ -147,6 +152,7 @@ class TestApplyAll:
         "error",
         [
             ModVersionChangeFailedError("alpha", "disk full"),
+            ModOperationInProgressError("alpha"),
             DownloadError("alpha", "connection reset"),
             ExternalApiError("mod database unavailable"),
             ModReleaseNotDownloadableError("alpha", "1.1.0"),
@@ -203,3 +209,40 @@ class TestApplyAll:
         release.set()
         summary = await first
         assert summary.updated == 2
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_busy_mod_fails_and_the_run_continues(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A mod held by another operation is reported failed with the busy message;
+        the other mods are still updated (Story 17.3, Epic 17 ADR-3 decision 5)."""
+        mod_service = make_mod_service(tmp_path)
+        install_existing(mod_service, "alpha", "1.0.0", "alpha-1.0.0.zip")
+        install_existing(mod_service, "delta", "1.0.0", "delta-1.0.0.zip")
+        mock_mod("alpha", (11, 10))
+        mock_mod("delta", (41, 40))
+        update_service = ModUpdateService(
+            store=ModUpdateStore(tmp_path / "state"),
+            mod_source=mod_service,
+            game_version_provider=lambda: GAME,
+        )
+        for slug in ("alpha", "delta"):
+            update_service.store.set(slug, record(slug, ("1.1.0", GAME), ("1.0.0", GAME)))
+        started, release = gate_download(mod_service, monkeypatch, slug="alpha")
+
+        held = asyncio.create_task(mod_service.change_version("alpha", "1.1.0"))
+        await started.wait()
+        summary = await update_service.apply_all(mod_service.change_version)
+
+        by_slug = {r.slug: r for r in summary.results}
+        assert by_slug["alpha"].outcome == "failed"
+        assert by_slug["alpha"].error == str(ModOperationInProgressError("alpha"))
+        assert by_slug["delta"].outcome == "updated"
+        assert (summary.updated, summary.skipped, summary.failed) == (1, 0, 1)
+        release.set()
+        await held
+        alpha = mod_service.state_manager.get_mod_by_slug("alpha")
+        assert alpha is not None
+        assert alpha.version == "1.1.0"
+        assert mod_service.busy_mod_ids == frozenset()

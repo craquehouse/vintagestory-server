@@ -6,9 +6,9 @@ ModStateManager for state persistence, ModApiClient for external API access,
 and PendingRestartState for restart tracking.
 """
 
-import asyncio
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,6 +30,7 @@ from vintagestory_api.models.mods import (
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.mod_api import (
     CompatibilityStatus,
+    DownloadResult,
     ModApiClient,
     ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
@@ -176,12 +177,14 @@ class ModValidationError(Exception):
         super().__init__(f"Release for mod '{slug}' failed validation: {message}")
 
 
-class ModVersionChangeInProgressError(Exception):
-    """Raised when a version change is requested while one is running for the same mod."""
+class ModOperationInProgressError(Exception):
+    """Raised when an install or version change is running for the same mod (Epic 17 ADR-3)."""
 
     def __init__(self, slug: str) -> None:
         self.slug = slug
-        super().__init__(f"A version change for mod '{slug}' is already in progress")
+        super().__init__(
+            f"Another operation on mod '{slug}' is in progress. Try again when it has finished."
+        )
 
 
 class ModVersionChangeFailedError(Exception):
@@ -236,6 +239,12 @@ class InstallResult:
 
     pending_restart: bool
     """Whether a server restart is required."""
+
+    releases: list[ReleaseDict]
+    """Every release of the mod database entry, newest first, from the install's lookup.
+
+    Not part of the API response: Story 17.4 stores them as the new mod's update record.
+    """
 
 
 class ModService:
@@ -305,7 +314,39 @@ class ModService:
                 game_version_provider = installed_game_version
         self._game_version_provider = game_version_provider
         self._mod_api_client: ModApiClient | None = None
-        self._version_locks: dict[str, asyncio.Lock] = {}
+        self._busy: set[str] = set()
+        """Lock keys of the mods an install or version change is running for (ADR-3)."""
+
+    @staticmethod
+    def _lock_key(mod_id: str) -> str:
+        """Mod IDs that differ only in case share a lock, as `_archive_matches` compares them."""
+        return mod_id.lower()
+
+    def _refuse_if_busy(self, mod_id: str) -> None:
+        """Raise ModOperationInProgressError if an operation holds this mod's lock."""
+        if self._lock_key(mod_id) in self._busy:
+            raise ModOperationInProgressError(mod_id)
+
+    @contextmanager
+    def _hold(self, mod_id: str) -> Generator[None]:
+        """Hold the mod's lock for the block, refusing at once if it is held (never waits).
+
+        The check and the take have no `await` between them, so they are atomic on the
+        event loop. The key is released on every exit: return, error or cancellation.
+        Use only as `with self._hold(...)`; never add or discard a key anywhere else.
+        """
+        self._refuse_if_busy(mod_id)
+        key = self._lock_key(mod_id)
+        self._busy.add(key)
+        try:
+            yield
+        finally:
+            self._busy.discard(key)
+
+    @property
+    def busy_mod_ids(self) -> frozenset[str]:
+        """Lock keys of the mods an install or version change is running for (read-only)."""
+        return frozenset(self._busy)
 
     def game_version(self) -> str | None:
         """The game version compatibility is checked against (installed server by default)."""
@@ -653,6 +694,12 @@ class ModService:
         Renames the mod file from .zip.disabled to .zip and updates state.
         Sets pending_restart if the server is running.
 
+        Refused while an install or version change is running for the mod, even if the
+        mod is not installed yet or already enabled.
+        Does not take the mod's lock: this method is synchronous, so nothing can run
+        between its checks and its writes. If it ever becomes `async` or moves to a
+        thread, it must hold the lock with `_hold`.
+
         Args:
             slug: The mod slug (modid) to enable.
 
@@ -660,9 +707,11 @@ class ModService:
             EnableResult with the mod slug, enabled status, and pending restart flag.
 
         Raises:
+            ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
         """
         logger.debug("enable_mod_start", slug=slug)
+        self._refuse_if_busy(slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
             logger.debug("enable_mod_not_found", slug=slug)
@@ -703,6 +752,12 @@ class ModService:
         Renames the mod file from .zip to .zip.disabled and updates state.
         Sets pending_restart if the server is running.
 
+        Refused while an install or version change is running for the mod, even if the
+        mod is not installed yet or already disabled.
+        Does not take the mod's lock: this method is synchronous, so nothing can run
+        between its checks and its writes. If it ever becomes `async` or moves to a
+        thread, it must hold the lock with `_hold`.
+
         Args:
             slug: The mod slug (modid) to disable.
 
@@ -710,9 +765,11 @@ class ModService:
             DisableResult with the mod slug, enabled status, and pending restart flag.
 
         Raises:
+            ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
         """
         logger.debug("disable_mod_start", slug=slug)
+        self._refuse_if_busy(slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
             logger.debug("disable_mod_not_found", slug=slug)
@@ -753,6 +810,12 @@ class ModService:
         Deletes the mod file from disk, removes it from state, and cleans up
         cached metadata. Sets pending_restart if the server is running.
 
+        Refused while an install or version change is running for the mod, even if the
+        mod is not installed yet.
+        Does not take the mod's lock: this method is synchronous, so nothing can run
+        between its checks and its writes. If it ever becomes `async` or moves to a
+        thread, it must hold the lock with `_hold`.
+
         Args:
             slug: The mod slug (modid) to remove.
 
@@ -760,9 +823,11 @@ class ModService:
             RemoveResult with the mod slug and pending restart flag.
 
         Raises:
+            ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not installed.
         """
         logger.debug("remove_mod_start", slug=slug)
+        self._refuse_if_busy(slug)
         state = self._state_manager.get_mod_by_slug(slug)
         if state is None:
             logger.debug("remove_mod_not_found", slug=slug)
@@ -848,16 +913,16 @@ class ModService:
         The installed file is replaced only after the new archive is validated, and any
         failure afterwards restores the original file and state.
 
+        Holds the mod's lock (Epic 17 ADR-3) for the whole call, so no other operation on
+        the mod can run during the lookup and the download.
+
         Raises:
-            ModVersionChangeInProgressError: A change for this mod is already running.
+            ModOperationInProgressError: An install or version change is running for this mod.
             ModVersionChangeFailedError: Placing the file or saving state failed.
             ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
         """
-        lock = self._version_locks.setdefault(slug, asyncio.Lock())
-        if lock.locked():
-            raise ModVersionChangeInProgressError(slug)
-        async with lock:
+        with self._hold(slug):
             state = self._state_manager.get_mod_by_slug(slug)
             if state is None:
                 raise ModNotFoundError(slug)
@@ -1091,6 +1156,12 @@ class ModService:
         Downloads the mod from mods.vintagestory.at and installs it to the
         mods directory. Uses the download cache to avoid re-downloading.
 
+        Holds the lock (Epic 17 ADR-3) of the install mod ID (Epic 17 ADR-2), which is
+        only known after the mod database lookup, from then until it returns. A busy or
+        installed mod is refused before the lookup when it is the requested slug, before
+        the download when it is the install mod ID, and before anything is placed when
+        it is the mod ID the downloaded archive's modinfo.json names.
+
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
                          (e.g., "https://mods.vintagestory.at/smithingplus").
@@ -1101,7 +1172,10 @@ class ModService:
             InstallResult with installation details.
 
         Raises:
-            ModAlreadyInstalledError: If the mod is already installed.
+            ModOperationInProgressError: An install or version change is running for the
+                requested slug, the install mod ID or the archive's mod ID.
+            ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
+                or the archive's mod ID) is already installed.
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1112,21 +1186,59 @@ class ModService:
         slug = extract_slug(slug_or_url)
         logger.debug("install_mod_start", slug=slug, input=slug_or_url, version=version)
 
-        # Check if already installed
-        existing = self._state_manager.get_mod_by_slug(slug)
+        # 1-2. Fast paths for the requested slug, before any network request
+        self._refuse_if_busy(slug)
+        self._refuse_if_installed(slug)
+
+        # 3. Resolve the install mod ID; no lock is held and nothing is written yet
+        api_client = self._get_mod_api_client()
+        resolved = await api_client.resolve_install(slug, version)
+
+        # 4. No await since the lookup: the state may have changed during it
+        self._refuse_if_busy(resolved.mod_id)
+        self._refuse_if_installed(resolved.mod_id)
+
+        # 5. Hold the install mod ID until the install returns
+        with self._hold(resolved.mod_id):
+            download_result = await api_client.download_resolved(resolved)
+            # 6. Check the archive's own mod ID before anything is placed. No await
+            # from here to the state save, so it is checked, not held.
+            archive = self._state_manager.read_modinfo(download_result.path)
+            if archive is not None and archive.modid != resolved.mod_id:
+                if self._lock_key(archive.modid) != self._lock_key(resolved.mod_id):
+                    self._refuse_if_busy(archive.modid)
+                self._refuse_if_installed(archive.modid)
+            # 7. Place the file and save state
+            return self._place_install(slug, download_result, resolved.releases)
+
+    def _refuse_if_installed(self, mod_id: str) -> None:
+        """Raise ModAlreadyInstalledError if `mod_id` is installed, ignoring case.
+
+        Compared like the lock key, since an archive may spell its mod ID differently
+        from the mod database (an installed `Demo` is the mod `demo`). The error names
+        the installed spelling.
+        """
+        key = self._lock_key(mod_id)
+        existing = next(
+            (m for m in self._state_manager.list_mods() if self._lock_key(m.slug) == key), None
+        )
         if existing is not None:
             logger.debug(
-                "install_mod_already_installed", slug=slug, current_version=existing.version
+                "install_mod_already_installed",
+                slug=existing.slug,
+                requested=mod_id,
+                current_version=existing.version,
             )
-            raise ModAlreadyInstalledError(slug, existing.version)
+            raise ModAlreadyInstalledError(existing.slug, existing.version)
 
-        # Download mod via API client
-        api_client = self._get_mod_api_client()
-        download_result = await api_client.download_mod(slug, version)
+    def _place_install(
+        self, slug: str, download_result: DownloadResult, releases: list[ReleaseDict]
+    ) -> InstallResult:
+        """Copy a downloaded archive into the mods directory, import it and save state.
 
-        if download_result is None:
-            raise ApiModNotFoundError(slug)
-
+        Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
+        and no other operation may run between that check and the state save.
+        """
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
@@ -1216,4 +1328,5 @@ class ModService:
             filename=download_result.filename,
             compatibility=compatibility,
             pending_restart=pending_restart,
+            releases=releases,
         )

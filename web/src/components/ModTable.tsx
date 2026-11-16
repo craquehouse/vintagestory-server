@@ -8,8 +8,9 @@
  * - Available column with update action and confirmation (Story 14.3)
  * - Sortable columns with persistent sort preference (VSS-g54)
  * - Empty state when no mods installed
- * - Below the `md` breakpoint, one card per mod instead of the table (Story 16.5),
- *   rendered from the same sorted rows with the same handlers and dialogs
+ * - Below the `lg` breakpoint (Story 16.5 below `md`, Story 17.8 up to `lg`), one card
+ *   per mod instead of the table, rendered from the same sorted rows with the same
+ *   handlers and dialogs
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -54,7 +55,7 @@ import { ModUpdateCell } from '@/components/ModUpdateCell';
 import { InstalledModCard } from '@/components/InstalledModCard';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
-import { useMediaQuery, MD_UP_QUERY } from '@/hooks/use-media-query';
+import { useMediaQuery, LG_UP_QUERY } from '@/hooks/use-media-query';
 import {
   useMods,
   useEnableMod,
@@ -126,8 +127,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
   const versionChange = useVersionChangeFlow();
-  // Story 16.5: the table at md and up, cards below; only one layout is mounted
-  const isTableLayout = useMediaQuery(MD_UP_QUERY);
+  // Story 16.5, Story 17.8: the table at lg and up, cards below; only one layout is mounted
+  const isTableLayout = useMediaQuery(LG_UP_QUERY);
   const { start: startVersionChange, isPending: isChangingVersion } = versionChange;
 
   const mods = modsData?.data?.mods ?? [];

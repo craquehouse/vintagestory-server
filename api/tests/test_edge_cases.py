@@ -19,7 +19,12 @@ from vintagestory_api.routers.mods import _api_mod_to_browse_item
 from vintagestory_api.services.cache_eviction import CacheEvictionService
 from vintagestory_api.services.config_init_service import ConfigInitService
 from vintagestory_api.services.game_config import GameConfigService, SettingValueInvalidError
-from vintagestory_api.services.mod_api import DownloadError, DownloadResult, ModApiClient
+from vintagestory_api.services.mod_api import (
+    DownloadError,
+    DownloadResult,
+    ModApiClient,
+    ResolvedInstall,
+)
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import ModService
 from vintagestory_api.services.pending_restart import PendingRestartState
@@ -261,7 +266,17 @@ class TestModServiceEdgeCases:
         cached = tmp_path / "cached.zip"
         cached.write_bytes(b"zip")
         client = MagicMock()
-        client.download_mod = AsyncMock(
+        client.resolve_install = AsyncMock(
+            return_value=ResolvedInstall(
+                slug="demo",
+                mod_id="demo",
+                release=DEMO_RELEASE,
+                file_id=1,
+                asset_id=1,
+                releases=[DEMO_RELEASE],
+            )
+        )
+        client.download_resolved = AsyncMock(
             return_value=DownloadResult(
                 path=cached,
                 filename=DEMO_FILENAME,

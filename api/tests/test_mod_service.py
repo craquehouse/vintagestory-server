@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS
+from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS, normalize_mod
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
 from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
@@ -839,6 +839,36 @@ class TestModServiceInstallMod:
         assert mod_state.enabled is True
 
     @pytest.mark.asyncio
+    async def test_install_mod_reads_capitalized_modinfo_keys(
+        self, install_service: ModService, temp_dirs: tuple[Path, Path]
+    ) -> None:
+        """An archive whose modinfo.json says "ModID"/"Version" installs under its real
+        mod ID and version, not the filename and "unknown" (VSS-0jl)."""
+        import respx
+        from httpx import Response
+
+        mod_zip_content = create_mod_zip_bytes(
+            {"ModID": "smithingplus", "Name": "Smithing Plus", "Version": "1.8.3"}
+        )
+
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            respx.get("https://mods.vintagestory.at/download?fileid=59176").mock(
+                return_value=Response(200, content=mod_zip_content)
+            )
+
+            result = await install_service.install_mod("smithingplus")
+
+        assert result.slug == "smithingplus"
+        mod_state = install_service.state_manager.get_mod_by_slug("smithingplus")
+        assert mod_state is not None
+        assert mod_state.version == "1.8.3"
+        cached = install_service.state_manager.get_cached_metadata("smithingplus", "1.8.3")
+        assert cached is not None
+
+    @pytest.mark.asyncio
     async def test_install_mod_temp_file_does_not_clobber_same_stem_file(
         self, install_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
@@ -1174,27 +1204,6 @@ class TestModServiceInstallMod:
         assert (mods_dir / "smithingplus_1.8.3.zip").exists()
 
     @pytest.mark.asyncio
-    async def test_install_mod_download_returns_none(
-        self, install_service: ModService
-    ) -> None:
-        """install_mod() raises ModNotFoundError when download_mod returns None."""
-        from unittest.mock import AsyncMock
-
-        from vintagestory_api.services.mod_api import ModNotFoundError
-
-        # Mock the api_client's download_mod to return None
-        mock_client = AsyncMock()
-        mock_client.download_mod.return_value = None
-
-        with patch.object(
-            install_service, "_get_mod_api_client", return_value=mock_client
-        ):
-            with pytest.raises(ModNotFoundError) as exc_info:
-                await install_service.install_mod("nonexistent")
-
-            assert exc_info.value.slug == "nonexistent"
-
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         ("slug", "version", "file_id", "filename"),
         [
@@ -1237,6 +1246,43 @@ class TestModServiceInstallMod:
         state = install_service.state_manager.get_mod_by_slug(slug)
         assert state is not None
         assert state.version == version
+
+    @pytest.mark.asyncio
+    async def test_install_returns_every_release_of_the_entry(
+        self, install_service: ModService
+    ) -> None:
+        """Story 17.4: the install keeps the whole entry from its one lookup."""
+        import respx
+        from httpx import Response
+
+        payload = json.loads((FIXTURES / "mod_instruments.json").read_text())
+        entry = normalize_mod(payload["mod"])
+        assert entry is not None
+
+        with respx.mock:
+            lookup = respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
+                return_value=Response(200, json=payload)
+            )
+            respx.get(
+                "https://mods.vintagestory.at/download", params={"fileid": "12840"}
+            ).mock(
+                return_value=Response(
+                    200,
+                    content=create_mod_zip_bytes(
+                        {"modid": "instruments", "name": "Instruments", "version": "1.2.2"}
+                    ),
+                )
+            )
+
+            result = await install_service.install_mod("instruments")
+
+        assert result.releases == entry["releases"]
+        assert {r["modidstr"] for r in result.releases} == {
+            "instruments",
+            "vsinstruments",
+            "vsinstrumentsbase",
+        }
+        assert lookup.call_count == 1
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""

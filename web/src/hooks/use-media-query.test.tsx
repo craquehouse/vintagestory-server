@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { setViewportWidth } from '../../tests/viewport';
-import { useMediaQuery, MD_UP_QUERY } from './use-media-query';
+import { useMediaQuery, MD_UP_QUERY, LG_UP_QUERY } from './use-media-query';
 
 describe('useMediaQuery (Story 16.5)', () => {
   it('matches md and up at the default jsdom width of 1024px', () => {
@@ -17,6 +17,24 @@ describe('useMediaQuery (Story 16.5)', () => {
     setViewportWidth(width);
     const { result } = renderHook(() => useMediaQuery(MD_UP_QUERY));
     expect(result.current).toBe(expected);
+  });
+
+  it.each([
+    [1024, true],
+    [1440, true],
+    [1023, false],
+    [900, false],
+    [768, false],
+    [390, false],
+  ])('at %ipx lg-and-up is %s (Story 17.8)', (width, expected) => {
+    setViewportWidth(width);
+    const { result } = renderHook(() => useMediaQuery(LG_UP_QUERY));
+    expect(result.current).toBe(expected);
+  });
+
+  it('matches lg and up at the default jsdom width of 1024px (Story 17.8)', () => {
+    const { result } = renderHook(() => useMediaQuery(LG_UP_QUERY));
+    expect(result.current).toBe(true);
   });
 
   it('updates when the viewport crosses the breakpoint', () => {

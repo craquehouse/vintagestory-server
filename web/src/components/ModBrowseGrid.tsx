@@ -20,8 +20,11 @@ interface ModBrowseGridProps {
   isLoading?: boolean;
   /** Click handler for mod card navigation (passed to each ModCard) */
   onModClick?: (slug: string) => void;
-  /** Set of installed mod slugs for showing install state (Story 10.8) */
-  installedSlugs?: Set<string>;
+  /**
+   * Installed mods for showing install state (Story 10.8); their `slug` is the mod ID.
+   * Omit to hide the cards' install footer (Story 17.4: a card matches any of its mod IDs).
+   */
+  installedMods?: readonly { slug: string }[];
 }
 
 /**
@@ -67,7 +70,7 @@ export function ModBrowseGrid({
   mods,
   isLoading = false,
   onModClick,
-  installedSlugs,
+  installedMods,
 }: ModBrowseGridProps) {
   if (isLoading) {
     return (
@@ -103,7 +106,7 @@ export function ModBrowseGrid({
           key={mod.slug}
           mod={mod}
           onClick={onModClick ? () => onModClick(mod.slug) : undefined}
-          installedSlugs={installedSlugs}
+          installedMods={installedMods}
         />
       ))}
     </div>

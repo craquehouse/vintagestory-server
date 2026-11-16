@@ -330,5 +330,17 @@ describe('SettingsPage', () => {
       expect(container).toHaveClass('h-full');
       expect(container).toHaveClass('flex-col');
     });
+
+    // Story 17.8 (FR192): the four tabs wrap on phones instead of widening the page.
+    // jsdom does no layout; e2e/layout-widths.spec.ts checks the real widths.
+    it('lets the tab list wrap within the content width', async () => {
+      const queryClient = createTestQueryClient();
+      render(<SettingsPage />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      const tabList = screen.getByRole('tablist');
+      expect(tabList).toHaveClass('flex-wrap', 'max-w-full', 'h-auto');
+    });
   });
 });

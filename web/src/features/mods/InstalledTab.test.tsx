@@ -744,12 +744,13 @@ describe('InstalledTab', () => {
       expect(group).toContainElement(screen.getByTestId('mod-updates-last-checked'));
     });
 
-    it('makes Update all and Check for updates 44px tall below md', async () => {
+    // Story 17.8: the cards, and with them the 44px targets, go up to lg
+    it('makes Update all and Check for updates 44px tall below lg', async () => {
       mockOffer();
       render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
 
-      expect(await screen.findByTestId('mod-updates-update-all')).toHaveClass('max-md:h-11');
-      expect(screen.getByTestId('mod-updates-check')).toHaveClass('max-md:h-11');
+      expect(await screen.findByTestId('mod-updates-update-all')).toHaveClass('max-lg:h-11');
+      expect(screen.getByTestId('mod-updates-check')).toHaveClass('max-lg:h-11');
     });
   });
 });
