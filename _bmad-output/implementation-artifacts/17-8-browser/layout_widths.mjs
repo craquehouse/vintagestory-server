@@ -20,6 +20,8 @@
 // Pages: Installed mods (stubbed), /config and each of its tabs, the Version page (320-430),
 // Game Settings (every width; title/header/badge/panel edges). At 1920 with the sidebar
 // expanded, the content span of the other pages (for the app-wide maximum width follow-up).
+// The Dashboard, Console and mod browser are measured only there, at 1920px, not at
+// 320-1023px (Story 17.8 review, L2).
 
 import { chromium } from '../../../web/node_modules/@playwright/test/index.mjs';
 
