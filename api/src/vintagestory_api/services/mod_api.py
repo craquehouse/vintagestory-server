@@ -6,12 +6,13 @@ mod database at mods.vintagestory.at, handling mod lookups and downloads.
 
 from __future__ import annotations
 
+import asyncio
 import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Literal, TypeGuard, cast
 from urllib.parse import urlparse
 
 import httpx
@@ -257,6 +258,31 @@ def check_compatibility(release: ReleaseDict, game_version: str) -> Compatibilit
     return "incompatible"
 
 
+def _is_json_object(value: object) -> TypeGuard[dict[str, object]]:
+    """Whether parsed JSON is an object. `json.loads` only builds dicts with string keys."""
+    return isinstance(value, dict)
+
+
+def _is_json_array(value: object) -> TypeGuard[list[object]]:
+    """Whether parsed JSON is an array."""
+    return isinstance(value, list)
+
+
+@dataclass(frozen=True)
+class VersionListing:
+    """The mod database listing filtered by one game version tag, as cached (Story 18.3).
+
+    Attributes:
+        mods: The normalized listing items.
+        mod_ids: The items' numeric mod IDs (an item without one, normalized to 0, is left out).
+        fetched_at: When the listing was fetched.
+    """
+
+    mods: list[ModDict]
+    mod_ids: frozenset[int]
+    fetched_at: datetime
+
+
 class ModApiClient:
     """Async client for VintageStory mod database API.
 
@@ -268,7 +294,15 @@ class ModApiClient:
         DOWNLOAD_URL: URL for file downloads.
         DEFAULT_TIMEOUT: Default timeout for API calls (30s).
         DOWNLOAD_TIMEOUT: Timeout for file downloads (120s).
-        BROWSE_CACHE_TTL: Cache TTL for browse mod list (5 minutes).
+        BROWSE_CACHE_TTL: Cache TTL for browse mod list and for each listing filtered by
+            game version (5 minutes).
+        GAMEVERSIONS_CACHE_TTL: Cache TTL for the game version list (1 hour).
+        VERSION_LISTING_MAX_ENTRIES: Filtered listings kept in memory at most (3); the one
+            fetched longest ago is evicted first (Story 18.3).
+        VERSION_FLAGS_WAIT: Seconds a browse request waits at most for the game version
+            flags (5); a fetch still running then finishes in the background (Story 18.3).
+        VERSION_FLAGS_RETRY_AFTER: How long the flag lookup is not retried after a failure
+            or a timeout (60 seconds; Story 18.3).
     """
 
     BASE_URL = "https://mods.vintagestory.at/api"
@@ -277,6 +311,9 @@ class ModApiClient:
     DOWNLOAD_TIMEOUT = 120.0
     BROWSE_CACHE_TTL = timedelta(minutes=5)
     GAMEVERSIONS_CACHE_TTL = timedelta(hours=1)
+    VERSION_LISTING_MAX_ENTRIES = 3
+    VERSION_FLAGS_WAIT = 5.0
+    VERSION_FLAGS_RETRY_AFTER = timedelta(seconds=60)
 
     def __init__(
         self,
@@ -304,6 +341,13 @@ class ModApiClient:
         self._gameversions_cache: dict[str, int] | None = None
         self._gameversions_cache_time: datetime | None = None
 
+        # Story 18.3: listings filtered by game version tag ID (expired copies stay until
+        # replaced or evicted), the fetch running for each tag ID, and when the flag
+        # lookup last failed
+        self._version_listings: dict[int, VersionListing] = {}
+        self._version_fetches: dict[int, asyncio.Task[VersionListing]] = {}
+        self._version_flags_failed_at: datetime | None = None
+
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
         if self._client is None:
@@ -314,7 +358,12 @@ class ModApiClient:
         return self._client
 
     async def close(self) -> None:
-        """Close the HTTP client."""
+        """Cancel any filtered listing fetch still running, then close the HTTP client."""
+        fetches = list(self._version_fetches.values())
+        for task in fetches:
+            task.cancel()
+        if fetches:
+            await asyncio.gather(*fetches, return_exceptions=True)
         if self._client is not None:
             await self._client.aclose()
             self._client = None
@@ -654,20 +703,130 @@ class ModApiClient:
             ) from e
 
     def clear_browse_cache(self) -> None:
-        """Clear the browse mod list cache.
+        """Clear the browse mod list cache and the filtered listings.
 
-        This forces the next call to get_all_mods() to fetch fresh data.
+        This forces the next call to get_all_mods() or get_mods_by_version() to fetch
+        fresh data and resets the flag lookup's retry pause. A filtered listing fetch
+        that is running is left to finish.
         """
         self._browse_cache = None
         self._browse_cache_time = None
+        self._version_listings.clear()
+        self._version_flags_failed_at = None
         logger.debug("browse_cache_cleared")
+
+    def _fresh_version_listing(self, version_tagid: int) -> VersionListing | None:
+        """The cached listing for a tag if it has not expired."""
+        listing = self._version_listings.get(version_tagid)
+        if listing is None or datetime.now() - listing.fetched_at >= self.BROWSE_CACHE_TTL:
+            return None
+        return listing
+
+    async def _refresh_version_listing(self, version_tagid: int) -> VersionListing:
+        """Fetch the listing for a tag and cache it, evicting the oldest beyond the limit."""
+        mods = await self._fetch_mods_by_version(version_tagid)
+        listing = VersionListing(
+            mods=mods,
+            mod_ids=frozenset(m["modid"] for m in mods if m["modid"]),
+            fetched_at=datetime.now(),
+        )
+        self._version_listings[version_tagid] = listing
+        while len(self._version_listings) > self.VERSION_LISTING_MAX_ENTRIES:
+            oldest = min(
+                self._version_listings, key=lambda t: self._version_listings[t].fetched_at
+            )
+            del self._version_listings[oldest]
+        return listing
+
+    def _version_fetch(self, version_tagid: int) -> asyncio.Task[VersionListing]:
+        """The running fetch for a tag, started if there is none. Callers share it."""
+        task = self._version_fetches.get(version_tagid)
+        if task is None:
+            task = asyncio.create_task(self._refresh_version_listing(version_tagid))
+            self._version_fetches[version_tagid] = task
+
+            def finished(done: asyncio.Task[VersionListing]) -> None:
+                self._version_fetches.pop(version_tagid, None)
+                if not done.cancelled():
+                    # Retrieved, so a failure nobody awaited is not reported as lost
+                    done.exception()
+
+            task.add_done_callback(finished)
+        return task
 
     async def get_mods_by_version(self, version_tagid: int) -> list[ModDict]:
         """Get mods filtered by game version from the VintageStory mod database.
 
-        This method fetches mods compatible with a specific game version using
-        the API's server-side filtering. Results are NOT cached since they vary
-        by version.
+        Results are cached per tag ID for BROWSE_CACHE_TTL, at most
+        VERSION_LISTING_MAX_ENTRIES of them (Story 18.3). Concurrent callers for one
+        tag share one request. An expired copy is never served: a failed refresh
+        raises, as get_all_mods() does.
+
+        Args:
+            version_tagid: The game version tagid to filter by.
+
+        Returns:
+            List of normalized mod dictionaries with a release tagged for the version.
+
+        Raises:
+            ExternalApiError: If the mod API is unavailable.
+        """
+        listing = self._fresh_version_listing(version_tagid)
+        if listing is None:
+            # Shielded: one caller's cancellation does not cancel the shared fetch
+            listing = await asyncio.shield(self._version_fetch(version_tagid))
+        return listing.mods
+
+    async def get_version_mod_ids(self, game_version: str) -> frozenset[int] | None:
+        """The mod IDs of the entries with a release tagged for a game version (Story 18.3).
+
+        Used for the browse cards' flags; never raises ExternalApiError. Waits at most
+        VERSION_FLAGS_WAIT for the game version list and the filtered listing; a fetch
+        still running then finishes in the background and fills the cache. After a
+        failure or a timeout, no new attempt is made for VERSION_FLAGS_RETRY_AFTER.
+
+        Args:
+            game_version: A game version name without a "v" prefix (e.g. "1.22.7").
+
+        Returns:
+            The set from an unexpired copy or a fresh fetch; the last (expired) copy when
+            the refresh fails, is slow or is paused; None when the version has no tag in
+            the mod database or nothing is known.
+        """
+        tagid: int | None = None
+        if self._is_gameversions_cache_valid():
+            tagid = (self._gameversions_cache or {}).get(game_version)
+            if tagid is None:
+                return None
+            listing = self._fresh_version_listing(tagid)
+            if listing is not None:
+                return listing.mod_ids
+        failed_at = self._version_flags_failed_at
+        if failed_at is None or datetime.now() - failed_at >= self.VERSION_FLAGS_RETRY_AFTER:
+            try:
+                async with asyncio.timeout(self.VERSION_FLAGS_WAIT):
+                    tagid = (await self.get_game_versions()).get(game_version)
+                    if tagid is None:
+                        return None
+                    return (await asyncio.shield(self._version_fetch(tagid))).mod_ids
+            except (TimeoutError, ExternalApiError) as e:
+                self._version_flags_failed_at = datetime.now()
+                logger.warning(
+                    "version_flags_unavailable",
+                    game_version=game_version,
+                    tagid=tagid,
+                    error=str(e) or type(e).__name__,
+                )
+        if tagid is None:
+            # An expired map is still a map
+            tagid = (self._gameversions_cache or {}).get(game_version)
+        stale = self._version_listings.get(tagid) if tagid is not None else None
+        return stale.mod_ids if stale is not None else None
+
+    async def _fetch_mods_by_version(self, version_tagid: int) -> list[ModDict]:
+        """Fetch the listing filtered by a game version tag from the mod database.
+
+        Uncached; get_mods_by_version() and get_version_mod_ids() cache the result.
 
         Args:
             version_tagid: The game version tagid to filter by.
@@ -811,15 +970,29 @@ class ModApiClient:
                 ) from e
 
             # CRITICAL: statuscode is STRING, not int!
-            if data.get("statuscode") == "200":
-                versions = data.get("gameversions", [])
-                # Build mapping from version name to tagid
-                # Use .get() to handle malformed entries gracefully
+            # Story 18.3: browse reads this list on every request, so a malformed body
+            # is an ExternalApiError and a malformed entry is skipped, never a 500
+            body: object = data
+            if not _is_json_object(body):
+                logger.error("mod_api_invalid_body_gameversions")
+                raise ExternalApiError("VintageStory mod API returned an unexpected response")
+            if body.get("statuscode") == "200":
+                versions = body.get("gameversions", [])
+                if not _is_json_array(versions):
+                    logger.error("mod_api_invalid_body_gameversions")
+                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
+                # Build mapping from version name to tagid; skip malformed entries
                 version_map: dict[str, int] = {}
-                for v in versions:
-                    name = v.get("name")
-                    tagid = v.get("tagid")
-                    if name is not None and tagid is not None:
+                for entry in versions:
+                    if not _is_json_object(entry):
+                        continue
+                    name = entry.get("name")
+                    tagid = entry.get("tagid")
+                    if (
+                        isinstance(name, str)
+                        and isinstance(tagid, int)
+                        and not isinstance(tagid, bool)
+                    ):
                         version_map[name] = tagid
                 self._gameversions_cache = version_map
                 self._gameversions_cache_time = datetime.now()
@@ -829,10 +1002,10 @@ class ModApiClient:
             # Unexpected status - log and raise
             logger.warning(
                 "unexpected_api_status_gameversions",
-                statuscode=data.get("statuscode"),
+                statuscode=body.get("statuscode"),
             )
             raise ExternalApiError(
-                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+                f"VintageStory mod API returned unexpected status: {body.get('statuscode')}"
             )
 
         except httpx.TimeoutException as e:
