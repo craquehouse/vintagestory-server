@@ -18,6 +18,12 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
  * not installed before the run and removes it again; cleanup runs only with a snapshot
  * of the installed mods, so the dev stack ends with the mods it started with.
  *
+ * Playwright runs spec files in parallel (`fullyParallel`), and `mode: 'serial'` does
+ * not order tests across files. So this spec installs only `playercorpse`, which no
+ * other spec installs (`mod-install-release.spec.ts` touches carryon, canjewelry and
+ * the instruments mod IDs), and its cleanup removes only what it installed itself.
+ * Both specs can run at the same time against one stack.
+ *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just test-e2e-web`,
  *   or `just docker restart` then
@@ -33,8 +39,11 @@ const INSTALLED = '/game-server/mods/installed';
 const PHONE = { width: 390, height: 844 };
 const DESKTOP = { width: 1440, height: 900 };
 
-/** Mods the real-API test may install, in order of preference; cleaned up after it. */
-const CANDIDATES = ['playercorpse', 'carryon'];
+/**
+ * Mods the real-API test may install, in order of preference. Only mods no other spec
+ * installs, so specs running in parallel never remove each other's installs.
+ */
+const CANDIDATES = ['playercorpse'];
 
 interface FakeMod {
   slug: string;
@@ -193,7 +202,8 @@ test.describe('A new install shows its update status at once: real API (Story 17
   // Cleanup deletes only what is missing from this snapshot, so it must never run
   // without one: it could otherwise remove a mod that was installed before the run.
   let hasSnapshot = false;
-  const touched = new Set(CANDIDATES);
+  // What this spec installed; cleanup removes nothing else
+  const touched = new Set<string>();
 
   test.beforeAll(async ({ playwright, baseURL }) => {
     const request = await playwright.request.newContext({ baseURL });
@@ -229,6 +239,8 @@ test.describe('A new install shows its update status at once: real API (Story 17
     test.skip(slug === undefined, `Already installed on this stack: ${CANDIDATES.join(', ')}`);
     if (slug === undefined) return;
 
+    // Recorded before the request, so cleanup also covers an install whose answer was lost
+    touched.add(slug);
     const response = await request.post('/api/v1alpha1/mods', {
       headers: HEADERS,
       data: { slug },
