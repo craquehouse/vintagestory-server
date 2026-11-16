@@ -42,6 +42,7 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
+from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.errors import ErrorCode
@@ -1910,11 +1911,7 @@ class TestGameSettingsDefault:
 # Story 17.6: a saved interval setting reschedules its job (AC 1, 2, 3, 6, 7)
 # ==============================================================================
 
-INTERVAL_SETTING_JOBS = [
-    ("mod_list_refresh_interval", "mod_cache_refresh"),
-    ("server_versions_refresh_interval", "server_versions_check"),
-    ("metrics_collection_interval", "metrics_collection"),
-]
+INTERVAL_SETTING_JOBS = list(INTERVAL_JOBS.items())
 
 
 async def _no_op_job() -> None:

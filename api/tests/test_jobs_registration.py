@@ -768,6 +768,14 @@ def _assert_next_run_one_interval_away(
 class TestApplyIntervalSetting:
     """apply_interval_setting makes the scheduler match one setting (Story 17.6, AC 1-4, 8)."""
 
+    def test_settings_service_uses_the_same_keys(self) -> None:
+        """The service's interval keys and INTERVAL_JOBS cannot drift apart (review M2)."""
+        from vintagestory_api.services.api_settings import INTERVAL_SETTINGS, ApiSettings
+
+        assert set(INTERVAL_SETTINGS) == set(INTERVAL_JOBS)
+        for key in INTERVAL_JOBS:
+            assert ApiSettings.model_fields[key].annotation is int
+
     def test_interval_jobs_table(self) -> None:
         """Each interval setting drives exactly one job."""
         assert INTERVAL_JOBS == {

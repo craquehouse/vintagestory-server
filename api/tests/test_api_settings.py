@@ -13,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from vintagestory_api.config import Settings
+from vintagestory_api.jobs import INTERVAL_JOBS
 from vintagestory_api.services.api_settings import (
     MAX_INTERVAL_SECONDS,
     ApiSettingInvalidError,
@@ -957,11 +958,7 @@ class TestModUpdateWebhookSetting:
 # Story 17.6: interval bound and a scheduler failure after the save
 # =============================================================================
 
-INTERVAL_KEYS = [
-    "mod_list_refresh_interval",
-    "server_versions_refresh_interval",
-    "metrics_collection_interval",
-]
+INTERVAL_KEYS = list(INTERVAL_JOBS)
 
 
 class TestIntervalBound:

@@ -75,6 +75,9 @@ export const SECRET_API_SETTINGS: ReadonlySet<string> = new Set(['mod_update_web
 
 /**
  * API settings whose change reschedules a job (Story 17.6).
+ *
+ * Keep in step with the API: `INTERVAL_JOBS` in `api/src/vintagestory_api/jobs/__init__.py`
+ * (and `INTERVAL_SETTINGS` in `services/api_settings.py`, which an API test ties to it).
  */
 export const INTERVAL_API_SETTINGS: ReadonlySet<string> = new Set([
   'mod_list_refresh_interval',

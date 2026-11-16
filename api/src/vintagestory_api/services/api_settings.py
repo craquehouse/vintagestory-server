@@ -99,6 +99,20 @@ class ApiSettings(BaseModel):
 SECRET_SETTINGS = frozenset({"mod_update_webhook_url"})
 """Settings whose values are never logged or returned (FR149)."""
 
+INTERVAL_SETTINGS = frozenset(
+    {
+        "mod_list_refresh_interval",
+        "server_versions_refresh_interval",
+        "metrics_collection_interval",
+    }
+)
+"""Settings whose saved value is passed to the scheduler callback (Story 17.6).
+
+The same keys as `vintagestory_api.jobs.INTERVAL_JOBS`; this module cannot import that
+one (`jobs` imports this module), and a test asserts the two match. The web's
+`INTERVAL_API_SETTINGS` (`web/src/api/config.ts`) lists them too.
+"""
+
 
 def _describe_validation_errors(error: ValidationError) -> str:
     """Field names and messages only; never the invalid values (they may be secrets)."""
@@ -313,12 +327,7 @@ class ApiSettingsService:
         # Note: validated_value is safe to pass here because Pydantic validation
         # (including the ge=0 and le=MAX_INTERVAL_SECONDS constraints) has already
         # succeeded above. The callback will only receive valid integer values.
-        interval_settings = (
-            "mod_list_refresh_interval",
-            "server_versions_refresh_interval",
-            "metrics_collection_interval",
-        )
-        if key in interval_settings and self._scheduler_callback:
+        if key in INTERVAL_SETTINGS and self._scheduler_callback:
             try:
                 self._scheduler_callback(key, validated_value)
             except Exception as e:
