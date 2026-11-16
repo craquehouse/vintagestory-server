@@ -7,6 +7,11 @@
  * - Page header with title and server status badge
  * - Empty state when server is not installed
  * - GameConfigPanel for configured servers
+ *
+ * Story 17.8 (FR193): the title row and the panel share one centered 1280px width
+ * (Epic 16 ADR-3), in the loading and error states too, so the title starts at the
+ * panel's left edge, the status badge ends at its right edge, and the title does not
+ * move when the status arrives.
  */
 
 import { ServerStatusBadge } from '@/components/ServerStatusBadge';
@@ -37,8 +42,10 @@ export function SettingsPage() {
         className="p-4 lg:p-6 h-full overflow-auto"
         data-testid="settings-page-loading"
       >
-        <h1 className="text-2xl font-bold">Game Settings</h1>
-        <p className="text-muted-foreground mt-4">Loading server status...</p>
+        <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+          <h1 className="text-2xl font-bold">Game Settings</h1>
+          <p className="text-muted-foreground mt-4">Loading server status...</p>
+        </div>
       </div>
     );
   }
@@ -50,8 +57,10 @@ export function SettingsPage() {
         className="p-4 lg:p-6 h-full overflow-auto"
         data-testid="settings-page-error"
       >
-        <h1 className="text-2xl font-bold">Game Settings</h1>
-        <p className="text-destructive mt-4">Error: {error.message}</p>
+        <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+          <h1 className="text-2xl font-bold">Game Settings</h1>
+          <p className="text-destructive mt-4">Error: {error.message}</p>
+        </div>
       </div>
     );
   }
@@ -62,25 +71,27 @@ export function SettingsPage() {
       data-testid="settings-page"
       aria-label="Game Settings"
     >
-      {/* Page Header with title and status badge */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Game Settings</h1>
-        {isInstalled && (
-          <ServerStatusBadge state={serverState} />
+      <div className="mx-auto max-w-[1280px]" data-testid="settings-page-content">
+        {/* Page Header with title and status badge */}
+        <div className="flex items-center justify-between mb-6" data-testid="settings-page-header">
+          <h1 className="text-2xl font-bold">Game Settings</h1>
+          {isInstalled && (
+            <ServerStatusBadge state={serverState} />
+          )}
+        </div>
+
+        {/* Content area */}
+        {isInstalled ? (
+          <GameConfigPanel />
+        ) : (
+          <EmptyServerState
+            isInstalling={isInstalling}
+            notInstalledMessage="Install a VintageStory server to configure settings."
+            installingMessage="Settings will be available once installation completes."
+            testId="settings-page-empty"
+          />
         )}
       </div>
-
-      {/* Content area */}
-      {isInstalled ? (
-        <GameConfigPanel />
-      ) : (
-        <EmptyServerState
-          isInstalling={isInstalling}
-          notInstalledMessage="Install a VintageStory server to configure settings."
-          installingMessage="Settings will be available once installation completes."
-          testId="settings-page-empty"
-        />
-      )}
     </div>
   );
 }

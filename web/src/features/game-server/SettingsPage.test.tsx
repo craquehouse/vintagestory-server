@@ -2,6 +2,7 @@
  * Tests for SettingsPage component.
  *
  * Story 11.3: Settings Page Extraction
+ * Story 17.8: one centered 1280px content width
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -11,9 +12,11 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 import { SettingsPage } from './SettingsPage';
 import * as serverStatusHook from '@/hooks/use-server-status';
 
-// Mock the server status hook
+// Mock the server status hook. `statusMock` is the same function as the mocked
+// `useServerStatus`, untyped, so a test can return just the fields the page reads.
+const statusMock = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/use-server-status', () => ({
-  useServerStatus: vi.fn(),
+  useServerStatus: statusMock,
 }));
 
 // Mock GameConfigPanel to isolate SettingsPage tests
@@ -296,6 +299,64 @@ describe('SettingsPage', () => {
 
       expect(screen.getByTestId('settings-page')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: /game settings/i })).toBeInTheDocument();
+    });
+  });
+
+  // Story 17.8 (FR193): the title row and the settings share one centered 1280px width,
+  // in every state, so the title does not move when the status arrives
+  describe('content width (Story 17.8)', () => {
+    function expectCappedContent(pageTestId: string): HTMLElement {
+      const content = screen.getByTestId('settings-page-content');
+      expect(screen.getByTestId(pageTestId)).toContainElement(content);
+      expect(content).toHaveClass('mx-auto', 'max-w-[1280px]');
+      expect(content).toContainElement(screen.getByRole('heading', { name: 'Game Settings' }));
+      return content;
+    }
+
+    it('caps the loading state', () => {
+      statusMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
+      renderWithProviders(<SettingsPage />);
+
+      expectCappedContent('settings-page-loading');
+    });
+
+    it('caps the error state', () => {
+      statusMock.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Failed to connect'),
+      });
+      renderWithProviders(<SettingsPage />);
+
+      expectCappedContent('settings-page-error');
+    });
+
+    it('puts the header with the status badge and the settings panel in the same width', () => {
+      statusMock.mockReturnValue({
+        data: { data: { state: 'installed', version: '1.21.3' } },
+        isLoading: false,
+        error: null,
+      });
+      renderWithProviders(<SettingsPage />);
+
+      const content = expectCappedContent('settings-page');
+      const header = screen.getByTestId('settings-page-header');
+      expect(content).toContainElement(header);
+      expect(header).toContainElement(screen.getByRole('status'));
+      expect(header).toContainElement(screen.getByRole('heading', { name: 'Game Settings' }));
+      expect(content).toContainElement(screen.getByTestId('game-config-panel'));
+    });
+
+    it('caps the empty state when the server is not installed', () => {
+      statusMock.mockReturnValue({
+        data: { data: { state: 'not_installed', version: null } },
+        isLoading: false,
+        error: null,
+      });
+      renderWithProviders(<SettingsPage />);
+
+      const content = expectCappedContent('settings-page');
+      expect(content).toContainElement(screen.getByTestId('settings-page-empty'));
     });
   });
 });
