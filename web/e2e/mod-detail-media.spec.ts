@@ -237,7 +237,10 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
       await page.keyboard.press('Tab');
       await expect(page.getByTestId('mod-screenshot-thumb-0')).toBeFocused();
 
-      // Only the full-size files of the images shown were requested, without a Referer
+      // Only the full-size files of the images shown were requested, without a Referer.
+      // The section is scrolled into view so lazy loading does not depend on where the
+      // gallery sits on the page.
+      await section.scrollIntoViewIfNeeded();
       const fullSize = () =>
         [...new Set(recorded.cdn.map((r) => r.url).filter((url) => !url.includes('_55_60')))].sort();
       await expect
