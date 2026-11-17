@@ -88,6 +88,38 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
+def log_web_api_key_state(settings: Settings) -> None:
+    """Warn at start-up when the web UI's key is missing, the Admin key or has no role.
+
+    Never logs the key itself (Epic 19 ADR-5).
+    """
+    state = settings.web_api_key_state()
+    if state == "not_set":
+        logger.warning(
+            "web_api_key_not_set",
+            hint=(
+                "/config.js serves no API key, so the web UI shows a set-up message. "
+                "Set VS_API_KEY to VS_API_KEY_MONITOR (read-only) or VS_API_KEY_ADMIN "
+                "(full access); anyone who can load the web UI receives that key"
+            ),
+        )
+    elif state == "admin":
+        logger.warning(
+            "web_api_key_is_admin_key",
+            hint=(
+                "Anyone who can load the web UI receives the Admin key. Set VS_API_KEY to "
+                "VS_API_KEY_MONITOR for a read-only web UI, or put the web UI behind an "
+                "authenticating proxy"
+            ),
+        )
+    elif state == "no_role":
+        # The web UI would get 401 on every request
+        logger.warning(
+            "web_api_key_matches_no_role",
+            hint="VS_API_KEY must equal VS_API_KEY_ADMIN or VS_API_KEY_MONITOR",
+        )
+
+
 def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     """Return the lifespan handler of an app that runs with the given settings."""
 
@@ -102,12 +134,7 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
 
         # Ensure data directories exist
         settings.ensure_data_directories()
-        if not settings.web_api_key_has_a_role():
-            # The web UI would get 401 on every request; never log the key itself
-            logger.warning(
-                "web_api_key_matches_no_role",
-                hint="VS_API_KEY must equal VS_API_KEY_ADMIN or VS_API_KEY_MONITOR",
-            )
+        log_web_api_key_state(settings)
         debug_enabled = is_debug_enabled()
         logger.info(
             "api_starting",

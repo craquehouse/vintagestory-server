@@ -4,6 +4,7 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Literal
 
 import structlog
 from pydantic import field_validator
@@ -19,7 +20,8 @@ class Settings(BaseSettings):
     log_level: str | None = None  # Override log level (DEBUG, INFO, WARNING, ERROR)
     api_key_admin: str = ""
     api_key_monitor: str | None = None
-    # VS_API_KEY: the key the web UI uses, served at runtime by /config.js (Epic 15 ADR-5)
+    # VS_API_KEY: the key the web UI uses, served at runtime by /config.js (Epic 15 ADR-5).
+    # No default: unset or blank, the web UI gets no key (Epic 19 ADR-5)
     api_key: str | None = None
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
@@ -29,14 +31,25 @@ class Settings(BaseSettings):
 
     @property
     def web_api_key(self) -> str:
-        """The API key handed to the web UI: VS_API_KEY, or the Admin key when unset or blank."""
+        """VS_API_KEY, or the empty string when it is unset or blank (Epic 19 ADR-5)."""
         if self.api_key and self.api_key.strip():
             return self.api_key
-        return self.api_key_admin
+        return ""
 
-    def web_api_key_has_a_role(self) -> bool:
-        """Whether the web UI's key is the Admin or the Monitor key, so its requests can work."""
-        return self.web_api_key in {self.api_key_admin, self.api_key_monitor}
+    def web_api_key_state(self) -> Literal["not_set", "admin", "monitor", "no_role"]:
+        """Which key the web UI gets: none, the Admin key, the Monitor key or one with no role.
+
+        The Admin key is checked first, so when both role keys are equal the state is
+        "admin". An empty Monitor key matches nothing, as in authentication.
+        """
+        key = self.web_api_key
+        if not key:
+            return "not_set"
+        if key == self.api_key_admin:
+            return "admin"
+        if self.api_key_monitor and key == self.api_key_monitor:
+            return "monitor"
+        return "no_role"
 
     @field_validator("disk_space_warning_threshold_gb")
     @classmethod

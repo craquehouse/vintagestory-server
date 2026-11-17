@@ -126,10 +126,11 @@ class TestRuntimeConfig:
         assert response.status_code == 200
         assert response.text == 'window.__VSM_CONFIG__ = {"apiKey": "web"};\n'
 
-    def test_falls_back_to_admin_key(self, static_dir: Path) -> None:
+    def test_serves_an_empty_key_when_vs_api_key_is_unset(self, static_dir: Path) -> None:
+        # No fallback to the Admin key (Epic 19 ADR-5)
         client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
-        assert client.get("/config.js").text == 'window.__VSM_CONFIG__ = {"apiKey": "admin"};\n'
+        assert client.get("/config.js").text == 'window.__VSM_CONFIG__ = {"apiKey": ""};\n'
 
     def test_key_is_json_encoded(self, static_dir: Path) -> None:
         key = 'a"b\\c</script>\u2028'
@@ -141,7 +142,7 @@ class TestRuntimeConfig:
         assert '"a\\"b' in body and "\\u2028" in body
 
     def test_is_a_never_cached_script(self, static_dir: Path) -> None:
-        client = self._client(static_dir, Settings(api_key_admin="admin"))
+        client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
         response = client.get("/config.js")
 
@@ -151,7 +152,7 @@ class TestRuntimeConfig:
 
     def test_other_sites_cannot_include_it(self, static_dir: Path) -> None:
         # A classic <script src> from another site's page skips CORS; CORP blocks it
-        client = self._client(static_dir, Settings(api_key_admin="admin"))
+        client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
         response = client.get("/config.js")
 
