@@ -54,7 +54,7 @@ so that **a new warning or skip is seen the day it appears, and the check is qui
 
 9. **Given** the web suite before (133 files, 3,353 tests: 3,349 passed, 4 skipped) and after the story
    **When** I compare the counts
-   **Then** it has 132 files and 3,320 tests, all passing; the 33 tests gone are exactly those listed in Dev Notes "Tests deleted on purpose", and the three SSR cookie tests are in `cookies.ssr.test.ts`
+   **Then** it has 132 files and 3,307 tests, all passing; the 46 tests gone are exactly those listed in Dev Notes "Tests deleted on purpose", and the three SSR cookie tests are in `cookies.ssr.test.ts`
    *(Covers FR239)*
 
 10. **Given** CI's `web` job on the story's pull request
@@ -113,7 +113,7 @@ so that **a new warning or skip is seen the day it appears, and the check is qui
 
 - [ ] Task 7: Quality gate and review hand-off (AC: all)
   - [x] 7.1: `just check` passes and prints `0 errors, 0 warnings` from Pyright and no `skipped` from Vitest; the diff adds no suppression, no `cast` and no `as unknown as`; after the run, `git status --short` shows nothing under `dev/`
-  - [x] 7.2: Test counts as in AC 9 (132 files, 3,320 tests); list the deleted tests in Completion Notes
+  - [x] 7.2: Test counts as in AC 9 (132 files, 3,307 tests); list the deleted tests in Completion Notes
   - [ ] 7.3: Status `review`; `just sprint set 20-2-green-quiet-check review`; PR to `main` (Story 20.1 merged first). After CI: record the `web` job's `just test-web` time and that `terminal.spec.ts` passed in the `e2e` job
   - [ ] 7.4: AARs and closes (after merge, per CLAUDE.md): `VSS-1ar`, `VSS-hnl`, `VSS-6wj`, `VSS-eh41` with their commits; `VSS-37a` naming `f393c3a` and Task 3's run. Do not close `VSS-029` (Story 20.5 does)
 
@@ -130,7 +130,7 @@ so that **a new warning or skip is seen the day it appears, and the check is qui
 The three bodies are empty, and the reason they give ("requires API enhancement") is out of date: the game version filter exists (`FilterControls.tsx:84-86`, `:186-196`) and is sent to the server (`use-browse-mods.ts:108`, `:119`). Coverage that already exists, with assertions:
 
 - Selecting a game version: `FilterControls.test.tsx:329` "calls onChange when version is selected" (opens `version-filter-button`, clicks `version-option-1.21.2`, expects `onChange` with `gameVersion: '1.21.2'`), and `:351` (removing the filter badge).
-- Filtering the browse list by game version: `use-browse-mods.test.tsx:1515` "accepts filters.gameVersion (legacy format)", `:1537` "accepts version (flat format)", `:1835` "handles game version filtering" (each asserts `version=1.19.0` in the request URL). Filtering is server-side; `filterModsByFilters` (`use-browse-mods.ts:258`, the `describe` the two placeholders sit in) is `@deprecated`, unused by product code, and has no game version branch, so a client-side game version test there would test nothing.
+- Filtering the browse list by game version: `use-browse-mods.test.tsx:1515` "accepts filters.gameVersion (legacy format)", `:1537` "accepts version (flat format)", `:1835` "handles game version filtering" (each asserts `version=1.19.0` in the request URL). Filtering is server-side; `filterModsByFilters` (`use-browse-mods.ts:258`, the `describe` the two placeholders sit in) was `@deprecated`, unused by product code (this story deletes it), and had no game version branch, so a client-side game version test there would test nothing.
 
 So ADR-3 decision 1's "write the missing test" has nothing to write. The `null lastReleased` placeholder (`:253`) refers to a field the filter never used.
 
@@ -274,8 +274,9 @@ If any of this fails at implementation time in a way these notes do not cover, s
 - `web/src/features/terminal/Terminal.test.tsx`, 27 tests: renders the terminal page; renders the "Server Console" header; renders the connection status indicator; renders the terminal container; renders the command input field; renders the send button; shows "Connecting..." initially; displays connection status component in header; renders connection status with correct aria-label for initial state; creates WebSocket connection with correct URL; creates WebSocket with history_lines parameter; disables input when not connected; enables input when connected; disables send button when input is empty; enables send button when input has content; sends command when form is submitted; clears input after sending command; does not send command when input is whitespace only; does not send command when server is not running even if connected; sends command on Enter key; shows placeholder based on connection state; shows "Server not running" placeholder when connected but server is stopped; has proper aria-label on terminal container; has connection status with ARIA live region; has aria-label on command input; has proper flex layout for full height; queues messages received before terminal initialization and flushes them when ready. The live console is `ConsolePanel.tsx`, covered by `ConsolePanel.test.tsx` and `web/e2e/terminal.spec.ts`.
 - `web/src/lib/mod-compatibility.test.ts`, 3 tests: returns not_verified as placeholder; handles null server version; handles empty mod versions array.
 - 3 placeholders: `FilterControls.test.tsx` "handles version filter selection - DISABLED ..."; `use-browse-mods.test.tsx` "filters by gameVersion - DISABLED ..." and "handles mods with null lastReleased - DISABLED ...".
+- `use-browse-mods.test.tsx` `describe('filterModsByFilters')`, 13 tests, deleted with the deprecated, unused function (controller decision at implementation, backlog drawdown; names in Completion Notes).
 
-Counts: 3,353 - 27 - 3 - 3 = 3,320 tests; 133 - 2 + 1 (`cookies.ssr.test.ts`) = 132 files.
+Counts: 3,353 - 27 - 3 - 3 - 13 = 3,307 tests; 133 - 2 + 1 (`cookies.ssr.test.ts`) = 132 files.
 
 ### Existing tests that change
 
@@ -293,7 +294,6 @@ Counts: 3,353 - 27 - 3 - 3 = 3,320 tests; 133 - 2 + 1 (`cookies.ssr.test.ts`) = 
 
 - `ModTable.tsx`, including its unreachable `isRemoving` "Removing..." branch (`:458-462`) and the dialog closing on confirm. Follow-up.
 - `ConsolePanel.tsx`, `components/terminal/TerminalView.tsx`, `components/terminal/ConnectionStatus.tsx`, `hooks/use-console-websocket.ts`, `hooks/use-log-stream.ts`: still used by the Console page. ADR-2 decision 2's third option (move the URL building into a pure function) is not needed.
-- `filterModsByFilters` (deprecated, unused by product code). Follow-up.
 - `api/pyproject.toml` rule levels; `tsconfig.json`; `web/package.json`; `isolate`; any per-file pool.
 - `delete window.__VSM_CONFIG__` in `App.no-key.test.tsx:33` and `api/client.test.ts:133`: an own, configurable property; passes under both pools.
 - `web/e2e/terminal.spec.ts` (it tests `/game-server/console`, untagged, in the CI set).
@@ -378,6 +378,7 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 - Task 5.6: `src/hooks src/lib`: 37 files, 1,049 passed under each pool. Whole suite: 132 files, 3,307 passed under `vmThreads` (Duration 4.29 s) and under `forks` (12.24 s). `tsc` clean.
 - Task 6.1, before the switch (forks, this branch after Task 5): wall 8.90 / 9.01 / 9.43 s; Duration 8.69 / 8.83 / 9.24 s; "jsdom was created 132 times" (37.66 / 38.29 / 39.47 s total, 37% of tracked time).
 - Task 6.1-6.2, after the switch (`vmThreads`), five runs: wall 5.54 / 4.78 / 5.13 / 4.68 / 4.75 s; Duration 5.19 / 4.53 / 4.83 / 4.40 / 4.46 s; 132 files, 3,307 passed every run; no jsdom notice. No order-dependent failure; no memory, heap or listener warning in the output (one more run grepped for them: none).
+- Review LOW-1: `BrowseTab.test.tsx` failed under `--sequence.shuffle` (2 of 4 runs before the fix, `TypeError: card.scrollIntoView is not a function`). After `tests/setup.ts` stubs `scrollIntoView`/`scrollTo` before each test and clears `sessionStorage` after each: `BrowseTab.test.tsx --sequence.shuffle` 12/12 green under `vmThreads` and 4/4 under `forks` (63 passed each); the whole suite with `--sequence.shuffle` 3/3 green under each pool (3,307 passed). No other file failed under shuffle.
 - Task 7.1: `just check` exit 0 in 56.3 s wall: ruff "All checks passed!", Pyright `0 errors, 0 warnings, 0 informations`, API 3,334 passed, web 132 files / 3,307 passed (no `skipped`), script tests green. `git status --short` afterwards: nothing under `dev/`. The diff adds no suppression, `cast` or `as unknown as`; `rg "(it|test|describe)\.skip" web/src web/tests` finds nothing.
 
 ### Completion Notes List
@@ -398,6 +399,7 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 - AC 12: `just check` passes with 0 Pyright warnings and 0 skipped web tests; nothing written under `dev/`.
 - Not done here (not authorized in this run): Task 7.3 PR and CI numbers; Task 7.4 AARs and closes for `VSS-1ar`, `VSS-hnl`, `VSS-6wj`, `VSS-eh41`, `VSS-37a` (after merge).
 - No E2E or manual check: nothing an admin can see changes.
+- Review (LOW-1, backlog drawdown, beyond the story's "no other test changed"): `tests/setup.ts` installs no-op `Element.prototype.scrollIntoView` and `scrollTo` (`vi.stubGlobal`) before each test and clears `sessionStorage` after each, which removes a pre-existing order dependence in `BrowseTab.test.tsx`. The per-describe stubs in `BrowseTab.test.tsx` and `use-browse-scroll-restoration.test.ts` stay: they install the spies those tests assert on. `project-context.md` says shared jsdom-missing APIs are stubbed once in setup. Test count unchanged.
 
 ### File List
 
@@ -425,3 +427,4 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Prototype of Tasks 1, 2, 4 and 5 at 7f04ea2, discarded.
 - 2026-11-17: Implemented Tasks 1-6 and the gate (dev-story workflow); `filterModsByFilters` removed per the controller; `ModTable.tsx` left unchanged because "Removing..." is reachable (Completion Notes). Status review.
+- 2026-11-17: Review fixes: browser scroll stubs and a `sessionStorage` clear in `tests/setup.ts` (LOW-1); Dev Notes and AC 9 corrected to what shipped (LOW-2).
