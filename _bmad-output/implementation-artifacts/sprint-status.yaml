@@ -216,7 +216,7 @@ development_status:
   19-3-content-security-policy-and-api-docs: done
   19-4-mod-files-are-never-overwritten: done
   19-5-mod-state-matches-the-mods-directory: done
-  19-6-mod-database-data-is-checked: review
+  19-6-mod-database-data-is-checked: done
   19-7-e2e-runs-in-ci: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.

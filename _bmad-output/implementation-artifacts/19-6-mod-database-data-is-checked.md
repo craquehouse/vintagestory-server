@@ -1,6 +1,6 @@
 # Story 19.6: Mod Database Data Is Checked
 
-Status: review
+Status: done
 
 <!-- Implements FR224-FR227, Epic 19 ADR-12 and ADR-13. Beads: VSS-2zis (API-081), VSS-ce0h (API-086), VSS-0lkb (API-090); parent VSS-fl9b. Stories run in order 19.1 to 19.7, each stacked on the previous. Line references were verified at b6ae2f2 (epic-19-planning; api/ and web/ identical to 048fea9, the commit the ADRs cite) and must be re-checked at implementation time: Stories 19.1 to 19.5 land first, and Story 19.4 edits services/mod_api.py (download cache, around :555-630) and services/mods.py in other places. API and web change. No new dependencies. -->
 
@@ -464,7 +464,23 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story, non-interactive.
 - `web/e2e/mod-database-urls.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/19-6-mod-database-data-is-checked.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `c4fd594..c14c121`
+**Outcome:** Approve
+
+**Summary:** All 12 ACs met and pinned by tests that fail without the change. About 25 hostile URLs were probed against `external_link_url` and `mod_image_url` (`javascript:`, `data:`, `http:`, userinfo, host mismatch, trailing dot, port, uppercase host, spaces); none was accepted. Every `ModApiClient` fetcher uses `_get_json_object` with the status checked before parsing, and nothing malformed is cached. `SharedFetches` covers a cancelled waiter, an unawaited failure (no "Task exception was never retrieved"), a joined forced refresh and `close()`. The browse 5-second bounded wait is intact. Logos have `no-referrer` at all three render sites. Reviewer ran the touched API files (595 passed), `just test-api` (3334 passed), `just test-web` (3349 passed, 4 skipped), lint, typecheck and `just changelog` (two Fixes, one Performance); nothing under `dev/`. E2E was not re-run by the reviewer (no Docker access).
+
+### Action Items
+
+- [x] [Low] L1 `close()` snapshots the running fetches, so a fetch started during its await is not cancelled. Not changed: it is unreachable today (uvicorn drains requests before lifespan shutdown).
+- [x] [Low] L2 the E2E's write guard is registered before the stubs, so a non-GET to a stubbed route would be answered by the stub rather than refused. Not changed: no page under test writes to those routes, and stubs never reach the stack's real state.
+- [x] [Low] L3 the link rule keeps a host with a percent-encoded control character (e.g. `https://example.com%0d.example.com/`). Not changed: browsers refuse to navigate such a URL, so the worst case is a dead link, and it matches ADR-12 ("parses, has a host").
+- [x] [Low] L4 File List omits `sprint-status.yaml` (not changed: project convention keeps it out).
+
 ## Change Log
 
 - 2026-11-17: Story 19.6 created and validated (ready-for-dev).
 - 2026-11-16: Tasks 1 to 4 and 5.1 implemented; status review. Manual check 5.2, the PR and the bead links of 5.3 remain.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved, four low findings recorded and not changed. Status done.
