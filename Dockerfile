@@ -6,7 +6,7 @@
 # ==============================================================================
 # Stage 1: Build frontend
 # ==============================================================================
-FROM node:26-slim AS web-build
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS web-build
 
 # No API key is built in: the API serves it at runtime from /config.js (Epic 15 ADR-5),
 # so one image works for every deployment.
@@ -33,7 +33,7 @@ RUN VITE_API_KEY="" VITE_API_BASE_URL="" bun run build
 # Python 3.14 is native to Ubuntu 26.04
 # ==============================================================================
 # The .NET major must match VintageStory's runtimeconfig (net10.0 for 1.22.x); Renovate holds it below 11
-FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:d507d1e0c1ec47006d52220262709c3ac1d39c1fa87bda6a9aa7930b04341450 AS final
 
 WORKDIR /app
 
@@ -47,8 +47,9 @@ RUN apt-get update \
     && ln -sf /usr/bin/python3.14 /usr/bin/python3 \
     && ln -sf /usr/bin/python3.14 /usr/bin/python
 
-# Install uv for fast Python dependency installation
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Install uv for fast Python dependency installation. The version must equal the uv in
+# .mise.toml (scripts/tests/test-docker-context.sh checks it); Renovate moves both together
+COPY --from=ghcr.io/astral-sh/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 /uv /usr/local/bin/uv
 
 # Copy dependency files first for layer caching
 COPY api/pyproject.toml api/uv.lock ./
