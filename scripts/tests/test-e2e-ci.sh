@@ -38,4 +38,12 @@ expanded=$(grep -nE '\$\{?VS_API_KEY' "$e2e_script" 2>/dev/null || true)
 assert_eq "the script expands no VS_API_KEY* variable" "" "$expanded"
 if [[ -f $e2e_script ]]; then pass; else fail "scripts/e2e-ci.sh exists"; fi
 
+# The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
+ci="$ROOT/.github/workflows/ci.yml"
+assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"
+assert_eq "ci.yml e2e job runs just test-e2e-ci" "1" \
+    "$(yq '[.jobs.e2e.steps[] | select(.run == "just test-e2e-ci")] | length' "$ci")"
+secrets=$(grep -n 'secrets\.' "$ci" || true)
+assert_eq "ci.yml reads no secret" "" "$secrets"
+
 finish
