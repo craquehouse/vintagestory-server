@@ -49,7 +49,7 @@ RUN apt-get update \
 
 # Install uv for fast Python dependency installation. The version must equal the uv in
 # .mise.toml (scripts/tests/test-docker-context.sh checks it); Renovate moves both together
-COPY --from=ghcr.io/astral-sh/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /usr/local/bin/uv
 
 # Copy dependency files first for layer caching
 COPY api/pyproject.toml api/uv.lock ./
