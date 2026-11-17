@@ -221,6 +221,27 @@ class TestPrepareModFilesSync:
     def test_the_sync_knows_the_recoverys_kept_aside_suffix(self) -> None:
         assert mod_state_module.KEPT_ASIDE_SUFFIX == KEPT_ASIDE_SUFFIX
 
+    def test_a_raising_recovery_skips_the_sync(
+        self, service: ModService, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Review LOW-3: as the `prepare_mod_files` docstring says."""
+        calls: list[str] = []
+
+        def fail(state_manager: ModStateManager) -> None:
+            raise RuntimeError("unexpected")
+
+        def spy() -> ModSyncSummary:
+            calls.append("sync")
+            return ModSyncSummary(added=0, removed=0, skipped=0)
+
+        monkeypatch.setattr(mods_module, "recover_working_files", fail)
+        monkeypatch.setattr(service.state_manager, "sync_state_with_disk", spy)
+
+        with pytest.raises(RuntimeError):
+            prepare_mod_files()
+
+        assert calls == []
+
 
 class TestStartUpOnly:
     def test_no_route_runs_the_sync(self) -> None:
