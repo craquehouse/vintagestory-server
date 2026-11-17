@@ -51,7 +51,8 @@ async function settle(page: Page) {
   await page.waitForTimeout(1500);
 }
 
-test.describe('Mods navigation', () => {
+// @moddb: navigates between live browse pages and mod details
+test.describe('Mods navigation', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);

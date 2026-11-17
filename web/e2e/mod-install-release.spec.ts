@@ -123,7 +123,8 @@ async function versionOptions(page: Page): Promise<Array<{ testId: string; text:
   );
 }
 
-test.describe('Install picks the right release (Story 17.2)', () => {
+// @moddb: reads the releases of live mod database entries
+test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);
@@ -212,7 +213,11 @@ test.describe('Install picks the right release (Story 17.2)', () => {
   });
 });
 
-test.describe('Install picks the right release: real API (Story 17.2)', () => {
+// @moddb @install: installs real mods from the mod database and removes them again
+test.describe(
+  'Install picks the right release: real API (Story 17.2)',
+  { tag: ['@moddb', '@install'] },
+  () => {
   test.describe.configure({ mode: 'serial' });
 
   let before: string[] = [];

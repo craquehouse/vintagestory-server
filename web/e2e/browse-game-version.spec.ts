@@ -164,7 +164,8 @@ test.describe('Game version indicator on browse cards', () => {
     });
   }
 
-  test('live: the cards agree with the browse response', async ({ page }) => {
+  // @moddb: compares the cards with a live browse response
+  test('live: the cards agree with the browse response', { tag: '@moddb' }, async ({ page }) => {
     const browse = page.waitForResponse(
       (r) =>
         isBrowseResponse(r) &&

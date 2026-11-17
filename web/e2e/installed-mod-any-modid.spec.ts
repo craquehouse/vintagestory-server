@@ -85,7 +85,8 @@ async function versionOptionTestIds(page: Page): Promise<string[]> {
   );
 }
 
-test.describe('Installed mod recognized by any mod ID (Story 16.2)', () => {
+// @moddb: looks up the live instruments entry
+test.describe('Installed mod recognized by any mod ID (Story 16.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);

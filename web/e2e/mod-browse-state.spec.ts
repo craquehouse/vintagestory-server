@@ -124,7 +124,8 @@ async function expectCardInViewport(page: Page, slug: string) {
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 }
 
-test.describe('Mod browser state survives mod details', () => {
+// @moddb: browses, filters and opens live mod database entries
+test.describe('Mod browser state survives mod details', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);

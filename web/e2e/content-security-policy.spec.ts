@@ -25,7 +25,8 @@ import { serveConfigKey } from './config-js';
  * - `GET /api/v1alpha1/config/game`: no settings (404 without a game server).
  * - `GET /api/v1alpha1/mods`, `/mods/updates`, `/mods/browse`, `/mods/lookup/<slug>`: one
  *   installed mod, one browse item, and the made-up `e2ecspmod` with three screenshots and the
- *   description under test.
+ *   description under test; `/mods/gameversions` and `/mods/tags`: one version, no tags.
+ * - `GET /api/v1alpha1/versions`: an empty version list.
  * - Every request to `https://moddbcdn.vintagestory.at/**` and `https://images.example.com/**`
  *   is answered with a 1x1 PNG.
  *
@@ -281,6 +282,14 @@ async function prepare(page: Page): Promise<Recorded> {
         })
       : route.fallback()
   );
+  // The version list; without it a stack that cannot reach the vendor's API logs a 503
+  await page.route(/\/api\/v1alpha1\/versions(\?.*)?$/, (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({
+          json: { status: 'ok', data: { versions: [], total: 0, cached: false, cached_at: null } },
+        })
+      : route.fallback()
+  );
   await page.route(/\/api\/v1alpha1\/mods(\/[^?]*)?(\?.*)?$/, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace('/api/v1alpha1/mods', '');
@@ -288,6 +297,11 @@ async function prepare(page: Page): Promise<Recorded> {
     if (path === '') return route.fulfill({ json: INSTALLED_BODY });
     if (path === '/updates') return route.fulfill({ json: UPDATES_BODY });
     if (path === '/browse') return route.fulfill({ json: BROWSE_BODY });
+    // The browse filters; without these a stack that cannot reach the mod database logs a 502
+    if (path === '/gameversions') {
+      return route.fulfill({ json: { status: 'ok', data: { versions: ['1.22.7'] } } });
+    }
+    if (path === '/tags') return route.fulfill({ json: { status: 'ok', data: { tags: [] } } });
     if (path === `/lookup/${SLUG}`) {
       return route.fulfill({ json: lookupBody(SLUG, 'E2E CSP Mod', DESCRIPTION, 3) });
     }
@@ -479,8 +493,9 @@ test.describe('Content-Security-Policy', () => {
     expect(socket.isClosed()).toBe(false);
 
     await page.getByTestId('source-selector').click();
-    const items = page.getByRole('menuitem');
-    // The first item is the live console; any others are log files
+    // The first item is the live console; any other enabled item is a log file (a stack with
+    // none shows a disabled "No log files available")
+    const items = page.getByRole('menuitem', { disabled: false });
     if ((await items.count()) > 1) {
       const logPromise = page.waitForEvent(
         'websocket',

@@ -103,7 +103,9 @@ async function documentOverflowX(page: Page): Promise<number> {
   );
 }
 
-test.describe('Story 16.7: file browser breadcrumbs', () => {
+// @game-server: needs a directory inside another under serverdata (e.g. Logs/Archive), which
+// only a game server that has run creates
+test.describe('Story 16.7: file browser breadcrumbs', { tag: '@game-server' }, () => {
   let nestedPath: string[];
 
   test.beforeAll(async ({ request }) => {

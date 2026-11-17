@@ -376,7 +376,11 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
     });
   });
 
-  test('the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL', async ({
+  // @moddb: looks up the live betterruins entry
+  test(
+    'the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL',
+    { tag: '@moddb' },
+    async ({
     page,
   }) => {
     test.setTimeout(90_000);

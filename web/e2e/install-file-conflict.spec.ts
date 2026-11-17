@@ -76,7 +76,11 @@ async function expectRefusalShown(page: Page, slug: string, posted: string[]) {
   expect(posted).toEqual([slug]);
 }
 
-test.describe('Install refused when the file name is in use (Story 18.2)', () => {
+// @moddb: opens the live carryon entry and the live browse list
+test.describe(
+  'Install refused when the file name is in use (Story 18.2)',
+  { tag: '@moddb' },
+  () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);

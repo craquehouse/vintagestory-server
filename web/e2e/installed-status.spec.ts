@@ -147,7 +147,11 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
     await pretendServerInstalled(page);
   });
 
-  test('the Instruments card shows Installed for vsinstrumentsbase, like its detail page', async ({
+  // @moddb: searches the live browse list for Instruments
+  test(
+    'the Instruments card shows Installed for vsinstrumentsbase, like its detail page',
+    { tag: '@moddb' },
+    async ({
     page,
   }) => {
     await fakeInstalledMods(page, [{ slug: 'vsinstrumentsbase', version: '2.0.7' }]);
@@ -195,7 +199,11 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
   }
 });
 
-test.describe('A new install shows its update status at once: real API (Story 17.4)', () => {
+// @moddb @install: installs a real mod from the mod database and removes it again
+test.describe(
+  'A new install shows its update status at once: real API (Story 17.4)',
+  { tag: ['@moddb', '@install'] },
+  () => {
   test.describe.configure({ mode: 'serial' });
 
   let before: string[] = [];

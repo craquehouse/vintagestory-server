@@ -46,7 +46,8 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test.describe('Mod detail pages cannot fail on bad data', () => {
+// @moddb: opens live mod database entries whose data is known to be bad
+test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);

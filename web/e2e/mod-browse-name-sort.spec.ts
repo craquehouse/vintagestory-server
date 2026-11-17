@@ -101,7 +101,8 @@ async function expectCardsMatch(page: Page, mods: BrowseMod[]) {
   expect(cardIds).toEqual(mods.map((mod) => `mod-card-name-${mod.slug}`));
 }
 
-test.describe('Mod browser Name (A-Z) sort', () => {
+// @moddb: checks the order of the live browse list
+test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
     await pretendServerInstalled(page);
