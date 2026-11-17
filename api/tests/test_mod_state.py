@@ -1756,6 +1756,154 @@ class TestSyncAtStartUp:
         [mod] = state_manager.list_mods()
         assert (mod.filename, mod.slug) == ("foo.zip", "foo")
 
+class TestSyncLogging:
+    """Story 19.5 (Epic 19 ADR-10): every change is logged, and one summary line."""
+
+    @staticmethod
+    def assert_one_summary(captured_logs: StringIO, added: int, removed: int, skipped: int) -> None:
+        [line] = log_lines(captured_logs, "mod_state_synced")
+        assert f"added={added} " in f"{line} "
+        assert f"removed={removed} " in f"{line} "
+        assert f"skipped={skipped} " in f"{line} "
+        for old_event in ("mod_state_added", "mod_state_removed_deleted_file"):
+            assert log_lines(captured_logs, old_event) == []
+
+    def test_each_addition_is_logged_with_file_name_and_mod_id(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, captured_logs: StringIO
+    ) -> None:
+        """AC 1 and AC 9."""
+        create_mod_zip(
+            temp_mods_dir / "New.zip", {"modid": "newmod", "name": "New", "version": "1.2.3"}
+        )
+        create_mod_zip(
+            temp_mods_dir / "Off.zip.disabled",
+            {"ModID": "offmod", "Name": "Off", "Version": "2.0.0"},
+        )
+
+        state_manager.sync_state_with_disk()
+
+        lines = log_lines(captured_logs, "mod_state_sync_added")
+        assert len(lines) == 2
+        assert "filename=New.zip" in lines[0] and "slug=newmod" in lines[0]
+        assert "filename=Off.zip.disabled" in lines[1] and "slug=offmod" in lines[1]
+        assert "info" in lines[0]
+        self.assert_one_summary(captured_logs, added=2, removed=0, skipped=0)
+
+    def test_a_removal_is_logged_with_file_name_and_mod_id(
+        self, state_manager: ModStateManager, captured_logs: StringIO
+    ) -> None:
+        """AC 2 and AC 9."""
+        state_manager.set_mod_state("ghost.zip", mod_state_entry("ghost.zip", "ghost"))
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_removed")
+        assert "info" in line
+        assert "filename=ghost.zip" in line and "slug=ghost" in line
+        self.assert_one_summary(captured_logs, added=0, removed=1, skipped=0)
+
+    def test_a_skipped_archive_is_one_warning_and_counted(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, captured_logs: StringIO
+    ) -> None:
+        """AC 4 and AC 9: an exception's text is logged with the skip."""
+        write_bad_archive(temp_mods_dir / "bad.zip", "encrypted")
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_skipped")
+        assert "warning" in line
+        assert "filename=bad.zip" in line and "reason=unreadable" in line
+        assert "error=" in line
+        self.assert_one_summary(captured_logs, added=0, removed=0, skipped=1)
+
+    def test_a_duplicate_is_one_warning_naming_both_files(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, captured_logs: StringIO
+    ) -> None:
+        """AC 5 and AC 9."""
+        create_mod_zip(
+            temp_mods_dir / "Foo.zip", {"modid": "foo", "name": "Foo", "version": "1.0.0"}
+        )
+        create_mod_zip(
+            temp_mods_dir / "Foo-copy.zip", {"modid": "FOO", "name": "Foo", "version": "2.0.0"}
+        )
+        state_manager.set_mod_state("Foo.zip", mod_state_entry("Foo.zip", "foo"))
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_skipped")
+        assert "filename=Foo-copy.zip" in line and "existing=Foo.zip" in line
+        assert "reason=duplicate_mod_id" in line
+        self.assert_one_summary(captured_logs, added=0, removed=0, skipped=1)
+
+    def test_nothing_to_do_still_logs_the_summary(
+        self, state_manager: ModStateManager, captured_logs: StringIO
+    ) -> None:
+        """AC 9: also when all numbers are zero."""
+        state_manager.sync_state_with_disk()
+
+        self.assert_one_summary(captured_logs, added=0, removed=0, skipped=0)
+
+    def test_a_missing_mods_directory_is_a_warning_and_a_zero_summary(
+        self, temp_state_dir: Path, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        """AC 8 and AC 9."""
+        manager = ModStateManager(state_dir=temp_state_dir, mods_dir=tmp_path / "Mods")
+        manager.set_mod_state("One.zip", mod_state_entry("One.zip", "one"))
+
+        manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_mods_directory_not_found")
+        assert "warning" in line
+        assert "Mods" in line
+        self.assert_one_summary(captured_logs, added=0, removed=0, skipped=0)
+
+    def test_an_unlistable_mods_directory_is_a_warning_and_a_zero_summary(
+        self,
+        state_manager: ModStateManager,
+        temp_mods_dir: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """AC 8 and AC 9."""
+        state_manager.set_mod_state("One.zip", mod_state_entry("One.zip", "one"))
+        listing = Path.iterdir
+
+        def refuse(self: Path) -> Generator[Path]:
+            if self == temp_mods_dir:
+                raise PermissionError(13, "Permission denied", str(self))
+            yield from listing(self)
+
+        monkeypatch.setattr(Path, "iterdir", refuse)
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_mods_directory_unreadable")
+        assert "warning" in line
+        assert "Permission denied" in line
+        assert log_lines(captured_logs, "mod_state_sync_removed") == []
+        self.assert_one_summary(captured_logs, added=0, removed=0, skipped=0)
+
+    def test_a_failed_save_is_an_error(
+        self,
+        state_manager: ModStateManager,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """AC 13 and AC 9."""
+        state_manager.set_mod_state("ghost.zip", mod_state_entry("ghost.zip", "ghost"))
+
+        def fail() -> None:
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(state_manager, "save", fail)
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_save_failed")
+        assert "error" in line
+        assert "No space left on device" in line
+        self.assert_one_summary(captured_logs, added=0, removed=1, skipped=0)
+
 
 # --- Task 5: pending restart tracking tests ---
 
