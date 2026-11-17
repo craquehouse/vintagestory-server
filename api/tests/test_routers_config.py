@@ -1549,7 +1549,11 @@ class TestReadConfigFileSecrets:
     def test_game_log_is_refused(
         self, config_files_client: TestClient, config_file: Path
     ) -> None:
-        """Story 19.1 AC 2: a game log is not served to either key; its text is in neither body."""
+        """Story 19.1 AC 2, 10: a game log is refused; its text is in neither body.
+
+        Monitor: 403, the Logs directory needs the Admin role (checked before the name).
+        Admin: 400, not a .json file.
+        """
         log = config_file.parent / "Logs" / "server-main.log"
         log.parent.mkdir()
         log.write_text(f"12:00:00 [Event] Handling /serverconfig password {SECRET}\n")
@@ -1559,8 +1563,8 @@ class TestReadConfigFileSecrets:
 
         assert SECRET not in monitor.text
         assert SECRET not in admin.text
-        assert monitor.status_code == 400
-        assert monitor.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED
+        assert monitor.status_code == 403
+        assert monitor.json()["detail"]["code"] == ErrorCode.FORBIDDEN
         assert admin.status_code == 400
         assert admin.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED
 
@@ -1691,6 +1695,130 @@ class TestConfigFileTypes:
                 "message": "Config file could not be read: serverconfig.json",
             }
         }
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+DIRECTORIES_URL = "/api/v1alpha1/config/directories"
+FORBIDDEN_DIRECTORIES = ["Playerdata", "playerdata", "Saves", "Backups", "Logs", "Mods", "Gone"]
+
+
+class TestMonitorDirectories:
+    """Story 19.1 (FR208, Epic 19 ADR-3): Monitor keys see the root and ModConfig only."""
+
+    @pytest.fixture
+    def data(self, config_file: Path) -> Path:
+        root = config_file.parent
+        for name in ("Playerdata", "Saves", "Backups", "Logs", "Mods", ".hidden"):
+            (root / name).mkdir()
+            (root / name / "p.json").write_text('{"p": 1}')
+        nested = root / "ModConfig" / "a" / "b"
+        nested.mkdir(parents=True)
+        (nested / "c.json").write_text('{"c": 1}')
+        return root
+
+    def _get(self, client: TestClient, url: str, key: str):
+        return client.get(url, headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("query", ["", "?directory=.", "?directory=ModConfig/.."])
+    def test_root_listing(self, config_files_client: TestClient, data: Path, query: str) -> None:
+        """AC 9: Monitor sees ModConfig only; Admin sees every directory, hidden ones too."""
+        monitor = self._get(config_files_client, DIRECTORIES_URL + query, TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, DIRECTORIES_URL + query, TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert monitor.json()["data"]["directories"] == ["ModConfig"]
+        assert admin.json()["data"]["directories"] == [
+            ".hidden",
+            "Backups",
+            "Logs",
+            "ModConfig",
+            "Mods",
+            "Playerdata",
+            "Saves",
+        ]
+        for response in (monitor, admin):
+            assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("directory", FORBIDDEN_DIRECTORIES)
+    def test_other_directories_are_403_for_monitor(
+        self, config_files_client: TestClient, data: Path, directory: str
+    ) -> None:
+        """AC 10: listing either way, or reading a file, is 403 for Monitor, no-store."""
+        urls = [
+            f"{DIRECTORIES_URL}?directory={directory}",
+            f"{FILES_URL}?directory={directory}",
+            f"{FILES_URL}/{directory}/p.json",
+        ]
+        for url in urls:
+            response = self._get(config_files_client, url, TEST_MONITOR_KEY)
+            assert response.status_code == 403, url
+            assert response.json() == {
+                "detail": {
+                    "code": ErrorCode.FORBIDDEN,
+                    "message": f"This directory needs the Admin role: {directory}"
+                    + ("/p.json" if url.endswith("/p.json") else ""),
+                }
+            }, url
+            assert response.headers["Cache-Control"] == "no-store", url
+
+    @pytest.mark.parametrize("directory", FORBIDDEN_DIRECTORIES)
+    def test_other_directories_for_admin(
+        self, config_files_client: TestClient, data: Path, directory: str
+    ) -> None:
+        """AC 10: Admin is answered as for any directory."""
+        exists = (data / directory).is_dir()
+        listing = self._get(
+            config_files_client, f"{FILES_URL}?directory={directory}", TEST_ADMIN_KEY
+        )
+        read = self._get(config_files_client, f"{FILES_URL}/{directory}/p.json", TEST_ADMIN_KEY)
+
+        assert listing.status_code == 200
+        assert listing.json()["data"]["files"] == (["p.json"] if exists else [])
+        assert read.status_code == (200 if exists else 404)
+
+    def test_modconfig_reads(
+        self, config_files_client: TestClient, data: Path
+    ) -> None:
+        """AC 11: nested ModConfig files are served; a symlink out of ModConfig is 403."""
+        (data / "ModConfig" / "link.json").symlink_to(data / "Playerdata" / "p.json")
+
+        nested = self._get(
+            config_files_client, f"{FILES_URL}/ModConfig/a/b/c.json", TEST_MONITOR_KEY
+        )
+        link = self._get(config_files_client, f"{FILES_URL}/ModConfig/link.json", TEST_MONITOR_KEY)
+        listing = self._get(
+            config_files_client, f"{FILES_URL}?directory=ModConfig", TEST_MONITOR_KEY
+        )
+        admin_listing = self._get(
+            config_files_client, f"{FILES_URL}?directory=ModConfig", TEST_ADMIN_KEY
+        )
+
+        assert nested.status_code == 200
+        assert nested.json()["data"]["content"] == {"c": 1}
+        assert link.status_code == 403
+        assert link.json()["detail"]["code"] == ErrorCode.FORBIDDEN
+        assert listing.json()["data"]["files"] == []
+        assert admin_listing.json()["data"]["files"] == ["link.json"]
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    @pytest.mark.parametrize(
+        ("url", "status"),
+        [
+            (DIRECTORIES_URL, 200),
+            (FILES_URL, 200),
+            (f"{FILES_URL}/serverconfig.json", 200),
+            (f"{DIRECTORIES_URL}?directory=../x", 400),
+            (f"{FILES_URL}?directory=../x", 400),
+            (f"{FILES_URL}//etc/passwd", 400),
+        ],
+    )
+    def test_no_store_on_every_answer(
+        self, config_files_client: TestClient, data: Path, key: str, url: str, status: int
+    ) -> None:
+        """AC 9: all three routes answer with no-store, for 200 and 400, both keys."""
+        response = self._get(config_files_client, url, key)
+
+        assert response.status_code == status
         assert response.headers["Cache-Control"] == "no-store"
 
 

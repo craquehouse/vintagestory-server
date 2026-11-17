@@ -17,14 +17,19 @@ API Settings (6.3):
 - POST /config/api/settings/{key} - Update a specific API setting (Admin only)
 
 Config Files (6.5):
+- GET /config/directories - List directories (read-only)
 - GET /config/files - List all JSON config files (read-only)
 - GET /config/files/{filename} - Read raw config file content (read-only; secrets,
   and the text of files that are not valid JSON, for Admin only). Story 19.1: only
   regular .json files (any letter case) of UTF-8 text, up to 2 MiB, are served;
   anything else is 400 CONFIG_FILE_NOT_SUPPORTED or 413 CONFIG_FILE_TOO_LARGE
 
-Both read endpoints answer with Cache-Control: no-store, error responses included,
-since what they return depends on the key's role. An unhandled error (500) carries
+Story 19.1 (FR208): roles other than Admin list and read the root of the server data
+directory and ModConfig only; any other directory is 403 FORBIDDEN for the three routes.
+
+The config file routes (directories, files and file content) answer with
+Cache-Control: no-store, error responses included, since what they return depends
+on the key's role. An unhandled error (500) carries
 only "Internal Server Error", without the header.
 """
 
@@ -47,6 +52,7 @@ from vintagestory_api.services.api_settings import (
     ApiSettingUnknownError,
 )
 from vintagestory_api.services.config_files import (
+    ConfigDirectoryForbiddenError,
     ConfigFileNotFoundError,
     ConfigFileNotSupportedError,
     ConfigFileReadError,
@@ -70,8 +76,8 @@ router = APIRouter(prefix="/config", tags=["Config"])
 # Type alias for authenticated user (Admin or Monitor)
 RequireAuth = Annotated[str, Depends(get_current_user)]
 
-# Story 17.5: the two read endpoints answer depending on the key's role, so no response
-# of theirs, error responses included, may be cached
+# Story 17.5: the read endpoints answer depending on the key's role, so no response
+# of theirs, error responses included, may be cached (Story 19.1: the listings too)
 NO_STORE = {"Cache-Control": "no-store"}
 
 
@@ -397,7 +403,8 @@ def get_config_files_service(
 
 @router.get("/directories", response_model=ApiResponse, summary="List directories")
 async def list_config_directories(
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: ConfigFilesService = Depends(get_config_files_service),
     directory: str | None = None,
 ) -> ApiResponse:
@@ -405,12 +412,16 @@ async def list_config_directories(
 
     Returns a list of directory names available for browsing.
     Directories are from the serverdata directory (where VintageStory stores
-    ModConfigs, Playerdata, Macros, and other subdirectories).
+    ModConfig, Playerdata, Macros, and other subdirectories).
 
-    Note: Hidden directories (starting with .) are included in the response.
-    Frontend may choose to filter these for display purposes.
+    Admin lists every directory. Hidden directories (starting with .) are included
+    in the response; the frontend may choose to filter these for display purposes.
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    A Monitor key (any role but Admin) lists the root and ModConfig only: the root
+    listing holds ModConfig and no other directory, and listing any other directory,
+    existing or not, is 403 FORBIDDEN (Story 19.1, FR208). The decision is made on
+    resolved paths, so `.`, `ModConfig/..` and symlinks cannot widen it. The response
+    is never cached (Cache-Control: no-store), an error response included.
 
     Args:
         directory: Optional subdirectory path to list directories from.
@@ -421,32 +432,48 @@ async def list_config_directories(
         - directories: Array of subdirectory names in the target directory
 
     Raises:
-        HTTPException: 401 if not authenticated
         HTTPException: 400 if directory contains path traversal
+        HTTPException: 401 if not authenticated
+        HTTPException: 403 if the key's role may not list the directory
     """
+    response.headers.update(NO_STORE)
     try:
-        directories = service.list_directories(directory)
+        directories = service.list_directories(directory, role)
     except ConfigPathInvalidError as e:
         raise HTTPException(
             status_code=400,
             detail={"code": ErrorCode.CONFIG_PATH_INVALID, "message": e.message},
+            headers=NO_STORE,
+        )
+    except ConfigDirectoryForbiddenError as e:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": ErrorCode.FORBIDDEN, "message": e.message},
+            headers=NO_STORE,
         )
     return ApiResponse(status="ok", data={"directories": directories})
 
 
 @router.get("/files", response_model=ApiResponse, summary="List config files")
 async def list_config_files(
-    _: RequireAuth,
+    role: RequireAuth,
+    response: Response,
     service: ConfigFilesService = Depends(get_config_files_service),
     directory: str | None = None,
 ) -> ApiResponse:
     """List JSON configuration files in serverdata directory or subdirectory.
 
-    Returns a list of configuration file names available for viewing.
+    Returns a list of configuration file names available for viewing: the files
+    that GET /config/files/{filename} can serve to the key (regular files whose
+    names end in .json, any letter case, resolving inside the server data directory).
     Files are from the serverdata directory (where VintageStory stores
     serverconfig.json and other configuration files).
 
-    Both Admin and Monitor roles can access this read-only endpoint.
+    Admin lists files in every directory. A Monitor key (any role but Admin) lists
+    files in the root and under ModConfig only; another directory, existing or not,
+    is 403 FORBIDDEN, and files that resolve elsewhere are not listed (Story 19.1,
+    FR208). The response is never cached (Cache-Control: no-store), an error
+    response included.
 
     Args:
         directory: Optional subdirectory name to list files from.
@@ -459,9 +486,11 @@ async def list_config_files(
     Raises:
         HTTPException: 400 if directory contains path traversal
         HTTPException: 401 if not authenticated
+        HTTPException: 403 if the key's role may not list the directory
     """
+    response.headers.update(NO_STORE)
     try:
-        files = service.list_files(directory=directory)
+        files = service.list_files(directory=directory, role=role)
         return ApiResponse(status="ok", data={"files": files})
     except ConfigPathInvalidError as e:
         raise HTTPException(
@@ -470,6 +499,13 @@ async def list_config_files(
                 "code": ErrorCode.CONFIG_PATH_INVALID,
                 "message": e.message,
             },
+            headers=NO_STORE,
+        )
+    except ConfigDirectoryForbiddenError as e:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": ErrorCode.FORBIDDEN, "message": e.message},
+            headers=NO_STORE,
         )
 
 
@@ -496,8 +532,13 @@ async def read_config_file(
     Returns the raw JSON content of the specified configuration file.
     Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
 
-    Both Admin and Monitor roles can access this read-only endpoint. Monitor
-    receives secrets redacted at every depth (Story 19.1, FR207): the value of a key
+    Both Admin and Monitor roles can access this read-only endpoint. A Monitor key
+    (any role but Admin) reads files in the root and under ModConfig only; a file in
+    any other directory, existing or not, is 403 FORBIDDEN, checked on the resolved
+    path after the path is found to stay inside the data directory and before the
+    file name (Story 19.1, FR208).
+
+    Monitor receives secrets redacted at every depth (Story 19.1, FR207): the value of a key
     whose name looks like a secret (Password, token, secret, API key, webhook and
     similar, any letter case or separator), StartupCommands, URLs with user info and
     Discord webhook URLs are "[redacted]" (null and "" stay), and a file that is not
@@ -524,6 +565,7 @@ async def read_config_file(
             or it is a directory, not a regular file, does not resolve to a .json name,
             or is not UTF-8 text
         HTTPException: 401 if not authenticated
+        HTTPException: 403 FORBIDDEN if the key's role may not read the file's directory
         HTTPException: 404 if file not found
         HTTPException: 413 CONFIG_FILE_TOO_LARGE if the file is larger than 2 MiB
         HTTPException: 500 INTERNAL_ERROR if the file cannot be read
@@ -540,6 +582,13 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_PATH_INVALID,
                 "message": e.message,
             },
+            headers=NO_STORE,
+        )
+
+    except ConfigDirectoryForbiddenError as e:
+        raise HTTPException(
+            status_code=403,
+            detail={"code": ErrorCode.FORBIDDEN, "message": e.message},
             headers=NO_STORE,
         )
 

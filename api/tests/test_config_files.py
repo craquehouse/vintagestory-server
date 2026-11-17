@@ -16,6 +16,7 @@ import pytest
 from vintagestory_api.services.config_files import (
     CONFIG_FILE_MAX_BYTES,
     CONFIG_FILE_MAX_DEPTH,
+    ConfigDirectoryForbiddenError,
     ConfigFileNotFoundError,
     ConfigFileNotSupportedError,
     ConfigFileReadError,
@@ -58,7 +59,7 @@ class TestListDirectories:
         # Also create a file to verify it's not included
         (serverdata / "serverconfig.json").write_text('{}')
 
-        result = service.list_directories()
+        result = service.list_directories(role="admin")
 
         assert result == ["Macros", "ModConfigs", "Playerdata"]
 
@@ -87,7 +88,7 @@ class TestListDirectories:
         (serverdata / "ModConfigs").mkdir()
         (serverdata / ".hidden").mkdir()
 
-        result = service.list_directories()
+        result = service.list_directories(role="admin")
 
         assert result == [".hidden", "ModConfigs"]
 
@@ -100,7 +101,7 @@ class TestListDirectories:
         (serverdata / "serverconfig.json").write_text('{}')
         (serverdata / "not-a-dir.txt").write_text('text')
 
-        result = service.list_directories()
+        result = service.list_directories(role="admin")
 
         assert result == ["ModConfigs"]
 
@@ -115,7 +116,7 @@ class TestListDirectories:
         (cache_dir / "downloads").mkdir()
         (cache_dir / "temp.json").write_text('{}')
 
-        result = service.list_directories("Cache")
+        result = service.list_directories("Cache", role="admin")
 
         assert result == ["downloads", "unpack"]
 
@@ -129,7 +130,7 @@ class TestListDirectories:
         (deep_dir / "assets").mkdir()
         (deep_dir / "lang").mkdir()
 
-        result = service.list_directories("Cache/unpack/modname")
+        result = service.list_directories("Cache/unpack/modname", role="admin")
 
         assert result == ["assets", "lang"]
 
@@ -147,7 +148,7 @@ class TestListDirectories:
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
         """Should return empty list for nonexistent subdirectory."""
-        result = service.list_directories("NonexistentDir")
+        result = service.list_directories("NonexistentDir", role="admin")
 
         assert result == []
 
@@ -182,7 +183,7 @@ class TestListFiles:
         # Root level file should not be included
         (serverdata / "serverconfig.json").write_text('{}')
 
-        result = service.list_files(directory="ModConfigs")
+        result = service.list_files(directory="ModConfigs", role="admin")
 
         assert result == ["mod1.json", "mod2.json"]
 
@@ -190,7 +191,7 @@ class TestListFiles:
         self, service: ConfigFilesService
     ) -> None:
         """Should return empty list when subdirectory doesn't exist."""
-        result = service.list_files(directory="NonExistent")
+        result = service.list_files(directory="NonExistent", role="admin")
 
         assert result == []
 
@@ -236,7 +237,7 @@ class TestListFiles:
         outside.write_text("{}")
         (serverdata / "out.json").symlink_to(outside)
 
-        result = service.list_files()
+        result = service.list_files(role="admin")
 
         assert result == ["B.JSON", "a.json"]
         for name in result:
@@ -602,6 +603,136 @@ class TestReadFileSecrets:
         assert admin_content["_raw"] == text
 
 
+class TestRoleDirectories:
+    """Story 19.1 (FR208, Epic 19 ADR-3): other roles see the root and ModConfig only."""
+
+    @pytest.fixture
+    def data(self, mock_settings: MagicMock) -> Path:
+        serverdata: Path = mock_settings.serverdata_dir
+        nested = serverdata / "ModConfig" / "a" / "b"
+        nested.mkdir(parents=True)
+        (nested / "c.json").write_text('{"c": 1}')
+        (serverdata / "Playerdata").mkdir()
+        (serverdata / "Playerdata" / "p.json").write_text('{"p": 1}')
+        (serverdata / "Saves").mkdir()
+        (serverdata / ".hidden").mkdir()
+        (serverdata / "serverconfig.json").write_text('{"s": 1}')
+        return serverdata
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_root_lists_modconfig_only(
+        self, service: ConfigFilesService, data: Path, role: str | None
+    ) -> None:
+        """AC 9: every directory string that resolves to the root lists ModConfig only."""
+        assert service.list_directories(role=role) == ["ModConfig"]
+        assert service.list_directories(".", role=role) == ["ModConfig"]
+        assert service.list_directories("ModConfig/..", role=role) == ["ModConfig"]
+        assert service.list_directories("ModConfig", role=role) == ["a"]
+        assert service.list_files(role=role) == ["serverconfig.json"]
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    @pytest.mark.parametrize(
+        "directory", ["Playerdata", "playerdata", "PLAYERDATA", "Saves", "NoSuchDir"]
+    )
+    def test_other_directories_are_forbidden(
+        self, service: ConfigFilesService, data: Path, role: str | None, directory: str
+    ) -> None:
+        """AC 10: other directories, in any letter case, existing or not, are forbidden."""
+        with pytest.raises(ConfigDirectoryForbiddenError) as exc_info:
+            service.list_directories(directory, role=role)
+        assert exc_info.value.message == f"This directory needs the Admin role: {directory}"
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.list_files(directory, role=role)
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    @pytest.mark.parametrize(
+        "filename", ["Playerdata/p.json", "NoSuchDir/x.json", "Playerdata/x.log"]
+    )
+    def test_files_in_other_directories_are_forbidden(
+        self, service: ConfigFilesService, data: Path, role: str | None, filename: str
+    ) -> None:
+        """AC 10: a file outside the allowed directories is forbidden, before its suffix."""
+        with pytest.raises(ConfigDirectoryForbiddenError) as exc_info:
+            service.read_file(filename, role)
+        assert exc_info.value.message == f"This directory needs the Admin role: {filename}"
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_root_and_modconfig_files_are_served(
+        self, service: ConfigFilesService, data: Path, role: str | None
+    ) -> None:
+        """AC 11: files in the root and anywhere under ModConfig are served."""
+        assert service.read_file("ModConfig/a/b/c.json", role)["content"] == {"c": 1}
+        assert service.read_file("serverconfig.json", role)["content"] == {"s": 1}
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_symlinks_out_of_modconfig_are_forbidden(
+        self, service: ConfigFilesService, data: Path, role: str | None
+    ) -> None:
+        """AC 11: symlinks in ModConfig that resolve into Playerdata are neither listed nor read."""
+        (data / "ModConfig" / "link.json").symlink_to(data / "Playerdata" / "p.json")
+        (data / "ModConfig" / "pd").symlink_to(data / "Playerdata")
+
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.read_file("ModConfig/link.json", role)
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.read_file("ModConfig/pd/p.json", role)
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.list_files("ModConfig/pd", role=role)
+        assert service.list_files("ModConfig", role=role) == []
+        assert service.list_directories("ModConfig", role=role) == ["a"]
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_root_symlink_named_modconfig_is_judged_by_its_target(
+        self, tmp_path: Path, role: str | None
+    ) -> None:
+        """ADR against the code 2: the rule is on resolved paths, not on names."""
+        serverdata = tmp_path / "other-serverdata"
+        (serverdata / "Saves").mkdir(parents=True)
+        (serverdata / "Saves" / "x.json").write_text('{"x": 1}')
+        (serverdata / "ModConfig").symlink_to(serverdata / "Saves")
+        settings = MagicMock()
+        settings.serverdata_dir = serverdata
+        service = ConfigFilesService(settings=settings)
+
+        assert service.list_directories(role=role) == []
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.read_file("ModConfig/x.json", role)
+
+        # A root symlink under another name that resolves to ModConfig is allowed
+        (serverdata / "ModConfig").unlink()
+        (serverdata / "ModConfig").mkdir()
+        (serverdata / "ModConfig" / "m.json").write_text('{"m": 1}')
+        (serverdata / "Alias").symlink_to(serverdata / "ModConfig")
+
+        assert service.list_directories(role=role) == ["Alias", "ModConfig"]
+        assert service.read_file("Alias/m.json", role)["content"] == {"m": 1}
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_containment_is_checked_first(
+        self, service: ConfigFilesService, data: Path, role: str | None
+    ) -> None:
+        """AC 11: a path that leaves the data directory is invalid, not forbidden."""
+        with pytest.raises(ConfigPathInvalidError):
+            service.read_file("../x.json", role)
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_files("../outside", role=role)
+
+    def test_admin_sees_everything(self, service: ConfigFilesService, data: Path) -> None:
+        """AC 9, 10: Admin's listings are unchanged, hidden directories included."""
+        assert service.list_directories(role="admin") == [
+            ".hidden",
+            "ModConfig",
+            "Playerdata",
+            "Saves",
+        ]
+        assert service.list_directories("Playerdata", role="admin") == []
+        assert service.list_files("Playerdata", role="admin") == ["p.json"]
+        assert service.list_files("NoSuchDir", role="admin") == []
+        assert service.read_file("Playerdata/p.json", "admin")["content"] == {"p": 1}
+        with pytest.raises(ConfigFileNotSupportedError):
+            service.read_file("Playerdata/x.log", "admin")
+
+
 class TestPathTraversalPrevention:
     """Security tests for path traversal prevention.
 
@@ -643,7 +774,7 @@ class TestPathTraversalPrevention:
         # This is not actually path traversal - it's a weird but valid filename
         # that doesn't exist, so we get FileNotFoundError
         with pytest.raises(ConfigFileNotFoundError):
-            service.read_file("....//secrets.json")
+            service.read_file("....//secrets.json", "admin")
 
     def test_url_encoded_traversal(
         self, service: ConfigFilesService, mock_settings: MagicMock
@@ -687,7 +818,7 @@ class TestPathTraversalPrevention:
         subdir.mkdir()
         (subdir / "config.json").write_text('{"nested": true}')
 
-        result = service.read_file("subdir/config.json")
+        result = service.read_file("subdir/config.json", "admin")
 
         assert result["filename"] == "subdir/config.json"
         assert result["content"] == {"nested": True}

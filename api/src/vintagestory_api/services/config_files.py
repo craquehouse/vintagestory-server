@@ -12,6 +12,11 @@ most 2 MiB and UTF-8 text (a leading byte order mark is allowed). The listing
 uses the same file rule. Content that does not parse, or that nests more than
 CONFIG_FILE_MAX_DEPTH levels deep, is returned as `_raw` and `_parse_error`.
 
+Story 19.1 (FR208, Epic 19 ADR-3): roles other than Admin list and read the root
+of the server data directory and MONITOR_CONFIG_DIRECTORIES (ModConfig) only,
+decided on resolved paths; any other directory is ConfigDirectoryForbiddenError.
+Admin lists and reads every directory.
+
 Story 17.5 (FR186), Story 19.1 (FR207): only the Admin role receives secrets. For
 any other role, in every file and at every depth, the value of a key that names a
 secret (game_config.is_secret_key: Password, StartupCommands, or a name containing
@@ -40,6 +45,11 @@ logger = structlog.get_logger()
 CONFIG_FILE_MAX_BYTES = 2 * 1024 * 1024
 """The largest config file the viewer reads, in bytes (Epic 19 ADR-1 decision 5)."""
 
+MONITOR_CONFIG_DIRECTORIES: frozenset[str] = frozenset({"ModConfig"})
+"""Directories, besides the root, that roles other than Admin may list and read (Epic 19 ADR-3)."""
+
+_MONITOR_CONFIG_DIRECTORIES_FOLDED = frozenset(d.casefold() for d in MONITOR_CONFIG_DIRECTORIES)
+
 CONFIG_FILE_MAX_DEPTH = 200
 """How deeply parsed content may nest objects and arrays before it is returned as `_raw`.
 
@@ -63,6 +73,18 @@ class ConfigPathInvalidError(Exception):
     def __init__(self, filename: str) -> None:
         self.filename = filename
         self.message = f"Invalid file path: {filename}"
+        super().__init__(self.message)
+
+
+class ConfigDirectoryForbiddenError(Exception):
+    """Raised when the caller's role may not list or read a directory (Story 19.1).
+
+    The message is the same whether or not the directory or file exists.
+    """
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.message = f"This directory needs the Admin role: {path}"
         super().__init__(self.message)
 
 
@@ -197,20 +219,62 @@ class ConfigFilesService:
 
         return target
 
-    def list_directories(self, directory: str | None = None) -> list[str]:
+    def _role_may_open(self, resolved: Path, role: str | None, *, file_request: bool) -> bool:
+        """Whether `role` may list (file_request=False) or read (True) the resolved path.
+
+        Admin: always. Any other role: the root itself, a file directly in the root (for a read),
+        or anything whose first path part relative to the server data directory is in
+        MONITOR_CONFIG_DIRECTORIES, compared with casefold() (Epic 19 ADR-3 decision 3).
+        """
+        if role == UserRole.ADMIN:
+            return True
+        base_resolved = self.settings.serverdata_dir.resolve()
+        if not resolved.is_relative_to(base_resolved):
+            return False
+        parts = resolved.relative_to(base_resolved).parts
+        if not parts:
+            return True
+        if len(parts) == 1 and file_request:
+            return True
+        return parts[0].casefold() in _MONITOR_CONFIG_DIRECTORIES_FOLDED
+
+    def _target_directory(self, directory: str | None, role: str | None) -> Path | None:
+        """The resolved directory to list, or None when it does not exist.
+
+        Raises:
+            ConfigPathInvalidError: If directory contains path traversal.
+            ConfigDirectoryForbiddenError: If the role may not list it (existing or not).
+        """
+        serverdata_dir = self.settings.serverdata_dir
+        if not directory:
+            return serverdata_dir.resolve()
+        target_dir = self._safe_path(serverdata_dir, directory)
+        if not self._role_may_open(target_dir, role, file_request=False):
+            raise ConfigDirectoryForbiddenError(directory)
+        if not target_dir.is_dir():
+            logger.debug("config_subdir_not_found", directory=directory)
+            return None
+        return target_dir
+
+    def list_directories(self, directory: str | None = None, role: str | None = None) -> list[str]:
         """List subdirectories in serverdata directory or a subdirectory.
 
         Args:
             directory: Optional subdirectory path within serverdata_dir.
                        If None, lists directories in the root serverdata directory.
+            role: The caller's role. Admin lists every directory; any other role, None
+                  included, only the root and MONITOR_CONFIG_DIRECTORIES (Story 19.1).
 
         Returns:
-            List of subdirectory names (not full paths) found in the target directory.
-            Includes hidden directories - filtering is left to the frontend.
+            List of subdirectory names (not full paths) found in the target directory
+            that the role may list, decided on each one's resolved path. For Admin,
+            includes hidden directories - filtering is left to the frontend.
             Empty list if directory doesn't exist.
 
         Raises:
             ConfigPathInvalidError: If directory contains path traversal.
+            ConfigDirectoryForbiddenError: If the role may not list the directory,
+                whether or not it exists.
         """
         serverdata_dir = self.settings.serverdata_dir
 
@@ -218,32 +282,34 @@ class ConfigFilesService:
             logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return []
 
-        # Determine target directory
-        if directory:
-            # Validate path traversal
-            target_dir = self._safe_path(serverdata_dir, directory)
-            if not target_dir.is_dir():
-                logger.debug("config_subdir_not_found", directory=directory)
-                return []
-        else:
-            target_dir = serverdata_dir
+        target_dir = self._target_directory(directory, role)
+        if target_dir is None:
+            return []
 
-        # Find all subdirectories (including hidden - let frontend handle visibility)
-        directories = sorted(d.name for d in target_dir.iterdir() if d.is_dir())
+        # Find all subdirectories the role may list (including hidden ones for Admin -
+        # let frontend handle visibility); decided on each entry's resolved path
+        directories = sorted(
+            d.name
+            for d in target_dir.iterdir()
+            if d.is_dir() and self._role_may_open(d.resolve(), role, file_request=False)
+        )
 
         logger.debug("config_directories_listed", count=len(directories), directory=directory)
         return directories
 
-    def list_files(self, directory: str | None = None) -> list[str]:
+    def list_files(self, directory: str | None = None, role: str | None = None) -> list[str]:
         """List JSON configuration files in serverdata directory or subdirectory.
 
         Lists the files that pass the viewer's file rule (Story 19.1): regular files
         whose own and resolved names end in .json, in any letter case, resolving
-        inside the server data directory. Size and encoding are checked on read.
+        inside the server data directory, in a directory the role may read. Size and
+        encoding are checked on read.
 
         Args:
             directory: Optional subdirectory name within serverdata_dir.
                        If None, lists files in the root serverdata directory.
+            role: The caller's role. Admin lists every directory; any other role, None
+                  included, only the root and MONITOR_CONFIG_DIRECTORIES (Story 19.1).
 
         Returns:
             List of JSON filenames (not full paths) found in the target directory.
@@ -251,6 +317,8 @@ class ConfigFilesService:
 
         Raises:
             ConfigPathInvalidError: If directory contains path traversal.
+            ConfigDirectoryForbiddenError: If the role may not list the directory,
+                whether or not it exists.
         """
         serverdata_dir = self.settings.serverdata_dir
 
@@ -258,23 +326,20 @@ class ConfigFilesService:
             logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return []
 
-        # Determine target directory
-        if directory:
-            # Validate path traversal
-            target_dir = self._safe_path(serverdata_dir, directory)
-            if not target_dir.is_dir():
-                logger.debug("config_subdir_not_found", directory=directory)
-                return []
-        else:
-            target_dir = serverdata_dir
+        target_dir = self._target_directory(directory, role)
+        if target_dir is None:
+            return []
 
-        # The files the viewer can read (not recursive): the viewer's file rule, and
-        # resolving inside the server data directory (Story 19.1, Epic 19 ADR-1)
+        # The files the viewer can read (not recursive): the viewer's file rule,
+        # resolving inside the server data directory, in a directory the role may read
+        # (Story 19.1, Epic 19 ADR-1 and ADR-3)
         base_resolved = serverdata_dir.resolve()
         json_files = sorted(
             f.name
             for f in target_dir.iterdir()
-            if _is_viewable_file(f) and f.resolve().is_relative_to(base_resolved)
+            if _is_viewable_file(f)
+            and f.resolve().is_relative_to(base_resolved)
+            and self._role_may_open(f.resolve(), role, file_request=True)
         )
 
         logger.debug("config_files_listed", count=len(json_files), directory=directory)
@@ -283,11 +348,13 @@ class ConfigFilesService:
     def read_file(self, filename: str, role: str | None = None) -> dict[str, object]:
         """Read a JSON configuration file and return its content.
 
-        Checks, in order (Story 19.1, Epic 19 ADR-1): the path stays inside the
-        server data directory; the requested name ends in .json (before the disk is
-        touched); the file exists; it is a regular file whose resolved name ends in
-        .json; it is at most CONFIG_FILE_MAX_BYTES (checked before it is read); it
-        is UTF-8 text (a leading byte order mark is dropped).
+        Checks, in order (Story 19.1, Epic 19 ADR-1 and ADR-3): the path stays inside
+        the server data directory; the role may read the resolved path (any role but
+        Admin: a file in the root or under MONITOR_CONFIG_DIRECTORIES); the requested
+        name ends in .json (before the disk is touched); the file exists; it is a
+        regular file whose resolved name ends in .json; it is at most
+        CONFIG_FILE_MAX_BYTES (checked before it is read); it is UTF-8 text (a leading
+        byte order mark is dropped).
 
         Content that does not parse, that the parser gives up on, or that nests more
         than CONFIG_FILE_MAX_DEPTH levels deep is returned as `_raw` and `_parse_error`.
@@ -300,7 +367,8 @@ class ConfigFilesService:
 
         Args:
             filename: Name of the file to read (must be in serverdata_dir).
-            role: The caller's role. Only UserRole.ADMIN receives secret values.
+            role: The caller's role. Only UserRole.ADMIN receives secret values and
+                  reads outside the root and MONITOR_CONFIG_DIRECTORIES.
 
         Returns:
             Dictionary with:
@@ -310,6 +378,8 @@ class ConfigFilesService:
 
         Raises:
             ConfigPathInvalidError: If filename contains path traversal.
+            ConfigDirectoryForbiddenError: If the role may not read the file's directory,
+                whether or not the file exists.
             ConfigFileNotSupportedError: If it is not a regular .json file of UTF-8 text.
             ConfigFileNotFoundError: If the file does not exist.
             ConfigFileTooLargeError: If the file is larger than CONFIG_FILE_MAX_BYTES.
@@ -319,6 +389,10 @@ class ConfigFilesService:
 
         # Validate path - this raises ConfigPathInvalidError if invalid
         safe_path = self._safe_path(serverdata_dir, filename)
+
+        # The role, on the resolved path, before anything else (Epic 19 ADR-3 decision 5)
+        if not self._role_may_open(safe_path, role, file_request=True):
+            raise ConfigDirectoryForbiddenError(filename)
 
         # The requested name, before the disk is touched (ADR-1 decision 3)
         if not _has_json_suffix(filename):
