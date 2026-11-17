@@ -9,6 +9,8 @@ import { EmptyServerState } from "@/components/EmptyServerState";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useServerStatus } from "@/hooks/use-server-status";
 import { isServerInstalled } from "@/lib/server-utils";
+import { getApiKey } from "@/api/client";
+import { NoApiKeyScreen } from "@/components/NoApiKeyScreen";
 
 // Each page loads on demand, so a first visit doesn't download every page's dependencies.
 // The mods views share one chunk so switching between their tabs doesn't show a fallback.
@@ -102,6 +104,15 @@ function GameServerModsPage() {
 }
 
 function App() {
+  // No key: show what to set instead of an app whose every request would fail (Epic 19 ADR-5)
+  if (!getApiKey()) {
+    return (
+      <ThemeProvider>
+        <NoApiKeyScreen />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider>
       <PreferencesProvider>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { snakeToCamel, camelToSnake, apiClient } from './client';
+import { snakeToCamel, camelToSnake, apiClient, getApiKey } from './client';
 import { UnauthorizedError, ForbiddenError, ApiError } from './errors';
 
 describe('snakeToCamel', () => {
@@ -234,6 +234,27 @@ describe('apiClient', () => {
         window.__VSM_CONFIG__ = {};
 
         expect(await sentKey()).toBe('test-api-key');
+      });
+
+      describe('getApiKey', () => {
+        it('returns the runtime key', () => {
+          window.__VSM_CONFIG__ = { apiKey: 'runtime-key' };
+
+          expect(getApiKey()).toBe('runtime-key');
+        });
+
+        it('falls back to VITE_API_KEY', () => {
+          window.__VSM_CONFIG__ = { apiKey: '' };
+
+          expect(getApiKey()).toBe('test-api-key');
+        });
+
+        it('is empty when neither is set', () => {
+          window.__VSM_CONFIG__ = { apiKey: '' };
+          delete import.meta.env.VITE_API_KEY;
+
+          expect(getApiKey()).toBe('');
+        });
       });
     });
   });
