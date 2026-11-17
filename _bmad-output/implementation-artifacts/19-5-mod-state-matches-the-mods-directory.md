@@ -1,6 +1,6 @@
 # Story 19.5: The Mod State Matches the Mods Directory at Start-Up
 
-Status: review
+Status: done
 
 <!-- Implements FR231-FR232, Epic 19 ADR-10 (ADR-9 defines the recovery this runs after). Beads: none of its own; it rides with VSS-uoxl (API-092), which Story 19.4 starts and this story closes. Stacked on Story 19.4 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ are identical to 048fea9, the commit the ADRs cite) and must be re-checked at implementation time: Story 19.2 rebuilds main.py around an app factory, and Story 19.4 edits services/mod_state.py, services/mods.py and the start-up first. API only: no web source change, no new route, no new error code, no new dependency. -->
 
@@ -413,8 +413,26 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - [x] [Low] LOW-3 test that a raising recovery skips the sync.
 - Not changed (nits): `.lower()` vs `.casefold()` for mod IDs, File List convention, bookkeeping commit type.
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `b5e78d2..e4177b0`, then a re-review of the fixes `e4177b0..2fd9e1a`
+**Outcome:** Changes requested → resolved → Approve
+
+**Summary:** ACs 1-6 and 8-14 met; AC 7 partial. The additions contract was confirmed in code and tests: only readable archives, duplicates of an installed mod ID skipped ignoring case, no fallback entry, no lookup, store write or pending restart. So were the start-up order (recovery, sync, auto-start, scheduler) and the logging. One MEDIUM data-safety defect was confirmed with a probe through the real `prepare_mod_files()`. Reviewer ran `just test-api` (3229 passed), lint and typecheck; nothing under `dev/`.
+
+### Action Items
+
+- [x] [Med] MEDIUM-1 when 19.4's recovery kept a mod's original as `<name>.vsm-bak` (`mod_recovery_failed` or `mod_backup_kept`), the sync removed the mod's entry. The mod vanished from the list and came back later as a new entry without its `asset_id` and `installed_at`. The completion note's protection covered only a raising recovery. Fixed in 0997427: an entry whose file is missing is kept when its original is listed as `<name>.vsm-bak`, matched ignoring case like the recovery, and only when the backup's modinfo names the same mod (or cannot be read). It logs `mod_state_sync_kept_aside`. `KEPT_ASIDE_SUFFIX` is pinned to 19.4's by a test. Derived AC 15 was added and the completion note corrected.
+- [x] [Low] LOW-2 a present but empty mods directory (e.g. a mount point whose volume did not mount) removes every entry, as ADR-10 decides. It now also logs `mod_state_sync_removed_all` with the count and directory (0997427, derived AC 16).
+- [x] [Low] LOW-3 a test now pins that a raising recovery skips the sync (9d14ce5).
+- [x] [Low] LOW-1 the README and Dev Notes say a same-name hand replacement keeps the listed version until reinstalled (2fd9e1a).
+- Nits not changed: `.lower()` (matching `_lock_key`) vs `.casefold()` in the recovery; File List convention; bookkeeping commit type.
+- Re-review: approve. MEDIUM-1 reproduced on `e4177b0` for both paths and fixed on HEAD (14 checks, original `asset_id`/`installed_at` survive the next start). Thirteen abuse and boundary cases were checked: another mod's backup, case collisions, an unreadable backup (kept while it exists), a backup matching no entry, a stale backup, a fake backup. No path keeps an entry whose mod is gone with no backup of it. `just test-api` 3241 passed, lint and typecheck clean. Info: the new event `mod_state_sync_backup_unreadable` is not in the Logging table.
+
 ## Change Log
 
 - 2026-11-17: Story 19.5 created and validated (ready-for-dev).
 - 2026-11-17: Tasks 1-4 and 5.1 implemented; status review. 5.2 (manual check) waits for the maintainer; 5.3's PR, bead link and `VSS-uoxl` closing are left to the maintainer.
 - 2026-11-17: Code review (GLM-5.3-Flash): changes requested; MEDIUM-1, LOW-1, LOW-2, LOW-3 fixed; status stays review.
+- 2026-11-17: Code review (GLM-5.3-Flash): changes requested (one medium, three low), fixed in 0997427, 9d14ce5, 2fd9e1a; re-review approved. Status done.

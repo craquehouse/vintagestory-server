@@ -215,7 +215,7 @@ development_status:
   19-2-web-ui-no-longer-gets-the-admin-key: done
   19-3-content-security-policy-and-api-docs: done
   19-4-mod-files-are-never-overwritten: done
-  19-5-mod-state-matches-the-mods-directory: review
+  19-5-mod-state-matches-the-mods-directory: done
   19-6-mod-database-data-is-checked: backlog
   19-7-e2e-runs-in-ci: backlog
 # RETRO ACTION ITEMS
