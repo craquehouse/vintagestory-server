@@ -240,6 +240,24 @@ Code suppressions hide real issues instead of fixing them. They are **forbidden*
 
 A precondition skip inside an E2E test body (`test.skip(!MONITOR_KEY, ...)`) is allowed.
 
+**The one exception: a verified semgrep false positive** (Matt, 2026-11-17; Epic 20 ADR-7)
+
+A semgrep finding is read first. If the code can be changed so that it is correct, or so that it says what it means, change the code (example: `hashlib.md5(usedforsecurity=False)` for a download checksum). Only a finding that is verified to be a false positive may be marked on its line:
+
+```python
+tar.extractall(target, filter=safe_filter)  # nosemgrep: <full-rule-id> — <reason>
+```
+
+(`// nosemgrep: <full-rule-id> — <reason>` in TypeScript.)
+
+- It names exactly one rule, by the full ID semgrep prints. A bare `nosemgrep` is never allowed.
+- The reason is on the same line and says why the rule is wrong here.
+- Every such comment is looked at in code review; `scripts/tests/test-semgrep.sh` fails on one that does not have this form.
+- No tracking issue is needed: a false positive has no fix to track.
+- No baseline file and no list of accepted findings exists, and none may be added.
+
+Every other suppression stays forbidden as described above.
+
 **Good Example:**
 ```typescript
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

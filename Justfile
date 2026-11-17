@@ -169,6 +169,16 @@ lint-workflows:
     mise exec -- actionlint
 
 # =============================================================================
+# SECURITY SCAN
+# =============================================================================
+
+# Static security scan (semgrep, pinned in scripts/semgrep.sh); needs the network; not in `just check`
+# Examples: just semgrep | just semgrep --baseline-commit origin/main
+[positional-arguments]
+semgrep *ARGS:
+    mise exec -- ./scripts/semgrep.sh "$@"
+
+# =============================================================================
 # TYPE CHECKING
 # =============================================================================
 

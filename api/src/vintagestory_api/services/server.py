@@ -649,7 +649,7 @@ class ServerService:
         """
         logger.info("verifying_checksum", file=str(file_path))
 
-        md5_hash = hashlib.md5()
+        md5_hash = hashlib.md5(usedforsecurity=False)
         with file_path.open("rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 md5_hash.update(chunk)
