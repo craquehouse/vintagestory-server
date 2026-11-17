@@ -534,7 +534,7 @@ just test-web                            # Run all web tests
 # Validation
 just check                               # Full validation (lint + typecheck + test)
 just lint                                # Run all linters
-just lint-api --fix                      # Lint with auto-fix
+just lint-api --fix                      # Lint API (ruff check + format check), auto-fix lint
 just typecheck                           # Run all type checks
 
 # Development
@@ -542,6 +542,7 @@ just dev-api                             # Start API dev server
 just dev-api --port 8001                 # Dev server on custom port
 just dev-web                             # Start web dev server
 just install                             # Install all dependencies
+just format-api                          # Format the API (ruff format); just lint-api checks it
 just format                              # Format all code
 
 # Docker (preferred for manual verification)

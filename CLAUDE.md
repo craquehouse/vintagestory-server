@@ -142,7 +142,7 @@ just test-e2e-ci                             # Untagged E2E tests (the CI set) o
 # Validation
 just check                                   # Full validation: lint + typecheck + test
 just lint                                    # Run all linters
-just lint-api --fix                          # Lint API with auto-fix
+just lint-api --fix                          # Lint API (ruff check + format check), auto-fix lint
 just typecheck                               # Run all type checks
 
 # Building
@@ -157,6 +157,7 @@ just dev-web                                 # Start web dev server
 just install                                 # Install all dependencies
 
 # Formatting
+just format-api                              # Format the API (ruff format); just lint-api checks it
 just format                                  # Format all code
 
 # Scripts and workflows
