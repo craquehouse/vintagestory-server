@@ -1,6 +1,6 @@
 # Story 20.4: Semgrep Locally and in CI
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Implements FR244-FR247, Epic 20 ADR-6 and ADR-7 (both accepted by Matt, 2026-11-17). Beads: VSS-djg (TOOLS-002, size-s), VSS-4ac (CICD-001, size-m). Stacked on Story 20.3 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/, web/, scripts/, Justfile and .github/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats api/src/vintagestory_api/services/server.py, Story 20.3 rewrites the Justfile's argument handling and the lint-scripts recipe, and Stories 20.1 and 20.3 edit ci.yml. One product code change (a keyword argument in the download checksum, same result). No API contract change, no release note, no new npm or Python dependency: semgrep runs through uvx and is not added to api/pyproject.toml. -->
 
