@@ -1,6 +1,6 @@
 # Story 21.2: Renovate: the uv Hold and Digest Refreshes
 
-Status: review
+Status: done
 
 <!-- Implements FR264, FR265, Epic 21 ADR-2 and ADR-3. Beads: none (maintainer decisions 1 and 2; Matt, 2026-11-17). Epic 21 order 21.1 to 21.8, each stacked on the previous; this story touches no file under web/ and needs no other story's code (epics.md "Dependencies"). Line references were verified at 966204f (epic-21-planning; renovate.json, RELEASING.md, cliff.toml, Dockerfile, .mise.toml and scripts/tests/ are identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time: Story 21.1 edits the Justfile and CI, and 21.3 edits the README. Renovate configuration, script tests and documentation only: no file under api/ or web/ changes, no API contract change, no release note. No new dependencies. -->
 
@@ -368,7 +368,28 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `RELEASING.md` (modified: `:57`, `:71`)
 - `_bmad-output/implementation-artifacts/21-2-renovate-uv-hold-and-digests.md` (this story)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `38990a2..32022e6`
+**Outcome:** Approve
+
+**Summary:** ACs 1-5 and 7-10 met; AC 6 is post-merge by design. Every Renovate claim was verified against the live org preset (read with `gh api`):
+- the one-day mise hold now reaches the `.mise.toml` uv half;
+- the last-entry digest rule overrides the preset's `digest: fix` while keeping the `container` scope;
+- version bumps keep `fix`/`feat`;
+- GitHub Actions digest PRs stay `ci(github-action)`, which is not a release note;
+- a uv-image digest refresh keeps `chore(uv)`.
+
+The validator (Renovate 44.251.0, `--no-global`) passed, and four negative `renovate.json` variants each failed `test-renovate.sh` on the expected line. Reviewer ran `just test-scripts`, `just lint-scripts` and `just changelog` (no story commit listed), and checked PR #185 (merged at `a7e2e62` before this story).
+
+### Action Items
+
+- [x] [Low] L1 the new `RELEASING.md` sentence said every image version update is a release note, which is untrue for uv, a `chore(uv)` update since Story 20.7. Fixed by the controller: the sentence names the `node` and .NET images, and says a uv version update is `chore(uv)` and makes no note. The story's Dev Notes text had the same imprecision.
+- Info: AC 6 and the real-PR half of AC 7 wait for the first uv and digest PRs after merge (Task 5.5).
+
 ## Change Log
 
 - 2026-11-17: Story 21.2 created and validated (ready-for-dev).
 - 2026-11-17: Implemented (Tasks 1-4, 5.1-5.4); status review. Task 5 stays open: 5.5 waits for the first uv and digest pull requests after the merge.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; L1 fixed by the controller. Status done; Task 5.5 after merge.
