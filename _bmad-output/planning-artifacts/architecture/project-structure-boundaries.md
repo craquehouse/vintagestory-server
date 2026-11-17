@@ -448,10 +448,16 @@ FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:... AS final
 **CI/CD Pipeline:**
 
 ```yaml
-# .github/workflows/ci.yaml
-# 1. Lint (ruff, eslint)
-# 2. Test (pytest, vitest)
-# 3. Build Docker image (not pushed)
+# .github/workflows/ci.yml: on pull requests to main, pushes to main and by hand;
+# every job skips the release commit (chore(release): ...)
+# - api:     lint (ruff check + format check), Pyright, pytest
+# - web:     type check (incl. web/e2e), Vitest, build
+# - scripts: version files agree, ShellCheck, actionlint, the scripts' bash tests
+# - docker:  build the image for linux/amd64 (not pushed)
+# - e2e:     the untagged Playwright tests on a throwaway container, then the
+#            @moddb tests on recorded answers (scripts/e2e-ci.sh)
+# - semgrep: PRs fail on added findings; main is scanned in full and
+#            uploaded to code scanning
 # Publishing: .github/workflows/release.yml on version tags (Epic 15 ADR-4)
 ```
 
@@ -479,4 +485,4 @@ FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:... AS final
 | `VS_DEBUG` | No | Debug logging; also serves `/docs`, `/redoc` and `/openapi.json` and the RBAC test routes (Epic 19 ADR-7), and allows a plain-HTTP `VS_MOD_DB_URL`. For development only |
 | `VS_MOD_DB_URL` | No | Base address of the mod database, for a mirror of the same database (default `https://mods.vintagestory.at`; Epic 20 ADR-9). Mod listings and downloads come from it. An `https` URL with a host and nothing else; `http` only with `VS_DEBUG=true`; any other value stops start-up. Images and links to mod pages shown in the browser do not follow it |
 
-The README's Configuration table and `.env.example` also describe `VS_CORS_ORIGINS` and `VS_DATA_DIR`. The remaining settings (`config.py` `Settings`, read with the `VS_` prefix) have defaults and are not documented for users.
+The README's Configuration table and `.env.example` also describe `VS_CORS_ORIGINS`, `VS_DATA_DIR`, `VS_CONSOLE_HISTORY_LINES`, `VS_DISK_SPACE_WARNING_THRESHOLD_GB` and `VS_MOD_CACHE_MAX_SIZE_MB` (all with defaults). `Settings.log_level` (`VS_LOG_LEVEL`) exists in `config.py` but nothing reads it: the log level follows `VS_DEBUG` only (`main.py`), so it is not documented.
