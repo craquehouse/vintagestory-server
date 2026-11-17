@@ -106,6 +106,10 @@ install-e2e-browsers:
     mise exec -C web -- bunx playwright install --with-deps chromium
     mise exec -C api -- uv run playwright install chromium
 
+# Print the Playwright versions of the web and the API (the e2e job's browser cache key)
+playwright-versions:
+    @echo "web-$(mise exec -C web -- bunx playwright --version | cut -d' ' -f2)-api-$(mise exec -C api -- uv run playwright --version | cut -d' ' -f2)"
+
 # Alias for backward compatibility
 [positional-arguments]
 test-e2e *ARGS:

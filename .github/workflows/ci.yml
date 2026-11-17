@@ -97,6 +97,15 @@ jobs:
           cache-from: type=gha
       - run: just install-web --frozen-lockfile
       - run: just build-api
+      # The key is the runner's system and the two Playwright versions, not the lock files,
+      # so an unrelated dependency update keeps the cache
+      - id: playwright
+        run: echo "key=playwright-${ImageOS:?}-$RUNNER_ARCH-$(just playwright-versions)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright.outputs.key }}
+      # Downloads only what the cache did not restore; --with-deps still installs system packages
       - run: just install-e2e-browsers
       # Placeholder keys and the seeded fixture only (scripts/e2e-ci.sh); no secret
       - run: just test-e2e-ci

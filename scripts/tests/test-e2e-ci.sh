@@ -78,6 +78,21 @@ ci="$ROOT/.github/workflows/ci.yml"
 assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"
 assert_eq "ci.yml e2e job runs just test-e2e-ci" "1" \
     "$(yq '[.jobs.e2e.steps[] | select(.run == "just test-e2e-ci")] | length' "$ci")"
+
+# The e2e job restores the Playwright browsers from a cache keyed by the two Playwright
+# versions, before it installs them (Story 20.5 AC 7)
+cache_index=$(yq '.jobs.e2e.steps | to_entries | map(select(.value.uses | test("^actions/cache@"))) | .[0].key // ""' "$ci")
+install_index=$(yq '.jobs.e2e.steps | to_entries | map(select(.value.run == "just install-e2e-browsers")) | .[0].key // ""' "$ci")
+if [[ -n $cache_index && -n $install_index ]] && ((cache_index < install_index)); then
+    pass
+else
+    fail "ci.yml e2e job restores the browser cache before just install-e2e-browsers"
+fi
+assert_eq "the browser cache holds ~/.cache/ms-playwright" "true" \
+    "$(i=${cache_index:-0} yq '.jobs.e2e.steps[env(i)].with.path == "~/.cache/ms-playwright"' "$ci")"
+assert_eq "the browser cache key comes from the playwright step" "true" \
+    "$(i=${cache_index:-0} want="\${{ steps.playwright.outputs.key }}" \
+        yq '.jobs.e2e.steps[env(i)].with.key == strenv(want)' "$ci")"
 secrets=$(grep -n 'secrets\.' "$ci" || true)
 assert_eq "ci.yml reads no secret" "" "$secrets"
 
