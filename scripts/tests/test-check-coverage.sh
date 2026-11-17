@@ -25,4 +25,11 @@ assert_eq "e2e tsconfig extends the web tsconfig" "../tsconfig.json" \
 assert_eq "e2e tsconfig sees Node's types only" '["node"]' \
     "$(yq -p json -o json -I0 '.compilerOptions.types' "$e2e_tsconfig" 2>/dev/null)"
 
+# `just lint-scripts` checks every script through globs, so a new one is covered (FR241)
+justfile="$ROOT/Justfile"
+assert_eq "lint-scripts runs ShellCheck on every script" \
+    "mise exec -- shellcheck -x scripts/*.sh scripts/tests/*.sh" \
+    "$(grep -A1 '^lint-scripts:' "$justfile" | tail -1 | sed 's/^[[:space:]]*//')"
+assert_eq "the Justfile names no ShellCheck follow-up (VSS-1eb)" "0" "$(grep -c 'VSS-1eb' "$justfile")"
+
 finish

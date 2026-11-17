@@ -160,9 +160,9 @@ lint-api *ARGS:
 lint-web:
     mise exec -C web -- bun run lint
 
-# Lint the bash scripts (ShellCheck); sprint-status.sh is not yet clean (VSS-1eb)
+# Lint every bash script in scripts/ and scripts/tests/ (ShellCheck)
 lint-scripts:
-    mise exec -- shellcheck -x scripts/version.sh scripts/release.sh scripts/release-notes.sh scripts/worktree-setup.sh scripts/e2e-ci.sh scripts/tests/*.sh
+    mise exec -- shellcheck -x scripts/*.sh scripts/tests/*.sh
 
 # Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
 lint-workflows:
