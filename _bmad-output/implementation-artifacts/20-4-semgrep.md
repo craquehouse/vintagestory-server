@@ -1,6 +1,6 @@
 # Story 20.4: Semgrep Locally and in CI
 
-Status: in-progress
+Status: review
 
 <!-- Implements FR244-FR247, Epic 20 ADR-6 and ADR-7 (both accepted by Matt, 2026-11-17). Beads: VSS-djg (TOOLS-002, size-s), VSS-4ac (CICD-001, size-m). Stacked on Story 20.3 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/, web/, scripts/, Justfile and .github/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats api/src/vintagestory_api/services/server.py, Story 20.3 rewrites the Justfile's argument handling and the lint-scripts recipe, and Stories 20.1 and 20.3 edit ci.yml. One product code change (a keyword argument in the download checksum, same result). No API contract change, no release note, no new npm or Python dependency: semgrep runs through uvx and is not added to api/pyproject.toml. -->
 
@@ -91,41 +91,41 @@ so that **a risky pattern is caught when it is written, without old findings or 
 
 <!-- Commit per task: type(story-20.4/task-N): ... with type build, ci, refactor, test, docs or chore. No feat, fix or perf: nothing here is visible to an admin, so nothing may reach the release notes. The md5 change is a refactor (Epic 20 ADR-7 decision 7). Six tasks: the epic's Renovate task is Task 2, and the epic's "prove the gate" task is folded into the last task because it can only run on the pull request. -->
 
-- [ ] Task 1: `scripts/semgrep.sh`, `.semgrepignore` and the `just semgrep` recipe + tests (AC: 1, 2, 4, 5, 14) (`VSS-djg`)
-  - [ ] 1.1: New `scripts/tests/test-semgrep.sh` (style of `scripts/tests/test-e2e-ci.sh`: `lib.sh` helpers `pass`, `fail`, `assert_eq`, `assert_contains`, `make_tmp`, `finish`; `scripts/tests/run.sh` picks up `test-*.sh` by itself). Red first, with the assertions of Dev Notes "Script tests" groups A, B and C. The test never runs semgrep and never needs the network: it puts a stub `uvx` first on `PATH`
-  - [ ] 1.2: New `scripts/semgrep.sh`, executable, exactly as in Dev Notes "The script"
-  - [ ] 1.3: New `.semgrepignore` at the repository root, exactly as in Dev Notes "The ignore file"
-  - [ ] 1.4: `Justfile`: the `semgrep *ARGS` recipe after `lint-workflows` (`Justfile:155-157`), in the argument form Story 20.3 gave the other recipes (Dev Notes "The recipe"). It is not a dependency of `lint`, `check`, `test`, `test-api` or `test-web`
-  - [ ] 1.5: `just lint-scripts` covers the new script and the new test. After Story 20.3 the recipe uses globs and nothing needs editing; if it still names files (`Justfile:151-153` at 7f04ea2), add `scripts/semgrep.sh`
-  - [ ] 1.6: Run `just semgrep --json-output=<a file outside the repository>` once. Expect exit 1 and one finding, the md5 rule in `services/server.py` (Task 3 removes it). Record in the Dev Agent Record: files scanned, rules run, findings, the count of `.errors` and `.skipped_rules` in the JSON, wall clock time, and that no path in `.paths.scanned` is a test file. Then record the per-pack numbers (Dev Notes "Measurements" has the command and what this story's validation measured)
-  - [ ] 1.7: Run `just semgrep --baseline-commit origin/main` on the branch and record the output's line "Scan was limited to files changed since baseline commit." and the result. `just test-scripts` and `just lint-scripts` pass
+- [x] Task 1: `scripts/semgrep.sh`, `.semgrepignore` and the `just semgrep` recipe + tests (AC: 1, 2, 4, 5, 14) (`VSS-djg`)
+  - [x] 1.1: New `scripts/tests/test-semgrep.sh` (style of `scripts/tests/test-e2e-ci.sh`: `lib.sh` helpers `pass`, `fail`, `assert_eq`, `assert_contains`, `make_tmp`, `finish`; `scripts/tests/run.sh` picks up `test-*.sh` by itself). Red first, with the assertions of Dev Notes "Script tests" groups A, B and C. The test never runs semgrep and never needs the network: it puts a stub `uvx` first on `PATH`
+  - [x] 1.2: New `scripts/semgrep.sh`, executable, exactly as in Dev Notes "The script"
+  - [x] 1.3: New `.semgrepignore` at the repository root, exactly as in Dev Notes "The ignore file"
+  - [x] 1.4: `Justfile`: the `semgrep *ARGS` recipe after `lint-workflows` (`Justfile:155-157`), in the argument form Story 20.3 gave the other recipes (Dev Notes "The recipe"). It is not a dependency of `lint`, `check`, `test`, `test-api` or `test-web`
+  - [x] 1.5: `just lint-scripts` covers the new script and the new test. After Story 20.3 the recipe uses globs and nothing needs editing; if it still names files (`Justfile:151-153` at 7f04ea2), add `scripts/semgrep.sh`
+  - [x] 1.6: Run `just semgrep --json-output=<a file outside the repository>` once. Expect exit 1 and one finding, the md5 rule in `services/server.py` (Task 3 removes it). Record in the Dev Agent Record: files scanned, rules run, findings, the count of `.errors` and `.skipped_rules` in the JSON, wall clock time, and that no path in `.paths.scanned` is a test file. Then record the per-pack numbers (Dev Notes "Measurements" has the command and what this story's validation measured)
+  - [x] 1.7: Run `just semgrep --baseline-commit origin/main` on the branch and record the output's line "Scan was limited to files changed since baseline commit." and the result. `just test-scripts` and `just lint-scripts` pass
 
-- [ ] Task 2: The Renovate rule for the version + test (AC: 3) (`VSS-djg`)
-  - [ ] 2.1: Add group D of Dev Notes "Script tests" to `test-semgrep.sh`, red first
-  - [ ] 2.2: `renovate.json`: add `customManagers` next to `packageRules` (Dev Notes "The Renovate rule"). The two existing package rules do not change
-  - [ ] 2.3: Validate the file once without adding a dependency (Dev Notes "The Renovate rule" has the command). If the validator cannot run, say so in the completion notes; the Renovate Dashboard issue shows the dependency `semgrep` after the merge either way, and the maintainer checks it there
+- [x] Task 2: The Renovate rule for the version + test (AC: 3) (`VSS-djg`)
+  - [x] 2.1: Add group D of Dev Notes "Script tests" to `test-semgrep.sh`, red first
+  - [x] 2.2: `renovate.json`: add `customManagers` next to `packageRules` (Dev Notes "The Renovate rule"). The two existing package rules do not change
+  - [x] 2.3: Validate the file once without adding a dependency (Dev Notes "The Renovate rule" has the command). If the validator cannot run, say so in the completion notes; the Renovate Dashboard issue shows the dependency `semgrep` after the merge either way, and the maintainer checks it there
 
-- [ ] Task 3: The download checksum says it is not a security use + tests (AC: 11) (`VSS-4ac`)
-  - [ ] 3.1: `api/src/vintagestory_api/services/server.py:650`: `hashlib.md5()` becomes `hashlib.md5(usedforsecurity=False)`. Nothing else in `verify_checksum` (`:638-668`) changes: not the method name, the log events or the docstring. No `nosemgrep` comment
-  - [ ] 3.2: No test changes. `just test-api tests/server` passes (260 tests at 7f04ea2 with the change prototyped; `TestChecksumVerification` at `api/tests/server/test_install.py:308-334` covers the match and the mismatch). `just typecheck-api` and `just lint-api` pass, and after Story 20.1 `ruff format --check` passes for the file
-  - [ ] 3.3: `just semgrep` exits 0 with "0 findings". Record the output's summary line. From here on the scope has no finding
-  - [ ] 3.4: Commit as `refactor(story-20.4/task-3): ...` (not `fix`: nothing an admin sees changes)
+- [x] Task 3: The download checksum says it is not a security use + tests (AC: 11) (`VSS-4ac`)
+  - [x] 3.1: `api/src/vintagestory_api/services/server.py:650`: `hashlib.md5()` becomes `hashlib.md5(usedforsecurity=False)`. Nothing else in `verify_checksum` (`:638-668`) changes: not the method name, the log events or the docstring. No `nosemgrep` comment
+  - [x] 3.2: No test changes. `just test-api tests/server` passes (260 tests at 7f04ea2 with the change prototyped; `TestChecksumVerification` at `api/tests/server/test_install.py:308-334` covers the match and the mismatch). `just typecheck-api` and `just lint-api` pass, and after Story 20.1 `ruff format --check` passes for the file
+  - [x] 3.3: `just semgrep` exits 0 with "0 findings". Record the output's summary line. From here on the scope has no finding
+  - [x] 3.4: Commit as `refactor(story-20.4/task-3): ...` (not `fix`: nothing an admin sees changes)
 
-- [ ] Task 4: The `semgrep` job in `ci.yml` + tests (AC: 6, 7, 8, 9, 10, 13) (`VSS-4ac`)
-  - [ ] 4.1: Add group E of Dev Notes "Script tests" to `test-semgrep.sh`, and change `scripts/tests/test-release.sh:322`: the name becomes "ci.yml has its six jobs" and the expected list `api docker e2e scripts semgrep web`. The loop below it (`:323-325`) already checks every job's `if:`. Red first: both fail before 4.2
-  - [ ] 4.2: `.github/workflows/ci.yml`: add the job after `e2e` (the last job, `ci.yml:75-110` at 7f04ea2), exactly as in Dev Notes "The job". The top-level `permissions: contents: read` (`:10-11`) and the other five jobs do not change
-  - [ ] 4.3: `just lint-workflows`, `just lint-scripts` and `just test-scripts` pass. `scripts/tests/test-docker-context.sh:19-22` (every action pinned by a full commit SHA) and `scripts/tests/test-e2e-ci.sh:58-59` (the workflow reads no secret) pass unchanged
-  - [ ] 4.4: The workflow and the `test-release.sh` change are one commit, `ci(story-20.4/task-4): ...` (Epic 20 ADR-7 decision 1)
+- [x] Task 4: The `semgrep` job in `ci.yml` + tests (AC: 6, 7, 8, 9, 10, 13) (`VSS-4ac`)
+  - [x] 4.1: Add group E of Dev Notes "Script tests" to `test-semgrep.sh`, and change `scripts/tests/test-release.sh:322`: the name becomes "ci.yml has its six jobs" and the expected list `api docker e2e scripts semgrep web`. The loop below it (`:323-325`) already checks every job's `if:`. Red first: both fail before 4.2
+  - [x] 4.2: `.github/workflows/ci.yml`: add the job after `e2e` (the last job, `ci.yml:75-110` at 7f04ea2), exactly as in Dev Notes "The job". The top-level `permissions: contents: read` (`:10-11`) and the other five jobs do not change
+  - [x] 4.3: `just lint-workflows`, `just lint-scripts` and `just test-scripts` pass. `scripts/tests/test-docker-context.sh:19-22` (every action pinned by a full commit SHA) and `scripts/tests/test-e2e-ci.sh:58-59` (the workflow reads no secret) pass unchanged
+  - [x] 4.4: The workflow and the `test-release.sh` change are one commit, `ci(story-20.4/task-4): ...` (Epic 20 ADR-7 decision 1)
 
-- [ ] Task 5: The `nosemgrep` exception, the command in the docs, and the triage note + test (AC: 12) (`VSS-4ac`)
-  - [ ] 5.1: Add group F of Dev Notes "Script tests" to `test-semgrep.sh` (the form of every `nosemgrep` comment in the scanned source; none exists today)
-  - [ ] 5.2: `project-context.md`, section "8. No Silent Failures Rule" (`:218-255`): add the exception after the "Forbidden Patterns Without Justification" list (`:228-232`) and before "Good Example" (`:234`), with the text of Dev Notes "The exception text". The rest of the section does not change
-  - [ ] 5.3: `CLAUDE.md` command block, under "# Scripts and workflows" (`:162-165`): one line, `just semgrep` with "Static security scan (needs the network; not part of just check)". `README.md` "Development commands" (`:99-112`): one line for `just semgrep` in the code block, and one sentence below the block: CI runs the same scan on every pull request and fails only on findings the pull request adds; `main`'s findings are under Security > Code scanning
+- [x] Task 5: The `nosemgrep` exception, the command in the docs, and the triage note + test (AC: 12) (`VSS-4ac`)
+  - [x] 5.1: Add group F of Dev Notes "Script tests" to `test-semgrep.sh` (the form of every `nosemgrep` comment in the scanned source; none exists today)
+  - [x] 5.2: `project-context.md`, section "8. No Silent Failures Rule" (`:218-255`): add the exception after the "Forbidden Patterns Without Justification" list (`:228-232`) and before "Good Example" (`:234`), with the text of Dev Notes "The exception text". The rest of the section does not change
+  - [x] 5.3: `CLAUDE.md` command block, under "# Scripts and workflows" (`:162-165`): one line, `just semgrep` with "Static security scan (needs the network; not part of just check)". `README.md` "Development commands" (`:99-112`): one line for `just semgrep` in the code block, and one sentence below the block: CI runs the same scan on every pull request and fails only on findings the pull request adds; `main`'s findings are under Security > Code scanning
   - [ ] 5.4: The triage note of Dev Notes "How a finding is triaged" is already in this story. Copy its four steps into the PR description so the maintainer has them where the first alert will be discussed
 
 - [ ] Task 6: Prove the gate on the pull request, quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes, and `just semgrep` exits 0. The diff adds no lint or type suppression, no `cast`, no `nosemgrep`, no skipped test and no dependency (`api/pyproject.toml`, `api/uv.lock`, `web/package.json` and `web/bun.lock` are unchanged). No rule file is in the repository. `git status --short` is clean (no `semgrep.sarif`, no JSON output)
-  - [ ] 6.2: Story status `review` and `just sprint set 20-4-semgrep review`; commit as `chore(story-20.4/task-6): ...`
+  - [x] 6.1: `just check` passes, and `just semgrep` exits 0. The diff adds no lint or type suppression, no `cast`, no `nosemgrep`, no skipped test and no dependency (`api/pyproject.toml`, `api/uv.lock`, `web/package.json` and `web/bun.lock` are unchanged). No rule file is in the repository. `git status --short` is clean (no `semgrep.sarif`, no JSON output)
+  - [x] 6.2: Story status `review` and `just sprint set 20-4-semgrep review`; commit as `chore(story-20.4/task-6): ...`
   - [ ] 6.3: The controller pushes the branch and opens the pull request against `main` (the dev agent does not push or open it). CI runs only on pull requests that target `main` (`ci.yml:3-8`), so this needs Stories 20.1 to 20.3 merged first. Record the first run: the `Semgrep` job passes although the merge base still has the md5 finding (AC 7), its duration (AC 13: within five minutes), and the log's "Ran N rules on M files" line
   - [ ] 6.4: Prove the gate (AC 6), on the story's own pull request. Commit `ci(story-20.4/task-6): temporary finding to prove the semgrep gate` adds the file of Dev Notes "The gate proof" and nothing else. The `Semgrep` job must fail, and its log must name the rule `python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5`, the file and line 5. Record the run URL. While that commit is the tip, start one manual run, `gh workflow run ci.yml --ref <branch>`: its `Semgrep` job must pass (findings do not fail a full scan) and upload (AC 8). Record the run URL and what `gh api "repos/craquehouse/vintagestory-server/code-scanning/analyses?ref=refs/heads/<branch>"` lists (tool `Semgrep OSS`, category `semgrep`, 1 result)
   - [ ] 6.5: Commit `ci(story-20.4/task-6): remove the temporary finding` deletes the file again (a plain commit, no force push, no history rewrite). The `Semgrep` job passes; record the run URL. Start the manual run once more and record that the analysis of the branch now has 0 results, so the proof leaves no open alert behind
@@ -531,14 +531,67 @@ Each is written into the story and can be reversed in review:
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- **Task 1.1 red:** `test-semgrep.sh` 12/22 before the script, ignore file and recipe existed (the 12 that passed are vacuous or C's "not in check/lint/test" checks); `test-justfile-args.sh` 40/42 with the new `semgrep|--baseline-commit|a b` case (`error: justfile does not contain recipe`). After 1.2-1.4: 23/23 and 42/42.
+- **Task 1.6, `just semgrep --json-output=<scratch file>`** at c085e2f's tree: exit 1, "Ran 280 rules on 226 files: 1 finding." (290 Code rules fetched, all "Community"), the finding `python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5` at `services/server.py:652`. JSON: `.errors` 0, `.skipped_rules` 0, `.paths.scanned` 226 (web 154, api 62, scripts 7, `.github` 2, `Dockerfile` 1), none matching `\.test\.|/tests?/|/__tests__/|/mocks?/`. "Files matching .semgrepignore patterns: 145". Wall clock 6.4 s through `just` and `mise` (semgrep already in uv's cache).
+- **Task 1.6 per pack** (the Dev Notes command, JSON outside the repository; "fetched" is the "Scanning N files ... with M Code rules" line):
+
+  | Pack | Rules fetched | Rules run | Files | Findings | `.errors` | `.skipped_rules` |
+  |---|---|---|---|---|---|---|
+  | `p/python` | 151 | 151 | 61 | 1 | 0 | 0 |
+  | `p/typescript` | 74 | 74 | 150 | 0 | 0 | 0 |
+  | `p/react` | 4 | 4 | 150 | 0 | 0 | 0 |
+  | `p/secrets` | 52 | 43 | 226 | 0 | 0 | 0 |
+  | `p/github-actions` | 12 | 11 | 2 | 0 | 0 | 0 |
+  | `p/dockerfile` | 7 | 7 | 3 | 0 | 0 | 0 |
+
+  Rules the engine could not run (AC 13: `.errors` + `.skipped_rules`): 0 for every pack. The fetched-vs-run gaps for `p/secrets` and `p/github-actions` are rules for languages with no target file, not engine errors.
+- **Task 1.7:** after committing Task 1, `git fetch origin main` (3f1c6ea) and `just semgrep --baseline-commit origin/main`: "Current version has 1 finding.", "Creating git worktree from 'origin/main' to scan baseline.", "Scan was limited to files changed since baseline commit.", "Ran 280 rules on 29 files: 0 findings.", exit 0, 6.9 s. Semgrep removed its temporary worktree (`git worktree list` unchanged).
+- **Task 2.1 red:** `test-semgrep.sh` 27/30 (the three renovate.json assertions). The first draft's `git grep ... ':!_bmad-output'` failed with "Unimplemented pathspec magic '_'" and the assertion still passed because the error was swallowed; it now uses `:(exclude)...` and also asserts git grep's exit status is 1 (nothing found). 30/30 after 2.2.
+- **Task 2.3, Renovate validator** (`mise exec -C web -- bunx --package renovate renovate-config-validator`, Renovate 44.251.0): without flags it validated the file "as global config"; with `--no-global`, "Validating ../renovate.json as repo config", "Config validated successfully", exit 0, no warning. A copy using `fileMatch: ["^scripts/semgrep\\.sh$"]` instead gave "WARN: Config migration necessary" with a diff, so `managerFilePatterns` is the current name. The `local>` preset produced no warning (the validator does not resolve presets). `web/package.json` and `web/bun.lock` compared byte-identical afterwards.
+- **Task 3:** `just test-api tests/server` 260 passed; `just typecheck-api` 0 errors, 0 warnings; `just lint-api` "All checks passed!", "157 files already formatted"; `ruff format --check` on `server.py` "1 file already formatted". `just semgrep`: "Ran 280 rules on 226 files: 0 findings.", exit 0, 4.6 s.
+- **Task 4.1 red:** `test-semgrep.sh` 33/45 (the 12 job assertions), `test-release.sh` 132/133 ("ci.yml has its six jobs"). After 4.2: 45/45 and 134/134; `just lint-workflows` and `just lint-scripts` pass; `test-docker-context.sh` 6/6 and `test-e2e-ci.sh` 18/18 unchanged. `just semgrep` with the new job staged (`.github` is in scope): 0 findings.
+- **codeql-action pin:** `gh api repos/github/codeql-action/git/ref/tags/v4.39.3` is an annotated tag object `f3bbb05...` that peels to commit `33d7b85da1a04171e211befe2c739303b9a4c066`; v4.39.3 is still the newest v4 tag.
+- **Task 5.1:** group F passed from the start (47/47). Proof: a bare `# nosemgrep` appended to the `server.py` md5 line made it fail (46/47, the line printed); the full form `# nosemgrep: python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5 — a reason` passed; the file was restored (`git status --short` clean).
+- **Gate probe check (for Task 6.4, not committed to this branch):** in a detached scratch worktree outside the repository, a throwaway commit adding `api/src/vintagestory_api/services/semgrep_gate_probe.py` (Dev Notes "The gate proof"): `scripts/semgrep.sh --baseline-commit $(git merge-base origin/main HEAD)` exit 1, "Ran 280 rules on 30 files: 1 finding.", the md5 rule in that file at line 5 (`return hashlib.md5(data).hexdigest()`), and not the old `server.py` finding. `SEMGREP_REPORT_ONLY=1 ... --sarif-output=<scratch>` exit 0, "Ran 280 rules on 227 files: 1 finding.", SARIF tool `Semgrep OSS` with 1 result. Ruff check, Ruff format check and Pyright accept the file. The worktree was removed.
+- **Task 6.1:** `just check` exit 0: Ruff clean, format clean, Pyright 0 errors and 0 warnings, API 3334 passed, web 3307 passed in 132 files (none skipped), script tests all pass (`test-semgrep.sh` 47/47, `test-release.sh` 134/134, `test-justfile-args.sh` 42/42). `just semgrep` exit 0, 0 findings. `api/pyproject.toml`, `api/uv.lock`, `web/package.json`, `web/bun.lock` and `.mise.toml` have no diff; no rule file is tracked; the only added `nosemgrep` text is in `project-context.md` and `test-semgrep.sh`; no suppression, `cast` or skip added; `git status --short` empty.
 
 ### Completion Notes List
 
+- **Task 1 (VSS-djg):** `scripts/semgrep.sh` and `.semgrepignore` are the Dev Notes text unchanged. The `semgrep *ARGS` recipe sits after `lint-workflows` under its own `# SECURITY SCAN` section, with `[positional-arguments]` and `mise exec -- ./scripts/semgrep.sh "$@"`; it is not a dependency of any recipe. `test-justfile-args.sh` gained the case `semgrep|--baseline-commit|a b`. `just lint-scripts` already globs `scripts/*.sh scripts/tests/*.sh`, so it covers the new files with no edit. `test-semgrep.sh` groups A to C as specified; group C checks `--dry-run` of `check`, `lint`, `test`, `test-api` and `test-web` (not only `check`).
+- **The `SEMGREP_SETTINGS_FILE=/dev/null` export is unconditional** as written; it is untested on the Linux runner until the PR's first run (Task 6.3).
+- **`--metrics=off`:** the default output does not print the "Not sending pseudonymous metrics" line the Dev Notes mention; the flag's presence is asserted by `test-semgrep.sh` group A.
+- **Counts differ from the story's 7f04ea2 numbers** because Story 20.2 removed web source files: 226 files scanned (story: 228), 145 skipped by `.semgrepignore` (story: 143), web 154 (story: 156). Rules run are the same (280). `p/secrets` and `p/github-actions` fetch 52 and 12 rules and run 43 and 11 (the story's table lists fetched = run).
+- **Task 2 (VSS-djg):** `customManagers` as in Dev Notes, before `packageRules`; the two package rules are unchanged. Field name `managerFilePatterns` confirmed by the validator (see Debug Log). Group D as specified, plus an assertion that the `git grep` for pins exits 1.
+- **Task 3 (VSS-4ac):** one line, `hashlib.md5(usedforsecurity=False)` at `services/server.py:652` (was `:650` before Story 20.1). No test changed, no `nosemgrep`.
+- **Task 4 (VSS-4ac):** the job is the Dev Notes text, appended after `e2e`; the pins for checkout and mise-action match the other jobs. The workflow and the `test-release.sh` job list are one commit.
+- **Task 5 (VSS-4ac):** the exception text is in `project-context.md` section 8 after the forbidden-patterns list and the E2E precondition-skip sentence Story 20.2 added, before "Good Example". One line in `CLAUDE.md` and one line plus one sentence in `README.md`. Task 5.4 (the triage steps in the PR description) is the controller's, since the dev agent opens no PR; unticked.
+- **Script test counts:** `test-semgrep.sh` 47 (new), `test-justfile-args.sh` 42 (40 before), `test-release.sh` 134 (133 before), others unchanged: changelog 23, check-coverage 13, docker-context 6, e2e-ci 18, release-notes 12, sprint-status 57, version 23.
+- **No E2E or dev-stack run:** the story rules them out (nothing an admin sees changes; no spec added or changed).
+- **Left for the controller and maintainer:** Tasks 5.4 and 6.3 to 6.7 (push, PR, the first CI run and its duration, the gate proof, the manual `workflow_dispatch` runs, bead links and AARs, AC 15). By the controller's decision the gate proof is a separate throwaway pull request, not two commits on this branch; this branch has no probe commit.
+- No API contract change, no new dependency, no `feat`/`fix` commit.
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist at 7f04ea2. Prototypes, all discarded: `scripts/semgrep.sh` and `.semgrepignore` (ShellCheck passed; full scans with and without a login; a baseline scan over two temporary commits; SARIF output; exit codes), the stub `uvx` test, the scanned-set tripwire, the `semgrep` job appended to `ci.yml` (`just lint-workflows` passed; `just test-scripts` failed only on `test-release.sh`'s job list), the md5 keyword (`just test-api tests/server` 260 passed, Pyright and Ruff clean, semgrep 0 findings), the Perl check of the Renovate pattern, and the `nosemgrep` forms on a file outside the repository. Not run: the Renovate validator, and anything on a GitHub runner; the job's duration, the upload and the code scanning view are predictions until Task 6.
 
 ### File List
 
+- `scripts/semgrep.sh` (new, executable)
+- `.semgrepignore` (new)
+- `scripts/tests/test-semgrep.sh` (new)
+- `scripts/tests/test-justfile-args.sh`
+- `scripts/tests/test-release.sh`
+- `Justfile`
+- `renovate.json`
+- `api/src/vintagestory_api/services/server.py`
+- `.github/workflows/ci.yml`
+- `project-context.md`
+- `CLAUDE.md`
+- `README.md`
+- `_bmad-output/implementation-artifacts/20-4-semgrep.md`
+
 ## Change Log
 
 - 2026-11-17: Story 20.4 created and validated (ready-for-dev).
+- 2026-11-17: Story 20.4 implemented (Tasks 1-5, 6.1-6.2); gate proof left to a throwaway pull request by the controller; moved to review.
