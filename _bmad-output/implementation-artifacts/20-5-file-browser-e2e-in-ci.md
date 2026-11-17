@@ -1,6 +1,6 @@
 # Story 20.5: The File Browser E2E Tests Run in CI
 
-Status: review
+Status: done
 
 <!-- Implements FR248-FR251, Epic 20 ADR-8. Beads: VSS-3mr (UI-030, task, P2, size-m), closed after merge; VSS-571h (TEST-006, task, P4, size-m), parts 2, 3 and 4 here, part 1 in Story 20.6, which closes it. Closing VSS-3mr (with VSS-37a, closed in Story 20.2) lets the old epic VSS-029 "Web UI Test Coverage" close here. Fifth story of Epic 20, stacked on Story 20.4 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its code is 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.3 gives every recipe `positional-arguments`, turns `lint-scripts` into globs, adds `web/e2e/tsconfig.json` and untracks the Playwright report files; Story 20.4 adds a `semgrep` job to `ci.yml`. Tests, one script, one recipe, CI and documentation only: no file under api/src or web/src changes, no API contract change, no new dependency, no release note. -->
 
@@ -48,7 +48,7 @@ so that **the file browser is covered in CI and the old test-coverage epic can c
   - [x] 3.2: `Justfile`, after `install-e2e-browsers` (`:98-101`): a recipe `playwright-versions` that prints `web-<version>-api-<version>` from the two installed Playwright CLIs (Dev Notes "The cache"). `just playwright-versions` at 7f04ea2 prints `web-1.65.1-api-1.65.2`
   - [x] 3.3: `.github/workflows/ci.yml`, `e2e` job, between `just build-api` (`:98`) and `just install-e2e-browsers` (`:99`): a step `id: playwright` that writes the key to `$GITHUB_OUTPUT`, and an `actions/cache` step pinned by commit SHA with the version comment (Dev Notes "The cache" has the text and the SHA to re-check). `just install-e2e-browsers` stays as it is: it downloads only what the cache did not restore, and `--with-deps` still installs the system packages
   - [x] 3.4: `just lint-workflows`, `just lint-scripts`, `just test-scripts` pass
-  - [ ] 3.5: Measure on the pull request (with the controller, who pushes): the first run is a cache miss, a re-run of the `e2e` job (`gh run rerun <run-id> --job <job-id>`) is a hit. Record for each: the job time, the cache step's time, the `install-e2e-browsers` step's time, and whether its log shows a download. Before: job 3 min 16 s, browser step 43 s (`main`, 2026-11-17). Apply Dev Notes "Keep or remove the cache"
+  - [x] 3.5: Measure on the pull request (with the controller, who pushes): the first run is a cache miss, a re-run of the `e2e` job (`gh run rerun <run-id> --job <job-id>`) is a hit. Record for each: the job time, the cache step's time, the `install-e2e-browsers` step's time, and whether its log shows a download. Before: job 3 min 16 s, browser step 43 s (`main`, 2026-11-17). Apply Dev Notes "Keep or remove the cache"
 
 - [x] Task 4: The time-boxed investigation of the connection reset; the comment and the retry + test (AC: 9) (`VSS-571h` part 4)
   - [x] 4.1: Run the probe of Dev Notes "The connection reset" against the throwaway container. **Time box: 60 minutes of wall-clock work, including any fix attempt. Stop condition: a reset reproduced (record the attempt count, the delay, the error text), or the box spent, whichever comes first.** The probe spec is a scratch file that is never committed
@@ -66,7 +66,7 @@ so that **the file browser is covered in CI and the old test-coverage epic can c
   - [x] 6.1: `just check` passes. `just test-e2e-ci` green twice in a row on a clean checkout of the branch. The diff adds no lint or type suppression, no `cast`, no `test.only`, `test.fixme`, and no `test.skip` other than the guard of Task 2.3, and no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/`, `web/test-results/` and no probe file
   - [x] 6.2: `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"` and `--grep @game-server`: record the counts (expect 119 in 17 files, and 0). The two sets plus `@moddb` (31) add up to the whole suite (150: 149 at 7f04ea2 plus the new test)
   - [x] 6.3: Story status `review` and `just sprint set 20-5-file-browser-e2e-in-ci review`
-  - [ ] 6.4: The controller pushes the branch and opens the pull request against `main` (the dev agent does not push or open it). The story is not done until the `E2E tests` job is green on this pull request. If it fails, fix the cause on the branch; do not raise retries, add a tag, or lengthen the timeout. Record the run URL, the job time, and the counts (AC 11), and the cache measurement of Task 3.5
+  - [x] 6.4: The controller pushes the branch and opens the pull request against `main` (the dev agent does not push or open it). The story is not done until the `E2E tests` job is green on this pull request. If it fails, fix the cause on the branch; do not raise retries, add a tag, or lengthen the timeout. Record the run URL, the job time, and the counts (AC 11), and the cache measurement of Task 3.5
   - [ ] 6.5: After merge, the controller closes the beads (Dev Notes "Beads"): `VSS-3mr` with an AAR, then `VSS-029` with an AAR that names Stories 16.7, 20.2 and 20.5, and adds a progress comment to `VSS-571h` (parts 2-4 done, part 1 in Story 20.6). The PR description says: no API contract change, no release note, the CI test count before and after, and the cache numbers
 
 ## Dev Notes
@@ -305,6 +305,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - Not done by the dev agent (controller): Task 3.5, Task 6.4 (push, PR, green `E2E tests` job, run URL; AC 8 and AC 11), Task 6.5 (beads after merge). No bead was changed. Nothing here is admin-visible, so there is no manual check for the maintainer.
 - No API contract change, no file under `api/src` or `web/src`, no dependency, no `feat`/`fix` commit.
 
+- CI and cache timings (controller, 2026-11-17, PR #182). **Cold run** https://github.com/craquehouse/vintagestory-server/actions/runs/44123352752: `E2E tests` green in 3 min 28 s. The cache missed (`Cache not found for input keys: playwright-ubuntu26-X64-web-1.65.1-api-1.65.2`), the browser install took 21 s, and the cache was saved in the post step. 119 Playwright tests and 3 API E2E tests passed (AC 11). **Warm run** https://github.com/craquehouse/vintagestory-server/actions/runs/44125338670 (after the review fixes, same key): `Cache restored from key: playwright-ubuntu26-X64-web-1.65.1-api-1.65.2`, cache step 5 s plus browser install 9 s = 14 s, job 3 min 06 s, 119 plus 3 passed, all six jobs green. The keep rule (warm cache step plus install at most 28 s) holds, so the cache stays (AC 8). The saving against this run's cold install is about 7 s; the 43 s baseline from Story 19.7 included a slower install than today's runner gave. Task 6.5 (beads) is after merge.
+
 ### File List
 
 - `.github/workflows/ci.yml` (modified)
@@ -317,7 +319,22 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `web/e2e/file-browser-new-directory.spec.ts` (new)
 - `_bmad-output/implementation-artifacts/20-5-file-browser-e2e-in-ci.md` (this story)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `07f25cd..f1735d2`
+**Outcome:** Approve
+
+**Summary:** No must-fix finding; ACs 1-7, 9 and 10 met, and 8 and 11 were pending CI (since proven, see Completion Notes). Safety: `docker exec` targets the literal `vintagestory-manager-e2e`, never the environment value, through `execFileSync` with no shell. A stray `E2E_CONTAINER` can only skip or fail the test, never write to a real stack, and the script test pins the export and the matching constant. The navigation spec is read-only, and the other specs are unaffected by the seeded `Logs` (Monitor sees only `ModConfig`; role and suffix checks come before any disk access). The ECONNRESET diagnosis is consistent with the evidence, and `connection: close` through `route.fetch` is sound on HTTP/1.1. The `actions/cache` pin is v6.1.0's commit; the key, path and `--with-deps` behaviour are correct. Reviewer ran `just lint`, `just typecheck`, `just test-scripts`, `just lint-workflows`, `just playwright-versions` and `playwright test --list` (119 in CI, 150 in all).
+
+### Action Items
+
+- [x] [Low] the cache-key step wrote a partial key without failing if `just playwright-versions` failed (a command substitution inside `echo` does not trip `bash -e`). Fixed by the controller: the versions are assigned to a variable first, so a failure fails the step.
+- [x] [Info] `monitor-password-redaction.spec.ts` and `settings-as-saved.spec.ts` still called bare `route.fetch()`, the same pooled-connection exposure. Fixed by the controller under the backlog-drawdown rule: `fetchOnNewConnection` is exported from `config-js.ts` and used in both, and no bare `route.fetch()` remains in the specs. Both specs passed in the warm CI run.
+- Info, not changed: the bookkeeping commit type; "the only later commit is the README" is loose (the bookkeeping commit also followed); a Debug Log line mentioning a dev-stack restart; one long README line.
+
 ## Change Log
 
 - 2026-11-17: Story 20.5 created and validated (ready-for-dev).
 - 2026-11-17: Tasks 1-5 and 6.1-6.3 implemented (dev agent); the connection reset reproduced and removed at its cause; status review. Task 3.5 and 6.4-6.5 wait for the pull request's CI runs and the merge.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; LOW and INFO fixed by the controller. Cold and warm CI runs recorded; cache kept. Status done.

@@ -224,7 +224,7 @@ development_status:
   20-2-green-quiet-check: done
   20-3-lint-and-typecheck-coverage: done
   20-4-semgrep: done
-  20-5-file-browser-e2e-in-ci: review
+  20-5-file-browser-e2e-in-ci: done
   20-6-mod-database-tests-in-ci: backlog
   20-7-reproducible-image-and-conventions: backlog
 # RETRO ACTION ITEMS
