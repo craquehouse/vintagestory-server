@@ -60,7 +60,7 @@ class PrepareModFilesRecorder:
 
     def __init__(self) -> None:
         self.calls: list[str] = []
-        self.error: OSError | None = None
+        self.error: Exception | None = None
 
     def __call__(self) -> None:
         self.calls.append("prepare_mod_files")

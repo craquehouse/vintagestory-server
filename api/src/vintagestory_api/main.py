@@ -146,10 +146,11 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
 
         # Recover the mods directory before any mod operation can run: after the data
         # directories exist, before the game server auto-start and the scheduler (ADR-9)
+        # Any failure is logged and start-up continues (ADR-9): the API must still start
         try:
             prepare_mod_files()
-        except OSError as e:
-            logger.error("mod_files_startup_failed", error=str(e))
+        except Exception as e:
+            logger.error("mod_files_startup_failed", error_type=type(e).__name__, error=str(e))
 
         # Auto-start game server if enabled in API settings
         from vintagestory_api.models.server import ServerState

@@ -333,10 +333,18 @@ class TestLifespanAutoStart:
         ]
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error",
+        [OSError("read-only file system"), RuntimeError("read-only file system")],
+        ids=["os-error", "other-error"],
+    )
     async def test_a_failure_to_prepare_mod_files_is_logged_and_start_up_continues(
-        self, prepare_mod_files_recorder: PrepareModFilesRecorder, captured_logs: StringIO
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        captured_logs: StringIO,
+        error: Exception,
     ) -> None:
-        prepare_mod_files_recorder.error = OSError("read-only file system")
+        prepare_mod_files_recorder.error = error
 
         await self.run_auto_start_lifespan(prepare_mod_files_recorder)
 
@@ -350,6 +358,7 @@ class TestLifespanAutoStart:
             if "mod_files_startup_failed" in line
         ]
         assert "read-only file system" in line
+        assert type(error).__name__ in line
 
     @pytest.mark.asyncio
     async def test_auto_start_server_enabled_and_installed(
