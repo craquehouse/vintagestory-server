@@ -11,7 +11,11 @@ from pathlib import Path
 import pytest
 from test_mod_version_change import install_existing, make_service, mod_files, snapshot
 
-from vintagestory_api.services.mods import ModFileConflictError, ModService
+from vintagestory_api.services.mods import (
+    ModFileConflictError,
+    ModFileMissingError,
+    ModService,
+)
 
 
 def stray(name: str) -> Callable[[ModService, Path], None]:
@@ -168,3 +172,91 @@ class TestEnableDisableWithoutConflict:
         state = service.state_manager.get_mod_by_slug("moda")
         assert state is not None
         assert (state.filename, state.enabled) == ("Foo.zip", True)
+
+
+def lose_own_file(service: ModService, name: str, how: str, tmp_path: Path) -> None:
+    """Remove the mod's own file by hand: deleted, or replaced by a dangling symlink."""
+    path = service.state_manager.mods_dir / name
+    path.unlink()
+    if how == "dangling-symlink":
+        path.symlink_to(tmp_path / "missing-target.zip")
+
+
+class TestOwnFileMissing:
+    """AC 13, 14 (FR222): a mod whose file was removed by hand answers MOD_FILE_MISSING."""
+
+    @pytest.mark.parametrize("how", ["deleted", "dangling-symlink"])
+    def test_disable_is_refused_and_nothing_changes(self, tmp_path: Path, how: str) -> None:
+        service = make_service(tmp_path)
+        service.set_server_running(True)
+        install_existing(service, "moda", "1.0.0", "Foo.zip")
+        lose_own_file(service, "Foo.zip", how, tmp_path)
+        before = snapshot(service)
+
+        with pytest.raises(ModFileMissingError) as raised:
+            service.disable_mod("moda")
+
+        assert (raised.value.slug, raised.value.filename) == ("moda", "Foo.zip")
+        assert raised.value.operation == "disable"
+        assert str(raised.value) == (
+            "Cannot disable 'moda': its file Foo.zip is no longer in the mods directory. "
+            "Remove the mod and install it again."
+        )
+        assert snapshot(service) == before
+        assert service.restart_state.pending_restart is False
+
+    @pytest.mark.parametrize("how", ["deleted", "dangling-symlink"])
+    def test_enable_is_refused_and_nothing_changes(self, tmp_path: Path, how: str) -> None:
+        service = make_service(tmp_path)
+        service.set_server_running(True)
+        install_existing(service, "moda", "1.0.0", "Foo.zip", enabled=False)
+        lose_own_file(service, "Foo.zip.disabled", how, tmp_path)
+        before = snapshot(service)
+
+        with pytest.raises(ModFileMissingError) as raised:
+            service.enable_mod("moda")
+
+        assert raised.value.filename == "Foo.zip.disabled"
+        assert raised.value.operation == "enable"
+        assert str(raised.value) == (
+            "Cannot enable 'moda': its file Foo.zip.disabled is no longer in the mods "
+            "directory. Remove the mod and install it again."
+        )
+        assert snapshot(service) == before
+        assert service.restart_state.pending_restart is False
+
+    def test_a_missing_file_is_reported_before_a_name_in_the_way(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip")
+        lose_own_file(service, "Foo.zip", "deleted", tmp_path)
+        stray("Foo.zip.disabled")(service, tmp_path)
+        before = snapshot(service)
+
+        with pytest.raises(ModFileMissingError):
+            service.disable_mod("moda")
+
+        assert snapshot(service) == before
+
+    def test_an_idempotent_call_still_succeeds(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        service.set_server_running(True)
+        install_existing(service, "moda", "1.0.0", "Foo.zip")
+        lose_own_file(service, "Foo.zip", "deleted", tmp_path)
+        before = snapshot(service)
+
+        result = service.enable_mod("moda")
+
+        assert (result.enabled, result.pending_restart) == (True, False)
+        assert snapshot(service) == before
+
+    @pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
+    def test_the_mod_can_still_be_removed(self, tmp_path: Path, enabled: bool) -> None:
+        service = make_service(tmp_path)
+        path = install_existing(service, "moda", "1.0.0", "Foo.zip", enabled=enabled)
+        path.unlink()
+
+        result = service.remove_mod("moda")
+
+        assert result.slug == "moda"
+        assert service.state_manager.get_mod_by_slug("moda") is None
+        assert snapshot(service)[1] == {"saved": {}, "memory": {}}

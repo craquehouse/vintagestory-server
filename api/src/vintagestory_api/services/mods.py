@@ -206,6 +206,19 @@ class ModFileConflictError(Exception):
         )
 
 
+class ModFileMissingError(Exception):
+    """Raised when a mod's own file is no longer in the mods directory (Epic 19 ADR-9)."""
+
+    def __init__(self, slug: str, filename: str, *, operation: ModFileOperation) -> None:
+        self.slug = slug
+        self.filename = filename
+        self.operation = operation
+        super().__init__(
+            f"Cannot {operation} '{slug}': its file {filename} is no longer in the mods "
+            "directory. Remove the mod and install it again."
+        )
+
+
 class ModVersionChangeFailedError(Exception):
     """Raised when placing the new file or updating state fails; the change is rolled back."""
 
@@ -763,6 +776,8 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileMissingError: The mod's own file is no longer in the mods directory
+                (Epic 19 ADR-9).
             ModFileConflictError: The enabled file name is taken in the mods directory or
                 the mod state, ignoring case (Epic 19 ADR-8).
         """
@@ -783,6 +798,10 @@ class ModService:
         new_filename = state.filename.removesuffix(".disabled")
         new_path = self._state_manager.mods_dir / new_filename
 
+        # A file removed by hand cannot be renamed (Epic 19 ADR-9); a directory or a
+        # dangling symlink under the name counts as missing
+        if not old_path.is_file():
+            raise ModFileMissingError(slug, state.filename, operation="enable")
         # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
         self._refuse_taken_names(slug, (new_filename,), state.filename, "enable")
         old_path.rename(new_path)
@@ -825,6 +844,8 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileMissingError: The mod's own file is no longer in the mods directory
+                (Epic 19 ADR-9).
             ModFileConflictError: The disabled file name is taken in the mods directory or
                 the mod state, ignoring case (Epic 19 ADR-8).
         """
@@ -845,6 +866,10 @@ class ModService:
         new_filename = state.filename + ".disabled"
         new_path = self._state_manager.mods_dir / new_filename
 
+        # A file removed by hand cannot be renamed (Epic 19 ADR-9); a directory or a
+        # dangling symlink under the name counts as missing
+        if not old_path.is_file():
+            raise ModFileMissingError(slug, state.filename, operation="disable")
         # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
         self._refuse_taken_names(slug, (new_filename,), state.filename, "disable")
         old_path.rename(new_path)

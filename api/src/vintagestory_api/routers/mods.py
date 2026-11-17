@@ -41,6 +41,7 @@ from vintagestory_api.services.mods import (
     ModAlreadyInstalledError,
     ModConfirmationRequiredError,
     ModFileConflictError,
+    ModFileMissingError,
     ModNotFoundError,
     ModOperationInProgressError,
     ModService,
@@ -881,6 +882,8 @@ async def enable_mod(
         HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 409 if the name the file would be renamed to is taken in the mods
             directory or the mod state (MOD_FILE_CONFLICT)
+        HTTPException: 409 if the mod's own file is no longer in the mods directory
+            (MOD_FILE_MISSING)
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -931,6 +934,15 @@ async def enable_mod(
             },
         )
 
+    except ModFileMissingError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_MISSING,
+                "message": str(e),
+            },
+        )
+
 
 @router.post("/{slug}/disable", response_model=ApiResponse)
 async def disable_mod(
@@ -968,6 +980,8 @@ async def disable_mod(
         HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 409 if the name the file would be renamed to is taken in the mods
             directory or the mod state (MOD_FILE_CONFLICT)
+        HTTPException: 409 if the mod's own file is no longer in the mods directory
+            (MOD_FILE_MISSING)
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -1014,6 +1028,15 @@ async def disable_mod(
             status_code=409,
             detail={
                 "code": ErrorCode.MOD_FILE_CONFLICT,
+                "message": str(e),
+            },
+        )
+
+    except ModFileMissingError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_MISSING,
                 "message": str(e),
             },
         )

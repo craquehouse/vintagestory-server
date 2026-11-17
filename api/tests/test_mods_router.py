@@ -1453,6 +1453,45 @@ class TestDisableModEndpoint:
         ]
         assert client.get("/api/v1alpha1/mods", headers=admin_headers).json() == listing
 
+    @pytest.mark.parametrize(
+        ("action", "on_disk"),
+        [("disable", "testmod_1.0.0.zip"), ("enable", "testmod_1.0.0.zip.disabled")],
+    )
+    def test_a_mod_whose_file_is_gone_returns_409_and_can_be_removed(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+        action: str,
+        on_disk: str,
+    ) -> None:
+        """Story 19.4 AC 13, 14 (FR222): never a 500; the mod can still be removed."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / on_disk, {"modid": "testmod", "name": "Test", "version": "1.0.0"}
+        )
+        mod_service.state_manager.sync_state_with_disk()
+        (mods_dir / on_disk).unlink()
+        listing = client.get("/api/v1alpha1/mods", headers=admin_headers).json()
+
+        response = client.post(f"/api/v1alpha1/mods/testmod/{action}", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_FILE_MISSING",
+                "message": (
+                    f"Cannot {action} 'testmod': its file {on_disk} is no longer in the mods "
+                    "directory. Remove the mod and install it again."
+                ),
+            }
+        }
+        assert client.get("/api/v1alpha1/mods", headers=admin_headers).json() == listing
+        removed = client.delete("/api/v1alpha1/mods/testmod", headers=admin_headers)
+        assert removed.status_code == 200
+        assert mod_service.state_manager.get_mod_by_slug("testmod") is None
+
 
 class TestRemoveModEndpoint:
     """Tests for DELETE /api/v1alpha1/mods/{slug} endpoint."""
