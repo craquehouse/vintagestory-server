@@ -856,9 +856,12 @@ class TestConfigureLoggingContextVars:
 class TestDebugStateManagement:
     """Tests for debug state initialization and toggling."""
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def fresh_debug_state(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Start from a process that has not initialised its debug state yet."""
+        """Start from a process that has not initialised its debug state yet.
+
+        monkeypatch restores the module's state after each test.
+        """
         monkeypatch.setattr(config_module, "_debug_enabled", False)
         monkeypatch.setattr(config_module, "_debug_initialized", False)
         monkeypatch.setattr(config_module, "_configured_log_level", None)
@@ -866,7 +869,7 @@ class TestDebugStateManagement:
 
     @pytest.mark.parametrize("value", ["true", "1", "yes", "on"])
     def test_initialize_debug_state_from_settings_true(
-        self, fresh_debug_state: None, monkeypatch: pytest.MonkeyPatch, value: str
+        self, monkeypatch: pytest.MonkeyPatch, value: str
     ) -> None:
         """VS_DEBUG is parsed once, by the settings; every true spelling turns debug on."""
         monkeypatch.setenv("VS_DEBUG", value)
@@ -878,7 +881,7 @@ class TestDebugStateManagement:
         assert current_log_level() == "DEBUG"
 
     def test_initialize_debug_state_from_settings_false(
-        self, fresh_debug_state: None, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """VS_DEBUG=false leaves debug off at INFO."""
         monkeypatch.setenv("VS_DEBUG", "false")
@@ -889,7 +892,7 @@ class TestDebugStateManagement:
         assert is_debug_enabled() is False
         assert current_log_level() == "INFO"
 
-    def test_initialize_debug_state_idempotent(self, fresh_debug_state: None) -> None:
+    def test_initialize_debug_state_idempotent(self) -> None:
         """initialize_debug_state only runs once; the first call wins."""
         initialize_debug_state(True, None)
         first_state = is_debug_enabled()
@@ -901,9 +904,7 @@ class TestDebugStateManagement:
 
     def test_set_debug_enabled_toggle_on(self) -> None:
         """set_debug_enabled toggles debug mode on."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = False
+        initialize_debug_state(False, None)
 
         result = set_debug_enabled(True)
 
@@ -912,16 +913,14 @@ class TestDebugStateManagement:
 
     def test_set_debug_enabled_toggle_off(self) -> None:
         """set_debug_enabled toggles debug mode off."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = True
+        initialize_debug_state(True, None)
 
         result = set_debug_enabled(False)
 
         assert result is True  # State changed
         assert is_debug_enabled() is False
 
-    def test_set_debug_enabled_no_change(self, fresh_debug_state: None) -> None:
+    def test_set_debug_enabled_no_change(self) -> None:
         """set_debug_enabled returns False when state doesn't change."""
         initialize_debug_state(True, None)
 
@@ -930,15 +929,13 @@ class TestDebugStateManagement:
         assert result is False  # State unchanged
         assert is_debug_enabled() is True
 
-    def test_get_current_debug_setting(self) -> None:
+    def test_get_current_debug_setting(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """get_current_debug_setting returns current debug state (deprecated)."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = True
+        monkeypatch.setattr(config_module, "_debug_enabled", True)
 
         assert get_current_debug_setting() is True
 
-        config_module._debug_enabled = False
+        monkeypatch.setattr(config_module, "_debug_enabled", False)
         assert get_current_debug_setting() is False
 
 

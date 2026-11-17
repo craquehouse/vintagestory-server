@@ -218,13 +218,9 @@ class TestConfiguredLogLevel:
         assert current_log_level() == "WARNING"
 
 
+@pytest.mark.usefixtures("fresh_debug_state")
 class TestRuntimeDebugToggleBehavior:
     """Integration tests for runtime debug toggle behavior."""
-
-    def setup_method(self) -> None:
-        """Reset module state before each test."""
-        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
-        config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
 
     def test_debug_logs_appear_after_enabling(self) -> None:
         """Debug logs appear after debug is enabled at runtime.
@@ -236,6 +232,7 @@ class TestRuntimeDebugToggleBehavior:
         log_output = StringIO()
 
         # Start with debug=false
+        initialize_debug_state(False, None)
         configure_logging(debug=False)
 
         # Reconfigure structlog with our output capture (INFO level)
@@ -292,7 +289,7 @@ class TestRuntimeDebugToggleBehavior:
         log_output = StringIO()
 
         # Start with debug=true
-        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        initialize_debug_state(True, None)
 
         structlog.configure(
             processors=[

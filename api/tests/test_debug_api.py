@@ -10,7 +10,12 @@ from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not
 from fastapi.testclient import TestClient
 
 import vintagestory_api.config as config_module
-from vintagestory_api.config import Settings, current_log_level, initialize_debug_state
+from vintagestory_api.config import (
+    Settings,
+    current_log_level,
+    initialize_debug_state,
+    is_debug_enabled,
+)
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 
@@ -119,7 +124,7 @@ class TestDebugEnableEndpoint:
         assert data["data"]["changed"] is True
 
         # Verify state was actually changed
-        assert config_module._debug_enabled is True  # pyright: ignore[reportPrivateUsage]
+        assert is_debug_enabled() is True
 
     def test_enable_debug_already_enabled(
         self, admin_client: TestClient, monkeypatch: pytest.MonkeyPatch
@@ -165,7 +170,9 @@ class TestDebugEnableEndpoint:
 class TestDebugDisableEndpoint:
     """Tests for POST /api/v1alpha1/debug/disable endpoint."""
 
-    def test_disable_debug_admin(self, admin_client: TestClient) -> None:
+    def test_disable_debug_admin(
+        self, admin_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Admin can disable debug logging.
 
         Given an authenticated admin user
@@ -174,7 +181,8 @@ class TestDebugDisableEndpoint:
         Then debug logging is disabled
         And response indicates change occurred
         """
-        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        monkeypatch.setattr(config_module, "_debug_enabled", True)
+        monkeypatch.setattr(config_module, "_current_log_level", "DEBUG")
 
         response = admin_client.post("/api/v1alpha1/debug/disable")
         assert response.status_code == 200
@@ -185,7 +193,7 @@ class TestDebugDisableEndpoint:
         assert data["data"]["changed"] is True
 
         # Verify state was actually changed
-        assert config_module._debug_enabled is False  # pyright: ignore[reportPrivateUsage]
+        assert is_debug_enabled() is False
 
     def test_disable_debug_already_disabled(self, admin_client: TestClient) -> None:
         """Disable debug when already disabled returns changed=False.
