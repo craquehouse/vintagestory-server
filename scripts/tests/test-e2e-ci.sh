@@ -73,6 +73,56 @@ assert_eq "the new-directory spec names the script's container" "$script_contain
 assert_eq "the script still sets VS_DATA_DIR=/data" "1" \
     "$(grep -cE '^ +-e VS_DATA_DIR=/data \\$' "$e2e_script" 2>/dev/null)"
 
+# The recorded mod database answers the second pass replays (Story 20.6 AC 12): the manifest
+# names every recording once, each with its date and the specs that need it, and the
+# answers were not rewritten
+moddb_dir="$ROOT/web/e2e/fixtures/moddb"
+moddb_problems=$(python3 - "$moddb_dir" "$ROOT/web/e2e" <<'PY'
+import json, re, sys
+from pathlib import Path
+
+moddb, specs = Path(sys.argv[1]), Path(sys.argv[2])
+problems = []
+try:
+    manifest = json.loads((moddb / "manifest.json").read_text())
+    entries = manifest["requests"]
+except Exception as e:
+    print(f"the manifest does not parse: {e}")
+    sys.exit()
+named = []
+for entry in entries:
+    request = entry.get("request", "?")
+    for key in ("request", "file", "trim"):
+        if not isinstance(entry.get(key), str) or not entry[key]:
+            problems.append(f"{request}: no {key}")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(entry.get("recorded", ""))):
+        problems.append(f"{request}: recorded is not YYYY-MM-DD")
+    if not entry.get("specs"):
+        problems.append(f"{request}: names no spec")
+    for spec in entry.get("specs", []):
+        if not (specs / f"{spec}.spec.ts").is_file():
+            problems.append(f"{request}: no spec web/e2e/{spec}.spec.ts")
+    name = entry.get("file", "")
+    named.append(name)
+    try:
+        body = (moddb / name).read_text()
+        json.loads(body)
+    except Exception:
+        problems.append(f"{request}: {name} is missing or does not parse")
+        continue
+    for address in ("vintagestory-moddb-replay-e2e", "localhost", "127.0.0.1"):
+        if address in body:
+            problems.append(f"{name} holds {address}")
+    if entry.get("trim") == "listing" and len(json.loads(body).get("mods", [])) < 41:
+        problems.append(f"{name} holds fewer than 41 mods")
+for path in sorted(moddb.glob("*.json")):
+    if path.name != "manifest.json" and named.count(path.name) != 1:
+        problems.append(f"{path.name} is named {named.count(path.name)} times in the manifest")
+print("\n".join(problems))
+PY
+)
+assert_eq "the mod database recordings match their manifest" "" "$moddb_problems"
+
 # The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
 ci="$ROOT/.github/workflows/ci.yml"
 assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"

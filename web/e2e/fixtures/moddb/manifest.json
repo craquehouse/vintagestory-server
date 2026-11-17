@@ -1,0 +1,91 @@
+{
+  "source": "https://mods.vintagestory.at",
+  "listing": {
+    "keep_slugs": [
+      "carryon",
+      "instruments",
+      "canjewelry",
+      "betterruins"
+    ],
+    "keep_terms": [
+      "food",
+      "farm",
+      "carry",
+      "jewelry",
+      "instruments"
+    ]
+  },
+  "requests": [
+    {
+      "request": "/api/mods",
+      "file": "api-mods.json",
+      "trim": "listing",
+      "recorded": "2026-11-17",
+      "specs": [
+        "install-file-conflict",
+        "installed-status",
+        "mod-browse-name-sort",
+        "mod-browse-state",
+        "mod-detail-bad-data",
+        "mod-install-release",
+        "mods-navigation"
+      ]
+    },
+    {
+      "request": "/api/gameversions",
+      "file": "api-gameversions.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mod-browse-state"
+      ]
+    },
+    {
+      "request": "/api/mods?gameversion=-281569466515455",
+      "file": "api-mods-gameversion-1.22.7.json",
+      "trim": "listing-subset",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mod-browse-state"
+      ]
+    },
+    {
+      "request": "/api/mod/carryon",
+      "file": "api-mod-carryon.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "install-file-conflict",
+        "mod-install-release"
+      ]
+    },
+    {
+      "request": "/api/mod/instruments",
+      "file": "api-mod-instruments.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "installed-mod-any-modid",
+        "mod-install-release"
+      ]
+    },
+    {
+      "request": "/api/mod/canjewelry",
+      "file": "api-mod-canjewelry.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mod-detail-bad-data"
+      ]
+    },
+    {
+      "request": "/api/mod/betterruins",
+      "file": "api-mod-betterruins.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mod-detail-media"
+      ]
+    }
+  ]
+}

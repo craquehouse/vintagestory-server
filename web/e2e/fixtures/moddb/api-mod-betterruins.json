@@ -1,0 +1,1351 @@
+{
+ "mod": {
+  "modid": 792,
+  "assetid": 3829,
+  "name": "BetterRuins",
+  "text": "<div style=\"font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.7; color: #2f312b; max-width: 1200px; margin: 0 auto; background: linear-gradient(180deg, #f6f3ea 0%, #efe9dc 100%); padding: 28px; border: 1px solid #d9d2c3; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);\"><h2 style=\"text-align: center; margin: 0 0 18px; font-size: 1.6em; line-height: 1.2; color: #3a342c; letter-spacing: 0.3px;\">BetterRuins Team</h2>\n<p style=\"margin: 0 0 20px;\"><a href=\"https://betterruins.org/\" target=\"_blank\" rel=\"noopener\"><img style=\"max-width: 100%; height: auto; border-radius: 10px;\" src=\"https://github.com/NicIAss/niclass-images/blob/main/betterruins/collab/CollabSelfieBetterRuins.png?raw=true\" alt=\"\" width=\"100%\"></a></p>\n<p style=\"margin: 0 0 14px; font-size: 1em; line-height: 1.8; color: #3a342c;\">BetterRuins expands your world with a large variety of handcrafted ruins, hidden places, story locations, loot spots, and atmospheric discoveries.</p>\n<p style=\"margin: 0 0 14px; font-size: 1em; line-height: 1.8; color: #3a342c;\">Instead of making exploration feel repetitive, the mod aims to make every journey more interesting by adding structures that feel rewarding to find and worth checking out.</p>\n<p style=\"margin: 0 0 14px; font-size: 1em; line-height: 1.8; color: #3a342c;\">You can discover everything from small ruins and underground passages to larger landmarks, story-related locations, unique loot, blueprints, and lore that adds more depth to the world.</p>\n<p style=\"margin: 0; font-size: 1em; line-height: 1.8; color: #3a342c;\">BetterRuins is built for players who enjoy exploration, worldbuilding, and finding meaningful content across survival worlds, whether playing alone or on a server.</p>\n<div style=\"display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0;\"><a style=\"flex: 1 1 calc(25% - 9px); min-width: 220px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 18px; box-sizing: border-box; background: linear-gradient(180deg, #f7f3eb 0%, #eee7da 100%); border: 1px solid #d7cfbf; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); color: #3a342c; text-decoration: none; font-size: 0.98em; font-weight: 600; line-height: 1.2;\" href=\"https://discord.gg/3PZ3qSZvEW\" target=\"_blank\" rel=\"noopener\"> <span style=\"width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px;\"> <img style=\"width: 22px; height: 22px; object-fit: contain; display: block;\" src=\"https://github.com/NicIAss/niclass-images/blob/main/betterruins/moddbwebsite_icons/discord.png?raw=true\" alt=\"Discord\"> </span> <span style=\"white-space: nowrap;\">Join our Discord</span> </a> <a style=\"flex: 1 1 calc(25% - 9px); min-width: 220px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 18px; box-sizing: border-box; background: linear-gradient(180deg, #f7f3eb 0%, #eee7da 100%); border: 1px solid #d7cfbf; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); color: #3a342c; text-decoration: none; font-size: 0.98em; font-weight: 600; line-height: 1.2;\" href=\"https://betterruins.org/\" target=\"_blank\" rel=\"noopener\"> <span style=\"width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px;\"> <img style=\"width: 22px; height: 22px; object-fit: contain; display: block;\" src=\"https://repository-images.githubusercontent.com/528759319/91be7665-7562-4d2b-99b8-cdd02b826193\" alt=\"GitHub Wiki\"> </span> <span style=\"white-space: nowrap;\">Wiki</span> </a> <a style=\"flex: 1 1 calc(25% - 9px); min-width: 220px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 18px; box-sizing: border-box; background: linear-gradient(180deg, #f7f3eb 0%, #eee7da 100%); border: 1px solid #d7cfbf; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); color: #3a342c; text-decoration: none; font-size: 0.98em; font-weight: 600; line-height: 1.2;\" href=\"https://github.com/AreYSerious/betterruins/issues\" target=\"_blank\" rel=\"noopener\"> <span style=\"width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px;\"> <img style=\"width: 22px; height: 22px; object-fit: contain; display: block;\" src=\"https://github.com/NicIAss/niclass-images/blob/main/betterruins/moddbwebsite_icons/github.png?raw=true\" alt=\"Issue Tracker\"> </span> <span style=\"white-space: nowrap;\">Issue Tracker</span> </a> <a style=\"flex: 1 1 calc(25% - 9px); min-width: 220px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 18px; box-sizing: border-box; background: linear-gradient(180deg, #f7f3eb 0%, #eee7da 100%); border: 1px solid #d7cfbf; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); color: #3a342c; text-decoration: none; font-size: 0.98em; font-weight: 600; line-height: 1.2;\" href=\"https://github.com/AreYSerious/betterruins\" target=\"_blank\" rel=\"noopener\"> <span style=\"width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px;\"> <img style=\"width: 22px; height: 22px; object-fit: contain; display: block;\" src=\"https://github.com/NicIAss/niclass-images/blob/main/betterruins/moddbwebsite_icons/github.png?raw=true\" alt=\"Source Repo\"> </span> <span style=\"white-space: nowrap;\">Source Repo</span> </a></div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">✨ Features</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 12px;\"><strong>Structures</strong><br>Adds over 600 new structures to the world, from small ruins and graves to larger landmarks, underground areas, villages, story locations, and other points of interest.</p>\n<p style=\"margin: 0 0 12px;\"><strong>Story content</strong><br>Includes unique story locations with maps, trader dialogue, connected structures, and exploration-focused progression with worthwhile rewards.</p>\n<p style=\"margin: 0 0 12px;\"><strong>Blueprints</strong><br>Adds collectible blueprints that unlock special crafting options for rare, useful, or otherwise unobtainable blocks and items.</p>\n<p style=\"margin: 0 0 12px;\"><strong>Lore</strong><br>Many locations include custom lore and worldbuilding elements to make exploration feel more immersive and connected to the world.</p>\n<p style=\"margin: 0 0 12px;\"><strong>Loot</strong><br>Expands loot with valuable, useful, and unusual rewards that make exploration more interesting throughout the game.</p>\n<p style=\"margin: 0 0 12px;\"><strong>Compatibility</strong><br>Works alongside many landform and content mods, while also supporting modded loot integration in many places.</p>\n<p style=\"margin: 0;\"><strong>Configurable</strong><br>A lot of features can be adjusted to better fit your world, server setup, and preferred exploration experience.</p>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 16px 0;\"><strong>Note:</strong> To configure this mod you need to install <a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://mods.vintagestory.at/configlib\" target=\"_blank\" rel=\"noopener\">ConfigLib</a> and <a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://mods.vintagestory.at/imgui\" target=\"_blank\" rel=\"noopener\">ImGui</a>. You will not have access to the configuration options otherwise.</div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">📢 Latest Content Showcases</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<div style=\"display: flex; flex-wrap: wrap; gap: 12px;\"><iframe src=\"//www.youtube-nocookie.com/embed/mpno8Ev6xhA\" width=\"320\" height=\"158\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe><iframe src=\"//www.youtube-nocookie.com/embed/fA4rVg1MDwo\" width=\"320\" height=\"158\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe> <iframe src=\"//www.youtube-nocookie.com/embed/tW9ryJCYL9U\" width=\"320\" height=\"158\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe> <iframe src=\"//www.youtube-nocookie.com/embed/hwmDb91vt58\" width=\"320\" height=\"158\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe></div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">🛠 Installing or Updating on existing worlds and servers</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 12px;\">BetterRuins can be added to existing worlds and updated later, but newly added or changed content will only appear in chunks generated after installation or update.</p>\n<p style=\"margin: 0 0 12px;\">If the location of a newly added story location is blocked by already generated terrain, you may have to do some manual cleanup or adjustments like this:</p>\n<p style=\"margin: 0 0 12px;\"><img style=\"max-width: 100%; height: auto; border-radius: 10px; border: 1px solid #d8cfbf;\" src=\"https://i.imgur.com/QfGvPz9.png\" alt=\"Example\" width=\"700\"></p>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">⭐ Mod Compatibility</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.95em; line-height: 1.75; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<div style=\"background: #f4d3d3; border-left: 5px solid #cd3322; border-radius: 10px; padding: 16px 18px; margin: 0 0 20px; color: #4a2d2d; font-size: 0.96em; box-shadow: inset 0 0 0 1px #dcc0c0;\">\n<div style=\"font-weight: bold; font-size: 1.05em; margin-bottom: 6px;\"><strong>Warning:</strong></div>\n<div>Due to missing compatibility patches, using <a style=\"color: #0066cc; text-decoration: none;\" href=\"https://mods.vintagestory.at/rivergen\" target=\"_blank\" rel=\"noopener\">RiverGen</a> alongside BetterRuins updates on existing worlds is risky. Significant terrain glitches or \"cliff\" chunk borders may occur if vanilla or BetterRuins updates change story structure generation. <br>To prevent world corruption or ugly borders, always back up your save and manually inspect new chunk transitions after updating vanilla or BetterRuins.</div>\n</div>\n<div style=\"background: #d3f4da; border-left: 5px solid #22cd41; border-radius: 10px; padding: 16px 18px; margin: 0 0 20px; color: #2d4a2d; font-size: 0.96em; box-shadow: inset 0 0 0 1px #c0dcc4;\">\n<div style=\"font-weight: bold; font-size: 1.05em; margin-bottom: 6px;\"><strong>Note:</strong></div>\n<div>The original <a style=\"color: #0066cc; text-decoration: none;\" href=\"https://mods.vintagestory.at/rivers\" target=\"_blank\" rel=\"noopener\">Rivers Mod</a> is unaffected, as it already includes a fix for these versioning issues.</div>\n</div>\n<p>Any mod that touches landforms will affect how story locations generate because they change the landforms that those story locations are depending on. BetterRuins adds compatibility patches to its story locations for all known landform mods to allow them to generate as good as possible. Some landform mods have more fitting landforms for story locations than others so keep that in mind.</p>\n<ul style=\"margin: 0 0 14px; padding-left: 22px;\">\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/fieldsandplateaus\" target=\"_blank\" rel=\"noopener\">FieldsAndPlateaus</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/plainsandvalleys\" target=\"_blank\" rel=\"noopener\">PlainsAndValleys</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/vanillaplus\" target=\"_blank\" rel=\"noopener\">Vanilla_PlusWorldGen</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/worldgenfix\" target=\"_blank\" rel=\"noopener\">Worldgenfix</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/worldgenfixremix\" target=\"_blank\" rel=\"noopener\">Worldgenfixremix</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/conquestlandformoverhaul\" target=\"_blank\" rel=\"noopener\">Conquest Landform Overhaul</a>:</strong> Compatible</li>\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/terraprety\" target=\"_blank\" rel=\"noopener\">TerraPrety</a>:</strong> Compatible but not ideal terrain gen for story locations</li>\n</ul>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 16px 0;\"><strong>Optional Mod Compatibility</strong>\n<ul style=\"margin: 8px 0 0; padding-left: 22px;\">\n<li><strong><a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/primitivesurvival\" target=\"_blank\" rel=\"noopener\">Primitive Survival</a>:</strong> Primitive Survival loot in BetterRuins</li>\n</ul>\n</div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">🏛️ Our Vision</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 12px;\">BetterRuins is more than just a content mod. The idea behind it is to create a project where builders can share their work in a way that feels naturally integrated into the world and can be experienced by all players during normal gameplay.</p>\n<p style=\"margin: 0 0 12px;\">A big part of the mod comes from hobby builders and creative people who contribute whenever they feel inspired. Most contributions are driven by self-motivation, personal ideas, and the wish to create something memorable for others to discover.</p>\n<p style=\"margin: 0 0 12px;\">At the same time, community feedback plays a huge role in pushing the project forward. Player reactions, suggestions, and support help shape new ideas, improvements, and future additions. Being one of the most popular mods also gives the project visibility that helps it keep growing.</p>\n<p style=\"margin: 0 0 12px;\">We try to keep the team open and approachable, so joining the project is relatively easy for people who want to contribute with building, ideas, testing, writing, or other creative work.</p>\n<p style=\"margin: 0 0 12px;\">Most of the coordination happens through our Discord, where we organize tasks, discuss ideas, review progress, and manage the many details behind the scenes. We also use our creative server as the main place where a lot of structures are planned, built, and refined together.</p>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 16px 0;\"><strong>Contributors:</strong> Everyone who has contributed to BetterRuins is credited at the top of this page. Without this team, the mod would not exist in its current form. Huge thanks to everyone who invests time, ideas, and effort into the project.</div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">❓ FAQ</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<div style=\"display: grid; gap: 12px;\">\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">What will happen if I remove the mod?</div>\n<div>All structures that have already been generated will remain in the world without any ? blocks. The main issues you might notice are missing lore entries if you collected BetterRuins lore, and blueprint items may disappear or turn into ? items.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Can I add this mod after world creation?</div>\n<div>Yes, but structures from this mod will only generate in chunks that are newly generated while the mod is active.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Can I update this mod after world creation?</div>\n<div>Yes, but new or adjusted structures will only appear in chunks generated with the updated version active. If you are using the original Rivers mod, updating is not always fully safe, so check the top of each changelog for important notes.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Why are there so many structures spawning with this mod?</div>\n<div>Structures are more likely to generate on flat and sea-level terrain. If you use a lower world height or worldgen mods like Plains and Valleys, you may need to reduce the spawn chances because structures can appear more often there.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">How do I know what I can do with the blueprints?</div>\n<div>Hover over the item in your inventory and press <strong>H</strong> to open the recipe browser for that item.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">My treasure map said “no location on map found”. Did I waste my rusty gears?</div>\n<div>Yes. This is a rare bug where no nearby structure of the required type was found, which results in an empty treasure map.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Do mobs respawn in structures, and if yes, how often?</div>\n<div>Yes. They can respawn between 3 and 8 times depending on the spawners. These spawners are invisible and remove themselves after spawning all mobs.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Will vanilla ruins still be present if I install this mod?</div>\n<div>Yes. BetterRuins and vanilla ruins will generate alongside each other.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Can I configure the mod on my server? The config UI seems to be client-side only.</div>\n<div>Yes. Server configs need to be changed directly in the server’s <code style=\"font-family: monospace; background: #ece4d7; padding: 2px 6px; border-radius: 5px;\">config</code> folder. You will find a <code style=\"font-family: monospace; background: #ece4d7; padding: 2px 6px; border-radius: 5px;\">.yaml</code> file for BetterRuins there. You can edit it with a text editor, or configure the mod in singleplayer and copy the edited <code style=\"font-family: monospace; background: #ece4d7; padding: 2px 6px; border-radius: 5px;\">.yaml</code> file over to the server.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">Why do some chests in ruins appear to be unopenable and empty?</div>\n<div>If a chest, especially one of the ruined trunk variants, cannot be opened in a BetterRuins structure, it is intended to be empty. This is not a bug, but a visual way to show abandoned or already-looted containers.</div>\n</div>\n<div style=\"background: #f5efe4; border: 1px solid #ddd2bf; border-radius: 10px; padding: 14px 16px;\">\n<div style=\"font-weight: bold; color: #3a342c; margin-bottom: 6px;\">How deep are the hidden passages marked on trader maps?</div>\n<div>They can be quite deep. If there is no teleporter inside, try digging further down — it should usually be located right below the map marker.</div>\n</div>\n</div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">⚙️ Configuration</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 12px;\">BetterRuins includes a range of configurable settings so you can adjust structure frequency, balancing, and other parts of the experience to better fit your world or server setup.</p>\n<p style=\"margin: 0 0 12px;\">To generate and edit the config through the in-game interface, you need both <a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://mods.vintagestory.at/configlib\" target=\"_blank\" rel=\"noopener\">ConfigLib</a> and <a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://mods.vintagestory.at/imgui\" target=\"_blank\" rel=\"noopener\">ImGui</a>. Without these two mods, the config file will not be generated and you will not have access to the configuration UI.</p>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 16px 0;\"><strong>Important:</strong> If you are playing on a server, the BetterRuins config needs to be changed on the server side. The in-game UI is useful for generating and editing the file, but the active settings must come from the server's config folder.</div>\n<p style=\"margin: 0 0 12px;\">A common setup is to install the required config mods in singleplayer first, generate and adjust the BetterRuins config there, and then copy the created <code style=\"font-family: monospace; background: #ece4d7; padding: 2px 6px; border-radius: 5px;\">.yaml</code> file into your server config folder.</p>\n<p style=\"margin: 0 0 12px;\">Example of the BetterRuins config file:</p>\n<p style=\"margin: 0;\"><img style=\"max-width: 100%; height: auto; border-radius: 10px; border: 1px solid #d8cfbf;\" src=\"https://i.imgur.com/fxNZT7S.png\" alt=\"BetterRuins config file example\" width=\"838\"></p>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">🎥 Useful Videos</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 14px;\">These videos can help with some of the most common BetterRuins tasks, including configuration, manually spawning structures, and working with story structures.</p>\n<div style=\"display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 16px;\">\n<div style=\"flex: 1 1 280px; max-width: 400px;\"><iframe src=\"//www.youtube-nocookie.com/embed/Ioe_u_DmbDQ\" width=\"100%\" height=\"180\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe>\n<p style=\"margin: 8px 0 0; font-size: 0.95em;\"><a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://www.youtube.com/watch?v=Ioe_u_DmbDQ\" target=\"_blank\" rel=\"noopener\">Configuring BetterRuins with ConfigLib</a></p>\n</div>\n<div style=\"flex: 1 1 280px; max-width: 400px;\"><iframe src=\"//www.youtube-nocookie.com/embed/T5ijHVoIUbA\" width=\"100%\" height=\"180\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe>\n<p style=\"margin: 8px 0 0; font-size: 0.95em;\"><a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://www.youtube.com/watch?v=T5ijHVoIUbA\" target=\"_blank\" rel=\"noopener\">Manually spawning structures</a></p>\n</div>\n<div style=\"flex: 1 1 280px; max-width: 400px;\"><iframe src=\"//www.youtube-nocookie.com/embed/_LwwLJAwImw\" width=\"100%\" height=\"180\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe>\n<p style=\"margin: 8px 0 0; font-size: 0.95em;\"><a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://www.youtube.com/watch?v=_LwwLJAwImw\" target=\"_blank\" rel=\"noopener\">Regenerating and moving storystructures</a></p>\n</div>\n</div>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 0;\"><strong>Tip:</strong> These are especially useful if you are setting up BetterRuins for admin work on servers, setting up the mod for the first time for specific settings, testing structures, or adjusting your world after an update.</div>\n</div>\n</div>\n<div class=\"spoiler\" style=\"margin: 24px 0; border: 1px solid #d7cfbf; border-radius: 12px; overflow: hidden; background: #faf7f0; box-shadow: 0 4px 14px rgba(0,0,0,0.04);\">\n<div class=\"spoiler-toggle\" style=\"padding: 14px 18px; background: linear-gradient(180deg, #e7dece 0%, #ddd2be 100%); font-size: 1.02em; font-weight: bold; color: #3a342c;\">🌍 Translation</div>\n<div class=\"spoiler-text\" style=\"padding: 18px 20px; font-size: 0.96em; line-height: 1.8; color: #35352f; border-top: 1px solid #ddd3c2; background: #faf7f0;\">\n<p style=\"margin: 0 0 14px;\">BetterRuins is supported by community translations to make the mod more accessible for players across different languages.</p>\n<p style=\"margin: 0 0 14px;\"><strong>Translators:</strong><br>Xandoria, macoto_hino, Yanazake, Knave2000, Grigoriewich, Jefferzon, Srloboalbino, Vilderos, Adrian Misiak, hellcatcher228, Richard Rokyta, Japuk, RomainOdeval, Justice_shrimp, FoxMage3243, correobasuratx, Kiroyoku Kiara, DejVIIK</p>\n<div style=\"background: #f1ebdf; border-left: 4px solid #a88d55; padding: 12px 14px; border-radius: 8px; margin: 16px 0;\"><strong>Thank you:</strong> Huge thanks to all translation contributors for helping make BetterRuins available to more players. Translating and keeping entries updated takes time and effort, and every contribution helps.</div>\n<p style=\"margin: 0 0 14px;\">If you want to help as well, you can contribute through the public Crowdin web editor:</p>\n<p style=\"margin: 0;\"><a style=\"color: #2f6db3; text-decoration: none; font-weight: 600;\" href=\"https://crowdin.com/translate/vintage-story-mods/329\" target=\"_blank\" rel=\"noopener\"> Open the BetterRuins translation project on Crowdin </a></p>\n</div>\n</div>\n<p style=\"margin: 18px 0 0; text-align: right; font-size: 0.6em; color: #7a7468;\">Moddb Page design inspired by <a style=\"color: #2f6db3; text-decoration: none;\" href=\"https://mods.vintagestory.at/algernonswatersheds\" target=\"_blank\" rel=\"noopener\"> Algernon's Watersheds </a></p>\n<div style=\"display: none;\">Keywords: betterruins, better ruins, Ruins mod, Structures mod, Buildings mod, Exploration mod, Worldgen mod, World generation mod, Terrain mod, Environment mod, Adventure mod, Loot mod, Treasure mod, More ruins, Improved ruins, Enhanced ruins, Varied ruins, Different ruins, Unique ruins, Interesting ruins, Random ruins, Procedural ruins, Natural ruins, Realistic ruins, Immersive ruins, Lore structures, Historical buildings, Ancient ruins, Old structures, Abandoned places, Overworld structures, Underground ruins, Remains, Relics, Sites, Discovery mod, Procedural generation structures, Random world structures, Exploration and discovery mod, World expansion mod, worldgen mods, exploration mods, building mods, adventure mods, lore mods</div></div>",
+  "author": "NiclAss",
+  "urlalias": "betterruins",
+  "logofilename": "https://moddbcdn.vintagestory.at/BetterRuinsmoddbicon_021a6a8838be7058c2ab618ce0097224_480_320.png",
+  "logofile": "https://moddbcdn.vintagestory.at/BetterRuinsmoddbicon_021a6a8838be7058c2ab618ce0097224_480_320.png",
+  "logofiledb": "https://moddbcdn.vintagestory.at/BetterRuinsmoddbicon_021a6a8838be7058c2ab618ce0097224.png",
+  "homepageurl": "https://discord.gg/3PZ3qSZvEW",
+  "sourcecodeurl": "https://github.com/AreYSerious/betterruins",
+  "trailervideourl": "https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM",
+  "issuetrackerurl": "https://github.com/AreYSerious/betterruins/issues",
+  "wikiurl": "https://betterruins.org/",
+  "downloads": 1239273,
+  "follows": 8639,
+  "trendingpoints": 1,
+  "comments": 1539,
+  "side": "both",
+  "type": "mod",
+  "created": "2022-08-21 17:56:11",
+  "lastreleased": "2026-09-20 20:42:49",
+  "lastmodified": "2026-11-17 16:40:26",
+  "tags": [
+   "Worldgen",
+   "Crafting",
+   "Structures",
+   "Story",
+   "Lore",
+   "Travel & Exploration",
+   "Exploration"
+  ],
+  "releases": [
+   {
+    "releaseid": 57748,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.4_bb48a341ebae096d314f0e77088ccccc.zip?dl=BetterRuinsv0.6.4.zip",
+    "filename": "BetterRuinsv0.6.4.zip",
+    "fileid": 123882,
+    "downloads": 56011,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.4",
+    "created": "2026-09-20 20:18:45",
+    "changelog": "<p>Check the updating on a existing world section on this moddb page for useful relevant infos if this applies to you.<br /><br />For River mods user be sure to check carefully with backups if you can update to this version. Especially check chunk borders between old and new chunks after installing this mod. This only goes for River mods users aswell as other high impact worldgen mods that have issues with new storystructures being added to the game.</p>\n<p>Marked as compatible with only 1.22.7 but will work with earlier versions bcs vanilla only recently added support for cabinets in structures so if you run lower versions you can run into incorrectly rotated cabinets.</p>\n<p><br /><a href=\"https://youtu.be/-XQlwE4Fs1c\">https://youtu.be/-XQlwE4Fs1c</a><br /><br />Content: New story structure Forgotten Village by Ogdred and dialogue by quilladile<br />Content: New megastructure Mountain Castle by Ogdred<br />Content: New megastructure Underground Castle by Ogdred<br />Content: New Waystone by yapludepatte<br />Content: Support for new config library IMM</p>\n<p>Tweak: Quenched tools not accepted by trader quests. Changed iron pickaxe to blackbronze pickaxe and changed meteoric iron knife to silver knife https://github.com/NicIAss/betterruins/issues/146<br />Tweak: Updated Configlib and Configkit config patches<br />Tweak: Small megastructure spawn pool rebalances<br />Tweak: Removed 4 medium ruins (outdated and replaced by more up to date structures)<br />Tweak: Reduced locust amount in one of the visingsborg megastructures https://github.com/NicIAss/betterruins/issues/147<br />Tweak: Adjusted thatch roof recipes and reduced output quantity<br />Tweak: Removed Hidden Passage map from treasure hunter tradelist</p>\n<p>Fix: Blueprints for compatible mods getting consumed https://github.com/NicIAss/betterruins/issues/148<br />Fix: Placed missing filler blocks in coalmine<br />Fix: One of pars village ruins was missing loot in a reed basket<br />Fix: 1 Mediumruin had old wood block inside which are now replaced with the new counterparts.<br />Fix: Reexport of a translocator structure<br />Fix: Resolved some missing filler blocks for The Panopticon<br />Fix: Moved the Map marker for Forlorn Bastion to be on the entrance not structure center.<br />Fix: Oillamp got bugged in a wolfstone castle.</p>\n<p>Compatibility: With Specialized Classes excluding figureheads from handbook<br />Compatibility: With Bricklayers recent Recycle Recipes (for copperroofing, shingles, slateroofing)</p>"
+   },
+   {
+    "releaseid": 45652,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.3_1fbd3d79afa741b377a937b37d8b5f01.zip?dl=BetterRuinsv0.6.3.zip",
+    "filename": "BetterRuinsv0.6.3.zip",
+    "fileid": 100357,
+    "downloads": 161147,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.3",
+    "created": "2026-06-13 11:54:42",
+    "changelog": "<p>Content: New chiselwork and overall underground redesign of the huaca story structure for a even bigger excavation project<br />Content: New largeruin TinkerBakery by shikitochi (Rework and move from medium to large ruin)<br />Content: New mediumruin by ShikiTochi an old Seraph Camp</p>\n<p>Tweak: Changed the issue tracker template on github<br />Tweak: Split up Vanilla and Betterruins global spawn rate sliders so they can be adjusted individually<br />Tweak: Readded a ifoz ruin which got moved from village to mediumruins generation<br />Tweak: Recipe changes to make it more compatible with mods that add new stone/wood/metals.</p>\n<p>Fix: Teleporter in mansion not linked to the correct coordinates<br />Fix: 1 mediumruin dropping its chiseled blocks while it should drop loose stones</p>"
+   },
+   {
+    "releaseid": 42147,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.2_b7314624c68b0bac347164a45365ba81.zip?dl=BetterRuinsv0.6.2.zip",
+    "filename": "BetterRuinsv0.6.2.zip",
+    "fileid": 93245,
+    "downloads": 57716,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.2",
+    "created": "2026-05-17 15:36:35",
+    "changelog": "<p>Content: Updated Lang files ty for everyone translating</p>\n<p>Tweak: Small spawn chance changes to multiple structures</p>\n<p>Fix: Crashing in virrnos desert monolith when looking at the rotten cheese ontop of the cheese spire. https://github.com/NicIAss/betterruins/issues/137<br />Fix: Shoppingcentre had certain stone blocks that didnt convert to local stonetype<br />Fix: Reexported structures on 1.22.2 to resolve possible vanilla remapping fail on some systems this might fix ? blocks for veryagedrotten (legacy) blocks and support beams in the future (looking for feedback on this since it never was a problem on my system and seems to be a rare bug)<br />Fix: Small polished claystone inside chiseled block which should be local rocktype<br />Fix: Waystones aka Graves had issues with gravel inside surface level chiseled blocks resulting in air blocks.<br />Fix: Galaxy Table (Chiseled Block) crashes client when placing down. ((Bcs the chiseled blocks were stored in storage) they are now placed in world not container) https://github.com/NicIAss/betterruins/issues/139<br />Fix: Resolved 2 missing filler blocks in sunrift experiment</p>"
+   },
+   {
+    "releaseid": 40589,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.1_b400b2330b275902fe850f246f01ccfa.zip?dl=BetterRuinsv0.6.1.zip",
+    "filename": "BetterRuinsv0.6.1.zip",
+    "fileid": 90227,
+    "downloads": 32442,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.1",
+    "created": "2026-05-05 18:33:14",
+    "changelog": "<p dir=\"auto\">Content: New recipes for carpenter blueprint now allow you to craft canopies and fancy tables<br />Content: New Large overgrown ruin by Femur<br />Content: Updated translations ty for everyone helping out</p>\n<p dir=\"auto\">Tweak: Restructure of a patch for an underground translocator<br />Tweak: Reduced spawn chance of samgray village<br />Tweak: Spawn chance balancing and also translocator nexus is more rare now</p>\n<p dir=\"auto\">Fix: Small tweaks to a lot of structures regarding filler blocks, missing loot and the new 1.22 aged wood changes<br />Fix: Small recipe changes for better mod compatibility</p>"
+   },
+   {
+    "releaseid": 38591,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.0_5523a5df5bfacf3624d2226a366cbd7d.zip?dl=BetterRuinsv0.6.0.zip",
+    "filename": "BetterRuinsv0.6.0.zip",
+    "fileid": 86064,
+    "downloads": 37184,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.0",
+    "created": "2026-04-21 17:56:59",
+    "changelog": "<p><iframe src=\"//www.youtube-nocookie.com/embed/mpno8Ev6xhA\" width=\"560\" height=\"314\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe></p>\n<p>Changes since last unstable version:</p>\n<p>Content: 5 new Blueprints Alchemist, Carpenter, Cartwright, Gravedigger, Toymaker<br />Content: Updated lang files thanks everyone for translating</p>\n<p>Tweak: Small loot balancing changes in loot pools<br />Tweak: Updated Sunrift experiment with some changes to the lens and dave art<br />Tweak: Updated some storylocations with minor adjustments<br />Tweak: Adjusted Forest Village to 1.22 changes mostly aged wood changes and minor adjustments to chiseledblocks<br />Tweak: Adjusted some largeruins with updated visuals<br />Tweak: Adjusted configfile removed blueprint drop chances toggle<br />Tweak: Updated modicon</p>\n<p>Fix: Aged crate closed in handbook crashes game<br />Fix: Bug in crafting seasalt planter ty Madalovin</p>\n<p>Compatibility: Adjusted loot patches for primitive survival to its recent update<br />Compatibility: With Landform Overhaul 1.22 Update</p>\n<p>&nbsp;</p>\n<p><br />Changes since last stable version:</p>\n<p>Content: Complete Rewrite of the mods structure patches and schematic file locations for future ease of modding betterruins itself. (There is still some schematics under game domain but this will be changed when vanilla releases the fix for that in the next pre version)<br />Content: Updated translations<br />Content: New Storystructure Halite Quarry by nybygget<br />Content: New Lore and Trader dialogue by quilladile<br />Content: New largeruin by Par (Whitehillcastleruin)<br />Content: New megastructure variant for normancastle by Par<br />Content: 2 new medium ruins by Sirayne (collapsedstonetower and stonetree)<br />Content: New Translocator Nexus a special very rare structure by Nybygget<br />Content: Added 3 new underground translocator structures by Femursnapper<br />Content: New global lore by Quilladile<br />Content: Mechanical Blueprint allows you now craft supportbeam chains<br />Content: 5 new smaller castle ruins by par in a village formation<br />Content: A abandoned Trader home by Sirayne<br />Content: Reworked most older surface translocator structures and removed some older ones.<br />Content: New fitting loot added to buildingblock randomizers<br />Content: Made decorative Flowerpots craftable with Artisan Blueprint and dyes<br />Content: Made decorative Planters craftable with Artisan Blueprint and dyes<br />Content: Updated Lang files thanks for everyone translating</p>\n<p>Tweak: Updated all compatibility patches for landform mods<br />Tweak: Adjusted configlib patches to new filesystem and simplified some settings (removed temperature settings)<br />Tweak: Applied new 1.22 change to not consume blueprints in recipes.<br />Tweak: Machinist Blueprint Largegear is now craftable with any type of plank not only oak<br />Tweak: Blueprints are now storable in cabinets but not in bookshelfs anymore. (dont worry about exisiting bookshelfs it will still store them but you will only be able to take them out not in anymore.)<br />Tweak: Betterruins maps now can be stored in cabinets.<br />Tweak: Small changes to underground part of the coal mine<br />Tweak: Removed some old mediumruins reworked some others (still stuff todo)<br />Tweak: Slight changes to halitequarry to water and empty loot containers<br />Tweak: Adjusted main luxuries trader entries with the [BR Quest] tag to know that they are non vanilla quest dialogue starters<br />Tweak: Adjusted trader patches to work in a more mod compatible way<br />Tweak: Some yoffset changes</p>\n<p>Fix: Updated debarkedlog rotten to 1.22 naming<br />Fix: Updated debarkedlog and windmillrotor 1.22 naming in stackrandomizers<br />Fix: Updated a surface underground structure which contains gold scales which got removed in 1.22<br />Fix: Resolved air block under wolfstone castles<br />Fix: Invisible Skeleton removed in the forlornhope bastion<br />Fix: Removed invisible skeletons from wolfstone castles (ty egoanditspwn)<br />Fix: Resolved invisible skeleton in mixco-viejo warm climate ruin<br />Fix: Removed unnecessary duplicate schematic files since vanilla fixed something with 1.22.0-pre.3<br />Fix: 1.22.0-rc.1 fixed a handbook exclude patch for wallpaper which are in the handbook in vanilla now so patch is not needed anymore<br />Fix: 1.22.0 change mechanical blueprint now needs you to use rendered fat not normal raw fat<br />Fix: Replaced fat with rendered fat in loot randomizers<br />Fix: Small changes and fixes in the sunrift experiment<br />Fix: Adjusted Trader Dialogue patches to 1.22 changes<br />Fix: Resolved invisible skeleton in Coalmine ty to egoanditspwn<br />Fix: Replaced all berry bushes with 1.22 variants in all structures that had them<br />Fix: Resolved a 1.22 change that posted a Warning when crafting with blueprints.</p>\n<p>Compatibility: With name changes in landforms of fieldsandplateaus and plainsandvalleys<br />Compatibility: Removed randomizer entries for primitive survival buckets (ty DarkThoughts)</p>"
+   },
+   {
+    "releaseid": 36962,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.0-rc_de7604af133548a6f482344336b23d55.zip?dl=BetterRuinsv0.6.0-rc.2.zip",
+    "filename": "BetterRuinsv0.6.0-rc.2.zip",
+    "fileid": 81759,
+    "downloads": 8234,
+    "tags": [
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4",
+     "1.22.0-rc.5",
+     "1.22.0-rc.6",
+     "1.22.0-rc.7",
+     "1.22.0-rc.8",
+     "1.22.0-rc.9",
+     "1.22.0-rc.10"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.0-rc.2",
+    "created": "2026-03-22 22:16:49",
+    "changelog": "<p>Content: Reworked most older surface translocator structures and removed some older ones.<br />Content: New fitting loot added to buildingblock randomizers<br />Content: Made decorative Flowerpots craftable with Artisan Blueprint and dyes<br />Content: Made decorative Planters craftable with Artisan Blueprint and dyes<br />Content: Updated Lang files thanks for everyone translating</p>\n<p>Tweak: Removed some old mediumruins reworked some others (still stuff todo)<br />Tweak: Slight changes to halitequarry to water and empty loot containers<br />Tweak: Adjusted main luxuries trader entries with the [BR Quest] tag to know that they are non vanilla quest dialogue starters<br />Tweak: Adjusted trader patches to work in a more mod compatible way<br />Tweak: Some yoffset changes</p>\n<p>Fix: Resolved invisible skeleton in Coalmine ty to egoanditspwn<br />Fix: Replaced all berry bushes with 1.22 variants in all structures that had them<br />Fix: Resolved a 1.22 change that posted a Warning when crafting with blueprints.</p>\n<p>Compatibility: With name changes in landforms of fieldsandplateaus and plainsandvalleys<br />Compatibility: Removed randomizer entries for primitive survival buckets (ty DarkThoughts)</p>"
+   },
+   {
+    "releaseid": 36217,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.0-rc_23a135e7ab3279e206151217dbad5d3b.zip?dl=BetterRuinsv0.6.0-rc.1.zip",
+    "filename": "BetterRuinsv0.6.0-rc.1.zip",
+    "fileid": 79851,
+    "downloads": 3805,
+    "tags": [
+     "1.22.0-rc.2",
+     "1.22.0-rc.3",
+     "1.22.0-rc.4"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.0-rc.1",
+    "created": "2026-03-10 20:09:32",
+    "changelog": "<p>Content: New Storystructure Halite Quarry by nybygget<br />Content: New Lore and Trader dialogue by quilladile<br />Content: New largeruin by Par (Whitehillcastleruin)<br />Content: New megastructure variant for normancastle by Par<br />Content: 2 new medium ruins by Sirayne (collapsedstonetower and stonetree)<br />Content: New Translocator Nexus a special very rare structure by Nybygget<br />Content: Added 3 new underground translocator structures by Femursnapper<br />Content: New global lore by Quilladile<br />Content: Mechanical Blueprint allows you now craft supportbeam chains<br />Content: 5 new smaller castle ruins by par in a village formation<br />Content: A abandoned Trader home by Sirayne</p>\n<p>Tweak: Machinist Blueprint Largegear is now craftable with any type of plank not only oak<br />Tweak: Blueprints are now storable in cabinets but not in bookshelfs anymore. (dont worry about exisiting bookshelfs it will still store them but you will only be able to take them out not in anymore.)<br />Tweak: Betterruins maps now can be stored in cabinets.<br />Tweak: Small changes to underground part of the coal mine</p>\n<p>Fix: Removed invisible skeletons from wolfstone castles (ty egoanditspwn)<br />Fix: Resolved invisible skeleton in mixco-viejo warm climate ruin<br />Fix: Removed unnecessary duplicate schematic files since vanilla fixed something with 1.22.0-pre.3<br />Fix: 1.22.0-rc.1 fixed a handbook exclude patch for wallpaper which are in the handbook in vanilla now so patch is not needed anymore<br />Fix: 1.22.0 change mechanical blueprint now needs you to use rendered fat not normal raw fat<br />Fix: Replaced fat with rendered fat in loot randomizers<br />Fix: Small changes and fixes in the sunrift experiment<br />Fix: Adjusted Trader Dialogue patches to 1.22 changes</p>"
+   },
+   {
+    "releaseid": 34578,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.6.0-pr_ff9fa0b584cf5510df3e643cfe097e30.zip?dl=BetterRuinsv0.6.0-pre.1.zip",
+    "filename": "BetterRuinsv0.6.0-pre.1.zip",
+    "fileid": 76157,
+    "downloads": 3407,
+    "tags": [
+     "1.22.0-pre.1",
+     "1.22.0-pre.2"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.6.0-pre.1",
+    "created": "2026-02-14 15:24:16",
+    "changelog": "<p>This is a prerelease of betterruins for the vanilla prerelease of the 1.22 update so please be cautious on installing this on any existing world and backup everything you use this on ty. This doesnt contain much content but allows us to now focus on adding the next content.<br /><br />Content: Complete Rewrite of the mods structure patches and schematic file locations for future ease of modding betterruins itself. (There is still some schematics under game domain but this will be changed when vanilla releases the fix for that in the next pre version)<br />Content: Updated translations</p>\n<p>Tweak: Updated all compatibility patches for landform mods<br />Tweak: Adjusted configlib patches to new filesystem and simplified some settings (removed temperature settings)<br />Tweak: Applied new 1.22 change to not consume blueprints in recipes.</p>\n<p>Fix: Updated debarkedlog rotten to 1.22 naming<br />Fix: Updated debarkedlog and windmillrotor 1.22 naming in stackrandomizers<br />Fix: Updated a surface underground structure which contains gold scales which got removed in 1.22<br />Fix: Resolved air block under wolfstone castles<br />Fix: Invisible Skeleton removed in the forlornhope bastion</p>"
+   },
+   {
+    "releaseid": 34027,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.7_a7bc0216f415847225e4ed11b8efb83e.zip?dl=BetterRuinsv0.5.7.zip",
+    "filename": "BetterRuinsv0.5.7.zip",
+    "fileid": 75006,
+    "downloads": 67219,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.7",
+    "created": "2026-02-06 17:52:26",
+    "changelog": "<p>While this update is primarily designed for 1.21, I have implemented several fixes to support the newly released 1.22.0-pre.1. Unlike v0.5.6, this version should no longer crash the vanilla patch maker, making it functional on the latest unstable release. Please note that while it is now usable, you may still see non-critical warnings in the logs regarding recipes and loot randomizers.</p>\n<p>Content: Updated translations thanks for everyone translating over at crowdin</p>\n<p>Tweak: Minor Adjustments to recipes and filenames to fix upcoming 1.22 conflicts<br />Tweak: Updated sunrift experiment with some small changes.<br />Tweak: More efficient patches for rocktyperemapgroups<br />Tweak: Updated some forest village structures<br />Tweak: Loot rebalance of a surfaceunderground structure</p>\n<p>Fix: Unknown Block in sunrift<br />Fix: Updated 2 Largeruins</p>\n<p>Compatibility: With Can Additional Metals<br />Compatibility: With Meteoric Steel mod</p>"
+   },
+   {
+    "releaseid": 32702,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.6_b4d1fc437533610f6fc1ecb15a91fe45.zip?dl=BetterRuinsv0.5.6.zip",
+    "filename": "BetterRuinsv0.5.6.zip",
+    "fileid": 71876,
+    "downloads": 38452,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.6",
+    "created": "2026-01-16 20:29:30",
+    "changelog": "<p>Content: Updated Translations thanks for everyone translating on crowdin!!<br />Content: 7 new tileset pieces to ogdreds village by ogdred<br />Content: New largeruin by ogdred bigcastleruin<br />Content: 1 New underground structure by dampus<br />Content: 1 New mediumruin by femursnapper<br />Content: 1 New mediumruin by shikitochi<br />Content: 1 New hot climate specific ruin by yapludepatte<br />Content: New mediumruins by Shikitochi a ruined Bakery<br />Content: New underground structure by Shikitochi<br />Content: New lore by quilladile for 2 upcoming structures in future updates</p>\n<p><br />Tweak: Updated Desperate Times Lore by dazedandconfused<br />Tweak: Updated monolith structures<br />Tweak: Updated waystone structures<br />Tweak: Updated some underground structures not containing loot or not dropping certain chiseled blocks<br />Tweak: Slightly changed lore locations in the panopticon<br />Tweak: Changed Weavers rug recipe thanks to Dampus<br />Tweak: Small spawning balancing for villages<br />Tweak: Incomplete Started list of supported clutterblocks as item description for Temporal transfigurator</p>\n<p><br />Fix: 1 medium ruin contained some floating soil blocks<br />Fix: Allows to better balance the loot with configlib<br />Fix: Updated structures and removed meta-blocklayer to resolve rare ? blocks in some structures using blocklayer and extensive overlay usage https://github.com/NicIAss/betterruins/issues/123<br />Fix: Duplicate Entry for the minerlogs lore entry. Ty Sarah Lafayette<br />Fix: filled 2 fillerblocks in crossroads<br />Fix: Resolved some missing fillerblocks in fhbastion</p>\n<p>Compatibility: With deepveinasbestos mod<br />Compatibility: With spearexpantion mod<br />Compatibility: With tar mod</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 31133,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.5_de5ec7dcb917135793d0ef50ff6e5f38.zip?dl=BetterRuinsv0.5.5.zip",
+    "filename": "BetterRuinsv0.5.5.zip",
+    "fileid": 68536,
+    "downloads": 46930,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.5",
+    "created": "2025-12-21 22:30:40",
+    "changelog": "<p><iframe src=\"//www.youtube-nocookie.com/embed/fA4rVg1MDwo\" width=\"560\" height=\"315\" allowfullscreen=\"allowfullscreen\" allow=\"encrypted-media; picture-in-picture; web-share; clipboard-write\"></iframe></p>\n<p>Want to say huge thanks to @azriel_1 and @bearpup to recently joining the project and helping so much with Recipes and making awesome new lore.</p>\n<p><strong data-path-to-node=\"2\" data-index-in-node=\"0\">Attention RiverGen Users:</strong> Please back up your world before updating <strong data-path-to-node=\"2\" data-index-in-node=\"68\">BetterRuins</strong>. This update may cause significant chunk borders when used alongside RiverGen. While the original \"River\" mod has addressed this issue, RiverGen has not. We strongly recommend testing the transition between old and new chunks in a backup environment first.</p>\n<p>Note: You will have to regenerate the following existing structure to experiance all of the new content:<br />largeforlornhopetower, crossroads, thepanopticon, huaca&nbsp;<br /><a href=\"https://youtu.be/bqFz4cFJrmw\">Video Tutorial for what structure to regen is uploading to yt and will be shared here.</a></p>\n<p>Content: Per Player loot for specific chests that drop maps to further locations. (Crossroads , Forlornhopetower and prelocation to sunrift experiment)</p>\n<p>Content: Huaca Storystructure updated by yapludepatte (New stuff to find below the sands)<br />Content: Updated The Panopticon Storystructure by virrno structure with new rooms and lore by quilladile<br />Content: New story structure The Temporal Calix Project by Nybygget (talk to Agricultural Trader to get the map)<br />Content: Moved shoppingcentre from megastructure to storystructure map findable in Crossroads</p>\n<p>Content: New dialogue for Agricultural Trader leading to a new story structure (by quilladile)<br />Content: New lore for The Panopticon and The Calix Project by quilladile<br />Content: New lore entry by Quilladile for Huaca Story Structure<br />Content: New recipes for Artisan Blueprint allowing to craft fancy storagevessels (by Azriel tyvm)<br />Content: New recipe for Bed Blueprint to allow to craft fancy bed (by Azriel tyvm)<br />Content: New recipe for Candle Blueprint to allow to craft paperlanterns (by Azriel tyvm)<br />Content: New recipe for Chest Blueprint to allow to craft owl and gold aged chests (by Azriel tyvm)<br />Content: New recipe for Mechanical Blueprint to allow to craft metal supportbeams and metalsheets (by Azriel tyvm)<br />Content: New recipe for Shipwright Blueprint to allow to craft some figureheads and some balancing to existing recipes (by Azriel tyvm)<br />Content: New recipe for Table Blueprint to allow to craft a fancy clutter chair (by Azriel tyvm)<br />Content: New recipe for Weaver Blueprint to allow to craft Wallpapers (by Azriel tyvm)<br />Content: New recipe for Weaver Blueprint to allow to craft Wooden supportbeams (by Azriel tyvm)</p>\n<p>Tweak: Updated Crossroads with new map for Dome Mall<br />Tweak: Small tweaks to existing lore entries.<br />Tweak: Disabled shoppingcentre for megastructure spawning this resolves rare ? blocks for it.<br />Tweak: Lore title now append a (BR) tag to know they are modded lore.<br />Tweak: Chiselstatue revisited with chest covered with rock now. and copper chisel instead of steel.<br />Tweak: Moved a hidden room in 1 structure which the community got too familiar with and easily finding.<br />Tweak: Metalblock barrel recipes can be faster with seawater and now req normal water at least (by Azriel tyvm)<br />Tweak: Claytiles now need clay not dyes (by Azriel tyvm)<br />Tweak: Stalagsections now craftable without blueprints (by Azriel tyvm)<br />Tweak: Jonasparts and Assembly parts have a different recipe now in their blueprint (by Hyperion aka Pal_5000 tyvm)<br />Tweak: Renamed all waystones chiselblocks to non cryptic names<br />Tweak: Removed blackguard loot from prison village<br />Tweak: Replaced a 34 durability iron pick with copper in 1 tl underground ruin<br />Tweak: Replaced some guaranteed loot with randomloot<br />Tweak: Small balancing tweaks to various structures (Replaced some chandeliers and candles with clutter)<br />Tweak: Small loot balance change in 1 waystone structure</p>\n<p>Fix: Spawner in ForlornBastion didnt spawn a polar bear<br />Fix: Reduced the size of the underground library to prevent a issue where it results in ? blocks in very rare instances.<br />Fix: Replaced some light blocks in coalmine bcs they didnt light up properly<br />Fix: Added loretypes for missing lore entries<br />Fix: Issue with Diamondtile blocks not craftable ty Fuego Fish and Azriel<br />Fix: Updated 1 structure to possibly resolve a ? block from generating....</p>\n<p>Compatibility: Added/Updated with Swordz<br />Compatibility: Added/Updated with Pewter<br />Compatibility: Added/Updated with Masonsdelight<br />Compatibility: Added/Updated with Geoaddons<br />Compatibility: With all known landform mods for new story structure entries</p>"
+   },
+   {
+    "releaseid": 29686,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.4_9f1d55f9b217beae17d256b49ee840f4.zip?dl=BetterRuinsv0.5.4.zip",
+    "filename": "BetterRuinsv0.5.4.zip",
+    "fileid": 65508,
+    "downloads": 51308,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.4",
+    "created": "2025-11-22 19:25:41",
+    "changelog": "<p>Content: New Storystructure The Sunrift Experiment by Sirayne<br />Content: 2 Maps to find the sunrift Experiment<br />Content: 18 New Lore entries by Sirayne for The Sunrift Experiment<br />Content: New Lux Trader dialogue for Sunrift story location by sirayne<br />Content: New medium ruin which has the map to the sunrift inside it its rare<br />Content: New recipes Stones for diamond tile stone and cobbleskull (ty for the suggestions Azriel)<br />Content: New large church ruin by dampus<br />Content: Updated lang files thanks for everyone translating</p>\n<p>Tweak: Updated Temporal Transfigurator description<br />Tweak: Artisan Recipe change made claytiles more expensive<br />Tweak: Small formatting improvements for lore and dialogue<br />Tweak: Chest recipes for destroyed displaycases now dont require a blueprint (ty Azriel)<br />Tweak: Farmer Recipe increased bonemeal usage by x2 (ty Azriel)</p>\n<p>&nbsp;</p>\n<p>Fix: Removed metal plate cupronickel was craftable but now is smithable in vanilla (ty Azriel)<br />Fix: Palaceofnestor updated to contain new Blueprints</p>\n<p>Compatibility: For new storylocation with landform mods</p>"
+   },
+   {
+    "releaseid": 28980,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.3_ad3ec103eec0d90000d1895a73749497.zip?dl=BetterRuinsv0.5.3.zip",
+    "filename": "BetterRuinsv0.5.3.zip",
+    "fileid": 63983,
+    "downloads": 26990,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.3",
+    "created": "2025-11-09 20:45:29",
+    "changelog": "<p>Content: 3 new underground ruins by ifoz<br />Content: Updated lang files thanks for everyone translating</p>\n<p>Tweak: Resolved incompatibility with bricklayers in terms of copper related recipes<br />Tweak: Small formatting improvements for lore and dialogue</p>\n<p>Fix: Miss placed light blocks in coal mine.<br />Fix: Precaution Fix for suspected microblocks that might cause issues in the future.</p>"
+   },
+   {
+    "releaseid": 28238,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.2_d79610eb0a9f394bfe67796cb6772289.zip?dl=BetterRuinsv0.5.2.zip",
+    "filename": "BetterRuinsv0.5.2.zip",
+    "fileid": 62126,
+    "downloads": 25540,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.2",
+    "created": "2025-10-27 21:51:04",
+    "changelog": "<p>Content: Updated lang files thanks for everyone translating!!!</p>\n<p>Tweak: Small megastructure spawn chance change</p>\n<p>Fix: Fixed bug when block gravity enabled for soil in The Panopticon Story location<br />/wgen delr 4 inside the location to regen if necessary<br />Fix: Questionmark block in siraynesdugouttrench replaced but forwarded to vsdevs....</p>"
+   },
+   {
+    "releaseid": 28179,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.1_980f5343065a69d35a8a9cdd1a26c1e4.zip?dl=BetterRuinsv0.5.1.zip",
+    "filename": "BetterRuinsv0.5.1.zip",
+    "fileid": 61996,
+    "downloads": 6010,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.1",
+    "created": "2025-10-26 21:37:27",
+    "changelog": "<p>Content: 2 new story locations The Huaca and The Panopticon (by yapludepatte and Virrno)<br />This most likely need server admins and players to allow those structures to generate at their locations if those chunks are already generated prior to the update.<br />Also regenerate the crossroads to allow people to find the map to those new structures.</p>\n<p>Content: 2 new blueprints one for pipes and one for fancy ceramics</p>\n<p>Content: New megastructure by Nybygget palaceofnestor<br />Content: New megastructure Roman Bathhouse by virrno</p>\n<p>Content: New Towerruin largeruin by Par<br />Content: New largeruin tower by Par (Slight changes to the other recent tower structure)<br />Content: New medium structure by Bellcross<br />Content: New ruined windmill mediumruin by Grendelbiter<br />Content: New mediumruin by RowlyArt<br />Content: New medium ruin by Nybygget<br />Content: New large ruin by RowdyArt<br />Content: New stoneformation village tileset by RowdyArt (25 structures)<br />Content: New desertruin by Femursnapper Torii cemetery<br />Content: Virrnos windmills for village formation rework for 3 sturctures.<br />Content: New largeruin Roadside Inn by AceGamePython<br />Content: New mediumruin tower by Femursnapper<br />Content: Updated config via Configlib<br />Content: New village ruin by ifoz<br />Content: New underground ruin by ifoz</p>\n<p>Tweak: Coalmine story structure smaller distance to hidden location.<br />Tweak: Removed a unnecessary beam block that is partially invisible from Oasis megastructure<br />Tweak: Changed spawners in dampus locust nest pit (More Locusts no other mobs)<br />Tweak: Increased spawn rate for femursnappers oasis structure<br />Tweak: Small changes to Settlement of Keykeepers<br />Tweak: Removed rusty metal door recipes bcs they are not interactable and that confused some players<br />Tweak: Removed roofing building blocks from loot pools<br />Tweak: Spawn rate rebalancing in multiple structure types<br />Tweak: Maps are now groundstorable and also have fitting size (thanks to Dampus and par for the idea)<br />Tweak: Virrnos surface underground structure replaced hidding entrance block with air for easier visibility to find the entrance<br />Tweak: New texture for jonaslamp blueprint<br />Tweak: Made uneven claybricks craftable<br />Tweak: Smaller spawn rate balancing changes for multiple types of structures.</p>\n<p>Fix: Chiseltools barrel in a largeruin (unreleased issue)<br />Fix: Removed devastation block from 1 ruin<br />Fix: Added more filler blocks to Auldburg bcs random worldgen can look weird sometimes.<br />Fix: Missing Wooden slanted roofing in roofing blueprint<br />Fix: Remaining Bee entity in a structure and missplaced stone block https://github.com/NicIAss/betterruins/issues/108<br />Fix: Renamed creative light blocks in coal mine.<br />Fix: Allows to craft cupronickel metalplates<br />Fix: Added some missing filler blocks to a surfaceunderground and underground structure<br />Fix: offset changes for certain structures<br />Fix: Monoliths containing empty ground storage<br />Fix: Correct order in Config for megastructures</p>"
+   },
+   {
+    "releaseid": 23557,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.0_dfdcabe20de1b145b9984d9bc30924dd.zip?dl=BetterRuinsv0.5.0.zip",
+    "filename": "BetterRuinsv0.5.0.zip",
+    "fileid": 51838,
+    "downloads": 108541,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.0",
+    "created": "2025-08-26 21:00:22",
+    "changelog": "<p>Content: Made wooden lattice craftable with a blueprint (virrnos idea)<br />Content: 1 new underground iron mine themed structure by femursnapper<br />Content: New smaller megastructure by virrno \"House of Usher\" (removed an old megastructure for it)<br />Content: 3 new small ruins by virrno (2 desert, 1 normal)<br />Content: Updated translation files thanks for everyone translating!</p>\n<p><br />Tweak: Removed all remaining armorstands bcs they are just too broken in vanilla atm. Replaced with chest and more random loot pools for it.<br />Tweak: Reduced the spawn chance of a certain forlorn hope tower variant for random spawning (survey suggestion)<br />Tweak: Small changes to keykeeper megastructure (survey suggestion)<br />Tweak: Palisade recipe is more efficient (survey suggestion)<br />Tweak: Small changes to coalmine like filler blocks and making the secret closer in terms of digging distance :P (survey suggestion)<br />Tweak: Small changes to 2 of femursnappers underground structures</p>\n<p><br />Fix: Removed a chiseltools creative light used in a chiseledblock (didn't cause any issues)<br />Fix: Added some filler blocks to a medium ruin<br />Fix: Small lore book placement changes to a small church ruin<br />Fix: Added fillerblocks to normancastle<br />Fix: Some missing filler blocks in University<br />Fix: Removed some beehives from a surfaceunderground structure which might resulted some vanilla bug being triggered also offset changes</p>"
+   },
+   {
+    "releaseid": 22306,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.0-rc_f1e27106335c270f615c7010694682ae.zip?dl=BetterRuinsv0.5.0-rc.1.zip",
+    "filename": "BetterRuinsv0.5.0-rc.1.zip",
+    "fileid": 48857,
+    "downloads": 9984,
+    "tags": [
+     "1.21.0-rc.1",
+     "1.21.0-rc.2",
+     "1.21.0-rc.3",
+     "1.21.0-rc.5",
+     "1.21.0-rc.6",
+     "1.21.0-rc.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.0-rc.1",
+    "created": "2025-07-27 17:23:22",
+    "changelog": "<p>Content: New Weaver Blueprint which allows you to craft carpets<br />Content: Added working teleporter to mansion (you can now be teleported to a verysmall basement)(future expansion)<br />Content: Updated lang files thanks for everyone translating</p>\n<p>Tweak: Removed beehives from a structure bcs of vanilla issues regarding them when placed with worldgen<br />Tweak: Recipe adjustments for 1.21 regarding woodenpath and more<br />Tweak: Slight Lux Trader dialogue changes to improve replayablility on multiplayer servers and also adding the new treasure hunter dialogue to our custom dialogue</p>\n<p>Fix: Could not configure min spawn distance correctly</p>"
+   },
+   {
+    "releaseid": 21509,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.0-pr_7f0e448546feabc9c7de7259828e0733.zip?dl=BetterRuinsv0.5.0-pre.2.zip",
+    "filename": "BetterRuinsv0.5.0-pre.2.zip",
+    "fileid": 46883,
+    "downloads": 2239,
+    "tags": [
+     "1.21.0-pre.1",
+     "1.21.0-pre.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.0-pre.2",
+    "created": "2025-06-29 20:24:43",
+    "changelog": "<p>Compatibility: With Swordz Mod<br />Compatibility: With Vintage Engineering Mod</p>\n<p>Fix: Added some missing filler blocks in Auldburg (Thanks Perk)</p>"
+   },
+   {
+    "releaseid": 21508,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.15_5547e7078689d47a52ba764a6e4f63a0.zip?dl=BetterRuinsv0.4.15.zip",
+    "filename": "BetterRuinsv0.4.15.zip",
+    "fileid": 46882,
+    "downloads": 64373,
+    "tags": [
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.15",
+    "created": "2025-06-29 20:23:44",
+    "changelog": "<p>Compatibility: With Swordz Mod<br />Compatibility: With Vintage Engineering Mod</p>\n<p>Fix: Added some missing filler blocks in Auldburg (Thanks Perk)</p>"
+   },
+   {
+    "releaseid": 21329,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.5.0-pr_030602a16a94a79faeb44e6cf4deede7.zip?dl=BetterRuinsv0.5.0-pre.1.zip",
+    "filename": "BetterRuinsv0.5.0-pre.1.zip",
+    "fileid": 46366,
+    "downloads": 1203,
+    "tags": [
+     "1.21.0-pre.1",
+     "1.21.0-pre.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.5.0-pre.1",
+    "created": "2025-06-22 17:27:53",
+    "changelog": "<p>This is a pre-release backup before using it on any existing saves.<br /><br />Content: 1.21.0-pre.1 tweaks to adjust patches for the new itemnames mostly clay variants or clay related items<br />Content: New positions for all betterruins story locations overall closer to spawn(since vanilla changed all of theirs we had to adjust aswell)<br />Content: es-es Translations by @C4BR3R4<br />Content: Updated langfiles thanks for everyone translating</p>\n<p>Tweak: Internal desertruins restructuring</p>\n<p>Fix: Adjusted yoffset of some desertruins</p>\n<p>Compatibility: Adjusted compatibilty patches for all landform mods to respect the new vanilla storyloc patch order</p>"
+   },
+   {
+    "releaseid": 21328,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.14_79eddc0751d13f03105d4cb0180bd3ca.zip?dl=BetterRuinsv0.4.14.zip",
+    "filename": "BetterRuinsv0.4.14.zip",
+    "fileid": 46364,
+    "downloads": 9184,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.14",
+    "created": "2025-06-22 17:25:55",
+    "changelog": "<p>v0.4.14:<br />Fix: Translocators in mansion prelinked to incorrect coords. (recommended to /wgen delr 3 the location to apply the new change if its already generated)<br />Fix: Replaced an item in the University</p>"
+   },
+   {
+    "releaseid": 21055,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.13_85be05f7c57851c8826c4523cd6c3ebf.zip?dl=BetterRuinsv0.4.13.zip",
+    "filename": "BetterRuinsv0.4.13.zip",
+    "fileid": 45644,
+    "downloads": 13597,
+    "tags": [
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.13",
+    "created": "2025-06-13 16:41:58",
+    "changelog": "<p>Warning: If you have the Rivers mod installed, you can update to this version only if your world was never loaded with a version lower than v0.4.10 of BetterRuins.<br data-start=\"207\" data-end=\"210\" />For new worlds, you can use this version without worry.<br data-start=\"265\" data-end=\"268\" />Again, this applies only if you have Rivers installed.<br /><br />Content: Big config lib rework and update<br />- individual min spawn distance config for each megastructure<br />- some villages are not more configurable than before<br />- added min spawn distance to a lot of structure types<br />- new overall category structure for the config file with wiki links to all of them<br />- new wiki entries</p>\n<p>Content: 2 new underground ruins by femursnapper<br />Content: New hot climate specifc structure by yapludepatte<br />Content: 5 new village tileset structures by femursnapper<br />Content: 2 new largeruins by femursnapper<br />Content: New medium ruin by Sirayne<br />Content: New largeruin by Sirayne<br />Content: Chiseledblocks dont drop themself anymore for sirayne structures (besides decoartive ones)<br />Content: Made ironfence craftable (with blueprints)<br />Content: Fine and Tavern Table are now craftable (with blueprints)<br />Content: Copper roofing now craftable (with blueprints)<br />Content: Made ALOT of metal blocks craftable (with blueprints)<br />Content: Added names to loretypes shown for the lore items in block info<br />Content: Updated lang files</p>\n<p>Tweak: Better description for maps where people were unclear what to find<br />Tweak: New MinSpawnDistance for certain megastructures making them harder to find early on (increased from 2500 to 10000 blocks)<br />Tweak: Updated all of femurs builds for chiselblock changes<br />Tweak: Chiselblock changes to all story structures<br />Tweak: Updated yapludepattes ruins for chiselblock changes<br />Tweak: Chiselblock changes to all megastructures<br />Tweak: Chiselblock changes to ruinedvsvillage<br />Tweak: Chiselblock changes for forestvillage<br />Tweak: Reduced spawn chance of some of sirayne ruins and small changes to them<br />Tweak: Adjusted position of waypoint markers for 3 story structures (makes it easier to find entrances to certain structures)<br />Tweak: Adjusted tree generation for abandoned mines</p>\n<p>Fix: Removed some inappropriate blocks from abandoned mine</p>\n<p>Compatibility: With Mansonsdelight mod</p>"
+   },
+   {
+    "releaseid": 19640,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.12_25b075e36256134fbfae588ac12cc1d3.zip?dl=BetterRuinsv0.4.12.zip",
+    "filename": "BetterRuinsv0.4.12.zip",
+    "fileid": 42471,
+    "downloads": 38404,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4-rc.1",
+     "1.20.4-rc.2",
+     "1.20.4-rc.3",
+     "1.20.4-rc.4",
+     "1.20.4",
+     "1.20.5-rc.1",
+     "1.20.5-rc.2",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8-rc.1",
+     "1.20.8-rc.2",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11-rc.1",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.12",
+    "created": "2025-05-04 15:58:54",
+    "changelog": "<p>Warning: If you have the Rivers mod installed, you can update to this version only if your world was never loaded with a version lower than v0.4.10 of BetterRuins.<br data-start=\"207\" data-end=\"210\" />For new worlds, you can use this version without worry.<br data-start=\"265\" data-end=\"268\" />Again, this applies only if you have Rivers installed.<br /><br /><br />Content: Updated lang files<br />Content: New vsvillage tileset structure by sirayne<br />Content: New underground structure by ifoz (vanilla rework)<br />Content: 3 new forlorn hope randomizers<br />Content: Updated Forlorn Hope structures with new randomizers</p>\n<p>Tweak: Updated siraynes megastructure and lowered spawn chance<br />Tweak: Adjusted some old underground ruins with new loot tables and small changes.</p>\n<p>Fix: https://github.com/NicIAss/betterruins/issues/89 Not possible to reveal lux trader name<br />Fix: Removed some overlays to resolve ? textures with 2 new ruins by sirayne</p>\n<p><br />Compatibility: With Forlorn Additions<br />Compatibility: With plainvalleys and fieldsplat recent update</p>"
+   },
+   {
+    "releaseid": 18889,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.11_6b5a4d8cab32b1197e418fdeed31b3e7.zip?dl=BetterRuinsv0.4.11.zip",
+    "filename": "BetterRuinsv0.4.11.zip",
+    "fileid": 40874,
+    "downloads": 24841,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.11",
+    "created": "2025-04-13 13:16:36",
+    "changelog": "<p>Warning: If you have the Rivers mod installed, you can update to this version only if your world was never loaded with a version lower than v0.4.10 of BetterRuins.<br data-start=\"207\" data-end=\"210\" />For new worlds, you can use this version without worry.<br data-start=\"265\" data-end=\"268\" />Again, this applies only if you have Rivers installed.<br /><br />Tweak: Largeruins only generating 2500 blocks from spawn and mindistnace increased to 2800 blocks<br />Tweak: Removed largegears-temporal to not cause confusion from forlorn hope towers</p>\n<p>Compatibility: With all known landform mods for recent update</p>"
+   },
+   {
+    "releaseid": 18872,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.10_6f4651724ecd3de96e444e2290c28942.zip?dl=BetterRuinsv0.4.10.zip",
+    "filename": "BetterRuinsv0.4.10.zip",
+    "fileid": 40838,
+    "downloads": 3182,
+    "tags": [
+     "1.20.0",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.10",
+    "created": "2025-04-12 19:07:55",
+    "changelog": "<p>Warning: If you have the Rivers mod installed, dont update BetterRuins on an existing world from prev versions to this.<br data-start=\"207\" data-end=\"210\" />For new worlds, you can use this version without worry.<br data-start=\"265\" data-end=\"268\" />Again, this applies only if you have Rivers installed.<br /><br />Content: New storystructure crossroads by Tiggetagg<br />Content: megastructure moved to storystructure mansion by Freian<br />Content: New megastructure by sirayne<br />Content: 3 new village structures by Sirayne for VsVillagetileset<br />Content: New desertclimate structure by Virrno wildwesttown<br />Content: New surfaceunderground structure by Tiggetagg<br />Content: 2 more aqueduct variants megastructures by Dampus<br />Content: New mediumruin by sirayne (Ruin looking like the modicon)<br />Content: New underground structure by sirayne<br />Content: New main village building by ogdred<br />Content: Updated multiple of siraynes structures<br />Content: Finished vsvillage tileset rework<br />Content: Partial Lore rewrite<br />Content: Added recipes for bookbinders blueprint (25% done)<br />Content: 2 new largeruins by Sirayne<br />Content: 2 new maps for the new story structures<br />Content: New dialogue for lux trader (new quest)</p>\n<p>&nbsp;</p>\n<p>Tweak: Removed Music Block and music sound file from mansion<br />Tweak: Fireclay in buildingmaterials reduced<br />Tweak: OffsetY changes for waystones<br />Tweak: Megastructure rebalancing<br />Tweak: Mansion disabled is now moved to story structure</p>\n<p><br />Fix: Take correct rusty gears amount from lux trader<br />Fix: Invisible recipe fixed https://github.com/NicIAss/betterruins/issues/79<br />Fix: 2 small fixes in virrnos shoppingcentre (groundstorage and rusty door)<br />Fix: https://github.com/NicIAss/betterruins/issues/85 Ruined forge burning down (replace lava with ember blocks)</p>\n<p><br />Compatibility: Wildcrafttrees sleek doors in all variants</p>"
+   },
+   {
+    "releaseid": 17708,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.9_ae0d47bb43685ccfce08d3d1c9de6ff4.zip?dl=BetterRuinsv0.4.9.zip",
+    "filename": "BetterRuinsv0.4.9.zip",
+    "fileid": 37908,
+    "downloads": 34853,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5-rc.3",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.9",
+    "created": "2025-03-17 18:06:12",
+    "changelog": "<p>Content: New warm climate specific ruin by yapludepatte<br />Content: Updated lang files ty for everyone translating</p>\n<p>Tweak: Updated Tapestries to be non random for some structures</p>\n<p>Fix: Clutter recipes loading in wrong oder on different systems https://github.com/NicIAss/betterruins/issues/75 https://github.com/NicIAss/betterruins/issues/76<br />Fix: Unknown compatibility regarding iron fences https://github.com/NicIAss/betterruins/issues/73<br />Fix: Aged hay recipe changed to require knife <br />Fix: Underground structure missing some meta blocks ty Sirayne<br />Fix: Removed blocklayermetablock from 1 structure</p>"
+   },
+   {
+    "releaseid": 17245,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.8_c1f022f60f8c618b17d9bd2a345edb66.zip?dl=BetterRuinsv0.4.8.zip",
+    "filename": "BetterRuinsv0.4.8.zip",
+    "fileid": 36565,
+    "downloads": 15461,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4",
+     "1.20.5-rc.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.8",
+    "created": "2025-03-08 14:48:35",
+    "changelog": "<p>Content: Added 9 new medium ruins by Femursnapper<br />Content: Rework of femursnappers village<br />Content: 4 new large structures by Siranye<br />Content: Added 9 new structures by Sirayne largeruins<br />Content: Added 3 new surface translocators by Sirayne<br />Content: New translocator underground structure by Sirayne<br />Content: New blueprint Shipwright<br />Content: New blueprint Farmer<br />Content: Updated Configfile<br />Content: New recipes for mechanical blueprint<br />Content: Updated lang files thanks for everyone tranlsating</p>\n<p><br />Tweak: Restructured largeruins balancing<br />Tweak: Small village changes<br />Tweak: Replaced Liquid Pumps to resolve player confusion to search for the missing parts<br />Tweak: Removed Gasifier blocks to not cause player confusion<br />Tweak: Added block description to rusty doors that they can not be opened since they are rusted.<br />Tweak: Uneven stone recipe changes cost less mortar<br />Tweak: Easier fancy acacia recipes<br />Tweak: Slightly increased blueprint dropchance from all ruins<br />Tweak: Increased spawnchance for samgreysvillage<br />Tweak: Added blueprints as dedicated loot to the university and forlornhopetower<br />Tweak: Small balancing changes<br />Tweak: Largeruins mindistance set to 2000 blocks<br />Tweak: Added descriptions to various blueprints where to get them.</p>\n<p><br />Fix: Slanted roofing now craftable out of any clay<br />Fix: Removed recycling recipe from 2 maps (duplication exploit removed)<br />Fix: Missing ebony roofing beams recipes<br />Fix: Replaced Unremovable beams in wolfstone castle<br />Fix: Small fixes for the univsersity and more loot in the tower.<br />Fix: Added some fillerblocks to some tilesets of ogdreds village</p>"
+   },
+   {
+    "releaseid": 15922,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.7_7282b936f5973aa6711167b4bbbeefdc.zip?dl=BetterRuinsv0.4.7.zip",
+    "filename": "BetterRuinsv0.4.7.zip",
+    "fileid": 32774,
+    "downloads": 40470,
+    "tags": [
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3",
+     "1.20.4"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.7",
+    "created": "2025-02-09 13:14:44",
+    "changelog": "<p>Content: Added 2 new large structures by Femursnapper belltower and oasis<br />Content: Updated forest-village buildings by virrno<br />Content: new surface-underground structure by virrno (cave dungeon)<br />Content: MinSpawnDistnace in now configurable with configlib<br />Content: New warm climate structure by yapludepatte<br />Content: Updated lang files thanks to everyone translating<br />Content: Added unobtainable clothing to lootpools<br />Content: Added new prev uncraftable stone and clay blocks to blueprints</p>\n<p>Tweak: Updated University structurefile (Adjusted the placement of beeswax to avoid individual placement and reduced overall usage for better structural integrity. Placed additional blocks beneath the foundation to prevent empty or high spaces. Added filler blocks around the fountain area to stabilize the structure.)<br />Tweak: Reduced some bonysoil blocks<br />Tweak: Added some missing loot and fillerblocks to the mines<br />Tweak: Changed some patches to server only to resolve some warnings in client-debug.log (no performance change)<br />Tweak: Made map recycle recipe shapeless<br />Tweak: Changed recipe group from 3 to 333 to avoid incompatibilty in handbook with showing the recipes of other mods<br />Tweak: Changed loot tables of underground structures to be more random in crates<br />Tweak: Removed Treasure map for graves</p>\n<p>Fix: Added 5 missing fillerblocks to the library<br />Fix: Reconfigured loot in ogdred-village<br />Fix: Added missing minspawndistance for surface tls<br />Fix: Improved treasure maps finding their linked structures for translocators and underground structures</p>\n<p>Compatibility: With vanvars Palisades in Palisade Blueprint</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 14759,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.6_88953addbf6754fc233487d42f0ce185.zip?dl=BetterRuinsv0.4.6.zip",
+    "filename": "BetterRuinsv0.4.6.zip",
+    "fileid": 30660,
+    "downloads": 33419,
+    "tags": [
+     "1.20.0-rc.9",
+     "1.20.0",
+     "1.20.1",
+     "1.20.2",
+     "1.20.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.6",
+    "created": "2025-01-19 17:48:16",
+    "changelog": "<p>Content: New megastructure castle by Dampus<br />Content: New largeruin woodenkeep by femursnapper<br />Content: Updated forest village buildings by Par<br />Content: Added Wiki links to config<br />Content: Added new Cursed randomizer for the future<br />Content: Updated langfiles (Thanks for all the translators!!)</p>\n<p>Tweak: Prevent structures from spawning deep underwater<br />Tweak: Minimum distance from megastructures reverted to 5k blocks<br />Tweak: Added minimum spawn distance to prevent megastructures from spawning at spawn<br />Tweak: Some story structures will now generate grass<br />Tweak: Added minimum distance to villages so you don't get the same village close to each other</p>\n<p>Fix: Error with palisade blueprint in configlib<br />Fix: Luxuries trader having game: in their dialogue</p>\n<p>Compatibility: LandformOverhaul new version</p>"
+   },
+   {
+    "releaseid": 14437,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.5_8148d69da8f293cc832673d0e7f588da.zip?dl=BetterRuinsv0.4.5.zip",
+    "filename": "BetterRuinsv0.4.5.zip",
+    "fileid": 30042,
+    "downloads": 9679,
+    "tags": [
+     "1.20.0-rc.6",
+     "1.20.0-rc.8",
+     "1.20.0-rc.9",
+     "1.20.0"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.5",
+    "created": "2025-01-11 18:25:15",
+    "changelog": "<p>Content: New megastructure aqueduct by Dampus<br />Content: 2 medium ruins by Freian and Stadrian<br />Content: 1 large ruin by Freian<br />Content: Updated language files, thanks to everyone translating<br />Content: Recycle maps now show in the handbook with instructions on how to obtain them</p>\n<p>Tweak: Restructured ConfigLib and simplified strings for translation<br />Tweak: Adjusted village spawn chances<br />Tweak: Rebalanced megastructures</p>\n<p>Fix: Duplicate armor stands in Forlorn Hope Tower<br />Fix: Adjusted Y-offset values</p>\n<p>Compatibility: With WorldGenFixRemix<br />Compatibility: With LandformOverhaul (aka Conquest Landform Mod)</p>"
+   },
+   {
+    "releaseid": 14152,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.4_96a5ef86a297fb927a668532cc00a748.zip?dl=BetterRuinsv0.4.4.zip",
+    "filename": "BetterRuinsv0.4.4.zip",
+    "fileid": 29472,
+    "downloads": 6405,
+    "tags": [
+     "1.20.0-rc.6",
+     "1.20.0-rc.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.4",
+    "created": "2025-01-02 19:07:30",
+    "changelog": "<p>Content: Updated lang files. Thanks to all translators<br />Content: Added lore to Coalmine<br />Content: New blueprint Palisades<br />Content: New structure by Femursnapper a tower with ruined town around it.<br />Content: Vsvillage-village rework 66% done</p>\n<p>Fix: Comp with Terrapretyv6.0.0+</p>"
+   },
+   {
+    "releaseid": 13978,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.3_9cc27d4da9d2ac2f483ff2b85d037b15.zip?dl=BetterRuinsv0.4.3.zip",
+    "filename": "BetterRuinsv0.4.3.zip",
+    "fileid": 29148,
+    "downloads": 4540,
+    "tags": [
+     "1.20.0-rc.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.3",
+    "created": "2024-12-26 21:07:33",
+    "changelog": "<p>Tweak: Lore has more random books and scrolls to drop in<br />Tweak: Resorted structures for better config support<br />Tweak: Changed some stuff in shopping center megastructure<br />Tweak: Slight megastructures rebalancing (very slight)</p>\n<p><br />Fix: Typo in en.json Unknown Map name #55 <br />Fix: game:stackrandomizer-armor ERROR in 1.20.0-rc.6 #56 <br />Fix: Removed unnecessary lore for temp vanilla fix</p>"
+   },
+   {
+    "releaseid": 13860,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.2_54c3c507e0b4f819b019dce6af3633c6.zip?dl=BetterRuinsv0.4.2.zip",
+    "filename": "BetterRuinsv0.4.2.zip",
+    "fileid": 28947,
+    "downloads": 3318,
+    "tags": [
+     "1.20.0-rc.5"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.2",
+    "created": "2024-12-21 14:30:20",
+    "changelog": "<p>Tweak: Changed locations of the betterruins story structures<br />Tweak: Updated Storystructures with spawner, loot and filler block tweaks</p>\n<p>Fix: Fireclay name got changed by vanilla so here its adjusted in betterruins<br />Fix: Added some missing fillerblocks to the library</p>\n<p>Thanks to both of those youtuber and streamers for taking a look at our v0.4.x content to find any issues or improvements for them be sure to check them out.<br />https://www.youtube.com/@perkcuss<br />https://www.youtube.com/@SnackerysHouse</p>"
+   },
+   {
+    "releaseid": 13713,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.1_4003ef35070047ff58782d01b0226255.zip?dl=BetterRuinsv0.4.1.zip",
+    "filename": "BetterRuinsv0.4.1.zip",
+    "fileid": 28689,
+    "downloads": 4655,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.1",
+    "created": "2024-12-15 19:14:40",
+    "changelog": "<p>Tweak: Added some fillerblocks to the forlornhopedungeon<br />Tweak: Removed some blocks in the forlornhopetower to improve combat</p>\n<p>Fix: Added some missing fillerblocks<br />Fix: Added missing loot in some chest and crates of the forlornhopedungeon (also missing end loot might want to /regen and go at it again to get the loot :D) (Thank for everyone playtesting all that stuff btw)</p>\n<p>Compatibility: With Vanilla_PlusWorldGen<br />Compatibility: With Worldgenfix</p>"
+   },
+   {
+    "releaseid": 13634,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.4.0_08222a14a2bea31744b6a3b988402675.zip?dl=BetterRuinsv0.4.0.zip",
+    "filename": "BetterRuinsv0.4.0.zip",
+    "fileid": 28556,
+    "downloads": 3101,
+    "tags": [
+     "1.20.0-rc.1",
+     "1.20.0-rc.2",
+     "1.20.0-rc.3",
+     "1.20.0-rc.4"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.4.0",
+    "created": "2024-12-13 16:57:40",
+    "changelog": "<p>For Betterruins story content, talk to a luxuries trader. Have fun!<br /><br />Content: New Story Structure ForlornHopeDungeon by Tiggetagg<br />Content: New Story Structure University by Tiggetagg<br />Content: New Story Structure Mine/Dungeon by Freian<br />Content: New Story Structure CoalMine by StAdrian<br />Content: New Story Structure ForlornHopeTower by NiclAss</p>\n<p>Content: New shape and texture for Item Texture Flipper (allows changing textures of clutter blocks). This item is also obtainable in survival now! Be sure to visit BetterRuins story structures.</p>\n<p>Content: New Luxuries Trader dialogue</p>\n<p>Content: New Megastructure by Virrno replacing the shopping mall<br />Content: New VillageTileset by FemurSnapper<br />Content: New VillageTileset by Ogdred<br />Content: New Way Stone by NiclAss<br />Content: New Way Stone by Ogdred<br />Content: New cave like structure by Dampus</p>\n<p>Content: New lore for the CoalMine and new hidden room<br />Content: 3 new treasure maps for the BetterRuins story locations<br />Content: Added new 1.20 mobs to spawners in all kinds of structures<br />Content: Updated village schematics for 1.20<br />Content: New recipes for Roofing and Crates blueprints</p>\n<p>Content: Updated translations thanks to everyone that translated!<br />Content: Updated config file (with ConfigLib)</p>\n<p>Tweak: Increased megastructures mindistance from 5000 to 6500 blocks<br />Tweak: Decreased way stones mindistance from 7500 to 5000<br />Tweak: Megastructures rebalancing<br />Tweak: More variety for what lore books can spawn in<br />Tweak: Disabled CoalMine for megastructures (is now a story structure)<br />Tweak: Backpack Randomizer rebalancing (very rare glider chance removed)<br />Tweak: Replaced copper anvil in an underground structure with clutter variant<br />Tweak: Removed one repetitive surface translocator ruin</p>\n<p>Fix: Updated schematics that had 1.20 related block changes<br />Fix: Item name changes of 1.20 adjusted<br />Fix: Auldburg missing some filler blocks<br />Fix: Allow to smith cupronickel nails and strips<br />Fix: Hammer getting consumed in some recipes<br />Fix: Adjusted traders' trade lists to 1.20 changes<br />Fix: Mindistance not working for graves</p>\n<p>Compatibility: With FieldsAndPlateaus<br />Compatibility: With PlainsAndValleys<br />Compatibility: With TerraPrety<br />Compatibility: With ConfigLib</p>"
+   },
+   {
+    "releaseid": 12916,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.9_a2e039b9fe1625e083ae23e7e025937d.zip?dl=BetterRuinsv0.3.9.zip",
+    "filename": "BetterRuinsv0.3.9.zip",
+    "fileid": 27117,
+    "downloads": 15457,
+    "tags": [
+     "1.19.7",
+     "1.19.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.9",
+    "created": "2024-11-07 20:02:23",
+    "changelog": "<p><a href=\"https://github.com/AreYSerious/betterruins/commit/dcdc78ee1d3e5f9a7827a6d8a07de37f759517a5\">Fix: Removed intact translocator and replace it with broken but repai&hellip;</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/3f07f53f81747c6160d4a405d2750d0cf4c5c484\">Content: Updated Language Files</a></p>"
+   },
+   {
+    "releaseid": 12859,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.8_c9ff851fb01359949f62a508ec3c002d.zip?dl=BetterRuinsv0.3.8.zip",
+    "filename": "BetterRuinsv0.3.8.zip",
+    "fileid": 27008,
+    "downloads": 2762,
+    "tags": [
+     "1.19.7",
+     "1.19.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.8",
+    "created": "2024-11-03 14:50:19",
+    "changelog": "<p><a href=\"https://github.com/AreYSerious/betterruins/commit/71b9c5c15a1a14ceef7950cccab7550435ddeb1a\">Content: New megastructure by Freian. A large mansion.</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/ed0056346be61f3b0ff46dbd9b13eaef1e381274\">Content: New megastructure by Dampus and Tiggetagg. A large ruined castle</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/43be13d676c9921db68b2d52a089c66bde6d5b8f\">Content: New megastructure by Par. A medium sized norman castle</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/95d87841e60233b6e5d70dc8a6346905bd08b44c\">Content: ForlornhopeTowers got better looking windows</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/4ed2c9acf14383ba89693e2e8bd261f12a0ee72e\">Content: Added Mini Church as waystone by Bellcross</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/d3e5c07a162b733a74d8e8afce736254127e571e\">Content: 2 Underground structures by Virrno</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/4db3cec38e5424ed5bff5cefea014f4beb5611d9\">Content: New lore from ifoz for one of his structures</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/4cde1cc784f2db2b96e96f6707563a7594471cb5\">Content: 4 new surface ruins from ifoz</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/7472c0440528c01811fc0db9a9e1b8eda4b24b2c\">Content: 2 new surface ruins from Ogdred</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/649deb7b6dd399ba66a0c185b42ed312b4d279a0\">Content: Added Stackrandomizer for Meteoric iron for easier balancing&hellip;</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/e2e33870f566a94a8d9242bc7f8afb3683fde66b\">Content: Removed 160 old ruins reworks</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/1751e04fcab160cb781c0b2b9f2c0f0f2ca2e94a\">Content: Added new roofing blueprint</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/5903338b6e86d50200a3489c456cf4ab7da3c4ac\">Content: New Recipes for Mechanical Blueprint for angledgears and woo&hellip;</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/507f1f663ace6ef97bf6bfc5ccfe5fcb99818a3a\">Content: New Rare monoliths by Virrno (4 variants mindistance 40000)</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/00b774ad87025ebf3be717deb8492720c4edb622\">Content: Added 3 new ruins for a normal-climate group</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/e5e036d6b25d73d08d4026723c468edd0d48d1c5\">Content: 3 new medium ruins by Freian</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/01c9f4477eba2f6404a74703ac5710c68f9b57b6\">Content: ConfigLib related patches and config file adjusted</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/1bcd5a08ef85a89868374c461f97f03d42aff2c0\">Content: Added 2 new structures by Vilderos</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/bbc6d984b85b10259d962f42a7d056e84db39984\">Content: Updated Langfiles</a></p>\n<p><a href=\"https://github.com/AreYSerious/betterruins/commit/72eae2534369876c701ea0b75c693e18c275a2a6\">Tweak: Removed some copperroofing from quentins translocator structures</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/63908871a16491685bbe70cdc9e057e54b0a3df8\">Tweak: Nerfed underground grave structure loot</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/0c2e64228be79325ada3ac3247def6bce2f48f40\">Tweak: Spawnrate change for the tomb underground ruin</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/4e64bcd8b54e224d2a23db22ecd5647bd0988f74\">Tweak: Villages spawnrate balancing</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/7b05ba04808251891c6682120be106a1d661b940\">Tweak: Balancing changes for Waystones</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/ccd2e24db425a6c29ad20d8a74ba7548812da230\">Tweak: Slight adjustment to Chisel Waystone</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/15b35871d2692e62e648c33510da6764ed1c5974\">Tweak: Added recipe groups to some recipes from br. Thanks to Tels</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/f9a498a5d0cf6c7f1a8526c479b244b721d9e581\">Tweak: Megastructure Rebalancing</a><br /><a href=\"https://github.com/AreYSerious/betterruins/commit/284b6496dd94be673f23e896486671cb46a988f4\">Tweak: added addmerge to schematicoffsety</a></p>"
+   },
+   {
+    "releaseid": 11337,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.7_b759864ec4743104a0322d9b71b08cf1.zip?dl=BetterRuinsv0.3.7.zip",
+    "filename": "BetterRuinsv0.3.7.zip",
+    "fileid": 23605,
+    "downloads": 28312,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.7",
+    "created": "2024-07-19 19:37:36",
+    "changelog": "<p>Hotfix:<br />- [Fixed: Issue with recipes crashing clients](https://github.com/AreYSerious/betterruins/commit/613d4e1c89a730c50904083cb9fe6bbda54df559)</p>"
+   },
+   {
+    "releaseid": 11332,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.6_dbc7b56f655314f1806fc29b38ec1d0f.zip?dl=BetterRuinsv0.3.6.zip",
+    "filename": "BetterRuinsv0.3.6.zip",
+    "fileid": 23600,
+    "downloads": 1340,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.6",
+    "created": "2024-07-19 11:50:25",
+    "changelog": "<p>- Content: 1 new village tile set featuring 4 different clay variants by SamGrey and help of StAdrian and me<br />- Content: 11 new waystone structures by Bellcross and Quentin<br />- Content: 3 new translocator structures by Quentin (above ground)<br />- Content: New Lore<br />- [[Lore] Desperate Times by dazedandconfused](https://github.com/AreYSerious/betterruins/commit/64736b65758fb6283ccecc31a4a0b6b795a9faeb)<br />- [[Lore] Devotion by dazedandconfused](https://github.com/AreYSerious/betterruins/commit/ac312aa7a58abb1fc8790ee4ea866bce8d50fa0d)<br />- [[Lore] Field Engineers Diary by Blinky Dorf](https://github.com/AreYSerious/betterruins/commit/39d2ea5571a60d185541f47cb72e7f0812d12508)<br />- [[Lore] Librians Lament by dazedandconfused](https://github.com/AreYSerious/betterruins/commit/cc1c9428fe3f6367ff594ddd79d32bf4e3d449a9)<br />- [[Lore] Lost Doll by bellcross and me](https://github.com/AreYSerious/betterruins/commit/5221038d37872f07ea5026c80a43d56d0b8edb2a)<br />- [[Lore] Diary of a Priest by dazedandconfused](https://github.com/AreYSerious/betterruins/commit/4c96fcc849ee8052ea44230b29d07d7e6f0ab291)<br />- Content: New blueprint recipes (Chandelier &amp; Braziers craftable)<br />- Content: Updated Translation, see moddb page for %</p>\n<p>- Tweak: Blueprint duplication is default off now (can be configured with config lib)<br />- Tweak: Reduced overall village spawn chance ([More](https://github.com/AreYSerious/betterruins/commit/d95e9e30f67f3a562d8c8e771abdbbcbf8cee638))</p>\n<p>- Fix: Copper roofing massively reduced in quantity ([More](https://github.com/AreYSerious/betterruins/commit/fbafa5a398f6323dd76344b3bd2f1d50e2d53351))<br />- Fix: Bricklayers incompatibility fixed and Warning messages resolved ([More](https://github.com/AreYSerious/betterruins/commit/a385eb76f2550625766ee7327626d8ab1e58e9b9))<br />- Fix: Plank recipes not working ([More](https://github.com/AreYSerious/betterruins/commit/15f26c068a396b31594ec27250bbd0b724521985))<br />- Fix: Adjusted Wolfstone lore to fit new reworked structures</p>"
+   },
+   {
+    "releaseid": 10057,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.5_5486f14e51f44870f8d2529f2dac7e64.zip?dl=BetterRuinsv0.3.5.zip",
+    "filename": "BetterRuinsv0.3.5.zip",
+    "fileid": 21151,
+    "downloads": 20784,
+    "tags": [
+     "1.19.5",
+     "1.19.6",
+     "1.19.7",
+     "1.19.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.5",
+    "created": "2024-04-26 17:48:50",
+    "changelog": "<p>- Content: New megastructure called industrialcoalmine by StAdrian<br />- Content: 2 new structures by Virrno<br />- Tweak: Spawnchance of nordichouse megastructure<br />- Tweak: Added description to blueprints<br />- Tweak: Removed coldclimate industrial containers<br />- Tweak: Removed blueprint drop from lore randomizers to reduce spawnchance<br />- Tweak: Updated configfile<br />- Tweak: Updated translationcontributors<br />- Tweak: New lang Polish ty &lt;3<br />- Fix: Updated a schematic to fix remapping issue<br />- Fix: Updated ForlornTower to readd armorstands</p>"
+   },
+   {
+    "releaseid": 9252,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.4_d1d1c6b6337fa6d57f0587a4d14090d1.zip?dl=BetterRuinsv0.3.4.zip",
+    "filename": "BetterRuinsv0.3.4.zip",
+    "fileid": 19754,
+    "downloads": 13957,
+    "tags": [
+     "1.19.4",
+     "1.19.5-rc.1",
+     "1.19.5-rc.2",
+     "1.19.5-rc.3",
+     "1.19.5",
+     "1.19.6",
+     "1.19.7"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.4",
+    "created": "2024-03-08 16:14:17",
+    "changelog": "<p>[How to configure BetterRuins](https://www.youtube.com/watch?v=Ioe_u_DmbDQ)<br />[Tutorial on how to manually spawn structures](https://www.youtube.com/watch?v=T5ijHVoIUbA)</p>\n<p>Content: Configfile (you need the following mods for it to work) [ImGui](https://mods.vintagestory.at/imgui), [ConfigLib](https://mods.vintagestory.at/configlib)<br />Content: Updated @pars wolfstone castle (2 variations for 4 different climates)<br />Content: New prion styled village by @Par<br />Content: Added @samgreys underground ruins from his mod. [Moddbpage of his mod](https://mods.vintagestory.at/samsdungeonsremastered)<br />Content: 7 new waystoneruins by @quentin<br />Content: 4 new road structures which can spawn in villages<br />Content: 3 new blueprints (jonasparts, jonasassembly, mechanical stuff)<br />Content: Language files updated<br />Content: Documentation on the [Wiki](https://github.com/AreYSerious/betterruins/wiki)</p>\n<p>Tweak: Added minY to structures (which turns out doesn't work in vanilla yet... / useless)<br />Tweak: Reduced betterruins underground spawnchances by 50%<br />Tweak: Slight rebalance of megastructures<br />Tweak: Slight village spawn chance rebalance<br />Tweak: Reduced cold climate surface structures by a lot (the metal sheds)<br />Tweak: Reenabled the underground library megastructure (reduced chiseled blocks)<br />Tweak: Enabled some new stone recipes bcs new variants exists in vanilla<br />Tweak: Item description for blueprints</p>\n<p>Fix: Readded spawners in shoppingcentre megastructure<br />Fix: megastructure 1 readded (was deactivated)</p>"
+   },
+   {
+    "releaseid": 8747,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.3_75fc83684ede352a0ec7b0b30cd00c83.zip?dl=BetterRuinsv0.3.3.zip",
+    "filename": "BetterRuinsv0.3.3.zip",
+    "fileid": 18903,
+    "downloads": 10048,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.3",
+    "created": "2024-02-08 19:20:16",
+    "changelog": "<p>- Fix: Replaced some clutter bookshelf bcs they had a rare ? block bug<br />- Fix: Restructured underground structures<br />- Fix: Added some textures and paths to resolve a useless client warning<br />- Tweak: added new blocks to rock type remap<br />- Tweak: Reduced spawn chances of graves<br />- Tweak: Reduced spawn chances of villages<br />- Tweak: Changed some megastructures spawn chances<br />- Tweak: Changed min distance of climate dependent builds from 800 to 1800<br />- Tweak: Changed min distance of translocator ruins from 1200 to 1600</p>"
+   },
+   {
+    "releaseid": 8524,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.2_999c7fa829b1f6d54cfa9022f79ac39e.zip?dl=BetterRuinsv0.3.2.zip",
+    "filename": "BetterRuinsv0.3.2.zip",
+    "fileid": 18457,
+    "downloads": 4699,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.2",
+    "created": "2024-01-30 18:46:00",
+    "changelog": "<p>- Fix: Fixed a warning/error caused by betterruins and bricklayers<br />- Tweak: Added modifier to configure spawn chance of all villages<br />- Tweak: Reduced villages by 20%<br />- Tweak: Reduced the following loot (gears -20%, ingots -25%; armor -30%; mechanical parts -30%)(fyi the loot config mod will get a revive soon)<br />- Fix: Made this mod compatible with pre 1.19.3</p>"
+   },
+   {
+    "releaseid": 8480,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.1_ce069b5c6b90ce7414dff7d48de19059.zip?dl=BetterRuinsv0.3.1.zip",
+    "filename": "BetterRuinsv0.3.1.zip",
+    "fileid": 18358,
+    "downloads": 2879,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.1",
+    "created": "2024-01-28 20:01:31",
+    "changelog": "<p>- Tweak: Increased mintemp for cold climate shelters<br />- Tweak: Compatibility with spawnchances addon mod.<br />- Tweak: Temporary fix for vanilla and other modded ruins floating (This needs a proper fix and prob help from tyron)</p>"
+   },
+   {
+    "releaseid": 8462,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.3.0_79690e8dcf3566ea533419f32766fccf.zip?dl=BetterRuinsv0.3.0.zip",
+    "filename": "BetterRuinsv0.3.0.zip",
+    "fileid": 18311,
+    "downloads": 2101,
+    "tags": [
+     "1.19.0",
+     "1.19.1",
+     "1.19.2",
+     "1.19.3"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.3.0",
+    "created": "2024-01-28 15:01:54",
+    "changelog": "<p>761 files changed :P (changed the file structure quite a bit)<br />- Content: Updated to 1.19<br />- Content: Added 2 new village types (forest village and desert styled village)<br />- Content: Config possible the mods patch files have been cleaned up and documented for player individual changes. (More documentation on a wiki is following, as well as video tutorials)<br />- Content: Added new cold climate shelters made by StAdrian<br />- Content: Language files updated (Thanks yanazake &lt;3)<br />- Content: Added a ruin by Quentin to worldgen<br />- Tweak: Changed stone blocks of 70% of all ruins to fit vanilla a bit more. (cobblestone and the aged cobblestone)<br />- Tweak: Removed some boring ruins :(<br />- Fix: Virrnos megastructure had some incorrect blocks bcs of a world edit fk up on my side</p>\n<p>## What's Changed<br />* BetterRuinsv0.3.0 by @AreYSerious in https://github.com/AreYSerious/betterruins/pull/34</p>\n<p><br />**Full Changelog**: https://github.com/AreYSerious/betterruins/compare/v0.2.5...v0.3.0</p>"
+   },
+   {
+    "releaseid": 7914,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.5_9eec966f4b8210d7d3b5ad409b71c9f6.zip?dl=BetterRuinsv0.2.5.zip",
+    "filename": "BetterRuinsv0.2.5.zip",
+    "fileid": 17235,
+    "downloads": 6347,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.5",
+    "created": "2023-12-30 11:31:22",
+    "changelog": "<p>1.18.15 Update&nbsp;<br /><span style=\"color: #e74c3c;\">not for 1.19</span><br /><br />- **Content**: Added one new shopping center megastructure by Virrno (2 variants)<br />- **Content**: Added one new underground library megastructure by Marlim (Atlas Civ)(1 variant)<br />- **Content**: Blueprints have been added<br />- **Content**: Blueprints added to loot ruin<br />- **Content**: Added 3 new Desert style structures by StAdrian<br />- **Content**: Added 4 new ruins by Vil<br />- **Content**: Updated Modicon<br />- **Content**: Updated lang files<br />- _Tweak_: Meteoric iron loot has been reduced to 33%<br />- _Tweak_: Reduced spawnchance of some new structures from Virrno<br />- _Tweak_: Reduced prices for locatormaps from traders to counter the (could not find structure issue which is a vanilla issue sadly)<br />- _Tweak_: Removed a village tileset if stone structures<br />- _Tweak_: Mindistance of graves increased from 750 to 850 blocks<br />- _Tweak_: Slight loot rebalance<br />- _Tweak_: buffed underground spawn chance by 15%<br />- _Tweak_: Reduced spawnchance of underground ruin with castle painting by 10x<br />- _Tweak_: Slight megastructure spawnchance balance<br />- _Tweak_: Added new blocks to rocktyperemaps<br />- _Tweak_: modinfo switched from requiredonServer to side Universal<br />- Fix: Replaced ? blocks in megastructure3<br />- Fix: Typo in lang file</p>"
+   },
+   {
+    "releaseid": 6899,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.4_fdd8f62c079c472e1de806c81b09eb47.zip?dl=BetterRuinsv0.2.4.zip",
+    "filename": "BetterRuinsv0.2.4.zip",
+    "fileid": 15001,
+    "downloads": 17638,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.4",
+    "created": "2023-10-08 16:25:23",
+    "changelog": "<p>- Content: Updated virrnogamr s village tile sets<br />- Content: Updated Japanese Translation<br />- Tweak: Nerfed Graves (min distance from 400 to 750)<br />- Tweak: Rebalanced villages<br />- Fix: Village tile sets couldn't spawn temperature bound.</p>"
+   },
+   {
+    "releaseid": 6880,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.3_0a712ce67eb632c70eba8dfee276de02.zip?dl=BetterRuinsv0.2.3.zip",
+    "filename": "BetterRuinsv0.2.3.zip",
+    "fileid": 14935,
+    "downloads": 2671,
+    "tags": [
+     "1.18.4",
+     "1.18.5",
+     "1.18.6",
+     "1.18.7",
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.3",
+    "created": "2023-10-06 15:44:24",
+    "changelog": "<p>- Content: New build from Bellcross<br />- Content: New village tileset from Virrnogamr (north specific)<br />- Content: Updated Translations (thanks everyone)<br />- Tweak: Removed remaining stone bricks from structures<br />- Tweak: Changed spawnchance of ancient ruins (vanilla rework)<br />- Tweak: Removed unnecessary drops from lootpools<br />- Tweak: Added following item to the lootpool:<br />- Lit chimneys<br />- Stone bricks (all variants)<br />- Fix: Graves min distance fixed<br />- Fix: Readded broken Underground ruins</p>"
+   },
+   {
+    "releaseid": 6315,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.2_51f2ccf5c6194de2db42819715e8d60d.zip?dl=BetterRuinsv0.2.2.zip",
+    "filename": "BetterRuinsv0.2.2.zip",
+    "fileid": 13571,
+    "downloads": 9668,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8-rc.1",
+     "1.18.8",
+     "1.18.9-rc.1",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.2",
+    "created": "2023-08-19 16:03:50",
+    "changelog": "<p>To the North Update</p>\n<p>- Content: Updated translation<br />- Content: Added new Forlorn Hope<br />- Content: Added new Treasure maps for: Graves, Translocators, Underground ruins. Check the treasure hunter for those<br />- Content: Added Items and blocks from the following mods to the loot tables if active: Ceramos, Primitive Survival, Stone Quarry<br />- Content: Added new dialogue for the lux trader check him out for information about some of the new structures, maybe he can help you find them. (This isn't a state where we would like it to be, but it is what it is atm, vanilla is kinda holding us back)<br />- Content: 7 new megastructures<br />- Content: Re textured and randomized all normal overground ruins to fit more to upcoming vanilla ruins</p>\n<p>- Tweak: Complete balancing overhaul again... overall reduced and fewer ruins close to each other<br />- Tweak: Removed a lot of rusty gears from structures<br />- Tweak: Reduces rusty gears in loot tables<br />- Tweak: Fixed water not spawning in some structures<br />- Tweak: Nerfed grave spawn rate from 200 min distance to 500<br />- Tweak: More enemies in megastructures with better spawning behaviors<br />- Tweak: Removed some underground ruins bcs they somehow result in debug errors (will be readded at some point)<br />- Tweak: Removed all stone brick piles</p>\n<p><br />- Fixed: Removed legacy bookshelves from loot tables<br />- Fixed: An issue with tapestry in an underground structure</p>"
+   },
+   {
+    "releaseid": 5605,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.1_0f98d8611440d7189f4601bc11f0fd06.zip?dl=BetterRuinsv0.2.1.zip",
+    "filename": "BetterRuinsv0.2.1.zip",
+    "fileid": 12070,
+    "downloads": 12116,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6-rc.1",
+     "1.18.6-rc.2",
+     "1.18.6",
+     "1.18.7",
+     "1.18.8-rc.1",
+     "1.18.8"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.1",
+    "created": "2023-06-17 13:25:13",
+    "changelog": "<p>Hotfix for v0.2.0</p>\n<p>Tweak: Slight Balance changes (Increased overground spawn chances, Reduced underground spawn chances)<br />Tweak: New randomized textures for megastructure6<br />Fix: Removed schematics that contain not existing blocks</p>\n<p>What's Changed:<br />BetterRuinsv0.2.1 by @AreYSerious in <a href=\"https://github.com/AreYSerious/betterruins/pull/28\">https://github.com/AreYSerious/betterruins/pull/28</a></p>\n<p><br />Full Changelog: <a href=\"https://github.com/AreYSerious/betterruins/compare/v0.2.0...v0.2.1\">https://github.com/AreYSerious/betterruins/compare/v0.2.0...v0.2.1</a></p>"
+   },
+   {
+    "releaseid": 5528,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.2.0_4837b57d2d1767026794f99420332ef9.zip?dl=BetterRuinsv0.2.0.zip",
+    "filename": "BetterRuinsv0.2.0.zip",
+    "fileid": 11914,
+    "downloads": 3225,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6-rc.1"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.2.0",
+    "created": "2023-06-10 14:28:02",
+    "changelog": "<p>Content: Underground content (have fun exploring)(looking for feedback for spawn chances)<br />Content: Added new randomizers (armor, backpack, king clothing, rottenking clothing, masks)<br />Content: Some clutterblock will emit light now (might just work for overground ruins)<br />Content: Added 2 new village types by Par which spawn in specific climates<br />Content: Added 2 ruins from StAdrian<br />Content: Added 1 ruin from Bellcross (Welcome to the team!)<br />Tweak: Added new balancing to the buried treasures (mindistance: 200, halfed chance)<br />Tweak: Complete new balancing for megastructures<br />Tweak: All ruins got halved spawn chances<br />Tweak: Removed a boring bridge ruin<br />Tweak: Language files updated<br />Fix: Fixed issues with Dampus megastructure (bookshelves)</p>\n<p>## What's Changed<br />* Update for BetterRuinsv0.2.0 by @AreYSerious in <a href=\"https://github.com/AreYSerious/betterruins/pull/24\" target=\"_blank\" rel=\"noopener\">https://github.com/AreYSerious/betterruins/pull/24</a></p>\n<p><br />**Full Changelog**: <a href=\"https://github.com/AreYSerious/betterruins/compare/v0.1.1...v0.2.0\" target=\"_blank\" rel=\"noopener\">https://github.com/AreYSerious/betterruins/compare/v0.1.1...v0.2.0</a></p>"
+   },
+   {
+    "releaseid": 5175,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.1.1_30b67cb055bf3bcd4266c2ffcb9f8a94.zip?dl=BetterRuinsv0.1.1.zip",
+    "filename": "BetterRuinsv0.1.1.zip",
+    "fileid": 11228,
+    "downloads": 5101,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2-rc.1",
+     "1.18.2-rc.2",
+     "1.18.2-rc.3",
+     "1.18.2-rc.4",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.1.1",
+    "created": "2023-05-10 18:21:39",
+    "changelog": "<p>- Content: Updated lang files<br />- Content: Added new ruins from Dampus (1) and SamGrey (5)<br />- Content: Added buried treasure from SamGrey<br />- Tweak: Added new ingots to ingot loot randomizer<br />- Fix: Mod is now client sided as well and autodownloads from moddb<br />- Fix: Updated modinfo.json</p>\n<p>&nbsp;</p>\n<p><br />## What's Changed<br />* v0.1.1 by @AreYSerious in https://github.com/AreYSerious/betterruins/pull/23</p>\n<p><br />**Full Changelog**: https://github.com/AreYSerious/betterruins/compare/v0.1.0...v0.1.1</p>"
+   },
+   {
+    "releaseid": 4846,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.1.0_380348951475d9d3a908623bf6872a01.zip?dl=BetterRuinsv0.1.0.zip",
+    "filename": "BetterRuinsv0.1.0.zip",
+    "fileid": 10669,
+    "downloads": 3297,
+    "tags": [
+     "1.18.0-rc.7",
+     "1.18.0-rc.8",
+     "1.18.0",
+     "1.18.1"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.1.0",
+    "created": "2023-04-22 18:09:58",
+    "changelog": "<p>- Fix: A client crash that could Accor for 1 megastructure.<br />- Content: Translation from @macoto_hino and @yanazake thanks both of you for translating the new lore in betterruins in Portuguese, Brazilian and Japanese.<br />- Fix: Replaced some Legacy bookshelves with new ones.<br />- Content: Added new display cases.<br />- Content: Added new vanilla Lootrandomizers for the new tech like Jonas parts and more.<br />- Fix: Replaced some stone bricks that were incorrect.<br />- Content: Added 3-4 new structures.<br />- Fix: Revisited the spawners for mobs for a better player experience</p>\n<p>## What's Changed<br />* v0.1.0 by @AreYSerious in https://github.com/AreYSerious/betterruins/pull/21</p>\n<p><br />**Full Changelog**: https://github.com/AreYSerious/betterruins/compare/v0.0.8...v0.1.0</p>"
+   },
+   {
+    "releaseid": 4550,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.8_67ceb389c9a89e229e95ea28463397ab.zip?dl=BetterRuinsv0.0.8.zip",
+    "filename": "BetterRuinsv0.0.8.zip",
+    "fileid": 10118,
+    "downloads": 2902,
+    "tags": [
+     "1.18.0-pre.0",
+     "1.18.0-rc.1",
+     "1.18.0-rc.2",
+     "1.18.0-rc.3",
+     "1.18.0-rc.4",
+     "1.18.0-rc.5",
+     "1.18.0-rc.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.8",
+    "created": "2023-04-01 14:05:41",
+    "changelog": "<p>- **Content**: Adds 44 new ruins.<br />- **Content**: 2 New Megastructures.<br />- **Content**: Revisited every ruin with new loot tables.<br />- **Content**: Revisited every ruin with new 1.18 stone blocks and clutter blocks.<br />- **Content**: Added 1 new village styled ruin spawn.<br />- **Content**: Added new Loot Stackrandomizers to creative mode, and those are now used in the ruins for new loot tables.<br />- **Content**: 100% Loot overhaul and nerf.<br />- **Content**: Added 5 new lore entries that can spawn in different megastructures and explain a bit about them.<br />- **Content**: Language support for ENG and GER and more to come.<br />- **Content**: New translocator ruins suggested by Apache.<br />- **Content**: New butterfly ruin featuring butterflies XD.<br />- _Tweak_: Changed some spawn chances around for all ruins.<br />- _Tweak_: Removed Aged wooden boards.<br />- _Tweak_: Spawner overhaul.<br />- Fix: Fixed a lot of 1.18 issues that came up with new and old structures.</p>\n<p>Team of Builders: Dampus, Catnoir90, djvirus, Par, NiteFox<br />Huge thank you!</p>"
+   },
+   {
+    "releaseid": 4137,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.7_0d1e695014c654aa8ad256c1aa76fad6.zip?dl=BetterRuinsv0.0.7.zip",
+    "filename": "BetterRuinsv0.0.7.zip",
+    "fileid": 9329,
+    "downloads": 3921,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.7",
+    "created": "2023-02-05 16:50:25",
+    "changelog": "<p>- **Content**: Adds 21 new detailed ruins.<br />- **Content**: Added multiple variants for each already existing ruins, as well as new variants for all the vanilla ruins.<br />- **Content**: Added more Megastructures, resulting in an amount of 8 atm.<br />- **Content**: Finished all vanilla ruin reworks.<br />- **Content**: Added 2 village ruin spawn sets.<br />- _Tweak_: Changed some spawn chances around for all ruins.<br />- _Tweak_: Revisited 100% of all mod ruins and added new loot tables and nerfed a lot of them.<br />- And more...</p>\n<p>Team of Builders: Dampus, Catnoir90, djvirus<br />Huge thank you!</p>"
+   },
+   {
+    "releaseid": 3690,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.6_15666abfb651dcf55c642c55dcf8fa1f.zip?dl=BetterRuinsv0.0.6.zip",
+    "filename": "BetterRuinsv0.0.6.zip",
+    "fileid": 8329,
+    "downloads": 4659,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.6",
+    "created": "2022-11-13 18:32:45",
+    "changelog": "<p>- <strong>Content</strong>: Adds 26 new detailed ruins. 10 of them translocator ruins.<br />- <strong>Content</strong>: Added multiple variants for each already existing ruins.<br />- <strong>Content</strong>: 2 More Mega Structures (with more in progress)<br />- <em>Tweak</em>: Changed some spawnchances around for all ruins.<br />- <em>Tweak</em>: Revisited 100% of all mod ruins and added new loottables and nerfed a lot of them.<br />- And more...</p>\n<p>Team of Builders: Dampus, Catnoir90, djvirus<br />Huge thank you!</p>"
+   },
+   {
+    "releaseid": 3587,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.5_44cfd3742f32a534906698f972edf78f.zip?dl=BetterRuinsv0.0.5.zip",
+    "filename": "BetterRuinsv0.0.5.zip",
+    "fileid": 8102,
+    "downloads": 2241,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.5",
+    "created": "2022-11-01 21:00:20",
+    "changelog": "<p>- <strong>Content</strong>: Adds 14 new detailed ruins. 4 of them translocator ruins.<br />- <strong>Content</strong>: Hosting a Creative Multiplayer Server for everyone to join and build. (Featuring all ruins from this mod)<br />- <em>Tweak</em>: Changed some spawnchances around for normal ruins.<br />- <em>Tweak</em>: Revisited 60% of all mod ruins and added new loottables.<br />- Fix: Moved from Game directory to betterruins directory.<br />- And more...</p>\n<p>Team of Builders: Dampus, Catnoir90, djvirus<br />Huge thank you!</p>"
+   },
+   {
+    "releaseid": 3460,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.4_0121c1b238621428e62759fbf39f03d4.zip?dl=BetterRuinsv0.0.4.zip",
+    "filename": "BetterRuinsv0.0.4.zip",
+    "fileid": 7833,
+    "downloads": 2556,
+    "tags": [
+     "1.16.5",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.4",
+    "created": "2022-10-09 11:23:48",
+    "changelog": "<p>- <strong>Content:</strong> Reworked vanilla religiousruins (todo: village)<br />- <strong>Content:</strong> Added 2 new Mega Structures<br />- <strong>Content:</strong> Added 10 new smaller ruins<br />- <em>Tweak:</em> Adjusted spawn chances and min distances for almost all structures.<br />- <em>Tweak:</em> Revisited loottables for some structures. (WIP: More changes in the next version.)<br />- Fix: Lootrandomizer generating 0 copper ingots.<br />- Fix: Patches are now serverside.</p>"
+   },
+   {
+    "releaseid": 3221,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.3_72079c74b016de19c7022d3ef8334e09.zip?dl=BetterRuinsv0.0.3.zip",
+    "filename": "BetterRuinsv0.0.3.zip",
+    "fileid": 7244,
+    "downloads": 2579,
+    "tags": [
+     "1.16.5",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.3",
+    "created": "2022-09-10 21:40:29",
+    "changelog": "<p>- Reintroduced spanruins to 1.17 (got removed in 1.17)</p>\n<p>- Reworked multiple ruin types (Done: agriruins, ancientruins, civicruins, houseruins, marshalruins, spanruins | Todo: religiosruins, village)</p>\n<p>- Add more stonevariants to every structure:<br />- Chert<br />- Conglomerate<br />- Limeston<br />- Peridotite<br />- Phyllite<br />- Slate</p>\n<p>- Spawn chances:<br />- Ruins: 0.2 and 0.1 (min 500 blocks apart)<br />- Translocator-Ruins: 0.5 and 0.2 and 0.4 (min 800 blocks apart)</p>\n<p>- Balancing: Lootrandomiser for Lore items</p>"
+   },
+   {
+    "releaseid": 3117,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.2_7d6d230b3e5b7f0e0840933c4b508901.zip?dl=BetterRuinsv0.0.2.zip",
+    "filename": "BetterRuinsv0.0.2.zip",
+    "fileid": 7062,
+    "downloads": 2161,
+    "tags": [
+     "1.16.5",
+     "1.17.0-pre.0",
+     "1.17.0-rc.8",
+     "1.17.0",
+     "1.17.1",
+     "1.17.2"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.2",
+    "created": "2022-09-01 20:38:59",
+    "changelog": "<ul>\n<li>Adds 3 new different structures</li>\n<li>Add Stonevariants to every structure:\n<ul>\n<li>Sandstone</li>\n<li>Claystone</li>\n<li>Andesite</li>\n<li>Basalt</li>\n<li>Shale</li>\n</ul>\n</li>\n<li>Spawn chances:\n<ul>\n<li>Ruins: 0.4 and 0.04 (min 200 blocks apart)</li>\n</ul>\n<ul>\n<li>Translocator-ruins: 1 and 0.5 and 0.3 (min 800 blocks apart)</li>\n</ul>\n</li>\n<li>Balancing: Reduced the amount of torchholders</li>\n<li>Fixed: 1 structure containing 1.17 blocks</li>\n</ul>"
+   },
+   {
+    "releaseid": 3039,
+    "mainfile": "https://moddbcdn.vintagestory.at/BetterRuinsv0.0.1_a2ed3ef1a66907461167c3b26a775673.zip?dl=BetterRuinsv0.0.1.zip",
+    "filename": "BetterRuinsv0.0.1.zip",
+    "fileid": 6910,
+    "downloads": 2008,
+    "tags": [
+     "1.16.5-rc.1",
+     "1.16.5",
+     "1.17.0-pre.0",
+     "1.17.0-rc.1",
+     "1.17.0-rc.2",
+     "1.17.0-rc.3",
+     "1.17.0-rc.4",
+     "1.17.0-rc.5",
+     "1.17.0-rc.6",
+     "1.17.0-rc.7",
+     "1.17.0-rc.8",
+     "1.17.0"
+    ],
+    "modidstr": "betterruins",
+    "modversion": "0.0.1",
+    "created": "2022-08-22 17:43:22",
+    "changelog": null
+   }
+  ],
+  "screenshots": [
+   {
+    "fileid": 18300,
+    "mainfile": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688.jpg",
+    "filename": "9.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688_55_60.jpg",
+    "created": "2024-01-28 14:36:08"
+   },
+   {
+    "fileid": 18308,
+    "mainfile": "https://moddbcdn.vintagestory.at/2024-01-27_19-12-44_385dd64f5b3642ede6d1ea1ad045cec2.jpg",
+    "filename": "2024-01-27_19-12-44.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-01-27_19-12-44_385dd64f5b3642ede6d1ea1ad045cec2_55_60.jpg",
+    "created": "2024-01-28 14:37:40"
+   },
+   {
+    "fileid": 27011,
+    "mainfile": "https://moddbcdn.vintagestory.at/2024-10-31_21-20-21_8b400ed9cd0f05522b0b567f75c461c6.jpg",
+    "filename": "2024-10-31_21-20-21.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-10-31_21-20-21_8b400ed9cd0f05522b0b567f75c461c6_55_60.jpg",
+    "created": "2024-11-03 17:05:59"
+   },
+   {
+    "fileid": 28558,
+    "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_04__3e88fc88753ffa806a424dd854a4dc6b.jpg",
+    "filename": "Timeline 1_01_02_04_26.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_04__3e88fc88753ffa806a424dd854a4dc6b_55_60.jpg",
+    "created": "2024-12-13 20:06:18"
+   },
+   {
+    "fileid": 28559,
+    "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_31__2f732f2addb9e1552b222c6d1b2bb20e.jpg",
+    "filename": "Timeline 1_01_02_31_14.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_31__2f732f2addb9e1552b222c6d1b2bb20e_55_60.jpg",
+    "created": "2024-12-13 20:06:26"
+   },
+   {
+    "fileid": 28560,
+    "mainfile": "https://moddbcdn.vintagestory.at/2024-12-13_16-30-29_8f9050720645a580429035819da6dc1e.jpg",
+    "filename": "2024-12-13_16-30-29.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-12-13_16-30-29_8f9050720645a580429035819da6dc1e_55_60.jpg",
+    "created": "2024-12-13 20:07:58"
+   },
+   {
+    "fileid": 28561,
+    "mainfile": "https://moddbcdn.vintagestory.at/2024-12-13_17-46-36_d166b7ee8844826cbe69cbecd2ce0e4a.jpg",
+    "filename": "2024-12-13_17-46-36.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-12-13_17-46-36_d166b7ee8844826cbe69cbecd2ce0e4a_55_60.jpg",
+    "created": "2024-12-13 20:07:58"
+   },
+   {
+    "fileid": 45442,
+    "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_35__8c65d894ffb9af819ef3741f78611700.jpg",
+    "filename": "Timeline 1_01_02_35_47.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_02_35__8c65d894ffb9af819ef3741f78611700_55_60.jpg",
+    "created": "2025-06-10 19:11:32"
+   },
+   {
+    "fileid": 45443,
+    "mainfile": "https://moddbcdn.vintagestory.at/Timeline+1_01_01_34__eeff9da2bd20a0671ab8dd64eb62b698.jpg",
+    "filename": "Timeline 1_01_01_34_51.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Timeline+1_01_01_34__eeff9da2bd20a0671ab8dd64eb62b698_55_60.jpg",
+    "created": "2025-06-10 19:22:51"
+   },
+   {
+    "fileid": 45444,
+    "mainfile": "https://moddbcdn.vintagestory.at/2025-03-02_17-35-11_3d5c69c5c4912c2f9f20ec0eea1a8e52.jpg",
+    "filename": "2025-03-02_17-35-11.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2025-03-02_17-35-11_3d5c69c5c4912c2f9f20ec0eea1a8e52_55_60.jpg",
+    "created": "2025-06-10 19:23:40"
+   }
+  ]
+ },
+ "statuscode": "200"
+}
