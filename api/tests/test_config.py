@@ -20,7 +20,6 @@ from vintagestory_api.config import (
     get_current_debug_setting,
     initialize_debug_state,
     is_debug_enabled,
-    reconfigure_logging_if_changed,
     set_debug_enabled,
 )
 
@@ -960,44 +959,3 @@ class TestConfigureLoggingWithLogLevel:
         # If debug=True, should fall back to DEBUG level
         # If debug=False, should fall back to INFO level
         configure_logging(debug=False, log_level="NOT_A_LEVEL")
-
-
-class TestReconfigureLoggingIfChanged:
-    """Tests for reconfigure_logging_if_changed function."""
-
-    def test_reconfigure_logging_if_changed_first_call(self) -> None:
-        """reconfigure_logging_if_changed returns True on first call."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = None
-        config_module._debug_enabled = False
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is True
-        # First call initializes _last_debug_state
-        assert config_module._last_debug_state is False
-
-    def test_reconfigure_logging_if_changed_state_changed(self) -> None:
-        """reconfigure_logging_if_changed returns True when state changes."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = False
-        config_module._debug_enabled = True
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is True
-        # State should be updated
-        assert config_module._last_debug_state is True
-
-    def test_reconfigure_logging_if_changed_no_change(self) -> None:
-        """reconfigure_logging_if_changed returns False when state unchanged."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = True
-        config_module._debug_enabled = True
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is False
