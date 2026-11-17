@@ -35,6 +35,10 @@ const DIRECTORIES_API = '/api/v1alpha1/config/directories';
 const FILES_API = '/api/v1alpha1/config/files';
 const NO_MONITOR_KEY = 'VS_API_KEY_MONITOR is not set for this stack';
 
+interface ErrorBody {
+  detail: { code: string; message: string };
+}
+
 /** Makes the page use `apiKey`, whatever key the stack hands the web UI. */
 async function usePageKey(page: Page, apiKey: string) {
   await page.route('**/config.js', (route) =>
@@ -58,7 +62,8 @@ async function directories(request: APIRequestContext, apiKey: string, directory
   });
   expect(response.status(), `GET ${DIRECTORIES_API}${query}`).toBe(200);
   expect(response.headers()['cache-control']).toBe('no-store');
-  return ((await response.json()) as { data: { directories: string[] } }).data.directories;
+  const body: { data: { directories: string[] } } = await response.json();
+  return body.data.directories;
 }
 
 async function openFileManager(page: Page) {
@@ -154,9 +159,8 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
         const url = `${api}?directory=${encodeURIComponent(directory)}`;
         const response = await request.get(url, { headers: { 'X-API-Key': MONITOR_KEY } });
         expect(response.status(), url).toBe(403);
-        expect(((await response.json()) as { detail: { code: string } }).detail.code).toBe(
-          'FORBIDDEN'
-        );
+        const error: ErrorBody = await response.json();
+        expect(error.detail.code).toBe('FORBIDDEN');
         expect(response.headers()['cache-control']).toBe('no-store');
       }
     }
@@ -166,9 +170,8 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
     expect(monitorLog.status()).toBe(403);
     const adminLog = await request.get(log, { headers: { 'X-API-Key': ADMIN_KEY } });
     expect(adminLog.status()).toBe(400);
-    expect(((await adminLog.json()) as { detail: { code: string } }).detail.code).toBe(
-      'CONFIG_FILE_NOT_SUPPORTED'
-    );
+    const adminError: ErrorBody = await adminLog.json();
+    expect(adminError.detail.code).toBe('CONFIG_FILE_NOT_SUPPORTED');
 
     const serverconfig = await request.get(`${FILES_API}/serverconfig.json`, {
       headers: { 'X-API-Key': MONITOR_KEY },
@@ -190,8 +193,8 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
     );
     const filesResponse = await request.get(FILES_API, { headers: { 'X-API-Key': MONITOR_KEY } });
     expect(filesResponse.status()).toBe(200);
-    const expectedFiles = ((await filesResponse.json()) as { data: { files: string[] } }).data
-      .files;
+    const filesBody: { data: { files: string[] } } = await filesResponse.json();
+    const expectedFiles = filesBody.data.files;
     await usePageKey(page, MONITOR_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
 
