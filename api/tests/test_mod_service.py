@@ -1624,7 +1624,7 @@ class TestModServiceLookupMod:
         import respx
         from httpx import Response
 
-        mod_without_releases = {
+        mod_without_releases: dict[str, Any] = {
             "modid": 1234,
             "name": "No Releases Mod",
             "urlalias": "noreleases",
@@ -1701,7 +1701,7 @@ class TestModServiceLookupMod:
             game_version="1.21.3",
         )
 
-        mod_without_tags = {
+        mod_without_tags: dict[str, Any] = {
             "modid": 1234,
             "name": "No Tags Mod",
             "urlalias": "notags",
