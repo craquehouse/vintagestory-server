@@ -1,6 +1,6 @@
 # Story 19.1: Secrets Stay with Admin
 
-Status: review
+Status: done
 
 <!-- Implements FR205-FR209 and FR233, Epic 19 ADR-1, ADR-2, ADR-3 (decision 9: the Monitor note) and ADR-4. Beads: VSS-633 (API-077, bug, P2), VSS-sg1 (API-078, bug, P3), VSS-3hs2 (API-089, P3), VSS-ms0 (API-070, P3); parent VSS-fl9b. First story of Epic 19 (stories run in order 19.1 to 19.7, each stacked on the previous). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ match 048fea9, the commit the ADRs cite) and must be re-checked at implementation time. API change, one small web change (the note), documentation and configuration files. No new dependencies. -->
 
@@ -461,3 +461,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `web/src/features/settings/FileManagerPanel.tsx` (modified)
 - `web/src/features/settings/FileManagerPanel.test.tsx` (modified)
 - `web/e2e/file-browser-monitor-note.spec.ts` (new)
+- 2026-11-17: Code review (GLM-5.3-Flash): changes requested (two medium, one low), fixed in 7e2d78b, re-review approved. Status done.

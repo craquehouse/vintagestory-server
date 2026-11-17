@@ -211,7 +211,7 @@ development_status:
   18-4-installed-mods-list-at-every-width: done
   epic-19: in-progress
   epic-19-retrospective: optional
-  19-1-secrets-stay-with-admin: review
+  19-1-secrets-stay-with-admin: done
   19-2-web-ui-no-longer-gets-the-admin-key: backlog
   19-3-content-security-policy-and-api-docs: backlog
   19-4-mod-files-are-never-overwritten: backlog
