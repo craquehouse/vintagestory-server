@@ -29,6 +29,10 @@ from vintagestory_api.main import (
     get_scheduler_service,
 )
 from vintagestory_api.models.server import ServerState, ServerStatus
+from vintagestory_api.services import mods as mods_module
+from vintagestory_api.services.mod_state import ModStateManager, ModSyncSummary
+from vintagestory_api.services.mods import ModService, prepare_mod_files
+from vintagestory_api.services.pending_restart import PendingRestartState
 
 
 class TestGetSchedulerService:
@@ -281,14 +285,16 @@ class TestImportTimeWiring:
 class TestLifespanAutoStart:
     """Tests for lifespan auto-start server logic (lines 118-131)."""
 
-    async def run_auto_start_lifespan(self, recorder: PrepareModFilesRecorder) -> None:
-        """Run the lifespan with auto-start on, recording start_server and the scheduler."""
+    async def run_auto_start_lifespan(
+        self, recorder: PrepareModFilesRecorder, *, auto_start: bool = True
+    ) -> None:
+        """Run the lifespan (auto-start on by default), recording start_server and the scheduler."""
         from vintagestory_api.main import lifespan_for
 
         settings = MagicMock()
         settings.data_dir = Path("/tmp/test_data")
         api_settings_service = MagicMock()
-        api_settings_service.get_settings.return_value.auto_start_server = True
+        api_settings_service.get_settings.return_value.auto_start_server = auto_start
         server_service = MagicMock()
         server_service.get_server_status.return_value = ServerStatus(
             state=ServerState.INSTALLED, uptime_seconds=0
@@ -359,6 +365,113 @@ class TestLifespanAutoStart:
         ]
         assert "read-only file system" in line
         assert type(error).__name__ in line
+
+    @pytest.fixture
+    def real_mod_start_up(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> ModService:
+        """The real `prepare_mod_files` in the lifespan, over a mod service on tmp_path.
+
+        Recovery is recorded into the recorder's calls, then runs for real.
+        """
+        service = ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+        )
+        service.state_manager.mods_dir.mkdir(parents=True)
+        monkeypatch.setattr(mods_module, "get_mod_service", lambda: service)
+        monkeypatch.setattr(main_module, "prepare_mod_files", prepare_mod_files)
+        recover = mods_module.recover_working_files
+
+        def record_recovery(state_manager: ModStateManager) -> None:
+            prepare_mod_files_recorder.calls.append("recover_working_files")
+            recover(state_manager)
+
+        monkeypatch.setattr(mods_module, "recover_working_files", record_recovery)
+        return service
+
+    @pytest.mark.asyncio
+    async def test_recovery_then_the_mod_state_sync_run_before_auto_start(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        real_mod_start_up: ModService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """Story 19.5 AC 9 (Epic 19 ADR-10): one summary line, before the auto-start."""
+        sync = real_mod_start_up.state_manager.sync_state_with_disk
+
+        def record_sync() -> ModSyncSummary:
+            prepare_mod_files_recorder.calls.append("sync_state_with_disk")
+            return sync()
+
+        monkeypatch.setattr(real_mod_start_up.state_manager, "sync_state_with_disk", record_sync)
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "recover_working_files",
+            "sync_state_with_disk",
+            "start_server",
+            "scheduler_start",
+        ]
+        logs = captured_logs.getvalue()
+        assert logs.count("mod_state_synced") == 1
+        assert logs.index("mod_state_synced") < logs.index("auto_starting_game_server")
+
+    @pytest.mark.asyncio
+    async def test_a_failing_mod_state_sync_is_logged_and_the_auto_start_still_runs(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        real_mod_start_up: ModService,
+        monkeypatch: pytest.MonkeyPatch,
+        captured_logs: StringIO,
+    ) -> None:
+        """Story 19.5 AC 13."""
+
+        def fail() -> ModSyncSummary:
+            raise RuntimeError("unexpected")
+
+        monkeypatch.setattr(real_mod_start_up.state_manager, "sync_state_with_disk", fail)
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "recover_working_files",
+            "start_server",
+            "scheduler_start",
+        ]
+        assert captured_logs.getvalue().count("mod_state_sync_failed") == 1
+        assert "mod_files_startup_failed" not in captured_logs.getvalue()
+
+    @pytest.mark.asyncio
+    async def test_the_mod_state_sync_runs_once_with_auto_start_off(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        real_mod_start_up: ModService,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Story 19.5 AC 9."""
+        sync = real_mod_start_up.state_manager.sync_state_with_disk
+
+        def record_sync() -> ModSyncSummary:
+            prepare_mod_files_recorder.calls.append("sync_state_with_disk")
+            return sync()
+
+        monkeypatch.setattr(real_mod_start_up.state_manager, "sync_state_with_disk", record_sync)
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder, auto_start=False)
+
+        assert prepare_mod_files_recorder.calls == [
+            "recover_working_files",
+            "sync_state_with_disk",
+            "scheduler_start",
+        ]
 
     @pytest.mark.asyncio
     async def test_auto_start_server_enabled_and_installed(

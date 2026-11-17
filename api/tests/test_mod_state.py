@@ -1756,6 +1756,7 @@ class TestSyncAtStartUp:
         [mod] = state_manager.list_mods()
         assert (mod.filename, mod.slug) == ("foo.zip", "foo")
 
+
 class TestSyncLogging:
     """Story 19.5 (Epic 19 ADR-10): every change is logged, and one summary line."""
 
