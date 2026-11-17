@@ -16,7 +16,7 @@ import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
 import { fetchBrowseMods } from '@/api/mods';
-import type { BrowseParams, ModBrowseItem, ModFilters } from '@/api/types';
+import type { BrowseParams, ModBrowseItem } from '@/api/types';
 
 /**
  * Cache time matches the API's 5-minute TTL for mod data.
@@ -237,51 +237,5 @@ export function filterModsBySearch(
     }
 
     return false;
-  });
-}
-
-/**
- * Filter mods by filter criteria (client-side).
- *
- * @deprecated VSS-y7u: All filtering is now server-side for accurate pagination.
- * This function is kept for backwards compatibility but is no longer used by useBrowseMods.
- *
- * Applies AND logic across different filter types:
- * - Must match side if specified
- * - Must match at least one tag if tags specified (OR logic within tags)
- * - Must match modType if specified
- *
- * @param mods - Array of mods to filter
- * @param filters - Filter criteria
- * @returns Filtered array of mods
- */
-export function filterModsByFilters(
-  mods: ModBrowseItem[],
-  filters?: ModFilters
-): ModBrowseItem[] {
-  if (!filters) return mods;
-
-  return mods.filter((mod) => {
-    // Side filter (exact match)
-    if (filters.side && mod.side !== filters.side) {
-      return false;
-    }
-
-    // Tags filter (OR logic - mod must have at least one selected tag)
-    if (filters.tags && filters.tags.length > 0) {
-      const hasMatchingTag = filters.tags.some((filterTag) =>
-        mod.tags.some((modTag) => modTag.toLowerCase() === filterTag.toLowerCase())
-      );
-      if (!hasMatchingTag) {
-        return false;
-      }
-    }
-
-    // ModType filter (exact match)
-    if (filters.modType && mod.modType !== filters.modType) {
-      return false;
-    }
-
-    return true;
   });
 }

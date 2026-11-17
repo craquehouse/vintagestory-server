@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   useBrowseMods,
   filterModsBySearch,
-  filterModsByFilters,
 } from './use-browse-mods';
 import type { ModBrowseItem, ApiResponse, ModBrowseData, BrowseParams } from '@/api/types';
 
@@ -184,95 +183,6 @@ describe('filterModsBySearch', () => {
     const result = filterModsBySearch(mockMods, 'prim');
     expect(result).toHaveLength(1);
     expect(result[0].slug).toBe('primitivesurvival');
-  });
-});
-
-describe('filterModsByFilters', () => {
-  it('returns all mods when filters are undefined', () => {
-    const result = filterModsByFilters(mockMods, undefined);
-    expect(result).toHaveLength(3);
-    expect(result).toEqual(mockMods);
-  });
-
-  it('returns all mods when filters are empty object', () => {
-    const result = filterModsByFilters(mockMods, {});
-    expect(result).toHaveLength(3);
-  });
-
-  it('filters by side (exact match)', () => {
-    const result = filterModsByFilters(mockMods, { side: 'server' });
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('wildcraft');
-  });
-
-  it('filters by side "both"', () => {
-    const result = filterModsByFilters(mockMods, { side: 'both' });
-    expect(result).toHaveLength(2);
-    expect(result.map((m) => m.slug)).toEqual([
-      'carrycapacity',
-      'primitivesurvival',
-    ]);
-  });
-
-  it('filters by single tag (OR logic within tags)', () => {
-    const result = filterModsByFilters(mockMods, { tags: ['qol'] });
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('carrycapacity');
-  });
-
-  it('filters by multiple tags (OR logic)', () => {
-    const result = filterModsByFilters(mockMods, { tags: ['qol', 'survival'] });
-    expect(result).toHaveLength(2);
-    expect(result.map((m) => m.slug)).toContain('carrycapacity');
-    expect(result.map((m) => m.slug)).toContain('primitivesurvival');
-  });
-
-  it('filters tags case-insensitively', () => {
-    const result = filterModsByFilters(mockMods, { tags: ['QOL'] });
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('carrycapacity');
-  });
-
-  it('filters by modType', () => {
-    const result = filterModsByFilters(mockMods, { modType: 'mod' });
-    expect(result).toHaveLength(3);
-  });
-
-  it('filters out mods that do not match modType', () => {
-    const result = filterModsByFilters(mockMods, { modType: 'externaltool' });
-    expect(result).toHaveLength(0);
-  });
-
-  it('combines multiple filters with AND logic', () => {
-    const result = filterModsByFilters(mockMods, {
-      side: 'both',
-      tags: ['utility'],
-    });
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('carrycapacity');
-  });
-
-  it('returns empty array when no mods match filters', () => {
-    const result = filterModsByFilters(mockMods, {
-      side: 'client',
-      tags: ['nonexistent'],
-    });
-    expect(result).toHaveLength(0);
-  });
-
-  it('handles empty mods array', () => {
-    const result = filterModsByFilters([], { side: 'server' });
-    expect(result).toHaveLength(0);
-  });
-
-  it('filters with multiple filter types combined', () => {
-    const result = filterModsByFilters(mockMods, {
-      side: 'both',
-      tags: ['utility'],
-      modType: 'mod',
-    });
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('carrycapacity');
   });
 });
 
