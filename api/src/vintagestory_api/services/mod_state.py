@@ -7,6 +7,7 @@ to prevent corruption.
 
 import json
 import zipfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -20,8 +21,22 @@ logger = structlog.get_logger()
 FALLBACK_VERSION = "unknown"
 """Version recorded when a mod's modinfo.json cannot be read (filename fallback)."""
 
+KEPT_ASIDE_SUFFIX = ".vsm-bak"
+"""Suffix of a mod's original kept aside during a version change; the same value as
+`mod_file_recovery.KEPT_ASIDE_SUFFIX` (that module imports this one, so it is not
+imported from there)."""
+
 _JSON_OBJECT: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
 """A modinfo.json must be a JSON object; its keys are always strings."""
+
+
+@dataclass(frozen=True)
+class ModSyncSummary:
+    """What one run of `ModStateManager.sync_state_with_disk` changed (Epic 19 ADR-10)."""
+
+    added: int
+    removed: int
+    skipped: int
 
 
 class ModStateManager:
@@ -497,61 +512,183 @@ class ModStateManager:
         )
         return filenames
 
-    def sync_state_with_disk(self) -> None:
-        """Reconcile state index with actual files in mods directory.
+    def sync_state_with_disk(self) -> ModSyncSummary:
+        """Bring the state in line with the mods directory (Epic 19 ADR-10).
 
-        - For each .zip file on disk not in state: import and add to state
-        - For each state entry without matching file: remove from state
-        - Saves state after making changes
+        Meant to be called once, at start-up, before any mod operation can run: it
+        changes the state without a mod lock.
+
+        - Removed: an entry whose own file name is not in one listing of the mods
+          directory. Nothing is removed when the directory does not exist or cannot be
+          listed. An entry whose name is listed stays, whatever the file is, and so does
+          an entry whose original is still kept aside as `<name>.vsm-bak` (start-up
+          recovery could not put it back). Removing every entry is also a warning.
+        - Added: a `.zip` or `.zip.disabled` file without an entry whose `modinfo.json`
+          is readable and valid, enabled unless its name ends in `.disabled`, with
+          `asset_id` 0. Removals come first, so a mod renamed or replaced by hand keeps
+          one entry under the file that is there.
+        - Skipped, with a warning: an archive that cannot be read or has no usable
+          `modinfo.json`, and an archive whose mod ID is already installed under
+          another file.
+
+        Creates, renames and deletes no file in the mods directory. Saves once, only
+        when something changed; a failed save is logged and the in-memory state keeps
+        the changes. Never raises for anything the directory or an archive can hold.
+
+        Returns:
+            The numbers of entries added and removed and of files skipped.
         """
-        disk_files = set(self.scan_mods_directory())
-        state_files = set(self._state.keys())
+        mods_dir = self._mods_dir
+        if not mods_dir.is_dir():
+            logger.warning("mod_state_sync_mods_directory_not_found", path=str(mods_dir))
+            return self._log_sync_summary(ModSyncSummary(added=0, removed=0, skipped=0))
+        try:
+            names = {path.name for path in mods_dir.iterdir()}
+            candidates = sorted(self.scan_mods_directory())
+        except OSError as e:
+            logger.warning(
+                "mod_state_sync_mods_directory_unreadable", path=str(mods_dir), error=str(e)
+            )
+            return self._log_sync_summary(ModSyncSummary(added=0, removed=0, skipped=0))
 
-        changes_made = False
+        # Removals first: a hand rename or replacement is then one removal and one
+        # addition, instead of the new file being skipped as a duplicate of its own mod
+        entries_before = len(self._state)
+        removed = 0
+        for filename in sorted(self._state):
+            if filename in names:
+                continue
+            backup = self._kept_aside_original(filename, names)
+            if backup is not None:
+                logger.warning(
+                    "mod_state_sync_kept_aside",
+                    filename=filename,
+                    slug=self._state[filename].slug,
+                    backup=backup,
+                    reason="its original is kept aside; start-up recovery has not restored it",
+                )
+                continue
+            entry = self._state.pop(filename)
+            removed += 1
+            logger.info("mod_state_sync_removed", filename=filename, slug=entry.slug)
+        if entries_before and removed == entries_before:
+            # ADR-10: an existing, empty directory means no mod is installed. Said loudly,
+            # because it is also what a volume that did not mount looks like
+            logger.warning("mod_state_sync_removed_all", removed=removed, path=str(mods_dir))
 
-        # New files: import and add to state
-        for filename in disk_files - state_files:
-            zip_path = self._mods_dir / filename
-            metadata = self.import_mod(zip_path)
+        # Mod IDs are compared lower-cased, as ModService._lock_key does
+        by_mod_id: dict[str, str] = {}
+        for filename in sorted(self._state):
+            by_mod_id.setdefault(self._state[filename].slug.lower(), filename)
 
-            # Determine if mod is disabled based on filename
-            is_disabled = filename.endswith(".disabled")
-
-            state = ModState(
+        added = 0
+        skipped = 0
+        now = datetime.now(UTC)
+        for filename in candidates:
+            if filename in self._state:
+                continue
+            metadata = self._read_new_archive(mods_dir / filename)
+            if metadata is None:
+                skipped += 1
+                continue
+            modinfo_data, metadata = metadata
+            existing = by_mod_id.get(metadata.modid.lower())
+            if existing is not None:
+                skipped += 1
+                logger.warning(
+                    "mod_state_sync_skipped",
+                    filename=filename,
+                    reason="duplicate_mod_id",
+                    slug=metadata.modid,
+                    existing=existing,
+                )
+                continue
+            try:
+                self._cache_modinfo(metadata.modid, metadata.version, modinfo_data)
+            except OSError as e:
+                logger.warning(
+                    "mod_state_sync_modinfo_not_cached",
+                    filename=filename,
+                    slug=metadata.modid,
+                    error=str(e),
+                )
+            enabled = not filename.endswith(".disabled")
+            self._state[filename] = ModState(
                 filename=filename,
                 slug=metadata.modid,
                 version=metadata.version,
-                enabled=not is_disabled,
-                installed_at=datetime.now(UTC),
+                enabled=enabled,
+                installed_at=now,
             )
-            self._state[filename] = state
-            changes_made = True
-
+            by_mod_id[metadata.modid.lower()] = filename
+            added += 1
             logger.info(
-                "mod_state_added",
+                "mod_state_sync_added",
                 filename=filename,
                 slug=metadata.modid,
-                enabled=not is_disabled,
+                version=metadata.version,
+                enabled=enabled,
             )
 
-        # Deleted files: remove from state
-        for filename in state_files - disk_files:
-            slug = self._state[filename].slug
-            del self._state[filename]
-            changes_made = True
+        if added or removed:
+            try:
+                self.save()
+            except OSError as e:
+                logger.error("mod_state_sync_save_failed", error=str(e), path=str(self.state_file))
+        return self._log_sync_summary(ModSyncSummary(added=added, removed=removed, skipped=skipped))
 
-            logger.info(
-                "mod_state_removed_deleted_file",
-                filename=filename,
-                slug=slug,
-            )
+    def _kept_aside_original(self, filename: str, names: set[str]) -> str | None:
+        """The name of this entry's original kept aside by a version change, if listed.
 
-        # Save if changes were made
-        if changes_made:
-            self.save()
-            logger.info(
-                "mod_state_synced",
-                total_mods=len(self._state),
-                added=len(disk_files - state_files),
-                removed=len(state_files - disk_files),
+        Matched as the start-up recovery matches a backup to its file: the name without
+        `.vsm-bak`, ignoring case. A backup whose modinfo.json names another mod does not
+        count; one whose mod cannot be read does (keeping an entry is the safe side).
+        """
+        key = filename.casefold()
+        slug = self._state[filename].slug.casefold()
+        for name in sorted(names):
+            if not name.endswith(KEPT_ASIDE_SUFFIX):
+                continue
+            if name.removesuffix(KEPT_ASIDE_SUFFIX).casefold() != key:
+                continue
+            try:
+                metadata = self.read_modinfo(self._mods_dir / name)
+            except Exception as e:
+                logger.warning("mod_state_sync_backup_unreadable", filename=name, error=str(e))
+                metadata = None
+            if metadata is None or metadata.modid.casefold() == slug:
+                return name
+        return None
+
+    def _read_new_archive(self, path: Path) -> tuple[dict[str, object], ModMetadata] | None:
+        """Read the modinfo.json of an archive the sync found, or log why it is skipped.
+
+        Any exception is caught: the set that zipfile and json raise for a broken or
+        hostile archive is open, and one bad file must not stop the API (ADR-10).
+        """
+        try:
+            data = self._extract_modinfo_from_zip(path)
+            if data is None:
+                logger.warning("mod_state_sync_skipped", filename=path.name, reason="unreadable")
+                return None
+            return data, ModMetadata.model_validate(data)
+        except Exception as e:
+            logger.warning(
+                "mod_state_sync_skipped",
+                filename=path.name,
+                reason="unreadable",
+                error_type=type(e).__name__,
+                error=str(e),
             )
+            return None
+
+    def _log_sync_summary(self, summary: ModSyncSummary) -> ModSyncSummary:
+        """Log the one summary line of a sync and return the summary."""
+        logger.info(
+            "mod_state_synced",
+            added=summary.added,
+            removed=summary.removed,
+            skipped=summary.skipped,
+            total=len(self._state),
+        )
+        return summary

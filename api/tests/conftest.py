@@ -70,11 +70,12 @@ class PrepareModFilesRecorder:
 
 @pytest.fixture(autouse=True)
 def prepare_mod_files_recorder(monkeypatch: pytest.MonkeyPatch) -> PrepareModFilesRecorder:
-    """Keep every lifespan a test runs away from the real mods directory and cache.
+    """Keep every lifespan a test runs away from the real mods directory, state and cache.
 
     `just test-api` sets VS_DATA_DIR to the dev stack's data (`dev/`); the real start-up
-    work renames and deletes files there. Tests of `prepare_mod_files` itself import it
-    from `services.mods` and give it a temporary service.
+    work renames and deletes files there and syncs the mod state with that mods directory
+    (Story 19.5), which writes `state/mods.json`. Tests of `prepare_mod_files` itself
+    import it from `services.mods` and give it a temporary service.
     """
     recorder = PrepareModFilesRecorder()
     monkeypatch.setattr(main_module, "prepare_mod_files", recorder)

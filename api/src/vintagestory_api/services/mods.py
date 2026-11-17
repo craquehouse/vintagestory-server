@@ -129,8 +129,11 @@ def prepare_mod_files() -> None:
     Called once by the API's lifespan, before the scheduler and the game server
     auto-start, so it runs before any mod operation. Steps, in order:
     1. recover the manager's working files (ADR-9 decisions 6-7);
-    2. remove the download cache's old flat layout (ADR-11 decision 5).
-    Story 19.5 adds the state sync (ADR-10) as step 3, after step 1.
+    2. bring the mod state in line with the mods directory (ADR-10), after step 1 so
+       that it sees the recovered files; it never raises;
+    3. remove the download cache's old flat layout (ADR-11 decision 5).
+    If step 1 raises, the sync does not run: an entry whose file is still kept aside
+    would otherwise be removed.
 
     Uses the process settings through `get_mod_service()` (read from the environment),
     not the app factory's `settings`; the app factory's settings must match the
@@ -138,9 +141,23 @@ def prepare_mod_files() -> None:
     """
     service = get_mod_service()
     recover_working_files(service.state_manager)
+    sync_mod_state_at_startup()
     removed = service.api_client.remove_flat_layout()
     if removed:
         logger.info("mod_cache_old_layout_removed", files=removed)
+
+
+def sync_mod_state_at_startup() -> None:
+    """Bring the mod state in line with the mods directory, once, at start-up (ADR-10).
+
+    Runs before any request is served, any job is registered and the game server is
+    auto-started, so it needs no mod lock; it must never be called from a route, a job
+    or a thread. Any failure is logged and start-up continues.
+    """
+    try:
+        get_mod_service().state_manager.sync_state_with_disk()
+    except Exception as e:
+        logger.error("mod_state_sync_failed", error_type=type(e).__name__, error=str(e))
 
 
 async def close_mod_service() -> None:
