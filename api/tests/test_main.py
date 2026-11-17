@@ -9,6 +9,7 @@ Coverage targets:
 
 import inspect
 import runpy
+from collections.abc import Mapping
 from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -225,8 +226,8 @@ class TestApplicationConfiguration:
 class FakeFileResponse(PlainTextResponse):
     """Stands in for FileResponse, since /app/static does not exist under test."""
 
-    def __init__(self, path: Path) -> None:
-        super().__init__(f"file:{path}")
+    def __init__(self, path: Path, headers: Mapping[str, str] | None = None) -> None:
+        super().__init__(f"file:{path}", headers=headers)
 
 
 def load_fresh_app(*, static_dir_exists: bool) -> FastAPI:

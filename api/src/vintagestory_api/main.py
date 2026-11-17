@@ -193,6 +193,56 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
     return lifespan
 
 
+# The web UI's Content-Security-Policy (Epic 19 ADR-6 decision 3). The API tests compare
+# the whole string; do not loosen a directive without the maintainer
+CONTENT_SECURITY_POLICY = "; ".join(
+    (
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "frame-src 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    )
+)
+
+
+def frontend_security_headers(csp_mode: str) -> dict[str, str]:
+    """Return the security headers of a web UI page for a validated VS_CSP_MODE.
+
+    X-Frame-Options follows the policy, so report-only and off also allow framing.
+    """
+    headers = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
+    if csp_mode == "enforce":
+        return {
+            "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+            "X-Frame-Options": "DENY",
+            **headers,
+        }
+    if csp_mode == "report-only":
+        return {"Content-Security-Policy-Report-Only": CONTENT_SECURITY_POLICY, **headers}
+    return headers
+
+
+def runtime_config_script(api_key: str) -> str:
+    """Return the /config.js body: the key JSON-encoded, with <, > and & escaped.
+
+    The escapes keep the body from ever closing a script element (Story 19.2 review L-1).
+    """
+    config = (
+        json.dumps({"apiKey": api_key})
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
+    )
+    return f"window.__VSM_CONFIG__ = {config};\n"
+
+
 def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
     """Return the file to serve for a request path, or index.html for client-side routing.
 
@@ -210,7 +260,11 @@ def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
 
 
 def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> None:
-    """Serve the built frontend from static_dir on the given app, with the given settings."""
+    """Serve the built frontend from static_dir on the given app, with the given settings.
+
+    The web UI's pages and files carry the security headers of settings.csp_mode;
+    /assets and /config.js do not.
+    """
     static_root = static_dir.resolve()
 
     # Mount assets directory for JS, CSS, and other static files
@@ -226,9 +280,8 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
     @target.get("/config.js", include_in_schema=False)
     async def serve_runtime_config() -> Response:
         """Serve the web UI's runtime configuration as a classic script."""
-        config = json.dumps({"apiKey": settings.web_api_key})
         return Response(
-            content=f"window.__VSM_CONFIG__ = {config};\n",
+            content=runtime_config_script(settings.web_api_key),
             media_type="application/javascript",
             headers={
                 "Cache-Control": "no-store",
@@ -237,11 +290,16 @@ def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> 
             },
         )
 
-    # SPA fallback - serve index.html for all non-API, non-health routes
+    security_headers = frontend_security_headers(settings.csp_mode)
+
+    # SPA fallback - serve index.html for all non-API, non-health routes, with the
+    # Content-Security-Policy and the other security headers (Epic 19 ADR-6)
     @target.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
         """Serve static files or fall back to index.html for client-side routing."""
-        return FileResponse(_resolve_frontend_file(static_root, full_path))
+        return FileResponse(
+            _resolve_frontend_file(static_root, full_path), headers=security_headers
+        )
 
 
 def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
