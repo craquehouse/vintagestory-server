@@ -13,10 +13,9 @@ import { serveConfigKey } from './config-js';
  * changed or deleted.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) whose serverdata has
- *   at least one directory inside another (a game server that has run has, e.g.,
- *   `Logs/Archive`): `just test-e2e-web`, or `just docker restart` then
- *   `cd web && bunx playwright test e2e/file-browser-navigation.spec.ts`
+ * - A stack whose serverdata has at least one directory inside another: `just test-e2e-ci`
+ *   seeds `Logs/Archive` in its throwaway container; on another stack (E2E_BASE_URL,
+ *   default http://localhost:8080) it needs a game server that has run, which writes one
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -103,9 +102,7 @@ async function documentOverflowX(page: Page): Promise<number> {
   );
 }
 
-// @game-server: needs a directory inside another under serverdata (e.g. Logs/Archive), which
-// only a game server that has run creates
-test.describe('Story 16.7: file browser breadcrumbs', { tag: '@game-server' }, () => {
+test.describe('Story 16.7: file browser breadcrumbs', () => {
   let nestedPath: string[];
 
   test.beforeAll(async ({ request }) => {

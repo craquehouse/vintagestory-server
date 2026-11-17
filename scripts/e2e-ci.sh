@@ -2,9 +2,9 @@
 # Run the E2E tests that carry no tag against a throwaway container (Story 19.7).
 #
 # Starts a container from the image with a data directory that holds only the seeded
-# web/e2e/fixtures/serverconfig.json, placeholder keys and no game server, waits for
-# /healthz, runs the untagged Playwright tests and the API's E2E tests, and removes the
-# container. Never touches the dev stack, ./data or dev/.
+# web/e2e/fixtures/serverconfig.json and one seeded empty directory tree, placeholder keys
+# and no game server, waits for /healthz, runs the untagged Playwright tests and the API's
+# E2E tests, and removes the container. Never touches the dev stack, ./data or dev/.
 #
 # Usage: scripts/e2e-ci.sh [playwright args...]   (via `just test-e2e-ci`)
 #   E2E_IMAGE  an image that is already built (CI sets it); unset builds vintagestory-server:e2e
@@ -19,6 +19,8 @@ ADMIN_KEY="e2e-admin-placeholder-key"
 MONITOR_KEY="e2e-monitor-placeholder-key"
 CONTAINER="vintagestory-manager-e2e"
 FIXTURE="web/e2e/fixtures/serverconfig.json"
+# A directory inside another, as a game server writes, for the file browser navigation tests
+SEEDED_DIR="Logs/Archive"
 # Tests that need the live mod database, a game server, or install real mods (web/e2e/README.md)
 TAGS='@moddb|@game-server|@install'
 # Every external host the API calls; pointed at loopback so a call to one fails at once
@@ -64,6 +66,9 @@ docker create --name "$CONTAINER" --platform linux/amd64 \
 docker cp "$FIXTURE" "$CONTAINER:/data/serverdata/serverconfig.json"
 docker start "$CONTAINER" >/dev/null
 docker exec --user root "$CONTAINER" chown vsmanager:vsmanager /data/serverdata/serverconfig.json
+# As the image's user (vsmanager), so the tree is owned like the files a game server writes
+docker exec "$CONTAINER" mkdir -p "/data/serverdata/$SEEDED_DIR"
+docker exec "$CONTAINER" ls -ld "/data/serverdata/$SEEDED_DIR"
 
 echo "Waiting for $BASE_URL/healthz..."
 for i in $(seq 1 60); do

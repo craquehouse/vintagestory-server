@@ -50,6 +50,11 @@ else
     fail "the script re-checks /healthz before the API E2E tests"
 fi
 
+# The throwaway container's serverdata holds a directory inside another, so the file
+# browser's navigation tests run in CI (Story 20.5 AC 1)
+assert_eq "the script seeds a nested directory" 'SEEDED_DIR="Logs/Archive"' \
+    "$(grep -E '^SEEDED_DIR=' "$e2e_script" 2>/dev/null)"
+
 # The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
 ci="$ROOT/.github/workflows/ci.yml"
 assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"
