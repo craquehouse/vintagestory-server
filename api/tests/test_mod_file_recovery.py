@@ -109,9 +109,7 @@ class TestInterruptedOperations:
     """AC 15 (FR223): one test per interruption point, enabled and disabled."""
 
     @pytest.mark.parametrize("suffix", ["", ".disabled"], ids=["enabled", "disabled"])
-    @pytest.mark.parametrize(
-        "case", list(INTERRUPTIONS.values()), ids=list(INTERRUPTIONS)
-    )
+    @pytest.mark.parametrize("case", list(INTERRUPTIONS.values()), ids=list(INTERRUPTIONS))
     def test_recovered(
         self,
         tmp_path: Path,

@@ -74,9 +74,7 @@ class TestServerServiceSendCommand:
         mock_process.stdin.drain.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_send_command_echoes_to_console_buffer(
-        self, test_service: ServerService
-    ) -> None:
+    async def test_send_command_echoes_to_console_buffer(self, test_service: ServerService) -> None:
         """Test that send_command echoes command to console buffer with [CMD] prefix."""
         # Set up a mock running process with stdin
         mock_process = AsyncMock()
@@ -94,9 +92,7 @@ class TestServerServiceSendCommand:
         assert "[CMD] /time set day" in history[0]
 
     @pytest.mark.asyncio
-    async def test_send_command_echo_has_ansi_cyan_color(
-        self, test_service: ServerService
-    ) -> None:
+    async def test_send_command_echo_has_ansi_cyan_color(self, test_service: ServerService) -> None:
         """Test that command echo includes ANSI cyan color codes (Story 9.5, AC: 1)."""
         # Set up a mock running process with stdin
         mock_process = AsyncMock()
@@ -120,9 +116,7 @@ class TestServerServiceSendCommand:
         assert echo_line == "\x1b[36m[CMD] /help\x1b[0m"
 
     @pytest.mark.asyncio
-    async def test_send_command_handles_empty_command(
-        self, test_service: ServerService
-    ) -> None:
+    async def test_send_command_handles_empty_command(self, test_service: ServerService) -> None:
         """Test that send_command handles empty string command."""
         # Set up a mock running process with stdin
         mock_process = AsyncMock()

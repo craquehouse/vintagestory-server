@@ -801,18 +801,14 @@ class GameConfigService:
             # write the file and require a restart, like restart-required settings.
             if setting_def.clear_command is not None:
                 return await self._execute_console_command(key, None, setting_def)
-            return await self._update_config_file(
-                key, None, setting_def, requires_restart=True
-            )
+            return await self._update_config_file(key, None, setting_def, requires_restart=True)
 
         if use_console:
             return await self._execute_console_command(key, validated_value, setting_def)
         else:
             return await self._update_config_file(key, validated_value, setting_def)
 
-    def _format_bool_for_console(
-        self, value: bool, bool_format: BoolFormat
-    ) -> str:
+    def _format_bool_for_console(self, value: bool, bool_format: BoolFormat) -> str:
         """Format a boolean value for a console command.
 
         Args:

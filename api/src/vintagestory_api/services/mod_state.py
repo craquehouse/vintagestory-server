@@ -123,10 +123,7 @@ class ModStateManager:
         self._state_dir.mkdir(parents=True, exist_ok=True)
 
         # Serialize state to JSON
-        data = {
-            filename: state.model_dump(mode="json")
-            for filename, state in self._state.items()
-        }
+        data = {filename: state.model_dump(mode="json") for filename, state in self._state.items()}
         json_content = json.dumps(data, indent=2)
 
         # Atomic write: write to temp file first, then rename

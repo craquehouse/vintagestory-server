@@ -71,9 +71,7 @@ async def request_websocket_token(
     token_data = WebSocketTokenData(
         token=stored_token.token,
         expires_at=stored_token.expires_at.isoformat(),
-        expires_in_seconds=int(
-            (stored_token.expires_at - stored_token.created_at).total_seconds()
-        ),
+        expires_in_seconds=int((stored_token.expires_at - stored_token.created_at).total_seconds()),
     )
 
     return ApiResponse(status="ok", data=token_data.model_dump())

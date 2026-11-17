@@ -121,7 +121,5 @@ async def send_update_alert(url: str, items: list[ModUpdateStatusItem]) -> bool:
     if 200 <= response.status_code < 300:
         logger.info("mod_update_alert_sent", receiver=receiver, updates=len(items))
         return True
-    logger.warning(
-        "mod_update_alert_failed", receiver=receiver, status_code=response.status_code
-    )
+    logger.warning("mod_update_alert_failed", receiver=receiver, status_code=response.status_code)
     return False

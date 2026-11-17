@@ -295,9 +295,7 @@ class TestMetricsService:
                 return mock_game_process  # type: ignore[return-value]
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
             snapshot = service.collect()
 
@@ -323,9 +321,7 @@ class TestMetricsService:
                 raise psutil.NoSuchProcess(pid)
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
 
             # Should not raise, should return None for game metrics
@@ -353,9 +349,7 @@ class TestMetricsService:
                 raise psutil.AccessDenied(pid)
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
 
             # Should not raise, should return None for game metrics
@@ -402,9 +396,7 @@ class TestMetricsService:
         service = MetricsService(buffer=buffer, server_service=None)
 
         # Mock get_server_service() to return None (server service not available)
-        with patch(
-            "vintagestory_api.services.server.get_server_service", return_value=None
-        ):
+        with patch("vintagestory_api.services.server.get_server_service", return_value=None):
             # This should trigger the line 203 path: return None
             assert service._get_game_server_pid() is None
 

@@ -959,9 +959,7 @@ class TestModServiceInstallMod:
                 return_value=Response(200, content=mod_zip_content)
             )
 
-            result = await install_service.install_mod(
-                "https://mods.vintagestory.at/smithingplus"
-            )
+            result = await install_service.install_mod("https://mods.vintagestory.at/smithingplus")
 
         assert result.success is True
         assert result.slug == "smithingplus"
@@ -1113,9 +1111,7 @@ class TestModServiceInstallMod:
             )
 
             # Mock shutil.copy2 to simulate disk full
-            with patch.object(
-                shutil, "copy2", side_effect=OSError("No space left on device")
-            ):
+            with patch.object(shutil, "copy2", side_effect=OSError("No space left on device")):
                 with pytest.raises(OSError, match="No space left on device"):
                     await install_service.install_mod("smithingplus")
 
@@ -1268,9 +1264,7 @@ class TestModServiceInstallMod:
             lookup = respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
                 return_value=Response(200, json=payload)
             )
-            respx.get(
-                "https://mods.vintagestory.at/download", params={"fileid": "12840"}
-            ).mock(
+            respx.get("https://mods.vintagestory.at/download", params={"fileid": "12840"}).mock(
                 return_value=Response(
                     200,
                     content=create_mod_zip_bytes(
@@ -1288,6 +1282,7 @@ class TestModServiceInstallMod:
             "vsinstrumentsbase",
         }
         assert lookup.call_count == 1
+
 
 def create_mod_zip_bytes(modinfo: dict[str, object]) -> bytes:
     """Create a mod zip file as bytes for mocking downloads."""
@@ -1501,9 +1496,7 @@ class TestModServiceLookupMod:
                 )
             )
 
-            result = await lookup_service.lookup_mod(
-                "https://mods.vintagestory.at/smithingplus"
-            )
+            result = await lookup_service.lookup_mod("https://mods.vintagestory.at/smithingplus")
 
         assert result.slug == "smithingplus"
         assert result.compatibility.status == "compatible"
@@ -1550,17 +1543,13 @@ class TestModServiceLookupMod:
         assert exc_info.value.slug == "../invalid/path"
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_windows_reserved_name(
-        self, lookup_service: ModService
-    ) -> None:
+    async def test_lookup_mod_windows_reserved_name(self, lookup_service: ModService) -> None:
         """lookup_mod() rejects Windows reserved names."""
         with pytest.raises(InvalidSlugError):
             await lookup_service.lookup_mod("con")
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_releases_carry_their_modid(
-        self, lookup_service: ModService
-    ) -> None:
+    async def test_lookup_mod_releases_carry_their_modid(self, lookup_service: ModService) -> None:
         """lookup_mod() exposes each release's modidstr; one entry can ship several modids."""
         import json
 
@@ -1582,9 +1571,7 @@ class TestModServiceLookupMod:
         assert {"vsinstrumentsbase", "vsinstruments", "instruments"} <= set(expected)
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_calculates_total_downloads(
-        self, lookup_service: ModService
-    ) -> None:
+    async def test_lookup_mod_calculates_total_downloads(self, lookup_service: ModService) -> None:
         """lookup_mod() sums downloads across all releases."""
         import respx
         from httpx import Response
@@ -1659,9 +1646,7 @@ class TestModServiceLookupMod:
             assert exc_info.value.slug == "noreleases"
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_incompatible_many_tags(
-        self, lookup_service: ModService
-    ) -> None:
+    async def test_lookup_mod_incompatible_many_tags(self, lookup_service: ModService) -> None:
         """lookup_mod() names the highest of many tags, not the first ones (Story 16.3)."""
         import respx
         from httpx import Response
@@ -1812,9 +1797,7 @@ class TestModServiceLookupMod:
         assert result.downloads == sum(r["downloads"] for r in raw_releases)
 
     @pytest.mark.asyncio
-    async def test_lookup_mod_with_null_in_every_field(
-        self, lookup_service: ModService
-    ) -> None:
+    async def test_lookup_mod_with_null_in_every_field(self, lookup_service: ModService) -> None:
         """An entry with null in every field looks up with the defaults (Story 17.1)."""
         import respx
         from httpx import Response
@@ -1855,7 +1838,6 @@ class TestModServiceLookupMod:
         assert release.created == ""
         assert release.changelog is None
         assert release.modidstr == ""
-
 
     @staticmethod
     async def _lookup_with(service: ModService, **fields: object) -> ModLookupResponse:
@@ -2427,9 +2409,7 @@ class TestLookupLatestSupportedGameVersion:
         assert result.compatibility.latest_supported_game_version == "1.18.6"
 
     @pytest.mark.asyncio
-    async def test_newest_release_mod_id_wins_when_slug_not_installed(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_newest_release_mod_id_wins_when_slug_not_installed(self, tmp_path: Path) -> None:
         service = self.make(
             tmp_path, installed=(("vsinstruments", "1.2.7"), ("vsinstrumentsbase", "2.0.7"))
         )
@@ -2594,9 +2574,7 @@ class TestLookupInstallModId:
         assert result.latest_version == latest_version
 
     @pytest.mark.asyncio
-    async def test_compatibility_still_describes_the_newest_release(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_compatibility_still_describes_the_newest_release(self, tmp_path: Path) -> None:
         """Epic 16 ADR-2 decision 3 is unchanged: carryon's header is 2.0.0-rc.1."""
         result = await self.lookup(self.make(tmp_path), "carryon", _fixture_mod("carryon"))
 
@@ -2687,7 +2665,8 @@ class TestPrepareModFiles:
         assert list(mods_dir.iterdir()) == []
         assert [p.name for p in mods_cache.iterdir()] == ["11"]
         [line] = [
-            line for line in captured_logs.getvalue().splitlines()
+            line
+            for line in captured_logs.getvalue().splitlines()
             if "mod_cache_old_layout_removed" in line
         ]
         assert "files" in line

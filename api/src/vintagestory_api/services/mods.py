@@ -213,9 +213,7 @@ class ModConfirmationRequiredError(Exception):
         self.version = version
         self.reasons = reasons
         self.compatibility = compatibility
-        super().__init__(
-            f"Changing '{slug}' to {version} needs confirmation: {', '.join(reasons)}"
-        )
+        super().__init__(f"Changing '{slug}' to {version} needs confirmation: {', '.join(reasons)}")
 
 
 class ModValidationError(Exception):
@@ -612,8 +610,7 @@ class ModService:
         # check_compatibility's string match misses) means another release has it
         if tagged_elsewhere or highest_vs_game == 0 or lowest_vs_game == 0:
             return (
-                f"Version {mod_version} is not tagged for {game}; "
-                "another release of this mod is."
+                f"Version {mod_version} is not tagged for {game}; another release of this mod is."
             )
         if highest_vs_game < 0:
             return f"Last supported game version: {supported.highest}."
@@ -621,9 +618,7 @@ class ModService:
             return f"Requires game version {supported.lowest} or newer (installed: {game})."
         return f"Not tagged for {game}; supports {supported.lowest} to {supported.highest}."
 
-    def _compatibility_modid(
-        self, slug: str, releases: list[ReleaseDict], default: str
-    ) -> str:
+    def _compatibility_modid(self, slug: str, releases: list[ReleaseDict], default: str) -> str:
         """The mod ID whose releases decide a lookup's compatibility (ADR-2 decision 2).
 
         Mirrors the web's `findInstalledModForEntry` (Story 16.2): the installed mod
@@ -644,9 +639,7 @@ class ModService:
             return default
         return match
 
-    async def lookup_mod(
-        self, slug_or_url: str, version: str | None = None
-    ) -> ModLookupResponse:
+    async def lookup_mod(self, slug_or_url: str, version: str | None = None) -> ModLookupResponse:
         """Look up mod details and compatibility from the VintageStory mod database.
 
         Fetches mod information from mods.vintagestory.at and checks compatibility
@@ -717,8 +710,7 @@ class ModService:
         if evaluated is None:
             status: CompatibilityStatus = "not_verified"
             message: str | None = (
-                f"Version {version} is not listed in the mod database; "
-                "cannot verify compatibility."
+                f"Version {version} is not listed in the mod database; cannot verify compatibility."
             )
         elif not game_version or game_version == UNKNOWN_VERSION:
             # Server not installed or version unknown
@@ -1150,9 +1142,7 @@ class ModService:
         temp_path = new_path.with_name(new_path.name + WORKING_COPY_SUFFIX)
         # A reused filename would be overwritten by the rename, so keep the old file aside;
         # recovery puts it back, or deletes it once the state names the new file (ADR-9)
-        backup_path = (
-            old_path.with_name(old_path.name + KEPT_ASIDE_SUFFIX) if same_file else None
-        )
+        backup_path = old_path.with_name(old_path.name + KEPT_ASIDE_SUFFIX) if same_file else None
         try:
             shutil.copy2(prepared.archive, temp_path)
             if backup_path is not None:
@@ -1263,9 +1253,7 @@ class ModService:
             (i for i, r in enumerate(own) if r.modversion == state.version), None
         )
 
-        compatibility = check_compatibility(
-            {"tags": target.tags}, self.game_version() or ""
-        )
+        compatibility = check_compatibility({"tags": target.tags}, self.game_version() or "")
         reasons: list[str] = []
         if compatibility != "compatible":
             reasons.append(compatibility)

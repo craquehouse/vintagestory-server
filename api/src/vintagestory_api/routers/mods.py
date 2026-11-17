@@ -398,9 +398,7 @@ async def browse_mods(
             tag_list = [t.strip().lower() for t in tags.split(",") if t.strip()]
             if tag_list:
                 filtered_mods = [
-                    m
-                    for m in filtered_mods
-                    if any(t.lower() in tag_list for t in m["tags"])
+                    m for m in filtered_mods if any(t.lower() in tag_list for t in m["tags"])
                 ]
 
         # Sort mods
@@ -1196,4 +1194,3 @@ async def change_mod_version(
     except ModVersionChangeFailedError as e:
         raise _version_change_error(500, ErrorCode.MOD_VERSION_CHANGE_FAILED, e) from None
     return ApiResponse(status="ok", data=asdict(result))
-

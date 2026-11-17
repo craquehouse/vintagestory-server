@@ -177,9 +177,7 @@ class TestWebSocketTokenEndpointWithAdminKey:
 class TestWebSocketTokenEndpointWithMonitorKey:
     """Tests for ws-token endpoint with Monitor API key (AC: 6)."""
 
-    def test_request_token_with_monitor_key_returns_200(
-        self, client: TestClient
-    ) -> None:
+    def test_request_token_with_monitor_key_returns_200(self, client: TestClient) -> None:
         """Given valid Monitor API key, token request returns 200."""
         response = client.post(
             "/api/v1alpha1/auth/ws-token",
@@ -222,9 +220,7 @@ class TestWebSocketTokenEndpointAuthErrors:
 
         assert response.status_code == 401
 
-    def test_request_without_api_key_returns_error_detail(
-        self, client: TestClient
-    ) -> None:
+    def test_request_without_api_key_returns_error_detail(self, client: TestClient) -> None:
         """Token request without API key returns error detail."""
         response = client.post("/api/v1alpha1/auth/ws-token")
 
@@ -233,9 +229,7 @@ class TestWebSocketTokenEndpointAuthErrors:
         assert data["detail"]["code"] == "UNAUTHORIZED"
         assert "API key" in data["detail"]["message"]
 
-    def test_request_with_invalid_api_key_returns_401(
-        self, client: TestClient
-    ) -> None:
+    def test_request_with_invalid_api_key_returns_401(self, client: TestClient) -> None:
         """Token request with invalid API key returns 401."""
         response = client.post(
             "/api/v1alpha1/auth/ws-token",

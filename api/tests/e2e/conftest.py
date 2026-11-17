@@ -41,7 +41,7 @@ def _is_server_available(url: str, timeout: float = 0.5) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True
-    except (OSError, ConnectionRefusedError, TimeoutError):
+    except OSError, ConnectionRefusedError, TimeoutError:
         return False
 
 
@@ -75,4 +75,3 @@ def base_url() -> str:
 def api_base_url(base_url: str) -> str:
     """Base URL for API endpoints."""
     return f"{base_url}/api/v1alpha1"
-

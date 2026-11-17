@@ -220,9 +220,7 @@ class TestLogsWebSocket:
     # Authentication tests
     # ======================================
 
-    def test_logs_ws_requires_api_key(
-        self, ws_client: TestClient, test_settings: Settings
-    ) -> None:
+    def test_logs_ws_requires_api_key(self, ws_client: TestClient, test_settings: Settings) -> None:
         """Test that logs WebSocket requires API key."""
         # Create a log file first
         logs_dir = test_settings.serverdata_dir / "Logs"
@@ -327,9 +325,7 @@ class TestLogsWebSocket:
     # Streaming tests
     # ======================================
 
-    def test_logs_ws_sends_history(
-        self, ws_client: TestClient, test_settings: Settings
-    ) -> None:
+    def test_logs_ws_sends_history(self, ws_client: TestClient, test_settings: Settings) -> None:
         """Test that logs WebSocket sends file history on connect."""
         admin_key = test_settings.api_key_admin
         logs_dir = test_settings.serverdata_dir / "Logs"

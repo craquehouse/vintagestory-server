@@ -209,9 +209,28 @@ def validate_slug(slug: str) -> bool:
     # Reject Windows reserved device names (case-insensitive)
     # These cause issues on Windows filesystems
     reserved_names = {
-        "con", "prn", "aux", "nul",
-        "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
-        "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        "com1",
+        "com2",
+        "com3",
+        "com4",
+        "com5",
+        "com6",
+        "com7",
+        "com8",
+        "com9",
+        "lpt1",
+        "lpt2",
+        "lpt3",
+        "lpt4",
+        "lpt5",
+        "lpt6",
+        "lpt7",
+        "lpt8",
+        "lpt9",
     }
     if slug.lower() in reserved_names:
         return False
@@ -815,9 +834,7 @@ class ModApiClient:
         )
         self._version_listings[version_tagid] = listing
         while len(self._version_listings) > self.VERSION_LISTING_MAX_ENTRIES:
-            oldest = min(
-                self._version_listings, key=lambda t: self._version_listings[t].fetched_at
-            )
+            oldest = min(self._version_listings, key=lambda t: self._version_listings[t].fetched_at)
             del self._version_listings[oldest]
         return listing
 
@@ -953,9 +970,7 @@ class ModApiClient:
             return False
         return datetime.now() - self._gameversions_cache_time < self.GAMEVERSIONS_CACHE_TTL
 
-    async def get_game_versions(
-        self, force_refresh: bool = False
-    ) -> dict[str, int]:
+    async def get_game_versions(self, force_refresh: bool = False) -> dict[str, int]:
         """Get game versions mapping from version string to tagid.
 
         This method fetches the game versions list from the VintageStory API
@@ -978,15 +993,11 @@ class ModApiClient:
         """
         # Return cached data if valid and not forcing refresh
         if not force_refresh and self._is_gameversions_cache_valid():
-            logger.debug(
-                "gameversions_cache_hit", count=len(self._gameversions_cache or {})
-            )
+            logger.debug("gameversions_cache_hit", count=len(self._gameversions_cache or {}))
             return self._gameversions_cache or {}
 
         # Shielded: one caller's cancellation does not cancel the shared fetch
-        return await asyncio.shield(
-            self._game_versions_fetch.get(None, self._fetch_game_versions)
-        )
+        return await asyncio.shield(self._game_versions_fetch.get(None, self._fetch_game_versions))
 
     async def _fetch_game_versions(self) -> dict[str, int]:
         """Fetch the game version list and cache it; a failure leaves the cache as it was."""

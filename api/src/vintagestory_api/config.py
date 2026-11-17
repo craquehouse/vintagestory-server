@@ -91,8 +91,7 @@ class Settings(BaseSettings):
         """
         if v < 0:
             raise ValueError(
-                "VS_MOD_CACHE_MAX_SIZE_MB must be non-negative. "
-                "Use 0 to disable cache eviction."
+                "VS_MOD_CACHE_MAX_SIZE_MB must be non-negative. Use 0 to disable cache eviction."
             )
         return v
 

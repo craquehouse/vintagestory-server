@@ -91,9 +91,7 @@ class TestModBrowseNormalization:
         assert item.side == "both"
 
     def test_unknown_type_defaults_to_mod(self) -> None:
-        item = _api_mod_to_browse_item(
-            _normalized({"modidstrs": ["demo"], "type": "texturepack"})
-        )
+        item = _api_mod_to_browse_item(_normalized({"modidstrs": ["demo"], "type": "texturepack"}))
 
         assert item.mod_type == "mod"
 

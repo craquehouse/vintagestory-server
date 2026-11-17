@@ -5,6 +5,7 @@
 # This script sets up the development environment for a new worktree by:
 # 1. Installing dependencies via `just install`
 # 2. Creating .env files with randomized ports to avoid conflicts with other worktrees
+# 3. Setting blame.ignoreRevsFile so git blame skips the commits in .git-blame-ignore-revs
 #
 # Usage:
 #   ./scripts/worktree-setup.sh
@@ -85,6 +86,19 @@ VITE_API_KEY=$DEV_API_KEY
 # API Base URL - points to local dev API server
 VITE_API_BASE_URL=http://localhost:$API_PORT
 EOF
+
+# git blame skips the commits listed in .git-blame-ignore-revs (the one-time API reformat,
+# Story 20.1). ":(optional)" keeps blame working on branches without the file; older Git
+# does not know the prefix, so it is only set when this Git accepts it.
+echo ""
+echo "Configuring git blame..."
+if git -c blame.ignoreRevsFile=':(optional).git-blame-ignore-revs-probe' blame -L1,1 -- README.md >/dev/null 2>&1; then
+    git config blame.ignoreRevsFile ':(optional).git-blame-ignore-revs'
+    echo "  blame.ignoreRevsFile set"
+else
+    echo "  This Git does not support ':(optional)'; to skip the format commit in git blame, run:"
+    echo "    git config blame.ignoreRevsFile .git-blame-ignore-revs"
+fi
 
 echo ""
 echo "Installing dependencies..."

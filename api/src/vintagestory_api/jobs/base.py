@@ -58,7 +58,9 @@ logger = structlog.get_logger()
 T = TypeVar("T")
 
 
-def safe_job(job_name: str) -> Callable[
+def safe_job(
+    job_name: str,
+) -> Callable[
     [Callable[..., Coroutine[Any, Any, T]]],
     Callable[..., Coroutine[Any, Any, T | None]],
 ]:
@@ -83,7 +85,7 @@ def safe_job(job_name: str) -> Callable[
     """
 
     def decorator(
-        func: Callable[..., Coroutine[Any, Any, T]]
+        func: Callable[..., Coroutine[Any, Any, T]],
     ) -> Callable[..., Coroutine[Any, Any, T | None]]:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> T | None:

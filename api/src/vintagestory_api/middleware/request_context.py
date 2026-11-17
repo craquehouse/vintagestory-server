@@ -39,9 +39,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         2024-01-15T10:30:01Z [info] mod_installed request_id=abc-123-def mod=vsvillage
     """
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Process request and bind correlation context.
 
         Args:

@@ -128,5 +128,3 @@ async def tail_log_file(
         raise LogFileAccessError(f"Permission denied: {filename}") from e
     except OSError as e:
         raise LogFileAccessError(f"Error reading file: {e}") from e
-
-

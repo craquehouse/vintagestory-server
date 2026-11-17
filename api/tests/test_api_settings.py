@@ -132,14 +132,10 @@ class TestGetSettings:
         assert result.auto_start_server is False
         assert result.mod_list_refresh_interval == 14400
 
-    def test_returns_defaults_on_validation_error(
-        self, service: ApiSettingsService
-    ) -> None:
+    def test_returns_defaults_on_validation_error(self, service: ApiSettingsService) -> None:
         """get_settings returns defaults if file values fail validation."""
         service.settings_file.parent.mkdir(parents=True, exist_ok=True)
-        service.settings_file.write_text(
-            json.dumps({"mod_list_refresh_interval": -999})
-        )
+        service.settings_file.write_text(json.dumps({"mod_list_refresh_interval": -999}))
 
         result = service.get_settings()
 
@@ -151,9 +147,7 @@ class TestUpdateSetting:
     """Tests for ApiSettingsService.update_setting()."""
 
     @pytest.mark.asyncio
-    async def test_validates_and_persists_setting(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_validates_and_persists_setting(self, service: ApiSettingsService) -> None:
         """update_setting validates value and persists to file."""
         # Subtask 1.9: validates and persists setting
         result = await service.update_setting("auto_start_server", True)
@@ -197,9 +191,7 @@ class TestUpdateSetting:
         assert exc_info.value.key == "mod_list_refresh_interval"
 
     @pytest.mark.asyncio
-    async def test_rejects_wrong_type_for_integer(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_rejects_wrong_type_for_integer(self, service: ApiSettingsService) -> None:
         """update_setting raises ApiSettingInvalidError for wrong types."""
         with pytest.raises(ApiSettingInvalidError) as exc_info:
             await service.update_setting("mod_list_refresh_interval", "not-a-number")
@@ -207,9 +199,7 @@ class TestUpdateSetting:
         assert "mod_list_refresh_interval" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_rejects_boolean_for_integer_field(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_rejects_boolean_for_integer_field(self, service: ApiSettingsService) -> None:
         """update_setting rejects boolean values for integer fields."""
         with pytest.raises(ApiSettingInvalidError) as exc_info:
             await service.update_setting("mod_list_refresh_interval", True)
@@ -245,9 +235,7 @@ class TestAtomicWrite:
     """Tests for atomic file write behavior."""
 
     @pytest.mark.asyncio
-    async def test_creates_parent_directory(
-        self, settings: Settings
-    ) -> None:
+    async def test_creates_parent_directory(self, settings: Settings) -> None:
         """_save_settings creates parent directory if missing."""
         # Subtask 1.5: atomic file writes (temp file + rename)
         # Remove the state directory (now under vsmanager)
@@ -262,9 +250,7 @@ class TestAtomicWrite:
         assert service.settings_file.parent.exists()
 
     @pytest.mark.asyncio
-    async def test_file_content_is_valid_json(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_file_content_is_valid_json(self, service: ApiSettingsService) -> None:
         """Saved file contains valid, parseable JSON."""
         await service.update_setting("auto_start_server", True)
 
@@ -275,9 +261,7 @@ class TestAtomicWrite:
         assert "mod_list_refresh_interval" in data
 
     @pytest.mark.asyncio
-    async def test_preserves_other_settings_on_update(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_preserves_other_settings_on_update(self, service: ApiSettingsService) -> None:
         """Updating one setting preserves other settings."""
         # Set initial values
         await service.update_setting("auto_start_server", True)
@@ -297,9 +281,7 @@ class TestSchedulerCallback:
     """Tests for scheduler callback integration."""
 
     @pytest.mark.asyncio
-    async def test_callback_invoked_on_interval_change(
-        self, settings: Settings
-    ) -> None:
+    async def test_callback_invoked_on_interval_change(self, settings: Settings) -> None:
         """Scheduler callback is invoked when refresh interval changes."""
         # Subtask 4.3: callback invoked on interval change (Task 4)
         callback = MagicMock()
@@ -310,9 +292,7 @@ class TestSchedulerCallback:
         callback.assert_called_once_with("mod_list_refresh_interval", 7200)
 
     @pytest.mark.asyncio
-    async def test_callback_invoked_for_versions_interval(
-        self, settings: Settings
-    ) -> None:
+    async def test_callback_invoked_for_versions_interval(self, settings: Settings) -> None:
         """Callback invoked for server_versions_refresh_interval too."""
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
@@ -322,9 +302,7 @@ class TestSchedulerCallback:
         callback.assert_called_once_with("server_versions_refresh_interval", 43200)
 
     @pytest.mark.asyncio
-    async def test_callback_not_invoked_for_non_interval_settings(
-        self, settings: Settings
-    ) -> None:
+    async def test_callback_not_invoked_for_non_interval_settings(self, settings: Settings) -> None:
         """Callback NOT invoked when updating non-interval settings."""
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
@@ -334,9 +312,7 @@ class TestSchedulerCallback:
         callback.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_callback_invoked_for_metrics_interval(
-        self, settings: Settings
-    ) -> None:
+    async def test_callback_invoked_for_metrics_interval(self, settings: Settings) -> None:
         """Callback invoked for metrics_collection_interval (AC: 5)."""
         callback = MagicMock()
         service = ApiSettingsService(settings=settings, scheduler_callback=callback)
@@ -358,9 +334,7 @@ class TestBooleanCoercion:
     """Tests for additional boolean coercion edge cases."""
 
     @pytest.mark.asyncio
-    async def test_rejects_invalid_string_for_boolean(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_rejects_invalid_string_for_boolean(self, service: ApiSettingsService) -> None:
         """update_setting rejects invalid string values for boolean fields."""
         # Lines 188-190: String value that can't be coerced to boolean
         with pytest.raises(ApiSettingInvalidError) as exc_info:
@@ -370,9 +344,7 @@ class TestBooleanCoercion:
         assert exc_info.value.key == "auto_start_server"
 
     @pytest.mark.asyncio
-    async def test_coerces_string_variations_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_string_variations_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces various string representations to boolean."""
         # Test "1" -> True
         result = await service.update_setting("auto_start_server", "1")
@@ -430,9 +402,7 @@ class TestIntegerCoercion:
         assert "must be an integer" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_rejects_list_for_integer(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_rejects_list_for_integer(self, service: ApiSettingsService) -> None:
         """update_setting rejects list values for integer fields."""
         with pytest.raises(ApiSettingInvalidError) as exc_info:
             await service.update_setting("mod_list_refresh_interval", [100])
@@ -444,9 +414,7 @@ class TestOtherTypeHandling:
     """Tests for handling field types other than bool and int."""
 
     @pytest.mark.asyncio
-    async def test_handles_non_bool_non_int_field_types(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_handles_non_bool_non_int_field_types(self, service: ApiSettingsService) -> None:
         """update_setting handles fields with types other than bool/int."""
         # Line 208: validated_value = value (else branch for non-bool, non-int types)
         # This tests the fallback path for future field types (str, float, etc.)
@@ -542,9 +510,7 @@ class TestSaveSettingsErrorHandling:
             assert not temp_file.exists(), "Temp file should be cleaned up"
 
     @pytest.mark.asyncio
-    async def test_handles_unlink_failure_during_cleanup(
-        self, settings: Settings
-    ) -> None:
+    async def test_handles_unlink_failure_during_cleanup(self, settings: Settings) -> None:
         """_save_settings handles OSError when temp file unlink fails during cleanup."""
         # Lines 279-280: Nested exception handler for unlink failure
         from unittest.mock import patch
@@ -652,50 +618,38 @@ class TestBooleanStringMixedCase:
     """Tests for mixed-case boolean string coercion."""
 
     @pytest.mark.asyncio
-    async def test_coerces_uppercase_true_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_uppercase_true_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces uppercase 'TRUE' to boolean."""
         # Lines 182-190: Test case-insensitive boolean string matching
         result = await service.update_setting("auto_start_server", "TRUE")
         assert result["value"] is True
 
     @pytest.mark.asyncio
-    async def test_coerces_uppercase_false_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_uppercase_false_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces uppercase 'FALSE' to boolean."""
         result = await service.update_setting("auto_start_server", "FALSE")
         assert result["value"] is False
 
     @pytest.mark.asyncio
-    async def test_coerces_mixed_case_true_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_mixed_case_true_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces mixed-case 'True' to boolean."""
         result = await service.update_setting("auto_start_server", "True")
         assert result["value"] is True
 
     @pytest.mark.asyncio
-    async def test_coerces_mixed_case_false_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_mixed_case_false_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces mixed-case 'False' to boolean."""
         result = await service.update_setting("auto_start_server", "False")
         assert result["value"] is False
 
     @pytest.mark.asyncio
-    async def test_coerces_uppercase_yes_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_uppercase_yes_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces uppercase 'YES' to boolean."""
         result = await service.update_setting("auto_start_server", "YES")
         assert result["value"] is True
 
     @pytest.mark.asyncio
-    async def test_coerces_uppercase_no_to_bool(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_coerces_uppercase_no_to_bool(self, service: ApiSettingsService) -> None:
         """update_setting coerces uppercase 'NO' to boolean."""
         result = await service.update_setting("auto_start_server", "NO")
         assert result["value"] is False
@@ -705,9 +659,7 @@ class TestIntegerStringValidation:
     """Tests for integer string validation edge cases."""
 
     @pytest.mark.asyncio
-    async def test_rejects_float_string_for_integer(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_rejects_float_string_for_integer(self, service: ApiSettingsService) -> None:
         """update_setting rejects float strings like '123.45' for integer fields."""
         # Lines 200-204: Test float string rejection via int() conversion
         with pytest.raises(ApiSettingInvalidError) as exc_info:
@@ -727,9 +679,7 @@ class TestIntegerStringValidation:
         assert "must be an integer" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_accepts_very_large_integer_string(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_accepts_very_large_integer_string(self, service: ApiSettingsService) -> None:
         """update_setting accepts the largest interval as a string (Story 17.6 bound)."""
         result = await service.update_setting("mod_list_refresh_interval", "31536000")
         assert result["value"] == 31536000
@@ -747,9 +697,7 @@ class TestLoggingVerification:
     """Tests for logging statements in critical paths."""
 
     @pytest.mark.asyncio
-    async def test_logs_setting_update(
-        self, service: ApiSettingsService
-    ) -> None:
+    async def test_logs_setting_update(self, service: ApiSettingsService) -> None:
         """update_setting logs the setting change with old and new values."""
         # Lines 235-241: Test logger.info call with old/new values
         from unittest.mock import patch
@@ -769,9 +717,7 @@ class TestLoggingVerification:
             call_args_list = [call[0][0] for call in mock_logger.call_args_list]
             assert "api_setting_updated" in call_args_list
 
-    def test_logs_file_not_found(
-        self, service: ApiSettingsService
-    ) -> None:
+    def test_logs_file_not_found(self, service: ApiSettingsService) -> None:
         """get_settings logs debug message when file not found."""
         from unittest.mock import patch
 
@@ -785,9 +731,7 @@ class TestLoggingVerification:
             call_args = mock_logger.call_args
             assert call_args[0][0] == "api_settings_file_not_found"
 
-    def test_logs_settings_loaded(
-        self, service: ApiSettingsService
-    ) -> None:
+    def test_logs_settings_loaded(self, service: ApiSettingsService) -> None:
         """get_settings logs debug message when settings loaded successfully."""
         from unittest.mock import patch
 
@@ -810,9 +754,7 @@ class TestValidationErrorPath:
     """Tests for Pydantic ValidationError handling after type coercion."""
 
     @pytest.mark.asyncio
-    async def test_handles_validation_error_with_custom_validator(
-        self, settings: Settings
-    ) -> None:
+    async def test_handles_validation_error_with_custom_validator(self, settings: Settings) -> None:
         """update_setting handles ValidationError from Pydantic model validation."""
         # Lines 214-217: Test ValidationError exception handler
         # This path is triggered when Pydantic's model validation raises ValidationError
@@ -835,9 +777,7 @@ class TestDirectoryCreation:
     """Tests for directory creation edge cases."""
 
     @pytest.mark.asyncio
-    async def test_handles_existing_directory_during_save(
-        self, settings: Settings
-    ) -> None:
+    async def test_handles_existing_directory_during_save(self, settings: Settings) -> None:
         """_save_settings handles existing directory gracefully (exist_ok=True)."""
         # Line 261: Test mkdir with exist_ok=True when directory already exists
         service = ApiSettingsService(settings=settings)
@@ -953,7 +893,6 @@ class TestModUpdateWebhookSetting:
         assert "api_settings_load_failed" in capsys.readouterr().out
 
 
-
 # =============================================================================
 # Story 17.6: interval bound and a scheduler failure after the save
 # =============================================================================
@@ -1015,9 +954,7 @@ class TestSchedulerCallbackFailure:
         def failing_callback(_key: str, _value: int) -> None:
             raise RuntimeError("scheduler exploded")
 
-        service = ApiSettingsService(
-            settings=settings, scheduler_callback=failing_callback
-        )
+        service = ApiSettingsService(settings=settings, scheduler_callback=failing_callback)
         capsys.readouterr()
 
         with pytest.raises(ApiSettingNotAppliedError) as exc_info:

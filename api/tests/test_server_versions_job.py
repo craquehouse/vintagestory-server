@@ -25,8 +25,10 @@ def make_version_getter(
     versions: dict[str, dict[str, VersionInfo]],
 ) -> Callable[[str], dict[str, VersionInfo]]:
     """Create a typed getter function for mock side_effect."""
+
     def getter(channel: str) -> dict[str, VersionInfo]:
         return versions.get(channel, {})
+
     return getter
 
 
@@ -87,9 +89,7 @@ class TestCheckServerVersionsJob:
         self, mock_versions: dict[str, dict[str, VersionInfo]]
     ) -> None:
         """Job should populate latest version strings in cache."""
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -108,9 +108,7 @@ class TestCheckServerVersionsJob:
         self, mock_versions: dict[str, dict[str, VersionInfo]]
     ) -> None:
         """Job should populate full version lists in cache (Story 13.1)."""
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -137,9 +135,7 @@ class TestCheckServerVersionsJob:
         self, mock_versions: dict[str, dict[str, VersionInfo]]
     ) -> None:
         """Job should update cached_at timestamp when populating cache."""
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -159,9 +155,7 @@ class TestCheckServerVersionsJob:
         self, mock_versions: dict[str, dict[str, VersionInfo]]
     ) -> None:
         """Stable API error should not affect unstable cache."""
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
 
             # Stable fails, unstable succeeds
@@ -196,9 +190,7 @@ class TestCheckServerVersionsJob:
         self, mock_versions: dict[str, dict[str, VersionInfo]]
     ) -> None:
         """Unstable API error should not affect stable cache."""
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
 
             # Unstable fails, stable succeeds
@@ -236,16 +228,10 @@ class TestCheckServerVersionsJob:
         cache = get_versions_cache()
         # Pre-populate cache with stale data
         cache.set_latest_versions(stable="1.21.0", unstable="1.22.0-pre.0")
-        cache.set_versions(
-            "stable", [{"version": "1.21.0", "channel": "stable"}]
-        )
-        cache.set_versions(
-            "unstable", [{"version": "1.22.0-pre.0", "channel": "unstable"}]
-        )
+        cache.set_versions("stable", [{"version": "1.21.0", "channel": "stable"}])
+        cache.set_versions("unstable", [{"version": "1.22.0-pre.0", "channel": "unstable"}])
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
 
             # Both channels fail
@@ -267,9 +253,7 @@ class TestCheckServerVersionsJob:
             assert latest.unstable_version == "1.22.0-pre.0"
 
             # Full version lists should be preserved
-            assert cache.get_versions("stable") == [
-                {"version": "1.21.0", "channel": "stable"}
-            ]
+            assert cache.get_versions("stable") == [{"version": "1.21.0", "channel": "stable"}]
             assert cache.get_versions("unstable") == [
                 {"version": "1.22.0-pre.0", "channel": "unstable"}
             ]

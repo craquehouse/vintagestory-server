@@ -112,4 +112,3 @@ class ModUpdateStatusItem(BaseModel):
     reason: UnknownReason | None = None
     checked_at: datetime | None = None
     error: str | None = None
-

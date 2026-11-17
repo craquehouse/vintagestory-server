@@ -166,12 +166,8 @@ class TestMetricsHistoryEndpoint:
     ) -> None:
         """AC 2: Returns all available metrics when no minutes parameter."""
         snapshots = [
-            _create_snapshot(
-                timestamp=datetime.now(UTC) - timedelta(minutes=30), api_memory=100.0
-            ),
-            _create_snapshot(
-                timestamp=datetime.now(UTC) - timedelta(minutes=15), api_memory=150.0
-            ),
+            _create_snapshot(timestamp=datetime.now(UTC) - timedelta(minutes=30), api_memory=100.0),
+            _create_snapshot(timestamp=datetime.now(UTC) - timedelta(minutes=15), api_memory=150.0),
             _create_snapshot(timestamp=datetime.now(UTC), api_memory=200.0),
         ]
         mock_metrics_service.buffer.get_all.return_value = snapshots

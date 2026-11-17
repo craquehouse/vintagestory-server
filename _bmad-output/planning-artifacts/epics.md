@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
+    description: 'Added Epic 20 (7 stories) for Tooling and Test Health; FR234-FR259 (revised the same day with the maintainer''s answers: a mod database address setting, three beads pulled in)'
+  - date: '2026-11-17'
     description: 'Added Epic 19 (7 stories) for API Security and Mod File Safety; FR205-FR233 (revised twice the same day: follow-ups folded in, VSS-9wv split out, start-up mod state sync added as Story 19.5)'
   - date: '2026-11-16'
     description: 'Added Epic 18 (4 stories) for Mod Media and Fixes; FR194-FR204'
@@ -443,6 +445,32 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR231 | Epic 19 | Mod state reconciled with the mods directory at start-up |
 | FR232 | Epic 19 | The start-up sync skips what is not a readable mod archive and never fails start-up |
 | FR233 | Epic 19 | Note in the file browser for roles other than Admin |
+| FR234 | Epic 20 | The API is formatted by one commit |
+| FR235 | Epic 20 | `just lint-api` and CI check the API's format |
+| FR236 | Epic 20 | The format commit is in `.git-blame-ignore-revs` |
+| FR237 | Epic 20 | Pyright reports 0 warnings |
+| FR238 | Epic 20 | No skipped web tests |
+| FR239 | Epic 20 | Web tests run in the `vmThreads` pool |
+| FR240 | Epic 20 | E2E specs are type-checked |
+| FR241 | Epic 20 | ShellCheck covers every script |
+| FR242 | Epic 20 | Recipes pass quoted arguments intact |
+| FR243 | Epic 20 | Playwright output is not tracked |
+| FR244 | Epic 20 | `just semgrep`: pinned version, six packs, source only |
+| FR245 | Epic 20 | Pull requests fail only on findings they add; `main` is scanned in full |
+| FR246 | Epic 20 | SARIF to code scanning from a job with its own permission |
+| FR247 | Epic 20 | No open finding; the `nosemgrep` exception |
+| FR248 | Epic 20 | Seeded directories; file browser navigation tests in CI |
+| FR249 | Epic 20 | A new directory appears after a reload |
+| FR250 | Epic 20 | Playwright browsers cached in CI |
+| FR251 | Epic 20 | The connection reset in the E2E stub is explained or recorded |
+| FR252 | Epic 20 | Mod database tests run in CI on recorded answers, through the address setting |
+| FR253 | Epic 20 | Recordings with a manifest and a refresh command |
+| FR254 | Epic 20 | Live-only tests are tagged and stay local |
+| FR255 | Epic 20 | Dockerfile images pinned by digest; uv matches `.mise.toml` |
+| FR256 | Epic 20 | Renovate moves the pins |
+| FR257 | Epic 20 | Story numbering rule matches practice |
+| FR258 | Epic 20 | `VS_MOD_DB_URL`: the mod database's address is an optional setting |
+| FR259 | Epic 20 | The address is validated at start-up; `http` only with `VS_DEBUG=true` |
 
 ## Epic List
 
@@ -1957,7 +1985,8 @@ So that **I can monitor background task status**.
 | Epic 17: Mod Data Correctness and Fixes | 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8 | 8 |
 | Epic 18: Mod Media and Fixes | 18.1, 18.2, 18.3, 18.4 | 4 |
 | Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
-| **Total** | | **113** |
+| Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
+| **Total** | | **120** |
 
 ---
 
@@ -5708,3 +5737,698 @@ So that **a change that breaks the page is caught before it is merged**.
 - [ ] A `just` recipe for the CI invocation; `api/tests/e2e/` in the same run (ADR-14 decisions 3 and 8)
 - [ ] The `e2e` job in `.github/workflows/ci.yml`: cached image build, container start, health wait, Playwright install, report artifact; `just lint-workflows` (ADR-14 decisions 1 and 7)
 - [ ] Documentation: how to run the CI subset locally and what the tags mean
+
+---
+
+## Epic 20: Tooling and Test Health
+
+**Goal:** `just check` is green and quiet, and what it checks is everything: the API's format, the E2E specs' types and every script. A static security scan runs on every pull request. CI runs the browser tests for the file browser and the mod database, not only the ones that need nothing. The release image is built from pinned inputs. Seventeen open beads and one old epic are closed.
+
+**Architecture:** `architecture/epic-20-tooling-and-test-health.md` (ADR-1 to ADR-11, with the facts checked at `3f1c6ea`). There is no preparation story. Story 20.6 adds its setting and proves the path to the replay in its first two tasks before it records anything (ADR-9 decision 7).
+
+**Decided by the maintainer (Matt, 2026-11-17):** the one-time `ruff format` of the API as the first change of the epic, with the check in `just lint-api` (ADR-1); Prettier for the web is not in scope; the semgrep design: pinned version, six registry packs, pull requests fail only on findings they add, full scans of `main` report without blocking, SARIF to code scanning, source only, and the inline `nosemgrep` exception for a verified false positive (ADR-6, ADR-7). The same day he answered the proposal's open questions: the mod database's address becomes a setting, `VS_MOD_DB_URL`, and CI points it at a plain-HTTP replay of recorded answers (ADR-9, the alternative to the first draft); the recordings are trimmed real answers; the three pull-ins are approved; and every other default stands (`just semgrep` outside `just check`, no scheduled live run, the `@moddb-live` tag, the `docker exec` new-directory test, stop and ask under `vmThreads`, digests for all three images with `apt-get upgrade` kept, X.0 for preparation stories).
+
+**Order:** 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7.
+
+**Dependencies:**
+
+- Story 20.1 comes first and merges before any other branch of the epic is cut: it rewrites 75 API files, and every later API change (the fixtures in 20.2, the hash call in 20.4) is made on formatted code.
+- Story 20.2 needs no other story's code. It comes second so that every later story starts from a `just check` with no warning and no skip.
+- Story 20.3 comes before 20.4, 20.5 and 20.6: they add recipes to the `Justfile` and edit E2E specs, and from 20.3 on recipes pass arguments intact, specs are type-checked and a local E2E run leaves the tree clean.
+- Story 20.4 comes after 20.1 (it edits `services/server.py`) and after 20.3 (its script is covered by the widened `just lint-scripts`). It adds a sixth job to `ci.yml` and updates the guard in `scripts/tests/test-release.sh`.
+- Story 20.6 comes directly after 20.5: both edit `scripts/e2e-ci.sh`, its test, the `e2e` job and `web/e2e/README.md`.
+- Story 20.7 needs no other story's code. It comes last because a digest change empties the image build cache that the `docker` and `e2e` jobs share, which would blur the timings Stories 20.5 and 20.6 record.
+- Stories 20.3, 20.4, 20.5 and 20.6 all edit the `Justfile`, and 20.4, 20.5 and 20.6 all edit `ci.yml`; run them one after another.
+
+**Beads:** seventeen in scope (the fourteen the maintainer picked and three pull-ins he approved on 2026-11-17: `VSS-eh41` in 20.2, `VSS-zhv3` in 20.6, `VSS-3q2s` in 20.7), each closed with an AAR by its story. `VSS-3asx` spans Stories 20.1 and 20.3 and closes with 20.3. `VSS-571h` spans Stories 20.5 and 20.6 and closes with 20.6. `VSS-37a` is already fixed in the code and is verified and closed in 20.2. The old epic `VSS-029` "Web UI Test Coverage" (16 of 18 done) closes in Story 20.5, when its last two children (`VSS-37a`, `VSS-3mr`) are closed.
+
+**One product change:** Story 20.6 adds the optional setting `VS_MOD_DB_URL` (ADR-9). It is the only change of the epic that an operator can see, and its commit is a `feat(api)` with a release note.
+
+### Current State
+
+- 75 of the API's 157 Python files are not in `ruff format`'s form, and nothing checks the format
+- `just check` prints three Pyright warnings and four skipped web tests on every run; the web tests spend 43% of their time creating jsdom environments
+- `VSS-37a` is open although its three tests were re-enabled and pass
+- The 23 E2E specs are never type-checked; `scripts/sprint-status.sh` is left out of ShellCheck; `just test-api -k "a or b"` fails; every Playwright run rewrites two tracked files
+- No static security scan runs anywhere, and code scanning has never received a result
+- CI leaves out 36 of 149 E2E tests: 31 that read the live mod database and 5 file browser tests that need a nested directory. "A new directory appears on refresh" has no test. A connection reset seen once in the E2E helper is retried and unexplained
+- The Dockerfile copies uv from a `latest` tag and builds on two tags without digests
+- `project-context.md` says preparation stories are never numbered X.0; the four epics after Epic 12 that had one numbered it X.0
+
+### Target State
+
+- The API is formatted, the format commit is skipped by `git blame`, and `just lint-api` and CI fail on an unformatted file
+- `just check` ends with 0 Pyright warnings and 0 skipped tests, and the web tests run in the `vmThreads` pool
+- `just typecheck` covers the E2E specs, `just lint-scripts` covers every script, recipes pass quoted arguments intact, and a Playwright run leaves the tree clean
+- `just semgrep` and a CI job scan the source with a pinned semgrep; a pull request fails only on a finding it adds, and `main`'s findings are in code scanning
+- CI runs the file browser tests on a seeded directory tree, a test for a directory created while the page is open, and the mod database tests against recorded answers, which the API reaches through the new `VS_MOD_DB_URL` setting
+- Every image the Dockerfile uses is pinned by digest and Renovate moves the pins
+- The story numbering rule says what the project does
+
+---
+
+### Story 20.1: The API Is Formatted Once and Stays Formatted
+
+**Sprint key:** `20-1-api-formatted-once`
+**Beads:** `VSS-3asx` (TOOLS-006), the formatting half; the bead stays open until Story 20.3
+**FRs:** FR234, FR235, FR236
+
+As a **developer**,
+I want **the whole API in the formatter's form and a check that keeps it there**,
+So that **formatting a file I work on never adds changes that are not mine**.
+
+**Acceptance Criteria:**
+
+**Given** the API source and tests
+**When** `ruff format --check` runs over `api/`
+**Then** it reports no file that would be reformatted
+
+*(Covers FR234)*
+
+**Given** the format commit
+**When** I read it
+**Then** it holds only what `ruff format` wrote with the existing configuration (`line-length = 100`): no hand edit, no lint fix, no configuration change, and its subject is `chore(story-20.1/task-1): format the API with ruff format`
+
+*(Covers FR234; Matt, 2026-11-17)*
+
+**Given** the format commit's parent
+**When** a reviewer runs the same `ruff format` on it
+**Then** the resulting tree is identical to the format commit's tree
+
+*(Covers FR234)*
+
+**Given** the API tests, `ruff check` and Pyright
+**When** they run before and after the format commit
+**Then** the results are the same: the same tests pass, no new lint finding, no new type error or warning, and no `# noqa` or `# fmt:` comment was added
+
+*(Covers FR234)*
+
+**Given** `just lint-api`
+**When** it runs
+**Then** it runs `ruff check` and then `ruff format --check`, and it fails when any API file is not formatted
+
+*(Covers FR235)*
+
+**Given** a pull request that contains an unformatted API file
+**When** CI runs
+**Then** the `api` job fails at `just lint-api`, with no change to the workflow file
+
+*(Covers FR235)*
+
+**Given** the repository root
+**When** I read `.git-blame-ignore-revs`
+**Then** it names the format commit's full hash with a comment line, and it was added in a separate commit of the same pull request
+
+*(Covers FR236)*
+
+**Given** a fresh worktree set up with `scripts/worktree-setup.sh`
+**When** I run `git blame` on a reformatted API file
+**Then** the format commit is skipped, and the README says which git setting does that
+
+*(Covers FR236)*
+
+**Given** the epic's branches
+**When** Story 20.1's pull request merges
+**Then** it is merged with a merge commit like every other, no other branch of the epic exists yet, and the hash in `.git-blame-ignore-revs` is a commit on `main`
+
+*(Covers FR236; Matt, 2026-11-17)*
+
+**Tasks:**
+
+- [ ] Run `ruff format` over `api/` and commit the result alone; record the file and line counts and that the tests, `ruff check` and Pyright give the same results as before (Epic 20 ADR-1 decisions 1, 2 and 6) (`VSS-3asx`)
+- [ ] `.git-blame-ignore-revs` with the commit's hash; `blame.ignoreRevsFile` in `scripts/worktree-setup.sh`; a line in the README (ADR-1 decision 4)
+- [ ] `ruff format --check` in `just lint-api`; update the recipe comment and the command lists in `CLAUDE.md` and `project-context.md` (ADR-1 decision 5)
+
+---
+
+### Story 20.2: A Green, Quiet `just check`
+
+**Sprint key:** `20-2-green-quiet-check`
+**Beads:** `VSS-1ar` (TEST-003), `VSS-hnl` (TEST-004), `VSS-37a` (bug), `VSS-6wj` (TEST-005), `VSS-eh41` (UI-098; pulled in, Matt, 2026-11-17)
+**FRs:** FR237, FR238, FR239
+
+As a **developer**,
+I want **`just check` to end with no warning and no skipped test, and the web tests to run faster**,
+So that **a new warning or skip is seen the day it appears, and the check is quick enough to run every time**.
+
+**Acceptance Criteria:**
+
+**Given** `just typecheck-api`
+**When** it runs
+**Then** it prints `0 errors, 0 warnings`, the three fixtures (`test_mod_service.py` `mod_without_releases` and `mod_without_tags`, `test_mods_router.py` `mods_without_tags`) have a type annotation, no `# pyright: ignore` or `# type: ignore` was added, and no rule level in `pyproject.toml` changed
+
+*(Covers FR237)*
+
+**Given** the three empty placeholder tests (`FilterControls.test.tsx:156`, `use-browse-mods.test.tsx:247` and `:253`)
+**When** the story is done
+**Then** they are gone, and selecting a game version in the filter controls and filtering the browse list by game version each have a test with assertions, written here if none existed
+
+*(Covers FR238)*
+
+**Given** `ModTable.test.tsx` "shows loading state in remove button when removing"
+**When** the web tests run
+**Then** it runs and passes without `act` around the click, or the state is covered by a Playwright test and the unit test is deleted, and the story says which and why
+
+*(Covers FR238)*
+
+**Given** `just test-web`
+**When** it runs
+**Then** it reports 0 skipped tests
+
+*(Covers FR238)*
+
+**Given** `VSS-37a`'s three tests ("shows confirmation dialog when remove button is clicked", "closes dialog when cancel is clicked", "removes mod when confirm is clicked")
+**When** the web tests run
+**Then** all three run and pass, and the bead is closed with an AAR that names commit `f393c3a`, which re-enabled them
+
+*(Covers FR238)*
+
+**Given** `web/vitest.config.ts`
+**When** I read it
+**Then** it sets `pool: 'vmThreads'`, does not set `isolate: false`, and no test file is moved to another pool; if a file cannot be made to pass, the story stops and asks the maintainer
+
+*(Covers FR239; Matt, 2026-11-17)*
+
+**Given** the three files that failed under `vmThreads` and remain (`use-log-stream.test.ts`, `use-console-websocket.test.ts`, `cookies.test.ts`; the fourth, `Terminal.test.tsx`, is deleted with its dead component)
+**When** the web tests run under `vmThreads` and under the forks pool
+**Then** every test passes under both, no test redefines `window.location` with `Object.defineProperty` or deletes `global.document`, and the tests assert what they asserted before
+
+*(Covers FR239)*
+
+**Given** the web suite before and after the story
+**When** I compare the test counts
+**Then** the only tests that are gone are the ones this story deleted on purpose, and the story lists them
+
+*(Covers FR239)*
+
+**Given** CI's `web` job
+**When** it runs on the story's pull request
+**Then** `just test-web` passes, and the story records its time before (60 s) and after
+
+*(Covers FR239)*
+
+**Given** `project-context.md`
+**When** I read its testing rules
+**Then** it says how to stub a browser global so that the test passes under `vmThreads`, and its forbidden-pattern list names `it.skip` and `describe.skip`
+
+*(Covers FR238, FR239)*
+
+**Given** the pull-in `VSS-eh41`
+**When** the story is done
+**Then** `web/src/features/terminal/Terminal.tsx`, its test and the unused `checkVersionCompatibility` are removed, nothing imports them, the E2E spec `terminal.spec.ts` (which tests the Console page, not this component) still passes, and the bead is closed with an AAR
+
+*(Covers FR239; pulled in, Matt, 2026-11-17)*
+
+**Tasks:**
+
+- [ ] Annotate the three fixtures; `just typecheck-api` at 0 warnings (Epic 20 ADR-3 decision 3) (`VSS-1ar`)
+- [ ] Delete the three placeholders after checking the game version filter's tests, writing the missing ones; rewrite the remove-button loading test (ADR-3 decisions 1 and 2) (`VSS-hnl`)
+- [ ] Run and record `VSS-37a`'s three tests; close the bead with its AAR (ADR-3 decision 4) (`VSS-37a`)
+- [ ] Pull-in (Matt, 2026-11-17): remove `Terminal.tsx`, `Terminal.test.tsx` and `checkVersionCompatibility`; list the deleted tests (ADR-2 decision 3) (`VSS-eh41`)
+- [ ] Read every failure under `vmThreads`; change the stubs in the three remaining files so they pass under both pools (ADR-2 decision 2) (`VSS-6wj`)
+- [ ] `pool: 'vmThreads'` in `web/vitest.config.ts`; local and CI times; the stubbing pattern and the skip patterns in `project-context.md` (ADR-2 decisions 1 and 6, ADR-3 decision 5) (`VSS-6wj`)
+
+---
+
+### Story 20.3: Lint and Type Checks Cover Everything
+
+**Sprint key:** `20-3-lint-and-typecheck-coverage`
+**Beads:** `VSS-3asx` (TOOLS-006), the type-check half, closed here; `VSS-1eb` (TOOLS-004); `VSS-6354` (TOOLS-009); `VSS-uw9z` (TOOLS-008)
+**FRs:** FR240, FR241, FR242, FR243
+
+As a **developer**,
+I want **the checks to cover the E2E specs and every script, and the recipes to do what I type**,
+So that **a mistake in a spec or a script is caught by `just check`, and running the tools leaves no mess**.
+
+**Acceptance Criteria:**
+
+**Given** `web/e2e/tsconfig.json`
+**When** I read it
+**Then** it extends the web configuration, sees Node's types and not Vitest's or Vite's, and includes the E2E directory and `playwright.config.ts`
+
+*(Covers FR240)*
+
+**Given** a type error in an E2E spec or in `playwright.config.ts`
+**When** `just typecheck-web`, `just typecheck` or `just check` runs
+**Then** it fails and names the file
+
+*(Covers FR240)*
+
+**Given** CI's `web` job
+**When** it runs
+**Then** it runs `just typecheck-web`, and `bun run build` is unchanged, so a spec's type error cannot stop the image build
+
+*(Covers FR240)*
+
+**Given** the E2E specs today
+**When** the new check runs
+**Then** it passes with no `@ts-expect-error` or `@ts-ignore` added
+
+*(Covers FR240)*
+
+**Given** `scripts/sprint-status.sh`
+**When** ShellCheck runs on it
+**Then** it reports nothing, the file contains no `shellcheck disable` directive, and every command behaves as before
+
+*(Covers FR241)*
+
+**Given** the status checks that were rewritten
+**When** `just test-scripts` runs
+**Then** tests cover a valid and an invalid status for a story, an epic, a retrospective and a retro item
+
+*(Covers FR241)*
+
+**Given** `just lint-scripts`
+**When** it runs
+**Then** it checks every `.sh` file in `scripts/` and `scripts/tests/` through globs, so a new script is covered without editing the recipe
+
+*(Covers FR241)*
+
+**Given** `just test-api -k "a or b"`
+**When** it runs
+**Then** pytest receives `a or b` as one expression and selects the tests that match either
+
+*(Covers FR242)*
+
+**Given** every recipe that passes arguments on to a tool
+**When** I call it with an argument that contains spaces
+**Then** the tool receives it as one argument; a script test proves it without running the tool, and it holds for `just sprint retro-add <key> "a comment"`
+
+*(Covers FR242)*
+
+**Given** the recipes' existing uses (`just test-api tests/test_server.py -xvs`, `just docker logs`, `just release --dry-run`, `just dev-api --port 8001`)
+**When** I run them
+**Then** they behave as before
+
+*(Covers FR242)*
+
+**Given** the repository
+**When** I run `git ls-files web/playwright-report web/test-results`
+**Then** it prints nothing, and both directories are in `.gitignore` and `.dockerignore`
+
+*(Covers FR243)*
+
+**Given** a clean working tree
+**When** I run Playwright (`--list`, a passing run, or a failing run)
+**Then** `git status` is still clean
+
+*(Covers FR243)*
+
+**Given** a failed `e2e` job in CI
+**When** I open the run
+**Then** the Playwright report is still attached as an artifact
+
+*(Covers FR243)*
+
+**Tasks:**
+
+- [ ] `web/e2e/tsconfig.json`; the `typecheck` script checks both projects; `just typecheck-web` in CI's `web` job; fix whatever the check finds in the specs (Epic 20 ADR-4) (`VSS-3asx`)
+- [ ] Positional arguments in every recipe that forwards `*ARGS`; the script test; update the examples in the `Justfile` header and `CLAUDE.md` (ADR-5 decisions 1 and 2) (`VSS-6354`)
+- [ ] Make `sprint-status.sh` ShellCheck-clean with `case` statements and no directive; tests for the rewritten checks (ADR-5 decision 3) (`VSS-1eb`)
+- [ ] `just lint-scripts` over globs; remove the `VSS-1eb` comment (ADR-5 decision 4) (`VSS-1eb`)
+- [ ] Untrack the two Playwright files; `.gitignore` and `.dockerignore`; remove the "restore the report files" notes from `web/e2e/README.md` and the agent documentation if any mention them (ADR-5 decision 5) (`VSS-uw9z`)
+
+---
+
+### Story 20.4: Semgrep Locally and in CI
+
+**Sprint key:** `20-4-semgrep`
+**Beads:** `VSS-djg` (TOOLS-002), `VSS-4ac` (CICD-001)
+**FRs:** FR244, FR245, FR246, FR247
+
+As a **maintainer**,
+I want **a static security scan on every pull request and one command to run it myself**,
+So that **a risky pattern is caught when it is written, without old findings or noisy rules blocking unrelated work**.
+
+**Acceptance Criteria:**
+
+**Given** `just semgrep`
+**When** it runs
+**Then** it runs semgrep at one pinned version through `uvx`, with `--metrics=off`, the packs `p/python`, `p/typescript`, `p/react`, `p/secrets`, `p/github-actions` and `p/dockerfile`, over `api/src`, `web/src`, `.github`, `Dockerfile` and `scripts`, and exits non-zero on a finding
+
+*(Covers FR244; Matt, 2026-11-17)*
+
+**Given** the scan's scope
+**When** I list the files semgrep scanned
+**Then** no test file is among them (`*.test.ts`, `*.test.tsx`, `scripts/tests/`), the exclusions are in one `.semgrepignore`, and no rule file is stored in the repository
+
+*(Covers FR244; Matt, 2026-11-17)*
+
+**Given** the semgrep version
+**When** I look for it
+**Then** it is written in one place, CI and the recipe both read it from there, Renovate has a rule that updates it, and a script test checks that the line has the form that rule matches
+
+*(Covers FR244)*
+
+**Given** `just semgrep --baseline-commit origin/main`
+**When** it runs on a branch
+**Then** the arguments reach semgrep and only findings the branch adds are reported
+
+*(Covers FR244)*
+
+**Given** `just lint`, `just check`, `just test-api` and `just test-web`
+**When** they run
+**Then** none of them runs semgrep
+
+*(Covers FR244; Matt, 2026-11-17)*
+
+**Given** a pull request that adds a line a chosen rule matches
+**When** CI runs
+**Then** the `semgrep` job fails and its log names the rule, the file and the line
+
+*(Covers FR245; Matt, 2026-11-17)*
+
+**Given** a pull request that adds no finding, while `main` has findings or the registry has new rules
+**When** CI runs
+**Then** the `semgrep` job passes
+
+*(Covers FR245; Matt, 2026-11-17)*
+
+**Given** a push to `main` or a manual run
+**When** the `semgrep` job runs
+**Then** it scans the whole scope, uploads the results to GitHub code scanning as SARIF, and does not fail because of findings
+
+*(Covers FR245, FR246; Matt, 2026-11-17)*
+
+**Given** `ci.yml`
+**When** I read it
+**Then** only the `semgrep` job has `security-events: write`, the workflow's default permission is still `contents: read`, every action is pinned by commit, and the job has the same release-commit skip `if:` as the others
+
+*(Covers FR246; Matt, 2026-11-17)*
+
+**Given** `just test-scripts`
+**When** it runs
+**Then** `test-release.sh` expects the six jobs `api docker e2e scripts semgrep web`, checks the skip `if:` on each, and passes; `just lint-workflows` passes
+
+*(Covers FR246)*
+
+**Given** `api/src/vintagestory_api/services/server.py`
+**When** semgrep runs with `p/python`
+**Then** the checksum code uses `hashlib.md5(usedforsecurity=False)`, the rule `insecure-hash-algorithm-md5` no longer matches, the scope has no finding, and no `nosemgrep` comment was added for it
+
+*(Covers FR247; Matt, 2026-11-17)*
+
+**Given** `project-context.md`'s "No Silent Failures Rule"
+**When** I read it
+**Then** it states the one exception: `# nosemgrep: <rule-id> — <reason>` naming one rule, only for a verified false positive, each one checked in review, a bare `nosemgrep` never, and changing the code preferred where that states the intent better
+
+*(Covers FR247; Matt, 2026-11-17)*
+
+**Given** the CI job on the runner
+**When** it runs
+**Then** it finishes within five minutes, and the story records its time and, per pack, how many rules the engine could not run
+
+*(Covers FR245)*
+
+**Tasks:**
+
+- [ ] `scripts/semgrep.sh` (version, packs, paths, `--metrics=off`, arguments passed through), `.semgrepignore`, and the `just semgrep` recipe; record the scanned file count, findings, rule errors and time (Epic 20 ADR-6 decisions 1, 2, 4, 5, 6 and 7) (`VSS-djg`)
+- [ ] The Renovate rule for the version and the script test that pins the line's form (ADR-6 decision 3) (`VSS-djg`)
+- [ ] `hashlib.md5(usedforsecurity=False)` in `services/server.py`; confirm the rule stops matching; the existing checksum tests still pass (ADR-7 decision 7) (`VSS-4ac`)
+- [ ] The `semgrep` job in `ci.yml`: baseline scan on pull requests, full scan and SARIF upload on `main`, job-level permissions, the skip `if:`; update `test-release.sh` to six jobs (ADR-7 decisions 1 to 4) (`VSS-4ac`)
+- [ ] The `nosemgrep` exception in `project-context.md`; `just semgrep` in `CLAUDE.md` and the README's development section; a note in the story of how a finding is triaged (ADR-7 decisions 5, 6 and 8) (`VSS-4ac`)
+- [ ] Prove the gate on the story's own pull request: a temporary commit that adds a matching line fails the job, and removing it passes; record both runs
+
+---
+
+### Story 20.5: The File Browser E2E Tests Run in CI
+
+**Sprint key:** `20-5-file-browser-e2e-in-ci`
+**Beads:** `VSS-3mr` (UI-030); `VSS-571h` (TEST-006), parts 2, 3 and 4, the bead stays open until Story 20.6. Closes the old epic `VSS-029`
+**FRs:** FR248, FR249, FR250, FR251
+
+As a **maintainer**,
+I want **the file browser's browser tests to run on every pull request, including a directory that appears while I watch**,
+So that **the file browser is covered in CI and the old test-coverage epic can close**.
+
+**Acceptance Criteria:**
+
+**Given** `just test-e2e-ci`
+**When** it starts the throwaway container
+**Then** the container's `serverdata` holds a directory inside another directory with made-up names, owned by the manager's user, beside the seeded `serverconfig.json`
+
+*(Covers FR248)*
+
+**Given** `file-browser-navigation.spec.ts`
+**When** CI runs
+**Then** its five tests run and pass, the spec carries no `@game-server` tag, and it still creates, changes and deletes nothing
+
+*(Covers FR248)*
+
+**Given** the same spec on the dev stack with a game server
+**When** `just test-e2e-web` runs
+**Then** it passes as before
+
+*(Covers FR248)*
+
+**Given** the file manager open on a directory in the throwaway stack
+**When** a new directory is created in that directory from outside the page and the page is loaded again
+**Then** the new directory is in the list and can be opened
+
+*(Covers FR249)*
+
+**Given** that test on a stack that is not the throwaway container
+**When** it runs
+**Then** it skips with a message that says why and changes nothing in that stack's data; `scripts/tests/test-e2e-ci.sh` checks that the CI script gives the test what it needs, so CI cannot skip it
+
+*(Covers FR249; Matt, 2026-11-17)*
+
+**Given** `VSS-3mr` and `VSS-37a` closed
+**When** the story is done
+**Then** the old epic `VSS-029` "Web UI Test Coverage" has no open child and is closed with an AAR that names Stories 16.7, 20.2 and 20.5
+
+*(Covers FR249)*
+
+**Given** the `e2e` job
+**When** it runs a second time with the same Playwright versions
+**Then** it restores the browsers from a cache and does not download them, the cache action is pinned by commit, and the key changes only when a Playwright version or the runner's system changes
+
+*(Covers FR250)*
+
+**Given** the cache
+**When** the story measures the job
+**Then** it records the browser step's time before (43 s) and after, and the cache is removed again if it saves nothing
+
+*(Covers FR250)*
+
+**Given** the connection reset in the server-status stub
+**When** the investigation is done
+**Then** the comment in `web/e2e/config-js.ts` states the cause if it was reproduced, or what was tried if it was not, and the single retry either stays with that reason or is removed because the cause is gone
+
+*(Covers FR251)*
+
+**Given** `web/e2e/README.md`
+**When** I read it
+**Then** it lists the seeded directories, says what the new test needs, and says that no test carries `@game-server` now and when the tag is still the right one
+
+*(Covers FR248, FR249)*
+
+**Tasks:**
+
+- [ ] Seed the nested directory in `scripts/e2e-ci.sh`; pin it in `scripts/tests/test-e2e-ci.sh` (Epic 20 ADR-8 decision 1) (`VSS-571h`)
+- [ ] Run `file-browser-navigation.spec.ts` on the seeded stack and remove its tag; check it on the dev stack (ADR-8 decision 2) (`VSS-571h`)
+- [ ] The "new directory appears after a reload" test and what the script exports for it (ADR-8 decision 3) (`VSS-3mr`)
+- [ ] Cache the Playwright browsers in the `e2e` job; times before and after (ADR-8 decision 5) (`VSS-571h`)
+- [ ] The time-boxed investigation of the connection reset; the comment and the retry (ADR-8 decision 6) (`VSS-571h`)
+- [ ] `web/e2e/README.md`; close `VSS-3mr` and then `VSS-029`, each with an AAR (ADR-8 decision 4)
+
+---
+
+### Story 20.6: The Mod Database E2E Tests Run in CI
+
+**Sprint key:** `20-6-mod-database-tests-in-ci`
+**Beads:** `VSS-571h` (TEST-006), part 1, closed here; `VSS-zhv3` (DOCS-001; pulled in, Matt, 2026-11-17)
+**FRs:** FR252, FR253, FR254, FR258, FR259
+
+As a **maintainer**,
+I want **the tests that read the mod database to run in CI against recorded answers**,
+So that **the mod pages are covered on every pull request, the same way every time, without calling the live service**.
+
+**Acceptance Criteria:**
+
+**Given** a deployment that does not set `VS_MOD_DB_URL`
+**When** the API starts and talks to the mod database
+**Then** it uses `https://mods.vintagestory.at` for its API calls and downloads exactly as before, and logs no warning about the address
+
+*(Covers FR258; Matt, 2026-11-17)*
+
+**Given** `VS_MOD_DB_URL` set to another `https` address
+**When** the API lists mods, looks a mod up, reads the game version list or downloads a mod file
+**Then** each request goes to that address (`<base>/api/...`, `<base>/download`), and the start-up log has one warning that names the scheme and host
+
+*(Covers FR258, FR259)*
+
+**Given** `VS_MOD_DB_URL` set to another address
+**When** the API passes on a mod's logo, screenshots, homepage and source links, and the web UI builds a link to a mod's page
+**Then** the image host allow-list and the link rules are the same as without the setting (only `moddbcdn.vintagestory.at` images, `https` links), and the web UI's links still point at `mods.vintagestory.at`
+
+*(Covers FR258)*
+
+**Given** `VS_MOD_DB_URL` with the scheme `http` and `VS_DEBUG` unset or false
+**When** the API starts
+**Then** start-up stops with an error that names `VS_MOD_DB_URL` and says plain HTTP is for testing and needs `VS_DEBUG=true`
+
+*(Covers FR259; Matt, 2026-11-17)*
+
+**Given** `VS_MOD_DB_URL` with the scheme `http` and `VS_DEBUG=true`
+**When** the API starts
+**Then** it starts, uses the address, and logs the warning
+
+*(Covers FR259; Matt, 2026-11-17)*
+
+**Given** a value that is not an absolute URL, has another scheme, has no host, or carries a user name, a password, a path, a query or a fragment
+**When** the API starts
+**Then** start-up stops with an error that names the setting and what is wrong; a single trailing `/` is accepted and ignored
+
+*(Covers FR259)*
+
+**Given** the README, `.env.example` and the release notes
+**When** I read them
+**Then** the setting is documented as optional, with its default, what it is for (a mirror of the same database, or tests), the `http` rule, and that mods are downloaded from that address; and the commit that adds it has the subject `feat(api): add VS_MOD_DB_URL to use a mirror of the mod database`
+
+*(Covers FR258)*
+
+**Given** the built image with the setting pointed at a stub, before anything is recorded
+**When** the second task is done
+**Then** the story has shown that the listing, the mod lookup, the game version list and the download reach the stub, that no request goes to the live host (which stays blocked in the container), and that a request the stub has no answer for is reported with its URL
+
+*(Covers FR252)*
+
+**Given** `just test-e2e-ci`
+**When** it runs
+**Then** its first pass is as before (the untagged tests against a container in production mode), and a second pass starts a replay container and a second API container with `VS_DEBUG=true` and `VS_MOD_DB_URL` set to the replay, runs the `@moddb` tests that are not `@moddb-live` or `@install` against it, and removes everything it started, also after a failure
+
+*(Covers FR252)*
+
+**Given** the CI run
+**When** I look at where its requests go
+**Then** neither API container nor the browser sends a request to the live mod database or its image host; the browser's image requests are answered by a placeholder
+
+*(Covers FR252)*
+
+**Given** two CI runs of the same commit
+**When** I compare the `@moddb` tests' results
+**Then** they are the same
+
+*(Covers FR252)*
+
+**Given** `web/e2e/fixtures/moddb/`
+**When** I read it
+**Then** it holds one file per recorded request and a manifest that gives each request, its recording date, how it was trimmed and which spec needs it; the answers are real ones, trimmed, with their image and link URLs unchanged, and nothing but what the mod database's public API returned
+
+*(Covers FR253; Matt, 2026-11-17)*
+
+**Given** `just record-moddb`
+**When** I run it with network access
+**Then** it fetches the manifest's requests from the live mod database, rewrites the recordings with the same trimming, and prints which fields appeared or disappeared since the last recording
+
+*(Covers FR253)*
+
+**Given** the 31 `@moddb` tests
+**When** the story has run each against the recordings
+**Then** each one either runs in CI, or carries `@moddb-live` (it compares with live data) or `@install` (it installs a real mod) with a one-line reason, and the story lists how many tests are in each group
+
+*(Covers FR254; Matt, 2026-11-17)*
+
+**Given** `just test-e2e-web` on a developer's machine
+**When** it runs
+**Then** every spec still runs against the live mod database, with no recordings and no setting involved, and no workflow runs them against the live service on a schedule
+
+*(Covers FR254; Matt, 2026-11-17)*
+
+**Given** `web/e2e/README.md`
+**When** I read it
+**Then** it explains the tags as they now are, the two passes, how the replay works, how and when to refresh the recordings, and which tests remain live-only
+
+*(Covers FR253, FR254)*
+
+**Given** the `e2e` job
+**When** the story is done
+**Then** it still finishes within its 30 minute limit, and the story records its time before (3 min 16 s) and after
+
+*(Covers FR252)*
+
+**Given** the pull-in `VSS-zhv3`
+**When** the story is done
+**Then** `agentdocs/vintagestory-modapi.md` documents the fields and filters the bead lists, checked against the recordings, and the bead is closed with an AAR
+
+*(Covers FR253; pulled in, Matt, 2026-11-17)*
+
+**Tasks:**
+
+- [ ] The `VS_MOD_DB_URL` setting: validation at start-up, the warning, `ModApiClient` building both addresses from it, tests for every accepted and refused form and for the fixed allow-lists; README and `.env.example`; its own `feat(api)` commit (Epic 20 ADR-9 decisions 1 to 5) (`VSS-571h`)
+- [ ] Prove the path in the built image against a stub: every mod database request and the download follow the setting, nothing reaches the live host, a missing answer names its URL (ADR-9 decision 7) (`VSS-571h`)
+- [ ] The replay server script, the recording script and `just record-moddb`; the manifest; the first recordings for the requests the specs make (ADR-9 decisions 6, 8, 9 and 10) (`VSS-571h`)
+- [ ] The second pass in `scripts/e2e-ci.sh` (network, replay container, second API container, cleanup), pinned in `scripts/tests/test-e2e-ci.sh`; images answered by a placeholder (ADR-9 decisions 6 and 13) (`VSS-571h`)
+- [ ] Run each `@moddb` test on the recordings; retag (`@moddb-live`) with reasons; fix tests that fail for a fault of their own; `web/e2e/README.md`; job time before and after; close `VSS-571h` with an AAR (ADR-9 decisions 11 and 12)
+- [ ] Pull-in (Matt, 2026-11-17): complete `agentdocs/vintagestory-modapi.md` from what was recorded (`VSS-zhv3`)
+
+---
+
+### Story 20.7: Reproducible Image Inputs and the Numbering Rule
+
+**Sprint key:** `20-7-reproducible-image-and-conventions`
+**Beads:** `VSS-870` (INFRA-004), `VSS-as6` (TOOLS-005), `VSS-3q2s` (DOCS-002; pulled in, Matt, 2026-11-17)
+**FRs:** FR255, FR256, FR257
+
+As a **maintainer**,
+I want **the image built from inputs that a commit names exactly, and the story numbering rule to say what we do**,
+So that **a release build does not change without a commit, and the documentation stops contradicting the practice**.
+
+**Acceptance Criteria:**
+
+**Given** the Dockerfile
+**When** I read the line that copies uv
+**Then** it names a version and a digest, and the version is the one `.mise.toml` pins
+
+*(Covers FR255)*
+
+**Given** every `FROM` and `COPY --from` image in the Dockerfile (uv, the Node build image and the .NET runtime image)
+**When** `just test-scripts` runs
+**Then** a test passes only if each has `@sha256:` and the uv tag equals the uv version in `.mise.toml`
+
+*(Covers FR255; Matt, 2026-11-17)*
+
+**Given** the image built from the pinned Dockerfile
+**When** CI's `docker` and `e2e` jobs run
+**Then** the build succeeds and the E2E tests pass against it
+
+*(Covers FR255)*
+
+**Given** `renovate.json`
+**When** Renovate runs
+**Then** it proposes digest and version updates for the three images, uv in the Dockerfile and in `.mise.toml` move in one pull request, and the .NET runtime is still held below 11
+
+*(Covers FR256)*
+
+**Given** `RELEASING.md`
+**When** I read what happens on a re-run of the image job
+**Then** it says which inputs are pinned, that `apt-get upgrade` stays and the system package layer can therefore still differ, and that each run's attestations describe the digest that run pushed
+
+*(Covers FR255; Matt, 2026-11-17)*
+
+**Given** `project-context.md`'s "Story Numbering" section
+**When** I read it
+**Then** it says a preparation story is numbered X.0, an epic without one starts at X.1, and its table and history match what Epics 4 to 20 did
+
+*(Covers FR257; Matt, 2026-11-17)*
+
+**Given** `cliff.toml`, the BMAD story template and the sprint keys
+**When** the story is done
+**Then** none of them changed, and they agree with the rule
+
+*(Covers FR257)*
+
+**Given** the pull-in `VSS-3q2s`
+**When** the story is done
+**Then** the environment table in `architecture/project-structure-boundaries.md` lists `VS_API_KEY`, `VS_CSP_MODE` and Story 20.6's `VS_MOD_DB_URL`, says what `VS_DEBUG` also serves and that it allows a plain-HTTP mod database address, does not list `VS_GAME_VERSION`, and the bead is closed with an AAR
+
+*(Covers FR257; pulled in, Matt, 2026-11-17)*
+
+**Tasks:**
+
+- [ ] Pin the uv image by version and digest, and the two base images by digest; build and run the E2E set on the result (Epic 20 ADR-10 decisions 1 and 2) (`VSS-870`)
+- [ ] The Renovate rule that groups uv; the script test for digests and the uv version (ADR-10 decisions 3 and 4) (`VSS-870`)
+- [ ] `RELEASING.md`: what a re-run can and cannot change (ADR-10 decision 5) (`VSS-870`)
+- [ ] Rewrite the "Story Numbering" section of `project-context.md` (ADR-11) (`VSS-as6`)
+- [ ] Pull-in (Matt, 2026-11-17): the architecture's environment table, with `VS_MOD_DB_URL` (`VSS-3q2s`)

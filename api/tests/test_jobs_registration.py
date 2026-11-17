@@ -48,9 +48,7 @@ class TestRegisterDefaultJobs:
         svc.shutdown(wait=False)
 
     @pytest.mark.asyncio
-    async def test_register_default_jobs_registers_jobs(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_register_default_jobs_registers_jobs(self, scheduler: SchedulerService) -> None:
         """register_default_jobs() registers jobs with default settings."""
         register_default_jobs(scheduler)
 
@@ -84,9 +82,7 @@ class TestRegisterDefaultJobs:
         """register_default_jobs() reads API settings to determine job registration."""
         from vintagestory_api.services.api_settings import ApiSettings
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             # Return a real ApiSettings object so interval comparisons work
             mock_instance.get_settings.return_value = ApiSettings()
@@ -119,9 +115,7 @@ class TestSafeJobDecorator:
     """Tests for safe_job() decorator (AC: 1)."""
 
     @pytest.mark.asyncio
-    async def test_safe_job_logs_start_event(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_safe_job_logs_start_event(self, captured_logs: StringIO) -> None:
         """safe_job() logs job start event."""
 
         @safe_job("test_job")
@@ -133,9 +127,7 @@ class TestSafeJobDecorator:
         assert "test_job_started" in captured_logs.getvalue()
 
     @pytest.mark.asyncio
-    async def test_safe_job_logs_completion_event(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_safe_job_logs_completion_event(self, captured_logs: StringIO) -> None:
         """safe_job() logs job completion event on success."""
 
         @safe_job("test_job")
@@ -176,9 +168,7 @@ class TestSafeJobDecorator:
         assert "failing_job_failed" in captured_logs.getvalue()
 
     @pytest.mark.asyncio
-    async def test_safe_job_logs_exception_details(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_safe_job_logs_exception_details(self, captured_logs: StringIO) -> None:
         """safe_job() logs exception details on failure."""
 
         @safe_job("error_job")
@@ -250,9 +240,7 @@ class TestJobPatternCompliance:
 class TestJobRegistrationLifespan:
     """Tests for job registration during app lifespan (AC: 2, 3) - Task 2."""
 
-    def test_register_default_jobs_called_during_startup(
-        self, capsys: CaptureFixture[str]
-    ) -> None:
+    def test_register_default_jobs_called_during_startup(self, capsys: CaptureFixture[str]) -> None:
         """register_default_jobs() is called during app startup."""
         from fastapi.testclient import TestClient
 
@@ -266,9 +254,7 @@ class TestJobRegistrationLifespan:
             # Should see job registration log event
             assert "default_jobs_registered" in captured.out
 
-    def test_lifespan_logs_scheduler_then_jobs(
-        self, capsys: CaptureFixture[str]
-    ) -> None:
+    def test_lifespan_logs_scheduler_then_jobs(self, capsys: CaptureFixture[str]) -> None:
         """Scheduler starts before job registration in lifespan order."""
         from fastapi.testclient import TestClient
 
@@ -314,9 +300,7 @@ class TestJobIntervalZeroNotRegistered:
             metrics_collection_interval=0,
         )
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings_with_zero
             mock_settings_class.return_value = mock_instance
@@ -328,9 +312,7 @@ class TestJobIntervalZeroNotRegistered:
             assert len(jobs) == 0
 
     @pytest.mark.asyncio
-    async def test_settings_interval_values_checked(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_settings_interval_values_checked(self, scheduler: SchedulerService) -> None:
         """register_default_jobs checks interval values from settings."""
         from vintagestory_api.services.api_settings import ApiSettings
 
@@ -339,9 +321,7 @@ class TestJobIntervalZeroNotRegistered:
         assert default_settings.mod_list_refresh_interval > 0
         assert default_settings.server_versions_refresh_interval > 0
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = default_settings
             mock_settings_class.return_value = mock_instance
@@ -378,9 +358,7 @@ class TestModCacheRefreshJobRegistration:
 
         settings = ApiSettings(mod_list_refresh_interval=3600)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -400,9 +378,7 @@ class TestModCacheRefreshJobRegistration:
 
         settings = ApiSettings(mod_list_refresh_interval=0)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -424,9 +400,7 @@ class TestModCacheRefreshJobRegistration:
         expected_interval = 7200  # 2 hours
         settings = ApiSettings(mod_list_refresh_interval=expected_interval)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -454,9 +428,7 @@ class TestModCacheRefreshJobRegistration:
 
         settings = ApiSettings(mod_list_refresh_interval=3600)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -489,9 +461,7 @@ class TestServerVersionsCheckJobRegistration:
 
         settings = ApiSettings(server_versions_refresh_interval=86400)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -511,9 +481,7 @@ class TestServerVersionsCheckJobRegistration:
 
         settings = ApiSettings(server_versions_refresh_interval=0)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -535,9 +503,7 @@ class TestServerVersionsCheckJobRegistration:
         expected_interval = 43200  # 12 hours
         settings = ApiSettings(server_versions_refresh_interval=expected_interval)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -565,9 +531,7 @@ class TestServerVersionsCheckJobRegistration:
 
         settings = ApiSettings(server_versions_refresh_interval=86400)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -589,9 +553,7 @@ class TestServerVersionsCheckJobRegistration:
         # Default settings have both intervals > 0
         settings = ApiSettings()
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -624,9 +586,7 @@ class TestMetricsCollectionJobRegistration:
 
         settings = ApiSettings(metrics_collection_interval=10)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -646,9 +606,7 @@ class TestMetricsCollectionJobRegistration:
 
         settings = ApiSettings(metrics_collection_interval=0)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -670,9 +628,7 @@ class TestMetricsCollectionJobRegistration:
         expected_interval = 30  # 30 seconds
         settings = ApiSettings(metrics_collection_interval=expected_interval)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -700,9 +656,7 @@ class TestMetricsCollectionJobRegistration:
 
         settings = ApiSettings(metrics_collection_interval=10)
 
-        with patch(
-            "vintagestory_api.jobs.ApiSettingsService"
-        ) as mock_settings_class:
+        with patch("vintagestory_api.jobs.ApiSettingsService") as mock_settings_class:
             mock_instance = MagicMock()
             mock_instance.get_settings.return_value = settings
             mock_settings_class.return_value = mock_instance
@@ -729,15 +683,9 @@ async def _no_op_job() -> None:
 @pytest.fixture
 def no_real_jobs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Replace the three job functions that apply_interval_setting imports lazily."""
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job
-    )
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job
-    )
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job
-    )
+    monkeypatch.setattr("vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job)
+    monkeypatch.setattr("vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job)
+    monkeypatch.setattr("vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job)
 
 
 @pytest.fixture
@@ -851,15 +799,11 @@ class TestApplyIntervalSetting:
             assert info is not None
             _assert_next_run_one_interval_away(info, before, after, 3600)
 
-    def test_startup_server_versions_check_next_run_is_now(
-        self, no_real_jobs: None
-    ) -> None:
+    def test_startup_server_versions_check_next_run_is_now(self, no_real_jobs: None) -> None:
         """On a scheduler not yet started the immediate run is visible as next_run_time ≈ now."""
         scheduler = SchedulerService()
         before = datetime.now(UTC)
-        apply_interval_setting(
-            scheduler, "server_versions_refresh_interval", 3600, startup=True
-        )
+        apply_interval_setting(scheduler, "server_versions_refresh_interval", 3600, startup=True)
         after = datetime.now(UTC)
 
         info = _job_info(scheduler, "server_versions_check")
@@ -867,9 +811,7 @@ class TestApplyIntervalSetting:
         assert info.next_run_time is not None
         assert before <= info.next_run_time <= after
 
-    def test_unknown_key_is_a_programming_error(
-        self, started_scheduler: SchedulerService
-    ) -> None:
+    def test_unknown_key_is_a_programming_error(self, started_scheduler: SchedulerService) -> None:
         """A key that drives no job raises KeyError."""
         with pytest.raises(KeyError):
             apply_interval_setting(started_scheduler, "auto_start_server", 60)

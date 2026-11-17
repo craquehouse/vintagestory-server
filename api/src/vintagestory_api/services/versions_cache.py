@@ -142,9 +142,7 @@ class LatestVersionsCache:
         Returns:
             True if at least one channel has cached versions.
         """
-        return bool(self._version_lists.get("stable")) or bool(
-            self._version_lists.get("unstable")
-        )
+        return bool(self._version_lists.get("stable")) or bool(self._version_lists.get("unstable"))
 
     def clear(self) -> None:
         """Clear all cached version data.

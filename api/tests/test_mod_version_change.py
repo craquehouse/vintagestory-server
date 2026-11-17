@@ -243,8 +243,7 @@ def mock_lookup(name: str, slug: str) -> None:
 
 def mock_download(release: dict[str, Any], modinfo: dict[str, Any] | None = None) -> respx.Route:
     content = mod_zip_bytes(
-        modinfo
-        or {"modid": release["modidstr"], "name": "x", "version": release["modversion"]}
+        modinfo or {"modid": release["modidstr"], "name": "x", "version": release["modversion"]}
     )
     return respx.get(DOWNLOAD_URL, params={"fileid": str(release["fileid"])}).mock(
         return_value=Response(200, content=content)
@@ -496,10 +495,20 @@ def demo_mod(filename_new: str, filename_old: str) -> dict[str, Any]:
         "statuscode": "200",
         "mod": {
             "releases": [
-                {"modversion": "1.1.0", "modidstr": "demo", "fileid": 11, "filename": filename_new,
-                 "tags": ["1.22.7"]},
-                {"modversion": "1.0.0", "modidstr": "demo", "fileid": 10, "filename": filename_old,
-                 "tags": ["1.22.7"]},
+                {
+                    "modversion": "1.1.0",
+                    "modidstr": "demo",
+                    "fileid": 11,
+                    "filename": filename_new,
+                    "tags": ["1.22.7"],
+                },
+                {
+                    "modversion": "1.0.0",
+                    "modidstr": "demo",
+                    "fileid": 10,
+                    "filename": filename_old,
+                    "tags": ["1.22.7"],
+                },
             ]
         },
     }
@@ -902,9 +911,7 @@ class TestChangeVersionRecordsReleases:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_completed_change_records_its_lookup_under_the_lock(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_completed_change_records_its_lookup_under_the_lock(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
         lookup = respx.get(MOD_URL.format("carryon")).mock(
@@ -915,9 +922,7 @@ class TestChangeVersionRecordsReleases:
 
         await service.change_version("carryon", "1.14.3", record_releases=recorder)
 
-        expected = [
-            StoredRelease.from_api(r) for r in fixture_json("carryon")["mod"]["releases"]
-        ]
+        expected = [StoredRelease.from_api(r) for r in fixture_json("carryon")["mod"]["releases"]]
         assert recorder.calls == [("carryon", expected)]
         assert recorder.held == [True]
         assert lookup.call_count == 1

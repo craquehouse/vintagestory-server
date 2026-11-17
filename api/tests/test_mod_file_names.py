@@ -335,6 +335,4 @@ class TestLeftoversAreNotConflicts:
         assert installed_version_on_disk(service, "Foo.zip") == "1.1.0"
         # Its own backup replaced the leftover .vsm-bak and was then deleted
         assert mod_files(service) == ["Foo.zip", "Foo.zip.tmp"]
-        assert leftover_bytes(service, "Foo.zip.tmp") == {
-            "Foo.zip.tmp": LEFTOVERS["Foo.zip.tmp"]
-        }
+        assert leftover_bytes(service, "Foo.zip.tmp") == {"Foo.zip.tmp": LEFTOVERS["Foo.zip.tmp"]}

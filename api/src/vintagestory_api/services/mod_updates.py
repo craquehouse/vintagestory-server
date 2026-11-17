@@ -518,9 +518,7 @@ class ModUpdateService:
         try:
             self._store.save()
         except (OSError, ValueError) as e:
-            logger.error(
-                "mod_update_store_save_failed", path=str(self._store.path), error=str(e)
-            )
+            logger.error("mod_update_store_save_failed", path=str(self._store.path), error=str(e))
 
     async def _check_one(self, slug: str) -> bool:
         """Refresh one mod. Returns False if the lookup failed."""
@@ -590,4 +588,3 @@ def get_mod_update_service() -> ModUpdateService:
             webhook_url_provider=_configured_webhook_url,
         )
     return _mod_update_service
-

@@ -85,9 +85,7 @@ class TestCORSLoggingMiddleware:
         client = TestClient(test_app)
         return client, captured_logs
 
-    def test_cors_logging_with_origin_header(
-        self, cors_app: tuple[TestClient, StringIO]
-    ) -> None:
+    def test_cors_logging_with_origin_header(self, cors_app: tuple[TestClient, StringIO]) -> None:
         """CORS middleware logs request and response when Origin header present."""
         client, log_output = cors_app
 
@@ -134,9 +132,7 @@ class TestCORSLoggingMiddleware:
         assert "POST" in logs or "method" in logs
         assert "/test" in logs
 
-    def test_cors_logging_includes_user_agent(
-        self, cors_app: tuple[TestClient, StringIO]
-    ) -> None:
+    def test_cors_logging_includes_user_agent(self, cors_app: tuple[TestClient, StringIO]) -> None:
         """CORS logging includes user-agent information."""
         client, log_output = cors_app
 
@@ -155,9 +151,7 @@ class TestCORSLoggingMiddleware:
         # User agent should be logged (or "unknown" if not present)
         assert "TestClient" in logs or "user_agent" in logs
 
-    def test_cors_logging_includes_status_code(
-        self, cors_app: tuple[TestClient, StringIO]
-    ) -> None:
+    def test_cors_logging_includes_status_code(self, cors_app: tuple[TestClient, StringIO]) -> None:
         """CORS response logging includes status code."""
         client, log_output = cors_app
 
@@ -360,7 +354,8 @@ class TestLifespanAutoStart:
             "scheduler_start",
         ]
         [line] = [
-            line for line in captured_logs.getvalue().splitlines()
+            line
+            for line in captured_logs.getvalue().splitlines()
             if "mod_files_startup_failed" in line
         ]
         assert "read-only file system" in line
@@ -474,9 +469,7 @@ class TestLifespanAutoStart:
         ]
 
     @pytest.mark.asyncio
-    async def test_auto_start_server_enabled_and_installed(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_auto_start_server_enabled_and_installed(self, captured_logs: StringIO) -> None:
         """Auto-start starts server when enabled and server is INSTALLED."""
         from vintagestory_api.main import lifespan_for
 
@@ -537,9 +530,7 @@ class TestLifespanAutoStart:
             assert "auto_starting_game_server" in logs
 
     @pytest.mark.asyncio
-    async def test_auto_start_server_not_installed(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_auto_start_server_not_installed(self, captured_logs: StringIO) -> None:
         """Auto-start skips when server is NOT_INSTALLED."""
         from vintagestory_api.main import lifespan_for
 
@@ -598,9 +589,7 @@ class TestLifespanAutoStart:
             assert "server_not_installed" in logs
 
     @pytest.mark.asyncio
-    async def test_auto_start_server_already_running(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_auto_start_server_already_running(self, captured_logs: StringIO) -> None:
         """Auto-start skips when server is already RUNNING."""
         from vintagestory_api.main import lifespan_for
 
@@ -659,9 +648,7 @@ class TestLifespanAutoStart:
             assert "server_state_running" in logs
 
     @pytest.mark.asyncio
-    async def test_auto_start_server_error_handling(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_auto_start_server_error_handling(self, captured_logs: StringIO) -> None:
         """Auto-start handles errors gracefully and logs them."""
         from vintagestory_api.main import lifespan_for
 
@@ -679,9 +666,7 @@ class TestLifespanAutoStart:
 
         mock_server_service = MagicMock()
         # Simulate error during get_server_status
-        mock_server_service.get_server_status.side_effect = Exception(
-            "Docker connection failed"
-        )
+        mock_server_service.get_server_status.side_effect = Exception("Docker connection failed")
 
         mock_scheduler = MagicMock()
         mock_scheduler.start = MagicMock()

@@ -140,9 +140,10 @@ build-web:
 # Run all linters
 lint: lint-api lint-web lint-scripts lint-workflows
 
-# Lint API (Ruff) - accepts optional ruff args
+# Lint API (ruff check, then ruff format --check) - optional args go to ruff check
 lint-api *ARGS:
     mise exec -C api -- uv run ruff check . {{ARGS}}
+    mise exec -C api -- uv run ruff format --check .
 
 # Lint web (TypeScript type checking)
 lint-web:

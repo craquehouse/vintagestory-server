@@ -43,9 +43,7 @@ class ApiResponse(BaseModel):
     error: dict[str, Any] | None = None
 
     @model_serializer(mode="wrap")
-    def serialize_exclude_none_error(
-        self, handler: Any, info: Any
-    ) -> dict[str, Any]:
+    def serialize_exclude_none_error(self, handler: Any, info: Any) -> dict[str, Any]:
         """Custom serializer that excludes null error field from success responses.
 
         The 'data' field can legitimately be null (e.g., no metrics available),
@@ -61,9 +59,7 @@ class ApiResponse(BaseModel):
 class SchedulerHealthData(BaseModel):
     """Scheduler health check data."""
 
-    status: Literal["running", "stopped"] = Field(
-        description="Current scheduler status"
-    )
+    status: Literal["running", "stopped"] = Field(description="Current scheduler status")
     job_count: int = Field(
         default=0,
         description="Number of registered scheduled jobs",

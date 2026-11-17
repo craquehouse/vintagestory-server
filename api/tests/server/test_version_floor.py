@@ -87,9 +87,7 @@ class TestIsVersionSupported:
 class TestVersionListing:
     @respx.mock
     @pytest.mark.asyncio
-    async def test_unsupported_versions_are_not_listed(
-        self, server_service: ServerService
-    ) -> None:
+    async def test_unsupported_versions_are_not_listed(self, server_service: ServerService) -> None:
         respx.get(VS_STABLE_API).mock(
             return_value=Response(
                 200,

@@ -124,5 +124,3 @@ async def installed_service(
     service = ServerService(installed_settings)
     yield service
     await service.close()
-
-

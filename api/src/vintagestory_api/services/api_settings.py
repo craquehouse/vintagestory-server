@@ -235,9 +235,7 @@ class ApiSettingsService:
             # administrators to detect and fix the issue.
             # Never str() a ValidationError: it quotes the input, which can be the
             # webhook URL (FR149). JSONDecodeError messages carry only a position.
-            error = (
-                _describe_validation_errors(e) if isinstance(e, ValidationError) else str(e)
-            )
+            error = _describe_validation_errors(e) if isinstance(e, ValidationError) else str(e)
             logger.warning(
                 "api_settings_load_failed",
                 path=str(self._settings_file),
@@ -289,9 +287,7 @@ class ApiSettingsService:
                     elif value.lower() in ("false", "0", "no"):
                         validated_value = False
                     else:
-                        raise ApiSettingInvalidError(
-                            key, "must be a boolean (true/false)"
-                        )
+                        raise ApiSettingInvalidError(key, "must be a boolean (true/false)")
                 elif isinstance(value, int) and not isinstance(value, bool):
                     validated_value = bool(value)
                 else:

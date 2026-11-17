@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
+    description: 'Added FR234-FR259 for Epic 20 (Tooling and Test Health); revised the same day: FR252 changed and FR258-FR259 added for the mod database address setting'
+  - date: '2026-11-17'
     description: 'Added FR205-FR233 for Epic 19 (API Security and Mod File Safety); revised twice the same day: follow-ups folded in, seven stories'
   - date: '2026-11-16'
     description: 'Added FR194-FR204 for Epic 18 (Mod Media and Fixes)'
@@ -774,3 +776,52 @@ If trivial to implement:
 - FR231: At start-up, after recovering its own working files, the manager reconciles the mod state with the mods directory once: a mod archive added by hand gets an entry and an entry whose file is gone is removed, each change is logged, and there is no endpoint or button for it
 - FR232: The start-up reconcile looks only at mod archives, skips with a warning an archive it cannot read or whose mod is already installed under another file, ignores working, `.tmp` and `.bak` files, and never stops the API from starting
 - FR233: With a key whose role is not Admin, the web file browser shows a short static note that some folders are only shown to Admin keys, without folder names or counts
+
+### Epic 20: Tooling and Test Health
+
+#### Formatting
+
+- FR234: Every Python file of the API is in `ruff format`'s form; the reformat is one commit that holds nothing else
+- FR235: `just lint-api`, and through it CI and `just check`, fails when an API file is not formatted
+- FR236: The reformat commit is listed in `.git-blame-ignore-revs`, so `git blame` skips it on GitHub and in a set-up worktree
+
+#### A Quiet Check
+
+- FR237: `just typecheck-api` reports 0 errors and 0 warnings, with no ignore comment and no lowered rule
+- FR238: The web test suite reports 0 skipped tests; empty placeholders are gone and the remove-button loading state is tested
+- FR239: The web tests run in Vitest's `vmThreads` pool and pass there locally and in CI
+
+#### Lint and Type Check Coverage
+
+- FR240: `just typecheck` and CI type-check the E2E specs and the Playwright configuration; the web build does not depend on them
+- FR241: `just lint-scripts` checks every script, `scripts/sprint-status.sh` included, and that script passes ShellCheck with no directive
+- FR242: Every `just` recipe that passes arguments on hands each argument to the tool as it was quoted, so `just test-api -k "a or b"` works
+- FR243: Playwright's report and result files are not tracked and are ignored, so a local E2E run leaves the working tree clean
+
+#### Static Analysis
+
+- FR244: `just semgrep` runs a pinned semgrep with the packs `p/python`, `p/typescript`, `p/react`, `p/secrets`, `p/github-actions` and `p/dockerfile` over the source (`api/src`, `web/src`, `.github`, `Dockerfile`, `scripts`), not over test files, with metrics off
+- FR245: In CI a pull request fails only on semgrep findings it adds; a full scan of `main` reports every finding and does not fail because of them
+- FR246: The full scan's results are uploaded to GitHub code scanning as SARIF by a job that alone has `security-events: write`, with pinned actions and the release-commit skip
+- FR247: The source has no open semgrep finding; a verified false positive may be marked with an inline `nosemgrep` comment that names one rule and gives a reason, as a documented exception to the no-suppressions rule
+
+#### E2E Coverage in CI
+
+- FR248: CI's E2E stack is seeded with a nested directory, and the file browser navigation tests run in CI
+- FR249: An E2E test shows that a directory created while the file manager is open is listed after the page is loaded again
+- FR250: CI's E2E job restores the Playwright browsers from a cache keyed by the Playwright versions
+- FR251: The connection reset seen in the E2E server-status stub has a recorded cause or a record of what was tried, and its retry is explained or removed
+- FR252: CI runs the E2E tests that need mod database answers against recorded answers, served by a replay that the API reaches through `VS_MOD_DB_URL`, with no request to the live service
+- FR253: The recorded answers are files in the repository with a manifest of what was recorded and when, and one command refreshes them from the live mod database and reports changes in shape
+- FR254: Tests that must compare with the live mod database or install a real mod are tagged and stay local-only; every spec still runs against the live service on a developer's machine
+
+#### Image and Conventions
+
+- FR255: Every image the Dockerfile builds from or copies from is pinned by digest, the uv version equals the one in `.mise.toml`, and a script test enforces both
+- FR256: Renovate proposes updates for the pinned image digests and moves uv in the Dockerfile and in `.mise.toml` together
+- FR257: The story numbering rule in `project-context.md` matches the practice: a preparation story is X.0, and an epic without one starts at X.1
+
+#### The Mod Database's Address (Matt, 2026-11-17)
+
+- FR258: `VS_MOD_DB_URL` sets the base address the API uses for mod database requests and mod downloads; it defaults to `https://mods.vintagestory.at`, and the image host allow-list, the link rules and the links the web UI builds do not follow it
+- FR259: The address is validated at start-up: it must be an `https` URL with a host and nothing else, `http` is accepted only when `VS_DEBUG=true`, anything else stops start-up with an error that names the setting, and an address other than the default is logged as a warning

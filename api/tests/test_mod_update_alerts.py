@@ -185,9 +185,7 @@ class TestSend:
         self, response: Response, capsys: pytest.CaptureFixture[str]
     ) -> None:
         route = respx.post(DISCORD).mock(return_value=response)
-        follow = respx.post("https://attacker.example.com/collect").mock(
-            return_value=Response(200)
-        )
+        follow = respx.post("https://attacker.example.com/collect").mock(return_value=Response(200))
 
         assert await send_update_alert(DISCORD, [item("demo")]) is False
         assert route.call_count == 1
@@ -382,4 +380,3 @@ class TestAlertsAfterCheck:
         service.store.prune(set())
 
         assert service.store.notified_version("carryon") is None
-

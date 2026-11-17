@@ -256,4 +256,3 @@ class TestLogsWebSocketLargeFiles:
             assert len(chunks) >= 2
             assert all(len(chunk) <= max_chunk_size for chunk in chunks)
             assert sum(len(chunk) for chunk in chunks) == appended_size
-

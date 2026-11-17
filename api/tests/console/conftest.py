@@ -71,9 +71,7 @@ def test_token_service() -> Generator[WebSocketTokenService]:
 
 
 @pytest.fixture
-def integration_app(
-    test_settings: Settings, test_service: ServerService
-) -> Generator[FastAPI]:
+def integration_app(test_settings: Settings, test_service: ServerService) -> Generator[FastAPI]:
     """Create app with test settings for integration testing."""
     app.dependency_overrides[get_settings] = lambda: test_settings
     app.dependency_overrides[get_server_service] = lambda: test_service

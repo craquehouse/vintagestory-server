@@ -142,9 +142,7 @@ class TestServerInstallEndpoint:
         assert error["code"] == "SERVER_ALREADY_INSTALLED"
 
     @respx.mock
-    def test_install_alias_stable_resolves_to_latest(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_alias_stable_resolves_to_latest(self, integration_client: TestClient) -> None:
         """POST /server/install with 'stable' alias resolves to latest stable version."""
         from vintagestory_api.services.server import VS_STABLE_API
 
@@ -194,9 +192,7 @@ class TestServerInstallEndpoint:
         assert data["data"]["version"] == "1.22.6"
 
     @respx.mock
-    def test_install_alias_not_found_returns_404(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_install_alias_not_found_returns_404(self, integration_client: TestClient) -> None:
         """POST /server/install with alias that fails to resolve returns 404."""
         from vintagestory_api.services.server import VS_STABLE_API
 

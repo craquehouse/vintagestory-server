@@ -46,9 +46,7 @@ class TestConsoleWebSocketTokenAuth:
         # Create token
         token = _run_async(test_token_service.create_token("admin"))
 
-        with ws_client.websocket_connect(
-            f"/api/v1alpha1/console/ws?token={token.token}"
-        ) as ws:
+        with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?token={token.token}") as ws:
             # Connection should stay open - close it from client side
             ws.close()
 
@@ -65,9 +63,7 @@ class TestConsoleWebSocketTokenAuth:
 
         token = _run_async(test_token_service.create_token("admin"))
 
-        with ws_client.websocket_connect(
-            f"/api/v1alpha1/console/ws?token={token.token}"
-        ) as ws:
+        with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?token={token.token}") as ws:
             line1 = ws.receive_text()
             assert "Line 1" in line1
 
@@ -98,21 +94,17 @@ class TestConsoleWebSocketTokenAuth:
 
         # Create token then manually expire it
         token = _run_async(test_token_service.create_token("admin"))
-        test_token_service._tokens[token.token].expires_at = datetime.now(
-            UTC
-        ) - timedelta(seconds=1)
+        test_token_service._tokens[token.token].expires_at = datetime.now(UTC) - timedelta(
+            seconds=1
+        )
 
-        with ws_client.websocket_connect(
-            f"/api/v1alpha1/console/ws?token={token.token}"
-        ) as ws:
+        with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?token={token.token}") as ws:
             data = ws.receive()
             assert data["type"] == "websocket.close"
             assert data["code"] == 4001
             assert "Invalid or expired token" in data["reason"]
 
-    def test_websocket_rejects_missing_both_token_and_api_key(
-        self, ws_client: TestClient
-    ) -> None:
+    def test_websocket_rejects_missing_both_token_and_api_key(self, ws_client: TestClient) -> None:
         """Given neither token nor api_key, WebSocket rejected with 4001."""
         with ws_client.websocket_connect("/api/v1alpha1/console/ws") as ws:
             data = ws.receive()
@@ -129,9 +121,7 @@ class TestConsoleWebSocketTokenAuth:
         """Given monitor role token, console WebSocket rejected with 4003 (AC: 6)."""
         token = _run_async(test_token_service.create_token("monitor"))
 
-        with ws_client.websocket_connect(
-            f"/api/v1alpha1/console/ws?token={token.token}"
-        ) as ws:
+        with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?token={token.token}") as ws:
             data = ws.receive()
             assert data["type"] == "websocket.close"
             assert data["code"] == 4003
@@ -249,9 +239,9 @@ class TestLogsWebSocketTokenAuth:
 
         # Create token then manually expire it
         token = _run_async(test_token_service.create_token("admin"))
-        test_token_service._tokens[token.token].expires_at = datetime.now(
-            UTC
-        ) - timedelta(seconds=1)
+        test_token_service._tokens[token.token].expires_at = datetime.now(UTC) - timedelta(
+            seconds=1
+        )
 
         with ws_client.websocket_connect(
             f"/api/v1alpha1/console/logs/ws?file=test.log&token={token.token}"
@@ -335,17 +325,15 @@ class TestTokenExpiryDuringConnection:
         # Create token
         token = _run_async(test_token_service.create_token("admin"))
 
-        with ws_client.websocket_connect(
-            f"/api/v1alpha1/console/ws?token={token.token}"
-        ) as ws:
+        with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?token={token.token}") as ws:
             # Receive initial history
             line = ws.receive_text()
             assert "Initial line" in line
 
             # Now expire the token (simulating 5 minutes passing)
-            test_token_service._tokens[token.token].expires_at = datetime.now(
-                UTC
-            ) - timedelta(seconds=1)
+            test_token_service._tokens[token.token].expires_at = datetime.now(UTC) - timedelta(
+                seconds=1
+            )
 
             # Connection should still work - send a command
             # (it will return an error because server isn't running, but that's OK)

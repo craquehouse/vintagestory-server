@@ -108,9 +108,7 @@ async def health_check() -> ApiResponse:
         ServerState.STOPPING: GameServerStatus.STOPPING,
         ServerState.ERROR: GameServerStatus.STOPPED,
     }
-    game_server_status = state_to_status.get(
-        server_status.state, GameServerStatus.NOT_INSTALLED
-    )
+    game_server_status = state_to_status.get(server_status.state, GameServerStatus.NOT_INSTALLED)
 
     # Get pending restart state - don't fail health checks if this errors
     try:
