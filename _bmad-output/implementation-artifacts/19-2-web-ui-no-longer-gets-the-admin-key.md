@@ -406,7 +406,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 
 ### Debug Log References
 
-- Line numbers re-checked after Story 19.1: `main.py` was unchanged by 19.1 (the story's `:91-283` held); in `config.py` 19.1 removed one line above the field comment, so `web_api_key` is at `:30-35` and `web_api_key_has_a_role` at `:37-39` (the comment stayed at `:22`); in `.env.example` the `VS_API_KEY` block is at `:35-39`, in both compose files the `VS_API_KEY` comment and line at `:19-21` (prod) and `:19-20` (dev); README lines `:25`, `:37`, `:77` (the table row moved from `:75` to `:77`).
+- Line numbers re-checked after Story 19.1: `main.py` was unchanged by 19.1 (the story's `:91-283` held); in `config.py` 19.1 removed `VS_GAME_VERSION` (`:24`) below the field comment, which stays at `:22`, so `web_api_key` is at `:30-35` and `web_api_key_has_a_role` at `:37-39`; in `.env.example` the `VS_API_KEY` block is at `:35-39`, in both compose files the `VS_API_KEY` comment and line at `:19-21` (prod) and `:19-20` (dev); README lines `:25`, `:37`, `:77` (the table row moved from `:75` to `:77`).
 - API baseline at the start of the story (after 19.1): 3033 passed with the Task 1 tests added; 3048 after Task 2.
 - Task 2 red: 17 failed before the change (the config, factory-state and frontend-route tests); Task 3 red: 4 web tests failed (the new files did not exist, `getApiKey` was not exported).
 - `ruff format --check` reports pre-existing drift in `main.py` (one blank line before `STATIC_DIR`), `config.py` and `tests/test_main.py`/`tests/test_config.py` that this story did not introduce; it was left alone (no whole-file reformat). `just lint-api` is clean.
