@@ -1,6 +1,6 @@
 # Story 20.2: A Green, Quiet `just check`
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR237-FR239, Epic 20 ADR-2 and ADR-3. Beads: VSS-1ar (TEST-003), VSS-hnl (TEST-004), VSS-37a (bug, verify and close), VSS-6wj (TEST-005), VSS-eh41 (UI-098, pulled in by Matt on 2026-11-17). Stacked on Story 20.1 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/ and web/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats every API test file, so the three fixture lines in Task 1 will move. Test and test-configuration changes, plus the deletion of two unused web source files; nothing an admin can see changes. No new dependencies. -->
 
@@ -75,45 +75,45 @@ so that **a new warning or skip is seen the day it appears, and the check is qui
 
 <!-- Commit per task: type(story-20.2/task-N): ...; nothing here is visible to an admin, so no feat or fix. Tasks run in this order: the VSS-eh41 deletion (Task 4) comes before the stub changes (Task 5) because Terminal.test.tsx is one of the four failing files. -->
 
-- [ ] Task 1: Annotate the three fixtures; Pyright at 0 warnings (AC: 1, 12) (`VSS-1ar`)
-  - [ ] 1.1: `api/tests/test_mod_service.py`: `mod_without_releases: dict[str, Any] = {` (`:1640` at 7f04ea2) and `mod_without_tags: dict[str, Any] = {` (`:1719`). `Any` is already imported (`:8`)
-  - [ ] 1.2: `api/tests/test_mods_router.py`: `mods_without_tags: dict[str, Any] = {` (`:3099`). `Any` is already imported (`:10`)
-  - [ ] 1.3: `just typecheck-api` prints `0 errors, 0 warnings, 0 informations`; `just test-api tests/test_mod_service.py tests/test_mods_router.py` passes (prototype: 297 passed); `ruff format` on the two files changes nothing else (Story 20.1 has formatted them)
-  - [ ] 1.4: Commit `test(story-20.2/task-1): annotate three API test fixtures so Pyright has no warnings`
+- [x] Task 1: Annotate the three fixtures; Pyright at 0 warnings (AC: 1, 12) (`VSS-1ar`)
+  - [x] 1.1: `api/tests/test_mod_service.py`: `mod_without_releases: dict[str, Any] = {` (`:1640` at 7f04ea2) and `mod_without_tags: dict[str, Any] = {` (`:1719`). `Any` is already imported (`:8`)
+  - [x] 1.2: `api/tests/test_mods_router.py`: `mods_without_tags: dict[str, Any] = {` (`:3099`). `Any` is already imported (`:10`)
+  - [x] 1.3: `just typecheck-api` prints `0 errors, 0 warnings, 0 informations`; `just test-api tests/test_mod_service.py tests/test_mods_router.py` passes (prototype: 297 passed); `ruff format` on the two files changes nothing else (Story 20.1 has formatted them)
+  - [x] 1.4: Commit `test(story-20.2/task-1): annotate three API test fixtures so Pyright has no warnings`
 
-- [ ] Task 2: Remove the placeholders and rewrite the remove-button test (AC: 2, 3, 4) (`VSS-hnl`)
-  - [ ] 2.1: Delete `web/src/components/FilterControls.test.tsx:156-158` ("handles version filter selection - DISABLED ...") and `web/src/hooks/use-browse-mods.test.tsx:246-255` (the comment line and both "DISABLED" tests in `describe('filterModsByFilters')` `:190`). Check the coverage named in Dev Notes "The placeholders" is still there; write nothing new
-  - [ ] 2.2: `web/src/components/ModTable.test.tsx:1053-1117`: replace the comment and the skipped test with "closes the dialog at once and reports the removal when the request completes" (Dev Notes "The remove-button test"). Keep the deferred promise; no `act`
-  - [ ] 2.3: `just test-web src/components/ModTable.test.tsx src/components/FilterControls.test.tsx src/hooks/use-browse-mods.test.tsx`: all pass, 0 skipped
-  - [ ] 2.4: Commit `test(story-20.2/task-2): remove empty placeholder tests and test the remove dialog as it behaves`
+- [x] Task 2: Remove the placeholders and rewrite the remove-button test (AC: 2, 3, 4) (`VSS-hnl`)
+  - [x] 2.1: Delete `web/src/components/FilterControls.test.tsx:156-158` ("handles version filter selection - DISABLED ...") and `web/src/hooks/use-browse-mods.test.tsx:246-255` (the comment line and both "DISABLED" tests in `describe('filterModsByFilters')` `:190`). Check the coverage named in Dev Notes "The placeholders" is still there; write nothing new
+  - [x] 2.2: `web/src/components/ModTable.test.tsx:1053-1117`: replace the comment and the skipped test with "closes the dialog at once and reports the removal when the request completes" (Dev Notes "The remove-button test"). Keep the deferred promise; no `act`
+  - [x] 2.3: `just test-web src/components/ModTable.test.tsx src/components/FilterControls.test.tsx src/hooks/use-browse-mods.test.tsx`: all pass, 0 skipped
+  - [x] 2.4: Commit `test(story-20.2/task-2): remove empty placeholder tests and test the remove dialog as it behaves`
 
-- [ ] Task 3: Verify `VSS-37a` (AC: 5) (`VSS-37a`)
-  - [ ] 3.1: `just test-web src/components/ModTable.test.tsx -t "remove mod"`; record in the Debug Log that the three tests at `:456`, `:480`, `:506` ran and passed. No code change and no commit; the AAR is added in Task 7
+- [x] Task 3: Verify `VSS-37a` (AC: 5) (`VSS-37a`)
+  - [x] 3.1: `just test-web src/components/ModTable.test.tsx -t "remove mod"`; record in the Debug Log that the three tests at `:456`, `:480`, `:506` ran and passed. No code change and no commit; the AAR is added in Task 7
 
-- [ ] Task 4: Remove the unused Terminal component and `checkVersionCompatibility` (AC: 6, 9) (`VSS-eh41`)
-  - [ ] 4.1: `git rm web/src/features/terminal/Terminal.tsx web/src/features/terminal/Terminal.test.tsx` (the directory is then empty and goes)
-  - [ ] 4.2: `git rm web/src/lib/mod-compatibility.ts web/src/lib/mod-compatibility.test.ts`: the file exports only `checkVersionCompatibility` (`:30-37`), and only its own test imports it
-  - [ ] 4.3: `rg "features/terminal|mod-compatibility'|checkVersionCompatibility" web/src web/e2e web/tests` finds nothing (the `mod-compatibility-message-*` test IDs in `InstalledModParts.tsx` are unrelated and stay); `cd web && bunx tsc --noEmit` passes; `just test-web` passes
-  - [ ] 4.4: Commit `refactor(story-20.2/task-4): remove the unused Terminal component and checkVersionCompatibility`
+- [x] Task 4: Remove the unused Terminal component and `checkVersionCompatibility` (AC: 6, 9) (`VSS-eh41`)
+  - [x] 4.1: `git rm web/src/features/terminal/Terminal.tsx web/src/features/terminal/Terminal.test.tsx` (the directory is then empty and goes)
+  - [x] 4.2: `git rm web/src/lib/mod-compatibility.ts web/src/lib/mod-compatibility.test.ts`: the file exports only `checkVersionCompatibility` (`:30-37`), and only its own test imports it
+  - [x] 4.3: `rg "features/terminal|mod-compatibility'|checkVersionCompatibility" web/src web/e2e web/tests` finds nothing (the `mod-compatibility-message-*` test IDs in `InstalledModParts.tsx` are unrelated and stay); `cd web && bunx tsc --noEmit` passes; `just test-web` passes
+  - [x] 4.4: Commit `refactor(story-20.2/task-4): remove the unused Terminal component and checkVersionCompatibility`
 
-- [ ] Task 5: Change how the three remaining files stub browser globals (AC: 7, 9, 12) (`VSS-6wj`)
-  - [ ] 5.1: First run `just test-web --pool=vmThreads` and read every failure. Expected (prototype at 7f04ea2, after Task 4): 84 failures in 3 files, from `Cannot redefine property: location` (25 call sites) and `Cannot delete property 'document'` (3). If any other message appears, read it before going on
-  - [ ] 5.2: New `web/tests/location.ts` with `setTestUrl(url)` and `resetTestUrl()` (Dev Notes "The stub changes", 1); `web/tests/setup.ts` calls `resetTestUrl()` in its `afterEach`
-  - [ ] 5.3: `use-console-websocket.test.ts` (12 sites: `:108`, `:121`, `:134`, `:146`, `:159`, `:362`, `:588`, `:672`, `:767`, `:911`, `:971`, `:992`) and `use-log-stream.test.ts` (13 sites: `:108`, `:121`, `:134`, `:145`, `:156`, `:169`, `:371`, `:482`, `:768`, `:835`, `:908`, `:941`, `:1004`): each `Object.defineProperty(window, 'location', { value: { protocol: P, host: H }, writable: true })` becomes `setTestUrl('P//H/')`; drop the "// Mock window.location" comments
-  - [ ] 5.4: Both hook tests, `:95-96`: `// @ts-expect-error` + `global.WebSocket = MockWebSocket;` becomes `vi.stubGlobal('WebSocket', MockWebSocket);`, and the top-level `afterEach` (`:101`) adds `vi.unstubAllGlobals()` (Dev Notes "The stub changes", 2)
-  - [ ] 5.5: `cookies.test.ts`: move the `describe("SSR compatibility")` block (`:93-147`) to a new `web/src/lib/cookies.ssr.test.ts` with `// @vitest-environment node` on line 1; `web/tests/setup.ts` runs its DOM-only steps only when `window` exists (Dev Notes "The stub changes", 3)
-  - [ ] 5.6: `just test-web --pool=vmThreads src/hooks src/lib` and `just test-web --pool=forks src/hooks src/lib`: all pass. Then the whole suite under both pools. `cd web && bunx tsc --noEmit` passes
-  - [ ] 5.7: Commit `test(story-20.2/task-5): stub location, document and WebSocket in a way the vmThreads pool accepts`
+- [x] Task 5: Change how the three remaining files stub browser globals (AC: 7, 9, 12) (`VSS-6wj`)
+  - [x] 5.1: First run `just test-web --pool=vmThreads` and read every failure. Expected (prototype at 7f04ea2, after Task 4): 84 failures in 3 files, from `Cannot redefine property: location` (25 call sites) and `Cannot delete property 'document'` (3). If any other message appears, read it before going on
+  - [x] 5.2: New `web/tests/location.ts` with `setTestUrl(url)` and `resetTestUrl()` (Dev Notes "The stub changes", 1); `web/tests/setup.ts` calls `resetTestUrl()` in its `afterEach`
+  - [x] 5.3: `use-console-websocket.test.ts` (12 sites: `:108`, `:121`, `:134`, `:146`, `:159`, `:362`, `:588`, `:672`, `:767`, `:911`, `:971`, `:992`) and `use-log-stream.test.ts` (13 sites: `:108`, `:121`, `:134`, `:145`, `:156`, `:169`, `:371`, `:482`, `:768`, `:835`, `:908`, `:941`, `:1004`): each `Object.defineProperty(window, 'location', { value: { protocol: P, host: H }, writable: true })` becomes `setTestUrl('P//H/')`; drop the "// Mock window.location" comments
+  - [x] 5.4: Both hook tests, `:95-96`: `// @ts-expect-error` + `global.WebSocket = MockWebSocket;` becomes `vi.stubGlobal('WebSocket', MockWebSocket);`, and the top-level `afterEach` (`:101`) adds `vi.unstubAllGlobals()` (Dev Notes "The stub changes", 2)
+  - [x] 5.5: `cookies.test.ts`: move the `describe("SSR compatibility")` block (`:93-147`) to a new `web/src/lib/cookies.ssr.test.ts` with `// @vitest-environment node` on line 1; `web/tests/setup.ts` runs its DOM-only steps only when `window` exists (Dev Notes "The stub changes", 3)
+  - [x] 5.6: `just test-web --pool=vmThreads src/hooks src/lib` and `just test-web --pool=forks src/hooks src/lib`: all pass. Then the whole suite under both pools. `cd web && bunx tsc --noEmit` passes
+  - [x] 5.7: Commit `test(story-20.2/task-5): stub location, document and WebSocket in a way the vmThreads pool accepts`
 
-- [ ] Task 6: Switch the pool, measure, and write the rules down (AC: 8, 10, 11) (`VSS-6wj`)
-  - [ ] 6.1: Before the switch, on this branch: `/usr/bin/time -p just test-web` three times; record wall time, the Duration line and the "jsdom was created N times" line. Then add `pool: 'vmThreads',` after `environment: 'jsdom',` in `web/vitest.config.ts` (`:18`) with a one-line comment (one jsdom per worker; per-file isolation stays). Run three times again and record the same; Vitest no longer prints the jsdom notice
-  - [ ] 6.2: Run the full suite twice more under `vmThreads` to look for order-dependent failures and for the memory warnings ADR-2's consequences mention; record any
-  - [ ] 6.3: `project-context.md`: the stubbing pattern (new "Stubbing browser globals in web unit tests" paragraph at the end of "### 2. Testing Discipline is Non-Negotiable", after `:165`) and the skip patterns in "### 8. No Silent Failures Rule" (`:228-232`) (Dev Notes "project-context.md")
-  - [ ] 6.4: Commit `test(story-20.2/task-6): run the web unit tests in the vmThreads pool` (config) and `docs(story-20.2/task-6): document stubbing browser globals and forbid skipped unit tests` (project-context.md)
+- [x] Task 6: Switch the pool, measure, and write the rules down (AC: 8, 10, 11) (`VSS-6wj`)
+  - [x] 6.1: Before the switch, on this branch: `/usr/bin/time -p just test-web` three times; record wall time, the Duration line and the "jsdom was created N times" line. Then add `pool: 'vmThreads',` after `environment: 'jsdom',` in `web/vitest.config.ts` (`:18`) with a one-line comment (one jsdom per worker; per-file isolation stays). Run three times again and record the same; Vitest no longer prints the jsdom notice
+  - [x] 6.2: Run the full suite twice more under `vmThreads` to look for order-dependent failures and for the memory warnings ADR-2's consequences mention; record any
+  - [x] 6.3: `project-context.md`: the stubbing pattern (new "Stubbing browser globals in web unit tests" paragraph at the end of "### 2. Testing Discipline is Non-Negotiable", after `:165`) and the skip patterns in "### 8. No Silent Failures Rule" (`:228-232`) (Dev Notes "project-context.md")
+  - [x] 6.4: Commit `test(story-20.2/task-6): run the web unit tests in the vmThreads pool` (config) and `docs(story-20.2/task-6): document stubbing browser globals and forbid skipped unit tests` (project-context.md)
 
 - [ ] Task 7: Quality gate and review hand-off (AC: all)
-  - [ ] 7.1: `just check` passes and prints `0 errors, 0 warnings` from Pyright and no `skipped` from Vitest; the diff adds no suppression, no `cast` and no `as unknown as`; after the run, `git status --short` shows nothing under `dev/`
-  - [ ] 7.2: Test counts as in AC 9 (132 files, 3,320 tests); list the deleted tests in Completion Notes
+  - [x] 7.1: `just check` passes and prints `0 errors, 0 warnings` from Pyright and no `skipped` from Vitest; the diff adds no suppression, no `cast` and no `as unknown as`; after the run, `git status --short` shows nothing under `dev/`
+  - [x] 7.2: Test counts as in AC 9 (132 files, 3,320 tests); list the deleted tests in Completion Notes
   - [ ] 7.3: Status `review`; `just sprint set 20-2-green-quiet-check review`; PR to `main` (Story 20.1 merged first). After CI: record the `web` job's `just test-web` time and that `terminal.spec.ts` passed in the `e2e` job
   - [ ] 7.4: AARs and closes (after merge, per CLAUDE.md): `VSS-1ar`, `VSS-hnl`, `VSS-6wj`, `VSS-eh41` with their commits; `VSS-37a` naming `f393c3a` and Task 3's run. Do not close `VSS-029` (Story 20.5 does)
 
@@ -365,12 +365,63 @@ Nothing an admin can see changes, so there is no new E2E spec and no manual chec
 
 ### Agent Model Used
 
+Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
+
 ### Debug Log References
+
+- Task 1: the three fixtures were at `test_mod_service.py:1627`, `:1704` and `test_mods_router.py:3046` after Story 20.1. `just typecheck-api`: `0 errors, 0 warnings, 0 informations`. `just test-api tests/test_mod_service.py tests/test_mods_router.py`: 297 passed. `ruff format` on both files: "2 files left unchanged".
+- Task 2: `ModTable.test.tsx`, `FilterControls.test.tsx`, `use-browse-mods.test.tsx`: 186 passed, 0 skipped, under `--pool=vmThreads` and `--pool=forks`.
+- Task 2, probe (not committed): in the new test, after confirming the removal of `smithingplus` and while its DELETE was pending, opening the remove dialog for `carrycapacity` showed the confirm button text `Removing...`. The "Removing..." branch is reachable in that case (see Completion Notes).
+- Task 3 (`VSS-37a`): `vitest --run src/components/ModTable.test.tsx -t "remove mod" --reporter=verbose`: "shows confirmation dialog when remove button is clicked" (`:456`), "closes dialog when cancel is clicked" (`:480`), "removes mod when confirm is clicked" (`:506`) ran and passed (3 passed; the other 82 were filtered out by `-t`). `just test-web ... -t "remove mod"` splits the quoted pattern on spaces (Story 20.3), so a dotted pattern or a direct `vitest` call is needed.
+- Task 4: `rg "features/terminal|mod-compatibility'|checkVersionCompatibility|filterModsByFilters" web/src web/e2e web/tests` finds nothing; `bunx tsc --noEmit` clean; `just test-web`: 131 files, 3,307 passed.
+- Task 5.1: `just test-web --pool=vmThreads` after Task 4: 84 failed in 3 files; only `TypeError: Cannot redefine property: location` (25) and `TypeError: Cannot delete property 'document' of [object Window]` (3), as expected.
+- Task 5.6: `src/hooks src/lib`: 37 files, 1,049 passed under each pool. Whole suite: 132 files, 3,307 passed under `vmThreads` (Duration 4.29 s) and under `forks` (12.24 s). `tsc` clean.
+- Task 6.1, before the switch (forks, this branch after Task 5): wall 8.90 / 9.01 / 9.43 s; Duration 8.69 / 8.83 / 9.24 s; "jsdom was created 132 times" (37.66 / 38.29 / 39.47 s total, 37% of tracked time).
+- Task 6.1-6.2, after the switch (`vmThreads`), five runs: wall 5.54 / 4.78 / 5.13 / 4.68 / 4.75 s; Duration 5.19 / 4.53 / 4.83 / 4.40 / 4.46 s; 132 files, 3,307 passed every run; no jsdom notice. No order-dependent failure; no memory, heap or listener warning in the output (one more run grepped for them: none).
+- Task 7.1: `just check` exit 0 in 56.3 s wall: ruff "All checks passed!", Pyright `0 errors, 0 warnings, 0 informations`, API 3,334 passed, web 132 files / 3,307 passed (no `skipped`), script tests green. `git status --short` afterwards: nothing under `dev/`. The diff adds no suppression, `cast` or `as unknown as`; `rg "(it|test|describe)\.skip" web/src web/tests` finds nothing.
 
 ### Completion Notes List
 
+- AC 1: the three fixtures are `dict[str, Any]`; Pyright has 0 warnings; no ignore added; `api/pyproject.toml` unchanged.
+- AC 2: the three placeholders are deleted. Existing coverage, unchanged: selecting a game version, `FilterControls.test.tsx` "calls onChange when version is selected" and the badge-removal test after it; filtering the browse list by game version, `use-browse-mods.test.tsx` "accepts filters.gameVersion (legacy format)", "accepts version (flat format)", "handles game version filtering".
+- AC 3: "shows loading state in remove button when removing" is replaced by "closes the dialog at once and reports the removal when the request completes", with no `act` around the click: the dialog is gone right after the confirm click, the DELETE is sent once, `onRemoved` is not called while it is pending and is called with `smithingplus` after it resolves. `resolveRemove` is declared `let resolveRemove: () => void = () => {};`, so no `!` is needed.
+- AC 3, a correction to Dev Notes: "Removing..." is not unreachable in all cases. The dialog for the mod being removed does close before `isRemoving` turns true, so the old test could never pass. But `isPending` belongs to the one `useRemoveMod` mutation in `ModTable`, so if the admin opens the remove dialog for a second mod while the first DELETE is pending, the second dialog's confirm button reads "Removing..." with a spinner (seen in a probe; not committed). The controller asked for the branch to be deleted as a refactor with no visible change. Because deleting it would change what the admin sees in this case (the label would read "Remove"), `ModTable.tsx` is not changed, as the story's "Not changed" list says. Left to the maintainer.
+- AC 4: `just test-web` reports 0 skipped; no `it.skip`, `test.skip` or `describe.skip` in web unit tests.
+- AC 5 (`VSS-37a`): the three tests run and pass (Debug Log, Task 3). The AAR naming `f393c3a` is left for after merge (Task 7.4); no bead was changed.
+- AC 6 (`VSS-eh41`): `Terminal.tsx`, `Terminal.test.tsx`, `mod-compatibility.ts` and its test are deleted; the `rg` check finds nothing. Under the backlog-drawdown rule and the controller's decision, the deprecated `filterModsByFilters` (`use-browse-mods.ts`, unused by product and E2E code; only its own tests imported it) and its `describe` with 13 tests are deleted in the same commit, along with the import of `ModFilters` that only it used. `terminal.spec.ts` was not run locally (no Docker for this story); CI's `e2e` job checks it on the PR.
+- AC 7: under both pools every test passes. No web test redefines `window.location`, deletes `global.document` or assigns `global.WebSocket`; the two hook tests and `cookies.test.ts` have no `@ts-expect-error`. URL: `setTestUrl` from new `web/tests/location.ts` (`jsdom.reconfigure`), reset after each test by `tests/setup.ts`. WebSocket: `vi.stubGlobal` with `vi.unstubAllGlobals()` in the top-level `afterEach`. SSR cookie tests: `cookies.ssr.test.ts` with `// @vitest-environment node`; `setCookie`/`deleteCookie` now assert `not.toThrow()` instead of the cookie jar (Dev Notes "The stub changes", 3). `tests/setup.ts` runs its DOM steps only when `window` exists.
+- AC 8: `web/vitest.config.ts` sets `pool: 'vmThreads'`; no `isolate: false`; no per-file pool.
+- AC 9, a deviation: the suite is 132 files and 3,307 tests, all passing, not 3,320, because the 13 `filterModsByFilters` tests are also deleted (controller decision 5). 3,353 - 3 placeholders - 27 Terminal - 3 mod-compatibility - 13 `filterModsByFilters` = 3,307; 133 - 2 + 1 = 132 files.
+- Tests deleted on purpose: the 33 in Dev Notes "Tests deleted on purpose", plus `use-browse-mods.test.tsx` `describe('filterModsByFilters')`: returns all mods when filters are undefined; returns all mods when filters are empty object; filters by side (exact match); filters by side "both"; filters by single tag (OR logic within tags); filters by multiple tags (OR logic); filters tags case-insensitively; filters by modType; filters out mods that do not match modType; combines multiple filters with AND logic; returns empty array when no mods match filters; handles empty mods array; filters with multiple filter types combined. The skipped remove-button test was replaced, not deleted, so the count is unchanged by it.
+- AC 10: local numbers in the Debug Log (forks about 9.1 s wall, 132 jsdom setups; `vmThreads` about 5.0 s wall, one jsdom per worker). CI's `web` job time (before: 60 s on `main`) is recorded after the PR runs (Task 7.3); no PR was opened here.
+- AC 11: `project-context.md` has the stubbing paragraph in section 2 and names `it.skip` / `test.skip` / `describe.skip` in section 8, with the E2E precondition skip allowed.
+- AC 12: `just check` passes with 0 Pyright warnings and 0 skipped web tests; nothing written under `dev/`.
+- Not done here (not authorized in this run): Task 7.3 PR and CI numbers; Task 7.4 AARs and closes for `VSS-1ar`, `VSS-hnl`, `VSS-6wj`, `VSS-eh41`, `VSS-37a` (after merge).
+- No E2E or manual check: nothing an admin can see changes.
+
 ### File List
+
+- Modified: `api/tests/test_mod_service.py`
+- Modified: `api/tests/test_mods_router.py`
+- Modified: `web/src/components/FilterControls.test.tsx`
+- Modified: `web/src/components/ModTable.test.tsx`
+- Modified: `web/src/hooks/use-browse-mods.ts`
+- Modified: `web/src/hooks/use-browse-mods.test.tsx`
+- Modified: `web/src/hooks/use-console-websocket.test.ts`
+- Modified: `web/src/hooks/use-log-stream.test.ts`
+- Modified: `web/src/lib/cookies.test.ts`
+- Added: `web/src/lib/cookies.ssr.test.ts`
+- Added: `web/tests/location.ts`
+- Modified: `web/tests/setup.ts`
+- Modified: `web/vitest.config.ts`
+- Modified: `project-context.md`
+- Deleted: `web/src/features/terminal/Terminal.tsx`
+- Deleted: `web/src/features/terminal/Terminal.test.tsx`
+- Deleted: `web/src/lib/mod-compatibility.ts`
+- Deleted: `web/src/lib/mod-compatibility.test.ts`
+- Modified: `_bmad-output/implementation-artifacts/20-2-green-quiet-check.md`
 
 ## Change Log
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Prototype of Tasks 1, 2, 4 and 5 at 7f04ea2, discarded.
+- 2026-11-17: Implemented Tasks 1-6 and the gate (dev-story workflow); `filterModsByFilters` removed per the controller; `ModTable.tsx` left unchanged because "Removing..." is reachable (Completion Notes). Status review.
