@@ -30,9 +30,7 @@ describe('SettingField', () => {
     });
 
     it('renders description when provided', () => {
-      render(
-        <SettingField {...defaultProps} description="Enter the server name" />
-      );
+      render(<SettingField {...defaultProps} description="Enter the server name" />);
 
       expect(screen.getByText('Enter the server name')).toBeInTheDocument();
     });
@@ -78,13 +76,7 @@ describe('SettingField', () => {
   describe('number input', () => {
     it('renders number input for int type', () => {
       render(
-        <SettingField
-          settingKey="Port"
-          label="Port"
-          value={42420}
-          type="int"
-          onSave={vi.fn()}
-        />
+        <SettingField settingKey="Port" label="Port" value={42420} type="int" onSave={vi.fn()} />
       );
 
       const input = screen.getByRole('spinbutton');
@@ -93,13 +85,7 @@ describe('SettingField', () => {
 
     it('coerces input to number on change', () => {
       render(
-        <SettingField
-          settingKey="Port"
-          label="Port"
-          value={42420}
-          type="int"
-          onSave={vi.fn()}
-        />
+        <SettingField settingKey="Port" label="Port" value={42420} type="int" onSave={vi.fn()} />
       );
 
       const input = screen.getByRole('spinbutton');
@@ -111,13 +97,7 @@ describe('SettingField', () => {
     it('calls onSave with number value', async () => {
       const onSave = vi.fn().mockResolvedValue({});
       render(
-        <SettingField
-          settingKey="Port"
-          label="Port"
-          value={42420}
-          type="int"
-          onSave={onSave}
-        />
+        <SettingField settingKey="Port" label="Port" value={42420} type="int" onSave={onSave} />
       );
 
       const input = screen.getByRole('spinbutton');
@@ -256,13 +236,7 @@ describe('SettingField', () => {
     });
 
     it('shows custom env var name in badge', () => {
-      render(
-        <SettingField
-          {...defaultProps}
-          envManaged={true}
-          envVar="VS_CFG_SERVERNAME"
-        />
-      );
+      render(<SettingField {...defaultProps} envManaged={true} envVar="VS_CFG_SERVERNAME" />);
 
       expect(screen.getByText('Env: VS_CFG_SERVERNAME')).toBeInTheDocument();
     });
@@ -334,12 +308,7 @@ describe('SettingField', () => {
 
     it('adds aria-invalid when error present', async () => {
       const validate = () => 'Error';
-      render(
-        <SettingField
-          {...defaultProps}
-          validate={validate}
-        />
-      );
+      render(<SettingField {...defaultProps} validate={validate} />);
 
       const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: 'x' } });
@@ -352,12 +321,7 @@ describe('SettingField', () => {
 
     it('shows error styling on input when error present', async () => {
       const validate = () => 'Error';
-      render(
-        <SettingField
-          {...defaultProps}
-          validate={validate}
-        />
-      );
+      render(<SettingField {...defaultProps} validate={validate} />);
 
       const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: 'x' } });
@@ -383,7 +347,9 @@ describe('SettingField', () => {
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(screen.queryByText('This should be hidden when error shows')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('This should be hidden when error shows')
+        ).not.toBeInTheDocument();
         expect(screen.getByText('Error message')).toBeInTheDocument();
       });
     });
@@ -451,7 +417,12 @@ describe('SettingField', () => {
   describe('Story 16.8: settings with no value', () => {
     it('shows a null string setting as an empty field, not "null"', () => {
       render(
-        <SettingField {...defaultProps} settingKey="ServerDescription" label="Description" value={null} />
+        <SettingField
+          {...defaultProps}
+          settingKey="ServerDescription"
+          label="Description"
+          value={null}
+        />
       );
 
       const input = screen.getByLabelText('Description');
@@ -611,9 +582,7 @@ describe('SettingField', () => {
     });
 
     it('associates description with input via aria-describedby', () => {
-      render(
-        <SettingField {...defaultProps} description="Help text here" />
-      );
+      render(<SettingField {...defaultProps} description="Help text here" />);
 
       const input = screen.getByRole('textbox');
       expect(input).toHaveAttribute('aria-describedby', 'ServerName-desc');

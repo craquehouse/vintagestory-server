@@ -60,13 +60,25 @@ const OTHER_MODS: FakeMod[] = [
 ];
 
 const MODS: FakeMod[] = [
-  { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '1.0.0-rc.13' },
+  {
+    slug: 'longnamemod',
+    name: LONG_NAME,
+    version: '1.0.0-rc.12',
+    enabled: true,
+    offered: '1.0.0-rc.13',
+  },
   ...OTHER_MODS,
 ];
 
 // Story 18.4 review: the long name offering a longer version string than any of MODS
 const LONG_VERSION_MODS: FakeMod[] = [
-  { slug: 'longnamemod', name: LONG_NAME, version: '1.0.0-rc.12', enabled: true, offered: '10.10.10-rc.130' },
+  {
+    slug: 'longnamemod',
+    name: LONG_NAME,
+    version: '1.0.0-rc.12',
+    enabled: true,
+    offered: '10.10.10-rc.130',
+  },
   ...OTHER_MODS,
 ];
 
@@ -109,7 +121,10 @@ async function readOnly(page: Page) {
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
-      await route.fulfill({ status: 500, json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } } });
+      await route.fulfill({
+        status: 500,
+        json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } },
+      });
       return;
     }
     await route.fallback();
@@ -168,7 +183,10 @@ async function fakeInstalledMods(page: Page, mods: FakeMod[] = MODS) {
       const mod = mods.find((item) => item.slug === slug);
       const compatibility = COMPATIBILITY[slug];
       if (!mod || !compatibility) {
-        await route.fulfill({ status: 404, json: { detail: { code: 'MOD_NOT_FOUND', message: slug } } });
+        await route.fulfill({
+          status: 404,
+          json: { detail: { code: 'MOD_NOT_FOUND', message: slug } },
+        });
         return;
       }
       await route.fulfill({
@@ -289,7 +307,9 @@ const SIDEBAR = [
 test.describe('Installed mods at every width (Story 17.8, AC 1-2)', () => {
   for (const { collapsed, label } of SIDEBAR) {
     for (const width of [320, 390, 430, 768, 900, 1023]) {
-      test(`cards with every control inside the viewport at ${width}px, ${label}`, async ({ page }) => {
+      test(`cards with every control inside the viewport at ${width}px, ${label}`, async ({
+        page,
+      }) => {
         await openPage(page, width, collapsed, INSTALLED, { mods: true });
 
         await expect(page.getByTestId('installed-mod-cards')).toBeVisible({ timeout: 30_000 });
@@ -301,7 +321,11 @@ test.describe('Installed mods at every width (Story 17.8, AC 1-2)', () => {
         const card = page.getByTestId('installed-mod-card-longnamemod');
         await expectInsideViewport(page, card.getByText('v1.0.0-rc.12'), width);
         await expectInsideViewport(page, 'mod-update-button-longnamemod', width);
-        await expectInsideViewport(page, page.getByTestId('installed-mod-card-offmod').locator('label'), width);
+        await expectInsideViewport(
+          page,
+          page.getByTestId('installed-mod-card-offmod').locator('label'),
+          width
+        );
         await expectInsideViewport(page, 'mod-remove-longnamemod', width);
       });
     }
@@ -324,7 +348,9 @@ test.describe('Installed mods at every width (Story 17.8, AC 1-2)', () => {
     }
   }
 
-  test('the Update action on a card opens the confirmation at 900px, sidebar expanded', async ({ page }) => {
+  test('the Update action on a card opens the confirmation at 900px, sidebar expanded', async ({
+    page,
+  }) => {
     await openPage(page, 900, false, INSTALLED, { mods: true });
 
     await page.getByTestId('mod-update-button-longnamemod').click({ timeout: 30_000 });
@@ -357,7 +383,10 @@ async function expectOneLine(page: Page, fixture: FakeMod[], where: string) {
       `${mod.slug} name on one line, ${where}`
     ).toBeLessThanOrEqual(1);
     if (mod.offered) {
-      const cell = await boxOf(page.getByTestId(`mod-update-${mod.slug}`), `mod-update-${mod.slug}`);
+      const cell = await boxOf(
+        page.getByTestId(`mod-update-${mod.slug}`),
+        `mod-update-${mod.slug}`
+      );
       const button = await boxOf(
         page.getByTestId(`mod-update-button-${mod.slug}`),
         `mod-update-button-${mod.slug}`
@@ -372,7 +401,9 @@ async function expectOneLine(page: Page, fixture: FakeMod[], where: string) {
 
 test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () => {
   for (const { collapsed, label } of SIDEBAR) {
-    test(`the long name wraps and its controls are on screen at 1024px, ${label}`, async ({ page }) => {
+    test(`the long name wraps and its controls are on screen at 1024px, ${label}`, async ({
+      page,
+    }) => {
       await openTable(page, 1024, collapsed, MODS);
 
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
@@ -402,7 +433,9 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
     });
 
     for (const width of [1280, 1440, 1920]) {
-      test(`short names and the Available cell on one line at ${width}px, ${label}`, async ({ page }) => {
+      test(`short names and the Available cell on one line at ${width}px, ${label}`, async ({
+        page,
+      }) => {
         await openTable(page, width, collapsed, SHORT_MODS);
 
         expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
@@ -418,7 +451,9 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
     { width: 1920, collapsed: false, label: 'sidebar expanded' },
     { width: 1920, collapsed: true, label: 'sidebar collapsed' },
   ]) {
-    test(`the long name and the Available cell on one line at ${width}px, ${label}`, async ({ page }) => {
+    test(`the long name and the Available cell on one line at ${width}px, ${label}`, async ({
+      page,
+    }) => {
       await openTable(page, width, collapsed, MODS);
 
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
@@ -429,17 +464,17 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
 
 /** Card slugs in display order. */
 async function cardOrder(page: Page): Promise<string[]> {
-  const ids = await page.getByTestId(/^installed-mod-card-/).evaluateAll((cards) =>
-    cards.map((card) => card.getAttribute('data-testid') ?? '')
-  );
+  const ids = await page
+    .getByTestId(/^installed-mod-card-/)
+    .evaluateAll((cards) => cards.map((card) => card.getAttribute('data-testid') ?? ''));
   return ids.map((id) => id.replace('installed-mod-card-', ''));
 }
 
 /** Table row slugs in display order. */
 async function rowOrder(page: Page): Promise<string[]> {
-  const ids = await page.getByTestId(/^mod-row-/).evaluateAll((rows) =>
-    rows.map((row) => row.getAttribute('data-testid') ?? '')
-  );
+  const ids = await page
+    .getByTestId(/^mod-row-/)
+    .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-testid') ?? ''));
   return ids.map((id) => id.replace('mod-row-', ''));
 }
 
@@ -456,7 +491,9 @@ test.describe('Sort control above the installed mod cards (Story 18.4, AC 1-4)',
     { width: 900, collapsed: false, label: 'sidebar expanded' },
     { width: 390, collapsed: false, label: 'phone' },
   ]) {
-    test(`sorts the cards and shares the sort with the table at ${width}px, ${label}`, async ({ page }) => {
+    test(`sorts the cards and shares the sort with the table at ${width}px, ${label}`, async ({
+      page,
+    }) => {
       await openPage(page, width, collapsed, INSTALLED, { mods: true });
       await expect(page.getByTestId('installed-mod-cards')).toBeVisible({ timeout: 30_000 });
 
@@ -493,7 +530,10 @@ test.describe('Sort control above the installed mod cards (Story 18.4, AC 1-4)',
         table.getByRole('columnheader', { name: 'Version' }).locator('.lucide-chevron-down')
       ).toHaveCount(1);
 
-      await table.getByRole('columnheader', { name: 'Name' }).getByRole('button', { name: 'Name' }).click();
+      await table
+        .getByRole('columnheader', { name: 'Name' })
+        .getByRole('button', { name: 'Name' })
+        .click();
       expect(await rowOrder(page)).toEqual(BY_NAME);
       await page.setViewportSize({ width, height: HEIGHT });
       await expect(control).toBeVisible();
@@ -553,7 +593,11 @@ test.describe('Other tab lists on phones (Story 17.8, AC 4)', () => {
       await expect(page.getByTestId('installed-mod-cards')).toBeVisible({ timeout: 30_000 });
 
       expect(await documentOverflow(page)).toBe(0);
-      await expectInsideViewport(page, page.locator('[data-testid="mods-page"] [data-slot="tabs-list"]'), width);
+      await expectInsideViewport(
+        page,
+        page.locator('[data-testid="mods-page"] [data-slot="tabs-list"]'),
+        width
+      );
     });
 
     test(`the Version page channel tabs fit at ${width}px`, async ({ page }) => {

@@ -38,10 +38,7 @@ interface PaginationProps {
  * Example for currentPage=10, totalPages=20:
  * [1, "…", 9, 10, 11, "…", 20]
  */
-function getPageNumbers(
-  currentPage: number,
-  totalPages: number
-): (number | '…')[] {
+function getPageNumbers(currentPage: number, totalPages: number): (number | '…')[] {
   // If 7 or fewer pages, show all
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);

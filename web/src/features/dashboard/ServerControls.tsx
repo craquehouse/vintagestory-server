@@ -1,11 +1,7 @@
 import { Play, Square, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import {
-  useStartServer,
-  useStopServer,
-  useRestartServer,
-} from '@/hooks/use-server-status';
+import { useStartServer, useStopServer, useRestartServer } from '@/hooks/use-server-status';
 import type { ServerState } from '@/api/types';
 
 interface ServerControlsProps {
@@ -28,14 +24,9 @@ export function ServerControls({ serverState }: ServerControlsProps) {
   const restartMutation = useRestartServer();
 
   const isTransitional =
-    serverState === 'starting' ||
-    serverState === 'stopping' ||
-    serverState === 'installing';
+    serverState === 'starting' || serverState === 'stopping' || serverState === 'installing';
 
-  const canStart =
-    serverState === 'installed' &&
-    !startMutation.isPending &&
-    !isTransitional;
+  const canStart = serverState === 'installed' && !startMutation.isPending && !isTransitional;
 
   const canStop =
     serverState === 'running' &&
@@ -103,11 +94,7 @@ export function ServerControls({ serverState }: ServerControlsProps) {
         size="sm"
         aria-label="Start server"
       >
-        {startMutation.isPending ? (
-          <Loader2 className="animate-spin" />
-        ) : (
-          <Play />
-        )}
+        {startMutation.isPending ? <Loader2 className="animate-spin" /> : <Play />}
         Start
       </Button>
 
@@ -119,11 +106,7 @@ export function ServerControls({ serverState }: ServerControlsProps) {
         className="border-destructive text-destructive hover:bg-destructive/10"
         aria-label="Stop server"
       >
-        {stopMutation.isPending ? (
-          <Loader2 className="animate-spin" />
-        ) : (
-          <Square />
-        )}
+        {stopMutation.isPending ? <Loader2 className="animate-spin" /> : <Square />}
         Stop
       </Button>
 
@@ -134,11 +117,7 @@ export function ServerControls({ serverState }: ServerControlsProps) {
         size="sm"
         aria-label="Restart server"
       >
-        {restartMutation.isPending ? (
-          <Loader2 className="animate-spin" />
-        ) : (
-          <RotateCcw />
-        )}
+        {restartMutation.isPending ? <Loader2 className="animate-spin" /> : <RotateCcw />}
         Restart
       </Button>
     </div>

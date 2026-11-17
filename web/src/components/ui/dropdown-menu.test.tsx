@@ -39,10 +39,7 @@ describe('DropdownMenu', () => {
       );
 
       expect(screen.getByTestId('trigger')).toBeInTheDocument();
-      expect(screen.getByTestId('trigger')).toHaveAttribute(
-        'data-slot',
-        'dropdown-menu-trigger'
-      );
+      expect(screen.getByTestId('trigger')).toHaveAttribute('data-slot', 'dropdown-menu-trigger');
     });
   });
 
@@ -50,9 +47,7 @@ describe('DropdownMenu', () => {
     it('renders trigger with correct data-slot', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open Menu
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open Menu</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
@@ -65,23 +60,17 @@ describe('DropdownMenu', () => {
     it('renders as button element', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-trigger')).toBeInstanceOf(
-        HTMLButtonElement
-      );
+      expect(screen.getByTestId('dropdown-trigger')).toBeInstanceOf(HTMLButtonElement);
     });
 
     it('renders button text', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Click Me
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Click Me</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
@@ -91,24 +80,17 @@ describe('DropdownMenu', () => {
     it('has aria-haspopup attribute', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
-        'aria-haspopup',
-        'menu'
-      );
+      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute('aria-haspopup', 'menu');
     });
 
     it('has correct button type', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
@@ -118,16 +100,11 @@ describe('DropdownMenu', () => {
     it('has aria-expanded attribute set to closed by default', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
-        'aria-expanded',
-        'false'
-      );
+      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute('aria-expanded', 'false');
     });
   });
 
@@ -155,10 +132,7 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-separator')).toHaveAttribute(
-        'role',
-        'separator'
-      );
+      expect(screen.getByTestId('dropdown-separator')).toHaveAttribute('role', 'separator');
     });
 
     it('has correct styling classes', () => {
@@ -179,16 +153,11 @@ describe('DropdownMenu', () => {
       render(
         <DropdownMenu>
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-          <DropdownMenuSeparator
-            data-testid="dropdown-separator"
-            className="custom-separator"
-          />
+          <DropdownMenuSeparator data-testid="dropdown-separator" className="custom-separator" />
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-separator').className).toContain(
-        'custom-separator'
-      );
+      expect(screen.getByTestId('dropdown-separator').className).toContain('custom-separator');
     });
   });
 
@@ -197,9 +166,7 @@ describe('DropdownMenu', () => {
       render(
         <DropdownMenu>
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-          <DropdownMenuLabel data-testid="dropdown-label">
-            Group Label
-          </DropdownMenuLabel>
+          <DropdownMenuLabel data-testid="dropdown-label">Group Label</DropdownMenuLabel>
         </DropdownMenu>
       );
 
@@ -220,9 +187,7 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-label')).toHaveTextContent(
-        'Label Text'
-      );
+      expect(screen.getByTestId('dropdown-label')).toHaveTextContent('Label Text');
     });
 
     it('applies inset prop', () => {
@@ -235,10 +200,7 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-label')).toHaveAttribute(
-        'data-inset',
-        'true'
-      );
+      expect(screen.getByTestId('dropdown-label')).toHaveAttribute('data-inset', 'true');
     });
 
     it('does not apply data-inset when inset is false', () => {
@@ -249,27 +211,20 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-label')).not.toHaveAttribute(
-        'data-inset'
-      );
+      expect(screen.getByTestId('dropdown-label')).not.toHaveAttribute('data-inset');
     });
 
     it('applies custom className', () => {
       render(
         <DropdownMenu>
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-          <DropdownMenuLabel
-            data-testid="dropdown-label"
-            className="custom-label"
-          >
+          <DropdownMenuLabel data-testid="dropdown-label" className="custom-label">
             Label
           </DropdownMenuLabel>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-label').className).toContain(
-        'custom-label'
-      );
+      expect(screen.getByTestId('dropdown-label').className).toContain('custom-label');
     });
   });
 
@@ -278,10 +233,7 @@ describe('DropdownMenu', () => {
       render(
         <DropdownMenu>
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-          <DropdownMenuSeparator
-            data-testid="dropdown-separator"
-            className="custom"
-          />
+          <DropdownMenuSeparator data-testid="dropdown-separator" className="custom" />
         </DropdownMenu>
       );
 
@@ -296,10 +248,7 @@ describe('DropdownMenu', () => {
       render(
         <DropdownMenu>
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
-          <DropdownMenuSeparator
-            data-testid="dropdown-separator"
-            className="class1 class2"
-          />
+          <DropdownMenuSeparator data-testid="dropdown-separator" className="class1 class2" />
         </DropdownMenu>
       );
 
@@ -316,31 +265,21 @@ describe('DropdownMenu', () => {
     it('trigger has aria-haspopup="menu"', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
-        'aria-haspopup',
-        'menu'
-      );
+      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute('aria-haspopup', 'menu');
     });
 
     it('trigger has aria-expanded attribute', () => {
       render(
         <DropdownMenu>
-          <DropdownMenuTrigger data-testid="dropdown-trigger">
-            Open
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger data-testid="dropdown-trigger">Open</DropdownMenuTrigger>
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute(
-        'aria-expanded',
-        'false'
-      );
+      expect(screen.getByTestId('dropdown-trigger')).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('separator has role="separator"', () => {
@@ -351,10 +290,7 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('dropdown-separator')).toHaveAttribute(
-        'role',
-        'separator'
-      );
+      expect(screen.getByTestId('dropdown-separator')).toHaveAttribute('role', 'separator');
     });
   });
 
@@ -924,10 +860,7 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       );
 
-      expect(screen.getByTestId('shortcut')).toHaveAttribute(
-        'data-slot',
-        'dropdown-menu-shortcut'
-      );
+      expect(screen.getByTestId('shortcut')).toHaveAttribute('data-slot', 'dropdown-menu-shortcut');
     });
 
     it('renders shortcut text', () => {
@@ -1007,9 +940,7 @@ describe('DropdownMenu', () => {
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger data-testid="sub-trigger">
-                More
-              </DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger data-testid="sub-trigger">More</DropdownMenuSubTrigger>
             </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1044,9 +975,7 @@ describe('DropdownMenu', () => {
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger data-testid="sub-trigger">
-                More
-              </DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger data-testid="sub-trigger">More</DropdownMenuSubTrigger>
             </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1096,9 +1025,7 @@ describe('DropdownMenu', () => {
           <DropdownMenuTrigger>Open</DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger data-testid="sub-trigger">
-                More
-              </DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger data-testid="sub-trigger">More</DropdownMenuSubTrigger>
             </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>

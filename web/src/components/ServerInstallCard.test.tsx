@@ -24,9 +24,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with providers
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -105,50 +103,45 @@ describe('ServerInstallCard', () => {
 
     it('shows progress indicator during installation', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByRole('status', { name: /installation progress/i })).toBeInTheDocument();
     });
 
     it('displays current progress percentage', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByText('45%')).toBeInTheDocument();
     });
 
     it('displays current stage', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByText('downloading')).toBeInTheDocument();
     });
 
     it('displays progress message', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByText('Downloading VintageStory 1.21.3...')).toBeInTheDocument();
     });
 
     it('hides version input and install button during installation', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerInstallCard isInstalling={true} installStatus={mockInstallStatus} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.queryByRole('textbox', { name: /server version/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /install server/i })).not.toBeInTheDocument();

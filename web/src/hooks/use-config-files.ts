@@ -9,11 +9,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/api/query-keys';
-import {
-  fetchConfigDirectories,
-  fetchConfigFiles,
-  fetchConfigFileContent,
-} from '@/api/config';
+import { fetchConfigDirectories, fetchConfigFiles, fetchConfigFileContent } from '@/api/config';
 
 /**
  * Hook to fetch the list of directories in serverdata or a subdirectory.

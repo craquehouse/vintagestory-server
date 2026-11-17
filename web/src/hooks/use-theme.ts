@@ -1,4 +1,4 @@
-import { useTheme as useNextTheme } from "next-themes";
+import { useTheme as useNextTheme } from 'next-themes';
 
 export function useTheme() {
   const { theme, setTheme, systemTheme, resolvedTheme } = useNextTheme();
@@ -8,8 +8,8 @@ export function useTheme() {
     setTheme,
     systemTheme,
     resolvedTheme,
-    isDark: resolvedTheme === "dark",
-    isLight: resolvedTheme === "light",
-    toggleTheme: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
+    isDark: resolvedTheme === 'dark',
+    isLight: resolvedTheme === 'light',
+    toggleTheme: () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'),
   };
 }

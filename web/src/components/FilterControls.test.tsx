@@ -17,11 +17,7 @@ describe('FilterControls', () => {
 
   it('renders all filter options', () => {
     render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     // Check for filter labels/buttons
@@ -38,13 +34,7 @@ describe('FilterControls', () => {
       tags: ['qol', 'utility'],
     };
 
-    render(
-      <FilterControls
-        filters={filters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
-    );
+    render(<FilterControls filters={filters} onChange={mockOnChange} availableTags={mockTags} />);
 
     // Check for badge display
     expect(screen.getByText('server')).toBeInTheDocument();
@@ -56,11 +46,7 @@ describe('FilterControls', () => {
     const user = userEvent.setup();
 
     render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     // Interact with side filter (implementation will determine exact interaction)
@@ -71,20 +57,14 @@ describe('FilterControls', () => {
     const serverOption = screen.getByRole('menuitem', { name: /server/i });
     await user.click(serverOption);
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.objectContaining({ side: 'server' })
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ side: 'server' }));
   });
 
   it('calls onChange when tag filter is selected', async () => {
     const user = userEvent.setup();
 
     render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     const tagsButton = screen.getByRole('button', { name: /tags/i });
@@ -93,9 +73,7 @@ describe('FilterControls', () => {
     const qolOption = screen.getByRole('menuitemcheckbox', { name: /qol/i });
     await user.click(qolOption);
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.objectContaining({ tags: ['qol'] })
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ tags: ['qol'] }));
   });
 
   it('removes filter when badge close button is clicked', async () => {
@@ -104,13 +82,7 @@ describe('FilterControls', () => {
       side: 'server',
     };
 
-    render(
-      <FilterControls
-        filters={filters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
-    );
+    render(<FilterControls filters={filters} onChange={mockOnChange} availableTags={mockTags} />);
 
     const removeButton = screen.getByRole('button', { name: /remove.*server/i });
     await user.click(removeButton);
@@ -124,13 +96,7 @@ describe('FilterControls', () => {
       tags: ['qol', 'utility'],
     };
 
-    render(
-      <FilterControls
-        filters={filters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
-    );
+    render(<FilterControls filters={filters} onChange={mockOnChange} availableTags={mockTags} />);
 
     const removeQolButton = screen.getByRole('button', { name: /remove.*qol/i });
     await user.click(removeQolButton);
@@ -142,11 +108,7 @@ describe('FilterControls', () => {
 
   it('shows no active badges when no filters are set', () => {
     render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     // Should not show any badge close buttons
@@ -157,11 +119,7 @@ describe('FilterControls', () => {
     const user = userEvent.setup();
 
     render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     const typeButton = screen.getByRole('button', { name: /type/i });
@@ -170,20 +128,14 @@ describe('FilterControls', () => {
     const codeModOption = screen.getByRole('menuitem', { name: /code.*mod/i });
     await user.click(codeModOption);
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.objectContaining({ modType: 'mod' })
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ modType: 'mod' }));
   });
 
   it('supports multiple tags selection', async () => {
     const user = userEvent.setup();
 
     const { rerender } = render(
-      <FilterControls
-        filters={defaultFilters}
-        onChange={mockOnChange}
-        availableTags={mockTags}
-      />
+      <FilterControls filters={defaultFilters} onChange={mockOnChange} availableTags={mockTags} />
     );
 
     const tagsButton = screen.getByRole('button', { name: /tags/i });
@@ -339,9 +291,7 @@ describe('installed version', () => {
     const versionOption = screen.getByTestId('version-option-1.21.2');
     await user.click(versionOption);
 
-    expect(mockOnChange).toHaveBeenCalledWith(
-      expect.objectContaining({ gameVersion: '1.21.2' })
-    );
+    expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ gameVersion: '1.21.2' }));
   });
 
   it('removes game version filter when badge close button is clicked', async () => {
@@ -374,12 +324,7 @@ describe('mod type filter', () => {
   it('removes mod type filter when badge close button is clicked', async () => {
     const user = userEvent.setup();
 
-    render(
-      <FilterControls
-        filters={{ modType: 'mod' }}
-        onChange={mockOnChange}
-      />
-    );
+    render(<FilterControls filters={{ modType: 'mod' }} onChange={mockOnChange} />);
 
     const removeButton = screen.getByRole('button', {
       name: /remove.*type.*filter:.*mod/i,

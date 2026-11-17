@@ -194,10 +194,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
         >
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <label
-                htmlFor="debug_logging"
-                className="text-sm font-medium text-foreground"
-              >
+              <label htmlFor="debug_logging" className="text-sm font-medium text-foreground">
                 Enable
               </label>
               {toggleDebug.isPending && (
@@ -205,9 +202,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
               )}
             </div>
             {debugError ? (
-              <p className="text-xs text-destructive">
-                Unable to load debug status
-              </p>
+              <p className="text-xs text-destructive">Unable to load debug status</p>
             ) : (
               <>
                 <div className="flex items-center gap-2">
@@ -227,10 +222,7 @@ export function ApiSettingsPanel({ className }: ApiSettingsPanelProps) {
                     {debugData?.data?.debugEnabled ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
-                <p
-                  id="debug_logging-desc"
-                  className="text-xs text-muted-foreground"
-                >
+                <p id="debug_logging-desc" className="text-xs text-muted-foreground">
                   Enable DEBUG-level logging at runtime without server restart
                 </p>
               </>

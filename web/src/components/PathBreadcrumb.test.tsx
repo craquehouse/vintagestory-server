@@ -85,21 +85,18 @@ describe('PathBreadcrumb (Story 16.7)', () => {
       render(<PathBreadcrumb path="/Logs//Archive/" rootLabel="serverdata" onNavigate={vi.fn()} />);
 
       const nav = screen.getByTestId('path-breadcrumb');
-      expect(within(nav).getAllByRole('button').map((b) => b.textContent)).toEqual([
-        'serverdata',
-        'Logs',
-      ]);
+      expect(
+        within(nav)
+          .getAllByRole('button')
+          .map((b) => b.textContent)
+      ).toEqual(['serverdata', 'Logs']);
       expect(screen.getByTestId('path-breadcrumb-current')).toHaveTextContent('Archive');
     });
 
     it('wraps segments and truncates long names, keeping the full name in the title', () => {
       const longName = 'Auto Map Markers 5.0.3 - Vintage Story 1.22.zip_ff41715051bc';
       render(
-        <PathBreadcrumb
-          path={`Cache/${longName}/x`}
-          rootLabel="serverdata"
-          onNavigate={vi.fn()}
-        />
+        <PathBreadcrumb path={`Cache/${longName}/x`} rootLabel="serverdata" onNavigate={vi.fn()} />
       );
 
       const list = screen.getByTestId('path-breadcrumb').querySelector('ol');

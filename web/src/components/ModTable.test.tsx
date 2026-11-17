@@ -344,9 +344,7 @@ describe('ModTable', () => {
       await screen.findByTestId('mod-table');
       const nameHeader = screen.getAllByRole('columnheader')[0];
       expect(nameHeader).toHaveTextContent('Name');
-      const nameCells = screen
-        .getAllByTestId(/^mod-row-/)
-        .map((row) => row.querySelector('td'));
+      const nameCells = screen.getAllByTestId(/^mod-row-/).map((row) => row.querySelector('td'));
       expect(nameCells).toHaveLength(2);
       for (const element of [nameHeader, ...nameCells]) {
         expect(element).toHaveClass('whitespace-normal', 'wrap-anywhere', 'min-w-32');
@@ -471,9 +469,7 @@ describe('ModTable', () => {
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
         expect(screen.getByText('Remove Smithing Plus?')).toBeInTheDocument();
-        expect(
-          screen.getByText(/This will remove the mod from your server/)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/This will remove the mod from your server/)).toBeInTheDocument();
       });
     });
 
@@ -1270,10 +1266,7 @@ describe('ModTable', () => {
 
     it('shows the version beside incompatible and not verified badges', async () => {
       compatibilityMock.details = new Map([
-        [
-          'smithingplus',
-          details('incompatible', '1.21.1', 'Last supported game version: 1.21.1.'),
-        ],
+        ['smithingplus', details('incompatible', '1.21.1', 'Last supported game version: 1.21.1.')],
         [
           'carrycapacity',
           details(
@@ -1297,9 +1290,10 @@ describe('ModTable', () => {
         'incompatible',
         'not_verified',
       ]);
-      expect(
-        badges.find((b) => b.getAttribute('data-status') === 'incompatible')
-      ).toHaveAttribute('title', 'Last supported game version: 1.21.1.');
+      expect(badges.find((b) => b.getAttribute('data-status') === 'incompatible')).toHaveAttribute(
+        'title',
+        'Last supported game version: 1.21.1.'
+      );
     });
 
     it('shows no version for compatible mods or when it is unknown', async () => {
@@ -1674,7 +1668,9 @@ describe('ModTable', () => {
       render(<ModTable />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
-        expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(/^Not checked yet/);
+        expect(screen.getByTestId('mod-update-carrycapacity')).toHaveTextContent(
+          /^Not checked yet/
+        );
       });
       expect(screen.getByTestId('mod-table')).toContainElement(
         screen.getByTestId('mod-update-carrycapacity')
@@ -1903,7 +1899,9 @@ describe('ModTable', () => {
       expect(screen.getByTestId('mod-compatibility-message-smithingplus')).toHaveTextContent(
         'Last supported game version: 1.21.1.'
       );
-      expect(screen.queryByTestId('mod-compatibility-message-carrycapacity')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mod-compatibility-message-carrycapacity')
+      ).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-latest-supported-carrycapacity')).not.toBeInTheDocument();
     });
 
@@ -1981,7 +1979,9 @@ describe('ModTable', () => {
       });
       renderAtPhoneWidth();
 
-      expect(await screen.findByTestId('mod-table-empty')).toHaveTextContent('No mods installed yet');
+      expect(await screen.findByTestId('mod-table-empty')).toHaveTextContent(
+        'No mods installed yet'
+      );
       expect(screen.queryByTestId('installed-mod-cards')).not.toBeInTheDocument();
     });
 
@@ -2164,7 +2164,9 @@ describe('ModTable', () => {
 
         await screen.findByTestId('installed-mod-cards');
         expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Status');
-        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Descending');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName(
+          'Descending'
+        );
       });
 
       it('reorders the cards when another column is chosen, keeping the direction', async () => {
@@ -2179,7 +2181,9 @@ describe('ModTable', () => {
 
         expect(cardSlugs()).toEqual(['smithingplus', 'carrycapacity']);
         expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Version');
-        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Ascending');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName(
+          'Ascending'
+        );
         expect(persistedSort()).toEqual({ column: 'version', direction: 'asc' });
       });
 
@@ -2222,7 +2226,9 @@ describe('ModTable', () => {
         await user.click(screen.getByRole('button', { name: 'Name' }));
         act(() => setViewportWidth(900));
         expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveTextContent('Name');
-        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName('Ascending');
+        expect(screen.getByTestId('installed-mods-sort-direction')).toHaveAccessibleName(
+          'Ascending'
+        );
         expect(cardSlugs()).toEqual(['carrycapacity', 'smithingplus']);
       });
 
@@ -2265,8 +2271,7 @@ describe('ModTable', () => {
         ok: false,
         status: 409,
         statusText: 'Conflict',
-        json: () =>
-          Promise.resolve({ detail: { code: 'MOD_OPERATION_IN_PROGRESS', message } }),
+        json: () => Promise.resolve({ detail: { code: 'MOD_OPERATION_IN_PROGRESS', message } }),
       });
     }
 
@@ -2282,10 +2287,7 @@ describe('ModTable', () => {
 
     // The first list request answers; later ones (the refetch after the mutation) never
     // do, so what the table shows afterwards comes from the rollback alone.
-    function mockFetch(
-      isBusy: (url: string, options?: RequestInit) => boolean,
-      message = BUSY
-    ) {
+    function mockFetch(isBusy: (url: string, options?: RequestInit) => boolean, message = BUSY) {
       let listRequests = 0;
       const fetchMock = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
         if (isBusy(url, options)) return busy(message);
@@ -2316,10 +2318,7 @@ describe('ModTable', () => {
         expect(busyRequestMade(fetchMock, '/mods/smithingplus/disable')).toBe(true);
         expect(screen.getByTestId('mod-toggle-smithingplus')).not.toBeDisabled();
       });
-      expect(screen.getByTestId('mod-toggle-smithingplus')).toHaveAttribute(
-        'aria-checked',
-        'true'
-      );
+      expect(screen.getByTestId('mod-toggle-smithingplus')).toHaveAttribute('aria-checked', 'true');
       expect(onToggled).not.toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });

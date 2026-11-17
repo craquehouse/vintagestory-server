@@ -115,14 +115,12 @@ describe('useVersionChangeFlow', () => {
   });
 
   it('holds a confirmation with the reasons instead of changing', async () => {
-    const mockFetch = vi
-      .fn()
-      .mockResolvedValue(
-        conflict('MOD_CONFIRMATION_REQUIRED', {
-          reasons: ['older', 'not_verified', 'something_new'],
-          compatibility: 'not_verified',
-        })
-      );
+    const mockFetch = vi.fn().mockResolvedValue(
+      conflict('MOD_CONFIRMATION_REQUIRED', {
+        reasons: ['older', 'not_verified', 'something_new'],
+        compatibility: 'not_verified',
+      })
+    );
     globalThis.fetch = mockFetch;
     const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
 
@@ -250,16 +248,12 @@ describe('useVersionChangeFlow', () => {
 
   it('reports every change when two run at once', async () => {
     const resolvers: Array<(value: unknown) => void> = [];
-    const mockFetch = vi
-      .fn()
-      .mockImplementation(() => new Promise((r) => resolvers.push(r)));
+    const mockFetch = vi.fn().mockImplementation(() => new Promise((r) => resolvers.push(r)));
     globalThis.fetch = mockFetch;
     const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
 
     act(() => result.current.start(update));
-    act(() =>
-      result.current.start({ ...update, slug: 'demo', name: 'Demo', version: '1.1.0' })
-    );
+    act(() => result.current.start({ ...update, slug: 'demo', name: 'Demo', version: '1.1.0' }));
 
     await waitFor(() => expect(resolvers).toHaveLength(2));
     expect(result.current.isPending('carryon')).toBe(true);
@@ -279,4 +273,3 @@ describe('useVersionChangeFlow', () => {
     expect(result.current.isPending('demo')).toBe(false);
   });
 });
-

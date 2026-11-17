@@ -91,28 +91,23 @@ export function useUpdateApiSetting() {
       await queryClient.cancelQueries({ queryKey: queryKeys.config.api });
 
       // Snapshot the previous value
-      const previous = queryClient.getQueryData<ApiResponse<ApiSettingsData>>(
-        queryKeys.config.api
-      );
+      const previous = queryClient.getQueryData<ApiResponse<ApiSettingsData>>(queryKeys.config.api);
 
       // Optimistically update to the new value; never cache a secret value (Story 14.6)
       if (previous && !SECRET_API_SETTINGS.has(key)) {
         // Map API key (snake_case) to camelCase settings key
         const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
 
-        queryClient.setQueryData<ApiResponse<ApiSettingsData>>(
-          queryKeys.config.api,
-          {
-            ...previous,
-            data: {
-              ...previous.data,
-              settings: {
-                ...previous.data.settings,
-                [camelKey]: value,
-              },
+        queryClient.setQueryData<ApiResponse<ApiSettingsData>>(queryKeys.config.api, {
+          ...previous,
+          data: {
+            ...previous.data,
+            settings: {
+              ...previous.data.settings,
+              [camelKey]: value,
             },
-          }
-        );
+          },
+        });
       }
 
       return { previous };

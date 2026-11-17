@@ -13,13 +13,7 @@ import { createElement, type ReactNode } from 'react';
 /**
  * Token types for JSON syntax highlighting.
  */
-export type JsonTokenType =
-  | 'key'
-  | 'string'
-  | 'number'
-  | 'boolean'
-  | 'null'
-  | 'punctuation';
+export type JsonTokenType = 'key' | 'string' | 'number' | 'boolean' | 'null' | 'punctuation';
 
 /**
  * A single token from JSON tokenization.
@@ -153,11 +147,7 @@ function createTokenElement(token: JsonToken, key: string): ReactNode {
     return token.value;
   }
 
-  return createElement(
-    'span',
-    { className, key },
-    token.value
-  );
+  return createElement('span', { className, key }, token.value);
 }
 
 /**

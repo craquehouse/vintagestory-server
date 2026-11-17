@@ -135,33 +135,23 @@ describe('isValidSlug', () => {
 describe('detectSlugOrUrl', () => {
   describe('URL detection', () => {
     it('detects and extracts slug from https URL', () => {
-      expect(detectSlugOrUrl('https://mods.vintagestory.at/smithingplus')).toBe(
-        'smithingplus'
-      );
+      expect(detectSlugOrUrl('https://mods.vintagestory.at/smithingplus')).toBe('smithingplus');
     });
 
     it('detects and extracts slug from http URL', () => {
-      expect(detectSlugOrUrl('http://mods.vintagestory.at/carrycapacity')).toBe(
-        'carrycapacity'
-      );
+      expect(detectSlugOrUrl('http://mods.vintagestory.at/carrycapacity')).toBe('carrycapacity');
     });
 
     it('detects and extracts slug from URL without protocol', () => {
-      expect(detectSlugOrUrl('mods.vintagestory.at/primitivesurvival')).toBe(
-        'primitivesurvival'
-      );
+      expect(detectSlugOrUrl('mods.vintagestory.at/primitivesurvival')).toBe('primitivesurvival');
     });
 
     it('handles URL with query parameters', () => {
-      expect(detectSlugOrUrl('mods.vintagestory.at/modname?tab=files')).toBe(
-        'modname'
-      );
+      expect(detectSlugOrUrl('mods.vintagestory.at/modname?tab=files')).toBe('modname');
     });
 
     it('handles URL with hash fragment', () => {
-      expect(detectSlugOrUrl('mods.vintagestory.at/modname#section')).toBe(
-        'modname'
-      );
+      expect(detectSlugOrUrl('mods.vintagestory.at/modname#section')).toBe('modname');
     });
   });
 
@@ -245,9 +235,7 @@ describe('detectSlugOrUrl', () => {
     });
 
     it('handles URL with multiple query params', () => {
-      expect(detectSlugOrUrl('https://mods.vintagestory.at/modname?a=1&b=2')).toBe(
-        'modname'
-      );
+      expect(detectSlugOrUrl('https://mods.vintagestory.at/modname?a=1&b=2')).toBe('modname');
     });
 
     it('returns null for URL with wrong domain (contains slash)', () => {
@@ -262,9 +250,7 @@ describe('detectSlugOrUrl', () => {
 
     it('detects slug from URL with www subdomain', () => {
       // URL pattern matches anywhere in string, so this matches
-      expect(detectSlugOrUrl('https://www.mods.vintagestory.at/modname')).toBe(
-        'modname'
-      );
+      expect(detectSlugOrUrl('https://www.mods.vintagestory.at/modname')).toBe('modname');
     });
 
     it('returns null for input with tab character', () => {
@@ -342,9 +328,7 @@ describe('detectSlugOrUrl', () => {
 
     it('handles very long URL', () => {
       const longSlug = 'a'.repeat(100);
-      expect(detectSlugOrUrl(`https://mods.vintagestory.at/${longSlug}`)).toBe(
-        longSlug
-      );
+      expect(detectSlugOrUrl(`https://mods.vintagestory.at/${longSlug}`)).toBe(longSlug);
     });
 
     it('returns null for URL without slug path', () => {

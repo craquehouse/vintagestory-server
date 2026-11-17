@@ -216,7 +216,9 @@ describe('ModBrowseGrid', () => {
       const user = userEvent.setup();
       const handleModClick = vi.fn();
 
-      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, {
+        wrapper: createWrapper(),
+      });
 
       const card = screen.getByTestId('mod-card-carrycapacity');
       await user.click(card);
@@ -229,7 +231,9 @@ describe('ModBrowseGrid', () => {
       const user = userEvent.setup();
       const handleModClick = vi.fn();
 
-      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, {
+        wrapper: createWrapper(),
+      });
 
       // Click second card
       const secondCard = screen.getByTestId('mod-card-primitivesurvival');
@@ -248,7 +252,9 @@ describe('ModBrowseGrid', () => {
 
     it('provides onClick to cards when onModClick is provided', () => {
       const handleModClick = vi.fn();
-      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} onModClick={handleModClick} />, {
+        wrapper: createWrapper(),
+      });
 
       // Cards should have cursor-pointer styling when clickable
       const card = screen.getByTestId('mod-card-carrycapacity');
@@ -260,7 +266,9 @@ describe('ModBrowseGrid', () => {
     it('passes installedMods to ModCard components', () => {
       const installedMods = [{ slug: 'carrycapacity' }, { slug: 'wildcraft' }];
 
-      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, {
+        wrapper: createWrapper(),
+      });
 
       // Installed mods should show "Installed" indicator
       expect(screen.getByTestId('mod-card-installed-carrycapacity')).toBeInTheDocument();
@@ -340,7 +348,9 @@ describe('ModBrowseGrid', () => {
         isEnabled: true,
       } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
-      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, {
+        wrapper: createWrapper(),
+      });
 
       // Click install on first card
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
@@ -387,7 +397,9 @@ describe('ModBrowseGrid', () => {
         isEnabled: true,
       } as unknown as ReturnType<typeof useModDetail.useModDetail>);
 
-      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, { wrapper: createWrapper() });
+      render(<ModBrowseGrid mods={mockMods} installedMods={installedMods} />, {
+        wrapper: createWrapper(),
+      });
 
       // Click install button
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));

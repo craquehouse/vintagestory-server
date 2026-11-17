@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  UninstallConfirmDialog,
-  type UninstallConfirmDialogProps,
-} from './UninstallConfirmDialog';
+import { UninstallConfirmDialog, type UninstallConfirmDialogProps } from './UninstallConfirmDialog';
 
 /**
  * UninstallConfirmDialog Tests - Story 13.7
@@ -40,17 +37,13 @@ describe('UninstallConfirmDialog', () => {
     it('is not visible when open is false', () => {
       render(<UninstallConfirmDialog {...getDefaultProps({ open: false })} />);
 
-      expect(
-        screen.queryByTestId('uninstall-confirm-dialog')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('uninstall-confirm-dialog')).not.toBeInTheDocument();
     });
 
     it('is visible when open is true', () => {
       render(<UninstallConfirmDialog {...getDefaultProps({ open: true })} />);
 
-      expect(
-        screen.getByTestId('uninstall-confirm-dialog')
-      ).toBeInTheDocument();
+      expect(screen.getByTestId('uninstall-confirm-dialog')).toBeInTheDocument();
     });
   });
 
@@ -67,21 +60,13 @@ describe('UninstallConfirmDialog', () => {
     });
 
     it('shows preservation message when server is running', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'running' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'running' })} />);
 
       expect(screen.getByTestId('preservation-message')).toBeInTheDocument();
     });
 
     it('shows preservation message when server is stopped', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'installed' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'installed' })} />);
 
       expect(screen.getByTestId('preservation-message')).toBeInTheDocument();
     });
@@ -89,11 +74,7 @@ describe('UninstallConfirmDialog', () => {
 
   describe('server running warning (AC: 2)', () => {
     it('shows server running warning when server is running', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'running' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'running' })} />);
 
       const warning = screen.getByTestId('server-running-warning');
       expect(warning).toBeInTheDocument();
@@ -102,39 +83,21 @@ describe('UninstallConfirmDialog', () => {
     });
 
     it('hides server running warning when server is stopped', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'installed' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'installed' })} />);
 
-      expect(
-        screen.queryByTestId('server-running-warning')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('server-running-warning')).not.toBeInTheDocument();
     });
 
     it('hides server running warning when server is starting', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'starting' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'starting' })} />);
 
-      expect(
-        screen.queryByTestId('server-running-warning')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('server-running-warning')).not.toBeInTheDocument();
     });
 
     it('hides server running warning when server is stopping', () => {
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ serverState: 'stopping' })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ serverState: 'stopping' })} />);
 
-      expect(
-        screen.queryByTestId('server-running-warning')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('server-running-warning')).not.toBeInTheDocument();
     });
   });
 
@@ -143,11 +106,7 @@ describe('UninstallConfirmDialog', () => {
       const user = userEvent.setup();
       const mockOnConfirm = vi.fn();
 
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ onConfirm: mockOnConfirm })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ onConfirm: mockOnConfirm })} />);
 
       await user.click(screen.getByTestId('confirm-button'));
 
@@ -158,11 +117,7 @@ describe('UninstallConfirmDialog', () => {
       const user = userEvent.setup();
       const mockOnOpenChange = vi.fn();
 
-      render(
-        <UninstallConfirmDialog
-          {...getDefaultProps({ onOpenChange: mockOnOpenChange })}
-        />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ onOpenChange: mockOnOpenChange })} />);
 
       await user.click(screen.getByTestId('cancel-button'));
 
@@ -172,39 +127,27 @@ describe('UninstallConfirmDialog', () => {
 
   describe('pending state (AC: 4)', () => {
     it('disables Remove button when isPending is true (AC: 4)', () => {
-      render(
-        <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />);
 
       expect(screen.getByTestId('confirm-button')).toBeDisabled();
     });
 
     it('disables Cancel button when isPending is true (AC: 4)', () => {
-      render(
-        <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />);
 
       expect(screen.getByTestId('cancel-button')).toBeDisabled();
     });
 
     it('shows "Removing..." text when isPending is true (AC: 4)', () => {
-      render(
-        <UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: true })} />);
 
-      expect(screen.getByTestId('confirm-button')).toHaveTextContent(
-        'Removing...'
-      );
+      expect(screen.getByTestId('confirm-button')).toHaveTextContent('Removing...');
     });
 
     it('shows "Remove Server" text when not pending (AC: 4)', () => {
-      render(
-        <UninstallConfirmDialog {...getDefaultProps({ isPending: false })} />
-      );
+      render(<UninstallConfirmDialog {...getDefaultProps({ isPending: false })} />);
 
-      expect(screen.getByTestId('confirm-button')).toHaveTextContent(
-        'Remove Server'
-      );
+      expect(screen.getByTestId('confirm-button')).toHaveTextContent('Remove Server');
     });
   });
 
@@ -212,9 +155,7 @@ describe('UninstallConfirmDialog', () => {
     it('shows correct title (AC: 2, 3)', () => {
       render(<UninstallConfirmDialog {...getDefaultProps()} />);
 
-      expect(screen.getByTestId('dialog-title')).toHaveTextContent(
-        'Remove Server Installation'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Remove Server Installation');
     });
 
     it('shows description about removing server binaries (AC: 2, 3)', () => {

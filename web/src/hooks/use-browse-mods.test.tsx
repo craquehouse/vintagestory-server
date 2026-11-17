@@ -2,10 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useState } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  useBrowseMods,
-  filterModsBySearch,
-} from './use-browse-mods';
+import { useBrowseMods, filterModsBySearch } from './use-browse-mods';
 import type { ModBrowseItem, ApiResponse, ModBrowseData, BrowseParams } from '@/api/types';
 
 /**
@@ -29,9 +26,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -250,10 +245,9 @@ describe('useBrowseMods', () => {
     });
     globalThis.fetch = mockFetch;
 
-    renderHook(
-      () => useBrowseMods({ page: 2, pageSize: 50, sort: 'downloads' }),
-      { wrapper: createWrapper() }
-    );
+    renderHook(() => useBrowseMods({ page: 2, pageSize: 50, sort: 'downloads' }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
@@ -394,10 +388,7 @@ describe('useBrowseMods', () => {
     });
     globalThis.fetch = mockFetch;
 
-    renderHook(
-      () => useBrowseMods({ filters: { side: 'server' } }),
-      { wrapper: createWrapper() }
-    );
+    renderHook(() => useBrowseMods({ filters: { side: 'server' } }), { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalled();
@@ -527,10 +518,9 @@ describe('useBrowseMods', () => {
       });
       const onPageChange = vi.fn();
 
-      const { result } = renderHook(
-        () => useBrowseMods({ page: 2 }, { onPageChange }),
-        { wrapper: createWrapper() }
-      );
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }, { onPageChange }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -550,10 +540,9 @@ describe('useBrowseMods', () => {
       });
       const onPageChange = vi.fn();
 
-      const { result } = renderHook(
-        () => useBrowseMods({ page: 2 }, { onPageChange }),
-        { wrapper: createWrapper() }
-      );
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }, { onPageChange }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -575,10 +564,9 @@ describe('useBrowseMods', () => {
       });
       const onPageChange = vi.fn();
 
-      const { result } = renderHook(
-        () => useBrowseMods({ page: 2 }, { onPageChange }),
-        { wrapper: createWrapper() }
-      );
+      const { result } = renderHook(() => useBrowseMods({ page: 2 }, { onPageChange }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
@@ -1014,7 +1002,11 @@ describe('useBrowseMods', () => {
 
   // Story 17.7: the API serves the last page for a page beyond the results (VSS-nhb)
   describe('Story 17.7: page beyond the results', () => {
-    function servedPage(page: number, totalPages: number, totalItems: number): ApiResponse<ModBrowseData> {
+    function servedPage(
+      page: number,
+      totalPages: number,
+      totalItems: number
+    ): ApiResponse<ModBrowseData> {
       return {
         status: 'ok',
         data: {
@@ -1276,10 +1268,9 @@ describe('useBrowseMods', () => {
       };
       const mockFetch = mockFetchWith(page1);
 
-      const { result } = renderHook(
-        () => useControlledBrowseMods({ sort: 'name' }),
-        { wrapper: createWrapper() }
-      );
+      const { result } = renderHook(() => useControlledBrowseMods({ sort: 'name' }), {
+        wrapper: createWrapper(),
+      });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -1418,12 +1409,9 @@ describe('useBrowseMods', () => {
       });
       globalThis.fetch = mockFetch;
 
-      renderHook(
-        () => useBrowseMods({ filters: { gameVersion: '1.19.0' } }),
-        {
-          wrapper: createWrapper(),
-        }
-      );
+      renderHook(() => useBrowseMods({ filters: { gameVersion: '1.19.0' } }), {
+        wrapper: createWrapper(),
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled();

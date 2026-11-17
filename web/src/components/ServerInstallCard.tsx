@@ -4,13 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useInstallServer } from '@/hooks/use-server-status';
 import type { InstallStatus } from '@/api/types';
 
@@ -27,10 +21,7 @@ interface ServerInstallCardProps {
  * - Install button that triggers the installation
  * - Progress indicator during installation with stage and percentage
  */
-export function ServerInstallCard({
-  isInstalling,
-  installStatus,
-}: ServerInstallCardProps) {
+export function ServerInstallCard({ isInstalling, installStatus }: ServerInstallCardProps) {
   const [version, setVersion] = useState('');
   const installMutation = useInstallServer();
 
@@ -85,11 +76,7 @@ export function ServerInstallCard({
               aria-label="Server version"
               className="flex-1"
             />
-            <Button
-              onClick={handleInstall}
-              disabled={isButtonDisabled}
-              aria-label="Install server"
-            >
+            <Button onClick={handleInstall} disabled={isButtonDisabled} aria-label="Install server">
               {isInstalling || installMutation.isPending ? (
                 <>
                   <Loader2 className="animate-spin" />
@@ -120,15 +107,11 @@ function InstallProgress({ status }: InstallProgressProps) {
   return (
     <div className="space-y-3" role="status" aria-label="Installation progress">
       <div className="flex items-center justify-between text-sm">
-        <span className="capitalize text-muted-foreground">
-          {status.state.replace(/_/g, ' ')}
-        </span>
+        <span className="capitalize text-muted-foreground">{status.state.replace(/_/g, ' ')}</span>
         <span className="font-medium">{status.progress}%</span>
       </div>
       <Progress value={status.progress} />
-      {status.message && (
-        <p className="text-xs text-muted-foreground">{status.message}</p>
-      )}
+      {status.message && <p className="text-xs text-muted-foreground">{status.message}</p>}
     </div>
   );
 }

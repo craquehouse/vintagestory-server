@@ -20,10 +20,7 @@ describe('CompatibilityBadge', () => {
         render(<CompatibilityBadge status={status} />);
 
         expect(screen.getByText(expectedLabel)).toBeInTheDocument();
-        expect(screen.getByTestId('compatibility-badge')).toHaveAttribute(
-          'data-status',
-          status
-        );
+        expect(screen.getByTestId('compatibility-badge')).toHaveAttribute('data-status', status);
       }
     );
   });
@@ -64,18 +61,14 @@ describe('CompatibilityBadge', () => {
     });
 
     it('renders warning icon for not_verified status', () => {
-      const { container } = render(
-        <CompatibilityBadge status="not_verified" />
-      );
+      const { container } = render(<CompatibilityBadge status="not_verified" />);
 
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
     });
 
     it('renders X icon for incompatible status', () => {
-      const { container } = render(
-        <CompatibilityBadge status="incompatible" />
-      );
+      const { container } = render(<CompatibilityBadge status="incompatible" />);
 
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
@@ -84,12 +77,7 @@ describe('CompatibilityBadge', () => {
 
   describe('message prop', () => {
     it('sets title attribute when message is provided', () => {
-      render(
-        <CompatibilityBadge
-          status="not_verified"
-          message="No matching version found"
-        />
-      );
+      render(<CompatibilityBadge status="not_verified" message="No matching version found" />);
 
       const badge = screen.getByTestId('compatibility-badge');
       expect(badge).toHaveAttribute('title', 'No matching version found');
@@ -105,9 +93,7 @@ describe('CompatibilityBadge', () => {
 
   describe('className prop', () => {
     it('accepts and applies custom className', () => {
-      render(
-        <CompatibilityBadge status="compatible" className="custom-class mt-4" />
-      );
+      render(<CompatibilityBadge status="compatible" className="custom-class mt-4" />);
 
       const badge = screen.getByTestId('compatibility-badge');
       expect(badge).toHaveClass('custom-class');

@@ -66,9 +66,7 @@ export function UninstallConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent data-testid="uninstall-confirm-dialog">
         <AlertDialogHeader>
-          <AlertDialogTitle data-testid="dialog-title">
-            Remove Server Installation
-          </AlertDialogTitle>
+          <AlertDialogTitle data-testid="dialog-title">Remove Server Installation</AlertDialogTitle>
           <AlertDialogDescription>
             This will remove the VintageStory server binaries from the system.
           </AlertDialogDescription>

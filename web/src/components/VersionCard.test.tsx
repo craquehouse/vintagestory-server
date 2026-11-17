@@ -83,9 +83,7 @@ describe('VersionCard', () => {
 
   describe('installed badge (AC: 2)', () => {
     it('shows Installed badge when version matches installed version', () => {
-      render(
-        <VersionCard version={mockStableVersion} installedVersion="1.21.6" />
-      );
+      render(<VersionCard version={mockStableVersion} installedVersion="1.21.6" />);
 
       const installed = screen.getByTestId('version-card-installed-1.21.6');
       expect(installed).toBeInTheDocument();
@@ -93,29 +91,21 @@ describe('VersionCard', () => {
     });
 
     it('does not show Installed badge when version differs from installed', () => {
-      render(
-        <VersionCard version={mockStableVersion} installedVersion="1.21.5" />
-      );
+      render(<VersionCard version={mockStableVersion} installedVersion="1.21.5" />);
 
-      expect(
-        screen.queryByTestId('version-card-installed-1.21.6')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-card-installed-1.21.6')).not.toBeInTheDocument();
     });
 
     it('does not show Installed badge when installedVersion is null', () => {
       render(<VersionCard version={mockStableVersion} installedVersion={null} />);
 
-      expect(
-        screen.queryByTestId('version-card-installed-1.21.6')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-card-installed-1.21.6')).not.toBeInTheDocument();
     });
 
     it('does not show Installed badge when installedVersion is not provided', () => {
       render(<VersionCard version={mockStableVersion} />);
 
-      expect(
-        screen.queryByTestId('version-card-installed-1.21.6')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-card-installed-1.21.6')).not.toBeInTheDocument();
     });
   });
 
@@ -131,15 +121,11 @@ describe('VersionCard', () => {
     it('does not show Latest badge when isLatest is false', () => {
       render(<VersionCard version={mockOlderVersion} />);
 
-      expect(
-        screen.queryByTestId('version-card-latest-1.21.5')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-card-latest-1.21.5')).not.toBeInTheDocument();
     });
 
     it('shows both Latest and Installed badges when appropriate', () => {
-      render(
-        <VersionCard version={mockStableVersion} installedVersion="1.21.6" />
-      );
+      render(<VersionCard version={mockStableVersion} installedVersion="1.21.6" />);
 
       expect(screen.getByTestId('version-card-latest-1.21.6')).toBeInTheDocument();
       expect(screen.getByTestId('version-card-installed-1.21.6')).toBeInTheDocument();
@@ -219,9 +205,7 @@ describe('VersionCard', () => {
    */
   describe('newer version highlighting (Story 13.5)', () => {
     it('highlights card when isNewer is true', () => {
-      render(
-        <VersionCard version={mockStableVersion} installedVersion="1.21.5" isNewer={true} />
-      );
+      render(<VersionCard version={mockStableVersion} installedVersion="1.21.5" isNewer={true} />);
 
       const card = screen.getByTestId('version-card-1.21.6');
       // Should have ring styling for highlight
@@ -229,9 +213,7 @@ describe('VersionCard', () => {
     });
 
     it('does not highlight card when isNewer is false', () => {
-      render(
-        <VersionCard version={mockOlderVersion} installedVersion="1.21.6" isNewer={false} />
-      );
+      render(<VersionCard version={mockOlderVersion} installedVersion="1.21.6" isNewer={false} />);
 
       const card = screen.getByTestId('version-card-1.21.5');
       // Should not have ring styling
@@ -239,9 +221,7 @@ describe('VersionCard', () => {
     });
 
     it('does not highlight installed version', () => {
-      render(
-        <VersionCard version={mockStableVersion} installedVersion="1.21.6" isNewer={false} />
-      );
+      render(<VersionCard version={mockStableVersion} installedVersion="1.21.6" isNewer={false} />);
 
       const card = screen.getByTestId('version-card-1.21.6');
       // Should not have ring styling
@@ -315,9 +295,9 @@ describe('VersionCard', () => {
       render(<VersionCard version={preRelease} />);
 
       expect(screen.getByTestId('version-card-1.22.0-pre.5')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('version-card-version-1.22.0-pre.5')
-      ).toHaveTextContent('1.22.0-pre.5');
+      expect(screen.getByTestId('version-card-version-1.22.0-pre.5')).toHaveTextContent(
+        '1.22.0-pre.5'
+      );
     });
 
     it('handles small file sizes', () => {
@@ -329,9 +309,7 @@ describe('VersionCard', () => {
 
       render(<VersionCard version={smallVersion} />);
 
-      expect(screen.getByTestId('version-card-filesize-1.0.0')).toHaveTextContent(
-        '15.5 MB'
-      );
+      expect(screen.getByTestId('version-card-filesize-1.0.0')).toHaveTextContent('15.5 MB');
     });
 
     it('handles large file sizes', () => {
@@ -343,9 +321,7 @@ describe('VersionCard', () => {
 
       render(<VersionCard version={largeVersion} />);
 
-      expect(screen.getByTestId('version-card-filesize-2.0.0')).toHaveTextContent(
-        '125.8 MB'
-      );
+      expect(screen.getByTestId('version-card-filesize-2.0.0')).toHaveTextContent('125.8 MB');
     });
   });
 });

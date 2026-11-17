@@ -60,8 +60,9 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const showAdminNote = role !== undefined && role !== 'admin';
 
   // Fetch directories for the current path (Story 9.7 - nested directory support)
-  const { data: directoriesData, isLoading: isLoadingDirectories } =
-    useConfigDirectories(currentDirectory ?? undefined);
+  const { data: directoriesData, isLoading: isLoadingDirectories } = useConfigDirectories(
+    currentDirectory ?? undefined
+  );
 
   // Fetch file list (with directory support - Story 9.7)
   const {
@@ -84,9 +85,7 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
     // Show directories at any level (Story 9.7 - nested directory support)
     if (directoriesData?.data?.directories) {
       // Filter hidden directories by default
-      const visibleDirs = directoriesData.data.directories.filter(
-        (d) => !d.startsWith('.')
-      );
+      const visibleDirs = directoriesData.data.directories.filter((d) => !d.startsWith('.'));
       for (const dir of visibleDirs) {
         result.push({ name: dir, type: 'directory' });
       }
@@ -105,18 +104,14 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   // Handle file selection
   const handleSelectFile = (filename: string) => {
     // If in a subdirectory, prepend the directory path
-    const fullPath = currentDirectory
-      ? `${currentDirectory}/${filename}`
-      : filename;
+    const fullPath = currentDirectory ? `${currentDirectory}/${filename}` : filename;
     setSelectedFile(fullPath);
   };
 
   // Handle directory navigation (Story 9.7 - nested directory support)
   const handleSelectDirectory = (dirname: string) => {
     // Build full path by appending to current directory
-    const newPath = currentDirectory
-      ? `${currentDirectory}/${dirname}`
-      : dirname;
+    const newPath = currentDirectory ? `${currentDirectory}/${dirname}` : dirname;
     setCurrentDirectory(newPath);
     setSelectedFile(null); // Clear selection when changing directories
   };

@@ -27,7 +27,9 @@ const BROWSE_SEARCH = '?q=food&sort=downloads';
 const NO_MATCH = 'zzqqxxnomodmatches';
 
 async function waitForGrid(page: Page) {
-  await expect(page.locator('[data-testid="mod-browse-grid"] [data-testid^="mod-card-"]').first()).toBeVisible({
+  await expect(
+    page.locator('[data-testid="mod-browse-grid"] [data-testid^="mod-card-"]').first()
+  ).toBeVisible({
     timeout: 60_000,
   });
 }
@@ -90,7 +92,10 @@ test.describe('Mods navigation', { tag: '@moddb' }, () => {
     await expect(page.getByTestId('mod-detail-back')).toBeVisible({ timeout: 60_000 });
   });
 
-  test('the Browse tab on a detail page opened directly opens the default browser', async ({ page, context }) => {
+  test('the Browse tab on a detail page opened directly opens the default browser', async ({
+    page,
+    context,
+  }) => {
     await page.goto(`${BROWSE}${BROWSE_SEARCH}`);
     await waitForGrid(page);
     const slug = await firstCardSlug(page);
@@ -111,7 +116,9 @@ test.describe('Mods navigation', { tag: '@moddb' }, () => {
     await waitForGrid(direct);
   });
 
-  test('a browse link past the last page opens the last page without a new history entry', async ({ page }) => {
+  test('a browse link past the last page opens the last page without a new history entry', async ({
+    page,
+  }) => {
     await page.goto(INSTALLED);
     await expect(page.getByTestId('installed-tab-content')).toBeVisible();
     const historyBefore = await page.evaluate(() => history.length);
@@ -121,15 +128,21 @@ test.describe('Mods navigation', { tag: '@moddb' }, () => {
       response.url().includes('/api/v1alpha1/mods/browse?')
     );
     await page.goto(`${BROWSE}${BROWSE_SEARCH}&page=9999`);
-    const body: { data: { pagination: { total_pages: number } } } = await (await firstResponse).json();
+    const body: { data: { pagination: { total_pages: number } } } = await (
+      await firstResponse
+    ).json();
     const totalPages = body.data.pagination.total_pages;
 
     const expectedSearch = totalPages > 1 ? `${BROWSE_SEARCH}&page=${totalPages}` : BROWSE_SEARCH;
     await expect(page).toHaveURL((url) => url.pathname === BROWSE && url.search === expectedSearch);
     await waitForGrid(page);
     if (totalPages > 1) {
-      await expect(page.locator('[data-testid="pagination"] [aria-current="page"]')).toHaveText(String(totalPages));
-      await expect(page.getByTestId('pagination')).toContainText(`Page ${totalPages} of ${totalPages}`);
+      await expect(page.locator('[data-testid="pagination"] [aria-current="page"]')).toHaveText(
+        String(totalPages)
+      );
+      await expect(page.getByTestId('pagination')).toContainText(
+        `Page ${totalPages} of ${totalPages}`
+      );
     }
     await settle(page);
     expect(requests).toHaveLength(1);
@@ -144,7 +157,9 @@ test.describe('Mods navigation', { tag: '@moddb' }, () => {
 
     await page.goto(`${BROWSE}?q=${NO_MATCH}&page=3`);
 
-    await expect(page).toHaveURL((url) => url.pathname === BROWSE && url.search === `?q=${NO_MATCH}`);
+    await expect(page).toHaveURL(
+      (url) => url.pathname === BROWSE && url.search === `?q=${NO_MATCH}`
+    );
     await expect(page.getByTestId('mod-browse-grid-empty')).toBeVisible({ timeout: 60_000 });
     await settle(page);
     expect(requests).toHaveLength(1);

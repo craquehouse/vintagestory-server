@@ -451,8 +451,7 @@ describe('useConsoleWebSocket', () => {
 
       // Simulate successful connection
       act(() => {
-        const lastInstance =
-          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
         lastInstance?.simulateOpen();
       });
 
@@ -671,9 +670,7 @@ describe('useConsoleWebSocket', () => {
         result.current.disconnect();
       });
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(WS_CLOSE_CODES.NORMAL);
     });
 
     it('clears pending reconnect timeout when disconnecting', async () => {
@@ -759,9 +756,7 @@ describe('useConsoleWebSocket', () => {
 
       // Wait for new WebSocket after reconnect
       await waitFor(() => {
-        expect(MockWebSocket.instances.length).toBeGreaterThan(
-          initialInstanceCount
-        );
+        expect(MockWebSocket.instances.length).toBeGreaterThan(initialInstanceCount);
       });
     });
 
@@ -873,9 +868,7 @@ describe('useConsoleWebSocket', () => {
         result.current.reconnect();
       });
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(WS_CLOSE_CODES.NORMAL);
     });
   });
 
@@ -894,9 +887,7 @@ describe('useConsoleWebSocket', () => {
 
       unmount();
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(WS_CLOSE_CODES.NORMAL);
     });
 
     it('clears pending reconnect timeout on unmount', async () => {

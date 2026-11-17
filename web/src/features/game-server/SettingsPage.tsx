@@ -39,10 +39,7 @@ export function SettingsPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div
-        className="p-4 lg:p-6 h-full overflow-auto"
-        data-testid="settings-page-loading"
-      >
+      <div className="p-4 lg:p-6 h-full overflow-auto" data-testid="settings-page-loading">
         <div className={SETTINGS_CONTENT_WIDTH} data-testid="settings-page-content">
           <h1 className="text-2xl font-bold">Game Settings</h1>
           <p className="text-muted-foreground mt-4">Loading server status...</p>
@@ -54,10 +51,7 @@ export function SettingsPage() {
   // Error state
   if (error) {
     return (
-      <div
-        className="p-4 lg:p-6 h-full overflow-auto"
-        data-testid="settings-page-error"
-      >
+      <div className="p-4 lg:p-6 h-full overflow-auto" data-testid="settings-page-error">
         <div className={SETTINGS_CONTENT_WIDTH} data-testid="settings-page-content">
           <h1 className="text-2xl font-bold">Game Settings</h1>
           <p className="text-destructive mt-4">Error: {error.message}</p>
@@ -76,9 +70,7 @@ export function SettingsPage() {
         {/* Page Header with title and status badge */}
         <div className="flex items-center justify-between mb-6" data-testid="settings-page-header">
           <h1 className="text-2xl font-bold">Game Settings</h1>
-          {isInstalled && (
-            <ServerStatusBadge state={serverState} />
-          )}
+          {isInstalled && <ServerStatusBadge state={serverState} />}
         </div>
 
         {/* Content area */}

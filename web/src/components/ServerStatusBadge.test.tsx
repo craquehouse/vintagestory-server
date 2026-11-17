@@ -52,10 +52,7 @@ describe('ServerStatusBadge', () => {
         render(<ServerStatusBadge state={state} />);
 
         expect(screen.getByText(expectedLabel)).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute(
-          'aria-label',
-          expectedAriaLabel
-        );
+        expect(screen.getByRole('status')).toHaveAttribute('aria-label', expectedAriaLabel);
       }
     );
   });
@@ -94,11 +91,7 @@ describe('ServerStatusBadge', () => {
     });
 
     it('applies warning styling for transitional states', () => {
-      const transitionalStates: ServerState[] = [
-        'installing',
-        'starting',
-        'stopping',
-      ];
+      const transitionalStates: ServerState[] = ['installing', 'starting', 'stopping'];
 
       transitionalStates.forEach((state) => {
         const { unmount } = render(<ServerStatusBadge state={state} />);
@@ -114,16 +107,10 @@ describe('ServerStatusBadge', () => {
 
   describe('animation', () => {
     it('has animated spinner for transitional states', () => {
-      const animatedStates: ServerState[] = [
-        'installing',
-        'starting',
-        'stopping',
-      ];
+      const animatedStates: ServerState[] = ['installing', 'starting', 'stopping'];
 
       animatedStates.forEach((state) => {
-        const { container, unmount } = render(
-          <ServerStatusBadge state={state} />
-        );
+        const { container, unmount } = render(<ServerStatusBadge state={state} />);
         const icon = container.querySelector('svg');
 
         expect(icon).toHaveClass('animate-spin');
@@ -133,17 +120,10 @@ describe('ServerStatusBadge', () => {
     });
 
     it('does not animate for static states', () => {
-      const staticStates: ServerState[] = [
-        'not_installed',
-        'installed',
-        'running',
-        'error',
-      ];
+      const staticStates: ServerState[] = ['not_installed', 'installed', 'running', 'error'];
 
       staticStates.forEach((state) => {
-        const { container, unmount } = render(
-          <ServerStatusBadge state={state} />
-        );
+        const { container, unmount } = render(<ServerStatusBadge state={state} />);
         const icon = container.querySelector('svg');
 
         expect(icon).not.toHaveClass('animate-spin');
@@ -155,9 +135,7 @@ describe('ServerStatusBadge', () => {
 
   describe('className prop', () => {
     it('accepts and applies custom className', () => {
-      render(
-        <ServerStatusBadge state="running" className="custom-class mt-4" />
-      );
+      render(<ServerStatusBadge state="running" className="custom-class mt-4" />);
 
       const badge = screen.getByRole('status');
       expect(badge).toHaveClass('custom-class');

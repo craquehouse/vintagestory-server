@@ -5,11 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  isValidNumeric,
-  formatNumericOrFallback,
-  formatMemoryAdaptive,
-} from './numeric-utils';
+import { isValidNumeric, formatNumericOrFallback, formatMemoryAdaptive } from './numeric-utils';
 
 describe('isValidNumeric', () => {
   it('returns true for positive numbers', () => {

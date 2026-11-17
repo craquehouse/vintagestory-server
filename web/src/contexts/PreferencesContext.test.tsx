@@ -1,28 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import {
   PreferencesProvider,
   usePreferences,
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
   FONT_SIZE_DEFAULT,
-} from "./PreferencesContext";
-import * as cookies from "@/lib/cookies";
+} from './PreferencesContext';
+import * as cookies from '@/lib/cookies';
 
 // Mock cookies module
-vi.mock("@/lib/cookies", () => ({
+vi.mock('@/lib/cookies', () => ({
   getCookie: vi.fn(),
   setCookie: vi.fn(),
 }));
 
 // Mock next-themes to avoid matchMedia issues
 const mockSetTheme = vi.fn();
-vi.mock("next-themes", () => ({
+vi.mock('next-themes', () => ({
   useTheme: () => ({
-    theme: "system",
+    theme: 'system',
     setTheme: mockSetTheme,
-    systemTheme: "dark",
-    resolvedTheme: "dark",
+    systemTheme: 'dark',
+    resolvedTheme: 'dark',
   }),
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -35,53 +35,53 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   return <PreferencesProvider>{children}</PreferencesProvider>;
 }
 
-describe("PreferencesContext", () => {
+describe('PreferencesContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetCookie.mockReturnValue(null);
   });
 
-  describe("initialization", () => {
-    it("loads default preferences when no cookie exists", () => {
+  describe('initialization', () => {
+    it('loads default preferences when no cookie exists', () => {
       mockedGetCookie.mockReturnValue(null);
 
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       expect(result.current.preferences).toEqual({
-        theme: "system",
+        theme: 'system',
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
         gameServerNavExpanded: true,
-        installedModsSort: { column: "name", direction: "asc" },
+        installedModsSort: { column: 'name', direction: 'asc' },
       });
     });
 
-    it("loads preferences from cookie when present", () => {
+    it('loads preferences from cookie when present', () => {
       mockedGetCookie.mockReturnValue(
         JSON.stringify({
-          theme: "dark",
+          theme: 'dark',
           consoleFontSize: 16,
           sidebarCollapsed: true,
           gameServerNavExpanded: false,
-          installedModsSort: { column: "version", direction: "desc" },
+          installedModsSort: { column: 'version', direction: 'desc' },
         })
       );
 
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       expect(result.current.preferences).toEqual({
-        theme: "dark",
+        theme: 'dark',
         consoleFontSize: 16,
         sidebarCollapsed: true,
         gameServerNavExpanded: false,
-        installedModsSort: { column: "version", direction: "desc" },
+        installedModsSort: { column: 'version', direction: 'desc' },
       });
     });
 
-    it("uses defaults for missing or invalid cookie values", () => {
+    it('uses defaults for missing or invalid cookie values', () => {
       mockedGetCookie.mockReturnValue(
         JSON.stringify({
-          theme: "invalid",
+          theme: 'invalid',
           consoleFontSize: 100, // Out of range
         })
       );
@@ -89,74 +89,74 @@ describe("PreferencesContext", () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       expect(result.current.preferences).toEqual({
-        theme: "system", // Default for invalid
+        theme: 'system', // Default for invalid
         consoleFontSize: FONT_SIZE_DEFAULT, // Default for out of range
         sidebarCollapsed: false, // Default for missing
         gameServerNavExpanded: true, // Default for missing
-        installedModsSort: { column: "name", direction: "asc" }, // Default for missing
+        installedModsSort: { column: 'name', direction: 'asc' }, // Default for missing
       });
     });
 
-    it("handles corrupted cookie JSON gracefully", () => {
-      mockedGetCookie.mockReturnValue("not valid json {{{");
+    it('handles corrupted cookie JSON gracefully', () => {
+      mockedGetCookie.mockReturnValue('not valid json {{{');
 
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       expect(result.current.preferences).toEqual({
-        theme: "system",
+        theme: 'system',
         consoleFontSize: FONT_SIZE_DEFAULT,
         sidebarCollapsed: false,
         gameServerNavExpanded: true,
-        installedModsSort: { column: "name", direction: "asc" },
+        installedModsSort: { column: 'name', direction: 'asc' },
       });
     });
 
-    it("syncs theme with next-themes on mount", () => {
-      mockedGetCookie.mockReturnValue(JSON.stringify({ theme: "dark" }));
+    it('syncs theme with next-themes on mount', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ theme: 'dark' }));
 
       renderHook(() => usePreferences(), { wrapper: Wrapper });
 
-      expect(mockSetTheme).toHaveBeenCalledWith("dark");
+      expect(mockSetTheme).toHaveBeenCalledWith('dark');
     });
   });
 
-  describe("setThemePreference", () => {
-    it("updates theme preference", () => {
+  describe('setThemePreference', () => {
+    it('updates theme preference', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
-        result.current.setThemePreference("dark");
+        result.current.setThemePreference('dark');
       });
 
-      expect(result.current.preferences.theme).toBe("dark");
+      expect(result.current.preferences.theme).toBe('dark');
     });
 
-    it("persists theme to cookie", () => {
+    it('persists theme to cookie', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
-        result.current.setThemePreference("light");
+        result.current.setThemePreference('light');
       });
 
       expect(mockedSetCookie).toHaveBeenCalledWith(
-        "vs_ui_prefs",
+        'vs_ui_prefs',
         expect.stringContaining('"theme":"light"')
       );
     });
 
-    it("syncs theme with next-themes", () => {
+    it('syncs theme with next-themes', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
-        result.current.setThemePreference("light");
+        result.current.setThemePreference('light');
       });
 
-      expect(mockSetTheme).toHaveBeenCalledWith("light");
+      expect(mockSetTheme).toHaveBeenCalledWith('light');
     });
   });
 
-  describe("setConsoleFontSize", () => {
-    it("updates font size", () => {
+  describe('setConsoleFontSize', () => {
+    it('updates font size', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -166,7 +166,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.consoleFontSize).toBe(18);
     });
 
-    it("clamps font size to minimum", () => {
+    it('clamps font size to minimum', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -176,7 +176,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.consoleFontSize).toBe(FONT_SIZE_MIN);
     });
 
-    it("clamps font size to maximum", () => {
+    it('clamps font size to maximum', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -186,7 +186,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.consoleFontSize).toBe(FONT_SIZE_MAX);
     });
 
-    it("rounds fractional font sizes", () => {
+    it('rounds fractional font sizes', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -196,7 +196,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.consoleFontSize).toBe(16);
     });
 
-    it("persists font size to cookie", () => {
+    it('persists font size to cookie', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -204,14 +204,14 @@ describe("PreferencesContext", () => {
       });
 
       expect(mockedSetCookie).toHaveBeenCalledWith(
-        "vs_ui_prefs",
+        'vs_ui_prefs',
         expect.stringContaining('"consoleFontSize":20')
       );
     });
   });
 
-  describe("setSidebarCollapsed", () => {
-    it("updates sidebar collapsed state", () => {
+  describe('setSidebarCollapsed', () => {
+    it('updates sidebar collapsed state', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -221,7 +221,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.sidebarCollapsed).toBe(true);
     });
 
-    it("persists sidebar state to cookie", () => {
+    it('persists sidebar state to cookie', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -229,14 +229,14 @@ describe("PreferencesContext", () => {
       });
 
       expect(mockedSetCookie).toHaveBeenCalledWith(
-        "vs_ui_prefs",
+        'vs_ui_prefs',
         expect.stringContaining('"sidebarCollapsed":true')
       );
     });
   });
 
-  describe("setGameServerNavExpanded", () => {
-    it("updates game server nav expanded state", () => {
+  describe('setGameServerNavExpanded', () => {
+    it('updates game server nav expanded state', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       // Default is true, so set to false
@@ -247,7 +247,7 @@ describe("PreferencesContext", () => {
       expect(result.current.preferences.gameServerNavExpanded).toBe(false);
     });
 
-    it("persists game server nav expanded state to cookie", () => {
+    it('persists game server nav expanded state to cookie', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       act(() => {
@@ -255,12 +255,12 @@ describe("PreferencesContext", () => {
       });
 
       expect(mockedSetCookie).toHaveBeenCalledWith(
-        "vs_ui_prefs",
+        'vs_ui_prefs',
         expect.stringContaining('"gameServerNavExpanded":false')
       );
     });
 
-    it("can toggle game server nav expanded state", () => {
+    it('can toggle game server nav expanded state', () => {
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
       // Start expanded (default), collapse, then expand again
@@ -278,14 +278,14 @@ describe("PreferencesContext", () => {
     });
   });
 
-  describe("usePreferences outside provider", () => {
-    it("throws error when used outside PreferencesProvider", () => {
+  describe('usePreferences outside provider', () => {
+    it('throws error when used outside PreferencesProvider', () => {
       // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(() => {
         renderHook(() => usePreferences());
-      }).toThrow("usePreferences must be used within a PreferencesProvider");
+      }).toThrow('usePreferences must be used within a PreferencesProvider');
 
       consoleSpy.mockRestore();
     });

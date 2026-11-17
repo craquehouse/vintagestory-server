@@ -41,9 +41,7 @@ interface ErrorBody {
 }
 
 async function stubRole(page: Page, role: string) {
-  await page.route(AUTH_ME, (route) =>
-    route.fulfill({ json: { status: 'ok', data: { role } } })
-  );
+  await page.route(AUTH_ME, (route) => route.fulfill({ json: { status: 'ok', data: { role } } }));
 }
 
 async function directories(request: APIRequestContext, apiKey: string, directory?: string) {

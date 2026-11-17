@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import {
-  useLogStream,
-  buildLogWebSocketUrl,
-  LOG_WS_CLOSE_CODES,
-} from './use-log-stream';
+import { useLogStream, buildLogWebSocketUrl, LOG_WS_CLOSE_CODES } from './use-log-stream';
 import { setTestUrl } from '../../tests/location';
 
 // Mock the ws-token module
@@ -155,17 +151,13 @@ describe('useLogStream', () => {
     });
 
     it('starts in disconnected state when enabled is false', () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log', enabled: false })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log', enabled: false }));
 
       expect(result.current.connectionState).toBe('disconnected');
     });
 
     it('starts in connecting state when enabled', () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       expect(result.current.connectionState).toBe('connecting');
     });
@@ -187,13 +179,9 @@ describe('useLogStream', () => {
     });
 
     it('transitions to token_error when token request fails', async () => {
-      mockRequestWebSocketToken.mockRejectedValueOnce(
-        new Error('Token request failed')
-      );
+      mockRequestWebSocketToken.mockRejectedValueOnce(new Error('Token request failed'));
 
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       await waitFor(() => {
         expect(result.current.connectionState).toBe('token_error');
@@ -204,9 +192,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to connected on WebSocket open', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created after token fetch
       await waitFor(() => {
@@ -223,9 +209,7 @@ describe('useLogStream', () => {
     });
 
     it('resets retry count on successful connection', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -243,9 +227,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to disconnected on normal close', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -270,9 +252,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to forbidden on FORBIDDEN close code', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -289,9 +269,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to forbidden on UNAUTHORIZED close code', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -299,9 +277,7 @@ describe('useLogStream', () => {
       });
 
       act(() => {
-        MockWebSocket.instances[0]?.simulateClose(
-          LOG_WS_CLOSE_CODES.UNAUTHORIZED
-        );
+        MockWebSocket.instances[0]?.simulateClose(LOG_WS_CLOSE_CODES.UNAUTHORIZED);
       });
 
       await waitFor(() => {
@@ -310,9 +286,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to not_found on NOT_FOUND close code', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'missing.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'missing.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -329,9 +303,7 @@ describe('useLogStream', () => {
     });
 
     it('transitions to invalid on INVALID close code', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -355,9 +327,7 @@ describe('useLogStream', () => {
 
     it('calls onStateChange callback on state changes', async () => {
       const onStateChange = vi.fn();
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', onStateChange })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', onStateChange }));
 
       // Initial connecting state
       expect(onStateChange).toHaveBeenCalledWith('connecting');
@@ -378,9 +348,7 @@ describe('useLogStream', () => {
 
     it('calls onMessage callback when message received', async () => {
       const onMessage = vi.fn();
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', onMessage })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', onMessage }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -402,9 +370,7 @@ describe('useLogStream', () => {
 
     it('calls onMessage callback for multiple messages', async () => {
       const onMessage = vi.fn();
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', onMessage })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', onMessage }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -431,9 +397,7 @@ describe('useLogStream', () => {
 
     it('calls onClose callback when connection closes', async () => {
       const onClose = vi.fn();
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', onClose })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', onClose }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -639,8 +603,7 @@ describe('useLogStream', () => {
 
       // Simulate successful connection
       act(() => {
-        const lastInstance =
-          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
         lastInstance?.simulateOpen();
       });
 
@@ -679,8 +642,7 @@ describe('useLogStream', () => {
 
       // Second close triggers second retry
       act(() => {
-        const lastInstance =
-          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
         lastInstance?.simulateClose(1006);
       });
 
@@ -694,8 +656,7 @@ describe('useLogStream', () => {
 
       // Third close should NOT trigger retry (maxRetries = 2)
       act(() => {
-        const lastInstance =
-          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
         lastInstance?.simulateClose(1006);
       });
 
@@ -745,9 +706,7 @@ describe('useLogStream', () => {
     });
 
     it('disconnect closes the WebSocket with normal code', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -766,9 +725,7 @@ describe('useLogStream', () => {
         result.current.disconnect();
       });
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        LOG_WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(LOG_WS_CLOSE_CODES.NORMAL);
 
       await waitFor(() => {
         expect(result.current.connectionState).toBe('disconnected');
@@ -776,9 +733,7 @@ describe('useLogStream', () => {
     });
 
     it('reconnect creates a new connection and resets retry count', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for initial WebSocket to be created
       await waitFor(() => {
@@ -793,9 +748,7 @@ describe('useLogStream', () => {
 
       // Wait for new WebSocket after reconnect
       await waitFor(() => {
-        expect(MockWebSocket.instances.length).toBeGreaterThan(
-          initialInstanceCount
-        );
+        expect(MockWebSocket.instances.length).toBeGreaterThan(initialInstanceCount);
       });
 
       // Retry count should be reset
@@ -809,9 +762,7 @@ describe('useLogStream', () => {
     });
 
     it('does not connect when enabled is false', async () => {
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', enabled: false })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', enabled: false }));
 
       // Wait to ensure no connection happens
       await act(async () => {
@@ -867,9 +818,7 @@ describe('useLogStream', () => {
         expect(result.current.connectionState).toBe('disconnected');
       });
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        LOG_WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(LOG_WS_CLOSE_CODES.NORMAL);
     });
   });
 
@@ -890,9 +839,7 @@ describe('useLogStream', () => {
     });
 
     it('uses custom history lines when provided', async () => {
-      renderHook(() =>
-        useLogStream({ filename: 'test.log', historyLines: 500 })
-      );
+      renderHook(() => useLogStream({ filename: 'test.log', historyLines: 500 }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -909,9 +856,7 @@ describe('useLogStream', () => {
     });
 
     it('closes WebSocket on unmount', async () => {
-      const { unmount } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { unmount } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for WebSocket to be created
       await waitFor(() => {
@@ -920,9 +865,7 @@ describe('useLogStream', () => {
 
       unmount();
 
-      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(
-        LOG_WS_CLOSE_CODES.NORMAL
-      );
+      expect(MockWebSocket.instances[0]?.close).toHaveBeenCalledWith(LOG_WS_CLOSE_CODES.NORMAL);
     });
 
     it('clears reconnect timeout on unmount', async () => {
@@ -1096,8 +1039,7 @@ describe('useLogStream', () => {
 
       // Second close should NOT trigger retry (maxRetries = 1)
       act(() => {
-        const lastInstance =
-          MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        const lastInstance = MockWebSocket.instances[MockWebSocket.instances.length - 1];
         lastInstance?.simulateClose(1006);
       });
 
@@ -1112,9 +1054,7 @@ describe('useLogStream', () => {
     });
 
     it('closes existing connection before reconnecting', async () => {
-      const { result } = renderHook(() =>
-        useLogStream({ filename: 'test.log' })
-      );
+      const { result } = renderHook(() => useLogStream({ filename: 'test.log' }));
 
       // Wait for initial WebSocket to be created
       await waitFor(() => {

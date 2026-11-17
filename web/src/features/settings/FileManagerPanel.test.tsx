@@ -20,9 +20,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -353,9 +351,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent(
-          '"ServerName"'
-        );
+        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent('"ServerName"');
       });
 
       // Select second file
@@ -364,9 +360,7 @@ describe('FileManagerPanel', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent(
-          '"WorldName"'
-        );
+        expect(screen.getByTestId('file-viewer-content')).toHaveTextContent('"WorldName"');
       });
     });
   });
@@ -425,9 +419,7 @@ describe('FileManagerPanel', () => {
       });
 
       expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
-      expect(
-        screen.getByText('Select a file to view its contents')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Select a file to view its contents')).toBeInTheDocument();
     });
   });
 
@@ -1232,8 +1224,7 @@ describe('FileManagerPanel', () => {
           if (url.includes('directory=EmptyDir')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: [] } }),
             };
           }
           return {
@@ -1282,28 +1273,24 @@ describe('FileManagerPanel', () => {
           if (url.includes('directory=level1%2Flevel2%2Flevel3')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: [] } }),
             };
           }
           if (url.includes('directory=level1%2Flevel2')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: ['level3'] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: ['level3'] } }),
             };
           }
           if (url.includes('directory=level1')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
             };
           }
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
           };
         }
         if (url.includes('/config/files/level1%2Flevel2%2Flevel3%2Fdeep.json')) {
@@ -1319,14 +1306,10 @@ describe('FileManagerPanel', () => {
               }),
           };
         }
-        if (
-          url.includes('/config/files') &&
-          url.includes('directory=level1%2Flevel2%2Flevel3')
-        ) {
+        if (url.includes('/config/files') && url.includes('directory=level1%2Flevel2%2Flevel3')) {
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { files: ['deep.json'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { files: ['deep.json'] } }),
           };
         }
         if (url.includes('/config/files') && url.includes('directory=level1%2Flevel2')) {
@@ -1404,41 +1387,35 @@ describe('FileManagerPanel', () => {
           if (url.includes('directory=level1%2Flevel2')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: [] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: [] } }),
             };
           }
           if (url.includes('directory=level1')) {
             return {
               ok: true,
-              json: () =>
-                Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
+              json: () => Promise.resolve({ status: 'ok', data: { directories: ['level2'] } }),
             };
           }
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { directories: ['level1'] } }),
           };
         }
         if (url.includes('/config/files') && url.includes('directory=level1%2Flevel2')) {
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { files: ['file2.json'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { files: ['file2.json'] } }),
           };
         }
         if (url.includes('/config/files') && url.includes('directory=level1')) {
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { files: ['file1.json'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { files: ['file1.json'] } }),
           };
         }
         return {
           ok: true,
-          json: () =>
-            Promise.resolve({ status: 'ok', data: { files: ['root.json'] } }),
+          json: () => Promise.resolve({ status: 'ok', data: { files: ['root.json'] } }),
         };
       });
       globalThis.fetch = mockFetch;
@@ -1537,8 +1514,7 @@ describe('FileManagerPanel', () => {
         if (url.includes('/config/files') && url.includes('directory=TestDir')) {
           return {
             ok: true,
-            json: () =>
-              Promise.resolve({ status: 'ok', data: { files: ['test.json'] } }),
+            json: () => Promise.resolve({ status: 'ok', data: { files: ['test.json'] } }),
           };
         }
         return {
@@ -1734,11 +1710,11 @@ describe('FileManagerPanel', () => {
       await openDirectory('Some Mod');
 
       const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
-      expect(within(nav).getAllByRole('button').map((b) => b.textContent)).toEqual([
-        'serverdata',
-        'Cache',
-        'unpack',
-      ]);
+      expect(
+        within(nav)
+          .getAllByRole('button')
+          .map((b) => b.textContent)
+      ).toEqual(['serverdata', 'Cache', 'unpack']);
       expect(current()).toHaveTextContent('Some Mod');
       expect(screen.getByTestId('file-item-modinfo.json')).toBeInTheDocument();
     });
@@ -1929,9 +1905,7 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-item-ModConfig')).toBeInTheDocument();
       });
       await waitFor(() => {
-        expect(
-          fetchMock.mock.calls.some(([url]) => String(url).includes('/auth/me'))
-        ).toBe(true);
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/auth/me'))).toBe(true);
       });
       expect(screen.queryByTestId('file-manager-admin-note')).not.toBeInTheDocument();
     });

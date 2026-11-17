@@ -88,7 +88,7 @@ export function FileList({
 }: FileListProps) {
   // Convert files to items format if items not provided
   const displayItems: FileListItem[] =
-    items ?? (files?.map((f) => ({ name: f, type: 'file' as const })) ?? []);
+    items ?? files?.map((f) => ({ name: f, type: 'file' as const })) ?? [];
 
   // Loading state
   if (isLoading) {
@@ -113,13 +113,8 @@ export function FileList({
         aria-label="No configuration files available"
       >
         <div className="flex flex-col items-center justify-center p-6 text-center">
-          <FolderOpen
-            className="h-12 w-12 text-muted-foreground/50"
-            aria-hidden="true"
-          />
-          <p className="mt-2 text-sm text-muted-foreground">
-            No configuration files found
-          </p>
+          <FolderOpen className="h-12 w-12 text-muted-foreground/50" aria-hidden="true" />
+          <p className="mt-2 text-sm text-muted-foreground">No configuration files found</p>
         </div>
       </div>
     );
@@ -127,11 +122,7 @@ export function FileList({
 
   return (
     <div className={className} data-testid="file-list">
-      <ul
-        className="space-y-1 p-2"
-        role="listbox"
-        aria-label="Configuration files"
-      >
+      <ul className="space-y-1 p-2" role="listbox" aria-label="Configuration files">
         {displayItems.map((item) => {
           const isSelected = item.name === selectedFile;
           const isDirectory = item.type === 'directory';

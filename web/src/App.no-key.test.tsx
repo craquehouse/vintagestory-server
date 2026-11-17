@@ -12,7 +12,7 @@ function renderApp() {
   return render(
     <QueryClientProvider client={queryClient}>
       <App />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
 

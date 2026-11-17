@@ -31,7 +31,9 @@ interface BrowseState {
 }
 
 async function waitForGrid(page: Page) {
-  await expect(page.locator('[data-testid="mod-browse-grid"] [data-testid^="mod-card-"]').first()).toBeVisible({
+  await expect(
+    page.locator('[data-testid="mod-browse-grid"] [data-testid^="mod-card-"]').first()
+  ).toBeVisible({
     timeout: 60_000,
   });
 }
@@ -57,7 +59,10 @@ async function setUpBrowseState(page: Page): Promise<BrowseState> {
 
   await page.getByTestId('version-filter-button').click();
   const versionOption = page.locator('[data-testid^="version-option-"]').first();
-  const version = ((await versionOption.getAttribute('data-testid')) ?? '').replace('version-option-', '');
+  const version = ((await versionOption.getAttribute('data-testid')) ?? '').replace(
+    'version-option-',
+    ''
+  );
   await versionOption.click();
   await expect(page).toHaveURL(new RegExp(`[?&]version=${version.replace(/\./g, '\\.')}(&|$)`));
 
@@ -96,7 +101,9 @@ function expectedBrowseSearch(state: BrowseState): string {
 }
 
 async function expectBrowseState(page: Page, state: BrowseState) {
-  await expect(page).toHaveURL((url) => url.pathname === BROWSE && url.search === expectedBrowseSearch(state));
+  await expect(page).toHaveURL(
+    (url) => url.pathname === BROWSE && url.search === expectedBrowseSearch(state)
+  );
   await waitForGrid(page);
   await expect(page.getByTestId('browse-search-input')).toHaveValue(state.search);
   await expect(page.getByTestId('version-filter-button')).toHaveText(`v${state.version}`);

@@ -157,10 +157,7 @@ export interface ApiClientOptions extends Omit<RequestInit, 'body'> {
  * const response = await apiClient<AuthMeResponse>("/api/v1alpha1/auth/me");
  * console.log(response.data.role); // camelCase keys
  */
-export async function apiClient<T>(
-  path: string,
-  options: ApiClientOptions = {}
-): Promise<T> {
+export async function apiClient<T>(path: string, options: ApiClientOptions = {}): Promise<T> {
   const config = getConfig();
   const url = `${config.baseUrl}${path}`;
 

@@ -31,19 +31,13 @@ import { useConsoleWebSocket } from '@/hooks/use-console-websocket';
 import { useLogStream } from '@/hooks/use-log-stream';
 import { useLogFiles } from '@/hooks/use-log-files';
 import { useServerStatus } from '@/hooks/use-server-status';
-import {
-  usePreferences,
-  FONT_SIZE_MIN,
-  FONT_SIZE_MAX,
-} from '@/contexts/PreferencesContext';
+import { usePreferences, FONT_SIZE_MIN, FONT_SIZE_MAX } from '@/contexts/PreferencesContext';
 import { cn } from '@/lib/utils';
 
 /**
  * Output source type - either the live console or a log file.
  */
-export type OutputSource =
-  | { type: 'console' }
-  | { type: 'logfile'; filename: string };
+export type OutputSource = { type: 'console' } | { type: 'logfile'; filename: string };
 
 /**
  * Props for the ConsolePanel component.
@@ -120,10 +114,9 @@ export function ConsolePanel({
   }, []);
 
   // Console WebSocket - only active when source is console
-  const { connectionState: consoleConnectionState, sendCommand } =
-    useConsoleWebSocket({
-      onMessage: source.type === 'console' ? writeToTerminal : undefined,
-    });
+  const { connectionState: consoleConnectionState, sendCommand } = useConsoleWebSocket({
+    onMessage: source.type === 'console' ? writeToTerminal : undefined,
+  });
 
   // Log file WebSocket - only active when source is a log file
   const { connectionState: logConnectionState } = useLogStream({
@@ -133,8 +126,7 @@ export function ConsolePanel({
   });
 
   // Get the effective connection state based on current source
-  const connectionState =
-    source.type === 'console' ? consoleConnectionState : logConnectionState;
+  const connectionState = source.type === 'console' ? consoleConnectionState : logConnectionState;
 
   // Clear terminal when source changes
   useEffect(() => {
@@ -213,7 +205,8 @@ export function ConsolePanel({
   };
 
   // Map log connection state to console connection state for ConnectionStatus
-  const getDisplayConnectionState = (): 'connecting' | 'connected' | 'disconnected' | 'forbidden' | 'token_error' => {
+  const getDisplayConnectionState = ():
+    'connecting' | 'connected' | 'disconnected' | 'forbidden' | 'token_error' => {
     if (source.type === 'console') return consoleConnectionState;
     // Map log-specific states to compatible states
     const state = logConnectionState;
@@ -222,10 +215,7 @@ export function ConsolePanel({
   };
 
   return (
-    <Card
-      className={cn('flex flex-col overflow-hidden', className)}
-      data-testid="console-panel"
-    >
+    <Card className={cn('flex flex-col overflow-hidden', className)} data-testid="console-panel">
       {showHeader && (
         <CardHeader className="flex-shrink-0 border-b py-3">
           <div className="flex items-center justify-between gap-2">
@@ -253,7 +243,10 @@ export function ConsolePanel({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => setSource({ type: 'console' })}
-                    className={cn(source.type === 'console' && 'bg-accent dark:bg-primary dark:text-primary-foreground')}
+                    className={cn(
+                      source.type === 'console' &&
+                        'bg-accent dark:bg-primary dark:text-primary-foreground'
+                    )}
                   >
                     <Terminal className="mr-2 h-4 w-4" />
                     Live Console
@@ -267,9 +260,7 @@ export function ConsolePanel({
                       {logFiles.map((file) => (
                         <DropdownMenuItem
                           key={file.name}
-                          onClick={() =>
-                            setSource({ type: 'logfile', filename: file.name })
-                          }
+                          onClick={() => setSource({ type: 'logfile', filename: file.name })}
                           className={cn(
                             source.type === 'logfile' &&
                               source.filename === file.name &&
@@ -284,9 +275,7 @@ export function ConsolePanel({
                   )}
                   {logFiles.length === 0 && (
                     <DropdownMenuItem disabled>
-                      <span className="text-muted-foreground text-xs">
-                        No log files available
-                      </span>
+                      <span className="text-muted-foreground text-xs">No log files available</span>
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -324,10 +313,7 @@ export function ConsolePanel({
                   <Plus className="h-3 w-3" />
                 </Button>
               </div>
-              <ConnectionStatus
-                state={getDisplayConnectionState()}
-                serverState={serverState}
-              />
+              <ConnectionStatus state={getDisplayConnectionState()} serverState={serverState} />
             </div>
           </div>
         </CardHeader>
@@ -340,10 +326,7 @@ export function ConsolePanel({
             className="h-full w-full"
           />
         </div>
-        <form
-          onSubmit={handleSubmit}
-          className="flex gap-2 border-t bg-muted/50 p-3"
-        >
+        <form onSubmit={handleSubmit} className="flex gap-2 border-t bg-muted/50 p-3">
           <Input
             ref={inputRef}
             type="text"
@@ -355,11 +338,7 @@ export function ConsolePanel({
             className="flex-1 font-mono"
             aria-label="Command input"
           />
-          <Button
-            type="submit"
-            disabled={!canSendCommands || !command.trim()}
-            variant="default"
-          >
+          <Button type="submit" disabled={!canSendCommands || !command.trim()} variant="default">
             Send
           </Button>
         </form>

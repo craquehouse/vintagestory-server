@@ -5,11 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  requestWebSocketToken,
-  WebSocketTokenError,
-  type WebSocketTokenData,
-} from './ws-token';
+import { requestWebSocketToken, WebSocketTokenError, type WebSocketTokenData } from './ws-token';
 
 // Mock the apiClient module
 vi.mock('./client', () => ({
@@ -60,9 +56,7 @@ describe('requestWebSocketToken', () => {
     mockApiClient.mockRejectedValue('some non-Error value');
 
     await expect(requestWebSocketToken()).rejects.toThrow(WebSocketTokenError);
-    await expect(requestWebSocketToken()).rejects.toThrow(
-      'Failed to request WebSocket token'
-    );
+    await expect(requestWebSocketToken()).rejects.toThrow('Failed to request WebSocket token');
   });
 });
 

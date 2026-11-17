@@ -92,7 +92,8 @@ export function SettingGroup({
     <Card className={className}>
       <CardHeader
         className={cn(
-          collapsible && 'cursor-pointer select-none hover:bg-muted/50 transition-colors rounded-t-xl'
+          collapsible &&
+            'cursor-pointer select-none hover:bg-muted/50 transition-colors rounded-t-xl'
         )}
         onClick={handleToggle}
         role={collapsible ? 'button' : undefined}
@@ -118,9 +119,7 @@ export function SettingGroup({
           )}
           <CardTitle>{title}</CardTitle>
         </div>
-        {description && (
-          <p className="text-sm text-muted-foreground col-start-1">{description}</p>
-        )}
+        {description && <p className="text-sm text-muted-foreground col-start-1">{description}</p>}
       </CardHeader>
 
       {!isCollapsed && (

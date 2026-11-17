@@ -51,9 +51,7 @@ describe('ModScreenshotGallery', () => {
       expect(currentImage()).toHaveAttribute('src', FIVE[0].imageUrl);
       const strip = screen.getByTestId('mod-screenshot-thumbnails');
       const thumbs = within(strip).getAllByRole('img');
-      expect(thumbs.map((img) => img.getAttribute('src'))).toEqual(
-        FIVE.map((s) => s.thumbnailUrl)
-      );
+      expect(thumbs.map((img) => img.getAttribute('src'))).toEqual(FIVE.map((s) => s.thumbnailUrl));
     });
 
     it('Next, Previous and a thumbnail change the image and the position', async () => {
@@ -215,7 +213,9 @@ describe('ModScreenshotGallery', () => {
       expect(within(dialog).getByTestId('mod-screenshot-dialog-position')).toHaveTextContent(
         '4 of 5'
       );
-      expect(within(dialog).getByRole('heading', { name: 'Screenshot 4 of 5: d.png' })).toBeVisible();
+      expect(
+        within(dialog).getByRole('heading', { name: 'Screenshot 4 of 5: d.png' })
+      ).toBeVisible();
     });
 
     it('Next and ArrowRight move exactly one step in the dialog', async () => {

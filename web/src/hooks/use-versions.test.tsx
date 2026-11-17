@@ -18,9 +18,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -170,9 +168,7 @@ describe('useVersions', () => {
       // Verify camelCase transformation
       const data = result.current.data?.data;
       expect(data?.cachedAt).toBe('2026-01-12T10:00:00Z');
-      expect(data?.versions[0].cdnUrl).toBe(
-        'https://cdn.example.com/stable/1.21.6'
-      );
+      expect(data?.versions[0].cdnUrl).toBe('https://cdn.example.com/stable/1.21.6');
       expect(data?.versions[0].localUrl).toBe('/downloads/stable/1.21.6');
       expect(data?.versions[0].isLatest).toBe(true);
     });
@@ -275,18 +271,16 @@ describe('useVersions', () => {
       const queryClient = createTestQueryClient();
 
       // Fetch stable versions
-      const { result: stableResult } = renderHook(
-        () => useVersions({ channel: 'stable' }),
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { result: stableResult } = renderHook(() => useVersions({ channel: 'stable' }), {
+        wrapper: createWrapper(queryClient),
+      });
 
       await waitFor(() => expect(stableResult.current.isSuccess).toBe(true));
 
       // Fetch unstable versions (different query key)
-      const { result: unstableResult } = renderHook(
-        () => useVersions({ channel: 'unstable' }),
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { result: unstableResult } = renderHook(() => useVersions({ channel: 'unstable' }), {
+        wrapper: createWrapper(queryClient),
+      });
 
       await waitFor(() => expect(unstableResult.current.isSuccess).toBe(true));
 
@@ -347,9 +341,7 @@ describe('useVersionDetail', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       const data = result.current.data?.data;
-      expect(data?.version.cdnUrl).toBe(
-        'https://cdn.example.com/stable/1.21.6'
-      );
+      expect(data?.version.cdnUrl).toBe('https://cdn.example.com/stable/1.21.6');
       expect(data?.version.localUrl).toBe('/downloads/stable/1.21.6');
       expect(data?.version.isLatest).toBe(true);
       expect(data?.cachedAt).toBe(null);
@@ -401,10 +393,9 @@ describe('useVersionDetail', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(
-        () => useVersionDetail('1.21.6', { enabled: false }),
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { result } = renderHook(() => useVersionDetail('1.21.6', { enabled: false }), {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(result.current.isLoading).toBe(false);
       expect(result.current.fetchStatus).toBe('idle');

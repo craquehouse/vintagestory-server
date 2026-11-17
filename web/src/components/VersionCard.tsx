@@ -36,12 +36,7 @@ const channelStyles: Record<VersionChannel, { label: string; className: string }
  * Shows version number, channel badge (Stable/Unstable), file size,
  * and status badges (Latest, Installed).
  */
-export function VersionCard({
-  version,
-  installedVersion,
-  isNewer,
-  onClick,
-}: VersionCardProps) {
+export function VersionCard({ version, installedVersion, isNewer, onClick }: VersionCardProps) {
   const isInstalled = installedVersion === version.version;
   const channel = channelStyles[version.channel];
 
@@ -94,10 +89,7 @@ export function VersionCard({
 
         <div className="flex flex-wrap gap-2">
           {version.isLatest && (
-            <Badge
-              variant="secondary"
-              data-testid={`version-card-latest-${version.version}`}
-            >
+            <Badge variant="secondary" data-testid={`version-card-latest-${version.version}`}>
               Latest
             </Badge>
           )}

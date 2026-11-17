@@ -32,10 +32,7 @@ export function useVersions(options: UseVersionsOptions = {}) {
 
   return useQuery({
     queryKey: queryKeys.versions.all(channel),
-    queryFn: () =>
-      apiClient<ApiResponse<VersionListResponse>>(
-        `/api/v1alpha1/versions${params}`
-      ),
+    queryFn: () => apiClient<ApiResponse<VersionListResponse>>(`/api/v1alpha1/versions${params}`),
     enabled,
     staleTime: 5 * 60 * 1000,
   });
@@ -53,10 +50,7 @@ export interface UseVersionDetailOptions {
  * @param options - Query options
  * @returns TanStack Query result with version details
  */
-export function useVersionDetail(
-  version: string,
-  options: UseVersionDetailOptions = {}
-) {
+export function useVersionDetail(version: string, options: UseVersionDetailOptions = {}) {
   const { enabled = true } = options;
 
   return useQuery({

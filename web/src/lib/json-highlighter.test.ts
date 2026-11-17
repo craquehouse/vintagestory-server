@@ -493,18 +493,10 @@ describe('json-highlighter', () => {
       const allTokens = lines.flat();
 
       // Find one of each value type
-      const stringToken = allTokens.find(
-        (t) => t.type === 'string' && t.value === '"text"'
-      );
-      const numberToken = allTokens.find(
-        (t) => t.type === 'number' && t.value === '123'
-      );
-      const booleanToken = allTokens.find(
-        (t) => t.type === 'boolean' && t.value === 'true'
-      );
-      const nullToken = allTokens.find(
-        (t) => t.type === 'null' && t.value === 'null'
-      );
+      const stringToken = allTokens.find((t) => t.type === 'string' && t.value === '"text"');
+      const numberToken = allTokens.find((t) => t.type === 'number' && t.value === '123');
+      const booleanToken = allTokens.find((t) => t.type === 'boolean' && t.value === 'true');
+      const nullToken = allTokens.find((t) => t.type === 'null' && t.value === 'null');
 
       expect(stringToken).toBeDefined();
       expect(numberToken).toBeDefined();
@@ -512,12 +504,7 @@ describe('json-highlighter', () => {
       expect(nullToken).toBeDefined();
 
       // All have different types
-      const types = [
-        stringToken!.type,
-        numberToken!.type,
-        booleanToken!.type,
-        nullToken!.type,
-      ];
+      const types = [stringToken!.type, numberToken!.type, booleanToken!.type, nullToken!.type];
       expect(new Set(types).size).toBe(4);
     });
   });
@@ -606,9 +593,7 @@ describe('json-highlighter', () => {
         const nonWhitespace = tokens.filter((t) => t.value.trim() !== '');
         return (
           nonWhitespace.length <= 2 &&
-          nonWhitespace.every(
-            (t) => t.type === 'punctuation' && /^[\[\]{}],?$/.test(t.value)
-          )
+          nonWhitespace.every((t) => t.type === 'punctuation' && /^[\[\]{}],?$/.test(t.value))
         );
       });
 

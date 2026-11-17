@@ -40,7 +40,8 @@ export function DiskSpaceWarningBanner({ diskSpace }: DiskSpaceWarningBannerProp
         data-testid="disk-warning-icon"
       />
       <span className="text-warning">
-        Low disk space: {diskSpace.availableGb.toFixed(1)} GB available ({diskSpace.usagePercent.toFixed(0)}% used)
+        Low disk space: {diskSpace.availableGb.toFixed(1)} GB available (
+        {diskSpace.usagePercent.toFixed(0)}% used)
       </span>
     </div>
   );

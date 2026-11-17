@@ -31,14 +31,7 @@ export const DiskSpaceCard = memo(function DiskSpaceCard({
 }: DiskSpaceCardProps) {
   // Loading state
   if (isLoading) {
-    return (
-      <StatCard
-        icon={HardDrive}
-        title="Disk Space"
-        value="Loading..."
-        testId="disk-card"
-      />
-    );
+    return <StatCard icon={HardDrive} title="Disk Space" value="Loading..." testId="disk-card" />;
   }
 
   // No data available

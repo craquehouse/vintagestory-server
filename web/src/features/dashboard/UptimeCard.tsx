@@ -90,14 +90,7 @@ export const UptimeCard = memo(function UptimeCard({
 }: UptimeCardProps) {
   // Loading state
   if (isLoading) {
-    return (
-      <StatCard
-        icon={Clock}
-        title="Uptime"
-        value="Loading..."
-        testId="uptime-card"
-      />
-    );
+    return <StatCard icon={Clock} title="Uptime" value="Loading..." testId="uptime-card" />;
   }
 
   // Server not running

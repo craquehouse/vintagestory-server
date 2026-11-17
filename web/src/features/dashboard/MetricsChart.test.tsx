@@ -23,12 +23,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MetricsChart } from './MetricsChart';
 import type { MetricsSnapshot } from '@/api/types';
-import {
-  formatAxisTime,
-  formatTooltipTime,
-  formatMemory,
-  CustomTooltip,
-} from './MetricsChart';
+import { formatAxisTime, formatTooltipTime, formatMemory, CustomTooltip } from './MetricsChart';
 
 // Mock data with game server running
 const mockDataWithGame: MetricsSnapshot[] = [
@@ -369,9 +364,7 @@ describe('CustomTooltip', () => {
     const { container } = render(
       <CustomTooltip
         active={true}
-        payload={[
-          { dataKey: 'apiMemoryMb', name: 'API', value: 100, color: '#89dceb' },
-        ]}
+        payload={[{ dataKey: 'apiMemoryMb', name: 'API', value: 100, color: '#89dceb' }]}
         label="2026-01-17T10:00:00Z"
       />
     );
@@ -384,9 +377,7 @@ describe('CustomTooltip', () => {
     const { container } = render(
       <CustomTooltip
         active={true}
-        payload={[
-          { dataKey: 'gameMemoryMb', name: 'Game', value: null, color: '#a6e3a1' },
-        ]}
+        payload={[{ dataKey: 'gameMemoryMb', name: 'Game', value: null, color: '#a6e3a1' }]}
         label="2026-01-17T10:00:00Z"
       />
     );
@@ -398,9 +389,7 @@ describe('CustomTooltip', () => {
     const { container } = render(
       <CustomTooltip
         active={true}
-        payload={[
-          { dataKey: 'apiMemoryMb', name: 'API', value: 128.5, color: '#89dceb' },
-        ]}
+        payload={[{ dataKey: 'apiMemoryMb', name: 'API', value: 128.5, color: '#89dceb' }]}
         label="2026-01-17T10:00:00Z"
       />
     );

@@ -74,8 +74,7 @@ export function useToggleDebug() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ enabled }: { enabled: boolean }) =>
-      enabled ? enableDebug() : disableDebug(),
+    mutationFn: ({ enabled }: { enabled: boolean }) => (enabled ? enableDebug() : disableDebug()),
     onMutate: async ({ enabled }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.debug.status });
@@ -86,15 +85,12 @@ export function useToggleDebug() {
       );
 
       // Optimistically update to the new value (even if no previous data)
-      queryClient.setQueryData<ApiResponse<DebugStatusData>>(
-        queryKeys.debug.status,
-        {
-          status: 'ok',
-          data: {
-            debugEnabled: enabled,
-          },
-        }
-      );
+      queryClient.setQueryData<ApiResponse<DebugStatusData>>(queryKeys.debug.status, {
+        status: 'ok',
+        data: {
+          debugEnabled: enabled,
+        },
+      });
 
       return { previous };
     },

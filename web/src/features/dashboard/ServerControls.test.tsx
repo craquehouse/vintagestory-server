@@ -31,9 +31,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with providers
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -117,19 +115,16 @@ describe('ServerControls', () => {
   describe('transitional states', () => {
     const transitionalStates: ServerState[] = ['starting', 'stopping', 'installing'];
 
-    it.each(transitionalStates)(
-      'disables all buttons when server is %s',
-      (state) => {
-        const queryClient = createTestQueryClient();
-        render(<ServerControls serverState={state} />, {
-          wrapper: createWrapper(queryClient),
-        });
+    it.each(transitionalStates)('disables all buttons when server is %s', (state) => {
+      const queryClient = createTestQueryClient();
+      render(<ServerControls serverState={state} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
-        expect(screen.getByRole('button', { name: 'Start server' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'Stop server' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'Restart server' })).toBeDisabled();
-      }
-    );
+      expect(screen.getByRole('button', { name: 'Start server' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Stop server' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Restart server' })).toBeDisabled();
+    });
   });
 
   describe('mutation calls (AC: 5)', () => {

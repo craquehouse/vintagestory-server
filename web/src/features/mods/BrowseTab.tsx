@@ -99,11 +99,7 @@ export function BrowseTab() {
   const gameVersions = gameVersionsData?.data?.versions ?? [];
 
   // VSS-y7u: Fetch all available mod tags for filtering
-  const {
-    data: modTagsData,
-    isLoading: modTagsLoading,
-    isError: modTagsError,
-  } = useModTags();
+  const { data: modTagsData, isLoading: modTagsLoading, isError: modTagsError } = useModTags();
   const modTags = modTagsData?.data?.tags ?? [];
 
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -224,11 +220,7 @@ export function BrowseTab() {
         <p className="text-destructive mb-4" data-testid="browse-error-message">
           Failed to load mods: {error?.message ?? 'Unknown error'}
         </p>
-        <Button
-          onClick={() => refetch()}
-          variant="outline"
-          data-testid="browse-retry-button"
-        >
+        <Button onClick={() => refetch()} variant="outline" data-testid="browse-retry-button">
           <RefreshCw className="mr-2 h-4 w-4" />
           Retry
         </Button>
@@ -269,7 +261,10 @@ export function BrowseTab() {
 
         {/* Sort Control */}
         <div className="sm:ml-auto">
-          <SortControl value={sort} onChange={(nextSort) => updateBrowseState({ sort: nextSort })} />
+          <SortControl
+            value={sort}
+            onChange={(nextSort) => updateBrowseState({ sort: nextSort })}
+          />
         </div>
       </div>
 
@@ -299,25 +294,26 @@ export function BrowseTab() {
       {/* Story 10.7: Pagination controls (Story 16.8: for every sort, including name).
           Story 17.7: not for a page beyond the results, which is about to be replaced by
           the last page (otherwise "Page 9999 of N" shows for one paint) */}
-      {!isLoading && pagination && pagination.totalPages > 1 && currentPage <= pagination.totalPages && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pagination.totalPages}
-          totalItems={pagination.totalItems}
-          isLoading={isFetching}
-          onPageChange={setPage}
-        />
-      )}
+      {!isLoading &&
+        pagination &&
+        pagination.totalPages > 1 &&
+        currentPage <= pagination.totalPages && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            isLoading={isFetching}
+            onPageChange={setPage}
+          />
+        )}
 
       {/* Results count */}
       {!isLoading && pagination && (
-        <p
-          className="text-sm text-muted-foreground"
-          data-testid="browse-results-count"
-        >
+        <p className="text-sm text-muted-foreground" data-testid="browse-results-count">
           {browseState.search ? (
             <>
-              Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;{browseState.search}&quot;
+              Found {mods.length} mod{mods.length !== 1 ? 's' : ''} matching &quot;
+              {browseState.search}&quot;
             </>
           ) : (
             <>

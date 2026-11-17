@@ -130,17 +130,20 @@ export function DurationSettingField({
   const isDisabled = envManaged || isPending;
 
   // Validate seconds against min/max
-  const validateRange = useCallback((seconds: number): string | null => {
-    if (min !== undefined && seconds < min) {
-      const formatted = formatDurationSimple(min);
-      return minMessage?.replace('{min}', formatted) ?? `Must be at least ${formatted}`;
-    }
-    if (max !== undefined && seconds > max) {
-      const formatted = formatDurationSimple(max);
-      return maxMessage?.replace('{max}', formatted) ?? `Must be at most ${formatted}`;
-    }
-    return null;
-  }, [min, max, minMessage, maxMessage]);
+  const validateRange = useCallback(
+    (seconds: number): string | null => {
+      if (min !== undefined && seconds < min) {
+        const formatted = formatDurationSimple(min);
+        return minMessage?.replace('{min}', formatted) ?? `Must be at least ${formatted}`;
+      }
+      if (max !== undefined && seconds > max) {
+        const formatted = formatDurationSimple(max);
+        return maxMessage?.replace('{max}', formatted) ?? `Must be at most ${formatted}`;
+      }
+      return null;
+    },
+    [min, max, minMessage, maxMessage]
+  );
 
   const handleFocus = useCallback(() => {
     setIsEditing(true);
@@ -149,24 +152,27 @@ export function DurationSettingField({
     setError(null);
   }, [currentSeconds]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setInputText(newText);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newText = e.target.value;
+      setInputText(newText);
 
-    // Try to parse as user types for immediate feedback
-    if (newText.trim()) {
-      const result = parseDuration(newText);
-      if (result.success) {
-        const rangeError = validateRange(result.seconds);
-        setError(rangeError);
-        setCurrentSeconds(result.seconds);
+      // Try to parse as user types for immediate feedback
+      if (newText.trim()) {
+        const result = parseDuration(newText);
+        if (result.success) {
+          const rangeError = validateRange(result.seconds);
+          setError(rangeError);
+          setCurrentSeconds(result.seconds);
+        } else {
+          setError(result.error ?? 'Invalid duration');
+        }
       } else {
-        setError(result.error ?? 'Invalid duration');
+        setError('Duration cannot be empty');
       }
-    } else {
-      setError('Duration cannot be empty');
-    }
-  }, [validateRange]);
+    },
+    [validateRange]
+  );
 
   const save = useCallback(async () => {
     if (isDisabled) return;
@@ -211,12 +217,15 @@ export function DurationSettingField({
     save();
   }, [save]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      save();
-    }
-  }, [save]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        save();
+      }
+    },
+    [save]
+  );
 
   // Display value: formatted duration when not editing, raw input when editing
   const displayValue = isEditing ? inputText : formatDurationSimple(currentSeconds);
@@ -225,27 +234,19 @@ export function DurationSettingField({
     <div className={cn('space-y-1', className)}>
       {/* Label and badges row */}
       <div className="flex items-center gap-2">
-        <label
-          htmlFor={settingKey}
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor={settingKey} className="text-sm font-medium text-foreground">
           {label}
         </label>
 
         {/* Env managed badge */}
         {envManaged && (
-          <Badge
-            variant="outline"
-            className="text-xs bg-warning/10 text-warning border-warning/30"
-          >
+          <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
             Env: {envVar || `VS_CFG_${settingKey.toUpperCase()}`}
           </Badge>
         )}
 
         {/* Loading indicator */}
-        {isPending && (
-          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-        )}
+        {isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
       </div>
 
       {/* Duration input */}
@@ -263,28 +264,19 @@ export function DurationSettingField({
           error ? `${settingKey}-error` : description ? `${settingKey}-desc` : undefined
         }
         aria-invalid={!!error}
-        className={cn(
-          error && 'border-destructive focus-visible:ring-destructive'
-        )}
+        className={cn(error && 'border-destructive focus-visible:ring-destructive')}
       />
 
       {/* Description text */}
       {description && !error && (
-        <p
-          id={`${settingKey}-desc`}
-          className="text-xs text-muted-foreground"
-        >
+        <p id={`${settingKey}-desc`} className="text-xs text-muted-foreground">
           {description}
         </p>
       )}
 
       {/* Error message */}
       {error && (
-        <p
-          id={`${settingKey}-error`}
-          className="text-xs text-destructive"
-          role="alert"
-        >
+        <p id={`${settingKey}-error`} className="text-xs text-destructive" role="alert">
           {error}
         </p>
       )}

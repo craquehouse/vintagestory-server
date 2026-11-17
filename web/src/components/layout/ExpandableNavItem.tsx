@@ -7,16 +7,12 @@
  * Story: 11-1-sub-navigation-infrastructure
  */
 
-import { useState, useEffect, type ReactElement } from "react";
-import { NavLink, useLocation } from "react-router";
-import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useState, useEffect, type ReactElement } from 'react';
+import { NavLink, useLocation } from 'react-router';
+import { ChevronDown, ChevronRight, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Sub-navigation item definition */
 export interface SubNavItem {
@@ -50,11 +46,11 @@ function CountBadge({ count, label, testId }: { count: number; label: string; te
  * Dot for icons where a count pill does not fit. It is visual only: callers give the
  * count in a tooltip and the item's accessible name.
  */
-function CountDot({ testId, className = "right-1 top-1" }: { testId: string; className?: string }) {
+function CountDot({ testId, className = 'right-1 top-1' }: { testId: string; className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={cn("absolute h-2 w-2 rounded-full bg-primary", className)}
+      className={cn('absolute h-2 w-2 rounded-full bg-primary', className)}
       data-testid={testId}
     />
   );
@@ -116,7 +112,7 @@ export function ExpandableNavItem({
   // Story 14.5: badges on sub-items; the parent shows their total while closed
   const badgedItems = subItems.filter((item) => (item.badge ?? 0) > 0);
   const badgeTotal = badgedItems.reduce((sum, item) => sum + (item.badge ?? 0), 0);
-  const parentBadgeLabel = badgedItems.map(badgeText).join(", ");
+  const parentBadgeLabel = badgedItems.map(badgeText).join(', ');
   const showParentBadge = !isOpen && badgeTotal > 0;
 
   // The dot alone does not say what it counts; explain it on hover, as the collapsed
@@ -133,9 +129,7 @@ export function ExpandableNavItem({
 
   // Check if any sub-item is currently active
   const isAnySubItemActive = subItems.some(
-    (item) =>
-      location.pathname === item.to ||
-      location.pathname.startsWith(item.to + "/")
+    (item) => location.pathname === item.to || location.pathname.startsWith(item.to + '/')
   );
 
   // Collapsed sidebar mode - render icon-only with expandable sub-items below
@@ -149,9 +143,9 @@ export function ExpandableNavItem({
               variant="ghost"
               size="icon-sm"
               className={cn(
-                "relative w-full justify-center",
-                "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                isAnySubItemActive && "bg-sidebar-accent/50"
+                'relative w-full justify-center',
+                'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                isAnySubItemActive && 'bg-sidebar-accent/50'
               )}
               onClick={handleToggle}
               aria-expanded={isOpen}
@@ -174,8 +168,8 @@ export function ExpandableNavItem({
         {/* Sub-items expanded below (icons only with tooltips) */}
         <div
           className={cn(
-            "overflow-hidden transition-all duration-200 ease-in-out space-y-1",
-            isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+            'overflow-hidden transition-all duration-200 ease-in-out space-y-1',
+            isOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
           )}
           data-testid="collapsed-sub-items-container"
         >
@@ -192,8 +186,8 @@ export function ExpandableNavItem({
                     to={item.to}
                     className={({ isActive }) =>
                       cn(
-                        "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        isActive && "bg-sidebar-accent text-sidebar-primary"
+                        'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        isActive && 'bg-sidebar-accent text-sidebar-primary'
                       )
                     }
                   >
@@ -226,9 +220,9 @@ export function ExpandableNavItem({
           variant="ghost"
           size="sm"
           className={cn(
-            "w-full justify-start",
-            "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            isAnySubItemActive && "bg-sidebar-accent/50"
+            'w-full justify-start',
+            'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            isAnySubItemActive && 'bg-sidebar-accent/50'
           )}
           onClick={handleToggle}
           aria-expanded={isOpen}
@@ -256,8 +250,8 @@ export function ExpandableNavItem({
       {/* Sub-items with smooth animation */}
       <div
         className={cn(
-          "overflow-hidden transition-all duration-200 ease-in-out",
-          isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          'overflow-hidden transition-all duration-200 ease-in-out',
+          isOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
         )}
         data-testid="sub-items-container"
       >
@@ -274,8 +268,8 @@ export function ExpandableNavItem({
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    isActive && "bg-sidebar-accent text-sidebar-primary"
+                    'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isActive && 'bg-sidebar-accent text-sidebar-primary'
                   )
                 }
               >

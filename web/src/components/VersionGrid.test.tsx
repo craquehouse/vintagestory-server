@@ -77,12 +77,7 @@ describe('VersionGrid', () => {
   });
 
   it('passes installedVersion to VersionCards', () => {
-    render(
-      <VersionGrid
-        versions={mockVersions}
-        installedVersion="1.19.8"
-      />
-    );
+    render(<VersionGrid versions={mockVersions} installedVersion="1.19.8" />);
 
     // The installed version card should show the "Installed" indicator
     const installedCard = screen.getByTestId('version-card-1.19.8');
@@ -99,12 +94,7 @@ describe('VersionGrid', () => {
     const user = userEvent.setup();
     const handleClick = vi.fn();
 
-    render(
-      <VersionGrid
-        versions={mockVersions}
-        onVersionClick={handleClick}
-      />
-    );
+    render(<VersionGrid versions={mockVersions} onVersionClick={handleClick} />);
 
     const card = screen.getByTestId('version-card-1.20.0');
     await user.click(card);
@@ -148,12 +138,7 @@ describe('VersionGrid', () => {
   });
 
   it('handles null installedVersion gracefully', () => {
-    render(
-      <VersionGrid
-        versions={mockVersions}
-        installedVersion={null}
-      />
-    );
+    render(<VersionGrid versions={mockVersions} installedVersion={null} />);
 
     // No installed indicators should be shown
     expect(screen.queryByTestId('version-card-installed-1.20.0')).not.toBeInTheDocument();
@@ -173,12 +158,7 @@ describe('VersionGrid', () => {
    */
   describe('newer version highlighting (Story 13.5)', () => {
     it('highlights versions newer than installed', () => {
-      render(
-        <VersionGrid
-          versions={mockVersions}
-          installedVersion="1.19.8"
-        />
-      );
+      render(<VersionGrid versions={mockVersions} installedVersion="1.19.8" />);
 
       // 1.20.0 and 1.20.1-rc.1 are newer than 1.19.8
       const newerCard = screen.getByTestId('version-card-1.20.0');
@@ -189,12 +169,7 @@ describe('VersionGrid', () => {
     });
 
     it('does not highlight installed version', () => {
-      render(
-        <VersionGrid
-          versions={mockVersions}
-          installedVersion="1.20.0"
-        />
-      );
+      render(<VersionGrid versions={mockVersions} installedVersion="1.20.0" />);
 
       // Installed version should not have ring
       const installedCard = screen.getByTestId('version-card-1.20.0');
@@ -202,12 +177,7 @@ describe('VersionGrid', () => {
     });
 
     it('does not highlight older versions', () => {
-      render(
-        <VersionGrid
-          versions={mockVersions}
-          installedVersion="1.20.0"
-        />
-      );
+      render(<VersionGrid versions={mockVersions} installedVersion="1.20.0" />);
 
       // 1.19.8 is older, should not be highlighted
       const olderCard = screen.getByTestId('version-card-1.19.8');
@@ -215,12 +185,7 @@ describe('VersionGrid', () => {
     });
 
     it('does not highlight any versions when not installed', () => {
-      render(
-        <VersionGrid
-          versions={mockVersions}
-          installedVersion={null}
-        />
-      );
+      render(<VersionGrid versions={mockVersions} installedVersion={null} />);
 
       // None should have ring styling
       const card1 = screen.getByTestId('version-card-1.20.0');

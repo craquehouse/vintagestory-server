@@ -63,17 +63,12 @@ export class StatCardErrorBoundary extends Component<
         >
           <CardHeader className="pb-2">
             <div className="flex items-center gap-3">
-              <AlertTriangle
-                className="size-5 text-destructive"
-                aria-hidden="true"
-              />
+              <AlertTriangle className="size-5 text-destructive" aria-hidden="true" />
               <CardTitle className="text-base font-medium">{title}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground">
-              Unable to load card data
-            </div>
+            <div className="text-sm text-muted-foreground">Unable to load card data</div>
           </CardContent>
         </Card>
       );

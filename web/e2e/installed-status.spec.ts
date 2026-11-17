@@ -154,29 +154,28 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
   test(
     'the Instruments card shows Installed for vsinstrumentsbase, like its detail page',
     { tag: '@moddb' },
-    async ({
-    page,
-  }) => {
-    await fakeInstalledMods(page, [{ slug: 'vsinstrumentsbase', version: '2.0.7' }]);
-    // Sorted by downloads, Instruments is the first result; by the default (recent)
-    // sort it is far down the first page and newer mods would push it off
-    await page.goto('/game-server/mods/browse?q=instruments&sort=downloads');
+    async ({ page }) => {
+      await fakeInstalledMods(page, [{ slug: 'vsinstrumentsbase', version: '2.0.7' }]);
+      // Sorted by downloads, Instruments is the first result; by the default (recent)
+      // sort it is far down the first page and newer mods would push it off
+      await page.goto('/game-server/mods/browse?q=instruments&sort=downloads');
 
-    const card = page.getByTestId('mod-card-instruments');
-    await expect(
-      card,
-      'the mod database search for "instruments" did not return the Instruments card'
-    ).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId('mod-card-installed-instruments')).toHaveText('Installed');
-    await expect(page.getByTestId('mod-card-install-instruments')).toHaveCount(0);
+      const card = page.getByTestId('mod-card-instruments');
+      await expect(
+        card,
+        'the mod database search for "instruments" did not return the Instruments card'
+      ).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByTestId('mod-card-installed-instruments')).toHaveText('Installed');
+      await expect(page.getByTestId('mod-card-install-instruments')).toHaveCount(0);
 
-    await card.click();
-    await expect(page).toHaveURL(/\/game-server\/mods\/browse\/instruments/);
-    await expect(page.getByTestId('mod-detail-installed-indicator')).toBeVisible({
-      timeout: 60_000,
-    });
-    await expect(page.getByTestId('mod-detail-install-button')).toHaveCount(0);
-  });
+      await card.click();
+      await expect(page).toHaveURL(/\/game-server\/mods\/browse\/instruments/);
+      await expect(page.getByTestId('mod-detail-installed-indicator')).toBeVisible({
+        timeout: 60_000,
+      });
+      await expect(page.getByTestId('mod-detail-install-button')).toHaveCount(0);
+    }
+  );
 
   for (const [label, viewport] of [
     ['desktop', DESKTOP],
@@ -207,78 +206,79 @@ test.describe(
   'A new install shows its update status at once: real API (Story 17.4)',
   { tag: ['@moddb', '@install'] },
   () => {
-  test.describe.configure({ mode: 'serial' });
+    test.describe.configure({ mode: 'serial' });
 
-  let before: string[] = [];
-  // Cleanup deletes only what is missing from this snapshot, so it must never run
-  // without one: it could otherwise remove a mod that was installed before the run.
-  let hasSnapshot = false;
-  // What this spec installed; cleanup removes nothing else
-  const touched = new Set<string>();
+    let before: string[] = [];
+    // Cleanup deletes only what is missing from this snapshot, so it must never run
+    // without one: it could otherwise remove a mod that was installed before the run.
+    let hasSnapshot = false;
+    // What this spec installed; cleanup removes nothing else
+    const touched = new Set<string>();
 
-  test.beforeAll(async ({ playwright, baseURL }) => {
-    const request = await playwright.request.newContext({ baseURL });
-    try {
-      before = await installedSlugs(request);
-      hasSnapshot = true;
-    } finally {
-      await request.dispose();
-    }
-  });
-
-  test.beforeEach(async ({ page }) => {
-    await serveConfigKey(page, API_KEY);
-    await pretendServerInstalled(page);
-  });
-
-  test.afterEach(async ({ request }) => {
-    if (!hasSnapshot) {
-      throw new Error('No snapshot of the installed mods; refusing to clean up');
-    }
-    for (const slug of await installedSlugs(request)) {
-      if (touched.has(slug) && !before.includes(slug)) {
-        const removed = await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
-        expect(removed.ok(), `cleanup DELETE /mods/${slug}`).toBe(true);
+    test.beforeAll(async ({ playwright, baseURL }) => {
+      const request = await playwright.request.newContext({ baseURL });
+      try {
+        before = await installedSlugs(request);
+        hasSnapshot = true;
+      } finally {
+        await request.dispose();
       }
-    }
-  });
-
-  test('an installed mod has a real update status without a check', async ({ page, request }) => {
-    test.setTimeout(120_000);
-    const slug = CANDIDATES.find((candidate) => !before.includes(candidate));
-    test.skip(slug === undefined, `Already installed on this stack: ${CANDIDATES.join(', ')}`);
-    if (slug === undefined) return;
-
-    // Recorded before the request, so cleanup also covers an install whose answer was lost
-    touched.add(slug);
-    const response = await request.post('/api/v1alpha1/mods', {
-      headers: HEADERS,
-      data: { slug },
-      timeout: 60_000,
     });
-    expect(response.status()).toBe(200);
-    const installed = (await response.json()) as { data: { slug: string } };
-    const modId = installed.data.slug;
-    touched.add(modId);
 
-    // No POST /mods/updates/check: the install's own lookup is the update data
-    const updates = await request.get('/api/v1alpha1/mods/updates', { headers: HEADERS });
-    expect(updates.ok()).toBe(true);
-    const body = (await updates.json()) as {
-      data: { mods: Array<{ slug: string; status: string; reason: string | null }> };
-    };
-    const item = body.data.mods.find((mod) => mod.slug === modId);
-    expect(item, `${modId} is listed in GET /mods/updates`).toBeDefined();
-    expect(item?.status).not.toBe('unknown');
+    test.beforeEach(async ({ page }) => {
+      await serveConfigKey(page, API_KEY);
+      await pretendServerInstalled(page);
+    });
 
-    await page.goto(INSTALLED);
-    const cell = page.getByTestId(`mod-update-${modId}`);
-    await expect(cell).toBeVisible({ timeout: 30_000 });
-    await expect(cell).not.toContainText('Not checked yet');
-    await expect(cell).not.toContainText('Unknown');
+    test.afterEach(async ({ request }) => {
+      if (!hasSnapshot) {
+        throw new Error('No snapshot of the installed mods; refusing to clean up');
+      }
+      for (const slug of await installedSlugs(request)) {
+        if (touched.has(slug) && !before.includes(slug)) {
+          const removed = await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
+          expect(removed.ok(), `cleanup DELETE /mods/${slug}`).toBe(true);
+        }
+      }
+    });
 
-    const removed = await request.delete(`/api/v1alpha1/mods/${modId}`, { headers: HEADERS });
-    expect(removed.ok()).toBe(true);
-    expect(await installedSlugs(request)).not.toContain(modId);
-  });
-});
+    test('an installed mod has a real update status without a check', async ({ page, request }) => {
+      test.setTimeout(120_000);
+      const slug = CANDIDATES.find((candidate) => !before.includes(candidate));
+      test.skip(slug === undefined, `Already installed on this stack: ${CANDIDATES.join(', ')}`);
+      if (slug === undefined) return;
+
+      // Recorded before the request, so cleanup also covers an install whose answer was lost
+      touched.add(slug);
+      const response = await request.post('/api/v1alpha1/mods', {
+        headers: HEADERS,
+        data: { slug },
+        timeout: 60_000,
+      });
+      expect(response.status()).toBe(200);
+      const installed = (await response.json()) as { data: { slug: string } };
+      const modId = installed.data.slug;
+      touched.add(modId);
+
+      // No POST /mods/updates/check: the install's own lookup is the update data
+      const updates = await request.get('/api/v1alpha1/mods/updates', { headers: HEADERS });
+      expect(updates.ok()).toBe(true);
+      const body = (await updates.json()) as {
+        data: { mods: Array<{ slug: string; status: string; reason: string | null }> };
+      };
+      const item = body.data.mods.find((mod) => mod.slug === modId);
+      expect(item, `${modId} is listed in GET /mods/updates`).toBeDefined();
+      expect(item?.status).not.toBe('unknown');
+
+      await page.goto(INSTALLED);
+      const cell = page.getByTestId(`mod-update-${modId}`);
+      await expect(cell).toBeVisible({ timeout: 30_000 });
+      await expect(cell).not.toContainText('Not checked yet');
+      await expect(cell).not.toContainText('Unknown');
+
+      const removed = await request.delete(`/api/v1alpha1/mods/${modId}`, { headers: HEADERS });
+      expect(removed.ok()).toBe(true);
+      expect(await installedSlugs(request)).not.toContain(modId);
+    });
+  }
+);

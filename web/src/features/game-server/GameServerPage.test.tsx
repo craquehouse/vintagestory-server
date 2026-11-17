@@ -150,8 +150,7 @@ describe('GameServerPage', () => {
 
       // Shows loading initially, then content
       expect(
-        screen.getByTestId('game-config-loading') ||
-          screen.getByTestId('game-config-panel')
+        screen.getByTestId('game-config-loading') || screen.getByTestId('game-config-panel')
       ).toBeInTheDocument();
     });
 
@@ -183,8 +182,7 @@ describe('GameServerPage', () => {
       // Both panels should be present (GameConfig may be loading)
       expect(screen.getByTestId('console-panel')).toBeInTheDocument();
       expect(
-        screen.getByTestId('game-config-loading') ||
-          screen.getByTestId('game-config-panel')
+        screen.getByTestId('game-config-loading') || screen.getByTestId('game-config-panel')
       ).toBeInTheDocument();
     });
   });

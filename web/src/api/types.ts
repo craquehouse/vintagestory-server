@@ -75,12 +75,7 @@ export interface ServerStatus {
  * Installation status response from GET /api/v1alpha1/server/install/status.
  */
 export type InstallState =
-  | 'idle'
-  | 'downloading'
-  | 'extracting'
-  | 'configuring'
-  | 'complete'
-  | 'error';
+  'idle' | 'downloading' | 'extracting' | 'configuring' | 'complete' | 'error';
 
 export interface InstallStatus {
   state: InstallState;
@@ -604,10 +599,7 @@ export type ModUpdateState = 'update_available' | 'up_to_date' | 'blocked' | 'un
 
 /** Why an installed mod's update state is unknown. */
 export type ModUpdateUnknownReason =
-  | 'not_checked'
-  | 'not_in_database'
-  | 'installed_release_not_listed'
-  | 'version_unparsable';
+  'not_checked' | 'not_in_database' | 'installed_release_not_listed' | 'version_unparsable';
 
 /** Update status of one installed mod from GET /mods/updates. */
 export interface ModUpdateStatus {

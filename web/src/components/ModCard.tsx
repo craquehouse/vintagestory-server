@@ -94,14 +94,14 @@ export function ModCard({ mod, onClick, installedMods, gameVersion }: ModCardPro
   const isInstalled = findInstalledModByIds(installedMods, [mod.slug, ...mod.modIds]) !== undefined;
 
   // Only apply clickable styles when onClick handler is provided
-  const clickableStyles = onClick
-    ? 'cursor-pointer hover:shadow-lg transition-shadow'
-    : '';
+  const clickableStyles = onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : '';
 
   // Lazy-load mod details when Install button is clicked
-  const { data: modDetails, isLoading: isLoadingDetails, isError } = useModDetail(
-    shouldFetchDetails ? mod.slug : ''
-  );
+  const {
+    data: modDetails,
+    isLoading: isLoadingDetails,
+    isError,
+  } = useModDetail(shouldFetchDetails ? mod.slug : '');
 
   // Handle install button click - fetch details first, then open dialog
   const handleInstallClick = (e: React.MouseEvent) => {
@@ -128,172 +128,172 @@ export function ModCard({ mod, onClick, installedMods, gameVersion }: ModCardPro
 
   return (
     <>
-    <Card
-      className={`h-full ${clickableStyles}`}
-      data-testid={`mod-card-${mod.slug}`}
-      onClick={onClick}
-    >
-      {/* Thumbnail */}
-      <div
-        className="relative aspect-video overflow-hidden rounded-t-lg bg-muted"
-        data-testid={`mod-card-thumbnail-${mod.slug}`}
+      <Card
+        className={`h-full ${clickableStyles}`}
+        data-testid={`mod-card-${mod.slug}`}
+        onClick={onClick}
       >
-        {mod.logoUrl ? (
-          <img
-            src={mod.logoUrl}
-            referrerPolicy="no-referrer"
-            alt={`${mod.name} thumbnail`}
-            className="h-full w-full object-cover"
-            data-testid={`mod-card-logo-${mod.slug}`}
-          />
-        ) : (
-          <div
-            className="flex h-full items-center justify-center"
-            data-testid={`mod-card-placeholder-${mod.slug}`}
-          >
-            <Package className="h-12 w-12 text-muted-foreground" />
-          </div>
-        )}
-      </div>
+        {/* Thumbnail */}
+        <div
+          className="relative aspect-video overflow-hidden rounded-t-lg bg-muted"
+          data-testid={`mod-card-thumbnail-${mod.slug}`}
+        >
+          {mod.logoUrl ? (
+            <img
+              src={mod.logoUrl}
+              referrerPolicy="no-referrer"
+              alt={`${mod.name} thumbnail`}
+              className="h-full w-full object-cover"
+              data-testid={`mod-card-logo-${mod.slug}`}
+            />
+          ) : (
+            <div
+              className="flex h-full items-center justify-center"
+              data-testid={`mod-card-placeholder-${mod.slug}`}
+            >
+              <Package className="h-12 w-12 text-muted-foreground" />
+            </div>
+          )}
+        </div>
 
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base">
-            <span className="inline-flex items-center gap-1">
-              <span
-                className={`hover:underline${onClick ? ' cursor-pointer' : ''}`}
-                data-testid={`mod-card-name-${mod.slug}`}
-                {...(onClick && {
-                  role: 'button',
-                  tabIndex: 0,
-                  onKeyDown: (e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onClick();
-                    }
-                  },
-                })}
-              >
-                {mod.name}
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-base">
+              <span className="inline-flex items-center gap-1">
+                <span
+                  className={`hover:underline${onClick ? ' cursor-pointer' : ''}`}
+                  data-testid={`mod-card-name-${mod.slug}`}
+                  {...(onClick && {
+                    role: 'button',
+                    tabIndex: 0,
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onClick();
+                      }
+                    },
+                  })}
+                >
+                  {mod.name}
+                </span>
+                <a
+                  href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                  onClick={(e) => e.stopPropagation()}
+                  data-testid={`mod-card-link-${mod.slug}`}
+                  title="Open on ModDB"
+                  aria-label={`Open ${mod.name} on ModDB (opens in new tab)`}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </span>
-              <a
-                href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
-                onClick={(e) => e.stopPropagation()}
-                data-testid={`mod-card-link-${mod.slug}`}
-                title="Open on ModDB"
-                aria-label={`Open ${mod.name} on ModDB (opens in new tab)`}
-              >
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </span>
-          </CardTitle>
-        </div>
-        <p className="text-sm text-muted-foreground" data-testid={`mod-card-author-${mod.slug}`}>
-          by {mod.author}
-        </p>
-      </CardHeader>
-      <CardContent className="pt-0 flex-1 flex flex-col">
-        {mod.summary && (
-          <p
-            className="text-sm text-muted-foreground line-clamp-2 mb-3"
-            data-testid={`mod-card-summary-${mod.slug}`}
-          >
-            {mod.summary}
-          </p>
-        )}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span
-            className="inline-flex items-center gap-1"
-            title="Downloads"
-            data-testid={`mod-card-downloads-${mod.slug}`}
-          >
-            <Download className="h-3.5 w-3.5" />
-            {formatNumber(mod.downloads)}
-          </span>
-          <span
-            className="inline-flex items-center gap-1"
-            title="Followers"
-            data-testid={`mod-card-follows-${mod.slug}`}
-          >
-            <Users className="h-3.5 w-3.5" />
-            {formatNumber(mod.follows)}
-          </span>
-          <span
-            className="inline-flex items-center gap-1"
-            title="Trending"
-            data-testid={`mod-card-trending-${mod.slug}`}
-          >
-            <TrendingUp className="h-3.5 w-3.5" />
-            {formatNumber(mod.trendingPoints)}
-          </span>
-        </div>
-        <div className="mt-2" data-testid={`mod-card-side-${mod.slug}`}>
-          <SideBadge side={mod.side} />
-        </div>
-        <GameVersionIndicator
-          slug={mod.slug}
-          hasRelease={mod.hasReleaseForGameVersion}
-          gameVersion={gameVersion}
-        />
-
-        {/* Install button or Installed indicator (Story 10.8) */}
-        {installedMods !== undefined && (
-          <div className="mt-auto pt-3 border-t">
-            {isInstalled ? (
-              <div
-                className="flex items-center gap-1.5 text-sm text-success"
-                data-testid={`mod-card-installed-${mod.slug}`}
-              >
-                <Check className="h-4 w-4" />
-                <span>Installed</span>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full"
-                onClick={handleInstallClick}
-                disabled={isLoadingDetails}
-                data-testid={`mod-card-install-${mod.slug}`}
-              >
-                {isLoadingDetails ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-1.5" />
-                    Install
-                  </>
-                )}
-              </Button>
-            )}
+            </CardTitle>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-sm text-muted-foreground" data-testid={`mod-card-author-${mod.slug}`}>
+            by {mod.author}
+          </p>
+        </CardHeader>
+        <CardContent className="pt-0 flex-1 flex flex-col">
+          {mod.summary && (
+            <p
+              className="text-sm text-muted-foreground line-clamp-2 mb-3"
+              data-testid={`mod-card-summary-${mod.slug}`}
+            >
+              {mod.summary}
+            </p>
+          )}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span
+              className="inline-flex items-center gap-1"
+              title="Downloads"
+              data-testid={`mod-card-downloads-${mod.slug}`}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {formatNumber(mod.downloads)}
+            </span>
+            <span
+              className="inline-flex items-center gap-1"
+              title="Followers"
+              data-testid={`mod-card-follows-${mod.slug}`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              {formatNumber(mod.follows)}
+            </span>
+            <span
+              className="inline-flex items-center gap-1"
+              title="Trending"
+              data-testid={`mod-card-trending-${mod.slug}`}
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              {formatNumber(mod.trendingPoints)}
+            </span>
+          </div>
+          <div className="mt-2" data-testid={`mod-card-side-${mod.slug}`}>
+            <SideBadge side={mod.side} />
+          </div>
+          <GameVersionIndicator
+            slug={mod.slug}
+            hasRelease={mod.hasReleaseForGameVersion}
+            gameVersion={gameVersion}
+          />
 
-    {/* Install confirmation dialog */}
-    <InstallConfirmDialog
-      mod={{
-        // An empty install mod ID (an entry without mod IDs) falls back to the card slug
-        slug: modDetails?.data?.installModId || mod.slug,
-        name: mod.name,
-        version: modDetails?.data?.latestVersion,
-        logoUrl: mod.logoUrl,
-        author: mod.author,
-      }}
-      compatibility={{
-        status: modDetails?.data?.compatibility?.status ?? 'not_verified',
-        message: modDetails?.data?.compatibility?.message,
-      }}
-      open={isInstallDialogOpen}
-      onOpenChange={handleDialogOpenChange}
-    />
+          {/* Install button or Installed indicator (Story 10.8) */}
+          {installedMods !== undefined && (
+            <div className="mt-auto pt-3 border-t">
+              {isInstalled ? (
+                <div
+                  className="flex items-center gap-1.5 text-sm text-success"
+                  data-testid={`mod-card-installed-${mod.slug}`}
+                >
+                  <Check className="h-4 w-4" />
+                  <span>Installed</span>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleInstallClick}
+                  disabled={isLoadingDetails}
+                  data-testid={`mod-card-install-${mod.slug}`}
+                >
+                  {isLoadingDetails ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-1.5" />
+                      Install
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Install confirmation dialog */}
+      <InstallConfirmDialog
+        mod={{
+          // An empty install mod ID (an entry without mod IDs) falls back to the card slug
+          slug: modDetails?.data?.installModId || mod.slug,
+          name: mod.name,
+          version: modDetails?.data?.latestVersion,
+          logoUrl: mod.logoUrl,
+          author: mod.author,
+        }}
+        compatibility={{
+          status: modDetails?.data?.compatibility?.status ?? 'not_verified',
+          message: modDetails?.data?.compatibility?.message,
+        }}
+        open={isInstallDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+      />
     </>
   );
 }

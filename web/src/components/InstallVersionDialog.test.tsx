@@ -179,9 +179,7 @@ describe('InstallVersionDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('dialog-title')).toHaveTextContent(
-        'Install Server Version'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Install Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Install');
     });
 
@@ -197,9 +195,7 @@ describe('InstallVersionDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('dialog-title')).toHaveTextContent(
-        'Upgrade Server Version'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Upgrade Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Upgrade');
     });
 
@@ -214,9 +210,7 @@ describe('InstallVersionDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('dialog-title')).toHaveTextContent(
-        'Reinstall Server Version'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Reinstall');
     });
 
@@ -232,9 +226,7 @@ describe('InstallVersionDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('dialog-title')).toHaveTextContent(
-        'Downgrade Server Version'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Downgrade Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Downgrade');
     });
   });
@@ -274,10 +266,7 @@ describe('InstallVersionDialog', () => {
     });
 
     it('shows version details (channel and file size)', () => {
-      render(
-        <InstallVersionDialog {...getDefaultProps()} />,
-        { wrapper: createWrapper() }
-      );
+      render(<InstallVersionDialog {...getDefaultProps()} />, { wrapper: createWrapper() });
 
       const details = screen.getByTestId('version-details');
       expect(details).toHaveTextContent('stable');
@@ -488,10 +477,7 @@ describe('InstallVersionDialog', () => {
         isPaused: false,
       });
 
-      render(
-        <InstallVersionDialog {...getDefaultProps()} />,
-        { wrapper: createWrapper() }
-      );
+      render(<InstallVersionDialog {...getDefaultProps()} />, { wrapper: createWrapper() });
 
       const button = screen.getByTestId('confirm-button');
       expect(button).toHaveTextContent('Starting...');
@@ -536,10 +522,7 @@ describe('InstallVersionDialog', () => {
         options?.onError?.(testError);
       });
 
-      render(
-        <InstallVersionDialog {...getDefaultProps()} />,
-        { wrapper: createWrapper() }
-      );
+      render(<InstallVersionDialog {...getDefaultProps()} />, { wrapper: createWrapper() });
 
       await user.click(screen.getByTestId('confirm-button'));
 
@@ -720,19 +703,17 @@ describe('InstallVersionDialog', () => {
 
   describe('dialog visibility', () => {
     it('is not visible when open is false', () => {
-      render(
-        <InstallVersionDialog {...getDefaultProps({ open: false })} />,
-        { wrapper: createWrapper() }
-      );
+      render(<InstallVersionDialog {...getDefaultProps({ open: false })} />, {
+        wrapper: createWrapper(),
+      });
 
       expect(screen.queryByTestId('install-version-dialog')).not.toBeInTheDocument();
     });
 
     it('is visible when open is true', () => {
-      render(
-        <InstallVersionDialog {...getDefaultProps({ open: true })} />,
-        { wrapper: createWrapper() }
-      );
+      render(<InstallVersionDialog {...getDefaultProps({ open: true })} />, {
+        wrapper: createWrapper(),
+      });
 
       expect(screen.getByTestId('install-version-dialog')).toBeInTheDocument();
     });

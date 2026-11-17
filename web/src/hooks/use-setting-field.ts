@@ -31,75 +31,83 @@ export const validators = {
   /**
    * Validates that a string is not empty.
    */
-  required: (message = 'This field is required'): Validator<SettingValue> => (value) =>
-    typeof value === 'string' && value.trim() === '' ? message : null,
+  required:
+    (message = 'This field is required'): Validator<SettingValue> =>
+    (value) =>
+      typeof value === 'string' && value.trim() === '' ? message : null,
 
   /**
    * Validates that a number is within a range.
    */
-  range: (
-    min: number,
-    max: number,
-    message?: string
-  ): Validator<SettingValue> => (value) =>
-    typeof value === 'number' && (value < min || value > max)
-      ? message ?? `Value must be between ${min} and ${max}`
-      : null,
+  range:
+    (min: number, max: number, message?: string): Validator<SettingValue> =>
+    (value) =>
+      typeof value === 'number' && (value < min || value > max)
+        ? (message ?? `Value must be between ${min} and ${max}`)
+        : null,
 
   /**
    * Validates that a number is a positive integer.
    */
-  positiveInt: (message = 'Must be a positive integer'): Validator<SettingValue> => (value) =>
-    typeof value === 'number' && (!Number.isInteger(value) || value < 0) ? message : null,
+  positiveInt:
+    (message = 'Must be a positive integer'): Validator<SettingValue> =>
+    (value) =>
+      typeof value === 'number' && (!Number.isInteger(value) || value < 0) ? message : null,
 
   /**
    * Validates that a port number is valid.
    */
-  port: (message = 'Port must be between 1 and 65535'): Validator<SettingValue> => (value) =>
-    typeof value === 'number' && (!Number.isInteger(value) || value < 1 || value > 65535)
-      ? message
-      : null,
+  port:
+    (message = 'Port must be between 1 and 65535'): Validator<SettingValue> =>
+    (value) =>
+      typeof value === 'number' && (!Number.isInteger(value) || value < 1 || value > 65535)
+        ? message
+        : null,
 
   /**
    * Combines multiple validators, returning first error or null.
    */
-  compose: (...fns: Validator<SettingValue>[]): Validator<SettingValue> => (value) => {
-    for (const fn of fns) {
-      const error = fn(value);
-      if (error) return error;
-    }
-    return null;
-  },
+  compose:
+    (...fns: Validator<SettingValue>[]): Validator<SettingValue> =>
+    (value) => {
+      for (const fn of fns) {
+        const error = fn(value);
+        if (error) return error;
+      }
+      return null;
+    },
 
   /**
    * Validates a duration string and optionally checks range in seconds.
    * Accepts human-readable formats like "4h", "30m", "1d".
    */
-  duration: (options?: {
-    min?: number;
-    max?: number;
-    minMessage?: string;
-    maxMessage?: string;
-  }): Validator<SettingValue> => (value) => {
-    if (typeof value !== 'string') {
-      return 'Duration must be a string';
-    }
+  duration:
+    (options?: {
+      min?: number;
+      max?: number;
+      minMessage?: string;
+      maxMessage?: string;
+    }): Validator<SettingValue> =>
+    (value) => {
+      if (typeof value !== 'string') {
+        return 'Duration must be a string';
+      }
 
-    const result = parseDuration(value);
-    if (!result.success) {
-      return result.error ?? 'Invalid duration format';
-    }
+      const result = parseDuration(value);
+      if (!result.success) {
+        return result.error ?? 'Invalid duration format';
+      }
 
-    if (options?.min !== undefined && result.seconds < options.min) {
-      return options.minMessage ?? `Duration must be at least ${options.min} seconds`;
-    }
+      if (options?.min !== undefined && result.seconds < options.min) {
+        return options.minMessage ?? `Duration must be at least ${options.min} seconds`;
+      }
 
-    if (options?.max !== undefined && result.seconds > options.max) {
-      return options.maxMessage ?? `Duration must be at most ${options.max} seconds`;
-    }
+      if (options?.max !== undefined && result.seconds > options.max) {
+        return options.maxMessage ?? `Duration must be at most ${options.max} seconds`;
+      }
 
-    return null;
-  },
+      return null;
+    },
 };
 
 /**
@@ -229,8 +237,7 @@ export interface UseSettingFieldReturn<T> {
 export function useSettingField<T extends string | number | boolean>(
   options: UseSettingFieldOptions<T>
 ): UseSettingFieldReturn<T> {
-  const { initialValue, settingKey, validate, onSave, disabled, revertOnError = false } =
-    options;
+  const { initialValue, settingKey, validate, onSave, disabled, revertOnError = false } = options;
 
   // Track the initial value so we can detect changes
   const initialRef = useRef(initialValue);
@@ -258,42 +265,42 @@ export function useSettingField<T extends string | number | boolean>(
     setError(null);
   }, []);
 
-  const save = useCallback(async (valueOverride?: T) => {
-    if (disabled) return;
+  const save = useCallback(
+    async (valueOverride?: T) => {
+      if (disabled) return;
 
-    // Use override if provided (for immediate saves like boolean toggles)
-    const valueToSave = valueOverride !== undefined ? valueOverride : value;
+      // Use override if provided (for immediate saves like boolean toggles)
+      const valueToSave = valueOverride !== undefined ? valueOverride : value;
 
-    // Validate before saving
-    if (validate) {
-      const validationError = validate(valueToSave);
-      if (validationError) {
-        setError(validationError);
-        return;
+      // Validate before saving
+      if (validate) {
+        const validationError = validate(valueToSave);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
       }
-    }
 
-    setError(null);
-    setIsPending(true);
+      setError(null);
+      setIsPending(true);
 
-    try {
-      await onSave({ key: settingKey, value: valueToSave });
-      // Update the initial ref after successful save
-      initialRef.current = valueToSave;
-    } catch (err) {
-      // Extract error message from API error
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Failed to save setting';
-      setError(message);
-      if (revertOnError) {
-        setValueState(initialRef.current);
+      try {
+        await onSave({ key: settingKey, value: valueToSave });
+        // Update the initial ref after successful save
+        initialRef.current = valueToSave;
+      } catch (err) {
+        // Extract error message from API error
+        const message = err instanceof Error ? err.message : 'Failed to save setting';
+        setError(message);
+        if (revertOnError) {
+          setValueState(initialRef.current);
+        }
+      } finally {
+        setIsPending(false);
       }
-    } finally {
-      setIsPending(false);
-    }
-  }, [disabled, validate, value, onSave, settingKey, revertOnError]);
+    },
+    [disabled, validate, value, onSave, settingKey, revertOnError]
+  );
 
   const reset = useCallback(() => {
     setValueState(initialRef.current);
@@ -307,13 +314,16 @@ export function useSettingField<T extends string | number | boolean>(
     }
   }, [isDirty, disabled, isPending, save]);
 
-  const onKeyDown = useCallback((e: KeyboardEvent) => {
-    // Save on Enter key if dirty, not disabled, and not already pending
-    if (e.key === 'Enter' && isDirty && !disabled && !isPending) {
-      e.preventDefault();
-      save();
-    }
-  }, [isDirty, disabled, isPending, save]);
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Save on Enter key if dirty, not disabled, and not already pending
+      if (e.key === 'Enter' && isDirty && !disabled && !isPending) {
+        e.preventDefault();
+        save();
+      }
+    },
+    [isDirty, disabled, isPending, save]
+  );
 
   return {
     value,
@@ -331,10 +341,7 @@ export function useSettingField<T extends string | number | boolean>(
 /**
  * Coerce a value to the appropriate type based on setting type.
  */
-export function coerceSettingValue(
-  value: string,
-  type: SettingType
-): string | number | boolean {
+export function coerceSettingValue(value: string, type: SettingType): string | number | boolean {
   switch (type) {
     case 'int':
       return parseInt(value, 10) || 0;

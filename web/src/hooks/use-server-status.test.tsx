@@ -39,9 +39,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -924,10 +922,9 @@ describe('useServerStateToasts', () => {
 
   describe('server started toast (UI-004)', () => {
     it('shows toast when transitioning from starting to running', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'starting' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'starting' as ServerState },
+      });
 
       // Transition to running
       rerender({ state: 'running' as ServerState });
@@ -938,10 +935,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('does not show toast when running without prior starting state', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'installed' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'installed' as ServerState },
+      });
 
       // Transition directly to running (shouldn't happen normally, but tests the guard)
       rerender({ state: 'running' as ServerState });
@@ -952,10 +948,9 @@ describe('useServerStateToasts', () => {
 
   describe('server stopped toast (UI-004)', () => {
     it('shows toast when transitioning from stopping to installed', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'stopping' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'stopping' as ServerState },
+      });
 
       // Transition to installed (stopped)
       rerender({ state: 'installed' as ServerState });
@@ -966,10 +961,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('does not show toast when installed without prior stopping state', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'running' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'running' as ServerState },
+      });
 
       // Transition directly to installed (shouldn't happen normally)
       rerender({ state: 'installed' as ServerState });
@@ -981,10 +975,9 @@ describe('useServerStateToasts', () => {
   // Story 13.4: Installation complete toast
   describe('installation complete toast (Story 13.4)', () => {
     it('shows toast when transitioning from installing to installed', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'installing' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'installing' as ServerState },
+      });
 
       // Transition to installed (installation complete)
       rerender({ state: 'installed' as ServerState });
@@ -995,10 +988,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('does not show toast when installed without prior installing state', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'not_installed' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'not_installed' as ServerState },
+      });
 
       // Transition directly to installed (shouldn't happen normally)
       rerender({ state: 'installed' as ServerState });
@@ -1015,10 +1007,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('handles undefined state gracefully', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: undefined as ServerState | undefined } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: undefined as ServerState | undefined },
+      });
 
       rerender({ state: 'running' as ServerState });
 
@@ -1026,10 +1017,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('handles transition from undefined to starting without toast', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: undefined as ServerState | undefined } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: undefined as ServerState | undefined },
+      });
 
       rerender({ state: 'starting' as ServerState });
 
@@ -1037,10 +1027,9 @@ describe('useServerStateToasts', () => {
     });
 
     it('does not show toast for other state transitions', () => {
-      const { rerender } = renderHook(
-        ({ state }) => useServerStateToasts(state),
-        { initialProps: { state: 'installed' as ServerState } }
-      );
+      const { rerender } = renderHook(({ state }) => useServerStateToasts(state), {
+        initialProps: { state: 'installed' as ServerState },
+      });
 
       // installed -> starting
       rerender({ state: 'starting' as ServerState });

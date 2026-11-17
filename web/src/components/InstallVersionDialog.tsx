@@ -58,10 +58,7 @@ export type ActionType = 'install' | 'upgrade' | 'reinstall' | 'downgrade';
  * @param installedVersion - Currently installed version (null if not installed)
  * @returns The action type
  */
-export function getActionType(
-  targetVersion: string,
-  installedVersion: string | null
-): ActionType {
+export function getActionType(targetVersion: string, installedVersion: string | null): ActionType {
   if (!installedVersion) return 'install';
   if (targetVersion === installedVersion) return 'reinstall';
   // Simple string comparison works for VintageStory versions
@@ -117,15 +114,11 @@ function InstallProgress({ status }: { status: InstallStatus }) {
       data-testid="install-progress"
     >
       <div className="flex items-center justify-between text-sm">
-        <span className="capitalize text-muted-foreground">
-          {status.state.replace(/_/g, ' ')}
-        </span>
+        <span className="capitalize text-muted-foreground">{status.state.replace(/_/g, ' ')}</span>
         <span className="font-medium">{status.progress}%</span>
       </div>
       <Progress value={status.progress} />
-      {status.message && (
-        <p className="text-xs text-muted-foreground">{status.message}</p>
-      )}
+      {status.message && <p className="text-xs text-muted-foreground">{status.message}</p>}
     </div>
   );
 }
@@ -183,9 +176,7 @@ export function InstallVersionDialog({
   // - Installation is in progress
   // - Downgrade not confirmed
   const isInstallDisabled =
-    installMutation.isPending ||
-    isInstalling ||
-    (isDowngrade && !downgradeConfirmed);
+    installMutation.isPending || isInstalling || (isDowngrade && !downgradeConfirmed);
 
   const handleInstall = () => {
     const needsForce = actionType !== 'install';
@@ -228,9 +219,7 @@ export function InstallVersionDialog({
         <DialogHeader>
           <DialogTitle data-testid="dialog-title">{title}</DialogTitle>
           <DialogDescription>
-            {isInstalling
-              ? 'Installation in progress...'
-              : 'Confirm the server version change.'}
+            {isInstalling ? 'Installation in progress...' : 'Confirm the server version change.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -239,10 +228,7 @@ export function InstallVersionDialog({
         ) : (
           <>
             {/* Version Comparison Section */}
-            <div
-              className="py-4 space-y-3"
-              data-testid="version-comparison-section"
-            >
+            <div className="py-4 space-y-3" data-testid="version-comparison-section">
               {installedVersion ? (
                 <div className="flex items-center gap-2" data-testid="version-comparison">
                   <div className="text-center">
@@ -269,7 +255,10 @@ export function InstallVersionDialog({
               )}
 
               {/* Version Details */}
-              <div className="text-sm text-muted-foreground space-y-1" data-testid="version-details">
+              <div
+                className="text-sm text-muted-foreground space-y-1"
+                data-testid="version-details"
+              >
                 <p>
                   <span className="font-medium">Channel:</span>{' '}
                   <span className="capitalize">{version.channel}</span>
@@ -306,8 +295,8 @@ export function InstallVersionDialog({
                       Warning: Downgrading Server Version
                     </p>
                     <p className="text-sm text-destructive/80">
-                      Downgrading may cause world corruption or data loss. Make sure you
-                      have backups before proceeding.
+                      Downgrading may cause world corruption or data loss. Make sure you have
+                      backups before proceeding.
                     </p>
                   </div>
                 </div>
@@ -345,9 +334,7 @@ export function InstallVersionDialog({
               className="gap-2"
               data-testid="confirm-button"
             >
-              <Download
-                className={`h-4 w-4 ${installMutation.isPending ? 'animate-spin' : ''}`}
-              />
+              <Download className={`h-4 w-4 ${installMutation.isPending ? 'animate-spin' : ''}`} />
               {installMutation.isPending ? 'Starting...' : buttonText}
             </Button>
           )}

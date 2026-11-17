@@ -231,10 +231,7 @@ function InstallSection({
           {/* Version selector */}
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Version</label>
-            <Select
-              value={selectedVersion ?? ''}
-              onValueChange={setSelectedVersion}
-            >
+            <Select value={selectedVersion ?? ''} onValueChange={setSelectedVersion}>
               <SelectTrigger data-testid="mod-detail-version-select">
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
@@ -336,8 +333,7 @@ function InstalledVersionSection({
   // file, which the version change API refuses (Story 17.2, review M1). Such an offer
   // is not preselected and gets no Update button; the list shows it disabled with
   // "(no file)", so it cannot be picked either.
-  const offered =
-    updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
+  const offered = updateStatus?.status === 'update_available' ? updateStatus.offeredVersion : null;
   const offeredVersion = ownReleases.some(
     (choice) => choice.version === offered && choice.installable
   )
@@ -491,9 +487,7 @@ function ReleaseItem({ release, isLatest }: { release: ModRelease; isLatest: boo
           </span>
         </div>
         {release.gameVersions.length > 0 && (
-          <div className="text-xs text-muted-foreground">
-            Compatible: {compatVersions}
-          </div>
+          <div className="text-xs text-muted-foreground">Compatible: {compatVersions}</div>
         )}
       </div>
     </div>
@@ -565,9 +559,7 @@ export function ModDetailPage() {
   );
 
   // Sanitize HTML description for safe rendering (shared sanitizer, Story 16.4)
-  const sanitizedDescription = mod.description
-    ? sanitizeModDescription(mod.description)
-    : null;
+  const sanitizedDescription = mod.description ? sanitizeModDescription(mod.description) : null;
 
   // Story 18.1: media are optional; a response without the list shows no gallery
   // instead of failing the page (the guard above covers only the required fields)
@@ -734,8 +726,7 @@ export function ModDetailPage() {
                 data-testid="mod-detail-trailer-link"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Watch trailer{' '}
-                <span className="sr-only">{OPENS_IN_NEW_TAB}</span>
+                Watch trailer <span className="sr-only">{OPENS_IN_NEW_TAB}</span>
               </a>
             )}
           </div>
@@ -769,9 +760,7 @@ export function ModDetailPage() {
       <Separator />
 
       {/* Screenshots section (Story 18.1) */}
-      {screenshots.length > 0 && (
-        <ModScreenshotGallery key={mod.slug} screenshots={screenshots} />
-      )}
+      {screenshots.length > 0 && <ModScreenshotGallery key={mod.slug} screenshots={screenshots} />}
 
       {/* Description section */}
       <Card data-testid="mod-detail-description-card">
@@ -796,9 +785,7 @@ export function ModDetailPage() {
       {/* Releases section */}
       <Card data-testid="mod-detail-releases-card">
         <CardHeader>
-          <CardTitle className="text-lg">
-            Releases ({mod.releases.length})
-          </CardTitle>
+          <CardTitle className="text-lg">Releases ({mod.releases.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {mod.releases.length > 0 ? (

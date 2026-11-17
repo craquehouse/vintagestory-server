@@ -51,9 +51,7 @@ test.describe('No API key (Story 19.2)', () => {
 
       const screen = page.getByTestId('no-api-key-screen');
       await expect(screen).toBeVisible();
-      await expect(
-        screen.getByRole('heading', { name: 'No API key configured' })
-      ).toBeVisible();
+      await expect(screen.getByRole('heading', { name: 'No API key configured' })).toBeVisible();
       await expect(screen).toContainText('VS_API_KEY');
       await expect(page.getByRole('navigation')).toHaveCount(0);
 

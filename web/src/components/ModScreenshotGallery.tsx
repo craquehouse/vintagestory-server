@@ -138,7 +138,10 @@ export function ModScreenshotGallery({ screenshots }: ModScreenshotGalleryProps)
                 </Button>
               </div>
 
-              <div className="flex gap-2 overflow-x-auto p-1" data-testid="mod-screenshot-thumbnails">
+              <div
+                className="flex gap-2 overflow-x-auto p-1"
+                data-testid="mod-screenshot-thumbnails"
+              >
                 {screenshots.map((thumb, i) => (
                   <button
                     key={`${i}-${thumb.imageUrl}`}

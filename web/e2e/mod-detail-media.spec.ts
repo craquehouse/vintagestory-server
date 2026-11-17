@@ -105,7 +105,10 @@ async function readOnly(page: Page) {
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
-      await route.fulfill({ status: 500, json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } } });
+      await route.fulfill({
+        status: 500,
+        json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } },
+      });
       return;
     }
     await route.fallback();
@@ -240,10 +243,10 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
       // gallery sits on the page.
       await section.scrollIntoViewIfNeeded();
       const fullSize = () =>
-        [...new Set(recorded.cdn.map((r) => r.url).filter((url) => !url.includes('_55_60')))].sort();
-      await expect
-        .poll(fullSize)
-        .toEqual([1, 2, 4, 5].map((n) => `${CDN}/e2e-${n}.png`).sort());
+        [
+          ...new Set(recorded.cdn.map((r) => r.url).filter((url) => !url.includes('_55_60'))),
+        ].sort();
+      await expect.poll(fullSize).toEqual([1, 2, 4, 5].map((n) => `${CDN}/e2e-${n}.png`).sort());
       expect(recorded.cdn.length).toBeGreaterThan(0);
       expect(recorded.cdn.filter((r) => r.referer !== undefined)).toEqual([]);
       expect(recorded.youtube).toEqual([]);
@@ -258,15 +261,21 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
       await expect(trailer).toHaveAttribute('href', EMBED_URL);
       await expect(trailer).toHaveAttribute('target', '_blank');
       await expect(trailer).toHaveAttribute('rel', 'noopener noreferrer');
-      await expect(page.getByRole('link', { name: 'Watch trailer (opens in a new tab)', exact: true })).toHaveCount(1);
+      await expect(
+        page.getByRole('link', { name: 'Watch trailer (opens in a new tab)', exact: true })
+      ).toHaveCount(1);
 
       const description = page.getByTestId('mod-detail-description');
-      const docs = description.getByRole('link', { name: 'Docs (opens in a new tab)', exact: true });
+      const docs = description.getByRole('link', {
+        name: 'Docs (opens in a new tab)',
+        exact: true,
+      });
       await expect(docs).toHaveCount(1);
       const icon = await docs.evaluate((element) => {
         const style = getComputedStyle(element, '::after');
         return {
-          mask: style.getPropertyValue('mask-image') || style.getPropertyValue('-webkit-mask-image'),
+          mask:
+            style.getPropertyValue('mask-image') || style.getPropertyValue('-webkit-mask-image'),
           width: parseFloat(style.width),
         };
       });
@@ -335,7 +344,9 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
           type: 'page width',
           description: `${colorScheme}: ${withoutScreenshots}px without screenshots, ${withScreenshots}px with (viewport ${width}px)`,
         });
-        expect(withScreenshots, `${colorScheme}: page width`).toBeLessThanOrEqual(withoutScreenshots);
+        expect(withScreenshots, `${colorScheme}: page width`).toBeLessThanOrEqual(
+          withoutScreenshots
+        );
 
         await expectInside(section, `${colorScheme}: mod-screenshots`, width);
         await expectTarget44(page.getByTestId('mod-screenshot-prev'), `${colorScheme}: prev`);
@@ -348,7 +359,9 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
           clientWidth: element.clientWidth,
           overflowX: getComputedStyle(element).overflowX,
         }));
-        expect(scroll.scrollWidth, `${colorScheme}: strip scrolls`).toBeGreaterThan(scroll.clientWidth);
+        expect(scroll.scrollWidth, `${colorScheme}: strip scrolls`).toBeGreaterThan(
+          scroll.clientWidth
+        );
         expect(scroll.overflowX).toBe('auto');
 
         const position = page.getByTestId('mod-screenshot-position');
@@ -364,8 +377,14 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
         await dialog.evaluate((element) =>
           Promise.all(element.getAnimations().map((animation) => animation.finished))
         );
-        await expectTarget44(page.getByTestId('mod-screenshot-dialog-prev'), `${colorScheme}: dialog prev`);
-        await expectTarget44(page.getByTestId('mod-screenshot-dialog-next'), `${colorScheme}: dialog next`);
+        await expectTarget44(
+          page.getByTestId('mod-screenshot-dialog-prev'),
+          `${colorScheme}: dialog prev`
+        );
+        await expectTarget44(
+          page.getByTestId('mod-screenshot-dialog-next'),
+          `${colorScheme}: dialog next`
+        );
         await expectInside(dialog, `${colorScheme}: dialog`, width);
         await page.keyboard.press('Escape');
         await expect(dialog).toBeHidden();
@@ -381,38 +400,39 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
   test(
     'the betterruins lookup passes only CDN images and a youtube-nocookie embed URL',
     { tag: '@moddb' },
-    async ({
-    page,
-  }) => {
-    test.setTimeout(90_000);
-    await readOnly(page);
-    await serveModImagePlaceholders(page);
-    const lookup = page.waitForResponse((response) =>
-      response.url().includes('/mods/lookup/betterruins')
-    );
-    await page.goto('/game-server/mods/browse/betterruins');
+    async ({ page }) => {
+      test.setTimeout(90_000);
+      await readOnly(page);
+      await serveModImagePlaceholders(page);
+      const lookup = page.waitForResponse((response) =>
+        response.url().includes('/mods/lookup/betterruins')
+      );
+      await page.goto('/game-server/mods/browse/betterruins');
 
-    const response = await lookup;
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      data: {
-        screenshots: { image_url: string; thumbnail_url: string; filename: string }[];
-        trailer_url: string | null;
+      const response = await lookup;
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        data: {
+          screenshots: { image_url: string; thumbnail_url: string; filename: string }[];
+          trailer_url: string | null;
+        };
       };
-    };
-    for (const shot of body.data.screenshots) {
-      expect(shot.image_url.startsWith(`${CDN}/`)).toBe(true);
-      expect(shot.thumbnail_url.startsWith(`${CDN}/`)).toBe(true);
-    }
-    if (body.data.trailer_url !== null) {
-      expect(body.data.trailer_url).toMatch(/^https:\/\/www\.youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}$/);
-    }
+      for (const shot of body.data.screenshots) {
+        expect(shot.image_url.startsWith(`${CDN}/`)).toBe(true);
+        expect(shot.thumbnail_url.startsWith(`${CDN}/`)).toBe(true);
+      }
+      if (body.data.trailer_url !== null) {
+        expect(body.data.trailer_url).toMatch(
+          /^https:\/\/www\.youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}$/
+        );
+      }
 
-    await expect(page.getByTestId('mod-detail-page')).toBeVisible({ timeout: 60_000 });
-    if (body.data.screenshots.length > 0) {
-      await expect(page.getByTestId('mod-screenshots')).toBeVisible();
-    } else {
-      await expect(page.getByTestId('mod-screenshots')).toHaveCount(0);
+      await expect(page.getByTestId('mod-detail-page')).toBeVisible({ timeout: 60_000 });
+      if (body.data.screenshots.length > 0) {
+        await expect(page.getByTestId('mod-screenshots')).toBeVisible();
+      } else {
+        await expect(page.getByTestId('mod-screenshots')).toHaveCount(0);
+      }
     }
-  });
+  );
 });

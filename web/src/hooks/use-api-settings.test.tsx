@@ -21,9 +21,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -447,7 +445,6 @@ describe('useUpdateApiSetting with a secret key (Story 14.6)', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });
-
 
 describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
   const originalFetch = globalThis.fetch;

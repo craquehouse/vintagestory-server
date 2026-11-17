@@ -25,9 +25,7 @@ describe('SecretSettingStatus', () => {
 
     const container = screen.getByTestId('secret-setting-Password');
     expect(container).toHaveTextContent('Password');
-    expect(
-      screen.getByText('Only an Admin key can see or change this value.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Only an Admin key can see or change this value.')).toBeInTheDocument();
   });
 
   it('has no input, no password field and no button', () => {

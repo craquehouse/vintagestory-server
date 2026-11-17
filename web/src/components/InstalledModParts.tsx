@@ -69,7 +69,12 @@ interface ModCompatibilityProps {
  * Compatibility badge (message as tooltip) and, for unverified and incompatible mods,
  * the most recent supported game version (Story 16.3, Epic 16 ADR-2 decision 5).
  */
-export function ModCompatibility({ slug, status, compatibility, showMessage }: ModCompatibilityProps) {
+export function ModCompatibility({
+  slug,
+  status,
+  compatibility,
+  showMessage,
+}: ModCompatibilityProps) {
   const isFlagged = status !== 'compatible';
   const latestSupported = isFlagged ? compatibility?.latestSupportedGameVersion : null;
   const message = showMessage && isFlagged ? compatibility?.message : null;

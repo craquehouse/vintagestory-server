@@ -339,9 +339,7 @@ async function noteContrast(page: Page): Promise<number> {
     );
     const card = document.querySelector('[data-testid="mod-detail-description-card"]');
     if (!note || !card) throw new Error('note or card missing');
-    const context = document
-      .createElement('canvas')
-      .getContext('2d', { willReadFrequently: true });
+    const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
     if (!context) throw new Error('no canvas');
     const rgb = (color: string) => {
       context.clearRect(0, 0, 1, 1);
@@ -413,9 +411,9 @@ test.describe('Content-Security-Policy', () => {
         await page.goto(path);
         await expect(page.getByTestId(ready).first()).toBeVisible({ timeout: 30_000 });
         await page.waitForLoadState('load');
-        expect(
-          await page.evaluate(() => document.documentElement.classList.contains('dark'))
-        ).toBe(colorScheme === 'dark');
+        expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(
+          colorScheme === 'dark'
+        );
 
         if (path.endsWith(SLUG)) {
           const description = page.getByTestId('mod-detail-description');
@@ -437,11 +435,10 @@ test.describe('Content-Security-Policy', () => {
           await expect
             .poll(() => gallery.evaluate((element: HTMLImageElement) => element.naturalWidth))
             .toBeGreaterThan(0);
-          expect(recorded.requests.filter((url) => url.startsWith('http://images.example.com/')))
-            .toEqual([]);
-          expect(recorded.requests.filter((url) => new URL(url).pathname === '/c.png')).toEqual(
-            []
-          );
+          expect(
+            recorded.requests.filter((url) => url.startsWith('http://images.example.com/'))
+          ).toEqual([]);
+          expect(recorded.requests.filter((url) => new URL(url).pathname === '/c.png')).toEqual([]);
         }
 
         await expectClean(page, recorded, `${path} (${colorScheme})`);
@@ -464,16 +461,16 @@ test.describe('Content-Security-Policy', () => {
     await page.getByTestId(`mod-toggle-${INSTALLED_SLUG}`).first().click();
     const toast = page.locator('[data-sonner-toast]').first();
     await expect(toast).toBeVisible();
-    expect(await toast.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toMatch(
-      /^(transparent|rgba\(0, 0, 0, 0\))$/
-    );
+    expect(
+      await toast.evaluate((element) => getComputedStyle(element).backgroundColor)
+    ).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
 
     await page.getByTestId(`mod-remove-${INSTALLED_SLUG}`).first().click();
     const dialog = page.getByTestId('remove-dialog');
     await expect(dialog).toBeVisible();
-    expect(await dialog.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toMatch(
-      /^(transparent|rgba\(0, 0, 0, 0\))$/
-    );
+    expect(
+      await dialog.evaluate((element) => getComputedStyle(element).backgroundColor)
+    ).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
     await page.getByTestId('remove-dialog-cancel').click();
     await expect(dialog).toBeHidden();
 

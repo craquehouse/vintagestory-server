@@ -78,10 +78,7 @@ export function ModBrowseGrid({
 }: ModBrowseGridProps) {
   if (isLoading) {
     return (
-      <div
-        className={GRID_CLASSES}
-        data-testid="mod-browse-grid-loading"
-      >
+      <div className={GRID_CLASSES} data-testid="mod-browse-grid-loading">
         {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
           <ModCardSkeleton key={index} />
         ))}
@@ -91,20 +88,14 @@ export function ModBrowseGrid({
 
   if (mods.length === 0) {
     return (
-      <div
-        className="text-center py-12 text-muted-foreground"
-        data-testid="mod-browse-grid-empty"
-      >
+      <div className="text-center py-12 text-muted-foreground" data-testid="mod-browse-grid-empty">
         No mods found matching your criteria
       </div>
     );
   }
 
   return (
-    <div
-      className={GRID_CLASSES}
-      data-testid="mod-browse-grid"
-    >
+    <div className={GRID_CLASSES} data-testid="mod-browse-grid">
       {mods.map((mod) => (
         <ModCard
           key={mod.slug}

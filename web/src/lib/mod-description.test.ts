@@ -119,7 +119,9 @@ describe('sanitizeModDescription', () => {
 
   describe('links', () => {
     it('opens links in a new tab with rel="noopener noreferrer"', () => {
-      const el = parse(sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>'));
+      const el = parse(
+        sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>')
+      );
       const link = el.querySelector('a');
       expect(link).not.toBeNull();
       expect(link?.getAttribute('href')).toBe('https://mods.vintagestory.at/carryonlib');
@@ -138,7 +140,9 @@ describe('sanitizeModDescription', () => {
 
     it('opens SVG links in a new tab with rel="noopener noreferrer"', () => {
       const el = parse(
-        sanitize('<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>')
+        sanitize(
+          '<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>'
+        )
       );
       const link = el.querySelector('svg a');
       expect(link).not.toBeNull();
@@ -147,7 +151,9 @@ describe('sanitizeModDescription', () => {
     });
 
     it('leaves anchors without an href alone', () => {
-      const el = parse(sanitize('<p><a name="top">Top</a> and <a href="javascript:x()">bad</a></p>'));
+      const el = parse(
+        sanitize('<p><a name="top">Top</a> and <a href="javascript:x()">bad</a></p>')
+      );
       for (const a of el.querySelectorAll('a')) {
         expect(a.hasAttribute('target')).toBe(false);
         expect(a.hasAttribute('rel')).toBe(false);
@@ -157,7 +163,9 @@ describe('sanitizeModDescription', () => {
 
   describe('new tab note (Story 18.1, VSS-tzl)', () => {
     it('ends a link with one screen reader note', () => {
-      const el = parse(sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>'));
+      const el = parse(
+        sanitize('<p><a href="https://mods.vintagestory.at/carryonlib">CarryOn Lib</a></p>')
+      );
       const link = el.querySelector('a');
       const notes = link?.querySelectorAll('span.sr-only[data-new-tab-note]') ?? [];
       expect(notes).toHaveLength(1);
@@ -171,7 +179,11 @@ describe('sanitizeModDescription', () => {
     });
 
     it('puts the note after an image in a link', () => {
-      const el = parse(sanitize('<a href="https://example.com"><img src="https://i.imgur.com/a.png" alt="logo"></a>'));
+      const el = parse(
+        sanitize(
+          '<a href="https://example.com"><img src="https://i.imgur.com/a.png" alt="logo"></a>'
+        )
+      );
       const link = el.querySelector('a');
       expect(link?.firstElementChild?.tagName).toBe('IMG');
       expect(link?.lastElementChild?.hasAttribute('data-new-tab-note')).toBe(true);
@@ -179,14 +191,18 @@ describe('sanitizeModDescription', () => {
     });
 
     it('adds no note to anchors without an href or with a removed javascript: href', () => {
-      const el = parse(sanitize('<p><a name="top">Top</a> and <a href="javascript:x()">bad</a></p>'));
+      const el = parse(
+        sanitize('<p><a name="top">Top</a> and <a href="javascript:x()">bad</a></p>')
+      );
       expect(el.querySelectorAll('[data-new-tab-note]')).toHaveLength(0);
       expect(el.textContent).toBe('Top and bad');
     });
 
     it('adds no note to an SVG link, which keeps target and rel', () => {
       const el = parse(
-        sanitize('<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>')
+        sanitize(
+          '<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>'
+        )
       );
       const link = el.querySelector('svg a');
       expect(link?.getAttribute('target')).toBe('_blank');
@@ -230,7 +246,9 @@ describe('sanitizeModDescription', () => {
 describe('sanitizeModDescription keeps what the detail page shows', () => {
   it('keeps images and inline styles as the detail page shows them today', () => {
     const el = parse(
-      sanitizeModDescription('<p style="color: #222">Text</p><img src="https://i.imgur.com/a.png" alt="logo">')
+      sanitizeModDescription(
+        '<p style="color: #222">Text</p><img src="https://i.imgur.com/a.png" alt="logo">'
+      )
     );
     expect(el.querySelector('img')?.getAttribute('src')).toBe('https://i.imgur.com/a.png');
     expect(el.querySelector('p')?.getAttribute('style')).toBe('color: #222');
@@ -248,7 +266,9 @@ describe('hook isolation', () => {
     expect(el.querySelector('a')?.hasAttribute('target')).toBe(false);
     expect(el.querySelector('[data-new-tab-note]')).toBeNull();
     expect(el.textContent).toBe('x');
-    expect(parse(DOMPurify.sanitize('<img src="http://x.test/a.png">')).querySelector('img')).not.toBeNull();
+    expect(
+      parse(DOMPurify.sanitize('<img src="http://x.test/a.png">')).querySelector('img')
+    ).not.toBeNull();
   });
 });
 
@@ -323,7 +343,14 @@ describe('images the page cannot load (Story 19.3, VSS-my4c)', () => {
       )
     );
     const children = Array.from(el.children);
-    expect(children.map((child) => child.tagName)).toEqual(['P', 'SPAN', 'SPAN', 'IMG', 'SPAN', 'P']);
+    expect(children.map((child) => child.tagName)).toEqual([
+      'P',
+      'SPAN',
+      'SPAN',
+      'IMG',
+      'SPAN',
+      'P',
+    ]);
     expect(children.map((child) => child.textContent)).toEqual([
       'Before',
       'Image not shown: one',
@@ -337,7 +364,9 @@ describe('images the page cannot load (Story 19.3, VSS-my4c)', () => {
 
   it('puts the note inside a link that keeps its new-tab handling', () => {
     const el = parse(
-      sanitizeModDescription('<a href="https://x.test/"><img src="http://x.test/a.png" alt="pic"></a>')
+      sanitizeModDescription(
+        '<a href="https://x.test/"><img src="http://x.test/a.png" alt="pic"></a>'
+      )
     );
     const link = el.querySelector('a');
     expect(link?.getAttribute('target')).toBe('_blank');
@@ -353,9 +382,8 @@ describe('images the page cannot load (Story 19.3, VSS-my4c)', () => {
     );
     const el = parse(sanitizeModDescription(once));
     expect(el.querySelector('img')).toBeNull();
-    expect(Array.from(el.querySelectorAll('[data-image-not-shown]')).map((n) => n.textContent)).toEqual([
-      'Image not shown: a',
-      'Image not shown: b',
-    ]);
+    expect(
+      Array.from(el.querySelectorAll('[data-image-not-shown]')).map((n) => n.textContent)
+    ).toEqual(['Image not shown: a', 'Image not shown: b']);
   });
 });

@@ -20,11 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { SettingType } from '@/api/types';
-import {
-  useSettingField,
-  type Validator,
-  coerceSettingValue,
-} from '@/hooks/use-setting-field';
+import { useSettingField, type Validator, coerceSettingValue } from '@/hooks/use-setting-field';
 
 /**
  * Props for the SettingField component.
@@ -175,27 +171,19 @@ export function SettingField({
     <div className={cn('space-y-1', className)}>
       {/* Label and badges row */}
       <div className="flex items-center gap-2">
-        <label
-          htmlFor={settingKey}
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor={settingKey} className="text-sm font-medium text-foreground">
           {label}
         </label>
 
         {/* Env managed badge */}
         {envManaged && (
-          <Badge
-            variant="outline"
-            className="text-xs bg-warning/10 text-warning border-warning/30"
-          >
+          <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
             Env: {envVar || `VS_CFG_${settingKey.toUpperCase()}`}
           </Badge>
         )}
 
         {/* Loading indicator */}
-        {field.isPending && (
-          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-        )}
+        {field.isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
       </div>
 
       {/* Input field based on type */}
@@ -267,21 +255,14 @@ export function SettingField({
 
       {/* Description text */}
       {description && !field.error && (
-        <p
-          id={`${settingKey}-desc`}
-          className="text-xs text-muted-foreground"
-        >
+        <p id={`${settingKey}-desc`} className="text-xs text-muted-foreground">
           {description}
         </p>
       )}
 
       {/* Error message */}
       {field.error && (
-        <p
-          id={`${settingKey}-error`}
-          className="text-xs text-destructive"
-          role="alert"
-        >
+        <p id={`${settingKey}-error`} className="text-xs text-destructive" role="alert">
           {field.error}
         </p>
       )}

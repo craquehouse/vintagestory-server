@@ -2,7 +2,13 @@ import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from './ThemeContext';
 
 vi.mock('next-themes', () => ({
-  ThemeProvider: ({ children, attribute, defaultTheme, enableSystem, disableTransitionOnChange }: any) => {
+  ThemeProvider: ({
+    children,
+    attribute,
+    defaultTheme,
+    enableSystem,
+    disableTransitionOnChange,
+  }: any) => {
     // Verify props are passed correctly
     expect(attribute).toBe('class');
     expect(defaultTheme).toBe('system');

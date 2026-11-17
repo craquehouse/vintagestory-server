@@ -12,13 +12,13 @@
  * @returns Cookie value or null if not found
  */
 export function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
+  if (typeof document === 'undefined') return null;
 
-  const cookies = document.cookie.split("; ");
+  const cookies = document.cookie.split('; ');
   for (const cookie of cookies) {
-    const [cookieName, ...valueParts] = cookie.split("=");
+    const [cookieName, ...valueParts] = cookie.split('=');
     if (cookieName === name) {
-      return decodeURIComponent(valueParts.join("="));
+      return decodeURIComponent(valueParts.join('='));
     }
   }
   return null;
@@ -31,12 +31,8 @@ export function getCookie(name: string): string | null {
  * @param value - Cookie value (will be URI encoded)
  * @param maxAge - Max age in seconds (default: 1 year)
  */
-export function setCookie(
-  name: string,
-  value: string,
-  maxAge: number = 31536000
-): void {
-  if (typeof document === "undefined") return;
+export function setCookie(name: string, value: string, maxAge: number = 31536000): void {
+  if (typeof document === 'undefined') return;
 
   const encodedValue = encodeURIComponent(value);
   document.cookie = `${name}=${encodedValue}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -48,7 +44,7 @@ export function setCookie(
  * @param name - Cookie name to delete
  */
 export function deleteCookie(name: string): void {
-  if (typeof document === "undefined") return;
+  if (typeof document === 'undefined') return;
 
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
 }

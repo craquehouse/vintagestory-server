@@ -51,7 +51,12 @@ function outcomeText(item: ModUpdateAllItem): string {
   }
 }
 
-export function UpdateAllDialog({ open, onOpenChange, updates, gameVersion }: UpdateAllDialogProps) {
+export function UpdateAllDialog({
+  open,
+  onOpenChange,
+  updates,
+  gameVersion,
+}: UpdateAllDialogProps) {
   const { mutate, isPending, data, reset } = useApplyAllModUpdates();
   const summary = data?.data;
 

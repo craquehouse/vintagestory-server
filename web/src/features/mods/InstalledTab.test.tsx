@@ -175,9 +175,7 @@ describe('InstalledTab', () => {
       render(<InstalledTab />, { wrapper: createWrapper(queryClient) });
 
       // Verify ModLookupInput is NOT present
-      expect(
-        screen.queryByPlaceholderText('Enter mod slug or paste URL')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Enter mod slug or paste URL')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-search-input')).not.toBeInTheDocument();
     });
 
@@ -561,9 +559,7 @@ describe('InstalledTab', () => {
       render(<InstalledTab />, { wrapper: createWrapper(createTestQueryClient()) });
 
       await waitFor(() => {
-        expect(screen.getByTestId('mod-updates-last-checked')).toHaveTextContent(
-          'Not checked yet'
-        );
+        expect(screen.getByTestId('mod-updates-last-checked')).toHaveTextContent('Not checked yet');
       });
     });
 

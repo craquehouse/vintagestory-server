@@ -117,7 +117,11 @@ describe('ModUpdateCell', () => {
   it('adds the last check error to the tooltip', () => {
     render(
       <ModUpdateCell
-        status={item({ status: 'unknown', reason: 'not_checked', error: 'mod database unavailable' })}
+        status={item({
+          status: 'unknown',
+          reason: 'not_checked',
+          error: 'mod database unavailable',
+        })}
       />
     );
 

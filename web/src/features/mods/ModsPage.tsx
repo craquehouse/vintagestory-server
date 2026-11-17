@@ -84,11 +84,7 @@ export function ModsPage() {
   };
 
   return (
-    <div
-      className="flex h-full flex-col gap-4"
-      data-testid="mods-page"
-      aria-label="Mods page"
-    >
+    <div className="flex h-full flex-col gap-4" data-testid="mods-page" aria-label="Mods page">
       {/* Page heading */}
       <div>
         <h1 className="text-2xl font-bold">Mods</h1>

@@ -7,7 +7,7 @@ describe('NoApiKeyScreen', () => {
     render(<NoApiKeyScreen devServer={false} />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'No API key configured' }),
+      screen.getByRole('heading', { level: 1, name: 'No API key configured' })
     ).toBeInTheDocument();
   });
 

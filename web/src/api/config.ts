@@ -141,12 +141,8 @@ export async function updateApiSetting(
 export async function fetchConfigDirectories(
   directory?: string
 ): Promise<ApiResponse<ConfigDirectoryListData>> {
-  const params = directory
-    ? `?directory=${encodeURIComponent(directory)}`
-    : '';
-  return apiClient<ApiResponse<ConfigDirectoryListData>>(
-    `${API_PREFIX}/directories${params}`
-  );
+  const params = directory ? `?directory=${encodeURIComponent(directory)}` : '';
+  return apiClient<ApiResponse<ConfigDirectoryListData>>(`${API_PREFIX}/directories${params}`);
 }
 
 /**
@@ -159,12 +155,8 @@ export async function fetchConfigDirectories(
 export async function fetchConfigFiles(
   directory?: string
 ): Promise<ApiResponse<ConfigFileListData>> {
-  const params = directory
-    ? `?directory=${encodeURIComponent(directory)}`
-    : '';
-  return apiClient<ApiResponse<ConfigFileListData>>(
-    `${API_PREFIX}/files${params}`
-  );
+  const params = directory ? `?directory=${encodeURIComponent(directory)}` : '';
+  return apiClient<ApiResponse<ConfigFileListData>>(`${API_PREFIX}/files${params}`);
 }
 
 /**

@@ -61,10 +61,9 @@ export class WebSocketTokenError extends Error {
  */
 export async function requestWebSocketToken(): Promise<WebSocketTokenData> {
   try {
-    const response = await apiClient<WebSocketTokenResponse>(
-      '/api/v1alpha1/auth/ws-token',
-      { method: 'POST' }
-    );
+    const response = await apiClient<WebSocketTokenResponse>('/api/v1alpha1/auth/ws-token', {
+      method: 'POST',
+    });
     return response.data;
   } catch (error) {
     // Re-wrap errors for consistent handling

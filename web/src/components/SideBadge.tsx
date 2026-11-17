@@ -30,7 +30,9 @@ const VALID_SIDES = new Set(['client', 'server', 'both']);
  * Normalizes side values to lowercase for consistent comparison.
  * Returns 'both' as fallback for invalid/missing values to ensure badges render.
  */
-function normalizeSide(side: ModSide | BrowseModSide | null | undefined): 'client' | 'server' | 'both' {
+function normalizeSide(
+  side: ModSide | BrowseModSide | null | undefined
+): 'client' | 'server' | 'both' {
   if (!side) {
     return 'both'; // Fallback: show both badges if side is missing
   }
@@ -61,21 +63,13 @@ export function SideBadge({ side, className }: SideBadgeProps) {
       data-side={side}
     >
       {showClient && (
-        <Badge
-          variant="outline"
-          className="gap-1"
-          data-testid="side-badge-client"
-        >
+        <Badge variant="outline" className="gap-1" data-testid="side-badge-client">
           <Monitor className="h-3 w-3" aria-hidden="true" />
           <span>Client</span>
         </Badge>
       )}
       {showServer && (
-        <Badge
-          variant="outline"
-          className="gap-1"
-          data-testid="side-badge-server"
-        >
+        <Badge variant="outline" className="gap-1" data-testid="side-badge-server">
           <Server className="h-3 w-3" aria-hidden="true" />
           <span>Server</span>
         </Badge>

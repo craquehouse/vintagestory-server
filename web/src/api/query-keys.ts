@@ -51,9 +51,7 @@ export const queryKeys = {
         : (['config', 'directories'] as const),
     // File listing - supports optional directory param (Story 9.7)
     files: (directory?: string) =>
-      directory
-        ? (['config', 'files', directory] as const)
-        : (['config', 'files'] as const),
+      directory ? (['config', 'files', directory] as const) : (['config', 'files'] as const),
     file: (name: string) => ['config', 'files', 'content', name] as const,
     // Game settings (Story 6.4)
     game: ['config', 'game'] as const,

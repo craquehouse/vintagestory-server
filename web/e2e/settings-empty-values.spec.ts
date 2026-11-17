@@ -51,7 +51,10 @@ test.describe('Game settings with no value', () => {
   test('settings with no value are empty fields, never "null"', async ({ page, request }) => {
     const values = await settingValues(request);
     const empty = EMPTY_FIELDS.filter(({ key }) => values.get(key) === null);
-    test.skip(empty.length === 0, 'Description, Password and IP Address all have values on this stack');
+    test.skip(
+      empty.length === 0,
+      'Description, Password and IP Address all have values on this stack'
+    );
 
     await page.goto(SETTINGS);
     await expect(page.getByTestId('game-config-panel')).toBeVisible({ timeout: 30000 });

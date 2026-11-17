@@ -36,12 +36,16 @@ const SORT_OPTIONS: Array<{
 ];
 
 export function SortControl({ value, onChange }: SortControlProps) {
-  const currentLabel =
-    SORT_OPTIONS.find((opt) => opt.value === value)?.label || 'Newest';
+  const currentLabel = SORT_OPTIONS.find((opt) => opt.value === value)?.label || 'Newest';
 
   const handleSelect = (sortValue: string) => {
     // Validate before calling onChange
-    if (sortValue === 'downloads' || sortValue === 'trending' || sortValue === 'recent' || sortValue === 'name') {
+    if (
+      sortValue === 'downloads' ||
+      sortValue === 'trending' ||
+      sortValue === 'recent' ||
+      sortValue === 'name'
+    ) {
       onChange(sortValue);
     }
   };
@@ -60,10 +64,7 @@ export function SortControl({ value, onChange }: SortControlProps) {
           <DropdownMenuLabel>Sort Order</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {SORT_OPTIONS.map((option) => (
-            <DropdownMenuItem
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-            >
+            <DropdownMenuItem key={option.value} onClick={() => handleSelect(option.value)}>
               {option.label}
             </DropdownMenuItem>
           ))}

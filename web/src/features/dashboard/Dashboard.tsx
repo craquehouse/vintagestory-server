@@ -21,13 +21,7 @@
 
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DiskSpaceWarningBanner } from '@/components/DiskSpaceWarningBanner';
 import { ModUpdatesNotice } from '@/components/ModUpdatesNotice';
 import { EmptyServerState } from '@/components/EmptyServerState';
@@ -56,7 +50,11 @@ export function Dashboard() {
 
   // Time range state for metrics chart (Story 12.5: AC 3)
   const [timeRange, setTimeRange] = useState(DEFAULT_TIME_RANGE);
-  const { data: historyData, isLoading: isHistoryLoading, error: historyError } = useMetricsHistory(timeRange);
+  const {
+    data: historyData,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useMetricsHistory(timeRange);
 
   // Show toasts when server state transitions complete
   useServerStateToasts(serverStatus?.state);
@@ -120,10 +118,7 @@ export function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2" data-testid="dashboard-stats-grid">
         {/* Server Status with controls (AC: 3) */}
         <StatCardErrorBoundary title="Server Status" testId="server-status-card">
-          <ServerStatusCard
-            state={state}
-            version={serverStatus?.version}
-          />
+          <ServerStatusCard state={state} version={serverStatus?.version} />
         </StatCardErrorBoundary>
 
         {/* Memory Usage with API/Game breakdown (AC: 2, 4) */}
@@ -138,10 +133,7 @@ export function Dashboard() {
 
         {/* Uptime */}
         <StatCardErrorBoundary title="Uptime" testId="uptime-card">
-          <UptimeCard
-            uptimeSeconds={serverStatus?.uptimeSeconds}
-            isRunning={isRunning}
-          />
+          <UptimeCard uptimeSeconds={serverStatus?.uptimeSeconds} isRunning={isRunning} />
         </StatCardErrorBoundary>
       </div>
 
@@ -150,15 +142,10 @@ export function Dashboard() {
         <CardHeader className="pb-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-lg">Memory Usage Over Time</CardTitle>
-            <TimeRangeSelector
-              value={timeRange}
-              onChange={setTimeRange}
-            />
+            <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
           </div>
           {historyError && (
-            <CardDescription className="text-destructive">
-              Error loading chart data
-            </CardDescription>
+            <CardDescription className="text-destructive">Error loading chart data</CardDescription>
           )}
         </CardHeader>
         <CardContent>

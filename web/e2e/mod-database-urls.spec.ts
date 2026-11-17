@@ -134,7 +134,10 @@ async function readOnly(page: Page) {
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
-      await route.fulfill({ status: 500, json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } } });
+      await route.fulfill({
+        status: 500,
+        json: { detail: { code: 'E2E_BLOCKED', message: 'read only' } },
+      });
       return;
     }
     await route.fallback();
@@ -192,7 +195,9 @@ test.describe('Mod logos and links from the mod database (Story 19.6)', () => {
     expect(cdn.filter((r) => r.referer !== undefined)).toEqual([]);
   });
 
-  test('the detail page shows the logo without a referrer and the https links', async ({ page }) => {
+  test('the detail page shows the logo without a referrer and the https links', async ({
+    page,
+  }) => {
     const cdn = await stubModDatabase(page);
     await page.goto(`${BROWSE}/e2e-logo`);
     await expect(page.getByTestId('mod-detail-page')).toBeVisible({ timeout: 30_000 });

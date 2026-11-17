@@ -171,9 +171,7 @@ describe('MemoryCard', () => {
       render(<MemoryCard />);
 
       expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: 128.5 MB');
-      expect(screen.getByTestId('memory-card-game')).toHaveTextContent(
-        'Game: 512.0 MB'
-      );
+      expect(screen.getByTestId('memory-card-game')).toHaveTextContent('Game: 512.0 MB');
     });
 
     it('uses GB for large total memory (>= 1024 MB)', () => {
@@ -324,9 +322,7 @@ describe('MemoryCard', () => {
       // API memory is NaN, so only game memory should be used
       expect(screen.getByTestId('memory-card-value')).toHaveTextContent('N/A');
       expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: N/A');
-      expect(screen.getByTestId('memory-card-game')).toHaveTextContent(
-        'Game: 512.0 MB'
-      );
+      expect(screen.getByTestId('memory-card-game')).toHaveTextContent('Game: 512.0 MB');
     });
 
     it('handles negative values as invalid', () => {
@@ -421,9 +417,7 @@ describe('MemoryCard', () => {
       render(<MemoryCard />);
 
       expect(screen.getByTestId('memory-card-api')).toHaveTextContent('API: 128.5 MB');
-      expect(screen.getByTestId('memory-card-game')).toHaveTextContent(
-        'Game: 512.8 MB'
-      );
+      expect(screen.getByTestId('memory-card-game')).toHaveTextContent('Game: 512.8 MB');
     });
 
     it('formats GB values to 1 decimal place', () => {

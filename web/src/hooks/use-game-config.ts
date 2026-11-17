@@ -94,24 +94,19 @@ export function useUpdateGameSetting() {
       await queryClient.cancelQueries({ queryKey: queryKeys.config.game });
 
       // Snapshot the previous value
-      const previous = queryClient.getQueryData<ApiResponse<GameConfigData>>(
-        queryKeys.config.game
-      );
+      const previous = queryClient.getQueryData<ApiResponse<GameConfigData>>(queryKeys.config.game);
 
       // Optimistically update to the new value
       if (previous) {
-        queryClient.setQueryData<ApiResponse<GameConfigData>>(
-          queryKeys.config.game,
-          {
-            ...previous,
-            data: {
-              ...previous.data,
-              settings: previous.data.settings.map((setting) =>
-                setting.key === key ? { ...setting, value } : setting
-              ),
-            },
-          }
-        );
+        queryClient.setQueryData<ApiResponse<GameConfigData>>(queryKeys.config.game, {
+          ...previous,
+          data: {
+            ...previous.data,
+            settings: previous.data.settings.map((setting) =>
+              setting.key === key ? { ...setting, value } : setting
+            ),
+          },
+        });
       }
 
       return { previous };

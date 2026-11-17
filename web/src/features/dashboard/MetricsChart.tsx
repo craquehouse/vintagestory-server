@@ -124,24 +124,13 @@ export function CustomTooltip({ active, payload, label, showTotal }: CustomToolt
   }
 
   // Calculate total for stacked area mode
-  const total = showTotal
-    ? payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
-    : null;
+  const total = showTotal ? payload.reduce((sum, entry) => sum + (entry.value ?? 0), 0) : null;
 
   return (
-    <div
-      className="rounded-lg border bg-card px-3 py-2 shadow-md"
-      data-testid="chart-tooltip"
-    >
-      <p className="mb-1 text-xs text-muted-foreground">
-        {formatTooltipTime(String(label ?? ''))}
-      </p>
+    <div className="rounded-lg border bg-card px-3 py-2 shadow-md" data-testid="chart-tooltip">
+      <p className="mb-1 text-xs text-muted-foreground">{formatTooltipTime(String(label ?? ''))}</p>
       {payload.map((entry) => (
-        <p
-          key={entry.dataKey}
-          className="text-sm"
-          style={{ color: entry.color }}
-        >
+        <p key={entry.dataKey} className="text-sm" style={{ color: entry.color }}>
           {entry.name}: {formatMemory(entry.value)}
         </p>
       ))}
@@ -229,10 +218,7 @@ function ChartTypeToggle({
  * }
  * ```
  */
-export const MetricsChart = memo(function MetricsChart({
-  data,
-  height = 300,
-}: MetricsChartProps) {
+export const MetricsChart = memo(function MetricsChart({ data, height = 300 }: MetricsChartProps) {
   const [chartType, setChartType] = useState<ChartType>('line');
 
   // Shared axis and legend configuration

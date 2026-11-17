@@ -89,12 +89,7 @@ function summaryResponse(pendingRestart: boolean) {
 
 function renderDialog(onOpenChange = vi.fn()) {
   render(
-    <UpdateAllDialog
-      open
-      onOpenChange={onOpenChange}
-      updates={updates}
-      gameVersion="1.22.7"
-    />,
+    <UpdateAllDialog open onOpenChange={onOpenChange} updates={updates} gameVersion="1.22.7" />,
     { wrapper }
   );
   return onOpenChange;
@@ -150,7 +145,7 @@ describe('UpdateAllDialog', () => {
     ).toHaveLength(1);
   });
 
-  it('shows a file name conflict as the failed mod\'s message', async () => {
+  it("shows a file name conflict as the failed mod's message", async () => {
     // Story 19.4 AC 18 (FR219): Update All reports the conflict and goes on
     const message =
       "Cannot change the version of 'delta': a file named delta_4.1.0.zip already exists in the mods directory.";
@@ -305,4 +300,3 @@ describe('UpdateAllDialog', () => {
     expect(screen.queryByTestId('update-all-results')).not.toBeInTheDocument();
   });
 });
-

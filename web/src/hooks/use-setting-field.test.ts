@@ -1,10 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import {
-  useSettingField,
-  validators,
-  coerceSettingValue,
-} from './use-setting-field';
+import { useSettingField, validators, coerceSettingValue } from './use-setting-field';
 import * as durationUtils from '@/lib/duration-utils';
 
 describe('useSettingField', () => {
@@ -706,26 +702,17 @@ describe('validators', () => {
 
   describe('compose', () => {
     it('returns first error from composed validators', () => {
-      const validate = validators.compose(
-        validators.positiveInt(),
-        validators.range(1, 100)
-      );
+      const validate = validators.compose(validators.positiveInt(), validators.range(1, 100));
       expect(validate(-1)).toBe('Must be a positive integer');
     });
 
     it('checks all validators and returns first error', () => {
-      const validate = validators.compose(
-        validators.positiveInt(),
-        validators.range(1, 100)
-      );
+      const validate = validators.compose(validators.positiveInt(), validators.range(1, 100));
       expect(validate(200)).toBe('Value must be between 1 and 100');
     });
 
     it('returns null when all validators pass', () => {
-      const validate = validators.compose(
-        validators.positiveInt(),
-        validators.range(1, 100)
-      );
+      const validate = validators.compose(validators.positiveInt(), validators.range(1, 100));
       expect(validate(50)).toBeNull();
     });
   });
