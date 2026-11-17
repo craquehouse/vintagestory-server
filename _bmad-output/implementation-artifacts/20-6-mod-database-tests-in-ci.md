@@ -1,6 +1,6 @@
 # Story 20.6: The Mod Database E2E Tests Run in CI
 
-Status: review
+Status: done
 
 <!-- Implements FR252, FR253, FR254, FR258, FR259 and Epic 20 ADR-9 (as revised by the maintainer on 2026-11-17). Beads: VSS-571h (TEST-006), part 1, closed here; VSS-zhv3 (DOCS-001), pulled in. Stacked on Story 20.5 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/, web/ and scripts/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats 23 files under api/src and 52 under api/tests, Story 20.3 changes the Justfile recipes and .gitignore, and Story 20.5 edits scripts/e2e-ci.sh, scripts/tests/test-e2e-ci.sh, the e2e job and web/e2e/README.md. -->
 
@@ -147,9 +147,9 @@ so that **the mod pages are covered on every pull request, the same way every ti
 - [ ] Task 6: Quality gate, CI and review hand-off (AC: all)
   - [x] 6.1: `just check` passes with 0 Pyright warnings and 0 skipped tests (Story 20.2's state); `just test-scripts`, `just lint-scripts` and `just lint-workflows` pass; the diff adds no lint or type suppression and no `cast`; after `just test-api`, `git status --short` shows nothing under `dev/`; after `just test-e2e-ci`, `git status --short` is clean
   - [x] 6.2: No new dependency: `git diff main -- api/pyproject.toml api/uv.lock web/package.json web/bun.lock` is empty
-  - [ ] 6.3: CI (the controller pushes and opens the pull request): the `E2E tests` job is green. Record in Completion Notes the run URL, the job's duration, the two passes' test counts, and the duration before. Re-run the job once on the same commit and record that the second pass gave the same results with no flaky test (AC 11)
+  - [x] 6.3: CI (the controller pushes and opens the pull request): the `E2E tests` job is green. Record in Completion Notes the run URL, the job's duration, the two passes' test counts, and the duration before. Re-run the job once on the same commit and record that the second pass gave the same results with no flaky test (AC 11)
   - [ ] 6.4: Close `VSS-zhv3` and then `VSS-571h`, each with an AAR (`.claude/skills/beads/SKILL.md`); the AAR of `VSS-571h` names Story 20.5 for parts 2 to 4 and this story for part 1
-  - [ ] 6.5: Story status `review`, `just sprint set 20-6-mod-database-tests-in-ci review`, pull request (base: Story 20.5's branch while its pull request is open, otherwise `main`). The description lists "API contract changes" below and the test counts of "The 31 tests". Commit: `chore(story-20.6/task-6): validate and move story 20.6 to review`
+  - [x] 6.5: Story status `review`, `just sprint set 20-6-mod-database-tests-in-ci review`, pull request (base: Story 20.5's branch while its pull request is open, otherwise `main`). The description lists "API contract changes" below and the test counts of "The 31 tests". Commit: `chore(story-20.6/task-6): validate and move story 20.6 to review`
 
 ## Dev Notes
 
@@ -662,6 +662,8 @@ and its output held neither placeholder key nor the replay's host (grep count 0)
 
 - Review (GLM-5.3-Flash, APPROVE, nothing above LOW; CI green on PR #183, run 44133676214: 119 + 3, replay pass 27, `E2E tests` 4 min 14 s). L-1 fixed in `1775ebb`: in the replay run `serveModImagePlaceholders` adds a context route, registered before the two explicit ones, that passes the manager's own requests (the `E2E_BASE_URL` host, `127.0.0.1`, `localhost`, and non-http URLs) through, answers every other image with the 1x1 PNG and aborts every other request. Proof, a scratch spec (not committed) on a replay and API container with the real recordings, `requestfinished`/`requestfailed` on six detail pages, two browse searches, Installed and the dashboard: every non-local request was an image (github.com, repository-images.githubusercontent.com, i.imgur.com, i.ibb.co, the S3 bucket, moddbcdn) answered by the route, none carried a `date` or `server` header, none was aborted; the same page without the helper showed those headers on every one (they went to the network). `CI=1 just test-e2e-ci`: 119 passed, API E2E 3 passed, replay pass 27 passed, 0 flaky, 3 min 16 s (the first try failed in `docker build` on a registry timeout before any test, unrelated). `test-e2e-ci.sh` pins the catch-all route (52 checks); `web/e2e/README.md` describes it and adds the `--host 127.0.0.1` hint for running the replay by hand. `just check` green: API 3,387, web 3,307 (0 skipped), Pyright 0/0. The info items (hostname guard, `hide_input_in_errors` for every setting, `0.0.0.0` bind) are unchanged.
 
+- CI (controller, 2026-11-17, PR #183). First push, https://github.com/craquehouse/vintagestory-server/actions/runs/44133676214: all six jobs green; `E2E tests` 4 min 14 s, with the first pass at 119 plus 3 API E2E passed and the replay pass at 27 passed. After the review fix, two runs of the same commit `939115c` (AC 11), run https://github.com/craquehouse/vintagestory-server/actions/runs/44137431816: attempt 1 green, `E2E tests` 4 min 19 s; attempt 2 (`gh run rerun --job`) green, 5 min 02 s. Both attempts: 119 plus 3 passed, then 27 passed, with the same tests and none flaky (AC 17: within the 30-minute timeout; before this story the job took 3 min 06-3 min 16 s). Task 6.4 (close VSS-zhv3, then VSS-571h, with AARs) is after merge.
+
 ### File List
 
 New:
@@ -717,6 +719,19 @@ Modified:
 - `agentdocs/vintagestory-modapi.md`
 - `_bmad-output/implementation-artifacts/20-6-mod-database-tests-in-ci.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `8742ff8..b8dc9f6`
+**Outcome:** Approve
+
+**Summary:** No critical, high or medium finding. ACs 1-8 and 12-16 met, 18 met for the doc; 9-11 and 17 pending CI at review (since proved, see Completion Notes). The reviewer probed about 60 hostile `VS_MOD_DB_URL` values (userinfo in every spelling, paths, queries, ports 0/-1/65536/huge, IPv6, whitespace and control characters, other schemes) and none passed the guard. No error echoes the value or another setting. The warning carries scheme and host only. A mirror cannot inject image or link hosts: `MOD_MEDIA_HOSTS` and the link rules have an empty diff, and downloads go to `<base>/download?fileid=<int>`. The replay server answers only manifest keys (no path traversal), and a missing recording gives plain text, which the API maps to 502. The recordings hold public data only (1.2 MB, manifest matches disk). The tag counts were verified with `--list`: 27 replayed, 1 `@moddb-live`, 3 `@install`, 119 untagged. The two test fixes are genuine. Reviewer ran `just test-scripts`, `just lint`, `just lint-scripts`, `just lint-workflows`, `just semgrep` (0 findings), `just typecheck` and the touched API tests (593 passed).
+
+### Action Items
+
+- [x] [Low] L-1 the replay pass was not hermetic: the browser loaded description images from github.com, i.imgur.com, i.ibb.co, an S3 bucket and repository-images.githubusercontent.com. Fixed in 1775ebb under the backlog-drawdown rule: in the replay run only, a context route answers every non-local image with the 1×1 placeholder and aborts any other non-local request; the manager's own requests pass. A scratch probe with a control showed no request reached the network. `test-e2e-ci.sh` guards it (52 checks), and the README documents it.
+- Info, not changed: the guard accepts some valid but unusable host names (they fail DNS with a clear error); `hide_input_in_errors` applies to every setting (deliberate and documented); the replay server binds `0.0.0.0` for the Docker network (the README now suggests `--host 127.0.0.1` locally); leading and trailing Unicode white space is stripped, as AC 6 says.
+
 ## Change Log
 
 | Date | Change |
@@ -724,3 +739,4 @@ Modified:
 | 2026-11-17 | Story created and validated (create-story); status `ready-for-dev` |
 | 2026-11-17 | Review L-1 fixed: the replay pass's browser reaches only the manager; status stays `review` |
 | 2026-11-17 | Implemented (dev-story): Tasks 1 to 5, Task 6.1 and 6.2; status `review`. CI runs (6.3), beads (6.4) and the pull request (6.5) are left to the controller |
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; L-1 fixed (replay pass sealed). CI green twice on 939115c. Status done; beads after merge.
