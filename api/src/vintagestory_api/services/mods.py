@@ -131,6 +131,10 @@ def prepare_mod_files() -> None:
     1. recover the manager's working files (ADR-9 decisions 6-7);
     2. remove the download cache's old flat layout (ADR-11 decision 5).
     Story 19.5 adds the state sync (ADR-10) as step 3, after step 1.
+
+    Uses the process settings through `get_mod_service()` (read from the environment),
+    not the app factory's `settings`; the app factory's settings must match the
+    environment.
     """
     service = get_mod_service()
     recover_working_files(service.state_manager)
