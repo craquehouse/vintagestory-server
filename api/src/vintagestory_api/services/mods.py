@@ -53,7 +53,13 @@ from vintagestory_api.services.mod_file_recovery import (
     WORKING_COPY_SUFFIX,
     recover_working_files,
 )
-from vintagestory_api.services.mod_media import build_screenshots, trailer_link_url
+from vintagestory_api.services.mod_media import (
+    build_screenshots,
+    checked_url,
+    external_link_url,
+    mod_image_url,
+    trailer_link_url,
+)
 from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mod_updates import installed_game_version, is_prerelease
@@ -649,8 +655,9 @@ class ModService:
         `version` when given (the Installed list asks about the installed release).
         `install_mod_id` and `latest_version` are what an install of this slug without
         a version picks, from the same `select_install_release` that install uses
-        (Epic 17 ADR-2 decisions 5 and 6). `screenshots` and `trailer_url` pass only
-        the media URLs that `services/mod_media.py` allows (Epic 18 ADR-1, ADR-2).
+        (Epic 17 ADR-2 decisions 5 and 6). `screenshots`, `trailer_url`, `logo_url`,
+        `homepage_url` and `source_url` pass only the URLs that `services/mod_media.py`
+        allows (Epic 18 ADR-1, ADR-2; Epic 19 ADR-12); any other is None.
 
         Args:
             slug_or_url: Mod slug (e.g., "smithingplus") or full URL
@@ -776,11 +783,17 @@ class ModService:
             follows=mod["follows"],
             side=side,
             compatibility=compatibility,
-            logo_url=mod["logofilename"],
+            logo_url=checked_url(
+                mod["logofilename"], mod_image_url, slug=response_slug, field="logo_url"
+            ),
             releases=mod_releases,
             tags=mod["tags"],
-            homepage_url=mod["homepageurl"],
-            source_url=mod["sourcecodeurl"],
+            homepage_url=checked_url(
+                mod["homepageurl"], external_link_url, slug=response_slug, field="homepage_url"
+            ),
+            source_url=checked_url(
+                mod["sourcecodeurl"], external_link_url, slug=response_slug, field="source_url"
+            ),
             created=mod["created"],
             last_released=mod["lastreleased"],
             screenshots=build_screenshots(mod["screenshots"], response_slug),

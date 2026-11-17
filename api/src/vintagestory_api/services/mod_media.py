@@ -1,4 +1,4 @@
-"""Which mod database media URLs the API passes on (Epic 18 ADR-1 and ADR-2).
+"""Which mod database URLs the API passes on (Epic 18 ADR-1, ADR-2; Epic 19 ADR-12).
 
 A URL from the mod database is author-controlled data that the web puts into `src`
 and `href`. `models/moddb.py` checks types; this module is the one place that
@@ -6,19 +6,26 @@ decides which URLs are allowed. Anything else becomes None and never fails a loo
 
 Rules:
 
-- An image URL is kept unchanged only when it starts with `https://`, contains no
-  ASCII control character, space or backslash, parses, and its whole `netloc` is a
-  host in `MOD_MEDIA_HOSTS` (compared without case). Comparing the `netloc` rejects
-  user info, any port (also an empty one) and a trailing dot.
+- An image URL (a screenshot, its thumbnail or the mod's logo) is kept unchanged only
+  when it starts with `https://`, contains no ASCII control character, space or
+  backslash, parses, and its whole `netloc` is a host in `MOD_MEDIA_HOSTS` (compared
+  without case). Comparing the `netloc` rejects user info, any port (also an empty
+  one) and a trailing dot.
+- A link URL (the mod's homepage or source code) is kept unchanged only when it starts
+  with `https://`, is at most `MAX_LINK_LENGTH` characters, contains no ASCII control
+  character, backslash or whitespace of any kind, parses with a host, has no user info
+  and, when it has a port, a number from 1 to 65535. Any host is allowed. An empty
+  value is None.
 - A trailer URL is never passed on: the 11-character video ID is taken from a
   YouTube `/watch?v=<id>`, `/embed/<id>` or `youtu.be/<id>` URL on `YOUTUBE_HOSTS`
   and the link is rebuilt as `TRAILER_EMBED_URL` + ID, on the privacy-enhanced
   youtube-nocookie.com domain (the maintainer's choice; its `/watch` path is a 404).
 
-Pure helpers: no I/O.
+Pure helpers: no I/O apart from the debug log of a dropped URL, which never holds the URL.
 """
 
 import re
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import SplitResult, parse_qs, urlsplit
 
@@ -46,6 +53,9 @@ YOUTUBE_HOSTS = frozenset(
 TRAILER_EMBED_URL = "https://www.youtube-nocookie.com/embed/"
 """Where the trailer link points; the video ID is appended."""
 
+MAX_LINK_LENGTH = 2048
+"""Longest homepage or source URL the API passes on, in characters (Epic 19 ADR-12)."""
+
 _UNSAFE = re.compile(r"[\x00-\x20\x7f\\]")  # control characters, space, backslash
 _VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{11}")
 
@@ -63,6 +73,41 @@ def _https_parts(url: str | None, hosts: frozenset[str]) -> SplitResult | None:
 def mod_image_url(url: str | None) -> str | None:
     """`url` unchanged when it is an https URL on the mod database CDN, else None."""
     return url if _https_parts(url, MOD_MEDIA_HOSTS) is not None else None
+
+
+def external_link_url(url: str | None) -> str | None:
+    """`url` unchanged when it is a well-formed https URL with a host, else None (ADR-12)."""
+    if (
+        not url
+        or len(url) > MAX_LINK_LENGTH
+        or _UNSAFE.search(url)
+        or any(ch.isspace() for ch in url)
+        or not url.startswith("https://")
+    ):
+        return None
+    try:
+        parts = urlsplit(url)
+        port = parts.port  # raises ValueError for a port that is not a number in range
+    except ValueError:
+        return None
+    if not parts.hostname or "@" in parts.netloc or port == 0:
+        return None
+    return url
+
+
+def checked_url(
+    url: str | None, rule: Callable[[str | None], str | None], *, slug: str, field: str
+) -> str | None:
+    """`rule(url)`; a non-empty URL the rule drops is logged at debug level, without the URL.
+
+    The URL is author-controlled and can be long, so the log names only the mod and the
+    response field (Epic 19 ADR-12 decision 6). Empty and missing values are the normal
+    case for links and are not logged.
+    """
+    kept = rule(url)
+    if kept is None and url:
+        logger.debug("mod_url_dropped", slug=slug, field=field)
+    return kept
 
 
 def trailer_link_url(url: str | None) -> str | None:

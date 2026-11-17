@@ -30,6 +30,7 @@ from vintagestory_api.services.mod_api import (
 from vintagestory_api.services.mod_api import (
     ModNotFoundError as ApiModNotFoundError,
 )
+from vintagestory_api.services.mod_media import checked_url, mod_image_url
 from vintagestory_api.services.mod_updates import (
     ModUpdateAllInProgressError,
     ModUpdateCheckInProgressError,
@@ -236,7 +237,8 @@ def _api_mod_to_browse_item(
         trending_points=mod["trendingpoints"],
         side=_browse_side(mod),
         mod_type=_browse_type(mod),
-        logo_url=mod["logo"],
+        # Only the page's items are checked, never the cached listing (Epic 19 ADR-12)
+        logo_url=checked_url(mod["logo"], mod_image_url, slug=slug, field="logo_url"),
         tags=mod["tags"],
         last_released=mod["lastreleased"],
         has_release_for_game_version=(
@@ -317,7 +319,8 @@ async def browse_mods(
 
     Returns:
         ApiResponse with ModBrowseResponse containing:
-        - mods: List of mod items for the current page, each with
+        - mods: List of mod items for the current page; `logo_url` is null unless it is
+          an https URL on the mod database CDN (Story 19.6); each with
           `has_release_for_game_version`: whether the entry has a release tagged for
           exactly the installed game version (Story 18.3), or null when not known
         - pagination: Pagination metadata with total counts
@@ -651,6 +654,12 @@ async def lookup_mod(
           order; only https URLs on the mod database CDN; [] when there are none
         - trailer_url: https://www.youtube-nocookie.com/embed/<id> for the entry's trailer,
           or null
+        - logo_url: The mod's logo, only an https URL on the mod database CDN; otherwise
+          null
+        - homepage_url: The author's homepage when it is a well-formed https URL of at
+          most 2,048 characters with a host and no user info; otherwise null (an empty
+          value is null)
+        - source_url: The source code URL, under the same rule as homepage_url
 
     Raises:
         HTTPException: 400 if slug format is invalid

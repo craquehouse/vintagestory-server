@@ -141,6 +141,8 @@ describe('InstallConfirmDialog', () => {
       const logo = screen.getByTestId('install-dialog-logo');
       expect(logo).toBeInTheDocument();
       expect(logo).toHaveAttribute('src', 'https://mods.vintagestory.at/assets/logo.png');
+      // Story 19.6: the CDN gets no Referer
+      expect(logo).toHaveAttribute('referrerpolicy', 'no-referrer');
     });
 
     it('renders CompatibilityBadge', () => {

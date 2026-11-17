@@ -324,6 +324,8 @@ describe('ModCard', () => {
       expect(image).toBeInTheDocument();
       expect(image).toHaveAttribute('src', 'https://mods.vintagestory.at/assets/modlogo.png');
       expect(image).toHaveAttribute('alt', 'Mod With Logo thumbnail');
+      // Story 19.6: the CDN gets no Referer
+      expect(image).toHaveAttribute('referrerpolicy', 'no-referrer');
     });
 
     it('displays placeholder icon when logoUrl is null', () => {

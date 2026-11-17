@@ -1023,6 +1023,57 @@ class TestLookupModEndpoint:
         assert data["trailer_url"] is None
 
 
+    @respx.mock
+    def test_lookup_drops_unchecked_urls(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Logo, homepage and source URLs that are not allowed are null (Story 19.6)."""
+        mod = {
+            **SMITHINGPLUS_MOD,
+            "logofilename": "http://moddbcdn.vintagestory.at/x.png",
+            "homepageurl": "javascript:alert(1)",
+            "sourcecodeurl": "",
+        }
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/smithingplus", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["logo_url"] is None
+        assert data["homepage_url"] is None
+        assert data["source_url"] is None
+
+    @respx.mock
+    def test_lookup_keeps_checked_urls(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A CDN logo and https links are returned unchanged (Story 19.6)."""
+        mod = {
+            **SMITHINGPLUS_MOD,
+            "logofilename": "https://moddbcdn.vintagestory.at/x.png",
+            "homepageurl": "https://example.com/home",
+            "sourcecodeurl": "https://github.com/a/b",
+        }
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            return_value=Response(200, json={"statuscode": "200", "mod": mod})
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/smithingplus", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["logo_url"] == "https://moddbcdn.vintagestory.at/x.png"
+        assert data["homepage_url"] == "https://example.com/home"
+        assert data["source_url"] == "https://github.com/a/b"
+
+
 def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:
     """Create a mod zip file at the given path."""
     with zipfile.ZipFile(path, "w") as zf:
@@ -2598,6 +2649,43 @@ class TestBrowseModsEndpoint:
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+
+    @respx.mock
+    def test_browse_drops_logos_not_on_the_cdn(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """Only https logos on the mod database CDN reach the page (Story 19.6)."""
+        base = BROWSE_MODS_API_RESPONSE["mods"][0]
+        logos = [
+            "https://moddbcdn.vintagestory.at/a/logo.png",
+            "http://moddbcdn.vintagestory.at/b/logo.png",
+            "https://i.imgur.com/c.png",
+            None,
+        ]
+        listing = {
+            "statuscode": "200",
+            "mods": [
+                {**base, "modid": 100 + i, "modidstrs": [f"mod{i}"], "logo": logo}
+                for i, logo in enumerate(logos)
+            ],
+        }
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            return_value=Response(200, json=listing)
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse?sort=name", headers=admin_headers)
+
+        assert response.status_code == 200
+        by_slug = {m["slug"]: m["logo_url"] for m in response.json()["data"]["mods"]}
+        assert by_slug == {
+            "mod0": "https://moddbcdn.vintagestory.at/a/logo.png",
+            "mod1": None,
+            "mod2": None,
+            "mod3": None,
+        }
 
 
 class TestGameVersionsEndpoint:
