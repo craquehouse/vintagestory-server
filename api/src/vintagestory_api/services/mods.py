@@ -49,6 +49,11 @@ from vintagestory_api.services.mod_compatibility import (
     compare_game_versions,
     supported_game_versions,
 )
+from vintagestory_api.services.mod_file_recovery import (
+    KEPT_ASIDE_SUFFIX,
+    WORKING_COPY_SUFFIX,
+    recover_working_files,
+)
 from vintagestory_api.services.mod_media import build_screenshots, trailer_link_url
 from vintagestory_api.services.mod_release_selection import select_install_release
 from vintagestory_api.services.mod_state import ModStateManager
@@ -117,6 +122,18 @@ def get_mod_service() -> ModService:
         )
 
     return _mod_service
+
+
+def prepare_mod_files() -> None:
+    """Start-up work on the mods directory (Epic 19 ADR-9).
+
+    Called once by the API's lifespan, before the scheduler and the game server
+    auto-start, so it runs before any mod operation. Steps, in order:
+    1. recover the manager's working files (ADR-9 decisions 6-7).
+    Story 19.5 adds the state sync (ADR-10) as step 3, after step 1.
+    """
+    service = get_mod_service()
+    recover_working_files(service.state_manager)
 
 
 async def close_mod_service() -> None:
@@ -1092,9 +1109,13 @@ class ModService:
         # so it takes the same-file path on every volume (Epic 19 ADR-8 decision 4)
         same_file = new_name.casefold() == state.filename.casefold()
 
-        temp_path = new_path.with_name(new_path.name + ".tmp")
-        # A reused filename would be overwritten by the rename, so keep the old file aside.
-        backup_path = old_path.with_name(old_path.name + ".bak") if same_file else None
+        # The working copy, renamed into place once complete; recovery deletes a leftover
+        temp_path = new_path.with_name(new_path.name + WORKING_COPY_SUFFIX)
+        # A reused filename would be overwritten by the rename, so keep the old file aside;
+        # recovery puts it back, or deletes it once the state names the new file (ADR-9)
+        backup_path = (
+            old_path.with_name(old_path.name + KEPT_ASIDE_SUFFIX) if same_file else None
+        )
         try:
             shutil.copy2(prepared.archive, temp_path)
             if backup_path is not None:
@@ -1376,7 +1397,8 @@ class ModService:
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
-        temp_path = dest_path.with_name(dest_path.name + ".tmp")
+        # The working copy, renamed into place once complete; recovery deletes a leftover
+        temp_path = dest_path.with_name(dest_path.name + WORKING_COPY_SUFFIX)
 
         # Ensure mods directory exists
         self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)

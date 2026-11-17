@@ -30,6 +30,7 @@ from vintagestory_api.routers import (
     versions,
     ws_token,
 )
+from vintagestory_api.services.mods import prepare_mod_files
 from vintagestory_api.services.scheduler import SchedulerService
 
 logger = structlog.get_logger()
@@ -142,6 +143,13 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
             log_level="DEBUG" if debug_enabled else "INFO",
             data_dir=str(settings.data_dir),
         )
+
+        # Recover the mods directory before any mod operation can run: after the data
+        # directories exist, before the game server auto-start and the scheduler (ADR-9)
+        try:
+            prepare_mod_files()
+        except OSError as e:
+            logger.error("mod_files_startup_failed", error=str(e))
 
         # Auto-start game server if enabled in API settings
         from vintagestory_api.models.server import ServerState

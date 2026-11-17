@@ -686,6 +686,37 @@ class TestChangeVersion:
 
     @respx.mock
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("fail_save", [False, True], ids=["completed", "rolled-back"])
+    async def test_a_same_name_change_leaves_no_working_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fail_save: bool
+    ) -> None:
+        """Story 19.4 (Epic 19 ADR-9): .vsm-tmp and .vsm-bak are gone either way."""
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Demo.zip")
+        mock_demo("Demo.zip", "Demo.zip")
+        if fail_save:
+            real_save = service.state_manager.save
+            calls = {"n": 0}
+
+            def failing_save() -> None:
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    raise OSError("disk full")
+                real_save()
+
+            monkeypatch.setattr(service.state_manager, "save", failing_save)
+            with pytest.raises(ModVersionChangeFailedError):
+                await service.change_version("demo", "1.1.0")
+        else:
+            await service.change_version("demo", "1.1.0")
+
+        assert mod_files(service) == ["Demo.zip"]
+        assert list(service.state_manager.mods_dir.glob("*.vsm-*")) == []
+        expected = "1.0.0" if fail_save else "1.1.0"
+        assert installed_version_on_disk(service, "Demo.zip") == expected
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_existing_file_of_another_mod_is_not_overwritten(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         install_existing(service, "demo", "1.0.0", "Demo-1.0.0.zip")

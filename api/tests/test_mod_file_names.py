@@ -9,7 +9,16 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from test_mod_version_change import install_existing, make_service, mod_files, snapshot
+import respx
+from test_mod_operation_lock import mock_foo_zip
+from test_mod_version_change import (
+    install_existing,
+    installed_version_on_disk,
+    make_service,
+    mock_demo,
+    mod_files,
+    snapshot,
+)
 
 from vintagestory_api.services.mods import (
     ModFileConflictError,
@@ -260,3 +269,72 @@ class TestOwnFileMissing:
         assert result.slug == "moda"
         assert service.state_manager.get_mod_by_slug("moda") is None
         assert snapshot(service)[1] == {"saved": {}, "memory": {}}
+
+
+LEFTOVERS = {
+    "Foo.zip.vsm-tmp": b"working copy",
+    "Foo.zip.vsm-bak": b"kept aside",
+    "Foo.zip.tmp": b"old-style temp",
+}
+
+
+def put_leftovers(service: ModService) -> None:
+    mods_dir = service.state_manager.mods_dir
+    mods_dir.mkdir(parents=True, exist_ok=True)
+    for name, content in LEFTOVERS.items():
+        (mods_dir / name).write_bytes(content)
+
+
+def leftover_bytes(service: ModService, *names: str) -> dict[str, bytes]:
+    return {n: (service.state_manager.mods_dir / n).read_bytes() for n in names}
+
+
+class TestLeftoversAreNotConflicts:
+    """AC 17 (FR223): working files never count as a name in use (ADR-9 decision 8)."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_install(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        put_leftovers(service)
+        mock_foo_zip("moda")
+
+        result = await service.install_mod("moda")
+
+        assert result.filename == "Foo.zip"
+        # The install's own working copy is Foo.zip.vsm-tmp; it became Foo.zip
+        assert mod_files(service) == ["Foo.zip", "Foo.zip.tmp", "Foo.zip.vsm-bak"]
+        assert leftover_bytes(service, "Foo.zip.tmp", "Foo.zip.vsm-bak") == {
+            "Foo.zip.tmp": LEFTOVERS["Foo.zip.tmp"],
+            "Foo.zip.vsm-bak": LEFTOVERS["Foo.zip.vsm-bak"],
+        }
+
+    def test_enable_and_disable(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip")
+        put_leftovers(service)
+
+        service.disable_mod("moda")
+        assert "Foo.zip.disabled" in mod_files(service)
+        service.enable_mod("moda")
+
+        assert mod_files(service) == sorted(["Foo.zip", *LEFTOVERS])
+        assert leftover_bytes(service, *LEFTOVERS) == LEFTOVERS
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_same_name_version_change(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "demo", "1.0.0", "Foo.zip")
+        put_leftovers(service)
+        mock_demo("Foo.zip", "Foo.zip")
+
+        result = await service.change_version("demo", "1.1.0")
+
+        assert result.filename == "Foo.zip"
+        assert installed_version_on_disk(service, "Foo.zip") == "1.1.0"
+        # Its own backup replaced the leftover .vsm-bak and was then deleted
+        assert mod_files(service) == ["Foo.zip", "Foo.zip.tmp"]
+        assert leftover_bytes(service, "Foo.zip.tmp") == {
+            "Foo.zip.tmp": LEFTOVERS["Foo.zip.tmp"]
+        }
