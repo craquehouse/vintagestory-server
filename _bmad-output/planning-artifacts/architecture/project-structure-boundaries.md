@@ -483,6 +483,7 @@ FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:... AS final
 | `VS_API_KEY` | For the web UI | Key the API serves to the web UI at `/config.js` (Epic 19 ADR-5); unset, the web UI shows a set-up message |
 | `VS_CSP_MODE` | No | `enforce` (default), `report-only` or `off` for the web UI's Content-Security-Policy (Epic 19 ADR-6); any other value stops start-up |
 | `VS_DEBUG` | No | Debug logging; also serves `/docs`, `/redoc` and `/openapi.json` and the RBAC test routes (Epic 19 ADR-7), and allows a plain-HTTP `VS_MOD_DB_URL`. For development only |
+| `VS_LOG_LEVEL` | No | `DEBUG`, `INFO`, `WARNING` or `ERROR`, any case (Epic 21 ADR-4); unset: from `VS_DEBUG`. The debug switch gives `DEBUG` and returns to it; only structlog's level; any other value stops start-up |
 | `VS_MOD_DB_URL` | No | Base address of the mod database, for a mirror of the same database (default `https://mods.vintagestory.at`; Epic 20 ADR-9). Mod listings and downloads come from it. An `https` URL with a host and nothing else; `http` only with `VS_DEBUG=true`; any other value stops start-up. Images and links to mod pages shown in the browser do not follow it |
 
-The README's Configuration table and `.env.example` also describe `VS_CORS_ORIGINS`, `VS_DATA_DIR`, `VS_CONSOLE_HISTORY_LINES`, `VS_DISK_SPACE_WARNING_THRESHOLD_GB` and `VS_MOD_CACHE_MAX_SIZE_MB` (all with defaults). `Settings.log_level` (`VS_LOG_LEVEL`) exists in `config.py` but nothing reads it: the log level follows `VS_DEBUG` only (`main.py`), so it is not documented.
+The README's Configuration table and `.env.example` also describe `VS_CORS_ORIGINS`, `VS_DATA_DIR`, `VS_CONSOLE_HISTORY_LINES`, `VS_DISK_SPACE_WARNING_THRESHOLD_GB` and `VS_MOD_CACHE_MAX_SIZE_MB` (all with defaults).
