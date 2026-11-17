@@ -7,6 +7,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from vintagestory_api import __version__
+from vintagestory_api.config import Settings
+from vintagestory_api.main import create_app
 
 API_ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +22,11 @@ def test_version_comes_from_pyproject() -> None:
     assert __version__ == _pyproject_version()
 
 
-def test_openapi_reports_version(client: TestClient) -> None:
+def test_openapi_reports_version(tmp_path: Path) -> None:
+    # The schema is served only with debug on (Story 19.3), so build that app explicitly
+    settings = Settings(api_key_admin="version-admin", debug=True, data_dir=tmp_path / "data")
+    client = TestClient(create_app(settings, static_dir=tmp_path / "no-frontend"))
+
     response = client.get("/openapi.json")
 
     assert response.status_code == 200

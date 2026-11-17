@@ -309,6 +309,11 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
         description="API for managing VintageStory dedicated game server",
         version=__version__,
         lifespan=lifespan_for(settings),
+        # The API documentation and schema only in debug mode (Epic 19 ADR-7). Without
+        # them, these paths reach the web UI's page in the image, and 404 otherwise
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+        openapi_url="/openapi.json" if settings.debug else None,
     )
 
     # Configure CORS middleware for cross-origin requests
