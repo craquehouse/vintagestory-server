@@ -59,6 +59,7 @@ cases=(
     'docker|logs|a b'
     'changelog|--tag|a b'
     'release|a b'
+    'semgrep|--baseline-commit|a b'
     'sprint|retro-add|A1-key|a comment'
 )
 for entry in "${cases[@]}"; do

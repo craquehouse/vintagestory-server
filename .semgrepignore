@@ -1,0 +1,7 @@
+# Files that only hold tests are not scanned (Epic 20 ADR-6 decision 5).
+# This file replaces semgrep's built-in ignore list. Semgrep reads only files tracked by git,
+# so node_modules, .venv and build output need no entry.
+*.test.ts
+*.test.tsx
+web/src/test/
+scripts/tests/
