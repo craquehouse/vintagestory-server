@@ -1,6 +1,6 @@
 # Story 19.7: E2E Runs in CI
 
-Status: review
+Status: done
 
 <!-- Implements FR228-FR230, Epic 19 ADR-14 (and ADR-5 decision 8). Bead: VSS-wenx (TOOLS-007, task, P4, size-m). Last story of Epic 19, stacked on Story 19.6 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning) and must be re-checked at implementation time: Story 19.2 adds the `/config.js` helper and its no-key spec, Story 19.3 adds the policy spec, and Stories 19.1 and 19.2 edit the compose files and the README. Tests, tooling and CI only: no API source change, no web source change, no API contract change, no new dependency, no release note. -->
 
@@ -74,9 +74,9 @@ so that **a change that breaks the page is caught before it is merged**.
   - [x] 7.1: `just check` passes. `just test-e2e-ci` passes twice in a row on a clean checkout of the branch. The diff adds no lint or type suppression, no `cast`, no `test.skip`, `test.fixme` or `test.only`, and no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/` or `web/test-results/`
   - [x] 7.2: `git grep -n "localStorage.setItem" -- web/e2e api/tests/e2e` prints nothing (AC 9)
   - [x] 7.3: Story status `review` and `just sprint set 19-7-e2e-runs-in-ci review`
-  - [ ] 7.4: The controller pushes the branch and opens the pull request (the dev agent does not push or open it). CI runs only on pull requests that target `main` and on pushes to `main` (`ci.yml:3-8`), so while this branch is stacked on Story 19.6's branch a pull request against that branch runs nothing. The controller either opens the pull request against `main` once 19.6 is merged, or starts the run by hand with `gh workflow run ci.yml --ref <branch>` (`workflow_dispatch` is on, `ci.yml:8`). The story is not done until the `E2E tests` job has passed on this branch
-  - [ ] 7.5: Record the run URL, the job's duration and the number of tests it ran in the Dev Agent Record (AC 14). If the job fails, fix the cause on the branch and wait for a green run. Do not raise the retries, widen a tag or lengthen the job's timeout to get one
-  - [ ] 7.6: PR link on `VSS-wenx`. The PR description says: no API contract change, no release note, the count of tests that run in CI and the count per tag, and the decisions listed in Dev Notes "Decisions for the maintainer"
+  - [x] 7.4: The controller pushes the branch and opens the pull request (the dev agent does not push or open it). CI runs only on pull requests that target `main` and on pushes to `main` (`ci.yml:3-8`), so while this branch is stacked on Story 19.6's branch a pull request against that branch runs nothing. The controller either opens the pull request against `main` once 19.6 is merged, or starts the run by hand with `gh workflow run ci.yml --ref <branch>` (`workflow_dispatch` is on, `ci.yml:8`). The story is not done until the `E2E tests` job has passed on this branch
+  - [x] 7.5: Record the run URL, the job's duration and the number of tests it ran in the Dev Agent Record (AC 14). If the job fails, fix the cause on the branch and wait for a green run. Do not raise the retries, widen a tag or lengthen the job's timeout to get one
+  - [x] 7.6: PR link on `VSS-wenx`. The PR description says: no API contract change, no release note, the count of tests that run in CI and the count per tag, and the decisions listed in Dev Notes "Decisions for the maintainer"
 
 ## Dev Notes
 
@@ -401,6 +401,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - Deviations: the inventory counts (see Debug Log); `pretendServerInstalled` retries one failed fetch (Task 4.5); the CSP spec got three stubs and a test fix instead of only stubs; the styling test in `terminal.spec.ts` was retargeted rather than emptied.
 - Left for the controller and maintainer: 7.4 (push, PR or `gh workflow run ci.yml --ref story/19-7-e2e-runs-in-ci`), 7.5 (record the `E2E tests` run URL, duration and test count, AC 14) and 7.6 (PR description and the link on `VSS-wenx`). This run was told not to push, open PRs or change beads. No API contract change; no file under `api/src/` or `web/src/` changed.
 
+- CI (Tasks 7.4-7.6, by the controller, 2026-11-17): branch pushed, PR #175 opened against `main` (stacked on #169-#174). Run https://github.com/craquehouse/vintagestory-server/actions/runs/44016890024 (pull_request): the `E2E tests` job passed in 3 min 18 s (job https://github.com/craquehouse/vintagestory-server/actions/runs/44016890024/job/133816851765), with 113 Playwright tests passed (1.8 min) and 3 API E2E tests passed; API tests, Web tests and build, Docker image and Release scripts also passed. In CI: 113 untagged tests; tagged and local only: `@moddb` 31 (3 also `@install`), `@game-server` 5. PR link on `VSS-wenx`. The review fixes (below) were pushed after this run and re-run on the PR.
+
 ### File List
 
 - `.github/workflows/ci.yml` (modified)
@@ -439,7 +441,23 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `web/e2e/terminal.spec.ts` (modified)
 - `_bmad-output/implementation-artifacts/19-7-e2e-runs-in-ci.md` (modified)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `1025367..db01a7d`
+**Outcome:** Approve
+
+**Summary:** No HIGH or MEDIUM finding; ACs 1-13 met, AC 14 pending a CI run at review time (judged able to pass; it then passed). The workflow job reuses the repo's SHA pins byte for byte, reads no secret, uploads the report only on failure, and passes `just lint-workflows`. The script uses placeholder keys only, unsets `VS_API_KEY`, runs on its own container and port, blocks the vendor hosts, and always cleans up. The status stub only rewrites `not_installed`. Tag accounting matches the record exactly: 113 untagged in 15 files, `@moddb` 31, `@game-server` 5, `@install` 3, 149 in 23 files. No test was tagged or skipped to get green, and `terminal.spec.ts` is repaired with all 8 tests. Reviewer ran `just lint-workflows`, `just lint-scripts`, `just test-scripts` and `playwright test --list`.
+
+### Action Items
+
+- [x] [Low] L-1 the API E2E tests skip when the address does not answer and pytest passes on all-skip, so a container that died during the web suite could pass the run. Fixed by the controller: the script checks `/healthz` again after the web suite and before pytest and fails the run if it does not answer, with a guard in `test-e2e-ci.sh` that fails on the old script.
+- [x] [Low] L-2 the status stub retries any `route.fetch()` error once, including an abort at the end of a test; this is safe, since a second failure propagates. A comment now says so.
+- [x] [Low] L-3 the guard pins `timeout-minutes` to 30 rather than "has one" (not changed: the repo's tripwire style pins values).
+- Nits not changed: File List omits `sprint-status.yaml` (convention); Task 2.1 says four fixture values where three change; bookkeeping commit scope; terse class-regex assertions in `terminal.spec.ts` (commented).
+
 ## Change Log
 
 - 2026-11-16: Story 19.7 created and validated (ready-for-dev).
 - 2026-11-16: Tasks 1-6 and 7.1-7.3 implemented (dev-story); status review. CI run (7.4-7.6) pending with the controller.
+- 2026-11-17: CI `E2E tests` job passed on PR #175 (113 + 3 tests, 3 min 18 s); code review (GLM-5.3-Flash) approved, L-1 and L-2 fixed by the controller. Status done.
