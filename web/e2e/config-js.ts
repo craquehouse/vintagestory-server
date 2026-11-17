@@ -21,6 +21,8 @@ interface ServerStatusBody {
 /**
  * `route.fetch()`, tried once more when the first attempt fails. A full run against the dev
  * stack once had the connection reset (ECONNRESET), which the browser itself would retry.
+ * Any error is retried once, including an abort when the page closes at the end of a test;
+ * a second failure propagates, so a fetch that keeps failing still fails the test.
  */
 async function fetchWithOneRetry(route: Route): Promise<APIResponse> {
   try {
