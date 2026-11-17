@@ -26,9 +26,10 @@ interface ServerStatusBody {
  * status requests had 5 resets in 210 attempts, all at 4.99-5.00 s, on the throwaway
  * container). `connection: close` is passed on to the API, so no connection is reused and
  * the same probe had none in 84 attempts. That removes the cause, so the one retry this
- * helper had (Story 19.7) is gone and any failure fails the test.
+ * helper had (Story 19.7) is gone and any failure fails the test. Every stub that passes a
+ * request on to the API uses this helper.
  */
-async function fetchOnNewConnection(route: Route): Promise<APIResponse> {
+export async function fetchOnNewConnection(route: Route): Promise<APIResponse> {
   const headers = await route.request().allHeaders();
   return route.fetch({ headers: { ...headers, connection: 'close' } });
 }
