@@ -14,7 +14,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   and tell a screen reader they open in a new tab.
  * - At 390px on a touch screen, in the light and the dark theme, the section stays inside the
  *   viewport, does not widen the page, and its controls are at least 44x44px.
- * - The live `betterruins` lookup passes only CDN image URLs and a youtube-nocookie embed URL.
+ * - The real `betterruins` lookup passes only CDN image URLs and a youtube-nocookie embed URL.
  *
  * Reads only. The lookup of `e2emediamod` and the CDN images are stubbed with `page.route`;
  * every write to the API is refused, so nothing is installed, changed or removed; the game
@@ -24,7 +24,8 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080), rebuilt from this branch:
  *   `just docker restart`, then `cd web && bunx playwright test e2e/mod-detail-media.spec.ts`
  *   with VS_API_KEY_ADMIN exported.
- * - Network access to the public mod database for the live test.
+ * - Network access to the public mod database for the `betterruins` test.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -376,9 +377,9 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
     });
   });
 
-  // @moddb: looks up the live betterruins entry
+  // @moddb: looks up the betterruins entry (real values: the API's allow-list on them)
   test(
-    'the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL',
+    'the betterruins lookup passes only CDN images and a youtube-nocookie embed URL',
     { tag: '@moddb' },
     async ({
     page,

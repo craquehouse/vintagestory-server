@@ -10,7 +10,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * the installed state and that mod ID's releases, not the install flow.
  *
  * The installed mods list is replaced with `page.route`, so the spec installs nothing;
- * the mod lookup comes from the live mod database (fetched once per test and served
+ * the mod lookup comes from the mod database, live or recorded in CI (fetched once per test and served
  * to the page from that one response where the test compares against it).
  *
  * Requirements:
@@ -18,6 +18,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   or `just docker restart` then
  *   `cd web && bunx playwright test e2e/installed-mod-any-modid.spec.ts`
  * - Network access to the public mod database.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -85,7 +86,7 @@ async function versionOptionTestIds(page: Page): Promise<string[]> {
   );
 }
 
-// @moddb: looks up the live instruments entry
+// @moddb: looks up the instruments entry
 test.describe('Installed mod recognized by any mod ID (Story 16.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);

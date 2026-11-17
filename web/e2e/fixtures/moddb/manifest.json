@@ -86,6 +86,24 @@
       "specs": [
         "mod-detail-media"
       ]
+    },
+    {
+      "request": "/api/mod/primitivesurvival",
+      "file": "api-mod-primitivesurvival.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mods-navigation"
+      ]
+    },
+    {
+      "request": "/api/mod/composter",
+      "file": "api-mod-composter.json",
+      "trim": "none",
+      "recorded": "2026-11-17",
+      "specs": [
+        "mod-browse-state"
+      ]
     }
   ]
 }

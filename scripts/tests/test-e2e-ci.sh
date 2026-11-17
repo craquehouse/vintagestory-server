@@ -19,12 +19,13 @@ assert_eq "fixture ServerDescription" "null" "$(yq -p json '.ServerDescription' 
 assert_eq "fixture Ip" "null" "$(yq -p json '.Ip' "$fixture" 2>/dev/null)"
 assert_eq "fixture Password is the made-up one" "e2e-fixture-password" "$(yq -p json '.Password' "$fixture" 2>/dev/null)"
 
-# The CI script and web/e2e/README.md name the same three tags (Story 19.7 AC 4, 7)
+# The CI script and web/e2e/README.md name the same three tags (Story 19.7 AC 4, 7), and
+# the README explains @moddb-live (Story 20.6 AC 16)
 e2e_script="$ROOT/scripts/e2e-ci.sh"
 e2e_readme="$ROOT/web/e2e/README.md"
 script_tags=$(grep -E '^TAGS=' "$e2e_script" 2>/dev/null)
 assert_eq "the script leaves out the three tags" "TAGS='@moddb|@game-server|@install'" "$script_tags"
-for tag in @moddb @game-server @install; do
+for tag in @moddb @moddb-live @game-server @install; do
     if grep -qF -- "\`$tag\`" "$e2e_readme" 2>/dev/null; then pass; else fail "web/e2e/README.md explains $tag"; fi
 done
 

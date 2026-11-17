@@ -15,6 +15,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   `cd web && bunx playwright test e2e/mod-browse-state.spec.ts`
  * - Network access to the public mod database. Cards are picked from the rendered
  *   grid, not hard-coded, because the database changes daily.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -124,7 +125,7 @@ async function expectCardInViewport(page: Page, slug: string) {
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 }
 
-// @moddb: browses, filters and opens live mod database entries
+// @moddb: browses, filters and opens mod database entries
 test.describe('Mod browser state survives mod details', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
@@ -179,6 +180,9 @@ test.describe('Mod browser state survives mod details', { tag: '@moddb' }, () =>
     const state = await setUpBrowseState(page);
 
     const copy = await context.newPage();
+    // Routes set on `page` do not apply to a new page; the images' routes are on the context
+    await serveConfigKey(copy, API_KEY);
+    await pretendServerInstalled(copy);
     await copy.goto(page.url());
 
     await expectBrowseState(copy, state);

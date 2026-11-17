@@ -30,6 +30,8 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   or `just docker restart` then
  *   `cd web && bunx playwright test e2e/installed-status.spec.ts`
  * - Network access to the public mod database.
+ *   In CI the `@moddb` tests that are not `@install` run on recorded answers instead
+ *   (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -148,7 +150,7 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
     await pretendServerInstalled(page);
   });
 
-  // @moddb: searches the live browse list for Instruments
+  // @moddb: searches the browse list for Instruments
   test(
     'the Instruments card shows Installed for vsinstrumentsbase, like its detail page',
     { tag: '@moddb' },
@@ -163,7 +165,7 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
     const card = page.getByTestId('mod-card-instruments');
     await expect(
       card,
-      'the live mod database search for "instruments" did not return the Instruments card'
+      'the mod database search for "instruments" did not return the Instruments card'
     ).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId('mod-card-installed-instruments')).toHaveText('Installed');
     await expect(page.getByTestId('mod-card-install-instruments')).toHaveCount(0);

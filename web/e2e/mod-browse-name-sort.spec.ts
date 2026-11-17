@@ -13,6 +13,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080) that can reach the mod
  *   database: `just test-e2e-web`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-browse-name-sort.spec.ts`
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -101,7 +102,7 @@ async function expectCardsMatch(page: Page, mods: BrowseMod[]) {
   expect(cardIds).toEqual(mods.map((mod) => `mod-card-name-${mod.slug}`));
 }
 
-// @moddb: checks the order of the live browse list
+// @moddb: checks the order of the browse list
 test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);

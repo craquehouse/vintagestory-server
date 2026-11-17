@@ -22,7 +22,8 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080) rebuilt from this branch:
  *   `just test-e2e-web`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/browse-game-version.spec.ts`
- * - Network access to the public mod database for the live test.
+ * - Network access to the public mod database for the live test, which is tagged
+ *   `@moddb-live` and runs only locally (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -164,8 +165,9 @@ test.describe('Game version indicator on browse cards', () => {
     });
   }
 
-  // @moddb: compares the cards with a live browse response
-  test('live: the cards agree with the browse response', { tag: '@moddb' }, async ({ page }) => {
+  // @moddb-live: compares the cards with a live browse response; on recorded answers (and a
+  // stack with no game server) game_version is null, so it would check nothing
+  test('live: the cards agree with the browse response', { tag: '@moddb-live' }, async ({ page }) => {
     const browse = page.waitForResponse(
       (r) =>
         isBrowseResponse(r) &&

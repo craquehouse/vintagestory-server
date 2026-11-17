@@ -123,12 +123,12 @@ CI runs the same scan on every pull request and fails only on findings the pull 
 
 ```bash
 just install-e2e-browsers   # once: the Chromium builds Playwright uses
-just test-e2e-ci    # The CI set: untagged tests on a throwaway seeded container
+just test-e2e-ci    # The CI set: untagged tests, then the mod database tests on recorded answers
 just test-e2e-api   # API E2E tests (pytest); needs the stack running (just docker start)
 just test-e2e-web   # Every web E2E test (Playwright); starts and stops the stack itself
 ```
 
-What each test tag means, and what the CI set needs, is in [`web/e2e/README.md`](web/e2e/README.md).
+The CI set includes the mod database tests, on recorded answers replayed to a second throwaway container. What each test tag means, and what the CI set needs, is in [`web/e2e/README.md`](web/e2e/README.md).
 
 ### Releases
 

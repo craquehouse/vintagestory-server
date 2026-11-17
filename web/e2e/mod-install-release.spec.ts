@@ -9,7 +9,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  * release as `latest_version` with `install_mod_id`, and the web's version lists,
  * "(Latest)" label and install requests follow it.
  *
- * Expected versions are computed from the live lookup response, never hard-coded,
+ * Expected versions are computed from the lookup response, never hard-coded,
  * because the mod database changes. The UI tests stub the installed mods list and
  * `POST /api/v1alpha1/mods`, so they install nothing. The real-API tests run serially
  * and remove anything they install; each is skipped if a mod it touches was already
@@ -20,6 +20,8 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   or `just docker restart` then
  *   `cd web && bunx playwright test e2e/mod-install-release.spec.ts`
  * - Network access to the public mod database.
+ *   In CI the `@moddb` tests that are not `@install` run on recorded answers instead
+ *   (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -123,7 +125,7 @@ async function versionOptions(page: Page): Promise<Array<{ testId: string; text:
   );
 }
 
-// @moddb: reads the releases of live mod database entries
+// @moddb: reads the releases of mod database entries
 test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);

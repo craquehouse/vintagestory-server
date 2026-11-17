@@ -11,7 +11,8 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *
  * The install POST is stubbed with `page.route` to return the 409, and the installed
  * mods list is stubbed as empty, so nothing is installed and the dev stack ends as it
- * started. Mod details and browse results come from the live mod database.
+ * started. Mod details and browse results come from the mod database (live, or the
+ * recorded answers in CI).
  *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just test-e2e-web`,
@@ -19,6 +20,7 @@ import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } fro
  *   `cd web && bunx playwright test e2e/install-file-conflict.spec.ts`
  * - Network access to the public mod database. The card in the browse test is read from
  *   the rendered grid, not hard-coded, because the database changes daily.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -76,7 +78,7 @@ async function expectRefusalShown(page: Page, slug: string, posted: string[]) {
   expect(posted).toEqual([slug]);
 }
 
-// @moddb: opens the live carryon entry and the live browse list
+// @moddb: opens the carryon entry and the browse list
 test.describe(
   'Install refused when the file name is in use (Story 18.2)',
   { tag: '@moddb' },
