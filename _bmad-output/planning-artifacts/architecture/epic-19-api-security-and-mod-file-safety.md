@@ -145,7 +145,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-3: Roles Other Than Admin See the Root Config Files and `ModConfig` Only
 
-**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.1 (`VSS-3hs2`).
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.1 (`VSS-3hs2`). Matt confirmed root and `ModConfig` only, 2026-11-17.
 
 **Context:**
 
@@ -279,7 +279,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-7: The API Documentation Pages Are Served Only in Debug Mode
 
-**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.3 (`VSS-5mes`).
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.3 (`VSS-5mes`). Matt, 2026-11-17: not marked breaking, but the release notes must name it, so its commit is a `feat(api)` or `fix(api)` subject saying the docs pages need `VS_DEBUG=true`.
 
 **Context:**
 
@@ -339,7 +339,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-9: A Missing Mod File Is an Error with a Code, and Start-Up Recovers Interrupted Operations
 
-**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.4 (`VSS-yhmt`, `VSS-uoxl`).
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.4 (`VSS-yhmt`, `VSS-uoxl`). Matt confirmed warn-only for other `.tmp` and `.bak` files, 2026-11-17; a visible indication and cleanup is follow-up `VSS-hv60`.
 
 **Context:**
 
@@ -439,7 +439,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-13: CI Runs the E2E Specs That Need Nothing Outside the Stack
 
-**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.6 (`VSS-wenx`). Comes last: it uses Story 19.2's key helper and runs Story 19.3's policy spec.
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.6 (`VSS-wenx`). Matt confirmed untagged tests only, 2026-11-17. Comes last: it uses Story 19.2's key helper and runs Story 19.3's policy spec.
 
 **Context:**
 

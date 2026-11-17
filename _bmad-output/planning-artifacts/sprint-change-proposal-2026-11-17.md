@@ -840,7 +840,7 @@ The file also records the code facts and the mod database facts the decisions re
 
 | Artifact | Change | When |
 |---|---|---|
-| `sprint-status.yaml` | `epic-19` (backlog), `epic-19-retrospective` (optional) and the six story keys of section 4.1 (backlog), via `scripts/sprint-status.sh`. The script can add keys and set a status; it cannot rename or remove one, so the three keys of the first version that no longer exist (`19-2-content-security-policy`, `19-3-mod-files-are-never-overwritten`, `19-4-mod-database-data-is-checked`) are still in the file and need the maintainer's decision on how to remove them | Now |
+| `sprint-status.yaml` | `epic-19` (backlog), `epic-19-retrospective` (optional) and the six story keys of section 4.1 (backlog), via `scripts/sprint-status.sh`. The three keys of the first version that no longer exist (`19-2-content-security-policy`, `19-3-mod-files-are-never-overwritten`, `19-4-mod-database-data-is-checked`) were removed on 2026-11-17 with the script's new `remove` command (Matt's decision) | Now |
 | Beads | Epic `Epic 19: API Security and Mod File Safety` (`VSS-fl9b`); the 18 in-scope issues are its children; close each with an AAR when its story is done | Now, and per story |
 | `architecture/index.md` | Entry for the Epic 19 ADRs | Now |
 | README, `.env.example`, compose files, `scripts/worktree-setup.sh`, `architecture/project-structure-boundaries.md` | `VS_GAME_VERSION` (19.1), `VS_API_KEY` (19.2), `VS_CSP_MODE` and the documentation pages (19.3) | Stories 19.1 to 19.3 |
@@ -870,13 +870,13 @@ The file also records the code facts and the mod database facts the decisions re
 8. **Story 19.1's size.** Default: one story, as grouped. Alternative: split the `VS_API_KEY` change (`VSS-9wv`) into its own story so the breaking commit has its own review. *Changed: split; it is Story 19.2.*
 9. **Release.** The breaking change lands before the first stable release (`0.1.0-rc.4` today). Default: nothing special; it ships in the next pre-release or in `0.1.0`. *Confirmed: default.*
 
-**Questions the revision raises** (each has a default the stories use unless overturned):
+**Questions the revision raises.** Answered by Matt 2026-11-17: 1 changed (the removal is named in the release notes, without a breaking marker), 2 and 4 confirmed as defaulted, 3 confirmed with a follow-up bead (`VSS-hv60`), 5 resolved (a `remove` command was added to the script and the three stale keys removed).
 
-1. **Removing `/docs` and `/openapi.json` by default (ADR-7).** Default: not marked as a breaking change, since the pages are outside the versioned API. Alternative: mark the commit breaking.
-2. **Monitor's directories (ADR-3).** Default: the root files and `ModConfig` only. Alternative: add directories to the constant (for example `Macros`).
-3. **Old-style `.tmp` and `.bak` files (ADR-9 decision 7).** Default: named in a start-up warning and never touched, because the manager cannot tell its own old leftovers from an admin's files. Alternative: delete `.tmp` files whose name is a mod file name the state knows.
-4. **CI coverage (ADR-13).** Default: untagged tests only. Alternative: let CI also run `@moddb` tests against the live mod database, accepting failures when it is unavailable.
-5. **The stale sprint keys** (section 4.5). The script has no remove command; the planner did not edit the file by hand.
+1. **Removing `/docs` and `/openapi.json` by default (ADR-7).** Default: not marked as a breaking change, since the pages are outside the versioned API. Alternative: mark the commit breaking. *Answered: the commit is not marked breaking (`!`), but the release notes name the change: Story 19.3's commit subject for it is a `feat(api)` or `fix(api)` subject that says the API docs pages are served only with `VS_DEBUG=true`, so it appears under Features or Fixes.*
+2. **Monitor's directories (ADR-3).** Default: the root files and `ModConfig` only. Alternative: add directories to the constant (for example `Macros`). *Confirmed: root and `ModConfig` only.*
+3. **Old-style `.tmp` and `.bak` files (ADR-9 decision 7).** Default: named in a start-up warning and never touched, because the manager cannot tell its own old leftovers from an admin's files. Alternative: delete `.tmp` files whose name is a mod file name the state knows. *Confirmed: warn only. Follow-up `VSS-hv60` [UI-103]: show possibly unused files in the web UI with a confirmed cleanup (for example an age rule such as 7 days), designed when that bead is planned.*
+4. **CI coverage (ADR-13).** Default: untagged tests only. Alternative: let CI also run `@moddb` tests against the live mod database, accepting failures when it is unavailable. *Confirmed: untagged tests only.*
+5. **The stale sprint keys** (section 4.5). The script had no remove command; the planner did not edit the file by hand. *Resolved: `scripts/sprint-status.sh remove <key>` added with tests; the three stale keys removed with it.*
 
 **Follow-ups found outside the scope** (reported, no beads created). The seven of the first version are now in the epic; these remain or are new:
 
