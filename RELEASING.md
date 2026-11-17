@@ -54,7 +54,7 @@ just release 0.3.0-rc.1       # an explicit version (required for pre-releases)
 
 If anything fails, or you answer no, `main` is reset to where it was and the tag is deleted. Repository git hooks do not run for the release commit, tag and push.
 
-Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request. After such an update, the release commit may also change the `revision` line in `api/uv.lock` (the pinned uv rewrites it). Dependency versions are not affected.
+Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request, but not at the same moment. The `.mise.toml` change is held for a day, like every mise tool of the organisation's Renovate preset; the Dockerfile's uv image has no release date Renovate can read, so it is proposed at once. The pull request therefore opens with only the Dockerfile change, and `scripts/tests/test-docker-context.sh` fails it, because the two uv versions differ, until Renovate adds the `.mise.toml` change about a day later. That is expected. Do not merge a uv pull request until it changes both files and CI is green. After such an update, the release commit may also change the `revision` line in `api/uv.lock` (the pinned uv rewrites it). Dependency versions are not affected.
 
 ## What the workflow publishes
 
@@ -68,7 +68,7 @@ Users verify an image as described in the [README](README.md#verifying-an-image)
 
 ### What the image is built from
 
-- **Pinned:** the three images in the Dockerfile by digest (`node` for the web build, the .NET runtime base, and the uv binary), bun by version, the API's Python packages by `api/uv.lock` and the web's packages by `web/bun.lock`. The uv image's version is the one `.mise.toml` pins. `scripts/tests/test-docker-context.sh` fails if an image loses its digest or the two uv versions differ. Renovate moves the pins in pull requests, which CI builds and tests.
+- **Pinned:** the three images in the Dockerfile by digest (`node` for the web build, the .NET runtime base, and the uv binary), bun by version, the API's Python packages by `api/uv.lock` and the web's packages by `web/bun.lock`. The uv image's version is the one `.mise.toml` pins. `scripts/tests/test-docker-context.sh` fails if an image loses its digest or the two uv versions differ. Renovate moves the pins in pull requests, which CI builds and tests. A new version of an image is committed as `fix(container)` or `feat(container)` and is a release note; a new digest under the same tag (a rebuild of the base image) is `chore(container)` and is not.
 - **Not pinned:** the system packages. The image runs `apt-get upgrade` and installs `python3.14` from Ubuntu without versions, so it gets security fixes newer than the base image. Two builds of one commit can therefore differ in that layer.
 - So a re-run of the image job builds the image again and can push a different digest under the same tags. Each run's provenance and SBOM attestations describe the digest that run pushed; a user checks the attestation of the digest they pulled.
 
