@@ -27,6 +27,16 @@ else:
         if r.get(key) != want:
             problems.append(f"the uv rule has {key} {want!r}, not {r.get(key)!r}")
 
+digest = [r for r in rules if r.get("matchManagers") == ["dockerfile"]
+          and sorted(r.get("matchUpdateTypes", [])) == ["digest", "pinDigest"]]
+if len(digest) != 1 or digest[0].get("semanticCommitType") != "chore" or rules[-1] is not digest[0]:
+    problems.append("one rule types dockerfile digest and pinDigest updates chore")
+
+for r in rules:
+    versions = {"patch", "minor", "major"} & set(r.get("matchUpdateTypes", []))
+    if versions and "semanticCommitType" in r:
+        problems.append(f"a rule retypes {sorted(versions)} updates: {r.get('description', r)}")
+
 print("\n".join(problems))
 PY
 )

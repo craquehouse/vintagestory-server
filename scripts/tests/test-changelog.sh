@@ -105,6 +105,17 @@ for absent in excluded "Merge pull request" "non-conventional" "move story" "pre
     if [[ $notes == *"$absent"* ]]; then fail "notes omit '$absent'"; else pass; fi
 done
 
+# --- Renovate's image updates (Epic 21 ADR-3) -----------------------------------------
+
+repo=$(new_repo)
+commit "$repo" "chore: initial commit"
+commit "$repo" "chore(container): update image node digest (e6bedef → 1a2b3c4)"
+commit "$repo" "fix(container): update image mcr.microsoft.com/dotnet/runtime (10.0.14 → 10.0.15)"
+notes=$(cliff "$repo" --unreleased --strip header)
+assert_eq "an image version update is a note, a digest refresh is not" \
+    "- Update image mcr.microsoft.com/dotnet/runtime (10.0.14 → 10.0.15)" \
+    "$(grep '^- ' <<<"$notes" | sed 's/ (\[.*//')"
+
 # --- Version bumps on 0.x and pre-release tags ---------------------------------------
 
 repo=$(new_repo)

@@ -32,6 +32,12 @@
       "semanticCommitType": "chore",
       "semanticCommitScope": "uv",
       "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A new digest of a Dockerfile image under the same tag (a base image rebuild) is chore(container), not the preset's fix(container), so it adds no release note. A new tag is a patch, minor or major update and keeps the preset's fix or feat (Epic 21 ADR-3)",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "semanticCommitType": "chore"
     }
   ]
 }
