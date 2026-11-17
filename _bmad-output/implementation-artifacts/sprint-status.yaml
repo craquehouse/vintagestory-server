@@ -227,6 +227,16 @@ development_status:
   20-5-file-browser-e2e-in-ci: done
   20-6-mod-database-tests-in-ci: done
   20-7-reproducible-image-and-conventions: done
+  epic-21: backlog
+  epic-21-retrospective: optional
+  21-1-web-formatted-once: backlog
+  21-2-renovate-uv-hold-and-digests: backlog
+  21-3-log-level-and-config-viewer: backlog
+  21-4-remove-dialog-and-single-toast: backlog
+  21-5-version-sort-aria-sort-close-buttons: backlog
+  21-6-mod-detail-polish: backlog
+  21-7-tabs-and-tables-on-phones: backlog
+  21-8-sidebar-default-and-content-width: backlog
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

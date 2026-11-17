@@ -7,6 +7,8 @@ inputDocuments:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
+    description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR285'
+  - date: '2026-11-17'
     description: 'Added Epic 20 (7 stories) for Tooling and Test Health; FR234-FR259 (revised the same day with the maintainer''s answers: a mod database address setting, three beads pulled in)'
   - date: '2026-11-17'
     description: 'Added Epic 19 (7 stories) for API Security and Mod File Safety; FR205-FR233 (revised twice the same day: follow-ups folded in, VSS-9wv split out, start-up mod state sync added as Story 19.5)'
@@ -471,6 +473,32 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR257 | Epic 20 | Story numbering rule matches practice |
 | FR258 | Epic 20 | `VS_MOD_DB_URL`: the mod database's address is an optional setting |
 | FR259 | Epic 20 | The address is validated at start-up; `http` only with `VS_DEBUG=true` |
+| FR260 | Epic 21 | The web is formatted by one commit |
+| FR261 | Epic 21 | Prettier pinned, with a committed configuration and ignore file |
+| FR262 | Epic 21 | `just lint-web` and CI check the web's format |
+| FR263 | Epic 21 | The web format commit is in `.git-blame-ignore-revs` |
+| FR264 | Epic 21 | The uv update keeps the preset's hold; the red first day is documented |
+| FR265 | Epic 21 | Image digest refreshes are `chore(container)` |
+| FR266 | Epic 21 | `VS_LOG_LEVEL` sets the log level at start-up |
+| FR267 | Epic 21 | An invalid `VS_LOG_LEVEL` stops start-up; the debug switch still gives DEBUG |
+| FR268 | Epic 21 | Discord `ptb.` and `canary.` webhook URLs are redacted |
+| FR269 | Epic 21 | Config listings show nothing that leaves the data directory |
+| FR270 | Epic 21 | 403 for a forbidden directory even when the data directory is missing |
+| FR271 | Epic 21 | The remove dialog stays open until the removal succeeds |
+| FR272 | Epic 21 | A failed removal: one message, dialog stays open |
+| FR273 | Epic 21 | The remove dialog's running state belongs to one mod |
+| FR274 | Epic 21 | One error message per failed action |
+| FR275 | Epic 21 | Versions sort by Semantic Versioning precedence |
+| FR276 | Epic 21 | Sortable headers expose `aria-sort` |
+| FR277 | Epic 21 | Dialog and sheet close buttons are 44px |
+| FR278 | Epic 21 | Every new-tab link says so |
+| FR279 | Epic 21 | The mod detail page fits phones |
+| FR280 | Epic 21 | Mod descriptions are typeset |
+| FR281 | Epic 21 | Tab buttons are 44px tall below 1024px |
+| FR282 | Epic 21 | Settings tabs answer arrow keys at once, or the cause is recorded |
+| FR283 | Epic 21 | Jobs and Version tables fit phones; every page measured |
+| FR284 | Epic 21 | The sidebar follows the width until the user chooses |
+| FR285 | Epic 21 | 1280px maximum content width, console excepted |
 
 ## Epic List
 
@@ -1986,7 +2014,8 @@ So that **I can monitor background task status**.
 | Epic 18: Mod Media and Fixes | 18.1, 18.2, 18.3, 18.4 | 4 |
 | Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
 | Epic 20: Tooling and Test Health | 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7 | 7 |
-| **Total** | | **120** |
+| Epic 21: Maintainer Decisions and Web Polish | 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8 | 8 |
+| **Total** | | **128** |
 
 ---
 
@@ -6432,3 +6461,714 @@ So that **a release build does not change without a commit, and the documentatio
 - [ ] `RELEASING.md`: what a re-run can and cannot change (ADR-10 decision 5) (`VSS-870`)
 - [ ] Rewrite the "Story Numbering" section of `project-context.md` (ADR-11) (`VSS-as6`)
 - [ ] Pull-in (Matt, 2026-11-17): the architecture's environment table, with `VS_MOD_DB_URL` (`VSS-3q2s`)
+
+---
+
+## Epic 21: Maintainer Decisions and Web Polish
+
+**Goal:** Five decisions the maintainer made after Epic 20 are carried out: the web is formatted by Prettier and stays formatted, Renovate holds uv like every other tool and stops writing release notes for image rebuilds, `VS_LOG_LEVEL` works, and the mod remove dialog waits for the removal. Fourteen open beads about the web's tables, dialogs, mod detail page, tabs and layout, and about the config file viewer, are closed.
+
+**Architecture:** `architecture/epic-21-maintainer-decisions-and-web-polish.md` (ADR-1 to ADR-15, with the facts checked at `05436da`). There is no preparation story. Story 21.7 starts its arrow key work with a time-boxed reproduction (ADR-12 decision 3).
+
+**Decided by the maintainer (Matt, 2026-11-17):** the five decisions and the fourteen beads. For each decision: Prettier as a pinned dev dependency, one dedicated reformat commit that is first among the web stories and listed in `.git-blame-ignore-revs`, and a format check in `just lint-web` (ADR-1); the uv rule loses `minimumReleaseAge: null` and the red first day is documented (ADR-2); digest refreshes of Dockerfile images are `chore(container)` (ADR-3); `VS_LOG_LEVEL` with four values, case-insensitive, today's behaviour when unset and a start-up error when invalid (ADR-4); the remove dialog stays open with "Removing..." until the DELETE finishes and tracks its own mod (ADR-6). What the planner decided inside those and for the beads is listed as open questions in the change proposal (`sprint-change-proposal-2026-11-17-epic-21.md`, section 5), each with a default the stories follow.
+
+**Order:** 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8.
+
+**Dependencies:**
+
+- Story 21.1 comes first among the web stories and merges before any other web branch of the epic is cut: it rewrites about 231 web files, and every later web change is made on formatted code.
+- Stories 21.2 and 21.3 touch no file under `web/`. They need no other story's code and may be done before, after or beside 21.1; they are numbered here so the epic can start with them while 21.1 is in review. They share only the README and `RELEASING.md` with other stories.
+- Story 21.4 comes before 21.5: both edit `ModTable.tsx` and its test.
+- Story 21.5 comes before 21.7: both edit `VersionTable.tsx` (21.5 its sort, `aria-sort` and casts; 21.7 its columns on phones).
+- Story 21.6 needs no other story's code after 21.1. It comes after 21.5 because 21.5 changes the shared dialog close button that the screenshot dialog on the mod detail page uses.
+- Story 21.8 comes last and directly after 21.7: both extend `web/e2e/layout-widths.spec.ts`, 21.7 measures every page at phone and tablet widths before 21.8 changes the sidebar default there, and 21.8 changes the width of almost every page.
+- Stories 21.4 to 21.8 are run one after another.
+
+**Beads:** fourteen in scope, each closed with an AAR by its story: `VSS-wv0w` in 21.3; `VSS-oc28` in 21.4; `VSS-qxxo`, `VSS-whnb`, `VSS-759m` and `VSS-nuef` in 21.5; `VSS-woae`, `VSS-pzj8` and `VSS-4vbj` in 21.6; `VSS-3ry`, `VSS-vt4` and `VSS-f9y` in 21.7; `VSS-w85` and `VSS-alx` in 21.8. Stories 21.1 and 21.2 carry maintainer decisions and have no bead. What planning found is in the stories (the change proposal lists it), not in new beads.
+
+**Product changes:** one new working setting, `VS_LOG_LEVEL` (21.3); three small corrections to the config file routes (21.3); the rest is behaviour and layout of the web UI. No route, response field or status code of an existing successful request changes. Nothing is breaking.
+
+### Current State
+
+- The web has no formatter: `just format-web` runs an unpinned Prettier with defaults that would rewrite almost every file, and nothing checks the format
+- A uv update opens with both halves at once because the preset's one-day hold was cleared for it; a base image rebuild under the same tag is committed as `fix(container)` and becomes a release note
+- `VS_LOG_LEVEL` is read into the settings and used nowhere; the log level follows `VS_DEBUG` only
+- Discord webhook URLs on `ptb.` and `canary.` hosts are not redacted for read-only keys; an Admin directory listing shows links that leave the data directory; a read-only key gets an empty list instead of 403 when the data directory is missing
+- The mod remove dialog closes at once and the removal runs behind it; its "Removing..." label is shared by every mod's dialog
+- A failed mod install shows two error toasts, and so do a failed server install, uninstall and restart and a failed webhook setting
+- Sorting by version puts a release before its pre-releases in the installed mods list and on the Version page; the installed mods headers have no `aria-sort`; dialog and sheet close buttons are 16px
+- Five links open a new tab without saying so, and SVG links in descriptions cannot; the mod detail page is 674px wide on a 390px screen; mod descriptions show headings, lists and links as plain text
+- Tab buttons are about 30px tall on phones; the Settings tabs can lose arrow key presses just after they render; the Scheduled Jobs and Version tables scroll inside themselves on phones
+- The sidebar is expanded by default at tablet widths; apart from Game Settings no page has a maximum width
+
+### Target State
+
+- The web is formatted by a pinned Prettier with a committed configuration, the format commit is skipped by `git blame`, and `just lint-web` and CI fail on an unformatted file
+- A uv update follows the preset's hold, and `RELEASING.md` says its pull request is red for a day and must wait; image rebuilds are `chore(container)` and stay out of the release notes
+- `VS_LOG_LEVEL` sets the log level, an invalid value stops start-up, and the debug switch still gives DEBUG
+- The config file viewer redacts all four Discord hosts, lists nothing that leaves the data directory, and answers 403 before it looks for the directory
+- The remove dialog waits for its own mod's removal and stays open on an error; every failed action shows one toast
+- Versions sort by Semantic Versioning precedence everywhere; sortable headers announce their state; close buttons are 44px
+- Every new-tab link says so; the mod detail page fits a phone; descriptions are typeset in both themes
+- Tabs are 44px tall below 1024px; the arrow key fault is fixed or explained; the two tables fit phones and every page has been measured there
+- The sidebar follows the width until the user chooses; page content is at most 1280px wide, except the console
+
+---
+
+### Story 21.1: The Web Is Formatted Once and Stays Formatted
+
+**Sprint key:** `21-1-web-formatted-once`
+**Beads:** none (maintainer decision 5; Matt, 2026-11-17)
+**FRs:** FR260, FR261, FR262, FR263
+
+As a **developer**,
+I want **the whole web in one formatter's form and a check that keeps it there**,
+So that **formatting a file I work on never adds changes that are not mine**.
+
+**Acceptance Criteria:**
+
+**Given** `web/package.json` and `web/bun.lock`
+**When** I read them
+**Then** Prettier is a dev dependency at one exact version (no range), and `format` and `format:check` scripts run it over the web directory
+
+*(Covers FR261; Matt, 2026-11-17)*
+
+**Given** `web/.prettierrc.json`
+**When** I read it
+**Then** it sets `singleQuote: true`, `printWidth: 100` and `trailingComma: "es5"` and nothing else
+
+*(Covers FR261; ADR-1 decision 2)*
+
+**Given** `web/.prettierignore`
+**When** Prettier runs over `web/`
+**Then** it covers the tracked `.ts`, `.tsx`, `.css` and `.json` files in `src`, `e2e`, `tests` and at the top of `web/`, and leaves out `e2e/fixtures/`, Markdown and HTML files, `public/` and the build, coverage and Playwright output directories
+
+*(Covers FR261; ADR-1 decisions 3 and 4)*
+
+**Given** the web sources
+**When** `prettier --check .` runs in `web/`
+**Then** it reports no file that would be reformatted
+
+*(Covers FR260)*
+
+**Given** the format commit
+**When** I read it
+**Then** it holds only what `prettier --write .` wrote with the committed configuration: no hand edit, no configuration change, no `// prettier-ignore`, and its subject is `chore(story-21.1/task-2): format the web with prettier`
+
+*(Covers FR260; Matt, 2026-11-17)*
+
+**Given** the format commit's parent (which already holds the dependency, the configuration and the ignore file)
+**When** a reviewer runs the same command on it
+**Then** the resulting tree is identical to the format commit's tree
+
+*(Covers FR260)*
+
+**Given** `just typecheck-web`, `just test-web` and `just build-web`
+**When** they run before and after the format commit
+**Then** the results are the same: no new type error, the same tests pass, and the build succeeds
+
+*(Covers FR260)*
+
+**Given** the recorded mod database answers in `web/e2e/fixtures/moddb/`
+**When** the format commit is made
+**Then** no file under `web/e2e/fixtures/` has changed, and `just record-moddb` still writes files the check ignores
+
+*(Covers FR260, FR261)*
+
+**Given** `just lint-web`
+**When** it runs
+**Then** it runs the format check, fails when a covered file is not formatted, and no longer repeats the type check that `just typecheck-web` runs
+
+*(Covers FR262)*
+
+**Given** a pull request that contains an unformatted web file
+**When** CI runs
+**Then** the `web` job fails at a `just lint-web` step, and `scripts/tests/test-release.sh` still passes (the job list is unchanged)
+
+*(Covers FR262)*
+
+**Given** `just format-web` and `just format`
+**When** they run on a formatted tree
+**Then** they use the pinned Prettier and the committed configuration, and change no file
+
+*(Covers FR261)*
+
+**Given** the repository root
+**When** I read `.git-blame-ignore-revs`
+**Then** it names the web format commit's full hash under a comment line, below the API entry, and it was added in a separate commit of the same pull request
+
+*(Covers FR263)*
+
+**Given** the epic's branches
+**When** Story 21.1's pull request merges
+**Then** it is merged with a merge commit like every other, no other web branch of the epic exists yet, and the hash in `.git-blame-ignore-revs` is a commit on `main`
+
+*(Covers FR263; Matt, 2026-11-17)*
+
+**Tasks:**
+
+- [ ] Add Prettier at an exact version, `web/.prettierrc.json`, `web/.prettierignore` and the `format` and `format:check` scripts; no source file changes in this commit (Epic 21 ADR-1 decisions 1 to 4)
+- [ ] Run `prettier --write .` in `web/` and commit the result alone; record the file and line counts and that the type check, tests and build give the same results as before (ADR-1 decisions 5, 6 and 9)
+- [ ] Add the commit's hash to `.git-blame-ignore-revs` (ADR-1 decision 7)
+- [ ] `just lint-web` runs the format check and `just format-web` the pinned Prettier; add `just lint-web` to CI's `web` job; update the recipe comments and the command lists in `CLAUDE.md`, `project-context.md` and the README (ADR-1 decision 8)
+
+---
+
+### Story 21.2: Renovate: the uv Hold and Digest Refreshes
+
+**Sprint key:** `21-2-renovate-uv-hold-and-digests`
+**Beads:** none (maintainer decisions 1 and 2; Matt, 2026-11-17)
+**FRs:** FR264, FR265
+
+As the **maintainer**,
+I want **uv held like every other tool and image rebuilds kept out of the release notes**,
+So that **Renovate's pull requests follow the organisation's rules and the release notes list only what a user would notice**.
+
+**Acceptance Criteria:**
+
+**Given** `renovate.json`
+**When** I read the uv rule
+**Then** it has no `minimumReleaseAge`, it still groups `uv` and `ghcr.io/astral-sh/uv` as `chore(uv)`, and its description says the pull request opens with the Dockerfile half and must wait for the `.mise.toml` half
+
+*(Covers FR264; Matt, 2026-11-17)*
+
+**Given** `RELEASING.md`
+**When** I read what it says about Renovate and uv
+**Then** it says a uv pull request opens with only the Dockerfile change, that `scripts/tests/test-docker-context.sh` fails it for about a day until the `.mise.toml` change joins it, that this is expected, and that it must not be merged until it holds both files and CI is green
+
+*(Covers FR264; Matt, 2026-11-17)*
+
+**Given** `scripts/tests/test-docker-context.sh`
+**When** the story is done
+**Then** its uv version assertion is unchanged
+
+*(Covers FR264; ADR-2 decision 4)*
+
+**Given** `renovate.json`
+**When** I read its rules
+**Then** one rule matches the `dockerfile` manager with update types `digest` and `pinDigest` and sets the commit type `chore`, and no rule changes the type of a `patch`, `minor` or `major` update of a Dockerfile image
+
+*(Covers FR265; Matt, 2026-11-17)*
+
+**Given** a digest refresh of `node:26-slim` under the same tag
+**When** Renovate commits it
+**Then** the subject starts with `chore(container):`, and `just changelog` shows no note for it
+
+*(Covers FR265; confirmed on the first such pull request after the merge, or by Renovate's dry run if one can be run; recorded in the story)*
+
+**Given** a new version tag of a Dockerfile image
+**When** Renovate commits it
+**Then** the subject keeps the preset's `fix(container):` or `feat(container):`
+
+*(Covers FR265)*
+
+**Given** the changed `renovate.json`
+**When** `renovate-config-validator --no-global` runs on it from a directory outside the repository
+**Then** it reports the file as a valid repository configuration, and `web/package.json` and `web/bun.lock` are unchanged by the run
+
+*(Covers FR264, FR265)*
+
+**Tasks:**
+
+- [ ] Remove `minimumReleaseAge: null` from the uv rule and rewrite its description; rewrite the uv paragraph of `RELEASING.md`; validate (Epic 21 ADR-2)
+- [ ] Add the digest rule for the `dockerfile` manager; add a sentence to `RELEASING.md` on which image updates produce a release note; validate (ADR-3)
+- [ ] Record the validator's output and, once Renovate has run with the new rules, what it did with the open uv pull request and the next digest refresh (ADR-2 consequences, ADR-3)
+
+---
+
+### Story 21.3: A Working `VS_LOG_LEVEL` and Config Viewer Edge Cases
+
+**Sprint key:** `21-3-log-level-and-config-viewer`
+**Beads:** `VSS-wv0w` (API-096); maintainer decision 3 (Matt, 2026-11-17)
+**FRs:** FR266, FR267, FR268, FR269, FR270
+
+As an **operator**,
+I want **to set the API's log level with `VS_LOG_LEVEL`, and the config file viewer to behave the same in its edge cases**,
+So that **I can have quieter or more detailed logs without debug mode, and read-only keys see neither webhook secrets nor wrong answers**.
+
+**Acceptance Criteria:**
+
+**Given** `VS_LOG_LEVEL=warning` (any letter case) and `VS_DEBUG` unset
+**When** the API starts
+**Then** INFO and DEBUG lines are not written and WARNING and ERROR lines are, in JSON, and the `api_starting` line reports `WARNING` as the level
+
+*(Covers FR266)*
+
+**Given** `VS_LOG_LEVEL` unset or blank
+**When** the API starts
+**Then** the level is DEBUG with `VS_DEBUG=true` and INFO otherwise, as before
+
+*(Covers FR266; Matt, 2026-11-17)*
+
+**Given** `VS_DEBUG=true` and `VS_LOG_LEVEL=INFO`
+**When** the API starts
+**Then** the level is INFO, the console renderer is used, and the documentation pages and test routes are served as in any debug mode
+
+*(Covers FR266; ADR-4 decision 2)*
+
+**Given** `VS_LOG_LEVEL=DEBUG` and `VS_DEBUG` unset
+**When** the API starts
+**Then** DEBUG lines are written in JSON, and the documentation pages and test routes are not served
+
+*(Covers FR266)*
+
+**Given** `VS_LOG_LEVEL=verbose`
+**When** the API starts
+**Then** start-up stops with an error that names `VS_LOG_LEVEL` and the four allowed values and does not print the value
+
+*(Covers FR267; Matt, 2026-11-17)*
+
+**Given** `VS_LOG_LEVEL=WARNING` and a running API
+**When** an Admin turns debug logging on and then off again
+**Then** the level is DEBUG while it is on and WARNING after it is turned off, and the three `/debug` responses have the fields they have today
+
+*(Covers FR267; ADR-4 decision 3)*
+
+**Given** `VS_DEBUG=on`
+**When** the API starts
+**Then** logging is in debug mode, as the documentation pages already are
+
+*(Covers FR267; ADR-4 decision 6)*
+
+**Given** the README's configuration table, `.env.example`, the architecture's environment table and the Logging section of `project-context.md`
+**When** I read them
+**Then** each describes `VS_LOG_LEVEL`: the four values, that letter case does not matter, the default, what the debug switch does to it, and that any other value stops start-up
+
+*(Covers FR267)*
+
+**Given** a config file with the value `https://ptb.discord.com/api/webhooks/1/abc` or `https://canary.discord.com/api/webhooks/1/abc`
+**When** a Monitor key reads the file
+**Then** the value is `[redacted]`, as for `discord.com` and `discordapp.com`, and the API has one definition of the four hosts
+
+*(Covers FR268; `VSS-wv0w`)*
+
+**Given** a directory symlink, or a `.json` file symlink, inside the server data directory that points outside it
+**When** an Admin key or a Monitor key lists the directory that holds it
+**Then** the entry is not in the listing
+
+*(Covers FR269; `VSS-wv0w`)*
+
+**Given** the server data directory does not exist
+**When** a Monitor key lists a directory it may not see (for example `Playerdata`)
+**Then** the answer is 403 `FORBIDDEN`, as when the data directory exists; a path traversal is 400; and a request for the root or `ModConfig` still answers with an empty list
+
+*(Covers FR270; `VSS-wv0w`)*
+
+**Tasks:**
+
+- [ ] Validate `log_level` in the settings (normalise, blank is unset, a bad value raises naming `VS_LOG_LEVEL`) with tests for every accepted and refused form (Epic 21 ADR-4 decisions 1 and 8)
+- [ ] Apply the level at start-up and keep it through the debug switch: `initialize_debug_state` takes the configured level and the debug flag from the settings, `set_debug_enabled` returns to it, `api_starting` reports the level set; tests for each combination; its own `feat(api)` commit (ADR-4 decisions 2 to 6)
+- [ ] Document `VS_LOG_LEVEL` in the README, `.env.example`, `architecture/project-structure-boundaries.md` and `project-context.md` (ADR-4 decision 7)
+- [ ] One set of Discord hosts for redaction and for the webhook sender, with tests for the two added hosts; its own `fix(api)` commit (ADR-5 decision 1) (`VSS-wv0w`)
+- [ ] Listings leave out entries that resolve outside the data directory for every role, and the path and role checks run before the missing-directory shortcut; tests for both roles; update the route documentation strings (ADR-5 decisions 2 to 4) (`VSS-wv0w`)
+
+---
+
+### Story 21.4: The Mod Remove Dialog Waits, and One Toast per Failure
+
+**Sprint key:** `21-4-remove-dialog-and-single-toast`
+**Beads:** `VSS-oc28` (UI-096); maintainer decision 4 (Matt, 2026-11-17)
+**FRs:** FR271, FR272, FR273, FR274
+
+As an **administrator**,
+I want **the remove dialog to show me the removal until it is done, and one message when something fails**,
+So that **I know whether the mod was removed and am not told the same error twice**.
+
+**Acceptance Criteria:**
+
+**Given** the remove dialog of an installed mod
+**When** I confirm
+**Then** the dialog stays open, the confirm button shows a spinner and "Removing...", and the confirm and Cancel buttons are disabled
+
+*(Covers FR271; Matt, 2026-11-17)*
+
+**Given** a removal that is running
+**When** I press Escape
+**Then** the dialog stays open
+
+*(Covers FR271; ADR-6 decision 4)*
+
+**Given** a removal that is running
+**When** the DELETE succeeds
+**Then** the dialog closes, the mod is no longer in the list, and the success message is shown once
+
+*(Covers FR271)*
+
+**Given** a removal that is running
+**When** the DELETE fails
+**Then** exactly one error toast is shown, the dialog stays open with the confirm button enabled and labelled "Remove" again, and the mod is back in the list behind it
+
+*(Covers FR272; ADR-6 decision 3)*
+
+**Given** the dialog after a failed removal
+**When** I confirm again or cancel
+**Then** confirming sends a new DELETE and cancelling closes the dialog with the mod still installed
+
+*(Covers FR272)*
+
+**Given** a removal of mod A that failed or finished
+**When** I open the remove dialog of mod B
+**Then** its confirm button reads "Remove" and is enabled; "Removing..." is shown only in the dialog of the mod whose DELETE is running
+
+*(Covers FR273; Matt, 2026-11-17)*
+
+**Given** the installed mods as cards (below 1024px)
+**When** I remove a mod from its card
+**Then** the dialog behaves the same as from the table
+
+*(Covers FR271)*
+
+**Given** the server uninstall dialog while its request runs
+**When** I press Escape
+**Then** the dialog stays open, as its disabled Cancel button already implies
+
+*(Covers FR271; ADR-6 decision 7, found in planning)*
+
+**Given** a mod install that the API refuses
+**When** the install dialog shows the failure
+**Then** exactly one error toast is shown, titled "Installation failed" with the API's message
+
+*(Covers FR274; `VSS-oc28`)*
+
+**Given** a failed server install, server uninstall, server restart or mod update webhook change
+**When** the request fails
+**Then** exactly one error toast is shown, with the caller's title and the API's message
+
+*(Covers FR274; ADR-7 decision 2, found in planning)*
+
+**Given** `project-context.md`
+**When** I read its frontend rules
+**Then** it says that a hook-level `onError` replaces the query client's default, that an `onError` passed to `mutate` runs in addition, and that a hook either reports its error or silences the default for its callers
+
+*(Covers FR274; ADR-7 decision 5)*
+
+**Given** the E2E suite
+**When** CI runs it
+**Then** an untagged spec covers the remove dialog with the DELETE stubbed (a delayed success and an error), sends no request that changes the stack, and passes on the throwaway container
+
+*(Covers FR271, FR272)*
+
+**Tasks:**
+
+- [ ] The remove dialog: a plain destructive confirm button, open until the DELETE succeeds, Cancel and Escape blocked while it runs, open with "Remove" again after an error; unit tests for running, success and failure; a `fix(web)` commit with the release note (Epic 21 ADR-6 decisions 1 to 4, 6)
+- [ ] The pending state compares the mutation's `variables` with the dialog's mod; unit test with a second mod's dialog (ADR-6 decision 5)
+- [ ] The same Escape guard in `UninstallConfirmDialog`'s page, with a unit test (ADR-6 decision 7)
+- [ ] `useInstallMod` silences the default `onError`; a test that a failed install shows one toast; a `fix(web)` commit with its release note (ADR-7 decisions 1 and 3) (`VSS-oc28`)
+- [ ] The same for `useRestartServer`, `useInstallServer`, `useUninstallServer` and `useSetModUpdateWebhook`, after checking every caller reports the error; one test each; a `fix(web)` commit with its release note; the rule in `project-context.md` (ADR-7 decisions 2, 5 and 6)
+- [ ] E2E spec for the remove dialog with the DELETE stubbed; update the counts in `web/e2e/README.md` (ADR-6 decision 8)
+
+---
+
+### Story 21.5: Version Sort, Sort State for Screen Readers and Close Buttons
+
+**Sprint key:** `21-5-version-sort-aria-sort-close-buttons`
+**Beads:** `VSS-qxxo` (UI-099), `VSS-whnb` (UI-100), `VSS-759m` (UI-101), `VSS-nuef` (UI-095)
+**FRs:** FR275, FR276, FR277
+
+As a **user of the tables and dialogs**,
+I want **versions in their real order, the sort order announced, and close buttons I can hit**,
+So that **a pre-release is not listed as newer than its release, a screen reader tells me how a table is sorted, and I can close a dialog on a phone**.
+
+**Acceptance Criteria:**
+
+**Given** installed mods with the versions `1.0.0`, `1.0.0-rc.2`, `1.0.0-rc.12`, `1.9.0` and `1.10.0`
+**When** I sort by Version ascending
+**Then** the order is `1.0.0-rc.2`, `1.0.0-rc.12`, `1.0.0`, `1.9.0`, `1.10.0`, and descending is the reverse, in the table and in the cards below 1024px
+
+*(Covers FR275; `VSS-qxxo`)*
+
+**Given** the Version page's table with `1.22.0` and `1.22.0-rc.1`
+**When** I sort by Version ascending
+**Then** `1.22.0-rc.1` comes before `1.22.0`
+
+*(Covers FR275; found in planning)*
+
+**Given** an installed game version `1.22.0-rc.2` and a listed version `1.22.0-rc.12`
+**When** the Version page marks newer versions
+**Then** `1.22.0-rc.12` is marked as newer
+
+*(Covers FR275; found in planning)*
+
+**Given** versions the comparison cannot read (for example `1.2`, `v1.0.0`, `beta`)
+**When** a table sorts them with others
+**Then** nothing throws, a leading `v` is ignored, a missing part counts as 0, unreadable strings come after readable ones, and the order is the same on every render
+
+*(Covers FR275; ADR-8 decision 3)*
+
+**Given** the web's dependencies
+**When** the story is done
+**Then** no package was added for the comparison, and the two tables and the "newer" mark use one function
+
+*(Covers FR275)*
+
+**Given** the installed mods table sorted by Name ascending
+**When** a screen reader reads the header row
+**Then** the Name header has `aria-sort="ascending"`, the Version and Status headers have `aria-sort="none"`, and the headers that cannot be sorted have no `aria-sort`
+
+*(Covers FR276; `VSS-whnb`)*
+
+**Given** either sortable table
+**When** I change the sort column or its direction
+**Then** `aria-sort` moves with it: `ascending` or `descending` on the sorted column and `none` on the other sortable columns
+
+*(Covers FR276)*
+
+**Given** `VersionTable.tsx`
+**When** I read how it uses column meta
+**Then** it reads `meta.className` with no type assertion, and the rendered classes are the same as before
+
+*(`VSS-759m`; a refactor with no requirement of its own)*
+
+**Given** any dialog with a close button, and the phone navigation sheet
+**When** I measure the close button at 390px and at 1440px
+**Then** it is at least 44 by 44px, its icon is where it was, and it does not cover the dialog's title text
+
+*(Covers FR277; `VSS-nuef`)*
+
+**Tasks:**
+
+- [ ] `web/src/lib/version-compare.ts` with unit tests for every rule and for unreadable input (Epic 21 ADR-8 decisions 1 to 5) (`VSS-qxxo`)
+- [ ] Use it in the installed mods Version column and in the Version table (the column's sort and the "newer" mark, replacing the private function); table tests for both directions and the cards; a `fix(web)` commit with the release note (ADR-8 decision 1) (`VSS-qxxo`)
+- [ ] `aria-sort` on the sortable headers of both tables, chevrons hidden from screen readers; unit tests for each state; a `fix(web)` commit with the release note (ADR-9 decisions 1 and 2) (`VSS-whnb`)
+- [ ] Remove the two casts in `VersionTable.tsx`; a `refactor` commit (ADR-9 decision 3) (`VSS-759m`)
+- [ ] 44px close buttons in `ui/dialog.tsx` and `ui/sheet.tsx`; an E2E check of the size at 390px for one dialog and the sheet; a `fix(web)` commit with the release note (ADR-9 decisions 4 and 5) (`VSS-nuef`)
+
+---
+
+### Story 21.6: Mod Detail Page Polish
+
+**Sprint key:** `21-6-mod-detail-polish`
+**Beads:** `VSS-woae` (UI-094), `VSS-pzj8` (UI-092), `VSS-4vbj` (UI-093)
+**FRs:** FR278, FR279, FR280
+
+As a **user reading about a mod**,
+I want **the page to fit my phone, the description to look like a document, and links to say where they open**,
+So that **I can read and install from a phone, and a screen reader tells me before a link leaves the app**.
+
+**Acceptance Criteria:**
+
+**Given** the mod detail page of a mod with a homepage and a source URL
+**When** a screen reader reads the ModDB Page, Homepage, Source and trailer links
+**Then** each is announced with "(opens in a new tab)", and each shows a visible mark that it leaves the app
+
+*(Covers FR278; `VSS-woae`)*
+
+**Given** the other links in the web UI that open a new tab (the mod links in the installed list and on browse cards, the changelog links, the sidebar link)
+**When** a screen reader reads them
+**Then** each announces that it opens in a new tab, in the same words
+
+*(Covers FR278; ADR-10 decisions 1 and 2, found in planning)*
+
+**Given** a mod description that contains an SVG with a link
+**When** the description is shown
+**Then** the link opens in a new tab with `rel="noopener noreferrer"` and has an accessible note that says so; sanitizing the result again adds no second note; and a note the mod author wrote cannot stand in for it
+
+*(Covers FR278; `VSS-woae`; ADR-10 decisions 4 and 5)*
+
+**Given** the mod detail page at 320, 390 and 430px
+**When** I open a mod with a long name, tags and an install card
+**Then** the page does not scroll sideways, the header is stacked with the install card at full width, every control is inside the viewport, and the install and version controls are at least 44px tall
+
+*(Covers FR279; `VSS-pzj8`)*
+
+**Given** the mod detail page at 768px and wider
+**When** I open it
+**Then** the header is the one row it is today
+
+*(Covers FR279)*
+
+**Given** a description with headings, paragraphs, a bulleted and a numbered list, a link, a quote, inline code, a code block and a table
+**When** it is shown in the light and in the dark theme
+**Then** headings are larger and bolder than body text, lists show their markers and indentation, the link is in the link colour and underlined, the quote, code and table are set apart, and every colour comes from the theme
+
+*(Covers FR280; `VSS-4vbj`)*
+
+**Given** a description with a table, an image, a code block or a URL wider than the card
+**When** it is shown at 320px
+**Then** the wide element scrolls or shrinks inside the card and the page does not scroll sideways
+
+*(Covers FR279, FR280)*
+
+**Given** `web/package.json` and the description container
+**When** the story is done
+**Then** no dependency was added and the container has no `prose` class
+
+*(Covers FR280; ADR-11 decisions 5 and 6)*
+
+**Given** a description whose author set inline styles
+**When** it is shown
+**Then** the author's styles still apply over the defaults
+
+*(Covers FR280; ADR-11 decision 7)*
+
+**Tasks:**
+
+- [ ] A new-tab link component with the hidden note; use it for the five unmarked links; the same wording in the three `aria-label` links; the visible mark on Homepage and Source; unit tests; a `fix(web)` commit with the release note (Epic 21 ADR-10 decisions 1 to 3) (`VSS-woae`)
+- [ ] SVG links in descriptions get a `<title>` note in the sanitizer hook; unit tests including idempotence; confirm in a browser's accessibility snapshot and record the result (ADR-10 decisions 4 to 6) (`VSS-woae`)
+- [ ] The header stacks below `md`, with the skeleton; unit tests; a `fix(web)` commit with the release note (ADR-11 decisions 1 and 2) (`VSS-pzj8`)
+- [ ] Description styles under `.mod-description`, wide content contained, `prose` classes removed; a `fix(web)` commit with the release note (ADR-11 decisions 3 to 7) (`VSS-4vbj`)
+- [ ] E2E on a stubbed mod detail answer: no sideways scroll and a stacked header at 320, 390 and 430px, the unchanged row at 768px, heading, list and link styles in both themes (ADR-11 decision 8)
+
+---
+
+### Story 21.7: Tabs and Tables on Phones
+
+**Sprint key:** `21-7-tabs-and-tables-on-phones`
+**Beads:** `VSS-3ry` (UI-089), `VSS-vt4` (UI-091, bug), `VSS-f9y` (UI-087)
+**FRs:** FR281, FR282, FR283
+
+As a **user on a phone or tablet**,
+I want **tabs I can tap, tabs that answer the keyboard at once, and tables that fit the screen**,
+So that **I do not miss a tab, lose a key press or scroll a table sideways inside the page**.
+
+**Acceptance Criteria:**
+
+**Given** the Settings, Mods and Version pages below 1024px
+**When** I measure their tab buttons
+**Then** each is at least 44px tall, and from 1024px up they are the height they are today
+
+*(Covers FR281; `VSS-3ry`)*
+
+**Given** the Settings tab list at 320 to 430px
+**When** it wraps to two rows
+**Then** both rows are inside the list's background, nothing overlaps the panel below, and the page does not scroll sideways
+
+*(Covers FR281)*
+
+**Given** the arrow key fault of `VSS-vt4`
+**When** the story starts on it
+**Then** it is first reproduced with a real keyboard in Chromium and Firefox and with the scripted steps, within the time box, and what was seen is recorded in the story
+
+*(Covers FR282; ADR-12 decision 3)*
+
+**Given** the fault is reproduced and its cause is in this project's code
+**When** I focus a Settings tab as soon as the list is shown and press ArrowRight three times
+**Then** focus and selection move one tab per press, in a unit test and in an E2E with no added wait
+
+*(Covers FR282; ADR-12 decision 4)*
+
+**Given** the fault cannot be reproduced with a real keyboard, or its cause is inside the tabs library
+**When** the story ends
+**Then** no workaround was added, and the bead is closed with the evidence: what was tried, on which browsers, and what was seen
+
+*(Covers FR282; ADR-12 decision 5)*
+
+**Given** the Scheduled Jobs tab from 320 to 1023px, with the sidebar expanded and collapsed
+**When** I open it with an Admin key
+**Then** each job is a card with its name, schedule, next run and status labelled, nothing scrolls sideways inside the panel, and from 1024px up the table is unchanged
+
+*(Covers FR283; `VSS-f9y`)*
+
+**Given** the Version page at 320 and 390px
+**When** I open it
+**Then** the version table fits its container without scrolling inside itself, each row still shows its channel, and its install action is at least 44px tall
+
+*(Covers FR283; `VSS-f9y`)*
+
+**Given** every page of the web UI (Dashboard, Version, Game Settings, Mods installed and browse, mod detail, both console pages, each Settings tab)
+**When** it is measured at 320, 390, 430, 768 and 1023px in both sidebar states
+**Then** the measurements are saved in the story's folder, and each page that scrolls sideways or has a table scrolling inside itself is either fixed in this story or reported to the maintainer in the pull request with its numbers
+
+*(Covers FR283; the comment on `VSS-f9y`; ADR-13 decision 4)*
+
+**Tasks:**
+
+- [ ] 44px tab triggers below `lg` in `ui/tabs.tsx`; check the three tab lists at 320, 390, 430 and 768px; extend `layout-widths.spec.ts`; a `fix(web)` commit with the release note (Epic 21 ADR-12 decisions 1 and 2) (`VSS-3ry`)
+- [ ] Reproduce the arrow key fault (real keyboard, then scripted) and record it; fix it with a unit test and an E2E, or close the bead with the evidence (ADR-12 decisions 3 to 5) (`VSS-vt4`)
+- [ ] Scheduled Jobs as cards below `lg`, with unit tests for both layouts (ADR-13 decision 1) (`VSS-f9y`)
+- [ ] The Version table without a Channel column below `sm`, channel shown under the version; unit tests (ADR-13 decision 2) (`VSS-f9y`)
+- [ ] Measure every page at the five widths in both sidebar states, save the numbers, fix what is of the same kind; extend `layout-widths.spec.ts` for the two tables; a `fix(web)` commit with the release note (ADR-13 decisions 3 to 5) (`VSS-f9y`)
+
+---
+
+### Story 21.8: Sidebar Default and Content Width
+
+**Sprint key:** `21-8-sidebar-default-and-content-width`
+**Beads:** `VSS-w85` (UI-090), `VSS-alx` (UI-088)
+**FRs:** FR284, FR285
+
+As a **user on a tablet or a wide monitor**,
+I want **the sidebar out of the way where space is short, and pages that do not stretch across a wide screen**,
+So that **content has room at tablet widths and stays readable on large monitors**.
+
+**Acceptance Criteria:**
+
+**Given** a browser with no stored preferences
+**When** I open the app at 900px
+**Then** the sidebar is collapsed (64px), and at 1024px and wider it is expanded (160px)
+
+*(Covers FR284; `VSS-w85`)*
+
+**Given** no stored sidebar choice
+**When** I resize the window across 1024px
+**Then** the sidebar collapses and expands with the width
+
+*(Covers FR284; ADR-14 decision 3)*
+
+**Given** any width from 768px
+**When** I use the sidebar's toggle
+**Then** the sidebar changes, the choice is stored, and it is kept at every width and after a reload
+
+*(Covers FR284; ADR-14 decision 4)*
+
+**Given** a cookie written before this story with `sidebarCollapsed: true`
+**When** I open the app
+**Then** the sidebar is collapsed at every width from 768px, as before
+
+*(Covers FR284; ADR-14 decision 2)*
+
+**Given** a cookie written before this story with `sidebarCollapsed: false`
+**When** I open the app
+**Then** the sidebar follows the width: collapsed from 768 to 1023px and expanded from 1024px
+
+*(Covers FR284; ADR-14 decision 2)*
+
+**Given** UI Preferences
+**When** I open the sidebar setting
+**Then** I can choose Automatic, Expanded or Collapsed, the current value is shown, and Automatic returns the sidebar to following the width
+
+*(Covers FR284; ADR-14 decision 5)*
+
+**Given** a phone width and a stored choice of Collapsed
+**When** I open the navigation menu
+**Then** the sheet shows the full sidebar with labels and no collapse toggle
+
+*(Covers FR284; ADR-14 decision 6, found in planning)*
+
+**Given** the Dashboard, the Version page, Game Settings, the Mods page with both tabs and Settings at 1920px, in both sidebar states
+**When** I measure the content
+**Then** it is at most 1280px wide and centered in the area right of the sidebar, and nothing is clipped
+
+*(Covers FR285; `VSS-alx`)*
+
+**Given** the mod browser at 1920px
+**When** I open it
+**Then** the grid has four columns inside the 1280px content width
+
+*(Covers FR285; ADR-15 decision 3)*
+
+**Given** the Console page and the game server page with the console at 1920px
+**When** I measure the console
+**Then** it uses the full width of the content area and is wider than 1280px
+
+*(Covers FR285; ADR-15 decision 4)*
+
+**Given** the code
+**When** I search for the 1280px width
+**Then** it is written in one place, and Game Settings uses it
+
+*(Covers FR285; ADR-15 decision 1)*
+
+**Given** every page below 1280px of content width
+**When** I compare it with before the story
+**Then** its layout is unchanged
+
+*(Covers FR285)*
+
+**Tasks:**
+
+- [ ] The sidebar preference becomes `auto`, `expanded` or `collapsed` with the migration of the old key; the effective state follows the width when `auto`; unit tests at 767, 768, 1023 and 1024px and for both old cookie values (Epic 21 ADR-14 decisions 1 to 4) (`VSS-w85`)
+- [ ] The three-way control in UI Preferences and the always-full sidebar in the phone sheet; unit tests; a `feat(web)` commit with the release note (ADR-14 decisions 5 and 6) (`VSS-w85`)
+- [ ] `layout-widths.spec.ts` writes the new key and checks a fresh browser at 900px and 1024px (ADR-14 decision 7) (`VSS-w85`)
+- [ ] The 1280px cap in `Layout` with one constant, the console pages opted out, Game Settings on the shared constant; unit tests; a `feat(web)` commit with the release note (ADR-15 decisions 1 to 5) (`VSS-alx`)
+- [ ] Check each capped page and the console at 1440, 1920 and 2560px in both sidebar states and extend `layout-widths.spec.ts`; update the UX notes in the story on what the spec asked and what was built (ADR-15 decision 6) (`VSS-alx`)
