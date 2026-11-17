@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added FR205-FR222 for Epic 19 (API Security and Mod File Safety)'
+    description: 'Added FR205-FR230 for Epic 19 (API Security and Mod File Safety); revised the same day: follow-ups folded in, six stories'
   - date: '2026-11-16'
     description: 'Added FR194-FR204 for Epic 18 (Mod Media and Fixes)'
   - date: '2026-11-15'
@@ -725,32 +725,46 @@ If trivial to implement:
 
 ### Epic 19: API Security and Mod File Safety
 
-#### Secrets and Keys
+#### Secrets and Roles
 
-- FR205: The config file viewer lists and serves only `.json` files under the server data directory, up to 2 MiB, by the same rule for every role
+- FR205: The config file viewer lists and serves only `.json` files under the server data directory, up to 2 MiB
 - FR206: A config file request for anything else (another file type, a directory, a file that is too large or not UTF-8 text) is refused with a 4xx status and an error code, never a 500
 - FR207: For every role other than Admin, config file content is redacted at every depth: values under secret key names, `StartupCommands`, URLs that contain credentials and Discord webhook URLs; Admin receives files unchanged
-- FR208: When `VS_API_KEY` is unset or blank, the web UI is given no API key: the API starts, `/config.js` serves an empty key, and the web UI shows a set-up message and makes no API request
-- FR209: The API logs a start-up warning whenever the web UI's key is the Admin key and whenever the web UI has no key, never logging a key
-- FR210: The README, `.env.example` and the compose examples explain `VS_API_KEY`, recommend the Monitor key or an authenticating proxy for the web UI, and the production example does not hand out the Admin key by default
-- FR211: `VS_GAME_VERSION` is removed from the settings and the documentation; a deployment that still sets it starts as before
+- FR208: Roles other than Admin can list and read only the root of the server data directory and `ModConfig`; any other directory (saves, backups, player data) is listed and read by Admin only
+- FR209: `VS_GAME_VERSION` is removed from the settings and the documentation; a deployment that still sets it starts as before
 
-#### Content-Security-Policy
+#### The Web UI's Key
 
-- FR212: The web UI's pages are served with an enforced Content-Security-Policy that allows scripts from the manager's own origin only, forbids framing, and is not sent on API, health or API documentation routes
-- FR213: Every page of the web UI, including the console WebSocket, the mod gallery and mod description images, works under the policy in the light and dark themes with no policy violation
-- FR214: `VS_CSP_MODE` switches the policy between enforced, report-only and off, and the web UI's pages also send `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`
+- FR210: When `VS_API_KEY` is unset or blank, the web UI is given no API key: the API starts, `/config.js` serves an empty key, and the web UI shows a set-up message and makes no API request
+- FR211: The API logs a start-up warning whenever the web UI's key is the Admin key and whenever the web UI has no key, never logging a key
+- FR212: The README, `.env.example` and the compose examples explain `VS_API_KEY`, recommend the Monitor key or an authenticating proxy for the web UI, the production example does not hand out the Admin key by default, and the release notes list the change as breaking with what to set
+
+#### Content-Security-Policy and API Docs
+
+- FR213: The web UI's pages are served with an enforced Content-Security-Policy that allows scripts from the manager's own origin only and forbids framing; it is not sent on API or health routes
+- FR214: Every page of the web UI, including the console WebSocket, the mod gallery and mod description images, works under the policy in the light and dark themes with no policy violation
+- FR215: `VS_CSP_MODE` switches the policy between enforced, report-only and off, and the web UI's pages also send `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `X-Frame-Options: DENY`
+- FR216: An image in a mod description that the policy would block (any address that is not https or an image data URL) is replaced by a short text with its alt text, with no request and no broken-image icon
+- FR217: The API documentation pages and the OpenAPI schema (`/docs`, `/redoc`, `/openapi.json`) are served only when the API runs in debug mode
 
 #### Mod Files
 
-- FR215: Enabling or disabling a mod whose target file name is already used is refused with 409 `MOD_FILE_CONFLICT` and changes no file and no state
-- FR216: A version change whose new file name is already used is refused with 409 `MOD_FILE_CONFLICT` instead of a 500, changes nothing, and in Update All is one failed item that does not stop the run
-- FR217: File-name collisions for install, enable, disable and version change are detected ignoring letter case, so the result does not depend on the volume's filesystem
-- FR218: The mod download cache keeps each release under its file ID with a temporary file per download, so mods whose releases share a file name never replace or mix each other's cached archives
+- FR218: Enabling or disabling a mod whose target file name is already used is refused with 409 `MOD_FILE_CONFLICT` and changes no file and no state
+- FR219: A version change whose new file name is already used is refused with 409 `MOD_FILE_CONFLICT` instead of a 500, changes nothing, and in Update All is one failed item that does not stop the run
+- FR220: File-name collisions for install, enable, disable and version change are detected ignoring letter case, so the result does not depend on the volume's filesystem
+- FR221: The mod download cache keeps each release under its file ID with a temporary file per download, so mods whose releases share a file name never replace or mix each other's cached archives
+- FR222: Enabling or disabling a mod whose own file is missing is refused with 409 `MOD_FILE_MISSING` and a message that says what to do, never a 500
+- FR223: At start-up the manager recovers from an interrupted install or version change: its own working files are removed or put back so that every mod's file matches the mod state; files it did not create are reported and left alone
 
 #### Mod Database Data
 
-- FR219: The API passes on a mod's logo URL only when it uses https on the mod database's image host, and the web requests logo images without a referrer
-- FR220: The API passes on a mod's homepage and source URLs only when they are well-formed https URLs; anything else is left out and never fails the lookup
-- FR221: A mod database response that is not a JSON object is answered with 502 `EXTERNAL_API_ERROR` on every mod route, never a 500, and is not cached
-- FR222: Requests that arrive while the game version list is not cached share one request to the mod database
+- FR224: The API passes on a mod's logo URL only when it uses https on the mod database's image host, and the web requests logo images without a referrer
+- FR225: The API passes on a mod's homepage and source URLs only when they are well-formed https URLs; anything else is left out and never fails the lookup
+- FR226: A mod database response that is not a JSON object is answered with 502 `EXTERNAL_API_ERROR` on every mod route, never a 500, and is not cached
+- FR227: Requests that arrive while the mod listing or the game version list is not cached share one request to the mod database
+
+#### E2E in CI
+
+- FR228: CI builds the image, starts it without a game server and runs the E2E tests against it on every pull request and push to `main`, keeping the report of a failed run
+- FR229: E2E tests that need the live mod database, an installed game server or a real mod install are tagged and left out of CI; they still run locally
+- FR230: No E2E spec sets an API key in `localStorage`; every spec gets its key through one shared `/config.js` helper

@@ -1,8 +1,17 @@
 # Epic 19: API Security and Mod File Safety - Architecture Decisions
 
-Decisions from the Epic 19 course correction (2026-11-17). Epic 19 has no preparation story. Each decision was checked by reading the code at commit `048fea9` (`main` after Epic 18, release `v0.1.0-rc.4`), and file and line references are to that commit; API paths are under `api/src/vintagestory_api/`. The mod database facts were checked on 2026-11-16 with unauthenticated requests to the public API. Where a story has to confirm something in a browser first, the ADR says so.
+Decisions from the Epic 19 course correction (2026-11-17), revised the same day after the maintainer's review: seven follow-up beads were folded in (ADR-3, ADR-7, ADR-9, ADR-13 and parts of ADR-6 and ADR-12 are new), `VSS-9wv` became its own story, and the ADRs were renumbered in story order. Epic 19 has no preparation story. Each decision was checked by reading the code at commit `048fea9` (`main` after Epic 18, release `v0.1.0-rc.4`), and file and line references are to that commit; API paths are under `api/src/vintagestory_api/`. The mod database facts were checked on 2026-11-16 with unauthenticated requests to the public API. Where a story has to confirm something in a browser first, the ADR says so.
 
-Decisions the maintainer made before planning are marked "maintainer decision" and are not reopened here: the scope of `VSS-9wv` (a warning plus no Admin key by default, a breaking change), and that a login (`VSS-2kdt`) is a separate follow-up.
+Decisions the maintainer made before planning are marked "maintainer decision" and are not reopened here: the scope of `VSS-9wv` (a warning plus no Admin key by default, a breaking change), and that a login (`VSS-2kdt`) is a separate follow-up. The maintainer answered the nine open questions of the proposal on 2026-11-17: every default stands, and `VSS-9wv` is split into its own story; the status lines say which ADR each answer confirms.
+
+| Story | ADRs |
+|---|---|
+| 19.1 Secrets Stay with Admin | ADR-1, ADR-2, ADR-3, ADR-4 |
+| 19.2 The Web UI No Longer Gets the Admin Key | ADR-5 |
+| 19.3 Content-Security-Policy and API Docs | ADR-6, ADR-7 |
+| 19.4 Mod Files Are Never Overwritten | ADR-8, ADR-9, ADR-10 |
+| 19.5 Mod Database Data Is Checked | ADR-11, ADR-12 |
+| 19.6 E2E Runs in CI | ADR-13 |
 
 ## Facts Checked in the Code
 
@@ -24,7 +33,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - `/healthz` and `/readyz` (`routers/health.py`) are unauthenticated and do not look at any key.
 - The web reads `window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || ''` (`web/src/api/client.ts:29-33`) and sends it as `X-API-Key` on every request. With an empty key every request is a 401; no screen explains why.
 - `docker-compose.yaml:21` and `docker-compose.dev.yaml:20` both pass `VS_API_KEY=${VS_API_KEY:-}`, so in both stacks the variable is set and blank unless the operator sets it. `.env.example:41-45` and `README.md:37`, `:75` document "default: the Admin key".
-- E2E: all 18 specs in `web/e2e/` take the Admin key from the test process's own `VS_API_KEY_ADMIN` (default `changeme`) for direct API calls. Six specs answer `/config.js` themselves with `page.route` (`layout-widths`, `mod-detail-media`, `settings-desktop-layout`, `settings-empty-values`, `settings-as-saved`, `monitor-password-redaction`). The other twelve rely on the stack's own `/config.js` handing the page the Admin key; their `localStorage.setItem('apiKey', ...)` init scripts have done nothing since Story 17.5. No GitHub workflow runs the E2E specs.
+- E2E: all 18 specs in `web/e2e/` take the Admin key from the test process's own `VS_API_KEY_ADMIN` (default `changeme`) for direct API calls. Six specs answer `/config.js` themselves with `page.route` (`layout-widths`, `mod-detail-media`, `settings-desktop-layout`, `settings-empty-values`, `settings-as-saved`, `monitor-password-redaction`). The other twelve rely on the stack's own `/config.js` handing the page the Admin key. Fifteen specs still add a `localStorage.setItem('apiKey', ...)` init script, which has done nothing since Story 17.5. No GitHub workflow runs the E2E specs.
 
 **`VS_GAME_VERSION`.** `Settings.game_version` (`config.py:24`) is read by nothing in `api/src` since `VSS-tpe`; compatibility uses the installed server version (`services/mods.py:101`, `:302`). It is still set in `docker-compose.yaml:22`, `docker-compose.dev.yaml:21` and `scripts/worktree-setup.sh:61`, and described in `.env.example:20-23` as "VintageStory game version to install", which is false: the version to install is chosen in the web UI. `Settings` has no `env_file` and reads only declared fields from the environment, so an environment variable without a field is ignored.
 
@@ -36,7 +45,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - FastAPI's `/docs` and `/redoc` are on (no `docs_url` in `FastAPI(...)`, `main.py:165-170`). They load Swagger UI from a CDN and use an inline script.
 - In the image the web calls the API on its own origin (`VITE_API_BASE_URL=""`, `Dockerfile:28`), and both WebSockets are built from `window.location` (`web/src/hooks/use-console-websocket.ts:88`, `use-log-stream.ts:92`).
 - Runtime style injection: `@xterm/xterm`, `sonner`, `react-style-singleton` (Radix scroll lock) and `next-themes` each create `<style>` elements (`createElement("style")` in their published builds). Mod descriptions are inserted as sanitized HTML (`ModDetailPage.tsx:785`) and keep inline `style` attributes and `<img>` from any host (`web/src/lib/mod-description.ts`). `web/src/styles/index.css:249` uses a `data:` SVG as an image.
-- `next-themes` renders an inline `<script>` element through React. Whether a browser tries to run it in a client-rendered page was not established by reading; Story 19.2 confirms it.
+- `next-themes` renders an inline `<script>` element through React. Whether a browser tries to run it in a client-rendered page was not established by reading; Story 19.3 confirms it.
 - A local build (`web/dist/assets`) contains no `eval(` or `new Function(`.
 
 **Mod files.**
@@ -61,6 +70,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - The web puts the logo in `<img src>` in three places without `referrerPolicy` (`web/src/components/ModCard.tsx:142`, `InstallConfirmDialog.tsx:142`, `features/mods/ModDetailPage.tsx:620`) and the two links in `<a href>` with `rel="noopener noreferrer"` (`ModDetailPage.tsx:702-723`). The gallery images already have `referrerPolicy="no-referrer"`.
 - `get_mod` guards its body: not JSON and not an object are both `ExternalApiError` (`services/mod_api.py:395-407`). `get_game_versions` has the same guards since Story 18.3 (`:964-981`, `_is_json_object`, `_is_json_array`, `:261-269`).
 - `get_all_mods` calls `response.json()` and `data.get(...)` with no guard (`:664-668`): a body that is not JSON raises `ValueError`, and a JSON array or string raises `AttributeError`; neither is an `httpx.HTTPError`, so both are a 500 on `GET /mods/browse`. `_fetch_mods_by_version` catches the `ValueError` (`:858-866`) and then calls `data.get` unguarded (`:869`).
+- `get_all_mods` has no shared fetch either: every request that finds the 5-minute cache cold downloads the whole listing (`:659-664`).
 - `get_game_versions` has no shared fetch: every request that finds the cache cold makes its own request (`:948-952`). The filtered listings share one fetch per tag (`_version_fetch`, `:741-755`, awaited with `asyncio.shield`, `:776-777`).
 
 ## Mod Database Facts (checked 2026-11-16)
@@ -70,7 +80,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-1: The Config File Viewer Serves JSON Files Only and Refuses the Rest with an Error Code
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-633`). Extends Epic 17 ADR-4.
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-633`). Extends Epic 17 ADR-4. The maintainer confirmed the 2 MiB limit, not configurable, on 2026-11-17.
 
 **Context:** see "Config file viewer" above. A Monitor key can request any path under the server data directory (logs, `Saves/`, `Playerdata/`, `Backups/`, `Mods/`). Since Story 17.5 the text of a file that does not parse is hidden from Monitor, but the request is served, whole files are read into memory whatever their size, and binary files and directories are a 500.
 
@@ -95,7 +105,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 6. **Decoding.** The file is read as bytes and decoded as `utf-8-sig`, so a file written with a byte order mark parses. `UnicodeDecodeError` is the 400 above.
 7. **Parsing never raises past the service.** `RecursionError` from `json.loads` is treated like `JSONDecodeError`: the `_raw` form. Game and mod configuration files are often not strict JSON (comments, trailing commas), so the `_raw` form stays; only Admin receives the text.
 8. **Any other `OSError` while reading** (permissions, a file removed between the checks) is 404 `CONFIG_FILE_NOT_FOUND` when the file is gone and otherwise a logged 500 with the standard error envelope; it is not hidden.
-9. **Not changed:** `list_directories` still lists every subdirectory, and the Monitor role can still read every `.json` file. What Monitor sees inside them is ADR-2.
+9. **Not decided here:** this ADR is about file types. Which directories a role may list and read is ADR-3, and what Monitor sees inside a file is ADR-2.
 10. **Rejected: Admin may read any file type.** It keeps a second, untested path through binary and very large files for a need the console and log stream already meet. **Rejected: 415.** That status is about the request body's media type. **Rejected: an allow-list of directories.** Mod configuration lives where each mod puts it; the suffix and the role-based redaction are the rule.
 
 **Consequences:**
@@ -106,7 +116,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 ## ADR-2: Non-Admin Roles Get Config Files Redacted Recursively by Key Name
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-sg1`). Replaces the "top-level keys only" rule of Story 17.5; Epic 17 ADR-4 decisions 1, 2 and 4 to 6 stand.
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-sg1`). Replaces the "top-level keys only" rule of Story 17.5; Epic 17 ADR-4 decisions 1, 2 and 4 to 6 stand. The maintainer confirmed the fragment list, `StartupCommands`, and that the world seed is not treated as a secret, on 2026-11-17.
 
 **Context:** `redact_secrets` covers one key name at one depth. Mod configuration files under `ModConfig/` hold bot tokens, API keys and webhook URLs under names the manager cannot know in advance, and `serverconfig.json` has `StartupCommands`, free text that can hold a command with a password.
 
@@ -133,9 +143,52 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - A secret under a name the fragments do not match (`Key1`) with a value the value rules do not match is still sent to Monitor. The README says what the Monitor role can read.
 - `test_nested_password_is_unchanged` is replaced by tests for nesting in objects and arrays, each fragment, both value rules, `StartupCommands`, and the raw response body for both roles.
 
-## ADR-3: The Web UI Gets a Key Only When `VS_API_KEY` Names One
+## ADR-3: Roles Other Than Admin See the Root Config Files and `ModConfig` Only
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-9wv`). Changes Epic 15 ADR-5: the key no longer falls back to the Admin key. The scope is a maintainer decision (2026-11-16, "A plus C"); decisions 3 and 4 below were left to planning.
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.1 (`VSS-3hs2`).
+
+**Context:**
+
+- `GET /config/directories` (`routers/config.py:393-429`) and `GET /config/files` (`:432-468`) take any authenticated key and do not look at the role. `list_directories` returns every subdirectory, hidden ones included (`services/config_files.py:104-139`).
+- After ADR-1 a Monitor key can still list `Saves`, `Backups`, `Playerdata`, `Logs` and `Mods`, and read every `.json` file in them. `Playerdata/` holds the player list, bans and the whitelist: personal data about players. It is not a secret in the sense of ADR-2, so redaction by key name does not cover it.
+- The files a Monitor needs for troubleshooting are the server's own configuration in the root of the server data directory (`serverconfig.json`, `servermagicnumbers.json`) and the mods' configuration under `ModConfig/`.
+
+**Decision:**
+
+1. **An allow-list for roles other than Admin.** They may list and read the root of the server data directory and the `ModConfig` directory with everything under it. `MONITOR_CONFIG_DIRECTORIES` is one constant holding `ModConfig`.
+2. **Admin may list and read every directory,** as today, within ADR-1's `.json` rule.
+3. **The check is on the resolved path.** The first part of the path relative to the server data directory, compared with `casefold()`, must be in the allow-list, or the path must be a file directly in the root. A symlink in `ModConfig` that resolves into `Saves` is therefore refused.
+4. **Listings are filtered, requests are refused.** For a role other than Admin, `GET /config/directories` for the root returns only the allowed directories that exist. Asking for the listing of, or a file in, any other directory is 403 `FORBIDDEN` (the existing code) with a message that the directory needs the Admin role. It is the same answer whether or not the directory or file exists.
+5. **Order of checks:** path containment (400 `CONFIG_PATH_INVALID`), then the role's directories (403), then ADR-1's checks.
+6. **Redacted is the default here too:** the service methods apply the allow-list unless the Admin role is passed.
+7. **The web needs no rule of its own.** The file browser shows what the API lists.
+8. **Rejected: a deny-list** (`Saves`, `Backups`, `Playerdata`). A directory the game or a mod adds later would be open until someone noticed. **Rejected: redacting player files for Monitor.** There is nothing left worth showing in them.
+
+**Consequences:**
+
+- A Monitor key can no longer learn the names of saves and backups or read player data through the manager.
+- A mod that keeps configuration outside `ModConfig/` and the root is readable by Admin only. Adding a directory is a one-line change.
+- Tests cover both roles for each of the three routes: root, `ModConfig`, a nested `ModConfig` path, `Playerdata` in another letter case, a missing forbidden directory, and a symlink out of `ModConfig`.
+
+## ADR-4: `VS_GAME_VERSION` Is Removed
+
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-ms0`).
+
+**Context:** see "`VS_GAME_VERSION`" above. The setting does nothing, and `.env.example` describes it as choosing the game version to install, which it does not.
+
+**Decision:**
+
+1. **Remove it.** `Settings.game_version` goes, with the lines in `docker-compose.yaml`, `docker-compose.dev.yaml`, `.env.example` and `scripts/worktree-setup.sh`, and the rows in `architecture/project-structure-boundaries.md`.
+2. **Setting it stays harmless.** `Settings` reads only declared fields from the environment, so a deployment that still sets `VS_GAME_VERSION` starts as before. A test sets it and constructs `Settings` to pin that. This is why the removal is not a breaking change.
+3. **`test_mod_service.py:2141`** sets the variable to prove compatibility ignores it; the test keeps its meaning and its docstring is adjusted.
+4. **The commit is `fix(docker):`** with a subject for users ("VS_GAME_VERSION is no longer set or documented; it had no effect"), so the removal is in the release notes.
+5. **Rejected: giving it a purpose** (for example the channel preselected in the installer). Nobody asked for that feature, the version browser already defaults sensibly, and an environment variable that sets a form's initial selection would be the only one of its kind.
+
+**Consequences:** One fewer documented variable that does nothing. No behaviour changes.
+
+## ADR-5: The Web UI Gets a Key Only When `VS_API_KEY` Names One
+
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.2 (`VSS-9wv`), a story of its own since the maintainer's review. Changes Epic 15 ADR-5: the key no longer falls back to the Admin key. The scope is a maintainer decision (2026-11-16, "A plus C"); decisions 3 and 4 below were left to planning. The maintainer confirmed on 2026-11-17: the API starts and serves no key (decision 3), a key that matches no role is handled as today (decision 5), the documentation recommends the Monitor key first and the production example stays blank (decisions 6 and 7), and the change ships in the next pre-release or `0.1.0` with nothing special.
 
 **Context:** see "The web UI's key" above. In the default deployment `/config.js` hands the Admin key to anyone who can load the page, and with it the game server password and every Admin action. That undoes the Monitor redaction of Story 17.5 and ADR-2 for anyone who can reach the web origin, and nothing tells the operator.
 
@@ -161,7 +214,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 6. **Documentation.** `README.md`, `.env.example`, `docker-compose.yaml` and `docker-compose.dev.yaml` say that the web UI needs `VS_API_KEY`, recommend the Monitor key or an authenticating proxy in front of the web origin, and say what setting it to the Admin key means.
 7. **The dev stack keeps a working Admin UI.** `docker-compose.dev.yaml` changes its default to `VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}`, so `just docker start` and the twelve E2E specs that rely on the stack's key behave as before; the stack logs the Admin key warning, which is correct for it. `docker-compose.yaml` keeps `${VS_API_KEY:-}`, with its comment changed: the production example does not hand out the Admin key by default. `scripts/worktree-setup.sh` already writes `VS_API_KEY`.
-8. **E2E.** One helper in `web/e2e/` answers `/config.js` with a chosen key; the six specs that carry their own copy use it, and the dead `localStorage.setItem('apiKey', ...)` init scripts are removed from the specs the story touches. A new spec answers `/config.js` with an empty key and expects the message and no request to `/api/`.
+8. **E2E.** Story 19.2 adds one helper in `web/e2e/` that answers `/config.js` with a chosen key, and a new spec that answers it with an empty key and expects the message and no request to `/api/`. Story 19.6 moves every spec to the helper and removes the dead `localStorage` init scripts (ADR-13).
 9. **This is a breaking change.** See "Release" below.
 10. **Rejected: refusing to start** (reasons in decision 3). **Rejected: serving the Monitor key when `VS_API_KEY` is unset and a Monitor key exists.** It still hands out a key nobody asked to publish, and a UI that silently became read-only is harder to diagnose than a page that says what to set. **Rejected: a key field in the browser.** Out of scope (`VSS-2kdt`).
 
@@ -178,31 +231,15 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - Whatever key `VS_API_KEY` names is still handed to anyone who can load the page. The login that ends that is `VSS-2kdt`.
 - API tests cover `/config.js` and the start-up log for the four states of decision 5.
 
-## ADR-4: `VS_GAME_VERSION` Is Removed
+## ADR-6: A Content-Security-Policy Header on the Web UI's Pages, Enforced
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.1 (`VSS-ms0`).
-
-**Context:** see "`VS_GAME_VERSION`" above. The setting does nothing, and `.env.example` describes it as choosing the game version to install, which it does not.
-
-**Decision:**
-
-1. **Remove it.** `Settings.game_version` goes, with the lines in `docker-compose.yaml`, `docker-compose.dev.yaml`, `.env.example` and `scripts/worktree-setup.sh`, and the rows in `architecture/project-structure-boundaries.md`.
-2. **Setting it stays harmless.** `Settings` reads only declared fields from the environment, so a deployment that still sets `VS_GAME_VERSION` starts as before. A test sets it and constructs `Settings` to pin that. This is why the removal is not a breaking change.
-3. **`test_mod_service.py:2141`** sets the variable to prove compatibility ignores it; the test keeps its meaning and its docstring is adjusted.
-4. **The commit is `fix(docker):`** with a subject for users ("VS_GAME_VERSION is no longer set or documented; it had no effect"), so the removal is in the release notes.
-5. **Rejected: giving it a purpose** (for example the channel preselected in the installer). Nobody asked for that feature, the version browser already defaults sensibly, and an environment variable that sets a form's initial selection would be the only one of its kind.
-
-**Consequences:** One fewer documented variable that does nothing. No behaviour changes.
-
-## ADR-5: A Content-Security-Policy Header on the Web UI's Pages, Enforced
-
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.2 (`VSS-3qb8`).
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.3 (`VSS-3qb8`, `VSS-my4c`). The maintainer confirmed on 2026-11-17: enforced, with `VS_CSP_MODE`, and the three other headers. Decision 14 was added in the revision.
 
 **Context:** see "Content-Security-Policy" above. The page holds an API key in `window.__VSM_CONFIG__`, renders mod descriptions written by mod authors, and has no policy that would stop an injected script.
 
 **Decision:**
 
-1. **The API sets the header, on the frontend's responses only.** `register_frontend` adds it to every `serve_spa` response, since any path can return `index.html`. It is not a global middleware: `/docs` and `/redoc` need a CDN and an inline script, and JSON responses gain nothing from it.
+1. **The API sets the header, on the frontend's responses only.** `register_frontend` adds it to every `serve_spa` response, since any path can return `index.html`. It is not a global middleware: `/docs` and `/redoc`, where they are served (ADR-7), need a CDN and an inline script, and JSON responses gain nothing from it.
 2. **Not a `<meta>` tag.** `frame-ancestors` is ignored in a `<meta>` policy, report-only mode does not exist there, and `index.html` is shared with the Vite dev server.
 3. **The policy:**
 
@@ -222,15 +259,16 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 
 4. **`script-src 'self'`** is the directive that matters: no inline script, no `eval`, no other origin. Both scripts in `index.html` are same-origin files, so the classic `/config.js` script is compatible as it is.
 5. **`style-src` allows `'unsafe-inline'`.** xterm.js, sonner, Radix's scroll lock and next-themes create `<style>` elements at run time, and mod descriptions keep inline `style` attributes. A nonce would need the static `index.html` rewritten per response and libraries that accept one (xterm.js and sonner do not). An injected style is a much smaller risk than an injected script.
-6. **`img-src 'self' data: https:`.** Logos and screenshots come from `https://moddbcdn.vintagestory.at`, and descriptions load images from any host, so a host list would break descriptions. `data:` covers the icon in `index.css` and data images in descriptions. Images over plain `http:` in descriptions stop loading.
-7. **`connect-src 'self'`** covers the API and, in current browsers, the WebSockets to the same host (`/api/v1alpha1/console/ws` and the log stream), because `'self'` matches `ws:` and `wss:` for the page's host. Story 19.2 confirms the console and log stream in a browser with the policy enforced; if a supported browser refuses them, the fallback is to add `ws:` and `wss:` sources for the request's host.
+6. **`img-src 'self' data: https:`.** Logos and screenshots come from `https://moddbcdn.vintagestory.at`, and descriptions load images from any host, so a host list would break descriptions. `data:` covers the icon in `index.css` and data images in descriptions. Images over plain `http:` in descriptions stop loading; decision 14 says what the page shows instead.
+7. **`connect-src 'self'`** covers the API and, in current browsers, the WebSockets to the same host (`/api/v1alpha1/console/ws` and the log stream), because `'self'` matches `ws:` and `wss:` for the page's host. Story 19.3 confirms the console and log stream in a browser with the policy enforced; if a supported browser refuses them, the fallback is to add `ws:` and `wss:` sources for the request's host.
 8. **`frame-src 'none'` and `frame-ancestors 'none'`.** The trailer is a link (Epic 18 ADR-2), so the app embeds nothing, and the admin UI has no reason to be framed. `X-Frame-Options: DENY` is sent as well for older browsers.
 9. **Two more headers on the same responses:** `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. With the second, no request the page starts (logos, description images, links) carries the manager's address.
 10. **Enforced by default, with one setting.** `VS_CSP_MODE` is `enforce` (default), `report-only` (the same policy in `Content-Security-Policy-Report-Only`) or `off`; any other value fails start-up validation like the other settings. There is no `report-uri`: the project has no collector, and a report endpoint would be an unauthenticated write. Report-only alone would protect nothing, since nobody reads the browser console of a working page; the setting exists so an operator can get out of trouble without a new image.
 11. **The Vite dev server (`just dev-web`) gets no policy.** Its pages are served by Vite, which needs inline scripts and a WebSocket for hot reload. The policy is tested where it is served: the Docker stack.
 12. **The inline script of next-themes** is checked in the browser by the story. If the browser reports a violation for it, the story adds that script's hash to `script-src` and records the hash and the next-themes version; it does not add `'unsafe-inline'` to `script-src`.
-13. **How it is tested.** An API test for the header in each mode and for its absence on `/api/...`, `/healthz` and `/docs`. An E2E spec against the Docker stack that opens the dashboard, the console (WebSocket connected), the mod browser, a mod detail page with a gallery and a description with images, the installed list, the settings and the version page, in both themes, collects `securitypolicyviolation` events and console errors and expects none; and a control that injects an inline script and expects it blocked.
-14. **Rejected: a host list for images,** which breaks description images. **Rejected: a nonce-based policy** (decision 5). **Rejected: report-only as the default** (decision 10).
+13. **How it is tested.** An API test for the header in each mode and for its absence on `/api/...`, `/healthz` and, in debug mode, `/docs`. An E2E spec against the Docker stack that opens the dashboard, the console (WebSocket connected), the mod browser, a mod detail page with a gallery and a description with images, the installed list, the settings and the version page, in both themes, collects `securitypolicyviolation` events and console errors and expects none; and a control that injects an inline script and expects it blocked. The spec stubs the mod database answers it needs, so it runs in CI (ADR-13).
+14. **Description images the policy would block are replaced by the sanitizer (`VSS-my4c`).** In the DOMPurify hook of `web/src/lib/mod-description.ts`, an `<img>` whose `src` is not an `https:` URL or a `data:image/` URL is replaced by a short muted text built from its `alt` ("Image not shown: `<alt>`", or "Image not shown" without one). The rule does not depend on how the page itself is served, the URL is not rewritten to `https` (that would be a guess), and no request is made for the image. This keeps a broken-image icon and a policy violation out of the page.
+15. **Rejected: a host list for images,** which breaks description images. **Rejected: a nonce-based policy** (decision 5). **Rejected: report-only as the default** (decision 10).
 
 **Consequences:**
 
@@ -239,9 +277,34 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - A deployment whose proxy injects scripts or styles from another origin into the page breaks until the proxy is changed or `VS_CSP_MODE` is set. A proxy that adds its own policy narrows this one; both apply.
 - A new dependency that needs another origin, `eval` or an inline script fails the E2E spec, which is the intended signal.
 
-## ADR-6: One File-Name Check for Every Mod File Operation
+## ADR-7: The API Documentation Pages Are Served Only in Debug Mode
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.3 (`VSS-40ja`, `VSS-macf`, `VSS-52fy`). Extends Epic 18 ADR-4 and replaces its decision 6.
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.3 (`VSS-5mes`).
+
+**Context:**
+
+- `FastAPI(...)` is created without `docs_url`, `redoc_url` or `openapi_url` (`main.py:165-170`), so `/docs`, `/redoc` and `/openapi.json` are served to anyone who can reach the API, without a key. The two pages load their scripts and styles from a public CDN and use an inline script.
+- The schema is not secret (the repository is public), but the pages make every deployment load third-party scripts on an origin that also serves a page holding an API key, and they are the one part of the origin ADR-6's policy does not cover.
+- The API already gates development-only routes on `VS_DEBUG` at start-up (`main.py:219-221`, the RBAC test router). The dev stack sets `VS_DEBUG=true` (`docker-compose.dev.yaml:22`); the production example defaults it to `false`.
+- `api/tests/test_version.py:24` reads `/openapi.json`.
+
+**Decision:**
+
+1. **Off unless debug.** `docs_url`, `redoc_url` and `openapi_url` are `None` unless `Settings().debug` is true when the app is created. There is no new setting.
+2. **In debug mode they are served as today,** from the CDN and without ADR-6's policy, which stays on the web UI's pages only. Debug mode is for development.
+3. **What a request gets when they are off.** In the image, `/docs`, `/redoc` and `/openapi.json` fall through to the web UI's fallback and return the app's page, with ADR-6's headers; without the built frontend they are 404.
+4. **The README says** that the API documentation is at `/docs` when `VS_DEBUG=true`.
+5. **Rejected: requiring a key.** A browser opening `/docs` cannot send `X-API-Key`; it would need the key in the URL or a cookie, which is the login of `VSS-2kdt`. **Rejected: serving the assets from the image.** It adds vendored files to keep current and still serves the pages to everyone. **Rejected: a separate `VS_API_DOCS` setting.** One more variable for something a developer already gets from debug mode.
+
+**Consequences:**
+
+- The default deployment serves no page that loads scripts from another origin, so every HTML page it serves is under ADR-6's policy.
+- A client that fetched `/openapi.json` from a production deployment no longer can; it is available from a debug instance. This is listed with the API contract changes.
+- Tests: the three paths with debug off and on; `test_version.py` creates its app in debug mode or reads the version another way.
+
+## ADR-8: One File-Name Check for Every Mod File Operation
+
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.4 (`VSS-40ja`, `VSS-macf`, `VSS-52fy`). Extends Epic 18 ADR-4 and replaces its decision 6.
 
 **Context:** see "Mod files" above. Four operations put a file name into the mods directory: install, version change, enable and disable. One checks fully and exactly (install), one checks partly and answers 500 (version change), two do not check.
 
@@ -266,17 +329,53 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
    - `PUT /mods/{slug}/version` (was 500 `MOD_VERSION_CHANGE_FAILED`; that code stays for real failures to place the file or save state).
 7. **Update All.** `ModFileConflictError` is added to the errors the loop catches per mod (`services/mod_updates.py:422-438`), so one mod's conflict is a `failed` item with the message and the run continues. Without that the new error would abort the run.
 8. **Nothing is changed on a refusal:** no rename, no `.tmp`, no state change, no pending restart.
-9. **Not changed:** a mod whose own file is missing when it is enabled or disabled still fails as today; that is not a conflict and is not part of these beads.
+9. **Working files are not names.** The helper looks only at the final names of decision 3. The manager's temporary and backup files, and the case of a mod whose own file is missing, are ADR-9.
 
 **Consequences:**
 
 - No mod operation can replace another mod's file, and the answer no longer depends on whether the volume ignores case.
-- The web shows the API's message for each of the four operations; Story 19.3 confirms that for enable, disable and version change.
+- The web shows the API's message for each of the four operations; Story 19.4 confirms that for enable, disable and version change.
 - Tests compare the other file's bytes and the mod state before and after, for each operation, for the exact name, a name that differs in case, the `.disabled` twin, a state entry without a file and a dangling symlink, and run on a case-sensitive directory.
 
-## ADR-7: The Download Cache Is Keyed by File ID
+## ADR-9: A Missing Mod File Is an Error with a Code, and Start-Up Recovers Interrupted Operations
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.3 (`VSS-n0qv`).
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.4 (`VSS-yhmt`, `VSS-uoxl`).
+
+**Context:**
+
+- `enable_mod` and `disable_mod` rename the mod's own file without checking that it exists (`services/mods.py:749`, `:807`). When the file was removed by hand, `rename` raises `FileNotFoundError`, which no route catches: a 500. `sync_state_with_disk` exists (`services/mod_state.py:492`) and nothing in `api/src` calls it, so the state can name a file that is gone.
+- `_place_install` copies to `<name>.tmp` and renames (`:1297-1311`). `_apply_version_change` copies to `<new name>.tmp`, and for a release with the mod's own file name first moves the installed file to `<name>.bak` (`:1014-1023`), which is deleted only after the state is saved (`:1049-1055`). The cleanup paths run on `OSError`; a process that is killed in between leaves the `.tmp` or `.bak` file. No code removes them later.
+- A `.bak` file can be the only good copy of a mod: after the installed file was moved aside and before the new one was renamed into place.
+- An admin can keep files of their own named `something.bak` or `something.tmp` in the mods directory. The manager cannot tell those from its own leftovers by name.
+- ADR-8's check compares the names an operation will create, `<name>` and `<name>.disabled`. A leftover `<name>.tmp` or `<name>.bak` is never one of those, so it does not make a name "taken".
+
+**Decision, missing file (`VSS-yhmt`):**
+
+1. **Checked before the rename.** `enable_mod` and `disable_mod` raise a new `ModFileMissingError` when the mod's own file is not a regular file in the mods directory. The check sits beside ADR-8's, before anything is written.
+2. **409 `MOD_FILE_MISSING`** (new code) on both routes, with a message that says what to do: "Cannot enable '`<slug>`': its file `<name>` is no longer in the mods directory. Remove the mod and install it again." 409 because the request is valid and the server's state is in the way, as for `MOD_FILE_CONFLICT`; 404 `MOD_NOT_INSTALLED` would say the mod is unknown, and the Installed list shows it.
+3. **Nothing is changed.** The state entry stays, so the admin can remove the mod through the manager; `remove_mod` already skips a file that is not there (`services/mods.py:857-858`).
+4. **Idempotent cases stay first:** enabling an enabled mod and disabling a disabled one still succeed without touching the file.
+
+**Decision, leftovers (`VSS-uoxl`):**
+
+5. **The manager's working files get their own suffixes.** From this story the temporary copy is `<name>.vsm-tmp` and the kept-aside original is `<name>.vsm-bak`. Nothing else in the mods directory uses those suffixes, so the manager can clean up without guessing.
+6. **Recovery runs once at start-up,** before any mod operation, with the mod state as the source of truth:
+   - every `*.vsm-tmp` is deleted: it is an unplaced copy and the download cache still has the source;
+   - for each `<name>.vsm-bak`: if `<name>` is missing, the backup is renamed back to `<name>`; if `<name>` exists and its `modinfo.json` version equals the state's version for that file, the backup is deleted (the change completed); otherwise the backup replaces `<name>` (the change did not complete, so the state still describes the original).
+   - each action is logged with the file name; a failure is logged and does not stop start-up.
+7. **Old-style leftovers are reported, not removed.** `*.tmp` and `*.bak` files in the mods directory, which an earlier version may have left and an admin may have put there, are logged once at start-up at warning level with their names. The manager never deletes or restores them.
+8. **The name check and the cleanup agree.** ADR-8's helper looks only at the final names an operation will create. Working files are never such a name, are cleared before the first operation, and a leftover one from the same name is overwritten by the next copy; so a leftover cannot cause a `MOD_FILE_CONFLICT`, and the story has a test for that.
+9. **Rejected: deleting every `.tmp` and `.bak` at start-up.** It would delete an admin's own backup, and a `.bak` can be the only copy of an installed mod. **Rejected: only listing leftovers for the admin.** The state after a crash would stay wrong until someone read the log.
+
+**Consequences:**
+
+- Enabling or disabling a mod whose file is gone gives an answer the admin can act on.
+- After a crash during an install or version change, the next start leaves each mod's file matching its state and no working file behind.
+- Tests kill the operation at each step (after the copy, after the move aside, after the rename, after the state save) by building the directory by hand, then run recovery and compare files and state.
+
+## ADR-10: The Download Cache Is Keyed by File ID
+
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.4 (`VSS-n0qv`).
 
 **Context:** see "Download cache" above. The cache key is the release's file name, the per-mod locks do not cover two different mods, and an install does not require the archive to be the mod it resolved. So two different mods whose releases share a file name can replace each other's cached copy, and two such downloads at once write one temporary file.
 
@@ -296,9 +395,9 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - The first start after the upgrade empties the old cache; the next install or version change of each mod downloads again.
 - Tests: two file IDs with one file name give two paths; two concurrent downloads of one file ID both end with a complete file; eviction counts, evicts and tidies the new layout; the old files are removed at start.
 
-## ADR-8: Logo, Homepage and Source URLs Go Through the URL Policy Module
+## ADR-11: Logo, Homepage and Source URLs Go Through the URL Policy Module
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.4 (`VSS-2zis`). Replaces Epic 18 ADR-1 decision 6 ("`logo_url` keeps passing through unchecked").
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.5 (`VSS-2zis`). Replaces Epic 18 ADR-1 decision 6 ("`logo_url` keeps passing through unchecked"). The maintainer confirmed on 2026-11-17 that `http:` homepage and source links are dropped.
 
 **Context:** see "Mod database data" above. Three author-controlled URLs reach `src` and `href` unchecked, and logo requests carry a referrer.
 
@@ -308,7 +407,7 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 2. **Browse checks the items it returns,** in the function that builds a browse item, not the 9,636 items of the cached listing.
 3. **Homepage and source: a link rule.** A new `external_link_url` in `services/mod_media.py` keeps a URL only when it starts with `https://`, has no control character, space or backslash, parses, has a host and no user info, and is at most 2,048 characters. Any host and any port are allowed. Anything else, including `""`, is `null`.
 4. **`https` only.** No `http:` homepage or source URL was seen in the sample. An author's `http:` link is dropped; the "ModDB Page" link is always there.
-5. **The web trusts the API's values,** as for screenshots (Epic 18 ADR-1 decision 5), and adds `referrerPolicy="no-referrer"` to the three logo `<img>` elements. Story 19.2 also sends `Referrer-Policy: no-referrer` for the page; the attribute covers the Vite dev server and a proxy that drops the header.
+5. **The web trusts the API's values,** as for screenshots (Epic 18 ADR-1 decision 5), and adds `referrerPolicy="no-referrer"` to the three logo `<img>` elements. Story 19.3 also sends `Referrer-Policy: no-referrer` for the page; the attribute covers the Vite dev server and a proxy that drops the header.
 6. **A dropped URL is logged at debug level** with the mod slug and the field name, never the URL, and never fails a lookup or a browse request.
 
 **Consequences:**
@@ -317,9 +416,9 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 - If the mod database moves its images to another host, logos become placeholders until `MOD_MEDIA_HOSTS` changes, as for screenshots.
 - `homepage_url` and `source_url` are `null` where they were `""`.
 
-## ADR-9: One Guarded Fetch for Mod Database JSON, and a Shared Game Version Fetch
+## ADR-12: One Guarded Fetch for Mod Database JSON, and Shared Fetches for the Listing and the Game Version List
 
-**Status:** Accepted (Epic 19 planning). Implemented by Story 19.4 (`VSS-ce0h`). Extends Epic 17 ADR-1.
+**Status:** Accepted (Epic 19 planning). Implemented by Story 19.5 (`VSS-ce0h`, `VSS-0lkb`). Extends Epic 17 ADR-1. Decision 5 covers the full listing since the revision.
 
 **Context:** see "Mod database data" above. Two of four fetchers guard their bodies, each in its own copy; the browse listing, the most used, does not.
 
@@ -329,11 +428,41 @@ Decisions the maintainer made before planning are marked "maintainer decision" a
 2. **Each fetcher keeps its own rules** for the HTTP status and the `statuscode` string, which differ today (`get_mod` reads the body of any HTTP status; the two that check for HTTP 200 keep doing so). The helper does not change them.
 3. **Routes do not change.** `ExternalApiError` is already 502 `EXTERNAL_API_ERROR` on every mod route, so a malformed mod database body becomes 502 where it was 500.
 4. **Nothing malformed is cached.** A failed fetch leaves the previous cache entry and its time as they were.
-5. **One fetch of the game version list at a time.** `get_game_versions` keeps the running fetch as a task and every caller that finds the cache cold awaits that task, shielded, as `_version_fetch` does for the filtered listings (`:741-755`, `:776-777`). A failed fetch is reported to every waiter and is not kept.
-6. **Not changed:** the browse listing's own cold-cache behaviour (several first requests each fetch the 4 MB listing) is the same pattern and is reported as a follow-up; the bead names only the game version list.
+5. **One fetch at a time for the game version list and for the full listing (`VSS-0lkb`).** `get_game_versions` and `get_all_mods` each keep their running fetch as a task, and every caller that finds the cache cold awaits that task, shielded, as `_version_fetch` does for the filtered listings (`:741-755`, `:776-777`). One small helper holds the pattern for all three. A failed fetch is reported to every waiter and is not kept.
+6. **`force_refresh=True` joins a fetch that is already running** instead of starting a second one; a fetch in flight is as fresh as a new one. With no fetch running it starts one, as today.
 
 **Consequences:**
 
 - No body the mod database can send makes a mod route answer 500.
-- A cold start with several browser tabs makes one `/api/gameversions` request.
-- Tests feed each fetcher an HTML body, an empty body, `[]`, `"text"` and `null`, and assert `ExternalApiError` and an unchanged cache; a test with several concurrent cold calls asserts one request, and that a failure reaches all of them and the next call fetches again.
+- A cold start with several browser tabs makes one `/api/gameversions` request and one `/api/mods` request (about 4 MB) instead of one per tab.
+- Tests feed each fetcher an HTML body, an empty body, `[]`, `"text"` and `null`, and assert `ExternalApiError` and an unchanged cache; for the game version list and for the full listing, a test with several concurrent cold calls asserts one request, that a failure reaches all of them and that the next call fetches again.
+
+## ADR-13: CI Runs the E2E Specs That Need Nothing Outside the Stack
+
+**Status:** Accepted (Epic 19 revision, 2026-11-17). Implemented by Story 19.6 (`VSS-wenx`). Comes last: it uses Story 19.2's key helper and runs Story 19.3's policy spec.
+
+**Context:**
+
+- `.github/workflows/ci.yml` has four jobs: API tests, web tests and build, release scripts (with `just lint-workflows`, actionlint) and a Docker image build that does not run the image. No job runs `web/e2e/` (18 specs) or `api/tests/e2e/`.
+- `just test-e2e-web` builds and starts the dev Compose stack, waits for `/healthz`, runs Playwright and stops the stack (`Justfile:63-90`). `web/playwright.config.ts` already has CI settings (`forbidOnly`, two retries, one worker) and takes the stack's address from `E2E_BASE_URL`.
+- Fifteen specs still add a `localStorage.setItem('apiKey', ...)` init script (17 occurrences), which the web stopped reading in Story 17.5.
+- The specs differ in what they need. Some stub every API answer with `page.route`. Some read the live mod database through the stack (browse, mod detail, install). Some need a game server that is installed or has run (`settings-*`, `monitor-password-redaction`, `file-browser-navigation`). `mod-install-release` and `installed-status` install real mods.
+- A fresh stack in CI has no game server, and installing one downloads the game from the vendor on every run.
+
+**Decision:**
+
+1. **A new `e2e` job in `ci.yml`,** on the same triggers as the other jobs. It builds the image with the build cache the `docker` job already fills, loads it, starts one container from it with an empty data directory and placeholder keys in the job's `env` (an Admin key, a Monitor key, and `VS_API_KEY` set to the Admin key, as Story 19.2 requires for a working page), waits for `/healthz`, installs Playwright's Chromium, and runs the suite. No game server is installed or started.
+2. **Specs say what they need with Playwright tags.** `@moddb`: needs the live mod database. `@game-server`: needs a game server that is installed or has run. `@install`: installs or removes a real mod. A spec or a single test carries the tags that apply; a test with no tag needs only the stack.
+3. **CI runs the untagged tests,** with `--grep-invert` on the three tags. The tagged tests still run locally with `just test-e2e-web`, as today. A `just` recipe holds the CI invocation so the same command runs on a developer's machine.
+4. **Why not the live mod database in CI.** A pull request would fail when the mod database is slow or down, and the job would send its traffic on every push. **Why not a game server in CI.** It is a large download from the vendor per run for three groups of specs.
+5. **New specs in this epic are written to run in CI:** the no-key spec (Story 19.2) and the policy spec (Story 19.3) stub the mod database answers they need.
+6. **Every spec gets its key through the helper of Story 19.2,** and the dead `localStorage` init scripts are removed from all fifteen specs.
+7. **The job is required like the others,** and uploads the Playwright report as an artifact when it fails. Actions are pinned by commit, as in the rest of the workflow, and `just lint-workflows` passes.
+8. **`api/tests/e2e/`** (one health test) runs in the same job against the same container.
+9. **Rejected: recording mod database answers** for the tagged specs. It is the right next step and a larger piece of work than this bead; it is a follow-up.
+
+**Consequences:**
+
+- Every pull request starts the built image and drives the web UI in a browser: the page loads with a key, the no-key screen, the policy, the layouts and the stubbed flows.
+- The mod database flows and the settings pages stay local-only until someone stubs them or CI gets a game server.
+- The job adds an image build (cached) and a browser download to each run.
