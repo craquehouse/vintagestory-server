@@ -114,6 +114,7 @@ just check          # Full validation: lint + typecheck + test
 just test           # API, web and script tests
 just test-api       # API tests (pytest); accepts pytest arguments
 just test-web       # Web tests (Vitest)
+just format         # Format the API (ruff) and the web (Prettier); just check checks both
 just dev-api        # API dev server
 just dev-web        # Web dev server (reads web/.env, see web/.env.example)
 just docker start   # Build and start the development stack (docker-compose.dev.yaml)

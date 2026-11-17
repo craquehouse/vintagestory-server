@@ -167,9 +167,9 @@ lint-api *ARGS:
     mise exec -C api -- uv run ruff check . "$@"
     mise exec -C api -- uv run ruff format --check .
 
-# Lint web (TypeScript type checking)
+# Check the web's format (Prettier, pinned in web/package.json); just format-web fixes it
 lint-web:
-    mise exec -C web -- bun run lint
+    mise exec -C web -- bun run format:check
 
 # Lint every bash script in scripts/ and scripts/tests/ (ShellCheck), and the Python
 # scripts in scripts/ with the API's ruff and pyright and their configuration
@@ -220,16 +220,16 @@ check: lint typecheck test
 # FORMATTING
 # =============================================================================
 
-# Format all code
+# Format all code (ruff format for the API, Prettier for the web)
 format: format-api format-web
 
 # Format API code (Ruff)
 format-api:
     mise exec -C api -- uv run ruff format .
 
-# Format web code (Prettier via bunx)
+# Format the web (Prettier, pinned in web/package.json, with web/.prettierrc.json)
 format-web:
-    mise exec -C web -- bunx prettier --write "src/**/*.{ts,tsx,css,json}"
+    mise exec -C web -- bun run format
 
 # =============================================================================
 # DEVELOPMENT
