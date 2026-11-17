@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { APIResponse, Page, Route } from '@playwright/test';
 
 /** Answer /config.js with the given key, whatever key the stack hands the web UI. */
 export async function serveConfigKey(page: Page, apiKey: string): Promise<void> {
@@ -19,6 +19,18 @@ interface ServerStatusBody {
 }
 
 /**
+ * `route.fetch()`, tried once more when the first attempt fails. A full run against the dev
+ * stack once had the connection reset (ECONNRESET), which the browser itself would retry.
+ */
+async function fetchWithOneRetry(route: Route): Promise<APIResponse> {
+  try {
+    return await route.fetch();
+  } catch {
+    return route.fetch();
+  }
+}
+
+/**
  * Make a stack with no game server look installed (stopped) to the page, so Game Settings,
  * the Mods pages and the Console render their real content (Story 19.7). Only the page's
  * `GET /api/v1alpha1/server/status` is rewritten, and only when the stack answers
@@ -28,7 +40,7 @@ interface ServerStatusBody {
 export async function pretendServerInstalled(page: Page): Promise<void> {
   await page.route('**/api/v1alpha1/server/status', async (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
-    const response = await route.fetch();
+    const response = await fetchWithOneRetry(route);
     const body: ServerStatusBody = await response.json();
     if (response.ok() && body.data?.state === 'not_installed') {
       body.data = { ...body.data, state: 'installed', version: FIXTURE_GAME_VERSION };
