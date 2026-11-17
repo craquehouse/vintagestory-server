@@ -30,6 +30,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import shutil
 from collections.abc import AsyncIterator, Generator
 from datetime import datetime
 from pathlib import Path
@@ -1715,6 +1716,52 @@ class TestMonitorDirectories:
         assert listing.status_code == 200
         assert listing.json()["data"]["files"] == (["p.json"] if exists else [])
         assert read.status_code == (200 if exists else 404)
+
+    def test_admin_root_listing_leaves_out_a_link_outside(
+        self, config_files_client: TestClient, data: Path, tmp_path: Path
+    ) -> None:
+        """Story 21.3 AC 11: a directory link resolving outside is listed for no role."""
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (data / "away").symlink_to(outside, target_is_directory=True)
+
+        for key in (TEST_ADMIN_KEY, TEST_MONITOR_KEY):
+            response = self._get(config_files_client, DIRECTORIES_URL, key)
+            assert response.status_code == 200
+            assert "away" not in response.json()["data"]["directories"]
+        admin = self._get(config_files_client, DIRECTORIES_URL, TEST_ADMIN_KEY)
+        assert "Playerdata" in admin.json()["data"]["directories"]
+
+    @pytest.mark.parametrize("url", [DIRECTORIES_URL, FILES_URL])
+    def test_missing_data_directory_keeps_the_path_and_role_checks(
+        self, config_files_client: TestClient, config_file: Path, url: str
+    ) -> None:
+        """Story 21.3 AC 12: 403 and 400 hold when the server data directory is missing."""
+        shutil.rmtree(config_file.parent)
+        key_name = "directories" if url == DIRECTORIES_URL else "files"
+
+        forbidden = self._get(config_files_client, f"{url}?directory=Playerdata", TEST_MONITOR_KEY)
+        assert forbidden.status_code == 403
+        assert forbidden.json() == {
+            "detail": {
+                "code": ErrorCode.FORBIDDEN,
+                "message": "This directory needs the Admin role: Playerdata",
+            }
+        }
+        assert forbidden.headers["Cache-Control"] == "no-store"
+
+        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
+            traversal = self._get(config_files_client, f"{url}?directory=../x", key)
+            assert traversal.status_code == 400
+
+        for query in ("", "?directory=ModConfig"):
+            monitor = self._get(config_files_client, url + query, TEST_MONITOR_KEY)
+            assert monitor.status_code == 200
+            assert monitor.json()["data"][key_name] == []
+
+        admin = self._get(config_files_client, f"{url}?directory=Playerdata", TEST_ADMIN_KEY)
+        assert admin.status_code == 200
+        assert admin.json()["data"][key_name] == []
 
     def test_modconfig_reads(self, config_files_client: TestClient, data: Path) -> None:
         """AC 11: nested ModConfig files are served; a symlink out of ModConfig is 403."""

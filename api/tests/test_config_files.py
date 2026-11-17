@@ -890,3 +890,78 @@ class TestSafePathMethod:
 
         with pytest.raises(ConfigPathInvalidError):
             service._safe_path(base_dir, "../etc/passwd")  # pyright: ignore[reportPrivateUsage]
+
+
+@pytest.mark.parametrize("role", ["admin", "monitor", None])
+class TestLinksOutsideTheDataDirectory:
+    """Story 21.3 AC 11: no listing shows an entry resolving outside (Epic 21 ADR-5 d. 2)."""
+
+    @pytest.fixture
+    def linked(self, mock_settings: MagicMock, tmp_path: Path) -> Path:
+        serverdata = mock_settings.serverdata_dir
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "x.json").write_text("{}")
+        (serverdata / "serverconfig.json").write_text("{}")
+        for parent in (serverdata, serverdata / "ModConfig"):
+            parent.mkdir(exist_ok=True)
+            (parent / "away").symlink_to(outside, target_is_directory=True)
+            (parent / "away.json").symlink_to(outside / "x.json")
+        (serverdata / "ModConfig" / "real.json").write_text("{}")
+        return serverdata
+
+    def test_directory_listings_leave_the_link_out(
+        self, service: ConfigFilesService, linked: Path, role: str | None
+    ) -> None:
+        assert service.list_directories(role=role) == ["ModConfig"]
+        assert service.list_directories("ModConfig", role) == []
+
+    def test_file_listings_leave_the_link_out(
+        self, service: ConfigFilesService, linked: Path, role: str | None
+    ) -> None:
+        assert service.list_files(role=role) == ["serverconfig.json"]
+        assert service.list_files("ModConfig", role) == ["real.json"]
+
+    def test_admin_still_may_not_open_them(
+        self, service: ConfigFilesService, linked: Path, role: str | None
+    ) -> None:
+        with pytest.raises(ConfigPathInvalidError):
+            service.read_file("away/x.json", "admin")
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_directories("away", "admin")
+
+
+class TestMissingDataDirectory:
+    """Story 21.3 AC 12: the path and role checks run before the existence check (ADR-5 d. 3)."""
+
+    @pytest.fixture(autouse=True)
+    def missing(self, mock_settings: MagicMock) -> None:
+        mock_settings.serverdata_dir.rmdir()
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    def test_a_forbidden_directory_is_forbidden(
+        self, service: ConfigFilesService, role: str | None
+    ) -> None:
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.list_directories("Playerdata", role)
+        with pytest.raises(ConfigDirectoryForbiddenError):
+            service.list_files("Playerdata", role)
+
+    @pytest.mark.parametrize("role", ["monitor", None])
+    @pytest.mark.parametrize("directory", [None, "ModConfig"])
+    def test_an_allowed_directory_is_empty(
+        self, service: ConfigFilesService, role: str | None, directory: str | None
+    ) -> None:
+        assert service.list_directories(directory, role) == []
+        assert service.list_files(directory, role) == []
+
+    @pytest.mark.parametrize("role", ["admin", "monitor", None])
+    def test_a_traversal_is_invalid(self, service: ConfigFilesService, role: str | None) -> None:
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_directories("../x", role)
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_files("../x", role)
+
+    def test_admin_gets_an_empty_list(self, service: ConfigFilesService) -> None:
+        assert service.list_directories("Playerdata", "admin") == []
+        assert service.list_files("Playerdata", "admin") == []

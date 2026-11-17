@@ -25,7 +25,9 @@ Config Files (6.5):
   anything else is 400 CONFIG_FILE_NOT_SUPPORTED or 413 CONFIG_FILE_TOO_LARGE
 
 Story 19.1 (FR208): roles other than Admin list and read the root of the server data
-directory and ModConfig only; any other directory is 403 FORBIDDEN for the three routes.
+directory and ModConfig only; any other directory is 403 FORBIDDEN for the three routes,
+whether or not the server data directory exists. Entries resolving outside the server
+data directory are not listed for any role (Epic 21 ADR-5).
 
 The config file routes (directories, files and file content) answer with
 Cache-Control: no-store, error responses included, since what they return depends
@@ -419,9 +421,11 @@ async def list_config_directories(
 
     A Monitor key (any role but Admin) lists the root and ModConfig only: the root
     listing holds ModConfig and no other directory, and listing any other directory,
-    existing or not, is 403 FORBIDDEN (Story 19.1, FR208). The decision is made on
-    resolved paths, so `.`, `ModConfig/..` and symlinks cannot widen it. The response
-    is never cached (Cache-Control: no-store), an error response included.
+    existing or not, is 403 FORBIDDEN (Story 19.1, FR208), whether or not the server
+    data directory exists. The decision is made on resolved paths, so `.`,
+    `ModConfig/..` and symlinks cannot widen it. A directory resolving outside the
+    server data directory is not listed for any role, Admin included (Epic 21 ADR-5).
+    The response is never cached (Cache-Control: no-store), an error response included.
 
     Args:
         directory: Optional subdirectory path to list directories from.
@@ -471,9 +475,10 @@ async def list_config_files(
 
     Admin lists files in every directory. A Monitor key (any role but Admin) lists
     files in the root and under ModConfig only; another directory, existing or not,
-    is 403 FORBIDDEN, and files that resolve elsewhere are not listed (Story 19.1,
-    FR208). The response is never cached (Cache-Control: no-store), an error
-    response included.
+    is 403 FORBIDDEN whether or not the server data directory exists, and files that
+    resolve elsewhere are not listed (Story 19.1, FR208). A file resolving outside the
+    server data directory is not listed for any role (Epic 21 ADR-5). The response is
+    never cached (Cache-Control: no-store), an error response included.
 
     Args:
         directory: Optional subdirectory name to list files from.
