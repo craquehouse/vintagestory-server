@@ -504,5 +504,6 @@ class TestStaleTempFiles:
         assert not stale.parent.exists()
         assert young.read_bytes() == b"partial"
         out = capsys.readouterr().out
-        assert "cache_temp_file_removed" in out
+        [line] = [ln for ln in out.splitlines() if "cache_temp_file_removed" in ln]
+        assert "mods/5/abc.tmp" in line
         assert "def.tmp" not in out

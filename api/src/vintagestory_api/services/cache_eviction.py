@@ -156,9 +156,13 @@ class CacheEvictionService:
                 if not path.is_file() or path.stat().st_mtime >= cutoff:
                     continue
                 path.unlink()
-                logger.info("cache_temp_file_removed", file=str(path.name))
+                logger.info("cache_temp_file_removed", file=str(path.relative_to(self._cache_dir)))
             except OSError as e:
-                logger.warning("cache_temp_file_not_removed", file=str(path), error=str(e))
+                logger.warning(
+                    "cache_temp_file_not_removed",
+                    file=str(path.relative_to(self._cache_dir)),
+                    error=str(e),
+                )
                 continue
             self._remove_if_empty(path.parent)
 
