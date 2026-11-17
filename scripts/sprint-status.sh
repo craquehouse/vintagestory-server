@@ -64,6 +64,18 @@ usage() {
     exit 1
 }
 
+# is_one_of <word> <list>: true when <word> is one of the space-separated words in <list>.
+# An empty word, or one containing whitespace, is never in the list.
+is_one_of() {
+    case "$1" in
+        "" | *[[:space:]]*) return 1 ;;
+    esac
+    case " $2 " in
+        *" $1 "*) return 0 ;;
+    esac
+    return 1
+}
+
 cmd_get() {
     local key="$1"
 
@@ -88,19 +100,20 @@ cmd_set() {
     local valid_epic_statuses="backlog in-progress done"
     local valid_retro_statuses="optional pending done"
 
-    # Determine if this is an epic, story, or retro
-    if [[ "$key" == epic-* ]]; then
-        if [[ ! " $valid_epic_statuses " =~ " $status " ]]; then
-            echo "Error: Invalid epic status '$status'. Valid: $valid_epic_statuses" >&2
-            exit 1
-        fi
-    elif [[ "$key" == *-retrospective ]]; then
-        if [[ ! " $valid_retro_statuses " =~ " $status " ]]; then
+    # Determine if this is a retrospective, epic, or story. A retrospective's key also
+    # starts with epic-, so it is checked first.
+    if [[ "$key" == *-retrospective ]]; then
+        if ! is_one_of "$status" "$valid_retro_statuses"; then
             echo "Error: Invalid retrospective status '$status'. Valid: $valid_retro_statuses" >&2
             exit 1
         fi
+    elif [[ "$key" == epic-* ]]; then
+        if ! is_one_of "$status" "$valid_epic_statuses"; then
+            echo "Error: Invalid epic status '$status'. Valid: $valid_epic_statuses" >&2
+            exit 1
+        fi
     else
-        if [[ ! " $valid_story_statuses " =~ " $status " ]]; then
+        if ! is_one_of "$status" "$valid_story_statuses"; then
             echo "Error: Invalid story status '$status'. Valid: $valid_story_statuses" >&2
             exit 1
         fi
@@ -193,7 +206,7 @@ cmd_retro_set() {
     local status="$2"
 
     local valid_statuses="pending done"
-    if [[ ! " $valid_statuses " =~ " $status " ]]; then
+    if ! is_one_of "$status" "$valid_statuses"; then
         echo "Error: Invalid retro status '$status'. Valid: $valid_statuses" >&2
         exit 1
     fi
@@ -213,7 +226,6 @@ cmd_retro_set() {
 
 cmd_retro_add() {
     local key="$1"
-    local comment="${2:-}"
 
     # Check if key already exists
     local existing

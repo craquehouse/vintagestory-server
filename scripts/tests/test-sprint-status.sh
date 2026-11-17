@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Tests for scripts/sprint-status.sh `remove` (Epic 19 planning).
+# Tests for scripts/sprint-status.sh `remove` (Epic 19 planning), and `set`, `retro-set` and
+# `retro-add` (Story 20.3).
 set -uo pipefail
 # shellcheck source=scripts/tests/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -77,5 +78,51 @@ assert_eq "remove an epic without stories: epic gone" "0" "$(grep -c 'epic-7' <<
 dir=$(sprint_repo)
 run_sprint "$dir" remove
 assert_eq "remove without a key: exit" 1 "$STATUS"
+
+# check_set <name> <expected exit> <message> <command> [args...]: run the command in a fresh
+# repo; the exit code and the message (stdout or stderr) are as expected, and a refused
+# command leaves the file unchanged
+check_set() {
+    local name=$1 expected=$2 message=$3 dir before
+    shift 3
+    dir=$(sprint_repo)
+    before=$(sprint_file "$dir")
+    run_sprint "$dir" "$@"
+    assert_eq "$name: exit" "$expected" "$STATUS"
+    assert_contains "$name: message" "$message" "$OUT$ERR"
+    if [[ $expected != 0 ]]; then
+        assert_eq "$name: file unchanged" "$before" "$(sprint_file "$dir")"
+    fi
+    FILE=$(sprint_file "$dir")
+}
+
+check_set "set a story" 0 "Updated: 8-1-kept-story -> review" set 8-1-kept-story review
+assert_contains "set a story: written" "8-1-kept-story: review" "$FILE"
+check_set "set a story to an epic-only status" 1 "Invalid story status 'optional'" \
+    set 8-1-kept-story optional
+check_set "set an epic" 0 "Updated: epic-8 -> in-progress" set epic-8 in-progress
+assert_contains "set an epic: written" "epic-8: in-progress" "$FILE"
+check_set "set an epic to a story-only status" 1 "Invalid epic status 'review'" set epic-8 review
+check_set "set a retrospective to done" 0 "Updated: epic-8-retrospective -> done" \
+    set epic-8-retrospective "done"
+check_set "set a retrospective to optional" 0 "Updated: epic-8-retrospective -> optional" \
+    set epic-8-retrospective optional
+check_set "set a retrospective to an epic status" 1 "Invalid retrospective status 'in-progress'" \
+    set epic-8-retrospective in-progress
+check_set "retro-set an item" 0 "Updated retro item: A1-stale-item -> done" \
+    retro-set A1-stale-item "done"
+assert_contains "retro-set an item: written" "A1-stale-item: done" "$FILE"
+check_set "retro-set an item to a retrospective status" 1 "Invalid retro status 'optional'" \
+    retro-set A1-stale-item optional
+check_set "set an empty status" 1 "Invalid story status ''" set 8-1-kept-story ""
+check_set "set a status containing a space" 1 "Invalid story status 'review done'" \
+    set 8-1-kept-story "review done"
+check_set "retro-set a status containing a space" 1 "Invalid retro status 'pending done'" \
+    retro-set A1-stale-item "pending done"
+check_set "set a status with a glob character" 1 "Invalid story status 'rev*'" \
+    set 8-1-kept-story 'rev*'
+check_set "retro-add ignores a comment" 0 "Added retro item: A2-new -> pending" \
+    retro-add A2-new "a comment"
+assert_contains "retro-add: written" "A2-new: pending" "$FILE"
 
 finish
