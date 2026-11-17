@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
 from vintagestory_api.main import register_frontend
-from vintagestory_api.middleware.auth import get_settings
 
 INDEX = "<html>SPA index</html>"
 PRIVATE = "outside the static directory"
@@ -36,7 +35,7 @@ def static_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def client(static_dir: Path) -> TestClient:
     target = FastAPI()
-    register_frontend(target, static_dir)
+    register_frontend(target, static_dir, Settings(api_key_admin="admin"))
     return TestClient(target)
 
 
@@ -77,7 +76,7 @@ class TestFrontendFiles:
         root.mkdir()
         (root / "index.html").write_text(INDEX)
         target = FastAPI()
-        register_frontend(target, root)
+        register_frontend(target, root, Settings(api_key_admin="admin"))
 
         assert_serves_index(TestClient(target), "/dashboard")
 
@@ -116,8 +115,7 @@ class TestRuntimeConfig:
 
     def _client(self, static_dir: Path, settings: Settings) -> TestClient:
         target = FastAPI()
-        register_frontend(target, static_dir)
-        target.dependency_overrides[get_settings] = lambda: settings
+        register_frontend(target, static_dir, settings)
         return TestClient(target)
 
     def test_serves_vs_api_key(self, static_dir: Path) -> None:
