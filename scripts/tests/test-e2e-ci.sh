@@ -11,4 +11,12 @@ ROOT="$SCRIPTS_DIR/.."
 stale=$(grep -rnI "localStorage.setItem" "$ROOT/web/e2e" "$ROOT/api/tests/e2e" || true)
 assert_eq "no E2E spec or fixture sets a localStorage key" "" "$stale"
 
+# The seeded serverconfig.json holds made-up values only (Story 19.7 AC 5)
+fixture="$ROOT/web/e2e/fixtures/serverconfig.json"
+if yq -p json -e '.' "$fixture" >/dev/null 2>&1; then pass; else fail "the fixture parses as JSON"; fi
+assert_eq "fixture ServerName" "E2E Fixture Server" "$(yq -p json '.ServerName' "$fixture" 2>/dev/null)"
+assert_eq "fixture ServerDescription" "null" "$(yq -p json '.ServerDescription' "$fixture" 2>/dev/null)"
+assert_eq "fixture Ip" "null" "$(yq -p json '.Ip' "$fixture" 2>/dev/null)"
+assert_eq "fixture Password is the made-up one" "e2e-fixture-password" "$(yq -p json '.Password' "$fixture" 2>/dev/null)"
+
 finish

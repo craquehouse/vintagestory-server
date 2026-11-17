@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the mod operations the API refuses to protect a mod's file.
@@ -149,6 +149,7 @@ test.describe('Mod file refusals on the Installed page (Story 19.4)', () => {
 
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     writes = await stubMods(page);
     await page.setViewportSize(DESKTOP);
     await page.goto(INSTALLED);

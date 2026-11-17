@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for settings that behave as saved.
@@ -37,6 +37,7 @@ interface JobInfo {
 async function usePageKey(page: Page): Promise<void> {
   // The Scheduled Jobs tab and the API settings exist only for an Admin key
   await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 

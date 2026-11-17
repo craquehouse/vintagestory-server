@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game server password with a Monitor key.
@@ -18,8 +18,9 @@ import { serveConfigKey } from './config-js';
  * prints the password (compared with `includes`, so a failure does not print it).
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a game server
- *   installed (serverconfig.json present): `just docker restart` then
+ * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json,
+ *   which the seeded stack and a stack with a game server both have (the page is shown as
+ *   installed by `pretendServerInstalled`): `just test-e2e-ci`, or `just docker restart` then
  *   `cd web && bunx playwright test e2e/monitor-password-redaction.spec.ts`
  * - VS_API_KEY_ADMIN exported (default from docker-compose.dev.yaml); the tests that
  *   need a real Monitor key are skipped, with the reason, when VS_API_KEY_MONITOR is not
@@ -98,6 +99,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
     test.skip(!MONITOR_KEY, NO_MONITOR_KEY);
     const admin = await adminPassword(request);
     await serveConfigKey(page, MONITOR_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await openSettings(page);
@@ -129,6 +131,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
       page,
     }) => {
       await serveConfigKey(page, ADMIN_KEY);
+      await pretendServerInstalled(page);
       await page.route(`**${GAME_API}`, async (route) => {
         if (route.request().method() !== 'GET') return route.fallback();
         const response = await route.fetch();
@@ -174,6 +177,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
 
   test('UI: an Admin key keeps the masked password field', async ({ page }) => {
     await serveConfigKey(page, ADMIN_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await openSettings(page);

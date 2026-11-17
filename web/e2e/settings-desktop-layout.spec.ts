@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game server settings layout.
@@ -14,9 +14,10 @@ import { serveConfigKey } from './config-js';
  * state only.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a game server
- *   installed: `just test-e2e-web`, or `just docker restart` then
- *   `cd web && bunx playwright test e2e/settings-desktop-layout.spec.ts`
+ * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json,
+ *   which the seeded stack and a stack with a game server both have (the page is shown as
+ *   installed by `pretendServerInstalled`): `just test-e2e-ci`, `just test-e2e-web`, or
+ *   `just docker restart` then `cd web && bunx playwright test e2e/settings-desktop-layout.spec.ts`
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -35,6 +36,7 @@ async function open(page: Page, width: number, height = 900) {
   await page.setViewportSize({ width, height });
   // The #Password field checked below only exists for an Admin key
   await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.goto(SETTINGS);
   await expect(page.getByTestId('game-config-panel')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#Port')).toBeVisible();

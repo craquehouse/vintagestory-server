@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the Terminal page.
@@ -28,6 +28,7 @@ test.describe('Terminal Page', () => {
   test.beforeEach(async ({ page }) => {
     // The page takes its key from /config.js (Story 19.2 helper)
     await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test('renders the terminal page with header', async ({ page }) => {
@@ -103,6 +104,7 @@ test.describe('Terminal Page', () => {
 test.describe('Terminal WebSocket Connection', () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test('attempts WebSocket connection on page load', async ({ page }) => {

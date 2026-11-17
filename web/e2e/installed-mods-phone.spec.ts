@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the Installed mods layout on phones and desktops.
@@ -201,6 +201,7 @@ async function expectTouchTarget(page: Page, testId: string) {
 test.describe('Installed mods on phones (Story 16.5)', () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     await fakeInstalledMods(page);
   });
 

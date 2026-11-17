@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for page layouts at tablet and phone widths.
@@ -28,10 +28,11 @@ import { serveConfigKey } from './config-js';
  * cookie of a fresh browser context.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a game server
- *   installed (for the Game Settings header), rebuilt from this branch:
- *   `just docker restart`, then `cd web && bunx playwright test e2e/layout-widths.spec.ts`
- *   with VS_API_KEY_ADMIN exported (the Scheduled Jobs tab exists only for an Admin key).
+ * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json
+ *   (for the Game Settings header), which the seeded stack and a stack with a game server
+ *   both have (the pages are shown as installed by `pretendServerInstalled`), rebuilt
+ *   from this branch: `just test-e2e-ci`, or `just docker restart`, then
+ *   `cd web && bunx playwright test e2e/layout-widths.spec.ts` with VS_API_KEY_ADMIN exported (the Scheduled Jobs tab exists only for an Admin key).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -100,9 +101,10 @@ function updateStatus({ slug, name, version, offered }: FakeMod) {
   };
 }
 
-/** Answer /config.js with the Admin key (Story 17.5) and refuse every write to the API. */
+/** Admin key from /config.js, server shown as installed (19.7), every write refused. */
 async function readOnly(page: Page) {
   await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the mod logos and links the API passes on from the mod database.
@@ -127,9 +127,10 @@ function lookupBody(slug: string, withUrls: boolean) {
   };
 }
 
-/** The page's Admin key from /config.js (Story 19.2); every write to the API is refused. */
+/** Admin key from /config.js (19.2), server shown as installed (19.7), every write refused. */
 async function readOnly(page: Page) {
   await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
