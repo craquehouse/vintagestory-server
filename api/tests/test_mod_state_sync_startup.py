@@ -2,20 +2,33 @@
 
 import json
 import zipfile
+from collections.abc import Generator
 from datetime import UTC, datetime
 from io import StringIO
 from pathlib import Path
 
 import pytest
+import respx
+from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY
 from fastapi.testclient import TestClient
 
+from vintagestory_api import main as main_module
+from vintagestory_api.config import Settings
 from vintagestory_api.main import app
+from vintagestory_api.middleware.auth import get_settings
+from vintagestory_api.models.mod_updates import StoredModRecord
 from vintagestory_api.models.mods import ModState
 from vintagestory_api.services import mods as mods_module
 from vintagestory_api.services.mod_file_recovery import KEPT_ASIDE_SUFFIX, WORKING_COPY_SUFFIX
 from vintagestory_api.services.mod_state import ModStateManager, ModSyncSummary
+from vintagestory_api.services.mod_updates import (
+    ModUpdateService,
+    ModUpdateStore,
+    get_mod_update_service,
+)
 from vintagestory_api.services.mods import (
     ModService,
+    get_mod_service,
     prepare_mod_files,
     sync_mod_state_at_startup,
 )
@@ -156,3 +169,115 @@ class TestStartUpOnly:
             pass
 
         assert calls == []
+
+
+class TestStartUpSyncThroughTheApi:
+    """Task 4: the real lifespan over a hand-built mods directory and state (AC 1, 2, 12)."""
+
+    @pytest.fixture
+    def data_dir(self, tmp_path: Path) -> Path:
+        data_dir = tmp_path / "data"
+        for name in ("state", "mods", "cache"):
+            (data_dir / name).mkdir(parents=True)
+        return data_dir
+
+    @pytest.fixture
+    def mod_service(self, data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> ModService:
+        """The singleton the real start-up work uses, with a state saved before the start."""
+        service = ModService(
+            state_dir=data_dir / "state",
+            mods_dir=data_dir / "mods",
+            cache_dir=data_dir / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.21.3",
+        )
+        mods_dir = service.state_manager.mods_dir
+        for filename, slug in (("Kept.zip", "kept"), ("Gone.zip", "gone")):
+            service.state_manager.set_mod_state(
+                filename,
+                ModState(
+                    filename=filename,
+                    slug=slug,
+                    version="1.0.0",
+                    installed_at=datetime(2025, 1, 1, tzinfo=UTC),
+                    asset_id=11,
+                ),
+            )
+        service.state_manager.save()
+        write_mod_zip(mods_dir / "Kept.zip", "kept", "1.0.0")
+        write_mod_zip(mods_dir / "New.zip", "newmod", "1.2.3")
+        write_mod_zip(mods_dir / "Off.zip.disabled", "offmod", "2.0.0")
+        monkeypatch.setattr(mods_module, "_mod_service", service)
+        monkeypatch.setattr(main_module, "prepare_mod_files", prepare_mod_files)
+        return service
+
+    @pytest.fixture
+    def update_store(self, data_dir: Path) -> ModUpdateStore:
+        """An update store holding a record for the mod whose file is gone."""
+        store = ModUpdateStore(data_dir / "state")
+        store.set("gone", StoredModRecord(checked_at=datetime(2025, 1, 2, tzinfo=UTC), found=True))
+        store.set("kept", StoredModRecord(checked_at=datetime(2025, 1, 2, tzinfo=UTC), found=True))
+        store.save()
+        return store
+
+    @pytest.fixture
+    def client(
+        self, mod_service: ModService, update_store: ModUpdateStore, data_dir: Path
+    ) -> Generator[TestClient]:
+        settings = Settings(
+            api_key_admin=TEST_ADMIN_KEY,
+            api_key_monitor=TEST_MONITOR_KEY,
+            data_dir=data_dir,
+            debug=True,
+        )
+        update_service = ModUpdateService(
+            store=update_store,
+            mod_source=mod_service,
+            game_version_provider=lambda: "1.21.3",
+        )
+        app.dependency_overrides[get_mod_service] = lambda: mod_service
+        app.dependency_overrides[get_settings] = lambda: settings
+        app.dependency_overrides[get_mod_update_service] = lambda: update_service
+        with respx.mock(assert_all_called=False) as router, TestClient(app) as client:
+            yield client
+            assert router.calls.call_count == 0, "the sync looked something up"
+        app.dependency_overrides.clear()
+
+    def test_the_installed_list_follows_the_mods_directory(self, client: TestClient) -> None:
+        """AC 1 and AC 2, through `GET /api/v1alpha1/mods`."""
+        response = client.get("/api/v1alpha1/mods", headers={"X-API-Key": TEST_ADMIN_KEY})
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        mods = {mod["filename"]: mod for mod in data["mods"]}
+        assert sorted(mods) == ["Kept.zip", "New.zip", "Off.zip.disabled"]
+        assert (mods["New.zip"]["slug"], mods["New.zip"]["enabled"]) == ("newmod", True)
+        assert (mods["Off.zip.disabled"]["slug"], mods["Off.zip.disabled"]["enabled"]) == (
+            "offmod",
+            False,
+        )
+        assert data["pending_restart"] is False
+
+    def test_a_removed_mod_is_not_installed(self, client: TestClient) -> None:
+        """AC 2: its routes answer 404 MOD_NOT_INSTALLED."""
+        response = client.post(
+            "/api/v1alpha1/mods/gone/disable", headers={"X-API-Key": TEST_ADMIN_KEY}
+        )
+
+        assert response.status_code == 404
+        assert response.json()["detail"]["code"] == "MOD_NOT_INSTALLED"
+
+    def test_update_status_after_the_sync(
+        self, client: TestClient, update_store: ModUpdateStore
+    ) -> None:
+        """AC 12: added mods not checked yet, the removed mod not shown, the store untouched."""
+        stored = update_store.path.read_bytes()
+
+        response = client.get("/api/v1alpha1/mods/updates", headers={"X-API-Key": TEST_ADMIN_KEY})
+
+        assert response.status_code == 200
+        items = {item["slug"]: item for item in response.json()["data"]["mods"]}
+        assert sorted(items) == ["kept", "newmod", "offmod"]
+        for slug in ("newmod", "offmod"):
+            assert (items[slug]["status"], items[slug]["reason"]) == ("unknown", "not_checked")
+        assert update_store.path.read_bytes() == stored
