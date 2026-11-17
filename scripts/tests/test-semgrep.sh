@@ -151,4 +151,14 @@ assert_eq "the upload runs when the full scan runs" "$full_if" "$(yq "$upload | 
 
 if ! grep -qi semgrep "$ROOT/.github/workflows/release.yml"; then pass; else fail "release.yml does not run semgrep"; fi
 
+# --- F. The nosemgrep exception's form (AC 12) ---
+
+# Semgrep honours a bare nosemgrep and a short rule name, so the form project-context.md
+# requires (one full rule ID, an em dash, a reason) is checked here
+marks=$(git -C "$ROOT" grep -nE 'nosem' -- "${TARGETS[@]}" ':(exclude)scripts/tests' 2>&1)
+status=$?
+if ((status <= 1)); then pass; else fail "git grep for nosemgrep runs" "$marks"; fi
+bad_marks=$(grep -vE 'nosemgrep: [a-z0-9_-]+(\.[a-z0-9_-]+)+ — [^[:space:]]' <<<"$marks" | sed '/^$/d' || true)
+assert_eq "every nosemgrep names one full rule ID and a reason" "" "$bad_marks"
+
 finish

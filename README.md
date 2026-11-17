@@ -111,7 +111,10 @@ just dev-api        # API dev server
 just dev-web        # Web dev server (reads web/.env, see web/.env.example)
 just docker start   # Build and start the development stack (docker-compose.dev.yaml)
 just docker stop    # Stop it
+just semgrep        # Static security scan (needs the network; not part of just check)
 ```
+
+CI runs the same scan on every pull request and fails only on findings the pull request adds; `main`'s findings are under Security > Code scanning.
 
 ### End-to-end tests
 

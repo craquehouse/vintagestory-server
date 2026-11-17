@@ -164,6 +164,7 @@ just format                                  # Format all code
 just test-scripts                            # Bash tests for the release/version scripts
 just lint-scripts                            # ShellCheck
 just lint-workflows                          # actionlint on .github/workflows
+just semgrep                                 # Static security scan (needs the network; not part of just check)
 
 # Releases (see RELEASING.md)
 just version                                 # Print the version; fails if the version files disagree
