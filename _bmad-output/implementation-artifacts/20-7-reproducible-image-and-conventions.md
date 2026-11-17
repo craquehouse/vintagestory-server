@@ -1,6 +1,6 @@
 # Story 20.7: Reproducible Image Inputs and the Numbering Rule
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR255, FR256, FR257, Epic 20 ADR-10 and ADR-11. Beads: VSS-870 (INFRA-004), VSS-as6 (TOOLS-005), VSS-3q2s (DOCS-002, pulled in, Matt, 2026-11-17). Last story of Epic 20 (order 20.1 to 20.7, each stacked on the previous). Line references were verified at 7f04ea2 (epic-20-planning) and must be re-checked at implementation time: Stories 20.3 to 20.6 edit the Justfile, ci.yml and scripts/, and 20.6 adds VS_MOD_DB_URL, which Task 5 documents. Build, Renovate and documentation changes only: no file under api/src/ or web/src/ changes, no API contract change, no release note. No new dependencies. -->
 
@@ -60,42 +60,42 @@ so that **a release build does not change without a commit, and the documentatio
 
 <!-- Commit per task: type(story-20.7/task-N): ... . Types are fixed for this story: build (Task 1), chore (Task 2), docs (Tasks 3-5). No feat/fix: nothing here is a release note. Red first in Task 1. -->
 
-- [ ] Task 1: Pin the three images by digest, uv to the `.mise.toml` version, and the script test that holds it (AC: 1, 2, 3) (`VSS-870`)
-  - [ ] 1.1: Red first. `scripts/tests/test-docker-context.sh`: add the assertions of Dev Notes "The script test" between the workflow-pin assertion (`:19-22`) and `finish` (`:24`). Run `just test-scripts test-docker-context.sh` against the unpinned Dockerfile and record in the Debug Log that it fails on "every Dockerfile image is pinned by digest" (listing all three images) and on the uv tag (`got ''`)
-  - [ ] 1.2: Look up the digests on the day you implement (Dev Notes "Digests"), read-only: `docker buildx imagetools inspect <image>:<tag>` for `ghcr.io/astral-sh/uv:<mise uv version>`, `node:26-slim` and `mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64` (or whatever `.NET 10` tag the Dockerfile has after Renovate). Use the top-level `Digest:` line (the multi-platform index for uv and node; the .NET tag is a single amd64 manifest, so its digest is that manifest's). Record the three digests and the date in the Debug Log
-  - [ ] 1.3: `Dockerfile:9` → `FROM node:26-slim@sha256:<digest> AS web-build`; `:36` → `FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:<digest> AS final`; `:51` → `COPY --from=ghcr.io/astral-sh/uv:0.13.8@sha256:<digest> /uv /usr/local/bin/uv`. Keep each tag exactly; change no other line. Update the comment at `:50` to say the uv version must equal `.mise.toml`'s and Renovate moves both together, and the one at `:35` only if it no longer reads right (it names Renovate's hold, which still applies)
-  - [ ] 1.4: `just test-scripts` passes (all files). Negative checks, reverted afterwards: with `uv:latest` restored the new assertions fail; with the uv tag changed to another version the uv assertion fails. `just lint-scripts` passes
-  - [ ] 1.5: Build and run the CI E2E set on the pinned image: `just test-e2e-ci` (it builds `--platform linux/amd64` as its own throwaway image and container on port 18080 and does not touch the dev stack on 8080). Record the test counts and compare them with the base branch's last CI run. Then confirm uv in the built image: `docker run --rm --platform linux/amd64 --entrypoint uv vintagestory-server:e2e --version` prints the `.mise.toml` version (`scripts/e2e-ci.sh:42-46` builds and keeps that tag when `E2E_IMAGE` is unset; its cleanup removes only the container). Do not rebuild or restart the dev stack; do not start or stop the game server
-  - [ ] 1.6: Commit `build(story-20.7/task-1): pin the Dockerfile's images by digest and copy the uv that .mise.toml pins` (Dockerfile and the script test together, as the epic plan requires)
+- [x] Task 1: Pin the three images by digest, uv to the `.mise.toml` version, and the script test that holds it (AC: 1, 2, 3) (`VSS-870`)
+  - [x] 1.1: Red first. `scripts/tests/test-docker-context.sh`: add the assertions of Dev Notes "The script test" between the workflow-pin assertion (`:19-22`) and `finish` (`:24`). Run `just test-scripts test-docker-context.sh` against the unpinned Dockerfile and record in the Debug Log that it fails on "every Dockerfile image is pinned by digest" (listing all three images) and on the uv tag (`got ''`)
+  - [x] 1.2: Look up the digests on the day you implement (Dev Notes "Digests"), read-only: `docker buildx imagetools inspect <image>:<tag>` for `ghcr.io/astral-sh/uv:<mise uv version>`, `node:26-slim` and `mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64` (or whatever `.NET 10` tag the Dockerfile has after Renovate). Use the top-level `Digest:` line (the multi-platform index for uv and node; the .NET tag is a single amd64 manifest, so its digest is that manifest's). Record the three digests and the date in the Debug Log
+  - [x] 1.3: `Dockerfile:9` → `FROM node:26-slim@sha256:<digest> AS web-build`; `:36` → `FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:<digest> AS final`; `:51` → `COPY --from=ghcr.io/astral-sh/uv:0.13.8@sha256:<digest> /uv /usr/local/bin/uv`. Keep each tag exactly; change no other line. Update the comment at `:50` to say the uv version must equal `.mise.toml`'s and Renovate moves both together, and the one at `:35` only if it no longer reads right (it names Renovate's hold, which still applies)
+  - [x] 1.4: `just test-scripts` passes (all files). Negative checks, reverted afterwards: with `uv:latest` restored the new assertions fail; with the uv tag changed to another version the uv assertion fails. `just lint-scripts` passes
+  - [x] 1.5: Build and run the CI E2E set on the pinned image: `just test-e2e-ci` (it builds `--platform linux/amd64` as its own throwaway image and container on port 18080 and does not touch the dev stack on 8080). Record the test counts and compare them with the base branch's last CI run. Then confirm uv in the built image: `docker run --rm --platform linux/amd64 --entrypoint uv vintagestory-server:e2e --version` prints the `.mise.toml` version (`scripts/e2e-ci.sh:42-46` builds and keeps that tag when `E2E_IMAGE` is unset; its cleanup removes only the container). Do not rebuild or restart the dev stack; do not start or stop the game server
+  - [x] 1.6: Commit `build(story-20.7/task-1): pin the Dockerfile's images by digest and copy the uv that .mise.toml pins` (Dockerfile and the script test together, as the epic plan requires)
 
-- [ ] Task 2: The Renovate rule that groups uv (AC: 4) (`VSS-870`)
-  - [ ] 2.1: `renovate.json`: append the rule of Dev Notes "Renovate" as the third entry of `packageRules` (`:6-17`), after the .NET rule. Edit by hand and keep the existing rules' formatting (one-line arrays); do not reformat the file with a JSON tool
-  - [ ] 2.2: Validate: `python3 -m json.tool renovate.json >/dev/null`, and Renovate's own validator run from a scratch directory outside the repo (it downloads Renovate; nothing is added to the project): `cd <scratch dir> && bunx --package renovate renovate-config-validator --no-global <repo>/renovate.json` → "Validating renovate.json as repo config ... Config validated successfully". Use `--no-global` (without it, Renovate 44 validates a named file as global config) and run under Node, not `bunx --bun` (Bun 1.4.4 crashed running Renovate 44 in planning). Record the Renovate version (`bunx --package renovate renovate --version`)
-  - [ ] 2.3: Do not change the organisation preset (`craquehouse/renovate-config`) or add `docker:pinDigests`: the digests are written by Task 1 and the preset's `config:recommended` keeps existing digests current (Dev Notes "Renovate")
-  - [ ] 2.4: Commit `chore(story-20.7/task-2): move uv in the Dockerfile and .mise.toml in one Renovate pull request`
+- [x] Task 2: The Renovate rule that groups uv (AC: 4) (`VSS-870`)
+  - [x] 2.1: `renovate.json`: append the rule of Dev Notes "Renovate" as the third entry of `packageRules` (`:6-17`), after the .NET rule. Edit by hand and keep the existing rules' formatting (one-line arrays); do not reformat the file with a JSON tool
+  - [x] 2.2: Validate: `python3 -m json.tool renovate.json >/dev/null`, and Renovate's own validator run from a scratch directory outside the repo (it downloads Renovate; nothing is added to the project): `cd <scratch dir> && bunx --package renovate renovate-config-validator --no-global <repo>/renovate.json` → "Validating renovate.json as repo config ... Config validated successfully". Use `--no-global` (without it, Renovate 44 validates a named file as global config) and run under Node, not `bunx --bun` (Bun 1.4.4 crashed running Renovate 44 in planning). Record the Renovate version (`bunx --package renovate renovate --version`)
+  - [x] 2.3: Do not change the organisation preset (`craquehouse/renovate-config`) or add `docker:pinDigests`: the digests are written by Task 1 and the preset's `config:recommended` keeps existing digests current (Dev Notes "Renovate")
+  - [x] 2.4: Commit `chore(story-20.7/task-2): move uv in the Dockerfile and .mise.toml in one Renovate pull request`
 
-- [ ] Task 3: `RELEASING.md`: what a build is made from and what a re-run can change (AC: 5) (`VSS-870`)
-  - [ ] 3.1: Add a short subsection "What the image is built from" at the end of "What the workflow publishes" (after `:67`, before "First release" at `:69`), with the content of Dev Notes "RELEASING.md"
-  - [ ] 3.2: The re-run bullet (`:75`): add that the re-run builds the image again, so it can push a different digest when Ubuntu has published package updates since the first run (the apt layer), and the attestations it pushes describe that digest; link to the new subsection
-  - [ ] 3.3: `:57` ("After Renovate updates uv ..."): say Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request; keep the `uv.lock` `revision` sentence
-  - [ ] 3.4: Commit `docs(story-20.7/task-3): say what the release image is built from and what a re-run can change`
+- [x] Task 3: `RELEASING.md`: what a build is made from and what a re-run can change (AC: 5) (`VSS-870`)
+  - [x] 3.1: Add a short subsection "What the image is built from" at the end of "What the workflow publishes" (after `:67`, before "First release" at `:69`), with the content of Dev Notes "RELEASING.md"
+  - [x] 3.2: The re-run bullet (`:75`): add that the re-run builds the image again, so it can push a different digest when Ubuntu has published package updates since the first run (the apt layer), and the attestations it pushes describe that digest; link to the new subsection
+  - [x] 3.3: `:57` ("After Renovate updates uv ..."): say Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request; keep the `uv.lock` `revision` sentence
+  - [x] 3.4: Commit `docs(story-20.7/task-3): say what the release image is built from and what a re-run can change`
 
-- [ ] Task 4: Rewrite the "Story Numbering" section of `project-context.md` (AC: 6, 7) (`VSS-as6`)
-  - [ ] 4.1: Replace `project-context.md:834-847` (from `### Story Numbering` to the "Historical Note" paragraph, up to but not including `### File List Tracking` at `:849`) with the text of Dev Notes "The numbering section". Keep the heading and its place under "Story Conventions"
-  - [ ] 4.2: Check the history against `sprint-status.yaml` before committing: `grep -nE '^\s+[0-9]+-(0|1)-' _bmad-output/implementation-artifacts/sprint-status.yaml` (Dev Notes "Numbering history" has the output at 7f04ea2)
-  - [ ] 4.3: `git grep -n -i "story 0\|never Story 0\|uses Story 1"` over `project-context.md`, `CLAUDE.md`, `README.md`, `RELEASING.md` and `agentdocs/` prints nothing that contradicts the rule. Do not edit `cliff.toml`, anything under `_bmad/`, any story file or any sprint key (AC 7)
-  - [ ] 4.4: Commit `docs(story-20.7/task-4): a preparation story is X.0 and an epic without one starts at X.1`
+- [x] Task 4: Rewrite the "Story Numbering" section of `project-context.md` (AC: 6, 7) (`VSS-as6`)
+  - [x] 4.1: Replace `project-context.md:834-847` (from `### Story Numbering` to the "Historical Note" paragraph, up to but not including `### File List Tracking` at `:849`) with the text of Dev Notes "The numbering section". Keep the heading and its place under "Story Conventions"
+  - [x] 4.2: Check the history against `sprint-status.yaml` before committing: `grep -nE '^\s+[0-9]+-(0|1)-' _bmad-output/implementation-artifacts/sprint-status.yaml` (Dev Notes "Numbering history" has the output at 7f04ea2)
+  - [x] 4.3: `git grep -n -i "story 0\|never Story 0\|uses Story 1"` over `project-context.md`, `CLAUDE.md`, `README.md`, `RELEASING.md` and `agentdocs/` prints nothing that contradicts the rule. Do not edit `cliff.toml`, anything under `_bmad/`, any story file or any sprint key (AC 7)
+  - [x] 4.4: Commit `docs(story-20.7/task-4): a preparation story is X.0 and an epic without one starts at X.1`
 
-- [ ] Task 5: Pull-in: the architecture's environment table, with `VS_MOD_DB_URL` (AC: 8) (`VSS-3q2s`)
-  - [ ] 5.1: Confirm Story 20.6 has landed on this branch's base: `grep -n mod_db_url api/src/vintagestory_api/config.py` finds the setting, and `README.md`'s Configuration table has a `VS_MOD_DB_URL` row. If not, stop and ask: the row must describe the setting as it was merged
-  - [ ] 5.2: `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md:462-468`: replace the three-row table with the table of Dev Notes "The environment table", taking the `VS_MOD_DB_URL` wording (default, `http` rule, what follows it) from the merged README row so the two agree. `VS_GAME_VERSION` is not listed today; check it stays out
-  - [ ] 5.3: Commit `docs(story-20.7/task-5): list VS_API_KEY, VS_CSP_MODE and VS_MOD_DB_URL in the architecture's environment table`
+- [x] Task 5: Pull-in: the architecture's environment table, with `VS_MOD_DB_URL` (AC: 8) (`VSS-3q2s`)
+  - [x] 5.1: Confirm Story 20.6 has landed on this branch's base: `grep -n mod_db_url api/src/vintagestory_api/config.py` finds the setting, and `README.md`'s Configuration table has a `VS_MOD_DB_URL` row. If not, stop and ask: the row must describe the setting as it was merged
+  - [x] 5.2: `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md:462-468`: replace the three-row table with the table of Dev Notes "The environment table", taking the `VS_MOD_DB_URL` wording (default, `http` rule, what follows it) from the merged README row so the two agree. `VS_GAME_VERSION` is not listed today; check it stays out
+  - [x] 5.3: Commit `docs(story-20.7/task-5): list VS_API_KEY, VS_CSP_MODE and VS_MOD_DB_URL in the architecture's environment table`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; `git status --short` is clean after it
-  - [ ] 6.2: `just changelog` shows no entry from this story's commits (all are `build`, `chore` or `docs`)
-  - [ ] 6.3: AC 7 check: `git diff <base>..HEAD --stat -- cliff.toml _bmad/` prints nothing
-  - [ ] 6.4: Story status `review`, `just sprint set 20-7-reproducible-image-and-conventions review`, PR against the previous story's branch while its PR is open, otherwise `main`. The PR description says: no API contract change, no release note, the three digests and the date they were read, that the uv rule clears the preset's one-day hold for uv (Dev Notes "ADR against the code"), and that the digest change empties the shared image build cache once (the first CI run of the PR builds without cache, so its `docker` and `e2e` times are not comparable with 20.5 and 20.6's)
+  - [x] 6.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; `git status --short` is clean after it
+  - [x] 6.2: `just changelog` shows no entry from this story's commits (all are `build`, `chore` or `docs`)
+  - [x] 6.3: AC 7 check: `git diff <base>..HEAD --stat -- cliff.toml _bmad/` prints nothing
+  - [ ] 6.4: (status moves done by the dev agent; PR by the controller) Story status `review`, `just sprint set 20-7-reproducible-image-and-conventions review`, PR against the previous story's branch while its PR is open, otherwise `main`. The PR description says: no API contract change, no release note, the three digests and the date they were read, that the uv rule clears the preset's one-day hold for uv (Dev Notes "ADR against the code"), and that the digest change empties the shared image build cache once (the first CI run of the PR builds without cache, so its `docker` and `e2e` times are not comparable with 20.5 and 20.6's)
   - [ ] 6.5: CI on the PR: `Docker image` and `E2E tests` jobs pass (AC 3); record the run URL, the E2E test counts and the job time in the Completion Notes
   - [ ] 6.6: Close the three beads, each with an AAR first (`bd comments add`, then `bd close`, then `bd sync`; abbreviated AAR for these size-s beads) once the PR is merged or as the maintainer directs. `VSS-870`'s AAR names the three digests and the Renovate rule; `VSS-as6`'s names the decision (X.0); `VSS-3q2s`'s lists the rows added
 
@@ -330,14 +330,44 @@ Files touched: `Dockerfile`, `scripts/tests/test-docker-context.sh`, `renovate.j
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive
+
 ### Debug Log References
+
+- Task 1.1 (red, before the Dockerfile change): `just test-scripts test-docker-context.sh` → 8/10. "every Dockerfile image is pinned by digest" got `node:26-slim`, `mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64`, `ghcr.io/astral-sh/uv:latest`; "the uv image tag is the uv version .mise.toml pins" expected `0.13.8`, got `''`.
+- Task 1.2, digests read 2026-11-17 with `docker buildx imagetools inspect` (top-level `Digest:`), the same as at planning:
+  - `ghcr.io/astral-sh/uv:0.13.8` → `sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85` (OCI index)
+  - `node:26-slim` → `sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc` (OCI index)
+  - `mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64` → `sha256:d507d1e0c1ec47006d52220262709c3ac1d39c1fa87bda6a9aa7930b04341450` (single Docker v2 manifest)
+- Task 1.4 negative checks (Dockerfile restored from a copy afterwards): `uv:latest` → 8/10 (digest assertion lists `ghcr.io/astral-sh/uv:latest`, uv assertion got `''`); `uv:0.13.7@sha256:...` → 9/10 (uv assertion got `0.13.7`). `just lint-scripts` passed.
+- Task 1.5: `just test-e2e-ci` on the pinned Dockerfile: first pass 119 passed, API E2E 3 passed, replay pass 27 passed, exit 0; the same counts as Story 20.6's CI run 44137431816 (119 + 3, 27). `docker run --rm --platform linux/amd64 --entrypoint uv vintagestory-server:e2e --version` → `uv 0.13.8 (x86_64-unknown-linux-musl)`. The `vintagestory-server:e2e` image was removed afterwards; the dev stack was not rebuilt or restarted.
+- Task 2.2: `python3 -m json.tool` OK; from a scratch directory, `bunx --package renovate renovate-config-validator --no-global <repo>/renovate.json` → "Validating ... as repo config", "Config validated successfully against 1 file(s)"; Renovate 44.251.0.
+- Task 4.2: the `sprint-status.yaml` grep matches Dev Notes "Numbering history". Task 4.3: the only hit is the new History line quoting E13-A2.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 (create-story, non-interactive, base 7f04ea2) and validated against the create-story checklist. Prototypes, discarded: the three pins in the Dockerfile (built `--platform linux/amd64` with a distinct tag, uv 0.13.8 confirmed in the image, image removed); the script test (10/10 pinned, 8/10 unpinned, 9/10 with a wrong uv tag; ShellCheck clean); the Renovate rule (Renovate 44.251.0 validator, `--no-global`: "Config validated successfully"). No E2E run in planning.
 
+- Implemented 2026-11-17. Line numbers had moved since 7f04ea2 (the story section is now `project-context.md:862-876`; `renovate.json`'s `packageRules` is at `:16-27` after a `customManagers` block for semgrep); the edits went to the same places.
+- Task 1: the three images pinned by digest with tags kept, uv at the `.mise.toml` version 0.13.8, the uv comment says the versions must match and Renovate moves both. Five assertions added to `test-docker-context.sh` (red first, then 10/10).
+- Task 2: the uv rule appended as the third `packageRules` entry, as drafted (`minimumReleaseAge: null`, `chore(uv)`); the existing rules are unchanged. Open question for the maintainer: keep the one-day hold and accept a red uv pull request on its first day, instead of clearing the hold for uv?
+- Task 3: `RELEASING.md` has "What the image is built from" (pinned inputs, the apt layer that is not pinned, a re-run can push another digest and its attestations describe that digest), the re-run bullet links to it, and the uv sentence says Renovate moves `.mise.toml` and the Dockerfile in one pull request.
+- Task 4: "Story Numbering" rewritten with the drafted text.
+- Task 5: the environment table has the six rows of Dev Notes; the `VS_MOD_DB_URL` row follows the README row and `.env.example` (mirror of the same database, listings and downloads, `https` with a host only, `http` only with `VS_DEBUG=true`, other values stop start-up, images and mod page links do not follow it). `VS_GAME_VERSION` is not listed. Deviation: the line under the table does not say the README has "the full list with `VS_LOG_LEVEL`": `VS_LOG_LEVEL` and the other tuning settings exist in `config.py` but the README and `.env.example` do not document them, so the line names `VS_CORS_ORIGINS` and `VS_DATA_DIR` and says the rest have defaults and are undocumented.
+- Task 5, backlog drawdown at the controller's direction (overrides "Not changed"): in the same file, both compose snippets now match `docker-compose.yaml` and `docker-compose.dev.yaml` (`VS_API_KEY`, `VS_API_KEY_ADMIN` default `changeme`, 42420 tcp and udp), and the Dockerfile summary names node 26, bun 1.4.4, the .NET 10 Resolute base, Python 3.14, the digest pins and uv from `.mise.toml`. Docs only; committed with Task 5 (the commit subject names only the table).
+- Task 6: `just check` green: API 3,387 passed, web 3,307 passed in 132 files (0 skipped), Pyright 0 errors 0 warnings, all script tests passed (`test-docker-context.sh` 10/10). No suppression or `cast` in the diff. `just changelog` shows no entry from this story. `git diff 6448965..HEAD -- cliff.toml _bmad/` is empty. Not done here (controller): the PR (6.4), CI `Docker image` and `E2E tests` (6.5), and closing the beads after merge (6.6). No bead was changed.
+
 ### File List
+
+- `Dockerfile`
+- `scripts/tests/test-docker-context.sh`
+- `renovate.json`
+- `RELEASING.md`
+- `project-context.md`
+- `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`
+- `_bmad-output/implementation-artifacts/20-7-reproducible-image-and-conventions.md`
 
 ## Change Log
 
 - 2026-11-17: Story 20.7 created and validated (ready-for-dev).
+- 2026-11-17: Tasks 1-5 implemented, quality gate green; status review.
