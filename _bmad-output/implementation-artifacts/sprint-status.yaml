@@ -212,7 +212,7 @@ development_status:
   epic-19: in-progress
   epic-19-retrospective: optional
   19-1-secrets-stay-with-admin: done
-  19-2-web-ui-no-longer-gets-the-admin-key: ready-for-dev
+  19-2-web-ui-no-longer-gets-the-admin-key: review
   19-3-content-security-policy-and-api-docs: backlog
   19-4-mod-files-are-never-overwritten: backlog
   19-5-mod-state-matches-the-mods-directory: backlog

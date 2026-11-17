@@ -1,6 +1,6 @@
 # Story 19.2: The Web UI No Longer Gets the Admin Key
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR210-FR212, Epic 19 ADR-5 (which changes Epic 15 ADR-5). Beads: VSS-9wv (API-079, size-m). BREAKING CHANGE. Stacked on Story 19.1 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ are the code the ADRs cite at 048fea9) and must be re-checked at implementation time: Story 19.1 edits config.py, .env.example, both compose files and scripts/worktree-setup.sh first (it removes VS_GAME_VERSION, so later lines in those files move up). No new dependencies. -->
 
@@ -66,42 +66,42 @@ so that **opening the page does not hand out the Admin key**.
 
 <!-- Each functional task includes its tests in the same commit, red first. Commit per task: type(story-19.2/task-N): ..., EXCEPT Task 2, whose commit subject is fixed by ADR-5 "Release" (see Git Intelligence). -->
 
-- [ ] Task 1: App factory in `main.py`, no behaviour change + tests (AC: 8, 9)
-  - [ ] 1.1: `api/src/vintagestory_api/main.py`: replace the module-level `lifespan` (`:91-162`) with `lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]`, which returns the same handler closed over `settings`; delete `settings = Settings()` (`:96`). The body is otherwise unchanged (the inner function keeps `global scheduler_service`). Imports: `Callable` from `collections.abc`, `AbstractAsyncContextManager` from `contextlib`
-  - [ ] 1.2: `main.py`: `register_frontend(target, static_dir, settings: Settings)` (`:246`); `serve_runtime_config` (`:260-272`) takes no dependency and reads `settings.web_api_key` from the closure. Move `_resolve_frontend_file` and `register_frontend` above the factory
-  - [ ] 1.3: `main.py`: `create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI` holds everything from `app = FastAPI(...)` (`:165`) to the WebSocket router (`:227`), with `lifespan=lifespan_for(settings)`, then `if static_dir.exists(): register_frontend(app, static_dir, settings)` (replaces `:281-283`), then `return app`. The module ends with `app = create_app(get_settings())`. The two other `Settings()` calls stay as they are, now inside the factory: CORS (`:177`; rename the local to `cors_settings` so it does not shadow the parameter) and the RBAC test router (`:219`). Story 19.3 moves both (ADR-7 decision 6); see "Not changed". The indented RBAC `logger.warning` line (`:221`) becomes 102 characters: wrap it (ruff E501)
-  - [ ] 1.4: Update the tests in "Existing tests that change (Task 1)"
-  - [ ] 1.5: New `api/tests/test_app_factory.py` (Dev Notes "API tests", Task 1 rows)
-  - [ ] 1.6: `just test-api` passes with no other test edited; `just typecheck-api` at 0 errors
+- [x] Task 1: App factory in `main.py`, no behaviour change + tests (AC: 8, 9)
+  - [x] 1.1: `api/src/vintagestory_api/main.py`: replace the module-level `lifespan` (`:91-162`) with `lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]`, which returns the same handler closed over `settings`; delete `settings = Settings()` (`:96`). The body is otherwise unchanged (the inner function keeps `global scheduler_service`). Imports: `Callable` from `collections.abc`, `AbstractAsyncContextManager` from `contextlib`
+  - [x] 1.2: `main.py`: `register_frontend(target, static_dir, settings: Settings)` (`:246`); `serve_runtime_config` (`:260-272`) takes no dependency and reads `settings.web_api_key` from the closure. Move `_resolve_frontend_file` and `register_frontend` above the factory
+  - [x] 1.3: `main.py`: `create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI` holds everything from `app = FastAPI(...)` (`:165`) to the WebSocket router (`:227`), with `lifespan=lifespan_for(settings)`, then `if static_dir.exists(): register_frontend(app, static_dir, settings)` (replaces `:281-283`), then `return app`. The module ends with `app = create_app(get_settings())`. The two other `Settings()` calls stay as they are, now inside the factory: CORS (`:177`; rename the local to `cors_settings` so it does not shadow the parameter) and the RBAC test router (`:219`). Story 19.3 moves both (ADR-7 decision 6); see "Not changed". The indented RBAC `logger.warning` line (`:221`) becomes 102 characters: wrap it (ruff E501)
+  - [x] 1.4: Update the tests in "Existing tests that change (Task 1)"
+  - [x] 1.5: New `api/tests/test_app_factory.py` (Dev Notes "API tests", Task 1 rows)
+  - [x] 1.6: `just test-api` passes with no other test edited; `just typecheck-api` at 0 errors
 
-- [ ] Task 2: No fallback, the start-up states, the two new warnings + tests; the breaking commit (AC: 1, 4, 5, 8, 10) (`VSS-9wv`)
-  - [ ] 2.1: `api/src/vintagestory_api/config.py` `web_api_key` (`:31-36`): return `""` instead of `self.api_key_admin`; docstring "VS_API_KEY, or the empty string when it is unset or blank (Epic 19 ADR-5)". Update the field comment at `:22`
-  - [ ] 2.2: `config.py`: replace `web_api_key_has_a_role()` (`:38-40`) with `web_api_key_state() -> Literal["not_set", "admin", "monitor", "no_role"]` (Dev Notes "The states")
-  - [ ] 2.3: `main.py`: a module-level `log_web_api_key_state(settings: Settings) -> None` that logs at most one warning from the state, with the hints of Dev Notes "The warnings"; the lifespan calls it where the old `if not settings.web_api_key_has_a_role():` block is (`:103-108`). No key is passed to the logger
-  - [ ] 2.4: Update the tests in "Existing tests that change (Task 2)"
-  - [ ] 2.5: Tests (Dev Notes "API tests", Task 2 rows), red first
-  - [ ] 2.6: Commit with the exact subject and footer of "Git Intelligence"; then run `just changelog` and confirm AC 10
+- [x] Task 2: No fallback, the start-up states, the two new warnings + tests; the breaking commit (AC: 1, 4, 5, 8, 10) (`VSS-9wv`)
+  - [x] 2.1: `api/src/vintagestory_api/config.py` `web_api_key` (`:31-36`): return `""` instead of `self.api_key_admin`; docstring "VS_API_KEY, or the empty string when it is unset or blank (Epic 19 ADR-5)". Update the field comment at `:22`
+  - [x] 2.2: `config.py`: replace `web_api_key_has_a_role()` (`:38-40`) with `web_api_key_state() -> Literal["not_set", "admin", "monitor", "no_role"]` (Dev Notes "The states")
+  - [x] 2.3: `main.py`: a module-level `log_web_api_key_state(settings: Settings) -> None` that logs at most one warning from the state, with the hints of Dev Notes "The warnings"; the lifespan calls it where the old `if not settings.web_api_key_has_a_role():` block is (`:103-108`). No key is passed to the logger
+  - [x] 2.4: Update the tests in "Existing tests that change (Task 2)"
+  - [x] 2.5: Tests (Dev Notes "API tests", Task 2 rows), red first
+  - [x] 2.6: Commit with the exact subject and footer of "Git Intelligence"; then run `just changelog` and confirm AC 10
 
-- [ ] Task 3: Web: the "No API key configured" screen + tests (AC: 2, 3)
-  - [ ] 3.1: `web/src/api/client.ts`: export `getApiKey(): string` returning `window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || ''`; `getConfig` (`:28-33`) uses it. One expression, one place
-  - [ ] 3.2: New `web/src/components/NoApiKeyScreen.tsx` (Dev Notes "The screen")
-  - [ ] 3.3: `web/src/App.tsx` `App` (`:104-143`): first statement `if (!getApiKey()) return <ThemeProvider><NoApiKeyScreen /></ThemeProvider>;`. The check runs at render, not at module load. Nothing else in `App` changes
-  - [ ] 3.4: Tests (Dev Notes "Web tests"), red first
+- [x] Task 3: Web: the "No API key configured" screen + tests (AC: 2, 3)
+  - [x] 3.1: `web/src/api/client.ts`: export `getApiKey(): string` returning `window.__VSM_CONFIG__?.apiKey || import.meta.env.VITE_API_KEY || ''`; `getConfig` (`:28-33`) uses it. One expression, one place
+  - [x] 3.2: New `web/src/components/NoApiKeyScreen.tsx` (Dev Notes "The screen")
+  - [x] 3.3: `web/src/App.tsx` `App` (`:104-143`): first statement `if (!getApiKey()) return <ThemeProvider><NoApiKeyScreen /></ThemeProvider>;`. The check runs at render, not at module load. Nothing else in `App` changes
+  - [x] 3.4: Tests (Dev Notes "Web tests"), red first
 
-- [ ] Task 4: Dev compose default and documentation (AC: 6, 7)
-  - [ ] 4.1: `docker-compose.dev.yaml` (`:19-20`): `- VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}`, comment: the dev stack gives the web UI the Admin key unless `VS_API_KEY` is set; the API logs `web_api_key_is_admin_key`
-  - [ ] 4.2: `docker-compose.yaml` (`:19-21`): the variable line stays `- VS_API_KEY=${VS_API_KEY:-}`; new comment (Dev Notes "Documentation")
-  - [ ] 4.3: `.env.example` (`:40-44`) and `README.md` (`:25`, `:37`, `:75`) (Dev Notes "Documentation")
-  - [ ] 4.4: Check: `docker compose -f docker-compose.dev.yaml config | grep VS_API_KEY=` shows the Admin key value for `VS_API_KEY` with it unset and with it blank, and the chosen value when set (do not paste a real key into the story; say "matches" or "differs"). `docker compose -f docker-compose.yaml config` shows it empty when unset
+- [x] Task 4: Dev compose default and documentation (AC: 6, 7)
+  - [x] 4.1: `docker-compose.dev.yaml` (`:19-20`): `- VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}`, comment: the dev stack gives the web UI the Admin key unless `VS_API_KEY` is set; the API logs `web_api_key_is_admin_key`
+  - [x] 4.2: `docker-compose.yaml` (`:19-21`): the variable line stays `- VS_API_KEY=${VS_API_KEY:-}`; new comment (Dev Notes "Documentation")
+  - [x] 4.3: `.env.example` (`:40-44`) and `README.md` (`:25`, `:37`, `:75`) (Dev Notes "Documentation")
+  - [x] 4.4: Check: `docker compose -f docker-compose.dev.yaml config | grep VS_API_KEY=` shows the Admin key value for `VS_API_KEY` with it unset and with it blank, and the chosen value when set (do not paste a real key into the story; say "matches" or "differs"). `docker compose -f docker-compose.yaml config` shows it empty when unset
 
-- [ ] Task 5: E2E against the Docker dev stack: the `/config.js` helper and the no-key spec (AC: 2, 3, 7)
-  - [ ] 5.1: New `web/e2e/config-js.ts` and `web/e2e/no-api-key.spec.ts` (Dev Notes "E2E")
-  - [ ] 5.2: Rebuild the stack from this branch (`just docker restart`), run `cd web && bunx playwright test e2e/no-api-key.spec.ts`, then two read-only specs of the twelve that rely on the stack's own key, `e2e/mods-navigation.spec.ts` and `e2e/mod-browse-state.spec.ts` (both need the public mod database), to confirm the page still gets a key from the stack. Do not run the specs that install mods for this. The rebuild restarts the container, as for every story's E2E; do not start or stop the game server yourself; no screenshots
-  - [ ] 5.3: Record in the Dev Agent Record: the spec's result, and that the stack's log has `web_api_key_is_admin_key` and no key value (`just docker logs | grep -c web_api_key_is_admin_key`; report the count only)
+- [x] Task 5: E2E against the Docker dev stack: the `/config.js` helper and the no-key spec (AC: 2, 3, 7)
+  - [x] 5.1: New `web/e2e/config-js.ts` and `web/e2e/no-api-key.spec.ts` (Dev Notes "E2E")
+  - [x] 5.2: Rebuild the stack from this branch (`just docker restart`), run `cd web && bunx playwright test e2e/no-api-key.spec.ts`, then two read-only specs of the twelve that rely on the stack's own key, `e2e/mods-navigation.spec.ts` and `e2e/mod-browse-state.spec.ts` (both need the public mod database), to confirm the page still gets a key from the stack. Do not run the specs that install mods for this. The rebuild restarts the container, as for every story's E2E; do not start or stop the game server yourself; no screenshots
+  - [x] 5.3: Record in the Dev Agent Record: the spec's result, and that the stack's log has `web_api_key_is_admin_key` and no key value (`just docker logs | grep -c web_api_key_is_admin_key`; report the count only)
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
-  - [ ] 6.2: `just changelog` lists the Task 2 commit under Breaking Changes with the line of AC 10; no other commit of this story appears under Breaking Changes, and the Task 1 refactor appears nowhere
+  - [x] 6.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
+  - [x] 6.2: `just changelog` lists the Task 2 commit under Breaking Changes with the line of AC 10; no other commit of this story appears under Breaking Changes, and the Task 1 refactor appears nowhere
   - [ ] 6.3: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
   - [ ] 6.4: Story status `review`, `just sprint set 19-2-web-ui-no-longer-gets-the-admin-key review`, PR (base: Story 19.1's branch while its PR is open, otherwise `main`), PR link on `VSS-9wv`. The PR description starts with the breaking change and what to set, lists "API contract changes" from this story, and repeats the deployment note below
 
@@ -402,12 +402,50 @@ The other `VS_API_KEY` states (blank, Monitor key, no role) are covered by the A
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
+
 ### Debug Log References
+
+- Line numbers re-checked after Story 19.1: `main.py` was unchanged by 19.1 (the story's `:91-283` held); in `config.py` 19.1 removed one line above the field comment, so `web_api_key` is at `:30-35` and `web_api_key_has_a_role` at `:37-39` (the comment stayed at `:22`); in `.env.example` the `VS_API_KEY` block is at `:35-39`, in both compose files the `VS_API_KEY` comment and line at `:19-21` (prod) and `:19-20` (dev); README lines `:25`, `:37`, `:77` (the table row moved from `:75` to `:77`).
+- API baseline at the start of the story (after 19.1): 3033 passed with the Task 1 tests added; 3048 after Task 2.
+- Task 2 red: 17 failed before the change (the config, factory-state and frontend-route tests); Task 3 red: 4 web tests failed (the new files did not exist, `getApiKey` was not exported).
+- `ruff format --check` reports pre-existing drift in `main.py` (one blank line before `STATIC_DIR`), `config.py` and `tests/test_main.py`/`tests/test_config.py` that this story did not introduce; it was left alone (no whole-file reformat). `just lint-api` is clean.
+- Task 4.4 (`docker compose ... config`, values compared, never printed): in a scratch directory without `.env`, `docker-compose.dev.yaml` gives `VS_API_KEY` = the Admin key's default when `VS_API_KEY` is unset and when blank, and the chosen value when set; `docker-compose.yaml` gives it empty when unset and blank. In this checkout (whose `.env` defines `VS_API_KEY`) the dev value matches the Admin key.
+- Docker dev stack rebuilt with `just docker restart` after Task 4; the game server was not running before or after (`ps` check in the container), and nothing started or stopped it.
 
 ### Completion Notes List
 
+- Task 1: `main.py` has `lifespan_for(settings)` (the old lifespan body, closed over `settings`, no `Settings()` inside), `register_frontend(target, static_dir, settings)` whose `/config.js` handler takes no dependency, and `create_app(settings, static_dir=STATIC_DIR)` holding the middleware, routers and frontend registration in the old order. The module ends with `app = create_app(get_settings())`. The CORS `Settings()` (now `cors_settings`) and the RBAC router's `Settings().debug` stay inside the factory for Story 19.3. Only `test_main.py` (five `TestLifespanAutoStart` tests) and `test_frontend_routes.py` changed; `tests/test_app_factory.py` covers start-up with the given settings, `/config.js` from the given settings rather than the environment, and no frontend without a static directory.
+- Task 2: `Settings.web_api_key` returns `""` when `VS_API_KEY` is unset or blank; `web_api_key_state()` returns `not_set`/`admin`/`monitor`/`no_role` in that order (Monitor only when `api_key_monitor` is truthy). `main.log_web_api_key_state(settings)` logs `web_api_key_not_set`, `web_api_key_is_admin_key` or the unchanged `web_api_key_matches_no_role`, each with a fixed hint and never a key; the lifespan calls it where the old check was. `test_app_factory.py` asserts, for the five states (unset, blank, Admin, Monitor, other), the exact `/config.js` body, its three headers, `/healthz`/`/readyz` 200, each of the three events both ways and that no key value is in the start-up output. `test_config.py` covers the states, both role keys equal, an empty Monitor key and reading `VS_API_KEY` from the environment. Committed with the story's exact `feat(api)!:` subject and the `BREAKING CHANGE:` footer last; `just changelog` lists `**api:** The web UI no longer receives the Admin key by default; set VS_API_KEY to the Monitor or Admin key` under Breaking Changes (AC 10).
+- Task 3: `client.ts` exports `getApiKey()` (the one expression; `getConfig` uses it). `NoApiKeyScreen` renders a `<main data-testid="no-api-key-screen">` with the `KeyRound` icon, the `<h1>`, the text and two-item list of the story with variable names in `<code>`, and `no-api-key-dev-hint` only when `devServer` (default `import.meta.env.DEV`). `App` returns `<ThemeProvider><NoApiKeyScreen /></ThemeProvider>` when `getApiKey()` is empty, checked at render. `App.no-key.test.tsx` renders the real `App` unmocked apart from `fetch` and `WebSocket` in both tests; the with-key test needed no extra mocks (the never-settling `fetch` was enough to render the sidebar).
+- Task 4: `docker-compose.dev.yaml` passes `VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}`; `docker-compose.yaml` keeps `${VS_API_KEY:-}` with the new comment; `.env.example` and README (Installation step 2, Security, Configuration table) describe the new behaviour, Monitor key first. README Upgrading is unchanged.
+- Task 5: `web/e2e/config-js.ts` exports one function, `serveConfigKey(page: Page, apiKey: string): Promise<void>`, which answers `**/config.js` with `window.__VSM_CONFIG__ = {"apiKey": <apiKey>};` (JSON-encoded), so a spec chooses the page's key (`''` for the no-key state). Stories 19.3-19.7 can import it with `import { serveConfigKey } from './config-js';`. `web/e2e/no-api-key.spec.ts`: 5 tests (no key on `/`, `/game-server/mods/browse`, `/config`: screen, heading, `VS_API_KEY`, no `navigation`, no `/api/` request and no WebSocket after network idle; with a key the sidebar renders; the stack's own `/config.js` serves a non-empty key, asserted as a boolean). Against the rebuilt dev stack with `VS_API_KEY_ADMIN` exported from `.env`: 5 passed. `e2e/mods-navigation.spec.ts` and `e2e/mod-browse-state.spec.ts`: 11 passed. `docker logs vintagestory-manager-dev | grep -c web_api_key_is_admin_key`: 1 (one start); `web_api_key_not_set`/`web_api_key_matches_no_role`: 0; the Admin key value occurs 0 times in the container log. No screenshots; no state changed.
+- Task 6: `just check` passes: API 3048 passed, Pyright 0 errors and the 3 known warnings (`VSS-1ar`), web 3325 passed and 4 skipped (`VSS-hnl`), script tests green. No suppression, `cast` or type assertion added. `git status --short` shows nothing under `dev/` after the suites. `just changelog`: the Task 2 commit is the only commit of this story under Breaking Changes; the Task 3 commit is under Features; the Task 1 refactor appears nowhere.
+- 6.3 (manual check) is left unticked for the maintainer. 6.4: story status is `review` and sprint status set to `review`; the PR, its description (breaking change first, API contract changes, deployment note) and the PR link on `VSS-9wv` are left to the maintainer/orchestrator (this run was told not to push or open PRs, or to change beads), so 6.4 stays unticked.
+
 ### File List
+
+- `api/src/vintagestory_api/main.py` (modified)
+- `api/src/vintagestory_api/config.py` (modified)
+- `api/tests/test_app_factory.py` (new)
+- `api/tests/test_main.py` (modified)
+- `api/tests/test_frontend_routes.py` (modified)
+- `api/tests/test_config.py` (modified)
+- `web/src/api/client.ts` (modified)
+- `web/src/api/client.test.ts` (modified)
+- `web/src/App.tsx` (modified)
+- `web/src/App.no-key.test.tsx` (new)
+- `web/src/components/NoApiKeyScreen.tsx` (new)
+- `web/src/components/NoApiKeyScreen.test.tsx` (new)
+- `web/e2e/config-js.ts` (new)
+- `web/e2e/no-api-key.spec.ts` (new)
+- `docker-compose.yaml` (modified)
+- `docker-compose.dev.yaml` (modified)
+- `.env.example` (modified)
+- `README.md` (modified)
+- `_bmad-output/implementation-artifacts/19-2-web-ui-no-longer-gets-the-admin-key.md` (modified)
 
 ## Change Log
 
 - 2026-11-16: Story 19.2 created and validated (ready-for-dev).
+- 2026-11-16: Tasks 1-5 and 6.1-6.2 implemented; status review (6.3 manual check and 6.4 PR left for the maintainer).
