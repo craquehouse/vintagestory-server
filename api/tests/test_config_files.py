@@ -7,14 +7,20 @@ Focuses heavily on path traversal prevention as the core security requirement.
 """
 
 import json
+import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from vintagestory_api.services.config_files import (
+    CONFIG_FILE_MAX_BYTES,
+    CONFIG_FILE_MAX_DEPTH,
     ConfigFileNotFoundError,
+    ConfigFileNotSupportedError,
+    ConfigFileReadError,
     ConfigFilesService,
+    ConfigFileTooLargeError,
     ConfigPathInvalidError,
 )
 from vintagestory_api.services.game_config import REDACTED
@@ -216,6 +222,26 @@ class TestListFiles:
 
         assert result == []
 
+    def test_list_files_uses_the_viewer_file_rule(
+        self, service: ConfigFilesService, mock_settings: MagicMock, tmp_path: Path
+    ) -> None:
+        """Story 19.1 AC 1: the listing holds exactly the files the viewer can read."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "a.json").write_text("{}")
+        (serverdata / "B.JSON").write_text("{}")
+        (serverdata / "notes.txt").write_text("text")
+        (serverdata / "dir.json").mkdir()
+        (serverdata / "link.json").symlink_to(serverdata / "notes.txt")
+        outside = tmp_path / "outside.json"
+        outside.write_text("{}")
+        (serverdata / "out.json").symlink_to(outside)
+
+        result = service.list_files()
+
+        assert result == ["B.JSON", "a.json"]
+        for name in result:
+            assert service.read_file(name, "admin")["filename"] == name
+
     def test_list_files_excludes_subdirectories(
         self, service: ConfigFilesService, mock_settings: MagicMock
     ) -> None:
@@ -282,6 +308,208 @@ class TestReadFile:
         assert isinstance(content, dict)
         assert content["_raw"] == REDACTED
         assert content["_parse_error"]
+
+
+def _forbid_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make any read of file content fail the test."""
+
+    def fail(self: Path, *args: object, **kwargs: object) -> bytes:
+        raise AssertionError(f"{self} was read")
+
+    monkeypatch.setattr(Path, "read_bytes", fail)
+    monkeypatch.setattr(Path, "read_text", fail)
+
+
+ROLES = ["admin", "monitor"]
+
+
+class TestViewableFiles:
+    """Story 19.1 (FR205, FR206): the viewer serves regular .json files that are UTF-8 text."""
+
+    @pytest.mark.parametrize("role", ROLES)
+    @pytest.mark.parametrize("name", ["notes.txt", "server-main.log", "x.zip", "noext"])
+    @pytest.mark.parametrize("exists", [True, False])
+    def test_other_names_are_refused_unread(
+        self,
+        service: ConfigFilesService,
+        mock_settings: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        role: str,
+        name: str,
+        exists: bool,
+    ) -> None:
+        """AC 2: a name that does not end in .json is refused before the file is opened."""
+        if exists:
+            (mock_settings.serverdata_dir / name).write_text('{"a": 1}')
+        _forbid_reads(monkeypatch)
+
+        with pytest.raises(ConfigFileNotSupportedError) as exc_info:
+            service.read_file(name, role)
+
+        assert exc_info.value.filename == name
+        assert exc_info.value.message == (
+            f"Only .json files that are UTF-8 text can be viewed: {name}"
+        )
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_things_that_are_not_json_files_are_refused(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str
+    ) -> None:
+        """AC 3: a directory, a directory named x.json, a symlink to another type, a FIFO."""
+        serverdata = mock_settings.serverdata_dir
+        (serverdata / "Logs").mkdir()
+        (serverdata / "dir.json").mkdir()
+        (serverdata / "notes.txt").write_text('{"a": 1}')
+        (serverdata / "link.json").symlink_to(serverdata / "notes.txt")
+        os.mkfifo(serverdata / "pipe.json")
+
+        for name in ("Logs", "dir.json", "link.json", "pipe.json"):
+            with pytest.raises(ConfigFileNotSupportedError):
+                service.read_file(name, role)
+
+    @pytest.mark.parametrize("role", ROLES)
+    @pytest.mark.parametrize(
+        "data", [bytes(range(256)), '{"a": "\u00e9"}'.encode("latin-1")], ids=["bin", "latin"]
+    )
+    def test_text_that_is_not_utf8_is_refused(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str, data: bytes
+    ) -> None:
+        """AC 3: a .json file that is not UTF-8 text is refused, never a 500."""
+        (mock_settings.serverdata_dir / "bin.json").write_bytes(data)
+
+        with pytest.raises(ConfigFileNotSupportedError):
+            service.read_file("bin.json", role)
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_too_large_is_refused_unread(
+        self,
+        service: ConfigFilesService,
+        mock_settings: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        role: str,
+    ) -> None:
+        """AC 4: a file larger than 2 MiB is refused before it is read."""
+        (mock_settings.serverdata_dir / "big.json").write_bytes(b" " * (CONFIG_FILE_MAX_BYTES + 1))
+        _forbid_reads(monkeypatch)
+
+        with pytest.raises(ConfigFileTooLargeError) as exc_info:
+            service.read_file("big.json", role)
+
+        assert exc_info.value.filename == "big.json"
+        assert exc_info.value.message == (
+            "Config file is larger than 2 MiB and cannot be viewed: big.json"
+        )
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_exactly_the_limit_is_served(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str
+    ) -> None:
+        """AC 4: a file of exactly 2,097,152 bytes is served."""
+        text = '"' + "a" * (CONFIG_FILE_MAX_BYTES - 2) + '"'
+        (mock_settings.serverdata_dir / "exact.json").write_text(text)
+
+        assert service.read_file("exact.json", role)["content"] == "a" * (
+            CONFIG_FILE_MAX_BYTES - 2
+        )
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_byte_order_mark_is_parsed(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str
+    ) -> None:
+        """AC 5: a UTF-8 file with a byte order mark is parsed."""
+        (mock_settings.serverdata_dir / "bom.json").write_bytes(b"\xef\xbb\xbf" + b'{"a": 1}')
+
+        assert service.read_file("bom.json", role)["content"] == {"a": 1}
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_upper_case_suffix_is_served_and_listed(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str
+    ) -> None:
+        """AC 1: .json is compared without letter case."""
+        (mock_settings.serverdata_dir / "X.JSON").write_text('{"a": 1}')
+
+        assert service.read_file("X.JSON", role)["content"] == {"a": 1}
+        assert service.list_files() == ["X.JSON"]
+
+    @pytest.mark.parametrize("role", ROLES)
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    def test_nesting_up_to_the_limit_is_parsed(
+        self, service: ConfigFilesService, mock_settings: MagicMock, role: str, opening: str
+    ) -> None:
+        """AC 5: content nested exactly CONFIG_FILE_MAX_DEPTH levels deep is parsed."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * CONFIG_FILE_MAX_DEPTH + "1" + closing * CONFIG_FILE_MAX_DEPTH
+        (mock_settings.serverdata_dir / "deep.json").write_text(text)
+
+        assert service.read_file("deep.json", role)["content"] == json.loads(text)
+
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    @pytest.mark.parametrize("levels", [CONFIG_FILE_MAX_DEPTH + 1, 100_000])
+    def test_deeper_nesting_is_raw(
+        self, service: ConfigFilesService, mock_settings: MagicMock, opening: str, levels: int
+    ) -> None:
+        """AC 5: deeper content (and content the parser gives up on) is the _raw form."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * levels + "1" + closing * levels
+        (mock_settings.serverdata_dir / "deep.json").write_text(text)
+
+        admin = service.read_file("deep.json", "admin")["content"]
+        monitor = service.read_file("deep.json", "monitor")["content"]
+
+        assert isinstance(admin, dict)
+        assert isinstance(monitor, dict)
+        assert admin["_raw"] == text
+        assert monitor["_raw"] == REDACTED
+        assert admin["_parse_error"]
+        assert monitor["_parse_error"] == admin["_parse_error"]
+        if levels == CONFIG_FILE_MAX_DEPTH + 1:
+            assert admin["_parse_error"] == (
+                f"Nested more than {CONFIG_FILE_MAX_DEPTH} levels deep"
+            )
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_read_error_is_reported_and_logged(
+        self,
+        service: ConfigFilesService,
+        mock_settings: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+        role: str,
+    ) -> None:
+        """ADR-1 decision 8: any other OSError is ConfigFileReadError, logged at error level."""
+        (mock_settings.serverdata_dir / "locked.json").write_text("{}")
+
+        def denied(self: Path) -> bytes:
+            raise PermissionError(13, "Permission denied")
+
+        monkeypatch.setattr(Path, "read_bytes", denied)
+
+        with pytest.raises(ConfigFileReadError) as exc_info:
+            service.read_file("locked.json", role)
+
+        assert exc_info.value.message == "Config file could not be read: locked.json"
+        out = capsys.readouterr().out
+        assert "config_file_read_failed" in out
+        assert "Permission denied" in out
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_file_removed_while_reading_is_not_found(
+        self,
+        service: ConfigFilesService,
+        mock_settings: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        role: str,
+    ) -> None:
+        """A file removed between the checks and the read is 404, not a read error."""
+        (mock_settings.serverdata_dir / "gone.json").write_text("{}")
+
+        def gone(self: Path) -> bytes:
+            raise FileNotFoundError(2, "No such file or directory")
+
+        monkeypatch.setattr(Path, "read_bytes", gone)
+
+        with pytest.raises(ConfigFileNotFoundError):
+            service.read_file("gone.json", role)
 
 
 class TestReadFileSecrets:

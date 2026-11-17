@@ -19,7 +19,9 @@ API Settings (6.3):
 Config Files (6.5):
 - GET /config/files - List all JSON config files (read-only)
 - GET /config/files/{filename} - Read raw config file content (read-only; secrets,
-  and the text of files that are not valid JSON, for Admin only)
+  and the text of files that are not valid JSON, for Admin only). Story 19.1: only
+  regular .json files (any letter case) of UTF-8 text, up to 2 MiB, are served;
+  anything else is 400 CONFIG_FILE_NOT_SUPPORTED or 413 CONFIG_FILE_TOO_LARGE
 
 Both read endpoints answer with Cache-Control: no-store, error responses included,
 since what they return depends on the key's role. An unhandled error (500) carries
@@ -46,7 +48,10 @@ from vintagestory_api.services.api_settings import (
 )
 from vintagestory_api.services.config_files import (
     ConfigFileNotFoundError,
+    ConfigFileNotSupportedError,
+    ConfigFileReadError,
     ConfigFilesService,
+    ConfigFileTooLargeError,
     ConfigPathInvalidError,
 )
 from vintagestory_api.services.game_config import (
@@ -505,10 +510,20 @@ async def read_config_file(
         - filename: The requested filename
         - content: Parsed JSON content from the file
 
+    Only regular files whose requested and resolved names end in .json (any letter
+    case), of at most 2 MiB and UTF-8 text, are served (Story 19.1); content that
+    does not parse or nests more than 200 levels deep is returned as `_raw` and
+    `_parse_error`.
+
     Raises:
-        HTTPException: 400 if path traversal detected
+        HTTPException: 400 CONFIG_PATH_INVALID if path traversal detected
+        HTTPException: 400 CONFIG_FILE_NOT_SUPPORTED if the name does not end in .json,
+            or it is a directory, not a regular file, does not resolve to a .json name,
+            or is not UTF-8 text
         HTTPException: 401 if not authenticated
         HTTPException: 404 if file not found
+        HTTPException: 413 CONFIG_FILE_TOO_LARGE if the file is larger than 2 MiB
+        HTTPException: 500 INTERNAL_ERROR if the file cannot be read
     """
     response.headers.update(NO_STORE)
     try:
@@ -525,6 +540,13 @@ async def read_config_file(
             headers=NO_STORE,
         )
 
+    except ConfigFileNotSupportedError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": ErrorCode.CONFIG_FILE_NOT_SUPPORTED, "message": e.message},
+            headers=NO_STORE,
+        )
+
     except ConfigFileNotFoundError as e:
         raise HTTPException(
             status_code=404,
@@ -532,5 +554,19 @@ async def read_config_file(
                 "code": ErrorCode.CONFIG_FILE_NOT_FOUND,
                 "message": e.message,
             },
+            headers=NO_STORE,
+        )
+
+    except ConfigFileTooLargeError as e:
+        raise HTTPException(
+            status_code=413,
+            detail={"code": ErrorCode.CONFIG_FILE_TOO_LARGE, "message": e.message},
+            headers=NO_STORE,
+        )
+
+    except ConfigFileReadError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": ErrorCode.INTERNAL_ERROR, "message": e.message},
             headers=NO_STORE,
         )

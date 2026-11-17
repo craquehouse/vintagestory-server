@@ -58,7 +58,11 @@ from vintagestory_api.routers.config import (
 from vintagestory_api.routers.config import router as config_router
 from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import ApiSettingsService
-from vintagestory_api.services.config_files import ConfigFilesService
+from vintagestory_api.services.config_files import (
+    CONFIG_FILE_MAX_BYTES,
+    CONFIG_FILE_MAX_DEPTH,
+    ConfigFilesService,
+)
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.scheduler import SchedulerService
@@ -1429,7 +1433,7 @@ class TestReadConfigFileSecrets:
 
     @pytest.mark.parametrize(
         "path",
-        ["ModConfig/copy.json", "serverconfig.backup.json", "serverconfig.tmp"],
+        ["ModConfig/copy.json", "serverconfig.backup.json"],
     )
     def test_copies_are_redacted(
         self,
@@ -1498,10 +1502,10 @@ class TestReadConfigFileSecrets:
         assert SECRET in admin_content["_raw"]
         assert admin_content["_parse_error"]
 
-    def test_game_log_is_withheld(
+    def test_game_log_is_refused(
         self, config_files_client: TestClient, config_file: Path
     ) -> None:
-        """AC 4: a game log read through the viewer returns no text to Monitor."""
+        """Story 19.1 AC 2: a game log is not served to either key; its text is in neither body."""
         log = config_file.parent / "Logs" / "server-main.log"
         log.parent.mkdir()
         log.write_text(f"12:00:00 [Event] Handling /serverconfig password {SECRET}\n")
@@ -1510,8 +1514,11 @@ class TestReadConfigFileSecrets:
         admin = self._get(config_files_client, "Logs/server-main.log", TEST_ADMIN_KEY)
 
         assert SECRET not in monitor.text
-        assert monitor.json()["data"]["content"]["_raw"] == "[redacted]"
-        assert SECRET in admin.json()["data"]["content"]["_raw"]
+        assert SECRET not in admin.text
+        assert monitor.status_code == 400
+        assert monitor.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED
+        assert admin.status_code == 400
+        assert admin.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED
 
     @pytest.mark.parametrize("content", [[1, 2], "text"])
     def test_arrays_and_strings_unchanged(
@@ -1543,6 +1550,103 @@ class TestReadConfigFileSecrets:
         response = self._get(config_files_client, path, key)
 
         assert response.status_code == status
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+BOTH_KEYS = [TEST_ADMIN_KEY, TEST_MONITOR_KEY]
+
+
+class TestConfigFileTypes:
+    """Story 19.1 (FR205, FR206): what the viewer refuses, and how, for both keys."""
+
+    def _get(self, client: TestClient, path: str, key: str):
+        return client.get(f"{FILES_URL}/{path}", headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_unsupported_files_are_400(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 2, 3: other names (existing or not), a directory, a binary file: 400, no-store."""
+        root = config_file.parent
+        (root / "notes.txt").write_text('{"a": 1}')
+        (root / "dir.json").mkdir()
+        (root / "bin.json").write_bytes(bytes(range(256)))
+
+        for path in ("notes.txt", "missing.log", "dir.json", "bin.json"):
+            response = self._get(config_files_client, path, key)
+            assert response.status_code == 400, path
+            assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED, path
+            assert response.headers["Cache-Control"] == "no-store", path
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_too_large_is_413(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 4: a file larger than 2 MiB is 413, no-store."""
+        (config_file.parent / "big.json").write_bytes(b" " * (CONFIG_FILE_MAX_BYTES + 1))
+
+        response = self._get(config_files_client, "big.json", key)
+
+        assert response.status_code == 413
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_TOO_LARGE
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_deep_nesting_is_raw_not_500(
+        self, config_files_client: TestClient, config_file: Path, key: str, opening: str
+    ) -> None:
+        """AC 5: 300 levels used to be a plain 500; it is the _raw form now."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * 300 + "1" + closing * 300
+        (config_file.parent / "deep.json").write_text(text)
+
+        response = self._get(config_files_client, "deep.json", key)
+
+        assert response.status_code == 200
+        content = response.json()["data"]["content"]
+        assert content["_raw"] == (text if key == TEST_ADMIN_KEY else "[redacted]")
+        assert content["_parse_error"]
+
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_nesting_at_the_limit_is_served(
+        self, config_files_client: TestClient, config_file: Path, key: str, opening: str
+    ) -> None:
+        """AC 5: content nested CONFIG_FILE_MAX_DEPTH levels still serializes."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * CONFIG_FILE_MAX_DEPTH + "1" + closing * CONFIG_FILE_MAX_DEPTH
+        (config_file.parent / "deep.json").write_text(text)
+
+        response = self._get(config_files_client, "deep.json", key)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["content"] == json.loads(text)
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_read_error_is_500_with_envelope(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        key: str,
+    ) -> None:
+        """ADR-1 decision 8: an OSError while reading is 500 INTERNAL_ERROR, no-store."""
+
+        def denied(self: Path) -> bytes:
+            raise PermissionError(13, "Permission denied")
+
+        monkeypatch.setattr(Path, "read_bytes", denied)
+
+        response = self._get(config_files_client, "serverconfig.json", key)
+
+        assert response.status_code == 500
+        assert response.json() == {
+            "detail": {
+                "code": ErrorCode.INTERNAL_ERROR,
+                "message": "Config file could not be read: serverconfig.json",
+            }
+        }
         assert response.headers["Cache-Control"] == "no-store"
 
 
