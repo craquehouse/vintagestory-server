@@ -314,4 +314,16 @@ expect_refused_local() {
 }
 expect_refused_local "no origin remote" "cannot fetch origin/main"
 
+# CI skips every job on the release commit (its tag's release workflow builds it), and the
+# prefix it skips is the subject release.sh writes, so the two cannot drift apart
+ci="$REPO_ROOT/.github/workflows/ci.yml"
+skip="\${{ !startsWith(github.event.head_commit.message, 'chore(release): ') }}"
+jobs=$(yq '.jobs | keys | .[]' "$ci")
+assert_eq "ci.yml has its five jobs" "api docker e2e scripts web" "$(sort <<<"$jobs" | xargs)"
+for job in $jobs; do
+    assert_eq "ci.yml $job skips the release commit" "$skip" "$(yq ".jobs.$job.if" "$ci")"
+done
+assert_contains "release.sh commits with the subject CI skips" "-m \"chore(release): \$tag\"" \
+    "$(cat "$SCRIPTS_DIR/release.sh")"
+
 finish
