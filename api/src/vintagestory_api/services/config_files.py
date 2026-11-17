@@ -12,10 +12,13 @@ most 2 MiB and UTF-8 text (a leading byte order mark is allowed). The listing
 uses the same file rule. Content that does not parse, or that nests more than
 CONFIG_FILE_MAX_DEPTH levels deep, is returned as `_raw` and `_parse_error`.
 
-Story 17.5 (FR186): only the Admin role receives secrets. For any other role,
-every top-level key that names a secret setting (Password, in any letter case)
-and has a value is replaced by "[redacted]", in every file; a file that does not
-parse as JSON is returned without its text (`_raw` is "[redacted]").
+Story 17.5 (FR186), Story 19.1 (FR207): only the Admin role receives secrets. For
+any other role, in every file and at every depth, the value of a key that names a
+secret (game_config.is_secret_key: Password, StartupCommands, or a name containing
+password, token, secret, API key, webhook and similar) is replaced by "[redacted]"
+unless it is null or "", and so is any string that is a URL with user info or a
+Discord webhook URL (game_config.is_secret_value); a file that does not parse as
+JSON is returned without its text (`_raw` is "[redacted]").
 
 Security:
     Path traversal prevention is critical. All file paths are validated
@@ -290,8 +293,9 @@ class ConfigFilesService:
         than CONFIG_FILE_MAX_DEPTH levels deep is returned as `_raw` and `_parse_error`.
 
         Secrets are redacted unless the Admin role is passed (Story 17.5, Epic 17
-        ADR-4 decision 4): for any other role, None included, top-level secret keys
-        with a value are "[redacted]" and `_raw` is "[redacted]" instead of the text.
+        ADR-4 decision 4): for any other role, None included, secrets are "[redacted]"
+        at every depth by key name and by value (game_config.redact_secrets, Story
+        19.1) and `_raw` is "[redacted]" instead of the text.
         The Admin role gets the file as is.
 
         Args:

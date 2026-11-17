@@ -497,10 +497,13 @@ async def read_config_file(
     Path traversal attempts (e.g., ../secrets.json) are rejected with 400.
 
     Both Admin and Monitor roles can access this read-only endpoint. Monitor
-    receives secrets redacted: top-level secret keys (Password, any letter case)
-    with a value are "[redacted]", and a file that is not valid JSON has
-    `_raw: "[redacted]"` instead of its text (Story 17.5, FR186). The response is
-    never cached (Cache-Control: no-store), an error response included.
+    receives secrets redacted at every depth (Story 19.1, FR207): the value of a key
+    whose name looks like a secret (Password, token, secret, API key, webhook and
+    similar, any letter case or separator), StartupCommands, URLs with user info and
+    Discord webhook URLs are "[redacted]" (null and "" stay), and a file that is not
+    valid JSON has `_raw: "[redacted]"` instead of its text (Story 17.5, FR186).
+    The response is never cached (Cache-Control: no-store), an error response
+    included.
 
     Args:
         filename: Name of the file to read (must be in serverdata directory).

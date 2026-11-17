@@ -1475,15 +1475,59 @@ class TestReadConfigFileSecrets:
             "PASSWORD": "c3-z",
         }
 
-    def test_nested_password_is_unchanged(
+    def test_secrets_are_redacted_at_every_depth(
         self, config_files_client: TestClient, config_file: Path
     ) -> None:
-        """Only top-level keys are redacted (pins the documented limit)."""
-        _write_config(config_file.parent / "nested.json", {"Other": {"Password": "nested"}})
+        """Story 19.1 AC 6, 7, 8: secret keys and secret URLs, at any depth, for Monitor only."""
+        mod: dict[str, object] = {
+            "Other": {"Password": SECRET + "-nested"},
+            "Accounts": [{"Token": SECRET + "-token"}, {"ApiKey": SECRET + "-apikey"}],
+            "bot_token": SECRET + "-bot",
+            "WebhookUrl": SECRET + "-webhook",
+            "Endpoint": f"https://user:{SECRET}@host/",
+            "Notify": {"Url": f"https://discord.com/api/webhooks/1/{SECRET}-discord"},
+            "Seed": "12345",
+            "Unset": {"Password": None},
+            "Empty": {"Password": ""},
+        }
+        path = config_file.parent / "ModConfig" / "mod.json"
+        path.parent.mkdir()
+        _write_config(path, mod)
 
-        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
-            response = self._get(config_files_client, "nested.json", key)
-            assert response.json()["data"]["content"] == {"Other": {"Password": "nested"}}
+        monitor = self._get(config_files_client, "ModConfig/mod.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "ModConfig/mod.json", TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"] == {
+            "Other": {"Password": "[redacted]"},
+            "Accounts": [{"Token": "[redacted]"}, {"ApiKey": "[redacted]"}],
+            "bot_token": "[redacted]",
+            "WebhookUrl": "[redacted]",
+            "Endpoint": "[redacted]",
+            "Notify": {"Url": "[redacted]"},
+            "Seed": "12345",
+            "Unset": {"Password": None},
+            "Empty": {"Password": ""},
+        }
+        assert admin.json()["data"]["content"] == mod
+
+    def test_startup_commands_are_redacted(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """Story 19.1 AC 7, 8: serverconfig.json StartupCommands is for Admin only."""
+        config = {**sample_config, "StartupCommands": f"/op {SECRET}"}
+        _write_config(config_file, config)
+
+        monitor = self._get(config_files_client, "serverconfig.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "serverconfig.json", TEST_ADMIN_KEY)
+
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"]["StartupCommands"] == "[redacted]"
+        assert admin.json()["data"]["content"] == config
 
     def test_broken_serverconfig(
         self, config_files_client: TestClient, config_file: Path
