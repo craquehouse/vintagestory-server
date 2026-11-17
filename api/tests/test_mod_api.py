@@ -1,6 +1,7 @@
 """Tests for ModApiClient - VintageStory mod database API client."""
 
 import asyncio
+import gc
 import json
 from collections.abc import AsyncIterator
 from datetime import timedelta
@@ -22,6 +23,7 @@ from vintagestory_api.services.mod_api import (
     ModNotFoundError,
     ModReleaseNotDownloadableError,
     ModVersionNotFoundError,
+    SharedFetches,
     check_compatibility,
     extract_slug,
     search_mods,
@@ -2702,3 +2704,369 @@ class TestModApiClientVersionListingCache:
         await mod_api_client.close()
 
         assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+
+
+# --- Malformed mod database bodies are an ExternalApiError (Story 19.6, Epic 19 ADR-13) ---
+
+MALFORMED_BODIES = [
+    b"<html>Not JSON</html>",
+    b"",
+    b"[]",
+    b'"text"',
+    b"null",
+    b"5",
+]
+MOD_URL = "https://mods.vintagestory.at/api/mod/smithingplus"
+
+
+def _malformed(body: bytes) -> Response:
+    return Response(200, content=body)
+
+
+class TestMalformedBodies:
+    """Every fetcher raises ExternalApiError for a body that is not a JSON object, and a
+    failed refresh leaves the cached copy and its time as they were (FR226)."""
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_mod(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MOD_URL).mock(
+            side_effect=[
+                _malformed(body),
+                Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD}),
+            ]
+        )
+
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mod("smithingplus")
+        mod = await mod_api_client.get_mod("smithingplus")
+        assert mod is not None
+        assert mod["name"] == "Smithing Plus"
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_all_mods(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MODS_URL).mock(
+            side_effect=[
+                Response(200, json=_listing(1)),
+                _malformed(body),
+                Response(200, json=_listing(2)),
+            ]
+        )
+
+        await mod_api_client.get_all_mods()
+        cached = mod_api_client._browse_cache
+        cached_at = mod_api_client._browse_cache_time
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_all_mods(force_refresh=True)
+        assert mod_api_client._browse_cache is cached
+        assert mod_api_client._browse_cache_time == cached_at
+
+        mods = await mod_api_client.get_all_mods(force_refresh=True)
+        assert [m["modid"] for m in mods] == [2]
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_mods_by_version(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            side_effect=[
+                Response(200, json=_listing(1)),
+                _malformed(body),
+                Response(200, json=_listing(2)),
+            ]
+        )
+
+        await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        cached = mod_api_client._version_listings[TAG_1_22_7]
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        assert mod_api_client._version_listings[TAG_1_22_7] is cached
+        assert mod_api_client._version_listings[TAG_1_22_7].fetched_at == cached.fetched_at
+
+        mods = await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        assert [m["modid"] for m in mods] == [2]
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_game_versions(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        newer = {
+            "statuscode": "200",
+            "gameversions": [{"tagid": -9, "name": "1.23.0", "color": "#CCCCCC"}],
+        }
+        respx.get(GAMEVERSIONS_URL).mock(
+            side_effect=[
+                Response(200, json=VERSION_LIST_RESPONSE),
+                _malformed(body),
+                Response(200, json=newer),
+            ]
+        )
+
+        await mod_api_client.get_game_versions()
+        cached = mod_api_client._gameversions_cache
+        cached_at = mod_api_client._gameversions_cache_time
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_game_versions(force_refresh=True)
+        assert mod_api_client._gameversions_cache is cached
+        assert mod_api_client._gameversions_cache_time == cached_at
+
+        assert await mod_api_client.get_game_versions(force_refresh=True) == {"1.23.0": -9}
+
+
+# --- One shared in-flight fetch per cache (Story 19.6, Epic 19 ADR-13 decisions 5, 6) ---
+
+
+class _Gate:
+    """A respx side effect that holds every request until `open()`; counts requests."""
+
+    def __init__(self, *responses: Response) -> None:
+        self._responses = list(responses)
+        self._event = asyncio.Event()
+        self.requests = 0
+
+    async def __call__(self, request: httpx.Request) -> Response:
+        self.requests += 1
+        await self._event.wait()
+        return self._responses.pop(0) if len(self._responses) > 1 else self._responses[0]
+
+    def open(self) -> None:
+        self._event.set()
+
+    async def started(self, count: int = 1) -> None:
+        """Wait until `count` requests have reached the gate."""
+        async with asyncio.timeout(2):
+            while self.requests < count:
+                await asyncio.sleep(0)
+
+
+async def _settle() -> None:
+    """Let started tasks run up to their first real wait."""
+    for _ in range(10):
+        await asyncio.sleep(0)
+
+
+class TestSharedFetches:
+    """The game version list, the full listing and the filtered listings each make one
+    request for concurrent callers (FR227)."""
+
+    @respx.mock
+    async def test_concurrent_cold_listing_calls_share_one_request(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=_listing(1, 2)))
+        respx.get(MODS_URL).mock(side_effect=gate)
+
+        calls = asyncio.gather(*(mod_api_client.get_all_mods() for _ in range(5)))
+        await gate.started()
+        await _settle()
+        gate.open()
+        results = await calls
+
+        assert gate.requests == 1
+        assert all([m["modid"] for m in r] == [1, 2] for r in results)
+
+    @respx.mock
+    async def test_concurrent_cold_game_version_calls_share_one_request(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(GAMEVERSIONS_URL).mock(side_effect=gate)
+
+        calls = asyncio.gather(*(mod_api_client.get_game_versions() for _ in range(5)))
+        await gate.started()
+        await _settle()
+        gate.open()
+        results = await calls
+
+        assert gate.requests == 1
+        assert all(r == {"1.22.7": TAG_1_22_7, "1.21.3": -3} for r in results)
+
+    @respx.mock
+    async def test_listing_failure_reaches_every_caller_and_is_not_kept(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, content=b"[]"), Response(200, json=_listing(1)))
+        respx.get(MODS_URL).mock(side_effect=gate)
+
+        calls = asyncio.gather(
+            *(mod_api_client.get_all_mods() for _ in range(4)), return_exceptions=True
+        )
+        await gate.started()
+        await _settle()
+        gate.open()
+        results = await calls
+
+        assert gate.requests == 1
+        assert all(isinstance(r, ExternalApiError) for r in results)
+        mods = await mod_api_client.get_all_mods()
+        assert gate.requests == 2
+        assert [m["modid"] for m in mods] == [1]
+
+    @respx.mock
+    async def test_game_version_failure_reaches_every_caller_and_is_not_kept(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, content=b"[]"), Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(GAMEVERSIONS_URL).mock(side_effect=gate)
+
+        calls = asyncio.gather(
+            *(mod_api_client.get_game_versions() for _ in range(4)), return_exceptions=True
+        )
+        await gate.started()
+        await _settle()
+        gate.open()
+        results = await calls
+
+        assert gate.requests == 1
+        assert all(isinstance(r, ExternalApiError) for r in results)
+        assert (await mod_api_client.get_game_versions())["1.22.7"] == TAG_1_22_7
+        assert gate.requests == 2
+
+    @respx.mock
+    async def test_forced_listing_refresh_joins_the_running_fetch(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=_listing(1)))
+        respx.get(MODS_URL).mock(side_effect=gate)
+
+        first = asyncio.create_task(mod_api_client.get_all_mods())
+        await gate.started()
+        forced = asyncio.create_task(mod_api_client.get_all_mods(force_refresh=True))
+        await _settle()
+        gate.open()
+
+        assert [m["modid"] for m in await first] == [1]
+        assert [m["modid"] for m in await forced] == [1]
+        assert gate.requests == 1
+
+    @respx.mock
+    async def test_forced_game_version_refresh_joins_the_running_fetch(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(GAMEVERSIONS_URL).mock(side_effect=gate)
+
+        first = asyncio.create_task(mod_api_client.get_game_versions())
+        await gate.started()
+        forced = asyncio.create_task(mod_api_client.get_game_versions(force_refresh=True))
+        await _settle()
+        gate.open()
+
+        assert await first == await forced
+        assert gate.requests == 1
+
+    @respx.mock
+    async def test_forced_refresh_without_a_running_fetch_fetches(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        listing = respx.get(MODS_URL).mock(return_value=Response(200, json=_listing(1)))
+        versions = respx.get(GAMEVERSIONS_URL).mock(
+            return_value=Response(200, json=VERSION_LIST_RESPONSE)
+        )
+
+        await mod_api_client.get_all_mods()
+        await mod_api_client.get_all_mods(force_refresh=True)
+        await mod_api_client.get_game_versions()
+        await mod_api_client.get_game_versions(force_refresh=True)
+
+        assert listing.call_count == 2
+        assert versions.call_count == 2
+
+    @respx.mock
+    async def test_expired_listing_concurrent_calls_share_one_request(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=_listing(1)), Response(200, json=_listing(2)))
+        respx.get(MODS_URL).mock(side_effect=gate)
+        gate.open()
+        await mod_api_client.get_all_mods()
+        assert gate.requests == 1
+
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        results = await asyncio.gather(*(mod_api_client.get_all_mods() for _ in range(3)))
+
+        assert gate.requests == 2
+        assert all([m["modid"] for m in r] == [2] for r in results)
+
+    @respx.mock
+    async def test_cancelled_waiter_does_not_cancel_the_fetch(
+        self, mod_api_client: ModApiClient
+    ) -> None:
+        gate = _Gate(Response(200, json=_listing(1)))
+        respx.get(MODS_URL).mock(side_effect=gate)
+
+        first = asyncio.create_task(mod_api_client.get_all_mods())
+        await gate.started()
+        first.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await first
+        second = asyncio.create_task(mod_api_client.get_all_mods())
+        await _settle()
+        gate.open()
+
+        assert [m["modid"] for m in await second] == [1]
+        assert gate.requests == 1
+
+    @respx.mock
+    async def test_close_cancels_every_running_fetch(self, mod_api_client: ModApiClient) -> None:
+        listing = _Gate(Response(200, json=_listing(1)))
+        filtered = _Gate(Response(200, json=_listing(1)))
+        versions = _Gate(Response(200, json=VERSION_LIST_RESPONSE))
+        respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(side_effect=filtered)
+        respx.get(MODS_URL).mock(side_effect=listing)
+        respx.get(GAMEVERSIONS_URL).mock(side_effect=versions)
+
+        all_mods = asyncio.create_task(mod_api_client.get_all_mods())
+        game_versions = asyncio.create_task(mod_api_client.get_game_versions())
+        by_version = asyncio.create_task(mod_api_client.get_mods_by_version(TAG_1_22_7))
+        for gate in (listing, filtered, versions):
+            await gate.started()
+
+        await mod_api_client.close()
+        await asyncio.gather(all_mods, game_versions, by_version, return_exceptions=True)
+
+        assert mod_api_client._all_mods_fetch._tasks == {}
+        assert mod_api_client._game_versions_fetch._tasks == {}
+        assert mod_api_client._version_fetches._tasks == {}
+        assert [t for t in asyncio.all_tasks() if t is not asyncio.current_task()] == []
+
+
+class TestSharedFetchesHelper:
+    """`SharedFetches` itself (Story 19.6)."""
+
+    async def test_running_task_is_shared_and_finished_task_removed(self) -> None:
+        fetches = SharedFetches[str, int]()
+        release = asyncio.Event()
+
+        async def value(n: int) -> int:
+            await release.wait()
+            return n
+
+        first = fetches.get("k", lambda: value(1))
+        assert fetches.get("k", lambda: value(9)) is first
+        release.set()
+        assert await first == 1
+        await _settle()
+
+        second = fetches.get("k", lambda: value(2))
+        assert second is not first
+        assert await second == 2
+
+    async def test_unawaited_failure_is_not_reported(self) -> None:
+        loop = asyncio.get_running_loop()
+        seen: list[dict[str, Any]] = []
+        loop.set_exception_handler(lambda _loop, context: seen.append(context))
+        try:
+            fetches = SharedFetches[str, int]()
+
+            async def boom() -> int:
+                raise ExternalApiError("down")
+
+            task = fetches.get("k", boom)
+            await _settle()
+            assert task.done()
+            del task
+            gc.collect()
+            assert seen == []
+        finally:
+            loop.set_exception_handler(None)

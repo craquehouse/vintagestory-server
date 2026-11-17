@@ -237,6 +237,8 @@ describe('ModDetailPage', () => {
         'src',
         'https://moddbcdn.vintagestory.at/logo.png'
       );
+      // Story 19.6: the CDN gets no Referer
+      expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
     });
 
     it('renders placeholder when no logo', async () => {
@@ -701,6 +703,9 @@ describe('ModDetailPage', () => {
       await screen.findByTestId('mod-detail-page');
       expect(screen.queryByTestId('mod-detail-homepage-link')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mod-detail-source-link')).not.toBeInTheDocument();
+      // Story 19.6: null links and logo leave the placeholder and the ModDB link
+      expect(screen.getByTestId('mod-detail-logo').querySelector('img')).toBeNull();
+      expect(screen.getByTestId('mod-detail-moddb-link')).toBeInTheDocument();
       // Story 18.1: a response without `trailer_url` has no trailer link
       expect(screen.queryByTestId('mod-detail-trailer-link')).not.toBeInTheDocument();
     });

@@ -1857,6 +1857,77 @@ class TestModServiceLookupMod:
         assert release.modidstr == ""
 
 
+    @staticmethod
+    async def _lookup_with(service: ModService, **fields: object) -> ModLookupResponse:
+        """Look up a one-release synthetic entry with `fields` added (Story 19.6)."""
+        import respx
+        from httpx import Response
+
+        mod: dict[str, object] = {**LOOKUP_MOD_COMPATIBLE, **fields}
+        with respx.mock:
+            respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": mod})
+            )
+            return await service.lookup_mod("smithingplus")
+
+    @pytest.mark.asyncio
+    async def test_lookup_mod_keeps_cdn_logo_and_https_links(
+        self, lookup_service: ModService
+    ) -> None:
+        """A CDN logo and https links pass unchanged (Story 19.6, FR224, FR225)."""
+        result = await self._lookup_with(
+            lookup_service,
+            logofilename="https://moddbcdn.vintagestory.at/logo.png",
+            homepageurl="https://example.com/home",
+            sourcecodeurl="https://github.com/a/b",
+        )
+        assert result.logo_url == "https://moddbcdn.vintagestory.at/logo.png"
+        assert result.homepage_url == "https://example.com/home"
+        assert result.source_url == "https://github.com/a/b"
+
+    @pytest.mark.parametrize(
+        "logo",
+        [
+            "http://moddbcdn.vintagestory.at/logo.png",
+            "https://i.imgur.com/a.png",
+            "data:image/png;base64,AA==",
+            "javascript:alert(1)",
+            "not a url",
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_lookup_mod_drops_disallowed_logo(
+        self, lookup_service: ModService, logo: str
+    ) -> None:
+        """A logo that is not an https CDN URL is null; the lookup succeeds (FR224)."""
+        result = await self._lookup_with(lookup_service, logofilename=logo)
+        assert result.logo_url is None
+        assert result.name == "Smithing Plus"
+
+    @pytest.mark.parametrize(
+        "link",
+        [
+            "",
+            "http://example.com",
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "https://user:pass@example.com/",
+            "https://example.com/a b",
+            "https://example.com/\\a",
+            "https://example.com/" + "a" * 2029,
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_lookup_mod_drops_disallowed_links(
+        self, lookup_service: ModService, link: str
+    ) -> None:
+        """A homepage or source that is not a well-formed https URL is null (FR225)."""
+        result = await self._lookup_with(lookup_service, homepageurl=link, sourcecodeurl=link)
+        assert result.homepage_url is None
+        assert result.source_url is None
+        assert result.name == "Smithing Plus"
+
+
 class TestModServiceLookupMedia:
     """`screenshots` and `trailer_url` on the lookup (Story 18.1, Epic 18 ADR-1, ADR-2)."""
 

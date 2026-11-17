@@ -1,4 +1,4 @@
-"""Tests for the mod media URL rules (Story 18.1, Epic 18 ADR-1 and ADR-2)."""
+"""Tests for the mod media URL rules (Story 18.1, Epic 18 ADR-1 and ADR-2; Story 19.6)."""
 
 import re
 from io import StringIO
@@ -8,9 +8,12 @@ import pytest
 
 from vintagestory_api.models.mods import ModScreenshot
 from vintagestory_api.services.mod_media import (
+    MAX_LINK_LENGTH,
     MOD_MEDIA_HOSTS,
     YOUTUBE_HOSTS,
     build_screenshots,
+    checked_url,
+    external_link_url,
     mod_image_url,
     trailer_link_url,
 )
@@ -76,6 +79,100 @@ class TestModImageUrl:
     )
     def test_rejected(self, url: str | None) -> None:
         assert mod_image_url(url) is None
+
+
+def _plain(captured_logs: StringIO) -> str:
+    """The captured log text without the console renderer's colors."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", captured_logs.getvalue())
+
+
+def _url_of_length(length: int) -> str:
+    prefix = "https://example.com/"
+    return prefix + "a" * (length - len(prefix))
+
+
+class TestExternalLinkUrl:
+    """`external_link_url` keeps only well-formed https URLs with a host (Story 19.6)."""
+
+    def test_max_link_length(self) -> None:
+        assert MAX_LINK_LENGTH == 2048
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://github.com/a/b",
+            "https://example.com:8443/x?y#z",
+            "https://[::1]/",
+            "https://x.com%40y.com/",
+            _url_of_length(MAX_LINK_LENGTH),
+        ],
+    )
+    def test_kept_unchanged(self, url: str) -> None:
+        assert external_link_url(url) == url
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            None,
+            "",
+            "http://example.com",
+            "HTTPS://example.com",
+            "//example.com",
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "https://",
+            "https:///path",
+            "https://:443/",
+            "https://u:p@example.com",
+            "https://@example.com",
+            "https://example.com:abc",
+            "https://example.com:99999",
+            "https://example.com:0",
+            "https://[::1",
+            "https://example.com/a b",
+            " https://example.com",
+            "https://example.com/\t",
+            "https://example.com/\n",
+            "https://example.com\u00a0/",
+            "https:\\\\example.com",
+            "https://example.com/\\a",
+            _url_of_length(MAX_LINK_LENGTH + 1),
+        ],
+    )
+    def test_rejected(self, url: str | None) -> None:
+        assert external_link_url(url) is None
+
+
+class TestCheckedUrl:
+    """`checked_url` applies a rule and logs a dropped URL without its text (Story 19.6)."""
+
+    def test_returns_the_rules_value(self) -> None:
+        url = "https://moddbcdn.vintagestory.at/a.png"
+        assert checked_url(url, mod_image_url, slug="m", field="logo_url") == url
+        assert checked_url("https://evil.example/a", mod_image_url, slug="m", field="f") is None
+
+    def test_dropped_url_is_logged_at_debug_without_the_url(
+        self, captured_logs: StringIO
+    ) -> None:
+        checked_url(
+            "javascript:alert('evil')", external_link_url, slug="somemod", field="homepage_url"
+        )
+        output = _plain(captured_logs)
+        assert "mod_url_dropped" in output
+        assert "debug" in output
+        assert "slug=somemod" in output
+        assert "field=homepage_url" in output
+        assert "evil" not in output
+        assert "javascript" not in output
+
+    @pytest.mark.parametrize("url", [None, ""])
+    def test_empty_or_missing_is_not_logged(self, captured_logs: StringIO, url: str | None) -> None:
+        assert checked_url(url, external_link_url, slug="somemod", field="source_url") is None
+        assert "mod_url_dropped" not in _plain(captured_logs)
+
+    def test_kept_url_is_not_logged(self, captured_logs: StringIO) -> None:
+        checked_url("https://github.com/a/b", external_link_url, slug="m", field="source_url")
+        assert "mod_url_dropped" not in _plain(captured_logs)
 
 
 class TestTrailerWatchUrl:

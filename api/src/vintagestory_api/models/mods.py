@@ -266,7 +266,8 @@ class ModLookupResponse(BaseModel):
     """Compatibility status with current game version."""
 
     logo_url: str | None = None
-    """URL to the mod's logo image from the mod database CDN."""
+    """URL of the mod's logo on the mod database CDN (`https`, `MOD_MEDIA_HOSTS`), or null
+    when the entry has none or its URL is not allowed (Epic 19 ADR-12)."""
 
     releases: list[ModRelease] = []
     """All available releases, newest first."""
@@ -275,10 +276,12 @@ class ModLookupResponse(BaseModel):
     """Category tags for the mod."""
 
     homepage_url: str | None = None
-    """External homepage URL if available."""
+    """The author's homepage URL when it is a well-formed `https` URL of at most 2,048
+    characters, otherwise null (an empty value is null; Epic 19 ADR-12)."""
 
     source_url: str | None = None
-    """Source code repository URL if available."""
+    """The author's source code URL when it is a well-formed `https` URL of at most 2,048
+    characters, otherwise null (an empty value is null; Epic 19 ADR-12)."""
 
     created: str | None = None
     """ISO timestamp when the mod was first created."""
@@ -390,7 +393,8 @@ class ModBrowseItem(BaseModel):
     """Type of the mod: 'mod', 'externaltool', or 'other'."""
 
     logo_url: str | None = None
-    """URL to the mod's logo image, or None if no logo."""
+    """URL of the mod's logo on the mod database CDN (`https`, `MOD_MEDIA_HOSTS`), or null
+    when the entry has none or its URL is not allowed (Epic 19 ADR-12)."""
 
     tags: list[str] = []
     """List of category tags for the mod."""

@@ -141,6 +141,7 @@ export function ModCard({ mod, onClick, installedMods, gameVersion }: ModCardPro
         {mod.logoUrl ? (
           <img
             src={mod.logoUrl}
+            referrerPolicy="no-referrer"
             alt={`${mod.name} thumbnail`}
             className="h-full w-full object-cover"
             data-testid={`mod-card-logo-${mod.slug}`}

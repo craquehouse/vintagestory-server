@@ -619,6 +619,7 @@ export function ModDetailPage() {
             {mod.logoUrl ? (
               <img
                 src={mod.logoUrl}
+                referrerPolicy="no-referrer"
                 alt={`${mod.name} logo`}
                 className="h-full w-full object-cover"
               />
