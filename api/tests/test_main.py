@@ -831,11 +831,15 @@ class TestLifespanLogLevel:
         with TestClient(app):
             return capsys.readouterr().out
 
-    def test_info_writes_api_starting_in_json_with_the_level_set(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    @pytest.mark.parametrize(("log_level", "expected"), [("info", "INFO"), ("debug", "DEBUG")])
+    def test_api_starting_is_json_with_the_level_set(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str], log_level: str, expected: str
     ) -> None:
         settings = Settings(
-            api_key_admin=self.ADMIN_KEY, data_dir=tmp_path / "data", debug=False, log_level="info"
+            api_key_admin=self.ADMIN_KEY,
+            data_dir=tmp_path / "data",
+            debug=False,
+            log_level=log_level,
         )
 
         out = self.start(settings, tmp_path, capsys)
@@ -844,7 +848,7 @@ class TestLifespanLogLevel:
             json.loads(line) for line in out.splitlines() if '"event": "api_starting"' in line
         ]
         assert len(starting) == 1
-        assert starting[0]["log_level"] == "INFO"
+        assert starting[0]["log_level"] == expected
         assert starting[0]["debug_mode"] is False
 
     def test_warning_filters_out_api_starting(
@@ -885,7 +889,10 @@ class TestLifespanLogLevel:
         monkeypatch.setenv("VS_DEBUG", "on")
         settings = Settings(api_key_admin=self.ADMIN_KEY, data_dir=tmp_path / "data")
 
-        self.start(settings, tmp_path, capsys)
+        out = self.start(settings, tmp_path, capsys)
 
+        lines = [line for line in out.splitlines() if "api_starting" in line]
+        assert len(lines) == 1
+        assert "log_level=DEBUG" in re.sub(r"\x1b\[[0-9;]*m", "", lines[0])
         assert is_debug_enabled() is True
         assert current_log_level() == "DEBUG"
