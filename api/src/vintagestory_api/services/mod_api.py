@@ -12,7 +12,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypeGuard, cast
+from typing import TYPE_CHECKING, Literal, TypeGuard
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -358,6 +358,48 @@ class ModApiClient:
             )
         return self._client
 
+    async def _get_json_object(
+        self, url: str, *, params: dict[str, int] | None = None, require_200: bool = False
+    ) -> dict[str, object]:
+        """GET `url` and return its body as a JSON object (Epic 19 ADR-13 decision 1).
+
+        Raises ExternalApiError for a timeout, a connection or other HTTP client error, an
+        HTTP status other than 200 when `require_200`, a body that is not JSON, and a body
+        that is JSON but not an object. Status rules beyond that are the caller's.
+        """
+        client = await self._get_client()
+        endpoint = url.removeprefix(self.BASE_URL)
+        try:
+            response = await client.get(url, params=params)
+        except httpx.TimeoutException as e:
+            logger.error("mod_api_timeout", endpoint=endpoint)
+            raise ExternalApiError("VintageStory mod API request timed out") from e
+        except httpx.ConnectError as e:
+            logger.error("mod_api_connection_error", endpoint=endpoint)
+            raise ExternalApiError("Could not connect to VintageStory mod API") from e
+        except httpx.HTTPError as e:
+            logger.error("mod_api_error", endpoint=endpoint, error=str(e))
+            raise ExternalApiError(f"VintageStory mod API error: {e}") from e
+        # Checked before the parse, so a non-JSON error page reads as its HTTP status
+        if require_200 and response.status_code != 200:
+            logger.warning(
+                "mod_api_http_error", endpoint=endpoint, status_code=response.status_code
+            )
+            raise ExternalApiError(f"VintageStory mod API returned HTTP {response.status_code}")
+        try:
+            body: object = response.json()
+        except ValueError as e:
+            logger.error(
+                "mod_api_invalid_body", endpoint=endpoint, http_status=response.status_code
+            )
+            raise ExternalApiError("VintageStory mod API returned invalid JSON") from e
+        if not _is_json_object(body):
+            logger.error(
+                "mod_api_invalid_body", endpoint=endpoint, http_status=response.status_code
+            )
+            raise ExternalApiError("VintageStory mod API returned an unexpected response")
+        return body
+
     async def close(self) -> None:
         """Cancel any filtered listing fetch still running, then close the HTTP client."""
         fetches = list(self._version_fetches.values())
@@ -390,64 +432,32 @@ class ModApiClient:
             logger.warning("invalid_slug", slug=slug)
             return None
 
-        client = await self._get_client()
-        try:
-            response = await client.get(f"{self.BASE_URL}/mod/{slug}")
-            try:
-                payload: object = response.json()
-            except ValueError as e:
-                logger.error("mod_api_invalid_body", slug=slug, http_status=response.status_code)
-                raise ExternalApiError(
-                    f"VintageStory mod API returned an unreadable response "
-                    f"(HTTP {response.status_code})"
-                ) from e
-            if not isinstance(payload, dict):
-                logger.error("mod_api_invalid_body", slug=slug, http_status=response.status_code)
+        data = await self._get_json_object(f"{self.BASE_URL}/mod/{slug}")
+
+        # CRITICAL: statuscode is STRING, not int!
+        if data.get("statuscode") == "200":
+            # Story 17.1 (Epic 17 ADR-1): every entry is normalized where it enters
+            mod = normalize_mod(data.get("mod"))
+            if mod is None:
+                logger.error("mod_api_invalid_body", endpoint=f"/mod/{slug}")
                 raise ExternalApiError("VintageStory mod API returned an unexpected response")
-            data = cast(ModDict, payload)
+            logger.debug("mod_lookup_success", slug=slug)
+            return mod
 
-            # CRITICAL: statuscode is STRING, not int!
-            if data.get("statuscode") == "200":
-                # Story 17.1 (Epic 17 ADR-1): every entry is normalized where it enters
-                mod = normalize_mod(data.get("mod"))
-                if mod is None:
-                    logger.error(
-                        "mod_api_invalid_body", slug=slug, http_status=response.status_code
-                    )
-                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
-                logger.debug("mod_lookup_success", slug=slug)
-                return mod
+        if data.get("statuscode") == "404":
+            logger.debug("mod_not_found", slug=slug)
+            return None
 
-            if data.get("statuscode") == "404":
-                logger.debug("mod_not_found", slug=slug)
-                return None
-
-            # Unexpected status: raise, as the other fetchers do. Returning None would
-            # read as "not found" to callers (VSS-d15).
-            logger.warning(
-                "unexpected_api_status",
-                slug=slug,
-                statuscode=data.get("statuscode"),
-            )
-            raise ExternalApiError(
-                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
-            )
-
-        except httpx.TimeoutException as e:
-            logger.error("mod_api_timeout", slug=slug)
-            raise ExternalApiError("VintageStory mod API request timed out") from e
-
-        except httpx.ConnectError as e:
-            logger.error("mod_api_connection_error", slug=slug)
-            raise ExternalApiError(
-                "Could not connect to VintageStory mod API"
-            ) from e
-
-        except httpx.HTTPError as e:
-            logger.error("mod_api_error", slug=slug, error=str(e))
-            raise ExternalApiError(
-                f"VintageStory mod API error: {e}"
-            ) from e
+        # Unexpected status: raise, as the other fetchers do. Returning None would
+        # read as "not found" to callers (VSS-d15).
+        logger.warning(
+            "unexpected_api_status",
+            slug=slug,
+            statuscode=data.get("statuscode"),
+        )
+        raise ExternalApiError(
+            f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+        )
 
     async def download_mod(
         self,
@@ -698,48 +708,33 @@ class ModApiClient:
             logger.debug("browse_cache_hit", count=len(self._browse_cache or []))
             return self._browse_cache or []
 
-        client = await self._get_client()
-        try:
-            response = await client.get(f"{self.BASE_URL}/mods")
-            data = response.json()
+        return await self._fetch_all_mods()
 
-            # CRITICAL: statuscode is STRING, not int!
-            if data.get("statuscode") == "200":
-                # Story 17.1 (Epic 17 ADR-1): normalized before it is cached. A missing
-                # or non-list `mods` is an error, not an empty (and cached) list.
-                mods = normalize_mod_list(data.get("mods"))
-                if mods is None:
-                    logger.error("mod_api_invalid_body_browse")
-                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
-                self._browse_cache = mods
-                self._browse_cache_time = datetime.now()
-                logger.debug("browse_cache_refreshed", count=len(mods))
-                return mods
+    async def _fetch_all_mods(self) -> list[ModDict]:
+        """Fetch the full listing and cache it; a failure leaves the cache as it was."""
+        data = await self._get_json_object(f"{self.BASE_URL}/mods")
 
-            # Unexpected status - log and raise
-            logger.warning(
-                "unexpected_api_status_browse",
-                statuscode=data.get("statuscode"),
-            )
-            raise ExternalApiError(
-                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
-            )
+        # CRITICAL: statuscode is STRING, not int!
+        if data.get("statuscode") == "200":
+            # Story 17.1 (Epic 17 ADR-1): normalized before it is cached. A missing
+            # or non-list `mods` is an error, not an empty (and cached) list.
+            mods = normalize_mod_list(data.get("mods"))
+            if mods is None:
+                logger.error("mod_api_invalid_body_browse")
+                raise ExternalApiError("VintageStory mod API returned an unexpected response")
+            self._browse_cache = mods
+            self._browse_cache_time = datetime.now()
+            logger.debug("browse_cache_refreshed", count=len(mods))
+            return mods
 
-        except httpx.TimeoutException as e:
-            logger.error("mod_api_timeout_browse")
-            raise ExternalApiError("VintageStory mod API request timed out") from e
-
-        except httpx.ConnectError as e:
-            logger.error("mod_api_connection_error_browse")
-            raise ExternalApiError(
-                "Could not connect to VintageStory mod API"
-            ) from e
-
-        except httpx.HTTPError as e:
-            logger.error("mod_api_error_browse", error=str(e))
-            raise ExternalApiError(
-                f"VintageStory mod API error: {e}"
-            ) from e
+        # Unexpected status - log and raise
+        logger.warning(
+            "unexpected_api_status_browse",
+            statuscode=data.get("statuscode"),
+        )
+        raise ExternalApiError(
+            f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+        )
 
     def clear_browse_cache(self) -> None:
         """Clear the browse mod list cache and the filtered listings.
@@ -876,81 +871,33 @@ class ModApiClient:
         Raises:
             ExternalApiError: If the mod API is unavailable.
         """
-        client = await self._get_client()
-        try:
-            response = await client.get(
-                f"{self.BASE_URL}/mods",
-                params={"gameversion": version_tagid},
-            )
+        data = await self._get_json_object(
+            f"{self.BASE_URL}/mods", params={"gameversion": version_tagid}, require_200=True
+        )
 
-            # Check HTTP status before parsing JSON
-            if response.status_code != 200:
-                logger.warning(
-                    "mod_api_http_error_mods_by_version",
-                    status_code=response.status_code,
-                    version_tagid=version_tagid,
-                )
-                raise ExternalApiError(
-                    f"VintageStory mod API returned HTTP {response.status_code}"
-                )
-
-            try:
-                data = response.json()
-            except ValueError as e:
-                logger.error(
-                    "mod_api_json_error_mods_by_version", version_tagid=version_tagid
-                )
-                raise ExternalApiError(
-                    "VintageStory mod API returned invalid JSON"
-                ) from e
-
-            # CRITICAL: statuscode is STRING, not int!
-            if data.get("statuscode") == "200":
-                # Story 17.1 (Epic 17 ADR-1): normalized where it enters
-                mods = normalize_mod_list(data.get("mods"))
-                if mods is None:
-                    logger.error(
-                        "mod_api_invalid_body_mods_by_version", version_tagid=version_tagid
-                    )
-                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
-                logger.debug(
-                    "mods_by_version_fetched",
-                    version_tagid=version_tagid,
-                    count=len(mods),
-                )
-                return mods
-
-            # Unexpected status - log and raise
-            logger.warning(
-                "unexpected_api_status_mods_by_version",
-                statuscode=data.get("statuscode"),
+        # CRITICAL: statuscode is STRING, not int!
+        if data.get("statuscode") == "200":
+            # Story 17.1 (Epic 17 ADR-1): normalized where it enters
+            mods = normalize_mod_list(data.get("mods"))
+            if mods is None:
+                logger.error("mod_api_invalid_body_mods_by_version", version_tagid=version_tagid)
+                raise ExternalApiError("VintageStory mod API returned an unexpected response")
+            logger.debug(
+                "mods_by_version_fetched",
                 version_tagid=version_tagid,
+                count=len(mods),
             )
-            raise ExternalApiError(
-                f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
-            )
+            return mods
 
-        except httpx.TimeoutException as e:
-            logger.error("mod_api_timeout_mods_by_version", version_tagid=version_tagid)
-            raise ExternalApiError("VintageStory mod API request timed out") from e
-
-        except httpx.ConnectError as e:
-            logger.error(
-                "mod_api_connection_error_mods_by_version", version_tagid=version_tagid
-            )
-            raise ExternalApiError(
-                "Could not connect to VintageStory mod API"
-            ) from e
-
-        except httpx.HTTPError as e:
-            logger.error(
-                "mod_api_error_mods_by_version",
-                version_tagid=version_tagid,
-                error=str(e),
-            )
-            raise ExternalApiError(
-                f"VintageStory mod API error: {e}"
-            ) from e
+        # Unexpected status - log and raise
+        logger.warning(
+            "unexpected_api_status_mods_by_version",
+            statuscode=data.get("statuscode"),
+            version_tagid=version_tagid,
+        )
+        raise ExternalApiError(
+            f"VintageStory mod API returned unexpected status: {data.get('statuscode')}"
+        )
 
     def _is_gameversions_cache_valid(self) -> bool:
         """Check if the game versions cache is still valid.
@@ -986,82 +933,42 @@ class ModApiClient:
             )
             return self._gameversions_cache or {}
 
-        client = await self._get_client()
-        try:
-            response = await client.get(f"{self.BASE_URL}/gameversions")
+        return await self._fetch_game_versions()
 
-            # Check HTTP status before parsing JSON
-            if response.status_code != 200:
-                logger.warning(
-                    "mod_api_http_error_gameversions",
-                    status_code=response.status_code,
-                )
-                raise ExternalApiError(
-                    f"VintageStory mod API returned HTTP {response.status_code}"
-                )
+    async def _fetch_game_versions(self) -> dict[str, int]:
+        """Fetch the game version list and cache it; a failure leaves the cache as it was."""
+        body = await self._get_json_object(f"{self.BASE_URL}/gameversions", require_200=True)
 
-            try:
-                data = response.json()
-            except ValueError as e:
-                logger.error("mod_api_json_error_gameversions")
-                raise ExternalApiError(
-                    "VintageStory mod API returned invalid JSON"
-                ) from e
-
-            # CRITICAL: statuscode is STRING, not int!
-            # Story 18.3: browse reads this list on every request, so a malformed body
-            # is an ExternalApiError and a malformed entry is skipped, never a 500
-            body: object = data
-            if not _is_json_object(body):
+        # CRITICAL: statuscode is STRING, not int!
+        # Story 18.3: browse reads this list on every request, so a malformed body
+        # is an ExternalApiError and a malformed entry is skipped, never a 500
+        if body.get("statuscode") == "200":
+            versions = body.get("gameversions", [])
+            if not _is_json_array(versions):
                 logger.error("mod_api_invalid_body_gameversions")
                 raise ExternalApiError("VintageStory mod API returned an unexpected response")
-            if body.get("statuscode") == "200":
-                versions = body.get("gameversions", [])
-                if not _is_json_array(versions):
-                    logger.error("mod_api_invalid_body_gameversions")
-                    raise ExternalApiError("VintageStory mod API returned an unexpected response")
-                # Build mapping from version name to tagid; skip malformed entries
-                version_map: dict[str, int] = {}
-                for entry in versions:
-                    if not _is_json_object(entry):
-                        continue
-                    name = entry.get("name")
-                    tagid = entry.get("tagid")
-                    if (
-                        isinstance(name, str)
-                        and isinstance(tagid, int)
-                        and not isinstance(tagid, bool)
-                    ):
-                        version_map[name] = tagid
-                self._gameversions_cache = version_map
-                self._gameversions_cache_time = datetime.now()
-                logger.debug("gameversions_cache_refreshed", count=len(version_map))
-                return version_map
+            # Build mapping from version name to tagid; skip malformed entries
+            version_map: dict[str, int] = {}
+            for entry in versions:
+                if not _is_json_object(entry):
+                    continue
+                name = entry.get("name")
+                tagid = entry.get("tagid")
+                if isinstance(name, str) and isinstance(tagid, int) and not isinstance(tagid, bool):
+                    version_map[name] = tagid
+            self._gameversions_cache = version_map
+            self._gameversions_cache_time = datetime.now()
+            logger.debug("gameversions_cache_refreshed", count=len(version_map))
+            return version_map
 
-            # Unexpected status - log and raise
-            logger.warning(
-                "unexpected_api_status_gameversions",
-                statuscode=body.get("statuscode"),
-            )
-            raise ExternalApiError(
-                f"VintageStory mod API returned unexpected status: {body.get('statuscode')}"
-            )
-
-        except httpx.TimeoutException as e:
-            logger.error("mod_api_timeout_gameversions")
-            raise ExternalApiError("VintageStory mod API request timed out") from e
-
-        except httpx.ConnectError as e:
-            logger.error("mod_api_connection_error_gameversions")
-            raise ExternalApiError(
-                "Could not connect to VintageStory mod API"
-            ) from e
-
-        except httpx.HTTPError as e:
-            logger.error("mod_api_error_gameversions", error=str(e))
-            raise ExternalApiError(
-                f"VintageStory mod API error: {e}"
-            ) from e
+        # Unexpected status - log and raise
+        logger.warning(
+            "unexpected_api_status_gameversions",
+            statuscode=body.get("statuscode"),
+        )
+        raise ExternalApiError(
+            f"VintageStory mod API returned unexpected status: {body.get('statuscode')}"
+        )
 
     def clear_gameversions_cache(self) -> None:
         """Clear the game versions cache.

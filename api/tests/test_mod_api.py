@@ -2702,3 +2702,110 @@ class TestModApiClientVersionListingCache:
         await mod_api_client.close()
 
         assert await mod_api_client.get_version_mod_ids("1.22.7") is None
+
+
+# --- Malformed mod database bodies are an ExternalApiError (Story 19.6, Epic 19 ADR-13) ---
+
+MALFORMED_BODIES = [
+    b"<html>Not JSON</html>",
+    b"",
+    b"[]",
+    b'"text"',
+    b"null",
+    b"5",
+]
+MOD_URL = "https://mods.vintagestory.at/api/mod/smithingplus"
+
+
+def _malformed(body: bytes) -> Response:
+    return Response(200, content=body)
+
+
+class TestMalformedBodies:
+    """Every fetcher raises ExternalApiError for a body that is not a JSON object, and a
+    failed refresh leaves the cached copy and its time as they were (FR226)."""
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_mod(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MOD_URL).mock(
+            side_effect=[
+                _malformed(body),
+                Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD}),
+            ]
+        )
+
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mod("smithingplus")
+        mod = await mod_api_client.get_mod("smithingplus")
+        assert mod is not None
+        assert mod["name"] == "Smithing Plus"
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_all_mods(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MODS_URL).mock(
+            side_effect=[
+                Response(200, json=_listing(1)),
+                _malformed(body),
+                Response(200, json=_listing(2)),
+            ]
+        )
+
+        await mod_api_client.get_all_mods()
+        cached = mod_api_client._browse_cache
+        cached_at = mod_api_client._browse_cache_time
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_all_mods(force_refresh=True)
+        assert mod_api_client._browse_cache is cached
+        assert mod_api_client._browse_cache_time == cached_at
+
+        mods = await mod_api_client.get_all_mods(force_refresh=True)
+        assert [m["modid"] for m in mods] == [2]
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_mods_by_version(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
+            side_effect=[
+                Response(200, json=_listing(1)),
+                _malformed(body),
+                Response(200, json=_listing(2)),
+            ]
+        )
+
+        await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        cached = mod_api_client._version_listings[TAG_1_22_7]
+        mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        assert mod_api_client._version_listings[TAG_1_22_7] is cached
+        assert mod_api_client._version_listings[TAG_1_22_7].fetched_at == cached.fetched_at
+
+        mods = await mod_api_client.get_mods_by_version(TAG_1_22_7)
+        assert [m["modid"] for m in mods] == [2]
+
+    @respx.mock
+    @pytest.mark.parametrize("body", MALFORMED_BODIES)
+    async def test_get_game_versions(self, mod_api_client: ModApiClient, body: bytes) -> None:
+        newer = {
+            "statuscode": "200",
+            "gameversions": [{"tagid": -9, "name": "1.23.0", "color": "#CCCCCC"}],
+        }
+        respx.get(GAMEVERSIONS_URL).mock(
+            side_effect=[
+                Response(200, json=VERSION_LIST_RESPONSE),
+                _malformed(body),
+                Response(200, json=newer),
+            ]
+        )
+
+        await mod_api_client.get_game_versions()
+        cached = mod_api_client._gameversions_cache
+        cached_at = mod_api_client._gameversions_cache_time
+        with pytest.raises(ExternalApiError):
+            await mod_api_client.get_game_versions(force_refresh=True)
+        assert mod_api_client._gameversions_cache is cached
+        assert mod_api_client._gameversions_cache_time == cached_at
+
+        assert await mod_api_client.get_game_versions(force_refresh=True) == {"1.23.0": -9}

@@ -1074,6 +1074,28 @@ class TestLookupModEndpoint:
         assert data["source_url"] == "https://github.com/a/b"
 
 
+    @respx.mock
+    def test_lookup_malformed_body_is_502_then_recovers(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A lookup answered with JSON null is 502; a good answer then works (Story 19.6)."""
+        respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
+            side_effect=[
+                Response(200, content=b"null"),
+                Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD}),
+            ]
+        )
+
+        response = client.get("/api/v1alpha1/mods/lookup/smithingplus", headers=admin_headers)
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+        response = client.get("/api/v1alpha1/mods/lookup/smithingplus", headers=admin_headers)
+        assert response.status_code == 200
+
+
 def create_mod_zip_file(path: Path, modinfo: dict[str, object]) -> None:
     """Create a mod zip file at the given path."""
     with zipfile.ZipFile(path, "w") as zf:
@@ -1981,6 +2003,11 @@ class TestListModsEndpoint:
 
 # --- Sample data for browse endpoint tests ---
 
+BROWSE_VERSION_LIST: dict[str, Any] = {
+    "statuscode": "200",
+    "gameversions": [{"tagid": -281565171286015, "name": "1.21.3", "color": "#CCCCCC"}],
+}
+
 BROWSE_MODS_API_RESPONSE: dict[str, Any] = {
     "statuscode": "200",
     "mods": [
@@ -2688,6 +2715,85 @@ class TestBrowseModsEndpoint:
         }
 
 
+    @respx.mock
+    def test_browse_malformed_listing_is_502_then_recovers(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A listing that is not a JSON object is 502, never 500; a good one then works
+        (Story 19.6, FR226)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=[
+                Response(200, content=b"[]"),
+                Response(200, content=b"<html>Not JSON</html>"),
+                Response(200, json=BROWSE_MODS_API_RESPONSE),
+            ]
+        )
+
+        for _ in range(2):
+            response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+            assert response.status_code == 502
+            assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+        response = client.get("/api/v1alpha1/mods/browse", headers=admin_headers)
+        assert response.status_code == 200
+        assert len(response.json()["data"]["mods"]) == 3
+
+    @respx.mock
+    def test_browse_version_malformed_version_list_is_502(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A game version list that is a JSON string is 502 (Story 19.6, FR226)."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            side_effect=[
+                Response(200, content=b'"text"'),
+                Response(200, json=BROWSE_VERSION_LIST),
+            ]
+        )
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": "-281565171286015"},
+        ).mock(return_value=Response(200, json=BROWSE_MODS_API_RESPONSE))
+
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
+        assert response.status_code == 200
+
+    @respx.mock
+    def test_browse_version_malformed_filtered_listing_is_502(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A filtered listing that is JSON null is 502, never 500 (Story 19.6, FR226)."""
+        respx.get("https://mods.vintagestory.at/api/gameversions").mock(
+            return_value=Response(200, json=BROWSE_VERSION_LIST)
+        )
+        respx.get(
+            "https://mods.vintagestory.at/api/mods",
+            params={"gameversion": "-281565171286015"},
+        ).mock(
+            side_effect=[
+                Response(200, content=b"null"),
+                Response(200, json=BROWSE_MODS_API_RESPONSE),
+            ]
+        )
+
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
+        assert response.status_code == 200
+        assert len(response.json()["data"]["mods"]) == 3
+
+
 class TestGameVersionsEndpoint:
     """Tests for GET /api/v1alpha1/mods/gameversions endpoint.
 
@@ -3043,6 +3149,28 @@ class TestModTagsEndpoint:
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+
+    @respx.mock
+    def test_list_mod_tags_malformed_listing_is_502(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+    ) -> None:
+        """A listing that is a JSON array is 502, never 500 (Story 19.6, FR226)."""
+        respx.get("https://mods.vintagestory.at/api/mods").mock(
+            side_effect=[
+                Response(200, content=b"[]"),
+                Response(200, json=BROWSE_MODS_API_RESPONSE),
+            ]
+        )
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=admin_headers)
+        assert response.status_code == 502
+        assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
+
+        response = client.get("/api/v1alpha1/mods/tags", headers=admin_headers)
+        assert response.status_code == 200
 
 
 class TestBrowseItemSlugUrlalias:
