@@ -18,6 +18,7 @@ from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 from vintagestory_api.models.mod_updates import StoredModRecord
 from vintagestory_api.models.mods import ModState
+from vintagestory_api.services import mod_state as mod_state_module
 from vintagestory_api.services import mods as mods_module
 from vintagestory_api.services.mod_file_recovery import KEPT_ASIDE_SUFFIX, WORKING_COPY_SUFFIX
 from vintagestory_api.services.mod_state import ModStateManager, ModSyncSummary
@@ -143,6 +144,82 @@ class TestPrepareModFilesSync:
         assert logs.index("mod_backup_restored") < logs.index("mod_state_synced")
         assert "mod_state_sync_removed" not in logs
         assert "mod_state_sync_added" not in logs
+
+    @staticmethod
+    def kept_aside_entry(service: ModService) -> ModState:
+        """State `Foo.zip` (saved), its original kept aside as `Foo.zip.vsm-bak`, no file."""
+        entry = ModState(
+            filename="Foo.zip",
+            slug="foo",
+            version="1.0.0",
+            enabled=True,
+            installed_at=datetime(2025, 1, 1, tzinfo=UTC),
+            asset_id=7,
+        )
+        service.state_manager.set_mod_state("Foo.zip", entry)
+        service.state_manager.save()
+        write_mod_zip(
+            service.state_manager.mods_dir / f"Foo.zip{KEPT_ASIDE_SUFFIX}", "foo", "1.0.0"
+        )
+        return entry
+
+    def test_a_failed_restore_keeps_the_entry_until_the_next_start_restores_it(
+        self, service: ModService, monkeypatch: pytest.MonkeyPatch, captured_logs: StringIO
+    ) -> None:
+        """Review MEDIUM-1: `mod_recovery_failed` must not cost the mod its entry."""
+        entry = self.kept_aside_entry(service)
+        rename = Path.rename
+
+        def refuse_restore(self: Path, target: Path) -> Path:
+            if self.name.endswith(KEPT_ASIDE_SUFFIX):
+                raise OSError(5, "Input/output error")
+            return rename(self, target)
+
+        monkeypatch.setattr(Path, "rename", refuse_restore)
+
+        prepare_mod_files()
+
+        logs = captured_logs.getvalue()
+        assert "mod_recovery_failed" in logs
+        assert service.state_manager.list_mods() == [entry]
+        [line] = [line for line in logs.splitlines() if "mod_state_sync_kept_aside" in line]
+        assert f"Foo.zip{KEPT_ASIDE_SUFFIX}" in line
+        assert "mod_state_sync_removed" not in logs
+
+        monkeypatch.setattr(Path, "rename", rename)
+        service.state_manager.load()
+        prepare_mod_files()
+
+        mods_dir = service.state_manager.mods_dir
+        assert sorted(p.name for p in mods_dir.iterdir()) == ["Foo.zip"]
+        assert service.state_manager.list_mods() == [entry]
+
+    def test_a_backup_kept_for_another_mods_file_keeps_the_entry_until_it_is_restored(
+        self, service: ModService, captured_logs: StringIO
+    ) -> None:
+        """Review MEDIUM-1: `mod_backup_kept` must not cost the mod its entry."""
+        entry = self.kept_aside_entry(service)
+        mods_dir = service.state_manager.mods_dir
+        in_the_way = mods_dir / "foo.zip"
+        write_mod_zip(in_the_way, "bar", "3.0.0")
+
+        prepare_mod_files()
+
+        logs = captured_logs.getvalue()
+        assert "mod_backup_kept" in logs
+        assert service.state_manager.get_mod("Foo.zip") == entry
+        [line] = [line for line in logs.splitlines() if "mod_state_sync_kept_aside" in line]
+        assert f"Foo.zip{KEPT_ASIDE_SUFFIX}" in line
+
+        in_the_way.unlink()
+        service.state_manager.load()
+        prepare_mod_files()
+
+        assert sorted(p.name for p in mods_dir.iterdir()) == ["Foo.zip"]
+        assert service.state_manager.list_mods() == [entry]
+
+    def test_the_sync_knows_the_recoverys_kept_aside_suffix(self) -> None:
+        assert mod_state_module.KEPT_ASIDE_SUFFIX == KEPT_ASIDE_SUFFIX
 
 
 class TestStartUpOnly:

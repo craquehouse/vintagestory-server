@@ -21,6 +21,11 @@ logger = structlog.get_logger()
 FALLBACK_VERSION = "unknown"
 """Version recorded when a mod's modinfo.json cannot be read (filename fallback)."""
 
+KEPT_ASIDE_SUFFIX = ".vsm-bak"
+"""Suffix of a mod's original kept aside during a version change; the same value as
+`mod_file_recovery.KEPT_ASIDE_SUFFIX` (that module imports this one, so it is not
+imported from there)."""
+
 _JSON_OBJECT: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
 """A modinfo.json must be a JSON object; its keys are always strings."""
 
@@ -515,7 +520,9 @@ class ModStateManager:
 
         - Removed: an entry whose own file name is not in one listing of the mods
           directory. Nothing is removed when the directory does not exist or cannot be
-          listed. An entry whose name is listed stays, whatever the file is.
+          listed. An entry whose name is listed stays, whatever the file is, and so does
+          an entry whose original is still kept aside as `<name>.vsm-bak` (start-up
+          recovery could not put it back). Removing every entry is also a warning.
         - Added: a `.zip` or `.zip.disabled` file without an entry whose `modinfo.json`
           is readable and valid, enabled unless its name ends in `.disabled`, with
           `asset_id` 0. Removals come first, so a mod renamed or replaced by hand keeps
@@ -546,13 +553,28 @@ class ModStateManager:
 
         # Removals first: a hand rename or replacement is then one removal and one
         # addition, instead of the new file being skipped as a duplicate of its own mod
+        entries_before = len(self._state)
         removed = 0
         for filename in sorted(self._state):
             if filename in names:
                 continue
+            backup = self._kept_aside_original(filename, names)
+            if backup is not None:
+                logger.warning(
+                    "mod_state_sync_kept_aside",
+                    filename=filename,
+                    slug=self._state[filename].slug,
+                    backup=backup,
+                    reason="its original is kept aside; start-up recovery has not restored it",
+                )
+                continue
             entry = self._state.pop(filename)
             removed += 1
             logger.info("mod_state_sync_removed", filename=filename, slug=entry.slug)
+        if entries_before and removed == entries_before:
+            # ADR-10: an existing, empty directory means no mod is installed. Said loudly,
+            # because it is also what a volume that did not mount looks like
+            logger.warning("mod_state_sync_removed_all", removed=removed, path=str(mods_dir))
 
         # Mod IDs are compared lower-cased, as ModService._lock_key does
         by_mod_id: dict[str, str] = {}
@@ -614,6 +636,29 @@ class ModStateManager:
             except OSError as e:
                 logger.error("mod_state_sync_save_failed", error=str(e), path=str(self.state_file))
         return self._log_sync_summary(ModSyncSummary(added=added, removed=removed, skipped=skipped))
+
+    def _kept_aside_original(self, filename: str, names: set[str]) -> str | None:
+        """The name of this entry's original kept aside by a version change, if listed.
+
+        Matched as the start-up recovery matches a backup to its file: the name without
+        `.vsm-bak`, ignoring case. A backup whose modinfo.json names another mod does not
+        count; one whose mod cannot be read does (keeping an entry is the safe side).
+        """
+        key = filename.casefold()
+        slug = self._state[filename].slug.casefold()
+        for name in sorted(names):
+            if not name.endswith(KEPT_ASIDE_SUFFIX):
+                continue
+            if name.removesuffix(KEPT_ASIDE_SUFFIX).casefold() != key:
+                continue
+            try:
+                metadata = self.read_modinfo(self._mods_dir / name)
+            except Exception as e:
+                logger.warning("mod_state_sync_backup_unreadable", filename=name, error=str(e))
+                metadata = None
+            if metadata is None or metadata.modid.casefold() == slug:
+                return name
+        return None
 
     def _read_new_archive(self, path: Path) -> tuple[dict[str, object], ModMetadata] | None:
         """Read the modinfo.json of an archive the sync found, or log why it is skipped.

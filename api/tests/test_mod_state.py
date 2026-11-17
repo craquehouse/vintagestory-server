@@ -1350,7 +1350,6 @@ class TestSyncStateWithDisk:
         assert new_manager.get_mod("persistmod_1.0.0.zip") is not None
 
 
-
 def directory_snapshot(directory: Path) -> list[tuple[str, bytes | None]]:
     """Sorted names in a directory, with each regular file's bytes (None otherwise)."""
     return sorted(
@@ -1687,6 +1686,68 @@ class TestSyncAtStartUp:
         [mod] = state_manager.list_mods()
         assert (mod.filename, mod.slug, mod.version) == ("Up_1.1.zip", "up", "1.1.0")
 
+    @pytest.mark.parametrize(
+        ("entry_name", "backup_name"),
+        [
+            ("Foo.zip", "Foo.zip.vsm-bak"),
+            ("Foo.zip.disabled", "Foo.zip.disabled.vsm-bak"),
+            ("Foo.zip", "foo.zip.vsm-bak"),
+        ],
+        ids=["same-name", "disabled", "other-case"],
+    )
+    def test_an_entry_whose_original_is_kept_aside_stays(
+        self,
+        state_manager: ModStateManager,
+        temp_mods_dir: Path,
+        captured_logs: StringIO,
+        entry_name: str,
+        backup_name: str,
+    ) -> None:
+        """Review MEDIUM-1: names compared ignoring case, as the 19.4 recovery does."""
+        entry = mod_state_entry(entry_name, "foo")
+        state_manager.set_mod_state(entry_name, entry)
+        create_mod_zip(
+            temp_mods_dir / backup_name, {"modid": "Foo", "name": "Foo", "version": "1.0.0"}
+        )
+        listing = directory_snapshot(temp_mods_dir)
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary == ModSyncSummary(added=0, removed=0, skipped=0)
+        assert state_manager.list_mods() == [entry]
+        assert directory_snapshot(temp_mods_dir) == listing
+        [line] = log_lines(captured_logs, "mod_state_sync_kept_aside")
+        assert "warning" in line
+        assert f"filename={entry_name} " in f"{line} "
+        assert f"backup={backup_name} " in f"{line} "
+
+    def test_another_mods_kept_aside_original_does_not_keep_an_entry(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """One mod's backup never decides another mod's entry."""
+        state_manager.set_mod_state("Foo.zip", mod_state_entry("Foo.zip", "foo"))
+        create_mod_zip(
+            temp_mods_dir / "foo.zip.vsm-bak", {"modid": "bar", "name": "Bar", "version": "1.0.0"}
+        )
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary == ModSyncSummary(added=0, removed=1, skipped=0)
+        assert state_manager.list_mods() == []
+
+    def test_an_unreadable_kept_aside_original_keeps_the_entry(
+        self, state_manager: ModStateManager, temp_mods_dir: Path
+    ) -> None:
+        """Its mod is unknown, so the entry is kept: keeping is the safe side."""
+        entry = mod_state_entry("Foo.zip", "foo")
+        state_manager.set_mod_state("Foo.zip", entry)
+        (temp_mods_dir / "Foo.zip.vsm-bak").write_bytes(b"not a zip")
+
+        summary = state_manager.sync_state_with_disk()
+
+        assert summary == ModSyncSummary(added=0, removed=0, skipped=0)
+        assert state_manager.list_mods() == [entry]
+
     def test_a_failed_save_keeps_the_changes_in_memory(
         self,
         state_manager: ModStateManager,
@@ -1883,6 +1944,40 @@ class TestSyncLogging:
         assert "Permission denied" in line
         assert log_lines(captured_logs, "mod_state_sync_removed") == []
         self.assert_one_summary(captured_logs, added=0, removed=0, skipped=0)
+
+    def test_removing_every_entry_is_one_extra_warning(
+        self, state_manager: ModStateManager, temp_mods_dir: Path, captured_logs: StringIO
+    ) -> None:
+        """Review LOW-2: an empty directory still removes everything (ADR-10), visibly."""
+        for entry in (mod_state_entry("One.zip", "one"), mod_state_entry("Two.zip", "two")):
+            state_manager.set_mod_state(entry.filename, entry)
+
+        state_manager.sync_state_with_disk()
+
+        [line] = log_lines(captured_logs, "mod_state_sync_removed_all")
+        assert "warning" in line
+        assert "removed=2" in line
+        assert str(temp_mods_dir) in line
+        assert state_manager.list_mods() == []
+
+    @pytest.mark.parametrize("entries", [0, 1], ids=["no-entries", "one-of-two-kept"])
+    def test_no_removed_all_warning_otherwise(
+        self,
+        state_manager: ModStateManager,
+        temp_mods_dir: Path,
+        captured_logs: StringIO,
+        entries: int,
+    ) -> None:
+        if entries:
+            create_mod_zip(
+                temp_mods_dir / "One.zip", {"modid": "one", "name": "One", "version": "1.0.0"}
+            )
+            for entry in (mod_state_entry("One.zip", "one"), mod_state_entry("Two.zip", "two")):
+                state_manager.set_mod_state(entry.filename, entry)
+
+        state_manager.sync_state_with_disk()
+
+        assert log_lines(captured_logs, "mod_state_sync_removed_all") == []
 
     def test_a_failed_save_is_an_error(
         self,
