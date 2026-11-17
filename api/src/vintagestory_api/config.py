@@ -1,7 +1,6 @@
 """Application configuration using pydantic-settings."""
 
 import logging
-import os
 import re
 from pathlib import Path
 from typing import Literal
@@ -23,6 +22,10 @@ _MOD_DB_URL_PATH = (
     "VS_MOD_DB_URL must not contain a path, a query or a fragment; "
     "give the site's base address only."
 )
+# VS_LOG_LEVEL's values, in order (Epic 21 ADR-4); CRITICAL is not one of them
+LOG_LEVELS: tuple[str, ...] = ("DEBUG", "INFO", "WARNING", "ERROR")
+_LOG_LEVEL_INVALID = "VS_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR."
+
 _MOD_DB_URL_PLAIN_HTTP = (
     "VS_MOD_DB_URL uses plain HTTP, which is for testing and needs VS_DEBUG=true. "
     "Use an https address."
@@ -37,7 +40,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VS_", hide_input_in_errors=True)
 
     debug: bool = False
-    log_level: str | None = None  # Override log level (DEBUG, INFO, WARNING, ERROR)
+    # VS_LOG_LEVEL: the API's log level at start-up, one of LOG_LEVELS (Epic 21 ADR-4).
+    # Unset or blank: DEBUG with VS_DEBUG=true, INFO otherwise
+    log_level: str | None = None
     api_key_admin: str = ""
     api_key_monitor: str | None = None
     # VS_API_KEY: the key the web UI uses, served at runtime by /config.js (Epic 15 ADR-5).
@@ -131,6 +136,22 @@ class Settings(BaseSettings):
         if mode not in ("enforce", "report-only", "off"):
             raise ValueError("VS_CSP_MODE must be one of: enforce, report-only, off.")
         return mode
+
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, v: str | None) -> str | None:
+        """Normalize VS_LOG_LEVEL; blank means unset, anything but the four levels an error.
+
+        A plain str rather than a Literal, so the error names VS_LOG_LEVEL (Epic 21 ADR-4).
+        """
+        if v is None:
+            return None
+        level = v.strip().upper()
+        if not level:
+            return None
+        if level not in LOG_LEVELS:
+            raise ValueError(_LOG_LEVEL_INVALID)
+        return level
 
     @field_validator("mod_db_url")
     @classmethod
@@ -292,37 +313,37 @@ class Settings(BaseSettings):
                 raise
 
 
-# Internal debug state - this is the source of truth at runtime
-# Initialized from VS_DEBUG env var at startup, can be toggled via API
+# Internal debug state - this is the source of truth at runtime.
+# Set once at start-up from the settings (VS_DEBUG, VS_LOG_LEVEL), toggled via the API
 _debug_enabled: bool = False
 _debug_initialized: bool = False
+_configured_log_level: str | None = None  # VS_LOG_LEVEL, validated; None when unset
+_current_log_level: str = "INFO"  # the level structlog filters at now
 
 
-def _read_debug_from_env() -> bool:
-    """Read VS_DEBUG setting from environment variable.
+def initialize_debug_state(debug: bool, log_level: str | None) -> None:
+    """Apply the settings' debug flag and log level once, at start-up (Epic 21 ADR-4).
 
-    Returns:
-        True if VS_DEBUG is set to a truthy value (true, 1, yes),
-        False otherwise.
+    Args:
+        debug: Settings.debug (VS_DEBUG, parsed by the settings only).
+        log_level: Settings.log_level (VS_LOG_LEVEL, validated), or None when unset:
+            then DEBUG in debug mode and INFO otherwise.
+
+    Later calls do nothing; use set_debug_enabled() to toggle at runtime.
     """
-    value = os.environ.get("VS_DEBUG", "").lower()
-    return value in ("true", "1", "yes")
+    global _debug_enabled, _debug_initialized, _configured_log_level, _current_log_level
+    if _debug_initialized:
+        return
+    _debug_enabled = debug
+    _configured_log_level = log_level
+    _current_log_level = log_level or ("DEBUG" if debug else "INFO")
+    _debug_initialized = True
+    configure_logging(debug=debug, log_level=_current_log_level)
 
 
-def initialize_debug_state() -> None:
-    """Initialize debug state from VS_DEBUG environment variable.
-
-    Called once at application startup. Reads VS_DEBUG from environment
-    and configures logging accordingly.
-
-    This is the proper way to set initial debug state - subsequent changes
-    should use set_debug_enabled() for runtime toggling.
-    """
-    global _debug_enabled, _debug_initialized
-    if not _debug_initialized:
-        _debug_enabled = _read_debug_from_env()
-        _debug_initialized = True
-        configure_logging(debug=_debug_enabled)
+def current_log_level() -> str:
+    """The level the API's log lines are filtered at now."""
+    return _current_log_level
 
 
 def is_debug_enabled() -> bool:
@@ -337,23 +358,27 @@ def is_debug_enabled() -> bool:
 def set_debug_enabled(enabled: bool) -> bool:
     """Set debug state and reconfigure logging.
 
-    Called by API endpoint to toggle debug logging at runtime (FR48).
+    Called by API endpoint to toggle debug logging at runtime (FR48). On gives DEBUG;
+    off returns to the configured level (VS_LOG_LEVEL, or INFO) (Epic 21 ADR-4).
 
     Args:
         enabled: True to enable debug logging, False to disable.
 
     Returns:
-        True if state was changed, False if already in requested state.
+        True if the debug state or the level changed, False if both were already
+        as requested.
     """
-    global _debug_enabled
-    if _debug_enabled != enabled:
-        previous = _debug_enabled
-        _debug_enabled = enabled
-        configure_logging(debug=enabled)
-        log = structlog.get_logger()
-        log.info("debug_logging_toggled", previous=previous, current=enabled)
-        return True
-    return False
+    global _debug_enabled, _current_log_level
+    level = "DEBUG" if enabled else (_configured_log_level or "INFO")
+    if _debug_enabled == enabled and _current_log_level == level:
+        return False
+    previous = _debug_enabled
+    _debug_enabled = enabled
+    _current_log_level = level
+    configure_logging(debug=enabled, log_level=level)
+    log = structlog.get_logger()
+    log.info("debug_logging_toggled", previous=previous, current=enabled)
+    return True
 
 
 def get_current_debug_setting() -> bool:
@@ -384,9 +409,9 @@ def configure_logging(debug: bool = False, log_level: str | None = None) -> None
         - Never log sensitive data (API keys, passwords)
 
     Runtime Debug Toggle (FR48):
-        To enable runtime log level changes without restart, use the
-        reconfigure_logging_if_changed() function which checks VS_DEBUG
-        environment variable and reconfigures when changed.
+        Do not call this directly to change the level: start-up goes through
+        initialize_debug_state() and the runtime switch through set_debug_enabled(),
+        which keep the debug state and current_log_level() in step (Epic 21 ADR-4).
     """
     # Determine log level
     if log_level:
@@ -459,7 +484,7 @@ def reconfigure_logging_if_changed() -> bool:
         _last_debug_state = current_debug
 
         # Reconfigure logging with new debug state
-        configure_logging(debug=current_debug)
+        configure_logging(debug=current_debug, log_level=_current_log_level)
 
         # Log the change (only if this isn't the first initialization)
         if previous is not None:

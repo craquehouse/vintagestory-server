@@ -12,6 +12,8 @@ os.environ["VS_DEBUG"] = "true"
 # mise loads a developer's .env (.mise.toml); a mirror address there must not reach tests
 # that mock https://mods.vintagestory.at/... (Epic 20 ADR-9)
 os.environ.pop("VS_MOD_DB_URL", None)
+# Nor may a developer's VS_LOG_LEVEL change any test's result (Epic 21 ADR-4)
+os.environ.pop("VS_LOG_LEVEL", None)
 
 import pytest
 import structlog

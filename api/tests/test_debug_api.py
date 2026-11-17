@@ -10,7 +10,7 @@ from conftest import TEST_ADMIN_KEY, TEST_MONITOR_KEY  # type: ignore[import-not
 from fastapi.testclient import TestClient
 
 import vintagestory_api.config as config_module
-from vintagestory_api.config import Settings
+from vintagestory_api.config import Settings, current_log_level, initialize_debug_state
 from vintagestory_api.main import app
 from vintagestory_api.middleware.auth import get_settings
 
@@ -51,21 +51,12 @@ def no_auth_client(override_settings: None) -> TestClient:
 
 
 @pytest.fixture(autouse=True)
-def reset_debug_state():
-    """Reset debug state before and after each test."""
-    # Save original state
-    original_enabled = config_module._debug_enabled  # pyright: ignore[reportPrivateUsage]
-    original_initialized = config_module._debug_initialized  # pyright: ignore[reportPrivateUsage]
-
-    # Reset to known state for tests
-    config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
-    config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
-
-    yield
-
-    # Restore original state
-    config_module._debug_enabled = original_enabled  # pyright: ignore[reportPrivateUsage]
-    config_module._debug_initialized = original_initialized  # pyright: ignore[reportPrivateUsage]
+def reset_debug_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start each test with debug off at INFO; monkeypatch restores the state after it."""
+    monkeypatch.setattr(config_module, "_debug_enabled", False)
+    monkeypatch.setattr(config_module, "_debug_initialized", True)
+    monkeypatch.setattr(config_module, "_configured_log_level", None)
+    monkeypatch.setattr(config_module, "_current_log_level", "INFO")
 
 
 class TestDebugStatusEndpoint:
@@ -130,14 +121,17 @@ class TestDebugEnableEndpoint:
         # Verify state was actually changed
         assert config_module._debug_enabled is True  # pyright: ignore[reportPrivateUsage]
 
-    def test_enable_debug_already_enabled(self, admin_client: TestClient) -> None:
+    def test_enable_debug_already_enabled(
+        self, admin_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Enable debug when already enabled returns changed=False.
 
         Given debug logging is already enabled
         When POST /api/v1alpha1/debug/enable is called
         Then response indicates no change occurred
         """
-        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        monkeypatch.setattr(config_module, "_debug_enabled", True)
+        monkeypatch.setattr(config_module, "_current_log_level", "DEBUG")
 
         response = admin_client.post("/api/v1alpha1/debug/enable")
         assert response.status_code == 200
@@ -260,3 +254,33 @@ class TestDebugToggleIntegration:
         # Verify disabled
         response = admin_client.get("/api/v1alpha1/debug")
         assert response.json()["data"]["debug_enabled"] is False
+
+
+class TestDebugToggleWithConfiguredLogLevel:
+    """VS_LOG_LEVEL=WARNING: the switch gives DEBUG and returns to WARNING (Epic 21 ADR-4)."""
+
+    def test_enable_then_disable_returns_to_the_configured_level(
+        self, admin_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(config_module, "_debug_initialized", False)
+        initialize_debug_state(False, "WARNING")
+        assert current_log_level() == "WARNING"
+
+        response = admin_client.post("/api/v1alpha1/debug/enable")
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "ok",
+            "data": {"debug_enabled": True, "changed": True},
+        }
+        assert current_log_level() == "DEBUG"
+
+        response = admin_client.post("/api/v1alpha1/debug/disable")
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "ok",
+            "data": {"debug_enabled": False, "changed": True},
+        }
+        assert current_log_level() == "WARNING"
+
+        response = admin_client.get("/api/v1alpha1/debug")
+        assert response.json()["data"] == {"debug_enabled": False}

@@ -3,147 +3,219 @@
 Verifies that debug logging can be toggled at runtime via API.
 """
 
-import os
+import json
 from io import StringIO
-from unittest.mock import patch
 
+import pytest
 import structlog
 
 import vintagestory_api.config as config_module
 from vintagestory_api.config import (
+    Settings,
     configure_logging,
+    current_log_level,
     initialize_debug_state,
     is_debug_enabled,
     set_debug_enabled,
 )
 
 
+@pytest.fixture
+def fresh_debug_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start from a process that has not initialised its debug state yet.
+
+    monkeypatch restores the module's state after each test.
+    """
+    monkeypatch.setattr(config_module, "_debug_enabled", False)
+    monkeypatch.setattr(config_module, "_debug_initialized", False)
+    monkeypatch.setattr(config_module, "_configured_log_level", None)
+    monkeypatch.setattr(config_module, "_current_log_level", "INFO")
+
+
+@pytest.mark.usefixtures("fresh_debug_state")
 class TestInitializeDebugState:
-    """Tests for initialize_debug_state function."""
+    """Tests for initialize_debug_state, fed from the settings (Epic 21 ADR-4)."""
 
-    def setup_method(self) -> None:
-        """Reset module state before each test."""
-        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
-        config_module._debug_initialized = False  # pyright: ignore[reportPrivateUsage]
+    def test_reads_true_from_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Given VS_DEBUG=true, debug state is set to True."""
+        monkeypatch.setenv("VS_DEBUG", "true")
+        settings = Settings()
 
-    def test_reads_true_from_env(self) -> None:
-        """Initialize debug state from VS_DEBUG=true.
+        initialize_debug_state(settings.debug, settings.log_level)
 
-        Given VS_DEBUG=true in environment
-        When initialize_debug_state is called
-        Then debug state is set to True
-        """
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            initialize_debug_state()
-            assert is_debug_enabled() is True
+        assert is_debug_enabled() is True
 
-    def test_reads_false_from_env(self) -> None:
-        """Initialize debug state from VS_DEBUG=false.
+    def test_reads_false_from_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Given VS_DEBUG=false, debug state is set to False."""
+        monkeypatch.setenv("VS_DEBUG", "false")
+        settings = Settings()
 
-        Given VS_DEBUG=false in environment
-        When initialize_debug_state is called
-        Then debug state is set to False
-        """
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            initialize_debug_state()
-            assert is_debug_enabled() is False
+        initialize_debug_state(settings.debug, settings.log_level)
 
-    def test_defaults_false_when_unset(self) -> None:
-        """Debug state defaults to False when VS_DEBUG is not set.
+        assert is_debug_enabled() is False
 
-        Given VS_DEBUG is not set
-        When initialize_debug_state is called
-        Then debug state is False
-        """
-        env = os.environ.copy()
-        env.pop("VS_DEBUG", None)
-        with patch.dict(os.environ, env, clear=True):
-            initialize_debug_state()
-            assert is_debug_enabled() is False
+    def test_defaults_false_when_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Given VS_DEBUG is not set, debug state is False."""
+        monkeypatch.delenv("VS_DEBUG", raising=False)
+        settings = Settings()
+
+        initialize_debug_state(settings.debug, settings.log_level)
+
+        assert is_debug_enabled() is False
 
     def test_only_initializes_once(self) -> None:
-        """Initialize debug state only runs once.
+        """A second call with other arguments changes nothing."""
+        initialize_debug_state(True, None)
+        assert is_debug_enabled() is True
 
-        Given initialize_debug_state has been called
-        When called again with different env value
-        Then debug state is not changed
-        """
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            initialize_debug_state()
-            assert is_debug_enabled() is True
+        initialize_debug_state(False, "WARNING")
 
-        # Second call with different env should be ignored
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            initialize_debug_state()
-            assert is_debug_enabled() is True  # Still True from first init
+        assert is_debug_enabled() is True
+        assert current_log_level() == "DEBUG"
 
-    def test_accepts_various_true_values(self) -> None:
-        """VS_DEBUG accepts 'true', '1', 'yes' (case-insensitive)."""
-        for value in ["true", "TRUE", "True", "1", "yes", "YES"]:
-            config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
-            config_module._debug_initialized = False  # pyright: ignore[reportPrivateUsage]
-            with patch.dict(os.environ, {"VS_DEBUG": value}):
-                initialize_debug_state()
-                assert is_debug_enabled() is True, f"Failed for VS_DEBUG={value}"
+    @pytest.mark.parametrize(
+        "value", ["true", "TRUE", "True", "1", "yes", "YES", "on", "On", "y", "t"]
+    )
+    def test_accepts_various_true_values(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+        """Every value pydantic reads as true turns debug logging on (ADR-4 decision 6)."""
+        monkeypatch.setenv("VS_DEBUG", value)
+        settings = Settings()
+
+        initialize_debug_state(settings.debug, settings.log_level)
+
+        assert is_debug_enabled() is True, f"Failed for VS_DEBUG={value}"
+        assert current_log_level() == "DEBUG"
 
 
+@pytest.mark.usefixtures("fresh_debug_state")
 class TestSetDebugEnabled:
     """Tests for set_debug_enabled function (FR48 runtime toggle)."""
 
-    def setup_method(self) -> None:
-        """Reset module state before each test."""
-        config_module._debug_enabled = False  # pyright: ignore[reportPrivateUsage]
-        config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
-
     def test_enable_debug(self) -> None:
-        """Enable debug logging at runtime.
-
-        Given debug is disabled
-        When set_debug_enabled(True) is called
-        Then debug is enabled
-        And returns True (changed)
-        """
+        """Given debug is disabled, set_debug_enabled(True) enables it and reports a change."""
+        initialize_debug_state(False, None)
         assert is_debug_enabled() is False
         changed = set_debug_enabled(True)
         assert changed is True
         assert is_debug_enabled() is True
 
     def test_disable_debug(self) -> None:
-        """Disable debug logging at runtime.
-
-        Given debug is enabled
-        When set_debug_enabled(False) is called
-        Then debug is disabled
-        And returns True (changed)
-        """
-        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        """Given debug is enabled, set_debug_enabled(False) disables it and reports a change."""
+        initialize_debug_state(True, None)
         assert is_debug_enabled() is True
         changed = set_debug_enabled(False)
         assert changed is True
         assert is_debug_enabled() is False
 
     def test_no_change_when_already_enabled(self) -> None:
-        """No change when enabling already-enabled debug.
-
-        Given debug is already enabled
-        When set_debug_enabled(True) is called
-        Then returns False (no change)
-        """
-        config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
+        """Given debug is already enabled at DEBUG, enabling reports no change."""
+        initialize_debug_state(True, None)
         changed = set_debug_enabled(True)
         assert changed is False
         assert is_debug_enabled() is True
 
     def test_no_change_when_already_disabled(self) -> None:
-        """No change when disabling already-disabled debug.
-
-        Given debug is already disabled
-        When set_debug_enabled(False) is called
-        Then returns False (no change)
-        """
+        """Given debug is already disabled, disabling reports no change."""
+        initialize_debug_state(False, None)
         changed = set_debug_enabled(False)
         assert changed is False
         assert is_debug_enabled() is False
+
+
+LEVEL_ORDER = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+
+def emit_one_line_per_level() -> None:
+    log = structlog.get_logger()
+    log.debug("line_at_debug")
+    log.info("line_at_info")
+    log.warning("line_at_warning")
+    log.error("line_at_error")
+
+
+def written_levels(out: str) -> list[str]:
+    return [level for level in LEVEL_ORDER if f"line_at_{level.lower()}" in out]
+
+
+@pytest.mark.usefixtures("fresh_debug_state")
+class TestConfiguredLogLevel:
+    """VS_LOG_LEVEL sets the level; the switch gives DEBUG and returns to it (ADR-4)."""
+
+    @pytest.mark.parametrize(
+        ("debug", "log_level", "expected_level", "renderer"),
+        [
+            (False, None, "INFO", "json"),
+            (True, None, "DEBUG", "console"),
+            (False, "WARNING", "WARNING", "json"),
+            (True, "INFO", "INFO", "console"),
+            (False, "DEBUG", "DEBUG", "json"),
+            (True, "ERROR", "ERROR", "console"),
+        ],
+    )
+    def test_start_up_level_and_renderer(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        debug: bool,
+        log_level: str | None,
+        expected_level: str,
+        renderer: str,
+    ) -> None:
+        initialize_debug_state(debug, log_level)
+        capsys.readouterr()
+
+        emit_one_line_per_level()
+        out = capsys.readouterr().out
+
+        assert current_log_level() == expected_level
+        assert written_levels(out) == list(LEVEL_ORDER[LEVEL_ORDER.index(expected_level) :])
+        lines = [line for line in out.splitlines() if line.strip()]
+        assert lines
+        for line in lines:
+            if renderer == "json":
+                assert isinstance(json.loads(line), dict)
+            else:
+                with pytest.raises(json.JSONDecodeError):
+                    json.loads(line)
+
+    def test_switch_round_trip_returns_to_the_configured_level(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        initialize_debug_state(False, "WARNING")
+
+        assert set_debug_enabled(True) is True
+        assert current_log_level() == "DEBUG"
+        capsys.readouterr()
+        structlog.get_logger().debug("line_while_on")
+        assert "line_while_on" in capsys.readouterr().out
+
+        assert set_debug_enabled(False) is True
+        assert current_log_level() == "WARNING"
+        capsys.readouterr()
+        emit_one_line_per_level()
+        assert written_levels(capsys.readouterr().out) == ["WARNING", "ERROR"]
+
+    def test_switch_off_returns_to_info_without_a_configured_level(self) -> None:
+        initialize_debug_state(False, None)
+
+        assert set_debug_enabled(True) is True
+        assert current_log_level() == "DEBUG"
+        assert set_debug_enabled(False) is True
+        assert current_log_level() == "INFO"
+
+    def test_enable_in_debug_mode_with_a_quiet_level_gives_debug(self) -> None:
+        """VS_DEBUG=true with VS_LOG_LEVEL=WARNING: enable changes the level (story decision)."""
+        initialize_debug_state(True, "WARNING")
+        assert current_log_level() == "WARNING"
+
+        assert set_debug_enabled(True) is True
+        assert current_log_level() == "DEBUG"
+        assert set_debug_enabled(True) is False
+
+    def test_disable_when_off_keeps_the_configured_level(self) -> None:
+        initialize_debug_state(False, "WARNING")
+
+        assert set_debug_enabled(False) is False
+        assert current_log_level() == "WARNING"
 
 
 class TestRuntimeDebugToggleBehavior:
