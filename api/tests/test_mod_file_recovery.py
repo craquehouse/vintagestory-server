@@ -59,7 +59,8 @@ V1, V2 = archive("1.0.0"), archive("1.1.0")
 TMP, BAK = WORKING_COPY_SUFFIX, KEPT_ASIDE_SUFFIX
 
 # (directory, state, directory afterwards, the log events), for `X.zip` + suffix
-INTERRUPTIONS = {
+Interruption = tuple[dict[str, bytes], tuple[str, str] | None, dict[str, bytes], list[str]]
+INTERRUPTIONS: dict[str, Interruption] = {
     "install-after-copy": (
         {f"X.zip{{s}}{TMP}": V2},
         None,
@@ -111,9 +112,7 @@ class TestInterruptedOperations:
         tmp_path: Path,
         captured_logs: StringIO,
         suffix: str,
-        case: tuple[
-            dict[str, bytes], tuple[str, str] | None, dict[str, bytes], list[str]
-        ],
+        case: Interruption,
     ) -> None:
         files, state, expected, events = case
         service = make_service(tmp_path)
