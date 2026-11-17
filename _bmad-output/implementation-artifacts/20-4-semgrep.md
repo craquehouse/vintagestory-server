@@ -1,6 +1,6 @@
 # Story 20.4: Semgrep Locally and in CI
 
-Status: review
+Status: done
 
 <!-- Implements FR244-FR247, Epic 20 ADR-6 and ADR-7 (both accepted by Matt, 2026-11-17). Beads: VSS-djg (TOOLS-002, size-s), VSS-4ac (CICD-001, size-m). Stacked on Story 20.3 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/, web/, scripts/, Justfile and .github/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats api/src/vintagestory_api/services/server.py, Story 20.3 rewrites the Justfile's argument handling and the lint-scripts recipe, and Stories 20.1 and 20.3 edit ci.yml. One product code change (a keyword argument in the download checksum, same result). No API contract change, no release note, no new npm or Python dependency: semgrep runs through uvx and is not added to api/pyproject.toml. -->
 
@@ -121,15 +121,15 @@ so that **a risky pattern is caught when it is written, without old findings or 
   - [x] 5.1: Add group F of Dev Notes "Script tests" to `test-semgrep.sh` (the form of every `nosemgrep` comment in the scanned source; none exists today)
   - [x] 5.2: `project-context.md`, section "8. No Silent Failures Rule" (`:218-255`): add the exception after the "Forbidden Patterns Without Justification" list (`:228-232`) and before "Good Example" (`:234`), with the text of Dev Notes "The exception text". The rest of the section does not change
   - [x] 5.3: `CLAUDE.md` command block, under "# Scripts and workflows" (`:162-165`): one line, `just semgrep` with "Static security scan (needs the network; not part of just check)". `README.md` "Development commands" (`:99-112`): one line for `just semgrep` in the code block, and one sentence below the block: CI runs the same scan on every pull request and fails only on findings the pull request adds; `main`'s findings are under Security > Code scanning
-  - [ ] 5.4: The triage note of Dev Notes "How a finding is triaged" is already in this story. Copy its four steps into the PR description so the maintainer has them where the first alert will be discussed
+  - [x] 5.4: The triage note of Dev Notes "How a finding is triaged" is already in this story. Copy its four steps into the PR description so the maintainer has them where the first alert will be discussed
 
 - [ ] Task 6: Prove the gate on the pull request, quality gate and review hand-off (AC: all)
   - [x] 6.1: `just check` passes, and `just semgrep` exits 0. The diff adds no lint or type suppression, no `cast`, no `nosemgrep`, no skipped test and no dependency (`api/pyproject.toml`, `api/uv.lock`, `web/package.json` and `web/bun.lock` are unchanged). No rule file is in the repository. `git status --short` is clean (no `semgrep.sarif`, no JSON output)
   - [x] 6.2: Story status `review` and `just sprint set 20-4-semgrep review`; commit as `chore(story-20.4/task-6): ...`
-  - [ ] 6.3: The controller pushes the branch and opens the pull request against `main` (the dev agent does not push or open it). CI runs only on pull requests that target `main` (`ci.yml:3-8`), so this needs Stories 20.1 to 20.3 merged first. Record the first run: the `Semgrep` job passes although the merge base still has the md5 finding (AC 7), its duration (AC 13: within five minutes), and the log's "Ran N rules on M files" line
-  - [ ] 6.4: Prove the gate (AC 6), on the story's own pull request. Commit `ci(story-20.4/task-6): temporary finding to prove the semgrep gate` adds the file of Dev Notes "The gate proof" and nothing else. The `Semgrep` job must fail, and its log must name the rule `python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5`, the file and line 5. Record the run URL. While that commit is the tip, start one manual run, `gh workflow run ci.yml --ref <branch>`: its `Semgrep` job must pass (findings do not fail a full scan) and upload (AC 8). Record the run URL and what `gh api "repos/craquehouse/vintagestory-server/code-scanning/analyses?ref=refs/heads/<branch>"` lists (tool `Semgrep OSS`, category `semgrep`, 1 result)
-  - [ ] 6.5: Commit `ci(story-20.4/task-6): remove the temporary finding` deletes the file again (a plain commit, no force push, no history rewrite). The `Semgrep` job passes; record the run URL. Start the manual run once more and record that the analysis of the branch now has 0 results, so the proof leaves no open alert behind
-  - [ ] 6.6: PR link on `VSS-djg` and `VSS-4ac`. The PR description says: no API contract change, no release note, the measurements, the four triage steps, the decisions of Dev Notes "Decisions for the maintainer", and the manual check of AC 15 for the maintainer after the merge
+  - [x] 6.3: The controller pushes the branch and opens the pull request against `main` (the dev agent does not push or open it). CI runs only on pull requests that target `main` (`ci.yml:3-8`), so this needs Stories 20.1 to 20.3 merged first. Record the first run: the `Semgrep` job passes although the merge base still has the md5 finding (AC 7), its duration (AC 13: within five minutes), and the log's "Ran N rules on M files" line
+  - [x] 6.4: Prove the gate (AC 6), on the story's own pull request. Commit `ci(story-20.4/task-6): temporary finding to prove the semgrep gate` adds the file of Dev Notes "The gate proof" and nothing else. The `Semgrep` job must fail, and its log must name the rule `python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5`, the file and line 5. Record the run URL. While that commit is the tip, start one manual run, `gh workflow run ci.yml --ref <branch>`: its `Semgrep` job must pass (findings do not fail a full scan) and upload (AC 8). Record the run URL and what `gh api "repos/craquehouse/vintagestory-server/code-scanning/analyses?ref=refs/heads/<branch>"` lists (tool `Semgrep OSS`, category `semgrep`, 1 result)
+  - [x] 6.5: Commit `ci(story-20.4/task-6): remove the temporary finding` deletes the file again (a plain commit, no force push, no history rewrite). The `Semgrep` job passes; record the run URL. Start the manual run once more and record that the analysis of the branch now has 0 results, so the proof leaves no open alert behind
+  - [x] 6.6: PR link on `VSS-djg` and `VSS-4ac`. The PR description says: no API contract change, no release note, the measurements, the four triage steps, the decisions of Dev Notes "Decisions for the maintainer", and the manual check of AC 15 for the maintainer after the merge
   - [ ] 6.7: After the merge (controller or maintainer): the push to `main` runs the full scan and the upload. AC 15 is confirmed by the maintainer in the browser, or with `gh api "repos/craquehouse/vintagestory-server/code-scanning/analyses?ref=refs/heads/main" --jq '.[0] | {tool: .tool.name, category, results_count, created_at}'`. Both beads are closed with an AAR after that, not before
 
 ## Dev Notes
@@ -575,6 +575,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - No API contract change, no new dependency, no `feat`/`fix` commit.
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist at 7f04ea2. Prototypes, all discarded: `scripts/semgrep.sh` and `.semgrepignore` (ShellCheck passed; full scans with and without a login; a baseline scan over two temporary commits; SARIF output; exit codes), the stub `uvx` test, the scanned-set tripwire, the `semgrep` job appended to `ci.yml` (`just lint-workflows` passed; `just test-scripts` failed only on `test-release.sh`'s job list), the md5 keyword (`just test-api tests/server` 260 passed, Pyright and Ruff clean, semgrep 0 findings), the Perl check of the Renovate pattern, and the `nosemgrep` forms on a file outside the repository. Not run: the Renovate validator, and anything on a GitHub runner; the job's duration, the upload and the code scanning view are predictions until Task 6.
 
+- CI and gate proof (controller, 2026-11-17). The gate was proved on a throwaway draft PR (#181, closed unmerged, branch deleted), not with commits on the story branch: the controller's decision, so history stays clean. Story PR #180, first run https://github.com/craquehouse/vintagestory-server/actions/runs/44112560772: all six jobs green. `Semgrep` took 18 s, scanned 29 files changed against the merge base with 290 rules (280 run), found 0 and skipped the baseline scan (AC 7, AC 13). This also confirms `SEMGREP_SETTINGS_FILE=/dev/null` works on the Linux runner. Probe PR run https://github.com/craquehouse/vintagestory-server/actions/runs/44113337515: `Semgrep` failed with `Findings: 1 (1 blocking)`, naming `python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5` in `api/src/vintagestory_api/services/semgrep_gate_probe.py`; all other jobs passed (AC 6). Manual run on the probe branch, https://github.com/craquehouse/vintagestory-server/actions/runs/44114177636: `Semgrep` passed and uploaded, and code scanning listed `Semgrep OSS`, category `semgrep`, results=1 (AC 8). After removing the probe, manual run https://github.com/craquehouse/vintagestory-server/actions/runs/44114801687: results=0, 0 open alerts on the branch. Task 6.7 (AC 15 on `main`) is after merge.
+
 ### File List
 
 - `scripts/semgrep.sh` (new, executable)
@@ -591,7 +593,21 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `README.md`
 - `_bmad-output/implementation-artifacts/20-4-semgrep.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `1690029..ec837f2`
+**Outcome:** Approve
+
+**Summary:** No blocking findings. ACs 1-5, 9-12 and 14 met with evidence; 6-8, 13 and 15 were pending CI at review time (judged sound; 6-8 and 13 since proved, see Completion Notes). The reviewer verified the `upload-sarif` pin is the v4.39.3 tag's commit, the job is safe for fork PRs (no `pull_request_target`, no secrets, no untrusted input in `run:`), `fetch-depth: 0` covers the merge base, the upload is skipped on an engine failure, and only this job has `security-events: write`. `hashlib.md5(usedforsecurity=False)` gives the same digest and the rule no longer matches. The `nosemgrep` text matches the maintainer's exception. Reviewer ran `just lint`, `just typecheck`, `just test-scripts`, `just lint-workflows`, `just semgrep` (280 rules, 226 files, 0 findings) and a report-only SARIF run.
+
+### Action Items
+
+- [x] [Low] `SEMGREP_SETTINGS_FILE=/dev/null` was unvalidated on Linux. Confirmed working on the first CI run (`Semgrep` job green, 18 s).
+- Info, accepted: `security-events: write` is also effective on same-repo PRs (maintainer decision; the upload step does not run on PR events); `.semgrepignore` replaces semgrep's defaults (nothing vendored in scope today; the scan is limited to tracked files); the line-based `nosemgrep` tripwire; the bookkeeping commit type.
+
 ## Change Log
 
 - 2026-11-17: Story 20.4 created and validated (ready-for-dev).
 - 2026-11-17: Story 20.4 implemented (Tasks 1-5, 6.1-6.2); gate proof left to a throwaway pull request by the controller; moved to review.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved. CI green on PR #180; gate proved on throwaway PR #181. Status done; AC 15 after merge.
