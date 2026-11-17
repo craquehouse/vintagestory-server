@@ -100,7 +100,11 @@ jobs:
       # The key is the runner's system and the two Playwright versions, not the lock files,
       # so an unrelated dependency update keeps the cache
       - id: playwright
-        run: echo "key=playwright-${ImageOS:?}-$RUNNER_ARCH-$(just playwright-versions)" >> "$GITHUB_OUTPUT"
+        # An assignment, so a failing `just playwright-versions` fails the step (bash -e)
+        # instead of writing a partial key that would miss the cache without a word
+        run: |
+          versions="$(just playwright-versions)"
+          echo "key=playwright-${ImageOS:?}-$RUNNER_ARCH-$versions" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
