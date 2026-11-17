@@ -4,7 +4,7 @@
 **Author:** BMAD planner (PM and Architect), for Matt
 **Workflow:** correct-course (batch, non-interactive; scope approved before the workflow ran)
 **Scope classification:** Minor
-**Status:** Scope approved by Matt before planning. During planning, on 2026-11-17, Matt decided the one-time `ruff format` (first change of the epic, own commit, then the check in `just lint-api`; no Prettier for the web) and the semgrep design; those are written in as decided. Seven stories, fourteen beads, and the old epic `VSS-029` closes. The questions in section 5 are open, each with the default the plan uses.
+**Status:** Scope approved by Matt before planning. During planning, on 2026-11-17, Matt decided the one-time `ruff format` (first change of the epic, own commit, then the check in `just lint-api`; no Prettier for the web) and the semgrep design; those are written in as decided. Revised the same day with Matt's answers to the ten open questions (section 5): the mod database's address becomes a setting, `VS_MOD_DB_URL`, and CI points it at a plain-HTTP replay (the alternative to the first version's stand-in with a per-run certificate); the three pull-ins are approved; every other default stands. Seven stories, seventeen beads, and the old epic `VSS-029` closes. No question is open.
 
 ## 1. Issue Summary
 
@@ -36,6 +36,9 @@
 | Items in scope | `VSS-4ac`, `VSS-djg`, `VSS-37a`, `VSS-hnl`, `VSS-6wj`, `VSS-1ar`, `VSS-3asx`, `VSS-1eb`, `VSS-870`, `VSS-as6`, `VSS-uw9z`, `VSS-571h`, `VSS-6354`, `VSS-3mr`: 14 issues in 7 stories. The old epic `VSS-029` "Web UI Test Coverage" closes when `VSS-3mr` and `VSS-37a` are done |
 | Backlog rule | The epic draws the backlog down. Findings go into a story; related open beads are proposed as pull-ins; the net bead change is reported |
 | Ruff format (Matt, 2026-11-17) | One dedicated commit reformats the whole API and holds nothing else. It is the first change of the epic, while no branches are open. It goes into `.git-blame-ignore-revs`. Then `ruff format --check` joins `just lint-api`, which CI runs. Prettier for the web is not in scope |
+| Pull-ins (Matt, 2026-11-17) | Approved: `VSS-eh41` into 20.2, `VSS-zhv3` into 20.6, `VSS-3q2s` into 20.7. 17 issues in 7 stories |
+| Mod database address (Matt, 2026-11-17) | A setting for the mod database's base address, default `https://mods.vintagestory.at`; CI points it at a plain-HTTP replay container that serves trimmed real recordings. `https` is required, and `http` is accepted only with `VS_DEBUG=true`; validated at start-up. Recordings in `web/e2e/fixtures/moddb/`, `just record-moddb`, no scheduled live run, `@moddb-live` and `@install` stay local |
+| Other answers (Matt, 2026-11-17) | `just semgrep` is not in `just check`; the new-directory test uses `docker exec` and skips elsewhere; under `vmThreads` the story stops and asks if a file cannot pass, with no per-file pool; digests for uv and both base images, `apt-get upgrade` kept and documented; preparation stories are X.0 |
 | Semgrep (Matt, 2026-11-17) | Locally (`just semgrep`) and as a CI job, version pinned. Packs `p/python`, `p/typescript`, `p/react`, `p/secrets`, `p/github-actions`, `p/dockerfile`, fetched at run time; not `p/default`, no vendored rules. Pull requests fail only on findings they add (`--baseline-commit`); full scans of `main` report without blocking. SARIF to code scanning; only the semgrep job gets `security-events: write`. Scope `api/src`, `web/src`, `.github`, `Dockerfile`, `scripts`, not test files. The md5 finding is fixed with `usedforsecurity=False`. An inline `# nosemgrep: <rule-id> — <reason>` for a verified false positive is a documented exception to the no-suppressions rule |
 
 **Grouping, and what changed from the suggested starting point:**
@@ -43,38 +46,52 @@
 | Story | Beads | Why this grouping |
 |---|---|---|
 | 20.1 The API Is Formatted Once and Stays Formatted | `VSS-3asx` (formatting half) | Its own story and pull request: it is the first change (Matt), and a 2,000-line mechanical commit is reviewed by reproducing it, which only works when nothing else is in the pull request |
-| 20.2 A Green, Quiet `just check` | `VSS-1ar`, `VSS-hnl`, `VSS-37a`, `VSS-6wj` | As suggested: test files and the Vitest configuration |
+| 20.2 A Green, Quiet `just check` | `VSS-1ar`, `VSS-hnl`, `VSS-37a`, `VSS-6wj`, `VSS-eh41` (pulled in) | As suggested: test files and the Vitest configuration. `VSS-eh41` deletes a dead component whose test is one of the four that fail under `vmThreads` |
 | 20.3 Lint and Type Checks Cover Everything | `VSS-3asx` (type-check half), `VSS-1eb`, `VSS-6354`, `VSS-uw9z` | As suggested, less the reformat: the `Justfile`, one script, `.gitignore`, a new tsconfig |
 | 20.4 Semgrep Locally and in CI | `VSS-djg`, `VSS-4ac` | As suggested |
 | 20.5 The File Browser E2E Tests Run in CI | `VSS-3mr`, `VSS-571h` (parts 2 to 4) | The suggested E2E story is split in two. This half is small and certain, and it is what closes `VSS-029` |
-| 20.6 The Mod Database E2E Tests Run in CI | `VSS-571h` (part 1) | The recorded answers are the largest and least certain piece of the epic (a new mechanism, proved in its first task); alone, a delay in it holds nothing else back |
-| 20.7 Reproducible Image Inputs and the Numbering Rule | `VSS-870`, `VSS-as6` | As suggested |
+| 20.6 The Mod Database E2E Tests Run in CI | `VSS-571h` (part 1), `VSS-zhv3` (pulled in) | The recorded answers are the largest piece of the epic and the only one that changes the product (a new setting); alone, a delay in it holds nothing else back. `VSS-zhv3` documents the fields the recordings hold |
+| 20.7 Reproducible Image Inputs and the Numbering Rule | `VSS-870`, `VSS-as6`, `VSS-3q2s` (pulled in) | As suggested. `VSS-3q2s` is documentation, and comes after 20.6 so the environment table can list the new setting |
 
 ## 2. Impact Analysis
 
 **Epic impact:** Epics 1 to 19 are done; none is invalidated. One new epic, Epic 20: Tooling and Test Health, with 7 stories. No resequencing.
 
-**Story impact:** No existing story changes. Story 20.6 replaces Epic 19 ADR-14 decision 9 (recording was "a follow-up") and changes what the `@moddb` tag means. Story 20.5 leaves the `@game-server` tag with no test. Story 20.7 corrects the numbering rule that the Epic 13 retrospective item (E13-A2) introduced.
+**Story impact:** No existing story changes. Story 20.6 replaces Epic 19 ADR-14 decision 9 (recording was "a follow-up"), changes what the `@moddb` tag means, and makes the mod database's address a setting where Epic 19 left it a constant; Epic 18's and Epic 19's allow-lists for image hosts and links are not changed by it. Story 20.5 leaves the `@game-server` tag with no test. Story 20.7 corrects the numbering rule that the Epic 13 retrospective item (E13-A2) introduced.
 
 **Artifact conflicts:**
 
 | Artifact | Change |
 |---|---|
-| PRD | Add FR234-FR257; frontmatter |
+| PRD | Add FR234-FR259; frontmatter |
 | Epics | Add Epic 20; FR coverage rows; Story Summary row; frontmatter |
 | Architecture | New `architecture/epic-20-tooling-and-test-health.md` (facts, ADR-1 to ADR-11); index entry |
 | UX spec | None |
 | CI | `ruff format --check` through `just lint-api` (20.1); `just typecheck-web` in the `web` job (20.3); a sixth job, `semgrep`, with `security-events: write` (20.4); a browser cache, seeded directories and a replay container in the `e2e` job (20.5, 20.6) |
 | Project rules | `project-context.md`: the stubbing pattern and skip patterns (20.2), the `nosemgrep` exception (20.4), the numbering rule (20.7) |
-| Beads | Epic `Epic 20: Tooling and Test Health` (`VSS-lzgg`) with the 14 in-scope issues as children; `VSS-37a` and `VSS-3mr` also stay children of `VSS-029` |
+| Deployment and documentation | README and `.env.example` gain the optional `VS_MOD_DB_URL` (20.6); no deployment has to change |
+| Beads | Epic `Epic 20: Tooling and Test Health` (`VSS-lzgg`) with the 17 in-scope issues as children; `VSS-37a` and `VSS-3mr` also stay children of `VSS-029` |
 
 **Technical impact:**
 
-- Almost nothing a user of the manager sees changes. The one product code change is `hashlib.md5(usedforsecurity=False)` in the download checksum (20.4), which behaves the same. Story 20.2 may move the building of a WebSocket URL into a small function if the tests need it (ADR-2 decision 2). Story 20.7 changes which uv and base image builds the release image contains.
+- Almost nothing a user of the manager sees changes. There are two product code changes: `hashlib.md5(usedforsecurity=False)` in the download checksum (20.4), which behaves the same, and the optional `VS_MOD_DB_URL` setting (20.6), which changes nothing unless it is set. Story 20.2 also deletes a component nothing uses (`Terminal.tsx`). Story 20.2 may move the building of a WebSocket URL into a small function if the tests need it (ADR-2 decision 2). Story 20.7 changes which uv and base image builds the release image contains.
 - Story 20.1 touches 75 API files in one commit. Every open API branch would conflict with it; none is open.
 - New tools: semgrep, run through `uvx` at a pinned version (no new project dependency). New CI action uses: a SARIF upload and a cache, both pinned by commit.
-- No API contract change, no new setting, no new environment variable. No release note is expected from this epic: its commits are `chore`, `test`, `ci`, `build`, `docs` and `refactor`.
+- No response or route changes. One new optional setting (table below), which is the epic's only release note; every other commit is `chore`, `test`, `ci`, `build`, `docs` or `refactor`.
 - `scripts/tests/test-release.sh` and `scripts/tests/test-docker-context.sh` guard the workflow's shape; Stories 20.4 and 20.7 update them in the same commits as the workflow and the Dockerfile.
+
+**API contract and configuration changes (for the release notes):**
+
+| Story | Where | Change | Kind |
+|---|---|---|---|
+| 20.6 | `VS_MOD_DB_URL` (new, optional) | The base address the API uses for mod database requests (`<base>/api`) and mod downloads (`<base>/download`). Default `https://mods.vintagestory.at`. Must be an `https` URL with a host and nothing else; `http` is accepted only with `VS_DEBUG=true`; a bad value stops start-up with an error naming the setting | Added setting |
+| 20.6 | Start-up log | New warning `mod_db_url_overridden` when the address is not the default | Added |
+| 20.6 | Image host allow-list, link rules, the web UI's links to mod pages | Unchanged; they do not follow the setting | None |
+| 20.4 | Download checksum | `hashlib.md5(usedforsecurity=False)`; same result | None |
+
+No response field, route, status code or existing setting changes. Nothing is breaking.
+
+**Draft release-note text:** Features: `feat(api): add VS_MOD_DB_URL to use a mirror of the mod database`. Nothing else in the epic produces a release note.
 
 ## 3. Recommended Approach
 
@@ -82,11 +99,11 @@
 
 | Option | Assessment |
 |---|---|
-| 1. Direct Adjustment | Viable. Seven stories, all tied to existing beads. Effort medium, risk low except Story 20.6 (medium). |
+| 1. Direct Adjustment | Viable. Seven stories, all tied to existing beads. Effort medium, risk low except Story 20.6 (medium: it adds a setting to the product). |
 | 2. Rollback | Not viable. Nothing completed has to be undone. |
 | 3. MVP Review | Not needed. |
 
-**Effort:** Medium. Four issues are size-m in beads (`VSS-4ac`, `VSS-6wj`, `VSS-571h`, `VSS-3mr`) and ten are size-s. Story 20.6 is the largest; Stories 20.1 and 20.7 are the smallest.
+**Effort:** Medium. Four issues are size-m in beads (`VSS-4ac`, `VSS-6wj`, `VSS-571h`, `VSS-3mr`) and thirteen are size-s. Story 20.6 is the largest; Stories 20.1 and 20.7 are the smallest.
 
 **Risks:**
 
@@ -99,7 +116,10 @@
 - Story 20.4: semgrep is pinned by version, not by digest, and installs its own dependencies at run time.
 - Story 20.4: alerts in code scanning help only if someone reads them.
 - Story 20.5: the new-directory test reaches into the container with `docker exec`, which ties one spec to the throwaway stack. It skips elsewhere, and a script test keeps CI from skipping it.
-- Story 20.6: the mechanism (a stand-in at the mod database's address with a per-run certificate) may not hold in the image. The first task proves it or stops the story; the fallback needs the maintainer.
+- Story 20.6: the new setting lets an operator send the API, and its mod downloads, to another host. The guard (`https` only, `http` only in debug mode, checked at start-up), the start-up warning and the unchanged browser-side allow-lists limit what a wrong value can do; the README says what the setting is for.
+- Story 20.6: a mod database request that still used a constant would call the live service from CI. The live hosts stay blocked in both CI containers, so such a call fails the run at once.
+- Story 20.6: the second pass runs its API container in debug mode. The first pass stays in production mode, so CI still tests the image as it runs in production.
+- Story 20.6: six tasks, the project's limit; `create-story` should not add to them.
 - Story 20.6: recordings go stale without anyone noticing until a live run fails. The manifest dates them and the refresh prints shape changes.
 - Story 20.6: the recordings put public mod metadata (names, descriptions, authors) into the repository.
 - Story 20.7: digest pins mean more Renovate pull requests (base image rebuilds). Each is built and tested by CI.
@@ -110,11 +130,13 @@
 
 ### 4.1 PRD (`prd.md`)
 
-**Frontmatter:** update entry "Added FR234-FR257 for Epic 20 (Tooling and Test Health)".
+**Frontmatter:** update entry "Added FR234-FR259 for Epic 20 (Tooling and Test Health)".
 
 **New section after "Epic 19: API Security and Mod File Safety":**
 
 ```markdown
+### Epic 20: Tooling and Test Health
+
 #### Formatting
 
 - FR234: Every Python file of the API is in `ruff format`'s form; the reformat is one commit that holds nothing else
@@ -147,7 +169,7 @@
 - FR249: An E2E test shows that a directory created while the file manager is open is listed after the page is loaded again
 - FR250: CI's E2E job restores the Playwright browsers from a cache keyed by the Playwright versions
 - FR251: The connection reset seen in the E2E server-status stub has a recorded cause or a record of what was tried, and its retry is explained or removed
-- FR252: CI runs the E2E tests that need mod database answers against recorded answers served in the mod database's place, with no request to the live service and no change to the product's code or settings
+- FR252: CI runs the E2E tests that need mod database answers against recorded answers, served by a replay that the API reaches through `VS_MOD_DB_URL`, with no request to the live service
 - FR253: The recorded answers are files in the repository with a manifest of what was recorded and when, and one command refreshes them from the live mod database and reports changes in shape
 - FR254: Tests that must compare with the live mod database or install a real mod are tagged and stay local-only; every spec still runs against the live service on a developer's machine
 
@@ -156,13 +178,18 @@
 - FR255: Every image the Dockerfile builds from or copies from is pinned by digest, the uv version equals the one in `.mise.toml`, and a script test enforces both
 - FR256: Renovate proposes updates for the pinned image digests and moves uv in the Dockerfile and in `.mise.toml` together
 - FR257: The story numbering rule in `project-context.md` matches the practice: a preparation story is X.0, and an epic without one starts at X.1
+
+#### The Mod Database's Address (Matt, 2026-11-17)
+
+- FR258: `VS_MOD_DB_URL` sets the base address the API uses for mod database requests and mod downloads; it defaults to `https://mods.vintagestory.at`, and the image host allow-list, the link rules and the links the web UI builds do not follow it
+- FR259: The address is validated at start-up: it must be an `https` URL with a host and nothing else, `http` is accepted only when `VS_DEBUG=true`, anything else stops start-up with an error that names the setting, and an address other than the default is logged as a warning
 ```
 
 ### 4.2 Epics Structure (`epics.md`)
 
-**Frontmatter:** update entry "Added Epic 20 (7 stories) for Tooling and Test Health; FR234-FR257".
+**Frontmatter:** update entry "Added Epic 20 (7 stories) for Tooling and Test Health; FR234-FR259".
 
-**FR Coverage Map:** rows FR234 to FR257 appended after FR233, each mapped to Epic 20.
+**FR Coverage Map:** rows FR234 to FR259 appended after FR233, each mapped to Epic 20.
 
 **Story Summary:**
 
@@ -183,11 +210,11 @@ NEW:
 
 ## Epic 20: Tooling and Test Health
 
-**Goal:** `just check` is green and quiet, and what it checks is everything: the API's format, the E2E specs' types and every script. A static security scan runs on every pull request. CI runs the browser tests for the file browser and the mod database, not only the ones that need nothing. The release image is built from pinned inputs. Fourteen open beads and one old epic are closed.
+**Goal:** `just check` is green and quiet, and what it checks is everything: the API's format, the E2E specs' types and every script. A static security scan runs on every pull request. CI runs the browser tests for the file browser and the mod database, not only the ones that need nothing. The release image is built from pinned inputs. Seventeen open beads and one old epic are closed.
 
-**Architecture:** `architecture/epic-20-tooling-and-test-health.md` (ADR-1 to ADR-11, with the facts checked at `3f1c6ea`). There is no preparation story. Story 20.6 proves its mechanism in its first task before it records anything (ADR-9 decision 2).
+**Architecture:** `architecture/epic-20-tooling-and-test-health.md` (ADR-1 to ADR-11, with the facts checked at `3f1c6ea`). There is no preparation story. Story 20.6 adds its setting and proves the path to the replay in its first two tasks before it records anything (ADR-9 decision 7).
 
-**Decided by the maintainer (Matt, 2026-11-17):** the one-time `ruff format` of the API as the first change of the epic, with the check in `just lint-api` (ADR-1); Prettier for the web is not in scope; the semgrep design: pinned version, six registry packs, pull requests fail only on findings they add, full scans of `main` report without blocking, SARIF to code scanning, source only, and the inline `nosemgrep` exception for a verified false positive (ADR-6, ADR-7).
+**Decided by the maintainer (Matt, 2026-11-17):** the one-time `ruff format` of the API as the first change of the epic, with the check in `just lint-api` (ADR-1); Prettier for the web is not in scope; the semgrep design: pinned version, six registry packs, pull requests fail only on findings they add, full scans of `main` report without blocking, SARIF to code scanning, source only, and the inline `nosemgrep` exception for a verified false positive (ADR-6, ADR-7). The same day he answered the proposal's open questions: the mod database's address becomes a setting, `VS_MOD_DB_URL`, and CI points it at a plain-HTTP replay of recorded answers (ADR-9, the alternative to the first draft); the recordings are trimmed real answers; the three pull-ins are approved; and every other default stands (`just semgrep` outside `just check`, no scheduled live run, the `@moddb-live` tag, the `docker exec` new-directory test, stop and ask under `vmThreads`, digests for all three images with `apt-get upgrade` kept, X.0 for preparation stories).
 
 **Order:** 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7.
 
@@ -201,9 +228,9 @@ NEW:
 - Story 20.7 needs no other story's code. It comes last because a digest change empties the image build cache that the `docker` and `e2e` jobs share, which would blur the timings Stories 20.5 and 20.6 record.
 - Stories 20.3, 20.4, 20.5 and 20.6 all edit the `Justfile`, and 20.4, 20.5 and 20.6 all edit `ci.yml`; run them one after another.
 
-**Beads:** fourteen in scope, each closed with an AAR by its story. `VSS-3asx` spans Stories 20.1 and 20.3 and closes with 20.3. `VSS-571h` spans Stories 20.5 and 20.6 and closes with 20.6. `VSS-37a` is already fixed in the code and is verified and closed in 20.2. The old epic `VSS-029` "Web UI Test Coverage" (16 of 18 done) closes in Story 20.5, when its last two children (`VSS-37a`, `VSS-3mr`) are closed.
+**Beads:** seventeen in scope (the fourteen the maintainer picked and three pull-ins he approved on 2026-11-17: `VSS-eh41` in 20.2, `VSS-zhv3` in 20.6, `VSS-3q2s` in 20.7), each closed with an AAR by its story. `VSS-3asx` spans Stories 20.1 and 20.3 and closes with 20.3. `VSS-571h` spans Stories 20.5 and 20.6 and closes with 20.6. `VSS-37a` is already fixed in the code and is verified and closed in 20.2. The old epic `VSS-029` "Web UI Test Coverage" (16 of 18 done) closes in Story 20.5, when its last two children (`VSS-37a`, `VSS-3mr`) are closed.
 
-**Proposed pull-ins (not yet approved; each is marked in its story):** `VSS-eh41` (remove the dead `Terminal.tsx` and its test, and the unused `checkVersionCompatibility`) into 20.2; `VSS-zhv3` (the mod API reference lacks fields the recordings will hold) into 20.6; `VSS-3q2s` (the architecture's environment table) into 20.7. If the maintainer says no to one, its task is dropped and nothing else changes.
+**One product change:** Story 20.6 adds the optional setting `VS_MOD_DB_URL` (ADR-9). It is the only change of the epic that an operator can see, and its commit is a `feat(api)` with a release note.
 
 ### Current State
 
@@ -222,7 +249,7 @@ NEW:
 - `just check` ends with 0 Pyright warnings and 0 skipped tests, and the web tests run in the `vmThreads` pool
 - `just typecheck` covers the E2E specs, `just lint-scripts` covers every script, recipes pass quoted arguments intact, and a Playwright run leaves the tree clean
 - `just semgrep` and a CI job scan the source with a pinned semgrep; a pull request fails only on a finding it adds, and `main`'s findings are in code scanning
-- CI runs the file browser tests on a seeded directory tree, a test for a directory created while the page is open, and the mod database tests against recorded answers
+- CI runs the file browser tests on a seeded directory tree, a test for a directory created while the page is open, and the mod database tests against recorded answers, which the API reaches through the new `VS_MOD_DB_URL` setting
 - Every image the Dockerfile uses is pinned by digest and Renovate moves the pins
 - The story numbering rule says what the project does
 
@@ -305,7 +332,7 @@ So that **formatting a file I work on never adds changes that are not mine**.
 ### Story 20.2: A Green, Quiet `just check`
 
 **Sprint key:** `20-2-green-quiet-check`
-**Beads:** `VSS-1ar` (TEST-003), `VSS-hnl` (TEST-004), `VSS-37a` (bug), `VSS-6wj` (TEST-005). Proposed pull-in: `VSS-eh41` (UI-098)
+**Beads:** `VSS-1ar` (TEST-003), `VSS-hnl` (TEST-004), `VSS-37a` (bug), `VSS-6wj` (TEST-005), `VSS-eh41` (UI-098; pulled in, Matt, 2026-11-17)
 **FRs:** FR237, FR238, FR239
 
 As a **developer**,
@@ -346,11 +373,11 @@ So that **a new warning or skip is seen the day it appears, and the check is qui
 
 **Given** `web/vitest.config.ts`
 **When** I read it
-**Then** it sets `pool: 'vmThreads'`, does not set `isolate: false`, and no test file is moved to another pool
+**Then** it sets `pool: 'vmThreads'`, does not set `isolate: false`, and no test file is moved to another pool; if a file cannot be made to pass, the story stops and asks the maintainer
 
-*(Covers FR239)*
+*(Covers FR239; Matt, 2026-11-17)*
 
-**Given** the four files that failed under `vmThreads` (`use-log-stream.test.ts`, `use-console-websocket.test.ts`, `Terminal.test.tsx`, `cookies.test.ts`)
+**Given** the three files that failed under `vmThreads` and remain (`use-log-stream.test.ts`, `use-console-websocket.test.ts`, `cookies.test.ts`; the fourth, `Terminal.test.tsx`, is deleted with its dead component)
 **When** the web tests run under `vmThreads` and under the forks pool
 **Then** every test passes under both, no test redefines `window.location` with `Object.defineProperty` or deletes `global.document`, and the tests assert what they asserted before
 
@@ -374,20 +401,20 @@ So that **a new warning or skip is seen the day it appears, and the check is qui
 
 *(Covers FR238, FR239)*
 
-**Given** the proposed pull-in `VSS-eh41`, if the maintainer approves it
+**Given** the pull-in `VSS-eh41`
 **When** the story is done
-**Then** `web/src/features/terminal/Terminal.tsx`, its test and the unused `checkVersionCompatibility` are removed, nothing imports them, and the bead is closed with an AAR
+**Then** `web/src/features/terminal/Terminal.tsx`, its test and the unused `checkVersionCompatibility` are removed, nothing imports them, the E2E spec `terminal.spec.ts` (which tests the Console page, not this component) still passes, and the bead is closed with an AAR
 
-*(Covers FR239; proposed, not yet approved)*
+*(Covers FR239; pulled in, Matt, 2026-11-17)*
 
 **Tasks:**
 
 - [ ] Annotate the three fixtures; `just typecheck-api` at 0 warnings (Epic 20 ADR-3 decision 3) (`VSS-1ar`)
 - [ ] Delete the three placeholders after checking the game version filter's tests, writing the missing ones; rewrite the remove-button loading test (ADR-3 decisions 1 and 2) (`VSS-hnl`)
 - [ ] Run and record `VSS-37a`'s three tests; close the bead with its AAR (ADR-3 decision 4) (`VSS-37a`)
-- [ ] Read every failure under `vmThreads`; change the stubs in the four files so they pass under both pools (ADR-2 decisions 2 and 3) (`VSS-6wj`)
+- [ ] Pull-in (Matt, 2026-11-17): remove `Terminal.tsx`, `Terminal.test.tsx` and `checkVersionCompatibility`; list the deleted tests (ADR-2 decision 3) (`VSS-eh41`)
+- [ ] Read every failure under `vmThreads`; change the stubs in the three remaining files so they pass under both pools (ADR-2 decision 2) (`VSS-6wj`)
 - [ ] `pool: 'vmThreads'` in `web/vitest.config.ts`; local and CI times; the stubbing pattern and the skip patterns in `project-context.md` (ADR-2 decisions 1 and 6, ADR-3 decision 5) (`VSS-6wj`)
-- [ ] Proposed pull-in, only if approved: remove `Terminal.tsx`, `Terminal.test.tsx` and `checkVersionCompatibility` (`VSS-eh41`)
 
 ---
 
@@ -531,7 +558,7 @@ So that **a risky pattern is caught when it is written, without old findings or 
 **When** they run
 **Then** none of them runs semgrep
 
-*(Covers FR244; the default until the maintainer says otherwise)*
+*(Covers FR244; Matt, 2026-11-17)*
 
 **Given** a pull request that adds a line a chosen rule matches
 **When** CI runs
@@ -632,7 +659,7 @@ So that **the file browser is covered in CI and the old test-coverage epic can c
 **When** it runs
 **Then** it skips with a message that says why and changes nothing in that stack's data; `scripts/tests/test-e2e-ci.sh` checks that the CI script gives the test what it needs, so CI cannot skip it
 
-*(Covers FR249)*
+*(Covers FR249; Matt, 2026-11-17)*
 
 **Given** `VSS-3mr` and `VSS-37a` closed
 **When** the story is done
@@ -678,8 +705,8 @@ So that **the file browser is covered in CI and the old test-coverage epic can c
 ### Story 20.6: The Mod Database E2E Tests Run in CI
 
 **Sprint key:** `20-6-mod-database-tests-in-ci`
-**Beads:** `VSS-571h` (TEST-006), part 1, closed here. Proposed pull-in: `VSS-zhv3` (DOCS-001)
-**FRs:** FR252, FR253, FR254
+**Beads:** `VSS-571h` (TEST-006), part 1, closed here; `VSS-zhv3` (DOCS-001; pulled in, Matt, 2026-11-17)
+**FRs:** FR252, FR253, FR254, FR258, FR259
 
 As a **maintainer**,
 I want **the tests that read the mod database to run in CI against recorded answers**,
@@ -687,21 +714,63 @@ So that **the mod pages are covered on every pull request, the same way every ti
 
 **Acceptance Criteria:**
 
-**Given** the replay mechanism
-**When** the first task is done
-**Then** the story has shown, in the built image, that the API reaches the replay server at the mod database's own address over HTTPS with no change to the API's code or settings, and that a request with no recording fails with a message naming the URL; if that cannot be shown, the story stops and reports
+**Given** a deployment that does not set `VS_MOD_DB_URL`
+**When** the API starts and talks to the mod database
+**Then** it uses `https://mods.vintagestory.at` for its API calls and downloads exactly as before, and logs no warning about the address
+
+*(Covers FR258; Matt, 2026-11-17)*
+
+**Given** `VS_MOD_DB_URL` set to another `https` address
+**When** the API lists mods, looks a mod up, reads the game version list or downloads a mod file
+**Then** each request goes to that address (`<base>/api/...`, `<base>/download`), and the start-up log has one warning that names the scheme and host
+
+*(Covers FR258, FR259)*
+
+**Given** `VS_MOD_DB_URL` set to another address
+**When** the API passes on a mod's logo, screenshots, homepage and source links, and the web UI builds a link to a mod's page
+**Then** the image host allow-list and the link rules are the same as without the setting (only `moddbcdn.vintagestory.at` images, `https` links), and the web UI's links still point at `mods.vintagestory.at`
+
+*(Covers FR258)*
+
+**Given** `VS_MOD_DB_URL` with the scheme `http` and `VS_DEBUG` unset or false
+**When** the API starts
+**Then** start-up stops with an error that names `VS_MOD_DB_URL` and says plain HTTP is for testing and needs `VS_DEBUG=true`
+
+*(Covers FR259; Matt, 2026-11-17)*
+
+**Given** `VS_MOD_DB_URL` with the scheme `http` and `VS_DEBUG=true`
+**When** the API starts
+**Then** it starts, uses the address, and logs the warning
+
+*(Covers FR259; Matt, 2026-11-17)*
+
+**Given** a value that is not an absolute URL, has another scheme, has no host, or carries a user name, a password, a path, a query or a fragment
+**When** the API starts
+**Then** start-up stops with an error that names the setting and what is wrong; a single trailing `/` is accepted and ignored
+
+*(Covers FR259)*
+
+**Given** the README, `.env.example` and the release notes
+**When** I read them
+**Then** the setting is documented as optional, with its default, what it is for (a mirror of the same database, or tests), the `http` rule, and that mods are downloaded from that address; and the commit that adds it has the subject `feat(api): add VS_MOD_DB_URL to use a mirror of the mod database`
+
+*(Covers FR258)*
+
+**Given** the built image with the setting pointed at a stub, before anything is recorded
+**When** the second task is done
+**Then** the story has shown that the listing, the mod lookup, the game version list and the download reach the stub, that no request goes to the live host (which stays blocked in the container), and that a request the stub has no answer for is reported with its URL
 
 *(Covers FR252)*
 
 **Given** `just test-e2e-ci`
 **When** it runs
-**Then** it starts the replay server beside the API container, runs the tests tagged `@moddb` as well as the untagged ones, and removes everything it started, also after a failure
+**Then** its first pass is as before (the untagged tests against a container in production mode), and a second pass starts a replay container and a second API container with `VS_DEBUG=true` and `VS_MOD_DB_URL` set to the replay, runs the `@moddb` tests that are not `@moddb-live` or `@install` against it, and removes everything it started, also after a failure
 
 *(Covers FR252)*
 
 **Given** the CI run
 **When** I look at where its requests go
-**Then** neither the API container nor the browser sends a request to the live mod database or its image host
+**Then** neither API container nor the browser sends a request to the live mod database or its image host; the browser's image requests are answered by a placeholder
 
 *(Covers FR252)*
 
@@ -713,9 +782,9 @@ So that **the mod pages are covered on every pull request, the same way every ti
 
 **Given** `web/e2e/fixtures/moddb/`
 **When** I read it
-**Then** it holds one file per recorded request and a manifest that gives each request, its recording date, how it was trimmed and which spec needs it, and it holds nothing but what the mod database's public API returned
+**Then** it holds one file per recorded request and a manifest that gives each request, its recording date, how it was trimmed and which spec needs it; the answers are real ones, trimmed, with their image and link URLs unchanged, and nothing but what the mod database's public API returned
 
-*(Covers FR253)*
+*(Covers FR253; Matt, 2026-11-17)*
 
 **Given** `just record-moddb`
 **When** I run it with network access
@@ -727,17 +796,17 @@ So that **the mod pages are covered on every pull request, the same way every ti
 **When** the story has run each against the recordings
 **Then** each one either runs in CI, or carries `@moddb-live` (it compares with live data) or `@install` (it installs a real mod) with a one-line reason, and the story lists how many tests are in each group
 
-*(Covers FR254)*
+*(Covers FR254; Matt, 2026-11-17)*
 
 **Given** `just test-e2e-web` on a developer's machine
 **When** it runs
-**Then** every spec still runs against the live mod database, with no recordings involved
+**Then** every spec still runs against the live mod database, with no recordings and no setting involved, and no workflow runs them against the live service on a schedule
 
-*(Covers FR254)*
+*(Covers FR254; Matt, 2026-11-17)*
 
 **Given** `web/e2e/README.md`
 **When** I read it
-**Then** it explains the three tags as they now are, how the replay works, how and when to refresh the recordings, and which tests remain live-only
+**Then** it explains the tags as they now are, the two passes, how the replay works, how and when to refresh the recordings, and which tests remain live-only
 
 *(Covers FR253, FR254)*
 
@@ -747,27 +816,27 @@ So that **the mod pages are covered on every pull request, the same way every ti
 
 *(Covers FR252)*
 
-**Given** the proposed pull-in `VSS-zhv3`, if the maintainer approves it
+**Given** the pull-in `VSS-zhv3`
 **When** the story is done
 **Then** `agentdocs/vintagestory-modapi.md` documents the fields and filters the bead lists, checked against the recordings, and the bead is closed with an AAR
 
-*(Covers FR253; proposed, not yet approved)*
+*(Covers FR253; pulled in, Matt, 2026-11-17)*
 
 **Tasks:**
 
-- [ ] Prove the mechanism: the replay server script, the run's own certificate, the network alias, `SSL_CERT_FILE` in the API container, and the error for a missing recording (Epic 20 ADR-9 decisions 1 and 2) (`VSS-571h`)
-- [ ] The recording script and `just record-moddb`; the manifest; the first recordings for the requests the specs make (ADR-9 decisions 3 and 4) (`VSS-571h`)
-- [ ] The replay in `scripts/e2e-ci.sh` with its cleanup, pinned in `scripts/tests/test-e2e-ci.sh`; images answered by a placeholder in the CI run (ADR-9 decisions 1 and 7) (`VSS-571h`)
-- [ ] Run each `@moddb` test on the recordings; retag (`@moddb-live`) with reasons; fix tests that fail for a fault of their own (ADR-9 decision 6) (`VSS-571h`)
-- [ ] `web/e2e/README.md` and the tags' meaning; job time before and after; close `VSS-571h` with an AAR (ADR-9 decision 5)
-- [ ] Proposed pull-in, only if approved: complete `agentdocs/vintagestory-modapi.md` from what was recorded (`VSS-zhv3`)
+- [ ] The `VS_MOD_DB_URL` setting: validation at start-up, the warning, `ModApiClient` building both addresses from it, tests for every accepted and refused form and for the fixed allow-lists; README and `.env.example`; its own `feat(api)` commit (Epic 20 ADR-9 decisions 1 to 5) (`VSS-571h`)
+- [ ] Prove the path in the built image against a stub: every mod database request and the download follow the setting, nothing reaches the live host, a missing answer names its URL (ADR-9 decision 7) (`VSS-571h`)
+- [ ] The replay server script, the recording script and `just record-moddb`; the manifest; the first recordings for the requests the specs make (ADR-9 decisions 6, 8, 9 and 10) (`VSS-571h`)
+- [ ] The second pass in `scripts/e2e-ci.sh` (network, replay container, second API container, cleanup), pinned in `scripts/tests/test-e2e-ci.sh`; images answered by a placeholder (ADR-9 decisions 6 and 13) (`VSS-571h`)
+- [ ] Run each `@moddb` test on the recordings; retag (`@moddb-live`) with reasons; fix tests that fail for a fault of their own; `web/e2e/README.md`; job time before and after; close `VSS-571h` with an AAR (ADR-9 decisions 11 and 12)
+- [ ] Pull-in (Matt, 2026-11-17): complete `agentdocs/vintagestory-modapi.md` from what was recorded (`VSS-zhv3`)
 
 ---
 
 ### Story 20.7: Reproducible Image Inputs and the Numbering Rule
 
 **Sprint key:** `20-7-reproducible-image-and-conventions`
-**Beads:** `VSS-870` (INFRA-004), `VSS-as6` (TOOLS-005). Proposed pull-in: `VSS-3q2s` (DOCS-002)
+**Beads:** `VSS-870` (INFRA-004), `VSS-as6` (TOOLS-005), `VSS-3q2s` (DOCS-002; pulled in, Matt, 2026-11-17)
 **FRs:** FR255, FR256, FR257
 
 As a **maintainer**,
@@ -782,11 +851,11 @@ So that **a release build does not change without a commit, and the documentatio
 
 *(Covers FR255)*
 
-**Given** every `FROM` and `COPY --from` image in the Dockerfile
+**Given** every `FROM` and `COPY --from` image in the Dockerfile (uv, the Node build image and the .NET runtime image)
 **When** `just test-scripts` runs
 **Then** a test passes only if each has `@sha256:` and the uv tag equals the uv version in `.mise.toml`
 
-*(Covers FR255)*
+*(Covers FR255; Matt, 2026-11-17)*
 
 **Given** the image built from the pinned Dockerfile
 **When** CI's `docker` and `e2e` jobs run
@@ -802,15 +871,15 @@ So that **a release build does not change without a commit, and the documentatio
 
 **Given** `RELEASING.md`
 **When** I read what happens on a re-run of the image job
-**Then** it says which inputs are pinned, that the system package layer can still differ, and that each run's attestations describe the digest that run pushed
+**Then** it says which inputs are pinned, that `apt-get upgrade` stays and the system package layer can therefore still differ, and that each run's attestations describe the digest that run pushed
 
-*(Covers FR255)*
+*(Covers FR255; Matt, 2026-11-17)*
 
 **Given** `project-context.md`'s "Story Numbering" section
 **When** I read it
 **Then** it says a preparation story is numbered X.0, an epic without one starts at X.1, and its table and history match what Epics 4 to 20 did
 
-*(Covers FR257; the default until the maintainer says otherwise)*
+*(Covers FR257; Matt, 2026-11-17)*
 
 **Given** `cliff.toml`, the BMAD story template and the sprint keys
 **When** the story is done
@@ -818,11 +887,11 @@ So that **a release build does not change without a commit, and the documentatio
 
 *(Covers FR257)*
 
-**Given** the proposed pull-in `VSS-3q2s`, if the maintainer approves it
+**Given** the pull-in `VSS-3q2s`
 **When** the story is done
-**Then** the environment table in `architecture/project-structure-boundaries.md` lists `VS_API_KEY` and `VS_CSP_MODE`, says what `VS_DEBUG` also serves, does not list `VS_GAME_VERSION`, and the bead is closed with an AAR
+**Then** the environment table in `architecture/project-structure-boundaries.md` lists `VS_API_KEY`, `VS_CSP_MODE` and Story 20.6's `VS_MOD_DB_URL`, says what `VS_DEBUG` also serves and that it allows a plain-HTTP mod database address, does not list `VS_GAME_VERSION`, and the bead is closed with an AAR
 
-*(Covers FR257; proposed, not yet approved)*
+*(Covers FR257; pulled in, Matt, 2026-11-17)*
 
 **Tasks:**
 
@@ -830,23 +899,23 @@ So that **a release build does not change without a commit, and the documentatio
 - [ ] The Renovate rule that groups uv; the script test for digests and the uv version (ADR-10 decisions 3 and 4) (`VSS-870`)
 - [ ] `RELEASING.md`: what a re-run can and cannot change (ADR-10 decision 5) (`VSS-870`)
 - [ ] Rewrite the "Story Numbering" section of `project-context.md` (ADR-11) (`VSS-as6`)
-- [ ] Proposed pull-in, only if approved: the architecture's environment table (`VSS-3q2s`)
+- [ ] Pull-in (Matt, 2026-11-17): the architecture's environment table, with `VS_MOD_DB_URL` (`VSS-3q2s`)
 
 ### 4.4 Architecture (`architecture/epic-20-tooling-and-test-health.md`, new)
 
 | ADR | Decision | Story | Decided by |
 |---|---|---|---|
 | ADR-1 | One commit runs `ruff format` over the whole API and holds nothing else; it is the first change of the epic, its own story and pull request (reviewed by reproducing it); its hash goes into `.git-blame-ignore-revs`; `ruff format --check` joins `just lint-api`, which CI and `just check` run. No Prettier for the web | 20.1 | Matt, 2026-11-17 |
-| ADR-2 | The web tests switch to `pool: 'vmThreads'` (15.2 s to 6.3 s locally). The four failing files change how they stub `location` and `document`; `isolate: false` is rejected; no file stays on another pool | 20.2 | Planner; a file that cannot be fixed needs Matt |
+| ADR-2 | The web tests switch to `pool: 'vmThreads'` (15.2 s to 6.3 s locally). `Terminal.test.tsx` is deleted with its dead component (`VSS-eh41`) and the three other failing files change how they stub `location` and `document`; `isolate: false` is rejected; no file stays on another pool | 20.2 | Planner; decision 5 and the `VSS-eh41` pull-in confirmed by Matt, 2026-11-17 |
 | ADR-3 | The three empty placeholder tests are deleted (with real tests where coverage is missing), the fourth is rewritten to pass, the Pyright warnings get annotations, `VSS-37a` is verified and closed. No ignore comment, no tool to forbid skips | 20.2 | Planner |
 | ADR-4 | A `web/e2e/tsconfig.json` (Node types only) is checked by `just typecheck-web`, so `just typecheck`, `just check` and CI's `web` job cover the specs; the web build does not | 20.3 | Planner |
 | ADR-5 | Recipes pass arguments as positional parameters (all eighteen that forward `*ARGS`); `sprint-status.sh` is made clean with `case` statements and `just lint-scripts` uses globs; the two Playwright output paths are untracked and ignored | 20.3 | Planner |
-| ADR-6 | Semgrep runs through one script at a version pinned with `uvx semgrep==<version>` (uv is already pinned everywhere; a baseline scan needs the git history; no image pull), kept current by Renovate; six registry packs fetched at run time; source only, tests excluded by `.semgrepignore`; metrics off. Not part of `just check` | 20.4 | Matt, 2026-11-17; the `just check` point needs Matt |
+| ADR-6 | Semgrep runs through one script at a version pinned with `uvx semgrep==<version>` (uv is already pinned everywhere; a baseline scan needs the git history; no image pull), kept current by Renovate; six registry packs fetched at run time; source only, tests excluded by `.semgrepignore`; metrics off. Not part of `just check` | 20.4 | Matt, 2026-11-17 |
 | ADR-7 | A sixth CI job: pull requests fail only on findings they add (`--baseline-commit`), `main` is scanned in full without failing, SARIF goes to code scanning from the one job with `security-events: write`; `test-release.sh` expects six jobs. Findings are fixed in code; a verified false positive may get an inline `nosemgrep` naming one rule with a reason, written into `project-context.md` as the one exception. The md5 finding is fixed with `usedforsecurity=False` | 20.4 | Matt, 2026-11-17 |
-| ADR-8 | `e2e-ci.sh` seeds a nested directory, so the five file browser navigation tests lose `@game-server`; a new test creates a directory in the throwaway container with `docker exec` and expects it after a reload; `VSS-029` closes; the Playwright browsers are cached by version; the connection reset gets a time-boxed investigation with a keep-alive race as the working explanation | 20.5 | Planner; the `docker exec` test needs Matt |
-| ADR-9 | A replay container answers at the mod database's own address over HTTPS with a per-run certificate, so the API code is unchanged; recordings and a manifest live in `web/e2e/fixtures/moddb/` and `just record-moddb` refreshes them; tests that compare with live data get `@moddb-live` and stay local with `@install`; images are stubbed in the browser. The first task proves the mechanism | 20.6 | Needs Matt |
-| ADR-10 | uv is copied from a version and digest that match `.mise.toml`; the two base images get digests; Renovate moves the pins and groups uv; a script test enforces it; `apt-get upgrade` stays and `RELEASING.md` says what can still differ | 20.7 | Planner for uv; base images and `apt-get upgrade` need Matt |
-| ADR-11 | The numbering rule changes to match practice: a preparation story is X.0, an epic without one starts at X.1. Documentation only | 20.7 | Needs Matt |
+| ADR-8 | `e2e-ci.sh` seeds a nested directory, so the five file browser navigation tests lose `@game-server`; a new test creates a directory in the throwaway container with `docker exec` and expects it after a reload; `VSS-029` closes; the Playwright browsers are cached by version; the connection reset gets a time-boxed investigation with a keep-alive race as the working explanation | 20.5 | Planner; the `docker exec` test confirmed by Matt, 2026-11-17 |
+| ADR-9 | A new optional setting `VS_MOD_DB_URL` (default `https://mods.vintagestory.at`) is the base for the API's mod database requests and downloads; the image host allow-list, the link rules and the web UI's links stay fixed. It is validated at start-up: `https` only, `http` only with `VS_DEBUG=true`, a warning when it is not the default. CI adds a second pass: a plain-HTTP replay container and a second API container in debug mode pointed at it, with the live hosts still blocked. Trimmed real recordings with their real image URLs and a manifest live in `web/e2e/fixtures/moddb/`; `just record-moddb` refreshes them; no scheduled live run; `@moddb-live` and `@install` stay local; images are stubbed in the browser | 20.6 | Matt, 2026-11-17 (the alternative to the first version) |
+| ADR-10 | uv is copied from a version and digest that match `.mise.toml`; the two base images get digests; Renovate moves the pins and groups uv; a script test enforces it; `apt-get upgrade` stays and `RELEASING.md` says what can still differ | 20.7 | Matt, 2026-11-17 |
+| ADR-11 | The numbering rule changes to match practice: a preparation story is X.0, an epic without one starts at X.1. Documentation only | 20.7 | Matt, 2026-11-17 |
 
 The file also records the facts the decisions rest on, with file and line references.
 
@@ -855,9 +924,9 @@ The file also records the facts the decisions rest on, with file and line refere
 | Artifact | Change | When |
 |---|---|---|
 | `sprint-status.yaml` | `epic-20` (backlog), `epic-20-retrospective` (optional) and the seven story keys (backlog), via `scripts/sprint-status.sh` | Now |
-| Beads | Epic `Epic 20: Tooling and Test Health` (`VSS-lzgg`), labels TOOLS and CICD; the 14 in-scope issues are its children. `VSS-37a` and `VSS-3mr` keep `VSS-029` as a parent too. No child bead's content was changed | Now, and per story |
+| Beads | Epic `Epic 20: Tooling and Test Health` (`VSS-lzgg`), labels TOOLS and CICD; the 17 in-scope issues are its children (the three pull-ins were added on 2026-11-17 after Matt's approval). `VSS-37a` and `VSS-3mr` keep `VSS-029` as a parent too. No child bead's content was changed | Now, and per story |
 | `architecture/index.md` | Entry for the Epic 20 ADRs | Now |
-| `project-context.md`, `CLAUDE.md`, README, `RELEASING.md`, `web/e2e/README.md` | The rules and commands the stories change | Stories 20.1 to 20.7 |
+| `project-context.md`, `CLAUDE.md`, README, `.env.example`, `RELEASING.md`, `web/e2e/README.md`, `agentdocs/vintagestory-modapi.md`, `architecture/project-structure-boundaries.md` | The rules and commands the stories change | Stories 20.1 to 20.7 |
 | `.github/workflows/ci.yml`, `Justfile`, `renovate.json`, `Dockerfile`, `scripts/` | As the stories say | Stories 20.1 to 20.7 |
 
 ## 5. Implementation Handoff
@@ -867,27 +936,33 @@ The file also records the facts the decisions rest on, with file and line refere
 | Role | Responsibility |
 |---|---|
 | Scrum Master (`create-story`) | Create story files 20.1 to 20.7 from `epics.md` and the Epic 20 ADRs, 20.1 first |
-| Developer (`dev-story`) | Implement each story. In 20.1, the format commit holds nothing else and merges before any other branch is cut. In 20.4, update the job-list guard with the workflow. In 20.6, prove the mechanism before recording |
+| Developer (`dev-story`) | Implement each story. In 20.1, the format commit holds nothing else and merges before any other branch is cut. In 20.4, update the job-list guard with the workflow. In 20.6, the setting is its own `feat(api)` commit, and the path to the replay is proved before recording |
 | Reviewer (`code-review`) | Delegated review per story. For 20.1, reproduce the format commit and compare trees |
-| Maintainer (Matt) | Answers the open questions below; reads code scanning alerts once 20.4 is on `main` |
+| Maintainer (Matt) | Reads code scanning alerts once 20.4 is on `main`; decides on the repository's secret scanning setting (below) |
 
 **Decided by the maintainer during planning (Matt, 2026-11-17), not open:**
 
 1. Ruff format: approved as one dedicated commit, first in the epic, into `.git-blame-ignore-revs`, then the check in `just lint-api`. Prettier for the web is not in scope. (ADR-1)
 2. Semgrep: local recipe and CI job; pinned version; the six packs fetched at run time; pull requests fail only on findings they add; full scans of `main` do not block; SARIF to code scanning with `security-events: write` on that job only; source only; the md5 finding fixed in code; the inline `nosemgrep` exception. (ADR-6, ADR-7)
 
-**Open questions for the maintainer,** each with the default the plan uses:
+**Open questions for the maintainer.** Answered 2026-11-17: 3 changed to the alternative; 2 approved; all others confirmed as defaulted.
 
-1. **Does `just semgrep` join `just check`? (ADR-6 decision 8)** Default: no. It needs the network and adds about a minute to a command run before every commit, and CI runs it on every pull request. Alternative: add it to `just lint`.
-2. **The three pull-ins.** Default: yes to all three. `VSS-eh41` into 20.2 (deleting the dead `Terminal.tsx` removes one of the four files that fail under `vmThreads`), `VSS-zhv3` into 20.6 (the mod API reference, written from what gets recorded), `VSS-3q2s` into 20.7 (the architecture's environment table, documentation only). They are written into the stories as marked tasks and are not children of the epic bead until approved.
-3. **How recorded answers reach the API (ADR-9 decisions 1 and 8).** Default: a replay container at the mod database's address, no product change. Alternative: a setting for the mod database address, which is simpler to test with and adds a configuration surface to the product.
-4. **Real recordings or hand-written answers (ADR-9 decision 9).** Default: trimmed real recordings, which put public mod names, descriptions and authors' names into the repository.
-5. **A scheduled run of the mod database tests against the live service (ADR-9 decision 5).** Default: none; the live tests are flaky today.
-6. **Which mod database tests stay local-only (ADR-9 decision 6).** Default: tests that compare with live data (`@moddb-live`) and the three `@install` tests.
-7. **The new-directory test (ADR-8 decision 3).** Default: the test creates the directory in the throwaway container with `docker exec` and skips on any other stack. Alternative: leave "new directory appears on refresh" untested and close `VSS-3mr` on navigation alone.
-8. **Digests for the two base images, and `apt-get upgrade` (ADR-10 decisions 2 and 5).** Default: pin both base images by digest as well as uv; keep `apt-get upgrade` and document that the system package layer can differ between runs. Alternative for the second: a dated Ubuntu snapshot, as a later piece of work.
-9. **The numbering rule (ADR-11).** Default: change the rule to "a preparation story is X.0; an epic without one starts at X.1". Alternative: keep "always X.1" and change `cliff.toml` to recognise preparation stories another way.
-10. **A file that cannot pass under `vmThreads` (ADR-2 decision 5).** Default: the switch does not merge until all files pass; the story stops and asks before leaving a file on another pool.
+1. **Does `just semgrep` join `just check`? (ADR-6 decision 8)** Default: no. It needs the network and adds about a minute to a command run before every commit, and CI runs it on every pull request. *Confirmed: not in `just check` (Matt, 2026-11-17).*
+2. **The three pull-ins.** Default: yes to all three. *Approved (Matt, 2026-11-17): `VSS-eh41` into 20.2, `VSS-zhv3` into 20.6, `VSS-3q2s` into 20.7. They are children of `VSS-lzgg` and their tasks are in the stories.*
+3. **How recorded answers reach the API (ADR-9).** Default was a replay container at the mod database's own address with a per-run certificate and no product change. *Changed (Matt, 2026-11-17): the alternative. A setting for the mod database's base address, default the real one; CI points it at a plain-HTTP replay container. The guard must keep it from becoming a production foot-gun. Written as ADR-9: the setting is `VS_MOD_DB_URL`; `https` is required and `http` is accepted only with `VS_DEBUG=true`, checked at start-up; the API requests and the download follow it and everything given to a browser stays fixed.*
+4. **Real recordings or hand-written answers (ADR-9 decision 8).** Default: trimmed real recordings. *Confirmed (Matt, 2026-11-17).*
+5. **A scheduled run of the mod database tests against the live service (ADR-9 decision 11).** Default: none. *Confirmed (Matt, 2026-11-17).*
+6. **Which mod database tests stay local-only (ADR-9 decision 12).** Default: tests that compare with live data (`@moddb-live`) and the three `@install` tests. *Confirmed (Matt, 2026-11-17).*
+7. **The new-directory test (ADR-8 decision 3).** Default: the test creates the directory in the throwaway container with `docker exec` and skips on any other stack. *Confirmed (Matt, 2026-11-17).*
+8. **Digests for the two base images, and `apt-get upgrade` (ADR-10 decisions 2 and 5).** Default: pin both base images by digest as well as uv; keep `apt-get upgrade` and document it. *Confirmed (Matt, 2026-11-17).*
+9. **The numbering rule (ADR-11).** Default: "a preparation story is X.0; an epic without one starts at X.1". *Confirmed (Matt, 2026-11-17).*
+10. **A file that cannot pass under `vmThreads` (ADR-2 decision 5).** Default: stop and ask; no per-file pool override. *Confirmed (Matt, 2026-11-17).*
+
+**What the planner decided inside answer 3, for the maintainer to see:**
+
+1. **The name is `VS_MOD_DB_URL`,** not the working name `VS_MOD_API_URL`: the value is the site's base address, and both `/api` and `/download` are built from it.
+2. **CI runs the mod database tests as a second pass with a second API container.** The guard needs `VS_DEBUG=true` for a plain-HTTP address. Switching the one CI container to debug mode would have meant every E2E test runs against a debug-mode image (API documentation served, test routes mounted), and CI would no longer test the image as it runs in production. The first pass is therefore unchanged and only the `@moddb` pass uses a debug-mode container.
+3. **The image host and the links do not follow the setting.** They are checks on what a browser is given, and recorded answers keep their real image URLs so those checks are tested on real values.
 
 **For the maintainer, not a story:** GitHub secret scanning and push protection are disabled on the repository. Both are free for public repositories and are a repository setting, not code.
 
@@ -906,9 +981,10 @@ The file also records the facts the decisions rest on, with file and line refere
 
 1. `just lint-web` and `just typecheck-web` run the same command, so `just check` type-checks the web twice. It costs seconds; a real web linter is a different piece of work (ADR-4).
 2. The web is not formatted by Prettier (279 files) and `just format-web` runs an unpinned Prettier. Out of scope by the maintainer's decision.
-3. Open beads that touch nearby files and are product work, not tooling: `VSS-759m` (casts in `VersionTable`), `VSS-vt4` (settings tabs and arrow keys), `VSS-o8s` (file browser paths with a slash). Not proposed.
+3. The new setting should also appear in the architecture's environment table; that is `VSS-3q2s`'s table, and Story 20.7 adds it there.
+4. Open beads that touch nearby files and are product work, not tooling: `VSS-759m` (casts in `VersionTable`), `VSS-vt4` (settings tabs and arrow keys), `VSS-o8s` (file browser paths with a slash). Not proposed.
 
-**Planned net bead change:** closed 15 (the 14 in-scope beads and the old epic `VSS-029`); with the three pull-ins, 18. Opened 1 (the epic bead `VSS-lzgg`, which closes with the epic). Filed from planning: none. Net: 15 fewer open beads, or 18 with the pull-ins, from 50 open today.
+**Planned net bead change (after the pull-ins were approved):** closed 18 (the 14 beads the maintainer picked, the 3 pull-ins and the old epic `VSS-029`). Opened 1 (the epic bead `VSS-lzgg`, which closes with the epic). Filed from planning: none. Net: 18 fewer open beads, from 50 open before the epic to 32 after it.
 
 **Success criteria:**
 
@@ -917,18 +993,19 @@ The file also records the facts the decisions rest on, with file and line refere
 - A type error in an E2E spec fails `just check` and CI; ShellCheck covers every script; `just test-api -k "a or b"` works; a Playwright run leaves `git status` clean
 - A pull request that adds a semgrep finding fails, one that adds none passes whatever `main` holds, and `main`'s results are in code scanning
 - CI runs the file browser navigation tests, the new-directory test and the mod database tests on recordings, with no request to the live mod database
+- With `VS_MOD_DB_URL` unset the API behaves as before; an `http` address without `VS_DEBUG=true`, or any malformed address, stops start-up with an error that names the setting
 - Every image in the Dockerfile has a digest and a script test says so
 - The numbering rule, `cliff.toml` and the story template agree
-- Each of the 14 in-scope beads is closed with an AAR by its story, and `VSS-029` is closed
+- Each of the 17 in-scope beads is closed with an AAR by its story, and `VSS-029` is closed
 - `just check` and CI pass throughout
 
 ## Checklist Record
 
 | Section | Result |
 |---|---|
-| 1. Trigger and context | [x] 1.1 trigger: fourteen beads chosen by the maintainer after Epic 19. [x] 1.2 type: one bug (already fixed) and thirteen tooling, test and CI tasks. [x] 1.3 evidence: section 1 and the ADR file |
+| 1. Trigger and context | [x] 1.1 trigger: fourteen beads chosen by the maintainer after Epic 19, and three related ones pulled in on his approval. [x] 1.2 type: one bug (already fixed) and sixteen tooling, test, CI and documentation tasks. [x] 1.3 evidence: section 1 and the ADR file |
 | 2. Epic impact | [x] 2.1 no current epic is blocked. [x] 2.2 add one epic. [x] 2.3 no remaining epic changes. [x] 2.4 nothing made obsolete except Epic 19 ADR-14 decision 9 and the "never Story 0" rule. [x] 2.5 no resequencing; order inside Epic 20 is set |
-| 3. Artifact conflicts | [x] 3.1 PRD: FR234-FR257 added, MVP unaffected. [x] 3.2 architecture: new Epic 20 ADRs. [N/A] 3.3 UX spec: no change. [!] 3.4 CI: a sixth job with `security-events: write`, and guards in two script tests to update |
+| 3. Artifact conflicts | [x] 3.1 PRD: FR234-FR259 added, MVP unaffected. [x] 3.2 architecture: new Epic 20 ADRs. [N/A] 3.3 UX spec: no change. [!] 3.4 CI: a sixth job with `security-events: write`, and guards in two script tests to update; one new optional setting, no deployment has to change |
 | 4. Path forward | [x] 4.1 Direct Adjustment: viable. [x] 4.2 Rollback: not viable. [x] 4.3 MVP Review: not needed. [x] 4.4 selected Option 1 |
 | 5. Proposal components | [x] 5.1 to 5.5: sections 1 to 5 |
-| 6. Review and handoff | [x] 6.1 scope approved before planning; ADR-1, ADR-6 and ADR-7 decided by Matt on 2026-11-17. [!] 6.2, 6.3 the ten open questions and ADR-8 to ADR-11 are not reviewed yet. [x] 6.4 handoff in section 5 |
+| 6. Review and handoff | [x] 6.1 scope approved before planning; ADR-1, ADR-6 and ADR-7 decided by Matt on 2026-11-17. [x] 6.2, 6.3 the ten open questions were answered by Matt on 2026-11-17 and are written in; the rewritten ADR-9 (the setting's name, the two passes, what follows the setting) is the planner's reading of his answer and has not been reviewed yet. [x] 6.4 handoff in section 5 |

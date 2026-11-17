@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added FR234-FR257 for Epic 20 (Tooling and Test Health)'
+    description: 'Added FR234-FR259 for Epic 20 (Tooling and Test Health); revised the same day: FR252 changed and FR258-FR259 added for the mod database address setting'
   - date: '2026-11-17'
     description: 'Added FR205-FR233 for Epic 19 (API Security and Mod File Safety); revised twice the same day: follow-ups folded in, seven stories'
   - date: '2026-11-16'
@@ -811,7 +811,7 @@ If trivial to implement:
 - FR249: An E2E test shows that a directory created while the file manager is open is listed after the page is loaded again
 - FR250: CI's E2E job restores the Playwright browsers from a cache keyed by the Playwright versions
 - FR251: The connection reset seen in the E2E server-status stub has a recorded cause or a record of what was tried, and its retry is explained or removed
-- FR252: CI runs the E2E tests that need mod database answers against recorded answers served in the mod database's place, with no request to the live service and no change to the product's code or settings
+- FR252: CI runs the E2E tests that need mod database answers against recorded answers, served by a replay that the API reaches through `VS_MOD_DB_URL`, with no request to the live service
 - FR253: The recorded answers are files in the repository with a manifest of what was recorded and when, and one command refreshes them from the live mod database and reports changes in shape
 - FR254: Tests that must compare with the live mod database or install a real mod are tagged and stay local-only; every spec still runs against the live service on a developer's machine
 
@@ -820,3 +820,8 @@ If trivial to implement:
 - FR255: Every image the Dockerfile builds from or copies from is pinned by digest, the uv version equals the one in `.mise.toml`, and a script test enforces both
 - FR256: Renovate proposes updates for the pinned image digests and moves uv in the Dockerfile and in `.mise.toml` together
 - FR257: The story numbering rule in `project-context.md` matches the practice: a preparation story is X.0, and an epic without one starts at X.1
+
+#### The Mod Database's Address (Matt, 2026-11-17)
+
+- FR258: `VS_MOD_DB_URL` sets the base address the API uses for mod database requests and mod downloads; it defaults to `https://mods.vintagestory.at`, and the image host allow-list, the link rules and the links the web UI builds do not follow it
+- FR259: The address is validated at start-up: it must be an `https` URL with a host and nothing else, `http` is accepted only when `VS_DEBUG=true`, anything else stops start-up with an error that names the setting, and an address other than the default is logged as a warning
