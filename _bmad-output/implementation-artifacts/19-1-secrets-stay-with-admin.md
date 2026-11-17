@@ -1,6 +1,6 @@
 # Story 19.1: Secrets Stay with Admin
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR205-FR209 and FR233, Epic 19 ADR-1, ADR-2, ADR-3 (decision 9: the Monitor note) and ADR-4. Beads: VSS-633 (API-077, bug, P2), VSS-sg1 (API-078, bug, P3), VSS-3hs2 (API-089, P3), VSS-ms0 (API-070, P3); parent VSS-fl9b. First story of Epic 19 (stories run in order 19.1 to 19.7, each stacked on the previous). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ match 048fea9, the commit the ADRs cite) and must be re-checked at implementation time. API change, one small web change (the note), documentation and configuration files. No new dependencies. -->
 
@@ -85,44 +85,44 @@ so that **read-only access stays read-only**.
 
 <!-- Each functional task includes its tests in the same commit, red first. Commit per task: type(story-19.1/task-N): ...; feat/fix only for changes an admin can see, subject written for admins (release-note subjects from sprint-change-proposal-2026-11-17 section 2). -->
 
-- [ ] Task 1: The config file viewer serves `.json` files only + tests (AC: 1, 2, 3, 4, 5, 14) (`VSS-633`)
-  - [ ] 1.1: `models/errors.py`: `CONFIG_FILE_NOT_SUPPORTED` and `CONFIG_FILE_TOO_LARGE` under "# Config", after `CONFIG_PATH_INVALID` (`:37`)
-  - [ ] 1.2: `services/config_files.py`: constants `CONFIG_FILE_MAX_BYTES = 2 * 1024 * 1024` and `CONFIG_FILE_MAX_DEPTH = 200` (module level, after `logger`, `:28`); errors `ConfigFileNotSupportedError(filename)` and `ConfigFileTooLargeError(filename)` beside `ConfigPathInvalidError` (`:40-46`), with `filename` and `message` like the existing two (messages in Dev Notes "Messages"); `ConfigFileReadError(filename)` for any other `OSError` (Dev Notes "Read")
-  - [ ] 1.3: One file rule (Dev Notes "The file rule"): `_has_json_suffix(name)` and `_is_viewable_file(path)`; `list_files` (`:141-177`) uses it instead of `f.is_file() and f.suffix == ".json"` (`:172-174`) and drops entries that resolve outside the server data directory
-  - [ ] 1.4: `read_file` (`:179-227`): the order of Dev Notes "Read": containment, (Task 3's role check goes here), suffix of the requested name, exists, type and resolved suffix, size by `stat`, `read_bytes()` and `decode("utf-8-sig")`, `json.loads`, depth, redaction. `RecursionError` from `json.loads` and a depth over `CONFIG_FILE_MAX_DEPTH` give the `_raw` form (Dev Notes "Depth"). Update the module (`:1-17`) and method docstrings
-  - [ ] 1.5: `routers/config.py` `read_config_file` (`:471-538`): map `ConfigFileNotSupportedError` to 400, `ConfigFileTooLargeError` to 413, `ConfigFileReadError` to 500 `INTERNAL_ERROR`, each `headers=NO_STORE` (Dev Notes "Router"); imports (`:46-50`); docstring Raises and the module docstring (`:19-25`) say what the viewer serves
-  - [ ] 1.6: Tests (Dev Notes "API tests", Task 1 rows) and the changes in "Existing tests that change", red first
+- [x] Task 1: The config file viewer serves `.json` files only + tests (AC: 1, 2, 3, 4, 5, 14) (`VSS-633`)
+  - [x] 1.1: `models/errors.py`: `CONFIG_FILE_NOT_SUPPORTED` and `CONFIG_FILE_TOO_LARGE` under "# Config", after `CONFIG_PATH_INVALID` (`:37`)
+  - [x] 1.2: `services/config_files.py`: constants `CONFIG_FILE_MAX_BYTES = 2 * 1024 * 1024` and `CONFIG_FILE_MAX_DEPTH = 200` (module level, after `logger`, `:28`); errors `ConfigFileNotSupportedError(filename)` and `ConfigFileTooLargeError(filename)` beside `ConfigPathInvalidError` (`:40-46`), with `filename` and `message` like the existing two (messages in Dev Notes "Messages"); `ConfigFileReadError(filename)` for any other `OSError` (Dev Notes "Read")
+  - [x] 1.3: One file rule (Dev Notes "The file rule"): `_has_json_suffix(name)` and `_is_viewable_file(path)`; `list_files` (`:141-177`) uses it instead of `f.is_file() and f.suffix == ".json"` (`:172-174`) and drops entries that resolve outside the server data directory
+  - [x] 1.4: `read_file` (`:179-227`): the order of Dev Notes "Read": containment, (Task 3's role check goes here), suffix of the requested name, exists, type and resolved suffix, size by `stat`, `read_bytes()` and `decode("utf-8-sig")`, `json.loads`, depth, redaction. `RecursionError` from `json.loads` and a depth over `CONFIG_FILE_MAX_DEPTH` give the `_raw` form (Dev Notes "Depth"). Update the module (`:1-17`) and method docstrings
+  - [x] 1.5: `routers/config.py` `read_config_file` (`:471-538`): map `ConfigFileNotSupportedError` to 400, `ConfigFileTooLargeError` to 413, `ConfigFileReadError` to 500 `INTERNAL_ERROR`, each `headers=NO_STORE` (Dev Notes "Router"); imports (`:46-50`); docstring Raises and the module docstring (`:19-25`) say what the viewer serves
+  - [x] 1.6: Tests (Dev Notes "API tests", Task 1 rows) and the changes in "Existing tests that change", red first
 
-- [ ] Task 2: Recursive redaction by key name and value + tests (AC: 6, 7, 8, 14) (`VSS-sg1`)
-  - [ ] 2.1: `services/game_config.py` (`:212-248`): `UNMANAGED_SECRET_KEYS = frozenset({"StartupCommands"})`, `SECRET_KEY_FRAGMENTS` (the ten of ADR-2 decision 2), a key normaliser, `is_secret_key` broadened to the three rules, `is_secret_value` for the two value rules, and `redact_secrets` recursive over objects and arrays, failing closed on `RecursionError` (Dev Notes "Redaction"). `has_secret_value` and `REDACTED` are unchanged
-  - [ ] 2.2: Update the docstrings of `redact_secrets`, `services/config_files.py` (module, `read_file`) and `routers/config.py` `read_config_file` (`:494-499`): "top-level" becomes "at every depth", naming the key and value rules
-  - [ ] 2.3: Tests (Dev Notes "API tests", Task 2 rows); replace `test_nested_password_is_unchanged` (`tests/test_routers_config.py:1474`) and `test_nested_secret_is_unchanged` (`tests/test_game_config.py:302`), red first
+- [x] Task 2: Recursive redaction by key name and value + tests (AC: 6, 7, 8, 14) (`VSS-sg1`)
+  - [x] 2.1: `services/game_config.py` (`:212-248`): `UNMANAGED_SECRET_KEYS = frozenset({"StartupCommands"})`, `SECRET_KEY_FRAGMENTS` (the ten of ADR-2 decision 2), a key normaliser, `is_secret_key` broadened to the three rules, `is_secret_value` for the two value rules, and `redact_secrets` recursive over objects and arrays, failing closed on `RecursionError` (Dev Notes "Redaction"). `has_secret_value` and `REDACTED` are unchanged
+  - [x] 2.2: Update the docstrings of `redact_secrets`, `services/config_files.py` (module, `read_file`) and `routers/config.py` `read_config_file` (`:494-499`): "top-level" becomes "at every depth", naming the key and value rules
+  - [x] 2.3: Tests (Dev Notes "API tests", Task 2 rows); replace `test_nested_password_is_unchanged` (`tests/test_routers_config.py:1474`) and `test_nested_secret_is_unchanged` (`tests/test_game_config.py:302`), red first
 
-- [ ] Task 3: Roles other than Admin see the root and `ModConfig` only + tests (AC: 1, 9, 10, 11, 14) (`VSS-3hs2`)
-  - [ ] 3.1: `services/config_files.py`: `MONITOR_CONFIG_DIRECTORIES = frozenset({"ModConfig"})`, `ConfigDirectoryForbiddenError(path)` and `_role_may_open(resolved, role, *, file_request)` (Dev Notes "The role's directories")
-  - [ ] 3.2: `list_directories(directory=None, role=None)` and `list_files(directory=None, role=None)`: role check on the resolved target directory after `_safe_path`; each listed entry is kept only when `_role_may_open` accepts its resolved path. `read_file`: role check right after `_safe_path`, before the suffix check (ADR-3 decision 5). Redacted stays the default: `None` and every role but `UserRole.ADMIN` are restricted (ADR-3 decision 6)
-  - [ ] 3.3: `routers/config.py` `list_config_directories` (`:393-429`) and `list_config_files` (`:432-468`): `role: RequireAuth` instead of `_`, `response: Response`, pass the role, `response.headers.update(NO_STORE)`, map `ConfigDirectoryForbiddenError` to 403 `FORBIDDEN` with `headers=NO_STORE` (also on the existing 400); `read_config_file` maps it the same way. Docstrings: which directories each role may list and read
-  - [ ] 3.4: `README.md` "Security" (`:35-37`): one paragraph "What a Monitor key can read" (Dev Notes "README")
-  - [ ] 3.5: Tests (Dev Notes "API tests", Task 3 rows) and the service-test changes in "Existing tests that change", red first
+- [x] Task 3: Roles other than Admin see the root and `ModConfig` only + tests (AC: 1, 9, 10, 11, 14) (`VSS-3hs2`)
+  - [x] 3.1: `services/config_files.py`: `MONITOR_CONFIG_DIRECTORIES = frozenset({"ModConfig"})`, `ConfigDirectoryForbiddenError(path)` and `_role_may_open(resolved, role, *, file_request)` (Dev Notes "The role's directories")
+  - [x] 3.2: `list_directories(directory=None, role=None)` and `list_files(directory=None, role=None)`: role check on the resolved target directory after `_safe_path`; each listed entry is kept only when `_role_may_open` accepts its resolved path. `read_file`: role check right after `_safe_path`, before the suffix check (ADR-3 decision 5). Redacted stays the default: `None` and every role but `UserRole.ADMIN` are restricted (ADR-3 decision 6)
+  - [x] 3.3: `routers/config.py` `list_config_directories` (`:393-429`) and `list_config_files` (`:432-468`): `role: RequireAuth` instead of `_`, `response: Response`, pass the role, `response.headers.update(NO_STORE)`, map `ConfigDirectoryForbiddenError` to 403 `FORBIDDEN` with `headers=NO_STORE` (also on the existing 400); `read_config_file` maps it the same way. Docstrings: which directories each role may list and read
+  - [x] 3.4: `README.md` "Security" (`:35-37`): one paragraph "What a Monitor key can read" (Dev Notes "README")
+  - [x] 3.5: Tests (Dev Notes "API tests", Task 3 rows) and the service-test changes in "Existing tests that change", red first
 
-- [ ] Task 4: Remove `VS_GAME_VERSION` + test (AC: 13, 14) (`VSS-ms0`)
-  - [ ] 4.1: `api/src/vintagestory_api/config.py:24`: remove `game_version: str = "stable"`
-  - [ ] 4.2: Remove `- VS_GAME_VERSION=${VS_GAME_VERSION:-stable}` from `docker-compose.yaml:22` and `docker-compose.dev.yaml:21`; the four-line block `.env.example:20-23` and the blank line after it; `VS_GAME_VERSION=stable` at `scripts/worktree-setup.sh:61`; the compose lines `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md:225`, `:259` and the table row `:470`. `README.md` needs no change: it does not mention the variable (`rg VS_GAME_VERSION README.md` is empty at b6ae2f2)
-  - [ ] 4.3: Comments that name the variable as if it existed: `services/mods.py:100-101` and `:302-303`, and the class docstring `tests/test_mod_service.py:2073-2074` (ADR-4 decision 3): say compatibility follows the installed server version; `VS_GAME_VERSION` may be named only as a former setting. Remove the stale mock line `tests/test_mod_service.py:709` (`mock_settings.return_value.game_version = "1.21.3"`)
-  - [ ] 4.4: `tests/test_config.py`: new class `TestRemovedSettings` (Dev Notes "API tests", Task 4 row)
-  - [ ] 4.5: `rg -n "VS_GAME_VERSION|game_version: str = \"stable\"|settings\.game_version"` outside `_bmad-output/implementation-artifacts/`, `archive/` and the Epic 6 and Epic 19 architecture files lists only the test of 4.4 and `test_mod_service.py:2141` (which sets the variable on purpose)
+- [x] Task 4: Remove `VS_GAME_VERSION` + test (AC: 13, 14) (`VSS-ms0`)
+  - [x] 4.1: `api/src/vintagestory_api/config.py:24`: remove `game_version: str = "stable"`
+  - [x] 4.2: Remove `- VS_GAME_VERSION=${VS_GAME_VERSION:-stable}` from `docker-compose.yaml:22` and `docker-compose.dev.yaml:21`; the four-line block `.env.example:20-23` and the blank line after it; `VS_GAME_VERSION=stable` at `scripts/worktree-setup.sh:61`; the compose lines `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md:225`, `:259` and the table row `:470`. `README.md` needs no change: it does not mention the variable (`rg VS_GAME_VERSION README.md` is empty at b6ae2f2)
+  - [x] 4.3: Comments that name the variable as if it existed: `services/mods.py:100-101` and `:302-303`, and the class docstring `tests/test_mod_service.py:2073-2074` (ADR-4 decision 3): say compatibility follows the installed server version; `VS_GAME_VERSION` may be named only as a former setting. Remove the stale mock line `tests/test_mod_service.py:709` (`mock_settings.return_value.game_version = "1.21.3"`)
+  - [x] 4.4: `tests/test_config.py`: new class `TestRemovedSettings` (Dev Notes "API tests", Task 4 row)
+  - [x] 4.5: `rg -n "VS_GAME_VERSION|game_version: str = \"stable\"|settings\.game_version"` outside `_bmad-output/implementation-artifacts/`, `archive/` and the Epic 6 and Epic 19 architecture files lists only the test of 4.4 and `test_mod_service.py:2141` (which sets the variable on purpose)
 
-- [ ] Task 5: Web: the note in the file browser for roles other than Admin + tests (AC: 12)
-  - [ ] 5.1: `web/src/features/settings/FileManagerPanel.tsx`: `const { data: auth } = useAuthMe();` (`@/api/hooks/use-auth-me`, as `SettingsPage.tsx:23`, `:35-36`); `showAdminNote = role !== undefined && role !== 'admin'`; render `<p data-testid="file-manager-admin-note" className="border-b px-3 py-1.5 text-xs text-muted-foreground">Some folders are only shown to Admin keys.</p>` directly after the breadcrumb bar (`:153-156`), inside `file-manager-panel`. Not in the error state (`:130-146`). No new hook, no API change, no change to what the list shows. Header comment: Story 19.1 (FR233)
-  - [ ] 5.2: `FileManagerPanel.test.tsx`: new `describe('Story 19.1: note for roles other than Admin')` (Dev Notes "Web tests")
+- [x] Task 5: Web: the note in the file browser for roles other than Admin + tests (AC: 12)
+  - [x] 5.1: `web/src/features/settings/FileManagerPanel.tsx`: `const { data: auth } = useAuthMe();` (`@/api/hooks/use-auth-me`, as `SettingsPage.tsx:23`, `:35-36`); `showAdminNote = role !== undefined && role !== 'admin'`; render `<p data-testid="file-manager-admin-note" className="border-b px-3 py-1.5 text-xs text-muted-foreground">Some folders are only shown to Admin keys.</p>` directly after the breadcrumb bar (`:153-156`), inside `file-manager-panel`. Not in the error state (`:130-146`). No new hook, no API change, no change to what the list shows. Header comment: Story 19.1 (FR233)
+  - [x] 5.2: `FileManagerPanel.test.tsx`: new `describe('Story 19.1: note for roles other than Admin')` (Dev Notes "Web tests")
 
-- [ ] Task 6: E2E against the Docker dev stack (AC: 9, 10, 11, 12)
-  - [ ] 6.1: New `web/e2e/file-browser-monitor-note.spec.ts` (Dev Notes "E2E")
-  - [ ] 6.2: Rebuild the stack from this branch (`just docker restart`), run `cd web && bunx playwright test e2e/file-browser-monitor-note.spec.ts` with `VS_API_KEY_ADMIN` and `VS_API_KEY_MONITOR` exported from `.env` (values not printed); also re-run `e2e/monitor-password-redaction.spec.ts`, `e2e/file-browser-navigation.spec.ts` and `e2e/settings-desktop-layout.spec.ts`. Do not start or stop the game server; no screenshots
-  - [ ] 6.3: Record in the Dev Agent Record that `GET /api/v1alpha1/config/directories` and `GET /api/v1alpha1/config/files` (Admin key) returned the same bodies before and after the run, and the SHA-1 of `data/serverdata/serverconfig.json` is unchanged
+- [x] Task 6: E2E against the Docker dev stack (AC: 9, 10, 11, 12)
+  - [x] 6.1: New `web/e2e/file-browser-monitor-note.spec.ts` (Dev Notes "E2E")
+  - [x] 6.2: Rebuild the stack from this branch (`just docker restart`), run `cd web && bunx playwright test e2e/file-browser-monitor-note.spec.ts` with `VS_API_KEY_ADMIN` and `VS_API_KEY_MONITOR` exported from `.env` (values not printed); also re-run `e2e/monitor-password-redaction.spec.ts`, `e2e/file-browser-navigation.spec.ts` and `e2e/settings-desktop-layout.spec.ts`. Do not start or stop the game server; no screenshots
+  - [x] 6.3: Record in the Dev Agent Record that `GET /api/v1alpha1/config/directories` and `GET /api/v1alpha1/config/files` (Admin key) returned the same bodies before and after the run, and the SHA-1 of `data/serverdata/serverconfig.json` is unchanged
 
 - [ ] Task 7: Quality gate and review hand-off (AC: all)
-  - [ ] 7.1: `just check` passes; the diff adds no lint or type suppression, no `cast` and no type assertion; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); web 4 skipped (`VSS-hnl`); after `just test-api`, `git status --short` shows nothing under `dev/`
+  - [x] 7.1: `just check` passes; the diff adds no lint or type suppression, no `cast` and no type assertion; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); web 4 skipped (`VSS-hnl`); after `just test-api`, `git status --short` shows nothing under `dev/`
   - [ ] 7.2: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
   - [ ] 7.3: Story status `review`, `just sprint set 19-1-secrets-stay-with-admin review`, PR to `main`, PR link on `VSS-633`, `VSS-sg1`, `VSS-3hs2` and `VSS-ms0`. The PR description lists "API contract changes" from this story
 
@@ -415,10 +415,49 @@ On the Docker stack built from this branch, with the page key set to the Monitor
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Red runs: Tasks 1 and 3 failed at collection (new names imported from `services/config_files.py`); Task 2 failed at collection (`is_secret_value`); Task 4's `TestRemovedSettings` failed on `game_version`; Task 5's three role cases failed before the panel called `useAuthMe`.
+- Task 1 `typecheck-api`: a return annotation `-> httpx.Response` on a test helper was rejected (TestClient returns the `httpx2` type); the helper is left unannotated like the existing `_get`.
+- Task 2 `typecheck-api`: a dict literal passed to `_write_config(dict[str, object])` was invariant; the variable is annotated `dict[str, object]`.
+- `ruff format --check` on the touched test modules and `services/game_config.py` reports pre-existing formatting elsewhere in those files; they were not reformatted (only new code was kept in the format). The changed source modules `config_files.py` and `routers/config.py` are formatted.
+- Docker dev stack rebuilt with `just docker restart` before the E2E runs; the game server was not running before or after (`ps` check in the container), and nothing started or stopped it.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist. A throwaway prototype of Tasks 1 to 4 (file rule, read order, role allow-list on resolved paths, recursive redaction, `game_version` removed) was run against the whole API suite (2843 passed, the 15 failures listed in "Existing tests that change"); a route test measured the serialization limit (254/255 levels → 500 at b6ae2f2); `Settings()` was constructed with `VS_GAME_VERSION` set and no field; a prototype of Task 5 passed the six settings web suites unchanged (135 tests). Everything was discarded.
+- Task 1: `services/config_files.py` has `CONFIG_FILE_MAX_BYTES` (2 MiB), `CONFIG_FILE_MAX_DEPTH` (200), `ConfigFileNotSupportedError`, `ConfigFileTooLargeError`, `ConfigFileReadError`, `_has_json_suffix`, `_is_viewable_file` and an iterative `_nesting_depth_exceeds` (with local `TypeGuard` helpers). `read_file` checks in the order of Dev Notes "Read"; `RecursionError` from `json.loads` and nesting over 200 levels give the `_raw` form. `list_files` uses the shared file rule and drops entries that resolve outside the data directory. The router maps the new errors to 400 `CONFIG_FILE_NOT_SUPPORTED`, 413 `CONFIG_FILE_TOO_LARGE` and 500 `INTERNAL_ERROR`, each with `no-store`. Besides the story's tests, a router test checks that 200 levels of arrays and of objects still serialize (200) for both keys.
+- Task 2: `services/game_config.py` has `UNMANAGED_SECRET_KEYS`, `SECRET_KEY_FRAGMENTS`, `_normalise_key`, `_SECRET_KEYS_NORMALISED` (replacing `_SECRET_KEYS_FOLDED`), `_is_json_array`, the broadened `is_secret_key`, `is_secret_value` (`urlsplit`, user info or a Discord webhook path on `discord.com`/`discordapp.com`) and a recursive `redact_secrets` that returns `REDACTED` on `RecursionError`. `GET /config/game` is unchanged (`TestGetGameSettingsSecrets` passes unchanged).
+- Task 3: `MONITOR_CONFIG_DIRECTORIES`, `ConfigDirectoryForbiddenError` and `_role_may_open` decide on resolved paths; a small private `_target_directory` helper holds the listing target logic shared by `list_directories` and `list_files` (containment 400, then role 403 before `is_dir()`, then a missing allowed directory is `[]`). Each listed entry is kept only when `_role_may_open(entry.resolve(), ...)` accepts it. `read_file` checks the role right after `_safe_path`. The three routes take `role`, set `Cache-Control: no-store`, and map the 403 with `headers=NO_STORE` (the listings' existing 400 gained it too). README "Security" has the "What a Monitor key can read" paragraph.
+- Task 4: `Settings.game_version` and every `VS_GAME_VERSION` line named in 4.2 are removed; the `mods.py` comments and the `test_mod_service.py` docstring name it only as a former setting; the stale mock line is gone. The 4.5 search outside the excluded paths also lists those two `mods.py` comments (allowed by ADR-4 decision 3) and planning documents that describe the removal (`prd.md`, `epics.md`, `sprint-change-proposal-2026-11-17.md`, `architecture/index.md`); no code or configuration sets or reads the variable.
+- Task 5: `FileManagerPanel` reads the role with `useAuthMe()` and shows `file-manager-admin-note` under the breadcrumb bar when the role is known and not `admin`; not in the error state. Four new web tests (Monitor note and list, Admin, role pending, `/auth/me` 500).
+- Task 6: `web/e2e/file-browser-monitor-note.spec.ts`, 5 tests, all passed against the rebuilt dev stack with `VS_API_KEY_ADMIN` and `VS_API_KEY_MONITOR` exported from `.env` (the real-Monitor tests ran, none skipped). `monitor-password-redaction.spec.ts`, `file-browser-navigation.spec.ts` and `settings-desktop-layout.spec.ts`: 15 passed. No screenshots. Task 6.3: the Admin-key bodies of `GET /api/v1alpha1/config/directories` and `GET /api/v1alpha1/config/files` and the SHA-1 of `data/serverdata/serverconfig.json` were byte-identical before and after both E2E runs.
+- Task 7.1: `just check` passed: API 3015 passed; pyright 0 errors, 3 warnings (`VSS-1ar`); web 3316 passed, 4 skipped (`VSS-hnl`); script tests passed. The diff adds no lint or type suppression, no `cast` and no type assertion. `git status --short` shows nothing under `dev/` after the API suite.
+- Task 7.2 (manual check on the Docker stack) is left for the maintainer and stays unticked.
+- Task 7.3: story status `review` and sprint status `review` are set; the PR to `main` and the PR links on `VSS-633`, `VSS-sg1`, `VSS-3hs2` and `VSS-ms0` are not done (no push, PR or beads change in this run) and stay unticked.
 
 ### File List
+
+- `README.md` (modified)
+- `.env.example` (modified)
+- `docker-compose.yaml` (modified)
+- `docker-compose.dev.yaml` (modified)
+- `scripts/worktree-setup.sh` (modified)
+- `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md` (modified)
+- `_bmad-output/implementation-artifacts/19-1-secrets-stay-with-admin.md` (modified)
+- `api/src/vintagestory_api/config.py` (modified)
+- `api/src/vintagestory_api/models/errors.py` (modified)
+- `api/src/vintagestory_api/routers/config.py` (modified)
+- `api/src/vintagestory_api/services/config_files.py` (modified)
+- `api/src/vintagestory_api/services/game_config.py` (modified)
+- `api/src/vintagestory_api/services/mods.py` (modified, comments)
+- `api/tests/test_config.py` (modified)
+- `api/tests/test_config_files.py` (modified)
+- `api/tests/test_game_config.py` (modified)
+- `api/tests/test_mod_service.py` (modified)
+- `api/tests/test_routers_config.py` (modified)
+- `web/src/features/settings/FileManagerPanel.tsx` (modified)
+- `web/src/features/settings/FileManagerPanel.test.tsx` (modified)
+- `web/e2e/file-browser-monitor-note.spec.ts` (new)
