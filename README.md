@@ -114,10 +114,13 @@ just docker stop    # Stop it
 ### End-to-end tests
 
 ```bash
-mise exec -C api -- uv run playwright install chromium   # once
+just install-e2e-browsers   # once: the Chromium builds Playwright uses
+just test-e2e-ci    # The CI set: untagged tests on a throwaway seeded container
 just test-e2e-api   # API E2E tests (pytest); needs the stack running (just docker start)
-just test-e2e-web   # Web E2E tests (Playwright); starts and stops the stack itself
+just test-e2e-web   # Every web E2E test (Playwright); starts and stops the stack itself
 ```
+
+What each test tag means, and what the CI set needs, is in [`web/e2e/README.md`](web/e2e/README.md).
 
 ### Releases
 
