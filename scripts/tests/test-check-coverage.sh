@@ -36,13 +36,14 @@ assert_eq "the Justfile names no ShellCheck follow-up (VSS-1eb)" "0" "$(grep -c 
 # uploads it when the e2e job fails (FR243)
 assert_eq "no Playwright output is tracked" "" \
     "$(git -C "$ROOT" ls-files web/playwright-report web/test-results)"
+# The second pass of scripts/e2e-ci.sh writes its own (Story 20.6)
 for ignore in .gitignore .dockerignore; do
-    for path in web/playwright-report/ web/test-results/; do
+    for path in web/playwright-report/ web/test-results/ web/playwright-report-moddb/ web/test-results-moddb/; do
         if grep -qxF -- "$path" "$ROOT/$ignore"; then pass; else fail "$ignore has $path"; fi
     done
 done
 assert_eq "ci.yml e2e job uploads the Playwright output" \
-    "$(printf '%s\n' web/playwright-report/ web/test-results/)" \
+    "$(printf '%s\n' web/playwright-report/ web/test-results/ web/playwright-report-moddb/ web/test-results-moddb/)" \
     "$(yq '.jobs.e2e.steps[] | select(.uses == "actions/upload-artifact@*") | .with.path' "$ci" | sed '/^$/d')"
 
 finish

@@ -5,16 +5,36 @@ import os
 import re
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 import structlog
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The mod database's base address; VS_MOD_DB_URL replaces it (Epic 20 ADR-9)
+DEFAULT_MOD_DB_URL = "https://mods.vintagestory.at"
+
+_MOD_DB_URL_INVALID = (
+    "VS_MOD_DB_URL must be an absolute https URL with a host, "
+    "for example https://mods.vintagestory.at."
+)
+_MOD_DB_URL_CREDENTIALS = "VS_MOD_DB_URL must not contain a user name or password."
+_MOD_DB_URL_PATH = (
+    "VS_MOD_DB_URL must not contain a path, a query or a fragment; "
+    "give the site's base address only."
+)
+_MOD_DB_URL_PLAIN_HTTP = (
+    "VS_MOD_DB_URL uses plain HTTP, which is for testing and needs VS_DEBUG=true. "
+    "Use an https address."
+)
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_prefix="VS_")
+    # hide_input_in_errors: a refused setting's value is not printed, so a password typed
+    # into VS_MOD_DB_URL or an API key never reaches the start-up log (Epic 20 ADR-9)
+    model_config = SettingsConfigDict(env_prefix="VS_", hide_input_in_errors=True)
 
     debug: bool = False
     log_level: str | None = None  # Override log level (DEBUG, INFO, WARNING, ERROR)
@@ -31,6 +51,9 @@ class Settings(BaseSettings):
     # VS_CSP_MODE: how the web UI's Content-Security-Policy is sent (Epic 19 ADR-6):
     # enforce (default), report-only or off. Blank means unset
     csp_mode: str = "enforce"
+    # VS_MOD_DB_URL: base address for mod database requests and mod downloads (Epic 20
+    # ADR-9). https only; http needs VS_DEBUG=true. Blank means unset
+    mod_db_url: str = DEFAULT_MOD_DB_URL
 
     @property
     def web_api_key(self) -> str:
@@ -108,6 +131,44 @@ class Settings(BaseSettings):
         if mode not in ("enforce", "report-only", "off"):
             raise ValueError("VS_CSP_MODE must be one of: enforce, report-only, off.")
         return mode
+
+    @field_validator("mod_db_url")
+    @classmethod
+    def validate_mod_db_url(cls, v: str, info: ValidationInfo) -> str:
+        """Normalize VS_MOD_DB_URL to scheme://host[:port]; refuse anything else.
+
+        A field validator, not a model validator: a failing model validator would print
+        every setting in its error. The messages never repeat the value (Epic 20 ADR-9).
+        Plain http needs the VS_DEBUG the process started with; if VS_DEBUG itself failed
+        to parse, debug is not in info.data and http is refused.
+        """
+        value = v.strip()
+        if not value:
+            return DEFAULT_MOD_DB_URL
+        if any(ch.isspace() or not ch.isprintable() for ch in value):
+            raise ValueError(_MOD_DB_URL_INVALID)
+        try:
+            parts = urlsplit(value)
+            port = parts.port
+        except ValueError:
+            raise ValueError(_MOD_DB_URL_INVALID) from None
+        if parts.scheme not in ("https", "http") or not parts.hostname:
+            raise ValueError(_MOD_DB_URL_INVALID)
+        if "@" in parts.netloc:
+            raise ValueError(_MOD_DB_URL_CREDENTIALS)
+        if parts.netloc.endswith(":") or port == 0:
+            raise ValueError(_MOD_DB_URL_INVALID)
+        if parts.path not in ("", "/") or "?" in value or "#" in value:
+            raise ValueError(_MOD_DB_URL_PATH)
+        if parts.scheme == "http" and info.data.get("debug") is not True:
+            raise ValueError(_MOD_DB_URL_PLAIN_HTTP)
+        host = parts.hostname
+        if ":" in host:
+            host = f"[{host}]"
+        address = f"{parts.scheme}://{host}"
+        if port is not None:
+            address += f":{port}"
+        return address
 
     @field_validator("cors_origins")
     @classmethod

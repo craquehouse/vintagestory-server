@@ -1,12 +1,17 @@
 """Tests for the mod media URL rules (Story 18.1, Epic 18 ADR-1 and ADR-2; Story 19.6)."""
 
+import json
 import re
 from io import StringIO
+from pathlib import Path
 from typing import Any
 
 import pytest
+import respx
+from httpx import Response
 
 from vintagestory_api.models.mods import ModScreenshot
+from vintagestory_api.services.mod_api import extract_slug
 from vintagestory_api.services.mod_media import (
     MAX_LINK_LENGTH,
     MOD_MEDIA_HOSTS,
@@ -17,6 +22,10 @@ from vintagestory_api.services.mod_media import (
     mod_image_url,
     trailer_link_url,
 )
+from vintagestory_api.services.mods import ModService
+from vintagestory_api.services.pending_restart import PendingRestartState
+
+FIXTURES = Path(__file__).parent / "fixtures" / "moddb"
 
 EMBED_URL = "https://www.youtube-nocookie.com/embed/mJHZH_sThDM"
 
@@ -288,3 +297,50 @@ class TestBuildScreenshots:
         assert "index=1" in output
         # The rejected URL is not logged
         assert "evil.example" not in output
+
+
+class TestRulesDoNotFollowModDbUrl:
+    """VS_MOD_DB_URL moves the requests, not the image host or the link rules (Story 20.6 AC 3)."""
+
+    @pytest.mark.asyncio
+    async def test_lookup_on_a_mirror_keeps_the_same_rules(self, tmp_path: Path) -> None:
+        payload = json.loads((FIXTURES / "mod_betterruins.json").read_text())
+        mod = payload["mod"]
+        mod["logofilename"] = "https://mirror.example/logo.png"
+        mod["homepageurl"] = "http://example.com/home"
+        mod["sourcecodeurl"] = "https://example.com/source"
+        mirror_shot = dict(mod["screenshots"][0])
+        mirror_shot["mainfile"] = "https://mirror.example/shot.jpg"
+        mirror_shot["thumbnailfilename"] = "https://mirror.example/shot_55_60.jpg"
+        mod["screenshots"] = [mirror_shot, mod["screenshots"][1]]
+        cdn_shot = mod["screenshots"][1]["mainfile"]
+        service = ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "Mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+            game_version="1.22.7",
+            mod_db_url="https://mirror.example",
+        )
+
+        with respx.mock(assert_all_mocked=True) as mock:
+            mock.get("https://mirror.example/api/mod/betterruins").mock(
+                return_value=Response(200, json=payload)
+            )
+            result = await service.lookup_mod("betterruins")
+        await service.api_client.close()
+
+        assert result.logo_url is None
+        assert result.homepage_url is None
+        assert result.source_url == "https://example.com/source"
+        assert [shot.image_url for shot in result.screenshots] == [cdn_shot]
+
+    def test_cdn_logo_is_kept_on_any_mod_db_url(self) -> None:
+        url = "https://moddbcdn.vintagestory.at/logo.png"
+
+        assert mod_image_url(url) == url
+        assert mod_image_url("https://mirror.example/logo.png") is None
+
+    def test_extract_slug_accepts_the_same_forms(self) -> None:
+        assert extract_slug("https://mods.vintagestory.at/smithingplus") == "smithingplus"
+        assert extract_slug("https://mirror.example/smithingplus") == "smithingplus"

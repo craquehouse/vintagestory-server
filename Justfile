@@ -101,6 +101,13 @@ test-e2e-web *ARGS:
 test-e2e-ci *ARGS:
     mise exec -- ./scripts/e2e-ci.sh "$@"
 
+# Re-record the mod database answers the E2E tests replay (needs network; rewrites
+# web/e2e/fixtures/moddb/ and prints the fields that appeared or disappeared)
+# Examples: just record-moddb | just record-moddb --only /api/mod/carryon
+[positional-arguments]
+record-moddb *ARGS:
+    mise exec -- python3 scripts/moddb-record.py "$@"
+
 # Install the Chromium builds the web and API E2E tests use (once per machine)
 install-e2e-browsers:
     mise exec -C web -- bunx playwright install --with-deps chromium
@@ -164,9 +171,13 @@ lint-api *ARGS:
 lint-web:
     mise exec -C web -- bun run lint
 
-# Lint every bash script in scripts/ and scripts/tests/ (ShellCheck)
+# Lint every bash script in scripts/ and scripts/tests/ (ShellCheck), and the Python
+# scripts in scripts/ with the API's ruff and pyright and their configuration
 lint-scripts:
     mise exec -- shellcheck -x scripts/*.sh scripts/tests/*.sh
+    mise exec -C api -- uv run ruff check --config pyproject.toml ../scripts
+    mise exec -C api -- uv run ruff format --check --config pyproject.toml ../scripts
+    mise exec -C api -- uv run pyright ../scripts/moddb-replay.py ../scripts/moddb-record.py
 
 # Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
 lint-workflows:

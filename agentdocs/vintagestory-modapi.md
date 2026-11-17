@@ -6,6 +6,8 @@
 https://mods.vintagestory.at/api/
 ```
 
+The manager's base address is the setting `VS_MOD_DB_URL` (default `https://mods.vintagestory.at`): it calls `<base>/api/...` and downloads from `<base>/download` (Epic 20 ADR-9).
+
 ## Authentication
 
 No authentication required. All endpoints are publicly accessible.
@@ -60,6 +62,7 @@ curl https://mods.vintagestory.at/api/mod/smithingplus
     "lastreleased": "2025-10-09 21:28:57",
     "lastmodified": "2025-12-26 12:00:00",
     "tags": ["Crafting", "QoL", "Utility"],
+    "trailervideourl": "",
     "releases": [...],
     "screenshots": [...]
   }
@@ -80,6 +83,7 @@ GET /api/mods
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `tagids` | string | Filter by tag ID (comma-separated) |
+| `gameversion` | integer | Only mods with a release for this game version; the value is the version's `tagid` from `/api/gameversions` (a negative number) |
 
 **Example Request:**
 ```bash
@@ -117,6 +121,8 @@ curl https://mods.vintagestory.at/api/mods
 - Returns ~5000 mods without pagination (as of January 2026)
 - Results ordered by `lastreleased` (newest first)
 - `logo` and `urlalias` may be `null`
+
+**Filtering by game version:** `GET /api/mods?gameversion=<tagid>` answers with the same item shape as the full listing (checked against `web/e2e/fixtures/moddb/api-mods-gameversion-1.22.7.json`, recorded 2026-11-17, `tagid` `-281569466515455` = 1.22.7). The API uses only this form (`ModApiClient._fetch_mods_by_version`). The undocumented form `?gameversions[]=<tagid>` gives different results and is not used: checked by hand on 2026-11-17 for 1.22.7, `?gameversion=` returned 5,672 mods and `?gameversions[]=` 2,855.
 
 ---
 
@@ -262,6 +268,7 @@ curl -O https://mods.vintagestory.at/download?fileid=59176
 | `sourcecodeurl` | string | Source code repository URL |
 | `issuetrackerurl` | string | Bug tracker URL |
 | `wikiurl` | string | Wiki/docs URL |
+| `trailervideourl` | string | Trailer video URL, `""` when there is none |
 | `downloads` | integer | Total download count |
 | `follows` | integer | User follow count |
 | `trendingpoints` | integer | Trending score |
@@ -274,6 +281,10 @@ curl -O https://mods.vintagestory.at/download?fileid=59176
 | `tags` | array | Category tag names |
 | `releases` | array | Release objects (newest first) |
 | `screenshots` | array | Screenshot objects |
+
+`issuetrackerurl` and `wikiurl` are not read by this project's API (they are not in the normalized mod, `models/moddb.py`); `""` when unset (`api-mod-carryon.json` has `wikiurl` `""`, `api-mod-canjewelry.json` has `issuetrackerurl` `""`, recorded 2026-11-17).
+
+`trailervideourl` is `""` for most mods (`api-mod-carryon.json`, `api-mod-instruments.json`, `api-mod-canjewelry.json`, recorded 2026-11-17); the API also treats `null` as no trailer. A set value can be a `youtube-nocookie.com/watch?v=<id>` URL (`api-mod-betterruins.json`: `https://www.youtube-nocookie.com/watch?v=mJHZH_sThDM`), which does not load in a frame: the API rebuilds the `/embed/<id>` URL from the video ID and drops anything else (`trailer_link_url`, `services/mod_media.py`).
 
 `tags` can contain `null` elements: `canjewelry`'s entry `tags` was `["Utility", "Cosmetics", "Crafting", null]` on 2026-11-15 (the same mod in the `/api/mods` listing had no `null`). The API normalizes every entry once, where it enters (Epic 17 ADR-1).
 
@@ -302,7 +313,21 @@ curl -O https://mods.vintagestory.at/download?fileid=59176
 | `mainfile` | string | Full-size image URL |
 | `filename` | string | Original filename |
 | `thumbnailfilename` | string | Thumbnail URL |
-| `created` | string | Upload timestamp |
+| `created` | string | Upload timestamp (YYYY-MM-DD HH:MM:SS) |
+
+Checked against `web/e2e/fixtures/moddb/api-mod-betterruins.json` (recorded 2026-11-17, 10 screenshots), in the mod database's key order:
+
+```json
+{
+  "fileid": 18300,
+  "mainfile": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688.jpg",
+  "filename": "9.jpg",
+  "thumbnailfilename": "https://moddbcdn.vintagestory.at/9_7078dd7a2f5048080d8ef26c0a763688_55_60.jpg",
+  "created": "2024-01-28 14:36:08"
+}
+```
+
+`mainfile` and `thumbnailfilename` are full URLs on `moddbcdn.vintagestory.at`; the thumbnail is the 55x60 version (`_55_60` before the extension). The API passes on only `https` images on that host (`build_screenshots`, `services/mod_media.py`).
 
 ---
 

@@ -1,0 +1,518 @@
+{
+ "mod": {
+  "modid": 167,
+  "assetid": 463,
+  "name": "Instruments",
+  "text": "<p>Adds instruments to Vintage Story. These allow players to play ABC music files alone and together!</p>\n<p>As of Vintage Story version 1.20.1, the code and the sound files are in separate mods.</p>\n<p>This is the base 'code' mod, the <a href=\"https://mods.vintagestory.at/show/mod/17850\">instruments can be found HERE</a>.</p>\n<p><strong>Features:</strong></p>\n<ul>\n<li>May play instruments using the player's view angle to change pitch</li>\n<li>May also read .ABC files to play tunes</li>\n<li>Play .ABC files alone, or together using a band system</li>\n<li>While each player needs the mod to play the instruments, not all players need the ABC files to hear them!</li>\n<li>May also craft an 'ABC Player' to play your abc files at the click of a button, compatible with the band system</li>\n</ul>\n<p>&nbsp;</p>\n<p>We have a discord channel! <a href=\"https://discord.com/invite/hRyw3jJUsk\" target=\"_blank\" rel=\"noopener\">LINK</a></p>\n<p>This is where we have most of our discussions on features, songs, and issues. Check it out!</p>\n<p>&nbsp;</p>\n<p><strong>Installation:</strong></p>\n<ul>\n<li>Download both this and any instrument packs you want</li>\n<li>Copy the mods into the mods folder, like any other mod</li>\n<li>In your Vintage Story game directory (usually in C:\\Program Files\\Vintage Story):\n<ul>\n<li>Create a folder named 'abc'</li>\n<li>Put your abc files into here!</li>\n<li>You may use sub-directories, which makes sorting files easier</li>\n<li>Disclaimer for Linux users - some users have had their abc folders deleted when updating Vintage Story. Please keep a backup of your ABC files!</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p><strong>Usage:</strong></p>\n<p>Craft an instrument of your choice (recipes are available in the handbook)</p>\n<ul>\n<li>Press F while holding an instrument to select the 'mode'\n<ul>\n<li>Mode 1: 'SemiTone Step' enables users to play notes depending on the player angle, in semitone steps</li>\n<li>Mode 2:'Tone Step' is the same, but the note steps in tones</li>\n<li>Mode 3: 'Fluid' is also the same, but does not step</li>\n<li>Mode 'ABC': enables users to play ABC files</li>\n</ul>\n</li>\n<li>When in ABC mode, right click to bring up another interface to choose your ABC file to play\n<ul>\n<li>A band name may be given here for band play</li>\n<li>If no ABC files are found, an error will be written in the chat window to help fix it.</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<div class=\"spoiler\">\n<div class=\"spoiler-toggle\">Pre v1.1.4</div>\n<div class=\"spoiler-text\">\n<ul>\n<li>Shift+right click while holding the instrument to choose the 'mode'\n<ul>\n<li>'SemiTone Step' enables users to play notes depending on the player angle, in semitone steps</li>\n<li>'Tone Step' is the same, but the note steps in tones</li>\n<li>'Fluid' is also the same, but does not step</li>\n<li>'ABC' enables users to play ABC files</li>\n<li>Enter a band name to synchronise playback with others (so long as your band name is the same!)</li>\n</ul>\n</li>\n<li>When in ABC mode, right click to bring up another interface to choose your ABC file to play\n<ul>\n<li>If no ABC files are found, an error will be written in the chat window to help fix it.</li>\n</ul>\n</li>\n</ul>\n</div>\n</div>\n<p><strong>It says \"ABC error: could not find folder at...\"!</strong></p>\n<p>Unlike other mods, this mod looks in your game's installed directory for abc files that it can play. This way, if the mod needs to be updated, your tunes will remain untouched. You'll need to source your own abc files - there are plenty out on the web!</p>\n<p>Alternatively, modify the ModConfig.json \"abcLocalLocation\" to the folder you would like to use (see below).</p>\n<p><strong>Where do I find .abc files?</strong></p>\n<p><a href=\"https://drive.google.com/file/d/17x9g9RzvxnfB3GIVTi7YEEFkUnhMHEXj/view\" target=\"_blank\" rel=\"noopener\">Here are some demo songs</a> to get started. Other than this, you can search for abc files, or make your own!</p>\n<p>I would recommend adding \"Starbound\" to your search, as the abc community for that game is huge. There are plenty of tutorials for converting MIDI files to abc as well, which will work with this mod.</p>\n<p><strong>Useful tools:</strong></p>\n<ul>\n<li><a href=\"https://www.starboundcomposer.com/\" target=\"_blank\" rel=\"noopener\">Starbound Composer</a>- Huge thanks to the creator, Lourens Elzinga. Load in a MIDI file and it will split the channels into ABC format. Various other useful tools for editing and merging channels</li>\n<li><a href=\"https://drive.google.com/file/d/1e9XuGwIKotUfnnyuLmv4gzJHLsIzDyWf/view\" target=\"_blank\" rel=\"noopener\">Sound files in Starbound format</a> - Huge thanks to <span class=\"mention username\">_epic_fish_</span>! Point to this file if you don't have Starbound installed for Starbound Composer to work</li>\n</ul>\n<p>&nbsp;</p>\n<p><strong>What about making abc files available on my server?</strong></p>\n<p>Similarly to having abc files on your client, you can have abc files available to everyone who joins your server. In your server install directory, place your abcs in a folder \"abc_server\". You can put your abcs in subfolders just as normal, so you can make a subfolder for any groups you might have.</p>\n<p><strong>ModConfig settings:</strong></p>\n<ul>\n<li>\"enabled\": true\n<ul>\n<li>Enables or disables the functionality. If you're playing on a server that uses the mod but you don't want to hear it, set this to false.</li>\n</ul>\n</li>\n<li>\"playerVolume\": 0.7\n<ul>\n<li>Sets the relative volume for player instrument playback, between 0 and 1.</li>\n</ul>\n</li>\n<li>\"blockVolume\": 1.0\n<ul>\n<li>Sets the relative volume for abc player instrument playback, between 0 and 1.</li>\n</ul>\n</li>\n<li>\"abcBufferSize\": 32\n<ul>\n<li>A safety measure to stop spammy abc files from using up too much CPU processing. The maximum number of notes that can be played in a second. A higher number allows more notes to be played.</li>\n<li>If an abc file gives the error message \"abc tried to play too many notes, had to kill it\", consider increasing this number to 50 or 100, but beware the risks (especially if you are hosting a public server)</li>\n</ul>\n</li>\n<li>\"abcLocalLocation\": \"C:\\\\your\\\\filepath\\\\here\\abc\"</li>\n<li>\"abcServerLocation\": \"C:\\\\your\\\\server\\\\filepath\\\\here\\\\abc_server\"\n<ul>\n<li>Set the folder location for where the game should look for your abc files. <strong>Linux users are recommended to change this from the default locations</strong>, as the folders are deleted when the game updates!</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p><strong>Notes:</strong></p>\n<p>This mod is still a work in progress. If you're a modder and would like to help in any way, drop me a message!</p>\n<p>If you find an ABC file that cannot be played, an error will be displayed in the chat window. Please send the file along with the error over discord, so I can fix it.</p>\n<p><strong>Future work:</strong></p>\n<ul>\n<li>Improve animations for playing tunes</li>\n<li>More instrument packs</li>\n<li>Keyboard playback?</li>\n</ul>\n<p>&nbsp;</p>\n<p><a href=\"https://github.com/Quacksol/VSInstruments\" target=\"_blank\" rel=\"noopener\"><strong>Pre-1.20.1 source code here</strong></a></p>",
+  "author": "Quacksol",
+  "urlalias": null,
+  "logofilename": null,
+  "logofile": null,
+  "logofiledb": null,
+  "homepageurl": "https://www.vintagestory.at/forums/topic/4392-instruments/?tab=comments#comment-19629",
+  "sourcecodeurl": "https://github.com/Quacksol/vsinstruments_base",
+  "trailervideourl": "",
+  "issuetrackerurl": "",
+  "wikiurl": "",
+  "downloads": 220236,
+  "follows": 1121,
+  "trendingpoints": -1,
+  "comments": 173,
+  "side": "both",
+  "type": "mod",
+  "created": "2021-04-07 17:29:14",
+  "lastreleased": "2026-01-24 10:58:34",
+  "lastmodified": "2026-11-17 14:56:21",
+  "tags": [
+   "Technology"
+  ],
+  "releases": [
+   {
+    "releaseid": 33170,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._1e2514b03f06f2afae5b5bfe135f0116.zip?dl=vsinstrumentsbase_2.0.7.zip",
+    "filename": "vsinstrumentsbase_2.0.7.zip",
+    "fileid": 72936,
+    "downloads": 15891,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.7",
+    "created": "2026-01-24 10:58:34",
+    "changelog": "<ul>\n<li>Added compatibility for more instruments packs ('high mic', to&nbsp; be specific - thanks to Captainredbeard!)</li>\n<li>Removed FadeAndStop\n<ul>\n<li>For many players, songs sound a bit dreary with every note fading at the same rate</li>\n<li>More importantly, songs with lots of notes cause the game to slow down a LOT, which is, of course, no good</li>\n<li>Until we can find a solution that doesn't affect performance, it's best to stick with what's safe</li>\n</ul>\n</li>\n<li>Fixed ABC blocks finding server songs, it now uses the file location from the config file</li>\n<li>Updated game version to 1.21.6</li>\n</ul>"
+   },
+   {
+    "releaseid": 28756,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._a446dab69dd6e07e7a358118601a469c.zip?dl=vsinstrumentsbase_2.0.6.zip",
+    "filename": "vsinstrumentsbase_2.0.6.zip",
+    "fileid": 63458,
+    "downloads": 27548,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.6",
+    "created": "2025-11-05 10:56:04",
+    "changelog": "<ul>\n<li>Fixed mic compatibilty from previous version</li>\n<li>Sounds use \"FadeOutAndStop\" instead of stopping - sounds nicely fade out instead of abruptly cutting off (big thanks to exocs!)</li>\n<li>Increased default noteBuffer size from 32 to 64\n<ul>\n<li>Existing settings files will not be modified!&nbsp;</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 28524,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._02a54159a472db5e696bb0b913c25f7a.zip?dl=vsinstrumentsbase_2.0.5.zip",
+    "filename": "vsinstrumentsbase_2.0.5.zip",
+    "fileid": 62915,
+    "downloads": 7981,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.5",
+    "created": "2025-11-01 11:06:11",
+    "changelog": "<ul>\n<li>Compatibilty for other instrument packs using mic files (coming soon)\n<ul>\n<li>If the microphone instrument's name starts with 'zmic', use logic to pick from multiple sound files like the quack_pack's microphone does</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 24025,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._b2de9e25b2c26a3b5da80f57ddb532d7.zip?dl=vsinstrumentsbase_2.0.4.zip",
+    "filename": "vsinstrumentsbase_2.0.4.zip",
+    "fileid": 52819,
+    "downloads": 33767,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.4",
+    "created": "2025-08-31 11:51:14",
+    "changelog": "<ul>\n<li>Updated for VS version 1.21.0</li>\n<li>Updated .NET to version 8</li>\n</ul>"
+   },
+   {
+    "releaseid": 20310,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._05100d1aca0a3561462c6999b3725852.zip?dl=vsinstrumentsbase_2.0.3.zip",
+    "filename": "vsinstrumentsbase_2.0.3.zip",
+    "fileid": 43978,
+    "downloads": 19805,
+    "tags": [
+     "1.20.10"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.3",
+    "created": "2025-05-22 11:34:49",
+    "changelog": "<ul>\n<li>Improved hornpipe functionality ('&lt;' and '&gt;' in abc files now BOTH supported)</li>\n<li>Added ModConfig option to set your own abc/abcServer path locations\n<ul>\n<li>New options are: <br />\n<ul>\n<li>\"abcLocalLocation\": \"&lt;put your path here&gt;\"</li>\n<li>\"abcServerLocation\": \"&lt;put another path here too&gt;\"</li>\n</ul>\n</li>\n<li>Linux users encouraged to use this so their abcs don't get obliterated when updating the mod/game</li>\n</ul>\n</li>\n<li>Slightly modified the sound location for abc player blocks, they are centered better now</li>\n<li>Updated to 1.20.10 (no changes there, really)</li>\n</ul>"
+   },
+   {
+    "releaseid": 16719,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._ee723cc19dd4c584ffce200a66752989.zip?dl=vsinstrumentsbase_2.0.1.zip",
+    "filename": "vsinstrumentsbase_2.0.1.zip",
+    "fileid": 34637,
+    "downloads": 25955,
+    "tags": [
+     "1.20.4"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.1",
+    "created": "2025-02-24 13:37:50",
+    "changelog": "<ul>\n<li>Added and updated language files:\n<ul>\n<li>English</li>\n<li>French</li>\n<li>Spanish</li>\n<li>Italian</li>\n<li>Portuguese</li>\n<li>Polish</li>\n<li>Ukrainian</li>\n<li>Russian</li>\n<li>Chinese</li>\n<li>Japanese</li>\n<li>Korean</li>\n<li>For most of these I used chatgpt, so if there are mistakes please let me know</li>\n<li>Thanks to everyone who contributed!</li>\n</ul>\n</li>\n<li>Added safety against malicious abc files that attempt to DoS your server\n<ul>\n<li>Added abcBufferSize to config. Default is 32. Set lower to reduce amount of RAM allowed for an ABC. Increase to allow more 'intense' music files.</li>\n<li>Naughty files will give a message to the player saying the file tried to play too many notes. Increase the buffer size if playing solo or contact your server admin if playing online.</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 14878,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_2._1d701f2d53631aa2889b733b37b3e18e.zip?dl=vsinstrumentsbase_2.0.0.zip",
+    "filename": "vsinstrumentsbase_2.0.0.zip",
+    "fileid": 30869,
+    "downloads": 14863,
+    "tags": [
+     "1.20.1"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "2.0.0",
+    "created": "2025-01-21 11:55:47",
+    "changelog": "<p>Changed version to 2.0.0</p>"
+   },
+   {
+    "releaseid": 14834,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_1._44914095ac02bd6312f495b84c2dffb5.zip?dl=vsinstrumentsbase_1.0.1.zip",
+    "filename": "vsinstrumentsbase_1.0.1.zip",
+    "fileid": 30807,
+    "downloads": 427,
+    "tags": [
+     "1.20.1"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "1.0.1",
+    "created": "2025-01-20 18:56:57",
+    "changelog": "<p>Fixed a loading priority issue where a list was empty when it needed to not be, causing a server and client crash.</p>"
+   },
+   {
+    "releaseid": 14823,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstrumentsbase_1._93fe0fd6b7c0b832f40dd081f730586e.zip?dl=vsinstrumentsbase_1.0.0.zip",
+    "filename": "vsinstrumentsbase_1.0.0.zip",
+    "fileid": 30782,
+    "downloads": 521,
+    "tags": [
+     "1.20.1"
+    ],
+    "modidstr": "vsinstrumentsbase",
+    "modversion": "1.0.0",
+    "created": "2025-01-20 15:45:34",
+    "changelog": "<p>New system integrated</p>\n<ul>\n<li>This mod is the 'base' for playing instruments</li>\n<li>This mod is required for other instrument packs/mods to work</li>\n</ul>\n<p>Also updated for game version 1.20.1</p>"
+   },
+   {
+    "releaseid": 8779,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstruments_1.2.7_ce699f546dbaf48e581301fb34ca9633.zip?dl=vsinstruments_1.2.7.zip",
+    "filename": "vsinstruments_1.2.7.zip",
+    "fileid": 18954,
+    "downloads": 24106,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "vsinstruments",
+    "modversion": "1.2.7",
+    "created": "2024-02-10 11:54:56",
+    "changelog": "<ul>\n<li>Fixed trumpet animation, will now play</li>\n<li>Fixed another animation related crash (for reals this time)</li>\n</ul>"
+   },
+   {
+    "releaseid": 8592,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstruments_1.2.6_672e6a8234bce184feb9596b24bfd788.zip?dl=vsinstruments_1.2.6.zip",
+    "filename": "vsinstruments_1.2.6.zip",
+    "fileid": 18584,
+    "downloads": 1335,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "vsinstruments",
+    "modversion": "1.2.6",
+    "created": "2024-02-02 17:30:37",
+    "changelog": "<ul>\n<li>Crash fix for trying to set animation of a player far away from the client</li>\n<li>Crash fix for abc files that don't have an EOF marker</li>\n</ul>"
+   },
+   {
+    "releaseid": 8561,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstruments_1.2.5_2eaea7fe6738270d3e91a453da3de643.zip?dl=vsinstruments_1.2.5.zip",
+    "filename": "vsinstruments_1.2.5.zip",
+    "fileid": 18536,
+    "downloads": 646,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "vsinstruments",
+    "modversion": "1.2.5",
+    "created": "2024-02-01 14:53:50",
+    "changelog": "<ul>\n<li>Updated to 1.19.3</li>\n<li>Animations \"improved\" to match new first person camera mode</li>\n<li>When finishing an abc, no longer have to right click twice to play something else (works with music blocks too)</li>\n<li>Gave the drum kit a minimum note duration of a second</li>\n</ul>"
+   },
+   {
+    "releaseid": 7368,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstruments_1.2.4_0b554b791242ff6c8c7c712dee34a6ed.zip?dl=vsinstruments_1.2.4.zip",
+    "filename": "vsinstruments_1.2.4.zip",
+    "fileid": 16107,
+    "downloads": 4835,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "vsinstruments",
+    "modversion": "1.2.4",
+    "created": "2023-11-14 12:05:48",
+    "changelog": "<ul>\n<li>Modified the music block recipe. May now use nails and strips instead of metal parts, making them more accessible.</li>\n</ul>"
+   },
+   {
+    "releaseid": 7362,
+    "mainfile": "https://moddbcdn.vintagestory.at/vsinstruments_1.2.3_2df51c8b76e8e6a881d3c36ea4642f36.zip?dl=vsinstruments_1.2.3.zip",
+    "filename": "vsinstruments_1.2.3.zip",
+    "fileid": 16098,
+    "downloads": 525,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "vsinstruments",
+    "modversion": "1.2.3",
+    "created": "2023-11-13 12:29:32",
+    "changelog": "<ul>\n<li>Updated to VS 1.18.15</li>\n<li>No functional changes 😢</li>\n</ul>"
+   },
+   {
+    "releaseid": 5946,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.2.2_93e8c6e937c66f9450370f7d0c60c0c0.zip?dl=instruments_1.2.2.zip",
+    "filename": "instruments_1.2.2.zip",
+    "fileid": 12840,
+    "downloads": 11346,
+    "tags": [
+     "1.18.6"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.2.2",
+    "created": "2023-07-17 15:28:29",
+    "changelog": "<ul>\n<li>Added volume control via json<br />\n<ul>\n<li>Modify instruments' volume in 'instruments.json', in your VS ModConfig folder (probably in AppData/Romaing)</li>\n</ul>\n</li>\n<li>Improved animations for holding instruments</li>\n<li>Fixed abc parsing - hornpipes&nbsp; fixed, and abc files without a defined tempo field will use the tempo defined by the default note length</li>\n</ul>"
+   },
+   {
+    "releaseid": 5441,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.2.1_17e3d29565a9531039adab41ba499446.zip?dl=instruments_1.2.1.zip",
+    "filename": "instruments_1.2.1.zip",
+    "fileid": 11760,
+    "downloads": 4375,
+    "tags": [
+     "1.18.5"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.2.1",
+    "created": "2023-05-31 10:16:34",
+    "changelog": "<ul>\n<li>Fixes to the ABCParser, many more songs should work now\n<ul>\n<li>Fixed headers for lyrics</li>\n<li>Ignore slurs (because nobody likes them)</li>\n<li>Ignore other decorations (it isn't the right time of year)</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 4762,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.2.0_c0ce2adc5a7d7287bcd4a7c491670cb1.zip?dl=instruments_1.2.0.zip",
+    "filename": "instruments_1.2.0.zip",
+    "fileid": 10529,
+    "downloads": 3530,
+    "tags": [
+     "1.18.0"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.2.0",
+    "created": "2023-04-19 18:26:36",
+    "changelog": "<ul>\n<li>Updated for VS version 1.8.0</li>\n</ul>"
+   },
+   {
+    "releaseid": 4241,
+    "mainfile": "https://moddbcdn.vintagestory.at/Instruments_1.1.5_bfe43d82c9fdc7af80ea31014274856d.zip?dl=Instruments_1.1.5.zip",
+    "filename": "Instruments_1.1.5.zip",
+    "fileid": 9495,
+    "downloads": 1606,
+    "tags": [
+     "1.17.9"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.5",
+    "created": "2023-02-19 16:55:14",
+    "changelog": "<ul>\n<li>Fixed crash when no song was selected on a music block (thanks to Veritas!)</li>\n<li>Only display 'ABC warning: no abc files found at ...'&nbsp; message once</li>\n</ul>"
+   },
+   {
+    "releaseid": 3715,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.1.4_8f7bbd3ab4a1012d205345b5b9fe99d2.zip?dl=instruments_1.1.4.zip",
+    "filename": "instruments_1.1.4.zip",
+    "fileid": 8376,
+    "downloads": 2848,
+    "tags": [
+     "1.17.9"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.4",
+    "created": "2022-11-16 23:43:42",
+    "changelog": "<ul>\n<li>Big change to 'mode' gui\n<ul>\n<li>No longer requires shift-right-click to change mode</li>\n<li>Press 'f' to change mode instead, as you do with other held items</li>\n</ul>\n</li>\n<li>Instruments are now placeable!\n<ul>\n<li>Huge thanks to RogueRaiden and Craluminum for modelling and code help!</li>\n</ul>\n</li>\n<li>Clarinet recipe change - no longer requires a saw, needs a cooper's reed\n<ul>\n<li>Now accessible much earlier in the game</li>\n</ul>\n</li>\n<li>Added fix where the client would attempt to play sounds before loading the ability to play sounds</li>\n</ul>"
+   },
+   {
+    "releaseid": 3166,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.1.3_0b7d41408d1311c8cba9f7cb47357a8a.zip?dl=instruments_1.1.3.zip",
+    "filename": "instruments_1.1.3.zip",
+    "fileid": 7146,
+    "downloads": 2964,
+    "tags": [
+     "1.17.2"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.3",
+    "created": "2022-09-05 10:05:05",
+    "changelog": "<ul>\n<li>Updated for 1.17.2</li>\n</ul>"
+   },
+   {
+    "releaseid": 1820,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.1.2_9ce6146f76bdecdae911c88903977b24.zip?dl=instruments_1.1.2.zip",
+    "filename": "instruments_1.1.2.zip",
+    "fileid": 4506,
+    "downloads": 4367,
+    "tags": [
+     "1.16.3"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.2",
+    "created": "2022-02-07 22:01:59",
+    "changelog": "<ul>\n<li>Fixed line endings \\r and \\ stopping prematurely</li>\n<li>Implemented repeats using |: :| and ::</li>\n<li>Fixed repeating C and G notes causing timeouts (which are bad)</li>\n<li>Added French lang file (thanks to Cendar!)</li>\n</ul>"
+   },
+   {
+    "releaseid": 1573,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.1.1_837cedb948705623938e1cf96a224a8a.zip?dl=instruments_1.1.1.zip",
+    "filename": "instruments_1.1.1.zip",
+    "fileid": 3939,
+    "downloads": 1215,
+    "tags": [
+     "1.16.0"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.1",
+    "created": "2022-01-17 21:31:57",
+    "changelog": "<ul>\n<li>Fixed recipes for accordion and drum (many thanks to Maldaris!)</li>\n<li>3000 downloads! Thanks for trying my mod 💯</li>\n</ul>"
+   },
+   {
+    "releaseid": 1448,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.1.0_3e7d66eca054e505dec2bc184d382180.zip?dl=instruments_1.1.0.zip",
+    "filename": "instruments_1.1.0.zip",
+    "fileid": 3659,
+    "downloads": 1533,
+    "tags": [
+     "1.16.0-rc.8"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.1.0",
+    "created": "2022-01-09 01:22:49",
+    "changelog": "<ul>\n<li>Update for VS version 1.16</li>\n<li>No functional changes 😢</li>\n</ul>"
+   },
+   {
+    "releaseid": 743,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.10_8195efb25a1d7276d9c94c990f907b81.zip?dl=instruments_1.0.10.zip",
+    "filename": "instruments_1.0.10.zip",
+    "fileid": 2069,
+    "downloads": 1478,
+    "tags": [
+     "1.15.2"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.10",
+    "created": "2021-07-29 19:28:36",
+    "changelog": "<ul>\n<li>Added check to prevent <em>another</em> client crashing bug, should be much more stable now</li>\n<li>Added client command to disable all ABC playback: .instruments [enable|disable]\n<ul>\n<li>When you leave a game, this is reset to enabled! This is mostly for debugging.</li>\n</ul>\n</li>\n<li>Spruced up collision box on the Music Block</li>\n<li>Mic and drum kit now work in non-abc modes</li>\n</ul>"
+   },
+   {
+    "releaseid": 645,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.9_9e8c8a11a21e2e2f4b83c61e893c7a4a.zip?dl=instruments_1.0.9.zip",
+    "filename": "instruments_1.0.9.zip",
+    "fileid": 1827,
+    "downloads": 768,
+    "tags": [
+     "1.15.1"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.9",
+    "created": "2021-07-16 22:14:22",
+    "changelog": "<ul>\n<li>Fixed Client crashing bug that would kick players far from one playing a song</li>\n<li>Fixed music block not playing server-saved abc files</li>\n</ul>"
+   },
+   {
+    "releaseid": 640,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.8_3839e1d523d7cb661c680548e18367e6.zip?dl=instruments_1.0.8.zip",
+    "filename": "instruments_1.0.8.zip",
+    "fileid": 1819,
+    "downloads": 661,
+    "tags": [
+     "1.15.0-rc.4"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.8",
+    "created": "2021-07-16 17:55:24",
+    "changelog": "<ul>\n<li>Added Music Block!\n<ul>\n<li>Give it a name, an instrument, a song and an optional band name and set it off to play.</li>\n<li>Thanks to Baembi for the model!</li>\n</ul>\n</li>\n<li>Timing sync fix</li>\n<li>Improved major/minor key detection (songs made using Maestro will work)</li>\n<li>Improved status messages</li>\n<li>If the server has abcs, a client doesn't need an abc folder</li>\n</ul>"
+   },
+   {
+    "releaseid": 624,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.7_32204cb3427b5e11f2b6346266c8971b.zip?dl=instruments_1.0.7.zip",
+    "filename": "instruments_1.0.7.zip",
+    "fileid": 1787,
+    "downloads": 653,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.7",
+    "created": "2021-07-14 12:03:34",
+    "changelog": "<ul>\n<li>Instruments are placeable on tool racks</li>\n<li>Server owners may place abc files in their \"abc_server\" folder (in the same was as with the standard abc folder), and all players may play them</li>\n<li>Lowered instrument volume from 70% to 50%</li>\n<li>Fixed key signature issue, minor keys are now supported</li>\n<li>\"Group\" header is ignored in abc files</li>\n<li>Added 3 second delay when starting a band, to give other players some time to also start</li>\n<li>Added music block to creative, but it doesn't do anything yet!</li>\n</ul>"
+   },
+   {
+    "releaseid": 619,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.6_65ea4b6c8a88a4913029b1aaf2deffe8.zip?dl=instruments_1.0.6.zip",
+    "filename": "instruments_1.0.6.zip",
+    "fileid": 1778,
+    "downloads": 624,
+    "tags": [
+     "1.15.0-rc.2"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.6",
+    "created": "2021-07-13 10:15:30",
+    "changelog": "<ul>\n<li>Update to VS 1.15.0(-RC2)</li>\n<li>The previous version works on 1.15.0-RC2, this update is for the benefit of VSModDB</li>\n</ul>"
+   },
+   {
+    "releaseid": 561,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.5_867b98a73f837f947652eafaee921af0.zip?dl=instruments_1.0.5.zip",
+    "filename": "instruments_1.0.5.zip",
+    "fileid": 1676,
+    "downloads": 684,
+    "tags": [
+     "1.14.10"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.5",
+    "created": "2021-07-04 14:07:11",
+    "changelog": "<ul>\n<li>Added microphone<br />\n<ul>\n<li>Plays abcs, but does not work in other modes 😢</li>\n</ul>\n</li>\n<li>Fixes for finding files on Linux machines</li>\n<li>Items renamed to lowercase, and work on 1.15 preRel</li>\n</ul>"
+   },
+   {
+    "releaseid": 500,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.4_f121aa67a3e4c4242191f38427bfc498.zip?dl=instruments_1.0.4.zip",
+    "filename": "instruments_1.0.4.zip",
+    "fileid": 1498,
+    "downloads": 773,
+    "tags": [
+     "1.14.10"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.4",
+    "created": "2021-06-05 09:33:30",
+    "changelog": "<ul>\n<li>Fixed the sync issue, I <em>hope</em>, once and for all!\n<ul>\n<li>Bands will sync together as they did in v1.0.3</li>\n<li>The first note of an abc will always play</li>\n</ul>\n</li>\n<li>Added some client chat info when playing an abc\n<ul>\n<li>When a song is started</li>\n<li>When a song is stopped</li>\n<li>When you start a song with a new band (band name will be given)</li>\n<li>When you join another band (other player names will be displayed)</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 326,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.3_f5540f2d22ecb9edf6c6bb5e59790976.zip?dl=instruments_1.0.3.zip",
+    "filename": "instruments_1.0.3.zip",
+    "fileid": 1037,
+    "downloads": 960,
+    "tags": [
+     "1.14.8"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.3",
+    "created": "2021-04-14 22:37:01",
+    "changelog": "<ul>\n<li>Reverted code that caused syncing issue. Some notes may be missed on start.</li>\n</ul>"
+   },
+   {
+    "releaseid": 325,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.2_6201323301b5fa9f50e69285755b706c.zip?dl=instruments_1.0.2.zip",
+    "filename": "instruments_1.0.2.zip",
+    "fileid": 1032,
+    "downloads": 645,
+    "tags": [
+     "1.14.8"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.2",
+    "created": "2021-04-14 21:43:40",
+    "changelog": "<ul>\n<li>Fixed client crashing bug when a client joins a server in which someone is playing</li>\n<li>Fixed APCParser to allow files generated from Maestro software</li>\n</ul>"
+   },
+   {
+    "releaseid": 314,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1.0.1_aa96133d9c275e5c8862a75ccf7aef34.zip?dl=instruments_1.0.1.zip",
+    "filename": "instruments_1.0.1.zip",
+    "fileid": 1002,
+    "downloads": 1001,
+    "tags": [
+     "1.14.8"
+    ],
+    "modidstr": "instruments",
+    "modversion": "1.0.1",
+    "created": "2021-04-13 12:09:09",
+    "changelog": "<ul>\n<li>Initial release on VSModDB</li>\n<li>Fixed bug where an instrument would keep playing after being dropped</li>\n<li>Major improvements to song select gui, including a search field (thanks to Goxmeor)</li>\n</ul>"
+   }
+  ],
+  "screenshots": [
+   {
+    "fileid": 1003,
+    "mainfile": "https://moddbcdn.vintagestory.at/Screenshot+2021-04-0_7257ff125806307b66d5119de81f7a40.png",
+    "filename": "Screenshot 2021-04-07 180354_title.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Screenshot+2021-04-0_7257ff125806307b66d5119de81f7a40_55_60.png",
+    "created": "2021-04-13 12:19:09"
+   },
+   {
+    "fileid": 1006,
+    "mainfile": "https://moddbcdn.vintagestory.at/Screenshot+2021-04-1_090803f0d0356b4124040cd784470e04.png",
+    "filename": "Screenshot 2021-04-13 132519.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/Screenshot+2021-04-1_090803f0d0356b4124040cd784470e04_55_60.png",
+    "created": "2021-04-13 12:25:26"
+   },
+   {
+    "fileid": 12841,
+    "mainfile": "https://moddbcdn.vintagestory.at/instruments_1a7691a1b15d2c7cd6e9c98b483ffa55.png",
+    "filename": "instruments.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/instruments_1a7691a1b15d2c7cd6e9c98b483ffa55_55_60.png",
+    "created": "2023-07-17 15:39:20"
+   }
+  ]
+ },
+ "statuscode": "200"
+}

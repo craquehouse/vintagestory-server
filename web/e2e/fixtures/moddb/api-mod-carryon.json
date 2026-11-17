@@ -1,0 +1,1492 @@
+{
+ "mod": {
+  "modid": 890,
+  "assetid": 4405,
+  "name": "Carry On",
+  "text": "<p>Fork of the mod by copygirl - <a href=\"https://mods.vintagestory.at/show/mod/38\">CarryCapacity</a>. Carry On lets you pick up and move placed blocks - especially containers - with their contents intact, in your hands and on your back.</p>\n<h3>Carry On 2.0.0-rc.1 - release candidate</h3>\n<p><strong>This is the first release candidate of Carry On 2.0</strong>, a major rewrite of the carry system. Please play with care and <strong>back up your world and your <em>CarryOnConfig.json</em></strong> before updating. If you may want to return to 1.x, keep a copy of the old config too.</p>\n<p>Carry On 2.0 requires <a href=\"https://mods.vintagestory.at/carryonlib\">CarryOnLib</a> (also install it) and Vintage Story <strong>1.22.0</strong> or newer.</p>\n<h3>What's new in 2.0</h3>\n<ul>\n<li><strong>Blocks look right while carried.</strong> Flowerpots and planters show their plant, display cases show their contents, labelled chests and signs show their text, labelled crates show a content icon, and chiselled blocks show their chiselled shape.</li>\n<li><strong>Back-carried blocks fit your backpack.</strong> Blocks on your back are positioned for small and large backpacks, with straps added to most of them.</li>\n<li><strong>Carry bags from ground storage.</strong> With empty hands, lift a backpack, hand basket, sack or quiver out of ground storage, contents intact, and open a bag in ground storage while your hands are full.</li>\n<li><strong>Cluster carry.</strong> Carry a block together with the wall signs attached to it, as a single unit.</li>\n<li><strong>Speed and hunger.</strong> Carrying slows you down and can increase hunger, both configurable per block and per slot.</li>\n<li><strong>Damage no longer drops your block from a scratch.</strong> A trip or hunger pang no longer makes you drop what you carry; only serious damage does.</li>\n<li><strong>Safer dropped blocks.</strong> A block that cannot be placed drops as a recoverable crate entity, owned by you for a grace period, instead of spilling its contents.</li>\n<li><strong>Live config.</strong> Many settings apply on reload without restarting the server.</li>\n<li><strong>Clean upgrades.</strong> A container carried on your back when you upgrade from 1.14 keeps its contents.</li>\n</ul>\n<h3>Installation</h3>\n<ol>\n<li>Download Carry On from this page.</li>\n<li>Download <a href=\"https://mods.vintagestory.at/carryonlib\">CarryOnLib</a>.</li>\n<li>Open the mod folder from the in-game <em>Mod Manager</em> and copy both <em>.zip</em> files in <strong>without extracting them</strong>.</li>\n</ol>\n<p>Alternatively, use the <a href=\"https://mods.vintagestory.at/vslauncher\">Vintage Story Launcher</a> to manage the mod.</p>\n<h3>How to carry</h3>\n<p>Pick up a supported block with <strong>both hands empty</strong>: hold the carry modifier (default <strong>Shift</strong>) and hold right-click. A progress circle appears at the cursor.</p>\n<ul>\n<li><strong>Place it back down:</strong> while carrying it in your hands, hold the carry modifier and right-click against a block.</li>\n<li><strong>Put it on your back:</strong> hold the carry modifier and the swap-back modifier (default <strong>Ctrl</strong>) together and right-click - aiming does not matter - or aim at open space with only the carry modifier held.</li>\n<li><strong>Take it back off your back:</strong> the same interaction again.</li>\n<li><strong>Interact while carrying:</strong> doors, trapdoors, fence gates, barrels, chests, reed chests and storage vessels can still be used - hold the interact button until the spinner completes.</li>\n</ul>\n<p>Supported blocks include chests, barrels, crates, reed chests, storage vessels (including cracked ones), anvils, planters, querns and more. A smaller set can be worn on the back; reed chests are among the lightest to carry there. See the full <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/vanilla-block-inventory.md\">Vanilla Block Inventory</a>.</p>\n<h3>Controls</h3>\n<p>Carry On uses two interaction modifiers (held with right-click) and four function hotkeys. All can be rebound in the in-game controls menu.</p>\n<p><strong>Carry On keybinds only appear in the controls list after a world has been loaded.</strong></p>\n<h4>Interaction modifiers</h4>\n<ul>\n<li><strong>Carry action</strong> - default <strong>Shift</strong> (used with right-click to pick up, place and interact).</li>\n<li><strong>Swap-back</strong> - default <strong>Ctrl</strong> (used with the carry action to move blocks to and from your back).</li>\n</ul>\n<p>The carry modifier defaults to the same key as Sneak, and the swap-back modifier to the same key as Sprint - Carry On is designed to work that way. Vintage Story's keybind conflict detection will likely flag this: the Carry On bindings may show <em>same as Sneak</em> or <em>same as Sprint</em>, and the Sneak and Sprint bindings may point back at the Carry On keys. This is expected and harmless - it comes from the newer conflict detection and does not affect play.</p>\n<p>Carry On supports <strong>single-key</strong> bindings for these two modifiers only, and warns in chat if the carry and swap-back keys are bound to the same key.</p>\n<h4>Function hotkeys</h4>\n<ul>\n<li><strong>Toggle Carry On</strong> - default <strong>Alt + K</strong> (useful when Carry On conflicts with another mod).</li>\n<li><strong>Quick drop from hands</strong> - default <strong>K</strong>.</li>\n<li><strong>Quick drop from hands and back</strong> - default <strong>Alt + Ctrl + K</strong>.</li>\n<li><strong>Toggle double-tap dismount</strong> - default <strong>Ctrl + K</strong> (for boats, rafts and elk).</li>\n</ul>\n<p>If you are unable to put a block down, use <strong>Alt + Ctrl + K</strong> to force-drop it. See Known Issues below.</p>\n<h3>While you carry</h3>\n<ul>\n<li><strong>Movement:</strong> carrying slows you down per slot - by default about 25% slower in your hands and 15% slower on your back. Sprinting while carrying in your hands is disabled by default, with many per-block and per-material overrides available.</li>\n<li><strong>Hunger:</strong> carrying on your back can increase hunger drain, with a floor so it never starves you; off by default for the hands slot.</li>\n<li><strong>Damage:</strong> you still drop what is in your hands or on your back, but only once damage exceeds a per-slot threshold - light falls and hunger pangs no longer count. The back slot takes heavier damage before it drops.</li>\n<li><strong>Death:</strong> a block on your back drops at the location where you died. If that spot is on land you cannot build on, the block drops as a recoverable entity rather than spilling its contents.</li>\n</ul>\n<h3>Dropped blocks</h3>\n<p>When a carried block cannot be placed - an occupied spot, a claim you cannot build on, or no ground - it drops as a small crate entity instead of spilling. The block keeps its contents and data, so you can pick it back up. The dropper has a grace period of exclusive pickup, after which anyone can take it. By default a dropped block entity despawns after 30 in-game days. This is configurable in the <em>CarriedBlockEntity</em> section of <em>CarryOnConfig.json</em>.</p>\n<h3>Cluster carry (wall signs)</h3>\n<p>When enabled on the server, a block is picked up together with any wall signs attached to it and placed back as a unit. Players can choose whether they render and/or pick up attached signs:</p>\n<ul>\n<li><code>.carryon attachedRender [true|false]</code></li>\n<li><code>.carryon attachedPickup [true|false]</code></li>\n</ul>\n<p><img src=\"https://vintagestory-carryon.s3.us-east-1.amazonaws.com/cluster-carry.png\" alt=\"A carried block with attached wall signs\" width=\"357\" height=\"421\" /></p>\n<h3>Carried appearance</h3>\n<p>Carry On renders carried blocks with their details, not just the base model: plant containers show their plant, labelled chests show their label, and chiselled blocks show their chiselled shape.</p>\n<p><img src=\"https://vintagestory-carryon.s3.us-east-1.amazonaws.com/happy-sml.png\" alt=\"A carried chiselled flowerpot with a sapling\" width=\"227\" height=\"350\" /></p>\n<h3>Multiplayer and claims</h3>\n<ul>\n<li>Pickup and placement are checked against the whole block footprint - the target block, any part of a multiblock, and any attached wall signs - on the server.</li>\n<li>You cannot pick up dropped blocks on trader land or on claims you do not have permission for; those blocks drop as entities instead.</li>\n<li>Carry interactions are range-checked on the server, so a modified client cannot act on distant blocks.</li>\n</ul>\n<h3>Configuration</h3>\n<p>Server and single-player behavior is configured through <em>CarryOnConfig.json</em> in the <em>ModConfig</em> folder. The file is created with defaults if missing, and older configs are upgraded automatically. Most common edits:</p>\n<ul>\n<li><strong>Carryables / CarryablesOnBack</strong> - which vanilla block families can be carried in the hands or on the back.</li>\n<li><strong>Interactables</strong> - which blocks can still be used while your hands are full.</li>\n<li><strong>CarryWalkSpeed / CarryHungerRate</strong> - per-slot and per-block movement and hunger modifiers, including global and per-material multipliers.</li>\n<li><strong>DropCarriedOnDamage</strong> - per-slot damage thresholds before a carried block is dropped.</li>\n<li><strong>CarriedBlockEntity</strong> - how dropped blocks behave: drop mode, rotation, particles, despawn timer and pickup access.</li>\n<li><strong>CarryOptions</strong> - reach, interaction speed, back-slot toggles, cluster carry, ground-storage bags and backpack selection.</li>\n<li><strong>CarryablesFilters</strong> - automatic matching rules for modded blocks.</li>\n</ul>\n<p>Most settings apply at runtime when the config is reloaded (requires <code>DebuggingOptions.ReconditionOnConfigChange</code> to be enabled at server start). See <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/carryon-config.md\">CarryOn Config Reference</a> for every field, default and upgrade note.</p>\n<div class=\"spoiler\">\n<div class=\"spoiler-toggle\">Default CarryOnConfig.json (key sections)</div>\n<div class=\"spoiler-text\">\n<pre>{\n  \"ConfigVersion\": 6,\n  \"Carryables\": {\n    \"Anvil\": true,\n    \"Barrel\": true,\n    \"Chest\": true,\n    \"Crate\": true,\n    \"LootVessel\": true,\n    \"Planter\": true,\n    \"Quern\": true,\n    \"ReedChest\": true,\n    \"Resonator\": true,\n    \"StorageVessel\": true\n  },\n  \"CarryablesOnBack\": {\n    \"Barrel\": true,\n    \"Chest\": true,\n    \"Flowerpot\": true,\n    \"LootVessel\": true,\n    \"Planter\": true,\n    \"ReedChest\": true,\n    \"Resonator\": true,\n    \"StorageVessel\": true\n  },\n  \"Interactables\": { \"Door\": true, \"Barrel\": true, \"Storage\": true },\n  \"CarryWalkSpeed\": {\n    \"HandsEnabled\": true,\n    \"BackEnabled\": true,\n    \"HandsAllowSprint\": false,\n    \"BackAllowSprint\": true,\n    \"ModifierOverrides\": {\n      \"SlotDefaults\": { \"Hands\": -0.25, \"Back\": -0.15 }\n    }\n  },\n  \"CarryHungerRate\": {\n    \"HandsEnabled\": false,\n    \"BackEnabled\": true,\n    \"MinSaturationThreshold\": 150.0,\n    \"ModifierOverrides\": {\n      \"SlotDefaults\": { \"Hands\": 0.2, \"Back\": 0.3 }\n    }\n  },\n  \"DropCarriedOnDamage\": {\n    \"HandsEnabled\": true,\n    \"BackEnabled\": true,\n    \"HandsDamageThreshold\": 1.0,\n    \"BackDamageThreshold\": 6.0\n  },\n  \"CarryOptions\": {\n    \"RemoveInteractDelayWhileCarrying\": false,\n    \"InteractSpeedMultiplier\": 1.0,\n    \"MaxInteractionDistance\": 6,\n    \"BackSlotEnabled\": true,\n    \"TooHotToCarry\": true,\n    \"CarryAttachedWallSigns\": false,\n    \"OpenGroundStorageBagWhileCarrying\": true,\n    \"BackpackSelectionMode\": \"LastFound\"\n  },\n  \"CarriedBlockEntity\": {\n    \"DropMode\": \"EntityOnFailedPlacement\",\n    \"RandomDropRotation\": true,\n    \"DespawnAfterDays\": 30,\n    \"PickupAccess\": \"OwnerFirst\",\n    \"GracePeriodSeconds\": 300\n  },\n  \"DebuggingOptions\": { \"LoggingEnabled\": false, \"DisableHarmonyPatch\": false }\n}</pre>\n<p>The fragment above is trimmed for readability. The full file is generated with all keys and values; see the <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/carryon-config.md\">config reference</a> for the complete schema.</p>\n</div>\n</div>\n<h3>Chat commands</h3>\n<p>Carry On adds client and server commands for tuning the on-screen carry indicators and for server admin tasks:</p>\n<ul>\n<li><code>.carryon attachedRender [true|false]</code> / <code>.carryon attachedPickup [true|false]</code> - cluster carry visibility and pickup.</li>\n<li><code>.carryon gui ...</code> - move, colour and toggle the carry indicator anchors (hands and back) around the hotbar.</li>\n<li><code>.carryon iconmode [mode]</code> - carried label icon rendering, for troubleshooting.</li>\n<li><code>/carryon-reload</code> - reload the server config without restarting.</li>\n<li><code>/carryon-recover [radius]</code> - recover carried data left behind after a crash or mod removal.</li>\n</ul>\n<p>See <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/carryon-chat-commands.md\">CarryOn Chat Commands</a> for the full list and examples.</p>\n<h3>Mod compatibility</h3>\n<p>Carry On supports modded blocks in three ways: it automatically assigns carry behavior to blocks that match known patterns, it ships compatibility patches for a curated set of mods, and mod authors can add the behavior themselves. See the <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/mod-support-inventory.md\">Mod Support Inventory</a> and the <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/automatic-behavior-assignment.md\">Automatic Behavior Assignment</a> guide.</p>\n<h3>Recommended Mods</h3>\n<p>A selection of mods regularly tested with Carry On, in no particular order.</p>\n<ul>\n<li><a href=\"https://mods.vintagestory.at/show/mod/3026\">Japanese translation of Mods</a> (including Carry On)</li>\n<li><a href=\"https://mods.vintagestory.at/show/mod/137\">Extra Chests</a></li>\n<li><a href=\"https://mods.vintagestory.at/show/mod/146\">Better Crates</a></li>\n<li><a href=\"https://mods.vintagestory.at/show/mod/1238\">Primitive Survival</a></li>\n<li><a href=\"https://mods.vintagestory.at/vanvar\">Vanilla Variants</a></li>\n<li><a href=\"https://mods.vintagestory.at/show/mod/329\">Bricklayers</a></li>\n<li><a href=\"https://mods.vintagestory.at/sortablestorage\">Sortable Storage</a></li>\n<li><a href=\"https://mods.vintagestory.at/cartwrightscaravan\">Cartwright's Caravan</a></li>\n<li><a href=\"https://mods.vintagestory.at/upgradablestorage\">Upgradeable Storage</a></li>\n<li><a href=\"https://mods.vintagestory.at/playermodellib\">Player Model Lib</a></li>\n</ul>\n<h3>Known Issues</h3>\n<ul>\n<li><strong>Cannot put a carried block down.</strong> Usually caused by rebinding the carry keys. Workarounds: force-drop with <strong>Alt + Ctrl + K</strong>, toggle Carry On with <strong>Alt + K</strong>, and in <em>Settings &gt; Controls</em> uncheck and re-check <em>\"Mouse click modifiers locked to Sneak/Sprint keys\"</em>.</li>\n<li><strong>Multi-block carryables are not fully supported.</strong> Large multi-block structures can delete neighbouring blocks when dropped; chest trunks are handled correctly.</li>\n</ul>\n<p>See the full <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/docs/known-issues.md\">Known Issues</a> list for causes and workarounds.</p>\n<h3>Having issues?</h3>\n<p>Contact me on Discord: <strong>nerdscurvy</strong>, or in the Carry On channel: <a href=\"https://discord.com/channels/302152934249070593/1040620259272577135\">Vintage Story &gt; mods &gt; Carry On</a> (on the <a href=\"https://discord.gg/CkJjdrB\" target=\"_blank\" rel=\"external nofollow noopener\">Official Vintage Story Discord</a>).</p>\n<p>To help resolve issues, send me your logs:</p>\n<ul>\n<li>client-main.txt</li>\n<li>client-debug.txt</li>\n<li>server-main.txt</li>\n<li>server-debug.txt</li>\n</ul>\n<p>More detail can be captured by setting <code>\"LoggingEnabled\": true</code> in <em>CarryOnConfig.json</em>.</p>\n<h3>Support the author</h3>\n<p><a title=\"Buy me a coffee\" href=\"https://ko-fi.com/nerdscurvy\"><img src=\"https://vintagestory-carryon.s3.us-east-1.amazonaws.com/coffee.png\" alt=\"Coffee and Gears\" width=\"219\" height=\"195\" /></a></p>\n<p><a href=\"https://ko-fi.com/nerdscurvy\">Please support my caffeine consumption</a></p>\n<p>Source, changelog and documentation: <a href=\"https://github.com/NerdScurvy/CarryOn\">GitHub</a> - <a href=\"https://github.com/NerdScurvy/CarryOn/blob/main/CHANGELOG.md\">Changelog</a>.</p>",
+  "author": "NerdScurvy",
+  "urlalias": "carryon",
+  "logofilename": "https://moddbcdn.vintagestory.at/CarryOnLogo_aef8a4cbdf80f8b3851b5dc3b23e1a28.png",
+  "logofile": "https://moddbcdn.vintagestory.at/CarryOnLogo_aef8a4cbdf80f8b3851b5dc3b23e1a28.png",
+  "logofiledb": "https://moddbcdn.vintagestory.at/CarryOnLogo_aef8a4cbdf80f8b3851b5dc3b23e1a28.png",
+  "homepageurl": "",
+  "sourcecodeurl": "https://github.com/NerdScurvy/CarryOn?organization=NerdScurvy",
+  "trailervideourl": "",
+  "issuetrackerurl": "https://github.com/NerdScurvy/CarryOn/issues",
+  "wikiurl": "",
+  "downloads": 1128407,
+  "follows": 8104,
+  "trendingpoints": 0,
+  "comments": 770,
+  "side": "both",
+  "type": "mod",
+  "created": "2022-10-22 01:30:37",
+  "lastreleased": "2026-10-14 14:48:50",
+  "lastmodified": "2026-11-17 16:41:08",
+  "tags": [
+   "Storage",
+   "QoL"
+  ],
+  "releases": [
+   {
+    "releaseid": 61180,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._61efe1fabff7a88a6faaba0f2ddd6430.zip?dl=CarryOn-1.22.0_v2.0.0-rc.1.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-rc.1.zip",
+    "fileid": 130071,
+    "downloads": 10216,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-rc.1",
+    "created": "2026-10-14 13:43:04",
+    "changelog": "<p><strong>CarryOn 2.0.0-rc.1</strong> is the first release candidate of the 2.0 line. It requires Vintage Story 1.22.0 or newer and the matching CarryOnLib 1.0.0-rc.1. This is a release candidate: back up your world before updating.</p>\n<p><strong>New</strong></p>\n<ul>\n<li><strong>Carry bags from ground storage.</strong> With empty hands, hold Pick Up + right-click on a backpack, hand basket, sack or quiver lying in a storage pile to lift just that bag into your hands, contents intact. Put it back into an aimed slot, or stow it in a free worn-bag slot.</li>\n<li><strong>Open ground-storage bags while carrying.</strong> Hold Ctrl + right-click on a pile to open the bag inside without putting your carry down.</li>\n<li><strong>A new safe way to pick up whole entities.</strong> Content authors can require a deliberate key combination before racks, boats and other entities are picked up, so they are no longer grabbed by accident.</li>\n<li><strong>Hidden backpacks just work.</strong> If a cosmetic mod hides your worn backpack, the block you carry now sits at the no-backpack position automatically.</li>\n<li><strong>Missing blocks still show.</strong> A carried block from a removed mod now renders as a placeholder instead of an invisible or white-cube carry.</li>\n<li><strong>More usable while carrying.</strong> Wattle and bamboo gates, and Medieval Architecture gates, drawbridges, portcullis and trapdoors, can be opened and closed while you carry.</li>\n<li><strong>Safe update from 1.14.</strong> A container carried on your back at logout keeps its contents when you upgrade to 2.0.</li>\n</ul>\n<p><strong>Fixes</strong></p>\n<ul>\n<li>Ghost and duplicate blocks left behind by a refused placement are gone.</li>\n<li>Editing <em>CarryOnConfig.json</em> while the server runs no longer wipes your settings.</li>\n<li>Turning a block's carryable or carry-on-back setting off and on again now works without a restart.</li>\n<li>Messages and toasts show in your own language, not the server's.</li>\n<li>Fixed a client crash when moving between worlds.</li>\n<li>Fixed a crash when a creative player detaches a carried block from a mod that is no longer installed.</li>\n<li>A vehicle cargo barrel can no longer be pulled straight into your inventory.</li>\n</ul>\n<p><strong>For modders</strong></p>\n<ul>\n<li>Behavior codes are now namespaced (<em>carryon:carryable</em>). Old bare names still work.</li>\n<li>The block transfer interface is renamed to <em>ICarryableBlockSlotHandler</em>, and entity handlers are split into a pickup handler and a spawner factory. Mods built against 1.0.0-pre.* must update.</li>\n<li>See the CarryOnLib release notes and the README on GitHub for migration steps.</li>\n</ul>\n<p>Visit the project for documentation and support: <a href=\"https://github.com/NerdScurvy/CarryOn\">GitHub</a>.</p>"
+   },
+   {
+    "releaseid": 52086,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_6433d23712caab1513f4189fc39b8b92.zip?dl=CarryOn-1.22.0_v1.14.3.zip",
+    "filename": "CarryOn-1.22.0_v1.14.3.zip",
+    "fileid": 113014,
+    "downloads": 79858,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6",
+     "1.22.7"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.3",
+    "created": "2026-08-07 10:22:05",
+    "changelog": "<ul><li>Block trunks and collapsed chests from being attached to boats.</li>\n<li>Fixed containers, attached to boats, that had never been opened losing their storage slots when detached and re-attached.</li>\n<li>Fixed attaching items to occupied seats on vehicles like Cartwright's Caravan.</li>\n<li>Spectators no longer see carry HUD and carried blocks visuals while observing.</li></ul>"
+   },
+   {
+    "releaseid": 50130,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._d743db358a317c3ed33808df9cb5633b.zip?dl=CarryOn-1.22.0_v2.0.0-pre.8.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.8.zip",
+    "fileid": 109190,
+    "downloads": 39152,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3",
+     "1.22.4",
+     "1.22.5",
+     "1.22.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.8",
+    "created": "2026-07-22 09:32:32",
+    "changelog": "<h3>CarryOn v2.0.0-pre.8</h3>\n<h4>What's New</h4>\n<ul>\n<li><strong>Walk speed and hunger rate multipliers</strong>. New `Multipliers` section in both `CarryWalkSpeed` and `CarryHungerRate` config. Scale penalties globally or by block material (wood, stone, ceramic, metal) without editing per-block overrides. A multiplier of `0.5` halves the penalty; `2.0` doubles it.</li>\n<li><strong>Carryable report</strong>. New debug tool that generates a comprehensive report of every carryable block with its resolved walk speed and hunger rate modifiers. Shows both base values and final values after multipliers are applied. Output formats: markdown, HTML, or server log. Supports block code filters with wildcard patterns and has four condensation modes — collapse identical cardinal-direction variants, group blocks with matching modifiers, or detect wildcard patterns like `flowerpot-*-fired`. Enable via `DebuggingOptions.CarryableReport.Enabled` in config. Report files are written to `ModData/carryon/reports/`.</li>\n<li><strong>Icon texture mode command</strong>. New `.carryon iconmode` chat command to control how carried label icons are rendered. Modes: `standalone` (default on OpenGL 4.3+), `atlas` (all platforms), `standalone-fallback`, `disabled`. Useful for diagnosing icon fading or macOS compatibility. Standalone uses its own copy of icon textures - the copy method depends on the detected OpenGL version.</li>\n</ul>\n<h4>Improvements</h4>\n<ul>\n<li><strong>Config reload diagnostic logging</strong>. Config file changes, reloads, and client sync events now emit debug-level log messages. Makes it easier to diagnose config hot-reload issues without reading source code.</li>\n<li><strong>Config watcher toggle</strong>. New `DisableConfigWatcher` option in `DebuggingOptions` to disable the file system watcher that hot-reloads config on change. Useful for automated config management setups.</li>\n<li><strong>Refactoring.</strong>&nbsp;Clean-up and refactoring, including moving CarryCodes, CarryOnConfig and other frequently changed classes out of CarryOnLib and into CarryOn</li>\n</ul>\n<h4>Bug Fixes</h4>\n<ul>\n<li><strong>Planter transform group ordering</strong>. Fixed carried flowerpots and planters checking for hands-planted default before plant specific transforms. Plant-specific transforms (sapling type, mushroom type, flower type) are now correctly resolved.</li>\n<li><strong>Prevent Crash on Mac.</strong>&nbsp;Added fallback for texture handling on older GL versions used by some Macs.</li></ul>"
+   },
+   {
+    "releaseid": 47994,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._3b4b8b72d42ab1e197d279a8af4c2ee6.zip?dl=CarryOn-1.22.0_v2.0.0-pre.7.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.7.zip",
+    "fileid": 104947,
+    "downloads": 10413,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.7",
+    "created": "2026-07-04 07:45:20",
+    "changelog": "<p>Requires CarryOnLib v1.0.0-pre.7</p>\n<ul>\n<li data-sourcepos=\"1:1-1:49\">Allow BlockEntityData to be null in carryable transfers.</li>\n<li data-sourcepos=\"2:1-2:46\">Fix QP chiseled sign config patch that replaced all behaviors.</li>\n<li data-sourcepos=\"3:1-3:37\">Fix persisting stale carryon config.</li></ul>"
+   },
+   {
+    "releaseid": 47802,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._c7e466b481b882776540c268483c4cad.zip?dl=CarryOn-1.22.0_v2.0.0-pre.6.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.6.zip",
+    "fileid": 104572,
+    "downloads": 1611,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.6",
+    "created": "2026-07-02 15:00:37",
+    "changelog": "<p>Fix client crash when carrying chiseled blocks:</p>\n<ul>\n<li>Guard against disposed meshRefs</li>\n<li>Rebuild cached render info</li>\n<li>Prune stale cache</li></ul>"
+   },
+   {
+    "releaseid": 47581,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._3a3005caf776732390ef779349ad8a27.zip?dl=CarryOn-1.22.0_v2.0.0-pre.5.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.5.zip",
+    "fileid": 104121,
+    "downloads": 1724,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.5",
+    "created": "2026-06-30 11:28:06",
+    "changelog": "<h2 id=\"carryon-v200-pre5\" class=\"code-line\" dir=\"auto\" data-line=\"4\">CarryOn v2.0.0-pre.5</h2>\n<h3 id=\"new-features\" class=\"code-line\" dir=\"auto\" data-line=\"6\">New Features</h3>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"8\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"8\"><strong>Hunger modifier support:</strong>&nbsp;New&nbsp;<code>CarryHungerRate</code>&nbsp;config section with per-slot&nbsp;<code>HungerRateMultiplier</code>&nbsp;overrides. Modifiers can be configured as flat values or resolved per-slot. A&nbsp;<code>MinSaturationThreshold</code>&nbsp;option stops hunger when saturation drops below a configured level. (Analogous to walk speed modifier system.)</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"9\"><strong>Damage drop behavior:</strong>&nbsp;New&nbsp;<code>DropCarriedOnDamage</code>&nbsp;config section. Carried blocks can be dropped on taking damage. Configured per slot with a configurable&nbsp;<code>DamageThreshold</code>&nbsp;(damage must be strictly greater than this value to trigger a drop). Healing damage is excluded.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"10\"><strong>Carried block entities:</strong>&nbsp;When&nbsp;<code>CarriedBlockEntity.DropMode</code>&nbsp;is set to&nbsp;<code>EntityAlways</code>&nbsp;or&nbsp;<code>EntityWhenSupported</code>, carried blocks are spawned as&nbsp;<code>EntityCarriedBlock</code>&nbsp;entities (rather than item drops). Entities include:\n<ul class=\"code-line\" dir=\"auto\" data-line=\"11\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"11\">Grace period before pickup is allowed</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"12\">Access policy configuration (who can pick up)</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"13\">Configurable despawn timer</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"14\">Z-fighting prevention offset</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"15\">Collision-aware spawn position resolution</li>\n</ul>\n</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"16\"><strong>Hot-reloadable config:</strong>&nbsp;<code>FileSystemWatcher</code>&nbsp;watches the config file and triggers a live reload on change. No server restart required. Changes are synced to connected clients. Includes 500ms debounce to handle multi-pass editor writes.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"17\"><strong>Server-client config sync:</strong>&nbsp;Config changes are synced to connected clients via&nbsp;<code>ConfigSyncMessage</code>.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"18\"><strong>Permission service:</strong>&nbsp;New&nbsp;<code>CarryPermissionService</code>&nbsp;validates carry, drop, and pickup permissions on the server. Client performs a best-effort pre-check for responsiveness.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"19\"><strong>CarriedBlockEntity interaction support:</strong>&nbsp;<code>CarryInteractionController</code>&nbsp;and&nbsp;<code>CarryInteractionStateMachine</code>&nbsp;updated to handle interaction with&nbsp;<code>EntityCarriedBlock</code>&nbsp;(pick up dropped entities with&nbsp;<code>Use</code>&nbsp;/&nbsp;<code>Sneak + Use</code>).</li>\n</ul>\n<h3 id=\"breaking-changes\" class=\"code-line\" dir=\"auto\" data-line=\"21\">Breaking Changes</h3>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"23\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"23\"><strong>Transform resolver config rename:</strong>&nbsp;<code>transformGroupResolver</code>&nbsp;→&nbsp;<code>rootGroupResolver</code>&nbsp;+&nbsp;<code>attachmentGroupResolver</code>&nbsp;in JSON and C# config.&nbsp;<code>defaultRenderFacing</code>&nbsp;→&nbsp;<code>rootRenderFacing</code>.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"24\"><strong><code>IgnoreCarrySpeedPenalty</code>&nbsp;removed:</strong>&nbsp;This config option is no longer consumed. Walk speed modifiers are always applied unless the slot is disabled via the new&nbsp;<code>Enabled</code>&nbsp;flags. The old&nbsp;<code>AllowSprintWhileCarrying</code>&nbsp;behavior was previously waiving both sprint&nbsp;<em>and</em>&nbsp;speed penalty; now sprint and speed are handled independently.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"25\"><strong>Walk speed penalty always applied:</strong>&nbsp;Previously, setting&nbsp;<code>AllowSprintWhileCarrying = true</code>&nbsp;entirely waived the speed penalty. Now sprint permission and speed penalty are independent. Players upgrading from configs that set&nbsp;<code>AllowSprintWhileCarrying = true</code>&nbsp;will now receive speed penalties even when sprinting is permitted. The new config schema uses&nbsp;<code>CarryWalkSpeed.HandsAllowSprint</code> to replace the old flat flag.</li>\n</ul>\n<h3 id=\"bug-fixes\" class=\"code-line code-active-line\" dir=\"auto\" data-line=\"28\">Bug Fixes</h3>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"30\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"32\"><strong>PlantContainerTransformGroupResolver returns&nbsp;<code>false</code>&nbsp;for empty pots.</strong>&nbsp;Previously returned&nbsp;<code>true</code>&nbsp;with an empty&nbsp;<code>AttachmentResolveResult</code>, generating unnecessary cache entries for empty containers.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"33\"><strong>Single shared PlantContainerTransformGroupResolver instance.</strong>&nbsp;Was previously creating two instances for root and attachment registration; now uses one shared instance for consistent state.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"34\"><strong>Removed dead null-forgiving operators.</strong>&nbsp;Cleaned up unnecessary&nbsp;<code>?.</code>&nbsp;and&nbsp;<code>!</code>&nbsp;on null-conditional chains in&nbsp;<code>PackAdjustmentEditor.cs</code>,&nbsp;<code>PackAdjustmentHandler.cs</code>, and&nbsp;<code>PackAdjustmentLogger.cs</code>.</li>\n</ul>\n<h3 id=\"internal-changes\" class=\"code-line\" dir=\"auto\" data-line=\"36\">Internal Changes</h3>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"38\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"38\"><strong>New network messages:</strong>&nbsp;<code>ConfigSyncMessage</code>&nbsp;(<code>[ProtoContract]</code>) and&nbsp;<code>PickupEntityMessage</code>&nbsp;for entity pickup.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"39\"><strong>New entity types:</strong>&nbsp;<code>EntityCarriedBlock</code> - a new entity class for dropped carried blocks with configurable pickup, grace period, and despawn behavior.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"40\"><strong>New services:</strong>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"41\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"41\"><code>CarriedBlockEntityService</code> - spawning and position resolution for carried block entities.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"42\"><code>CarryOnConfigService</code> - file watcher–based config reloading with debounce.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"43\"><code>CarryPermissionService</code> - centralized permission checking.</li>\n</ul>\n</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"44\"><strong>New resolvers:</strong>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"45\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"45\"><code>HungerRateModifierResolver</code>&nbsp;— resolves hunger rate modifiers per slot with configurable range (0–9×) and saturation threshold.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"46\"><code>DataAttributeTransformGroupResolver</code>&nbsp;— resolves transform groups from block entity data attributes.</li>\n</ul>\n</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"47\"><strong>Refactored services:</strong>\n<ul class=\"code-line\" dir=\"auto\" data-line=\"48\">\n<li class=\"code-line\" dir=\"auto\" data-line=\"48\"><code>CarryDropService</code> - restructured drop logic with <code>DropBlockAsEntityOrItem</code>&nbsp;supporting&nbsp;<code>EntityAlways</code>,&nbsp;<code>EntityWhenSupported</code>, and&nbsp;<code>Items</code>&nbsp;modes. Handles data attribute spilling before inventory spilling to prevent item duplication.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"49\"><code>CarryStateService</code> - refactored walk-speed and hunger-rate application into dedicated resolver methods.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"50\"><code>CarryHandler</code> - migrated from <code>entity.GetCarried()</code>&nbsp;to&nbsp;<code>carryManager.GetCarried()</code>.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"51\"><code>TransferLogic</code> - simplified primary constructor, null-safe <code>carryManager</code>&nbsp;access.</li>\n</ul>\n</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"52\"><strong><code>EntityBehaviorDropCarriedOnDamage</code> -</strong>&nbsp;New entity behavior (server-side) added to existing entities dynamically. Checks all carry slots against per-slot damage thresholds on&nbsp;<code>OnEntityReceiveDamage</code>.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"53\"><strong><code>CarriedBlockAccessPolicy</code> -</strong>&nbsp;Determines pickup access for dropped entity blocks based on owner, party, or everyone.</li>\n<li class=\"code-line\" dir=\"auto\" data-line=\"54\"><strong><code>CarriedBlockTreeSerializer</code> -</strong>&nbsp;Serialization round-trip for block entity data on carried block entities.</li></ul>"
+   },
+   {
+    "releaseid": 45302,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._857e434adbd68e6268018beaac0eead5.zip?dl=CarryOn-1.22.0_v2.0.0-pre.4.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.4.zip",
+    "fileid": 99604,
+    "downloads": 13649,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.4",
+    "created": "2026-06-10 07:09:26",
+    "changelog": "<p><strong>Requires CarryonLib 1.0.0-pre.4</strong></p>\n<ul>\n<li>Fixed player able to pickup trader blocks in survival</li>\n<li>Added BackpackSelectionMode to help CarryOn to select which backpack profile to use. [FirstFound|LastFound|FirstOnly] (Workaround for some mods that affect which backpack is rendered)</li>\n<li>Cluster Carry: Wall signs attached to blocks can now be picked up, carried, and placed as a single unit.&nbsp;</li>\n<li>Added attachedTransform to LabelRenderSettings - an optional modifier transform applied only for attached-block label rendering, allowing the label position to be tuned independently from the standalone carried case</li>\n<li>Added validation in CarryAttachmentService to prevent attaching blocks with carried wall signs to entities (boats), since the inventory conversion would silently drop the attached signs</li>\n<li>Added defaultRenderVariant - allows block behaviors to specify an alternative block variant for carried rendering (e.g., wall sign model instead of ground sign)</li>\n<li>Added defaultRenderFacing - controls which facing variant is used when rendering carried blocks that normalize to a default direction on pickup</li>\n<li>Various render performance improvements</li></ul>"
+   },
+   {
+    "releaseid": 44613,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._b7bc1037b23e5dfd733f134977737ef8.zip?dl=CarryOn-1.22.0_v2.0.0-pre.3.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.3.zip",
+    "fileid": 98205,
+    "downloads": 6222,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.3",
+    "created": "2026-06-04 14:29:35",
+    "changelog": "<p><strong>Requires CarryonLib 1.0.0-pre.3</strong></p>\n<ul>\n<li>Walk speed modifier overrides - configure carry movement speed per block or block type for hands and back slots.</li>\n<li>Removed broken carried block lighting and - cleaned up chat commands.</li>\n<li>Interaction system refactored - the monolithic interaction logic was split into a dedicated controller, state machine, and validator for better reliability.</li>\n<li>Rendering improvements - updated the entity carry renderer and transform template system.</li>\n<li>Harmony patching extracted to a dedicated utility class.</li>\n<li>Removed deprecated Shoulder slot support.</li>\n<li>General stability improvements with better null safety across the API.</li></ul>"
+   },
+   {
+    "releaseid": 44162,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._4861412f4b941f95c258cfeb25a176c2.zip?dl=CarryOn-1.22.0_v2.0.0-pre.2.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.2.zip",
+    "fileid": 97226,
+    "downloads": 3619,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.2",
+    "created": "2026-06-01 01:34:35",
+    "changelog": "<p><strong>Requires CarryonLib 1.0.0-pre.2</strong></p>\n<ul>\n<li>Reed chest carried on back no longer slows player down (reverted to original behaviour)</li>\n<li>Add carryable support for Muck Bin (<a href=\"https://mods.vintagestory.at/interestingme\">Interesting Mining &amp; Extraction mod</a>)</li>\n<li>Fixed stuck carry animation after failed pickup</li>\n<li>Cabinet carry behaviour is now gated by enabledCondition carryon.Carryables.Cabinet</li>\n<li>Fixed carried signs/labels from trimming leading whitespace and blank lines</li>\n<li>Added support for sit/crouch-specific carry animations via animationSit and animationCrouch in carryable slot settings</li>\n<li>Clean-up of rendering, transform group resolver and caching behaviour to improve performance</li></ul>"
+   },
+   {
+    "releaseid": 43194,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v2.0._ecd65618b540f9e2f39d3c80886ba672.zip?dl=CarryOn-1.22.0_v2.0.0-pre.1.zip",
+    "filename": "CarryOn-1.22.0_v2.0.0-pre.1.zip",
+    "fileid": 95224,
+    "downloads": 4145,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "2.0.0-pre.1",
+    "created": "2026-05-25 12:53:16",
+    "changelog": "<h2>Overhaul of CarryOn</h2>\n<p>Pre-release for early testing - <strong>use at your own risk.</strong></p>\n<p>Backup your CarryOnConfig.json in case you want to switch back to 1.14.x</p>\n<p>Requires <a href=\"https://mods.vintagestory.at/carryonlib\">CarryOnLib</a></p>\n<p><strong>Key features:</strong></p>\n<ul>\n<li>Blocks carried on back now adjusted for different backpack types.</li>\n<li>Straps added to most blocks carried on back.</li>\n<li>Flowerpots and planters show plant when carried.</li>\n<li>DisplayCase show contents when carried.</li>\n<li>Labelled chests and signs show label text when carried.</li>\n<li>Labelled crates show content icon when carried.</li>\n<li>Chiselled chests, planters, etc. show chiselled block when carried (<a href=\"https://mods.vintagestory.at/chiseltools\">QP's Chisel Tools</a>)</li>\n<li>CarryOn hands icons</li>\n<li>New config option TooHotToCarry - prevent players from picking up heat source blocks until cooled down.</li>\n<li>Interface to allow mods to transfer Carried blocks into other block entities.\n<ul>\n<li>e.g. <a href=\"https://mods.vintagestory.at/rackemup\">RackEmUp</a> mod allows carried Molds to be put into the mold rack</li></ul></li></ul>"
+   },
+   {
+    "releaseid": 42603,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_48dccd248b8c48ce3be7a57b97001f1d.zip?dl=CarryOn-1.22.0_v1.14.2.zip",
+    "filename": "CarryOn-1.22.0_v1.14.2.zip",
+    "fileid": 94053,
+    "downloads": 98194,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2",
+     "1.22.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.2",
+    "created": "2026-05-21 09:53:48",
+    "changelog": "<ul><li>Fix bug that made doors carryable</li>\n<li>Add Korean translation (supplied by purple8cloud)</li>\n<li>Add ownership check to boats when attaching/detaching containers (to match base game permissions)</li></ul>"
+   },
+   {
+    "releaseid": 42233,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_f4d01bedeccc8a2fbca3fc8ccc292f49.zip?dl=CarryOn-1.22.0_v1.14.1.zip",
+    "filename": "CarryOn-1.22.0_v1.14.1.zip",
+    "fileid": 93412,
+    "downloads": 8023,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.1",
+    "created": "2026-05-18 11:42:34",
+    "changelog": "<ul>\n<li>Add compatibility for <a href=\"https://mods.vintagestory.at/eternalstew\">Eternal Stew</a> mod</li>\n<li>Add compatibility for <a href=\"https://mods.vintagestory.at/kevinsfurniture\">Kevin's Furniture</a> mod</li>\n<li>Cabinets now carryable/carriable</li>\n<li>Add incrementing Revision number to CarryOn watched attribute data to help debugging sync issues</li>\n</ul>"
+   },
+   {
+    "releaseid": 41225,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_56f3c88c02f357b2ea5f81a141ada998.zip?dl=CarryOn-1.22.0_v1.14.1-pre.1.zip",
+    "filename": "CarryOn-1.22.0_v1.14.1-pre.1.zip",
+    "fileid": 91473,
+    "downloads": 7196,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.1-pre.1",
+    "created": "2026-05-10 09:32:31",
+    "changelog": "<ul>\n<li>Add compatibility for <a href=\"https://mods.vintagestory.at/eternalstew\">Eternal Stew</a> mod</li>\n<li>Add incrementing Revision number to CarryOn watched attribute data to help debugging sync issues</li>\n</ul>"
+   },
+   {
+    "releaseid": 39307,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_ee4b34ed77b2b55fe3a20d2f7bf03b86.zip?dl=CarryOn-1.22.0_v1.14.0.zip",
+    "filename": "CarryOn-1.22.0_v1.14.0.zip",
+    "fileid": 87553,
+    "downloads": 43404,
+    "tags": [
+     "1.22.0",
+     "1.22.1",
+     "1.22.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.0",
+    "created": "2026-04-26 05:37:00",
+    "changelog": "<ul>\n<li>Add null checks and logging for processes run during AssetsFinalize</li>\n</ul>\n<p>&nbsp;</p>\n<p>Keep Calm and CarryOn</p>"
+   },
+   {
+    "releaseid": 38705,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0_v1.14_b5badc27b510751c6a1b02d293d2e066.zip?dl=CarryOn-1.22.0_v1.14.0-rc.1.zip",
+    "filename": "CarryOn-1.22.0_v1.14.0-rc.1.zip",
+    "fileid": 86268,
+    "downloads": 12446,
+    "tags": [
+     "1.22.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.0-rc.1",
+    "created": "2026-04-22 12:36:46",
+    "changelog": "<ul>\n<li>Target stable release 1.22.0</li>\n<li>CarryOn Gui background elements off by default - can be enabled/adjusted via chat commands (see mod description)</li>\n<li>Add \"class::BlockGroundStorage\" to PreventSwapFromBackOnTarget config defaults. May need to manually add if missing or delete config to regenerate.</li>\n</ul>"
+   },
+   {
+    "releaseid": 38450,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.13_4b2af418ccae4b79e0596837b0acfff1.zip?dl=CarryOn-1.21.0_v1.13.0.zip",
+    "filename": "CarryOn-1.21.0_v1.13.0.zip",
+    "fileid": 85814,
+    "downloads": 5524,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6",
+     "1.21.7"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.13.0",
+    "created": "2026-04-19 06:18:34",
+    "changelog": "<ul>\n<li>Set CarryOn GUI background to disabled by default\n<ul>\n<li>Can be re-enabled for client - see the CarryOn chat commands in the description</li>\n</ul>\n</li>\n<li>Prevent swap from back when interacting with ground storage - default server config change\n<ul>\n<li>Note: Remove the \"PreventSwapFromBackOnTarget\" section from CarryOnConfig.json so it regenerates the defaults or add \"class::BlockGroundStorage\" to the array.</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 36005,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0-rc.1__db4003f9b40eaaafcae498456f4adad3.zip?dl=CarryOn-1.22.0-rc.1_v1.14.0-pre.3.zip",
+    "filename": "CarryOn-1.22.0-rc.1_v1.14.0-pre.3.zip",
+    "fileid": 79461,
+    "downloads": 9864,
+    "tags": [
+     "1.22.0-rc.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.0-pre.3",
+    "created": "2026-03-08 07:45:11",
+    "changelog": "<ul>\n<li>Fix crates losing contents when dropped.</li>\n</ul>"
+   },
+   {
+    "releaseid": 35999,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.13_ba15064565aac2c6b43b39d95c6ff82a.zip?dl=CarryOn-1.21.0_v1.13.0-pre.3.zip",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.3.zip",
+    "fileid": 79454,
+    "downloads": 4528,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.13.0-pre.3",
+    "created": "2026-03-08 06:57:02",
+    "changelog": "<ul>\n<li>Dropped crates losing inventory should now be fixed.</li>\n</ul>"
+   },
+   {
+    "releaseid": 35049,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0-pre.3_f652e7878886aaf0d7f0be545b2c990a.zip?dl=CarryOn-1.22.0-pre.3_v1.14.0-pre.2.zip",
+    "filename": "CarryOn-1.22.0-pre.3_v1.14.0-pre.2.zip",
+    "fileid": 77282,
+    "downloads": 1487,
+    "tags": [
+     "1.22.0-pre.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.0-pre.2",
+    "created": "2026-02-21 09:55:43",
+    "changelog": "<ul>\n<li>Fix vessel dupe</li>\n<li>Targetting pre-release 3</li>\n</ul>"
+   },
+   {
+    "releaseid": 35040,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.13_4533c96774f880e19f3277672b3a6709.zip?dl=CarryOn-1.21.0_v1.13.0-pre.2.zip",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.2.zip",
+    "fileid": 77260,
+    "downloads": 3018,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.13.0-pre.2",
+    "created": "2026-02-21 04:23:19",
+    "changelog": "<ul>\n<li>Fix painful vessel dupe</li>\n</ul>"
+   },
+   {
+    "releaseid": 34870,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.22.0-pre.2_ce501d7d4b3f13b1165590a358d85a66.zip?dl=CarryOn-1.22.0-pre.2_v1.14.0-pre.1.zip",
+    "filename": "CarryOn-1.22.0-pre.2_v1.14.0-pre.1.zip",
+    "fileid": 76822,
+    "downloads": 549,
+    "tags": [
+     "1.22.0-pre.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.14.0-pre.1",
+    "created": "2026-02-18 14:09:04",
+    "changelog": "<ul>\n<li>Compatibility release</li>\n</ul>"
+   },
+   {
+    "releaseid": 34863,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.13_6b3b77ec1fc56e4c76c0265c1b265d3a.zip?dl=CarryOn-1.21.0_v1.13.0-pre.1.zip",
+    "filename": "CarryOn-1.21.0_v1.13.0-pre.1.zip",
+    "fileid": 76814,
+    "downloads": 1000,
+    "tags": [
+     "1.21.0",
+     "1.21.1-rc.1",
+     "1.21.1-rc.2",
+     "1.21.1",
+     "1.21.2-rc.1",
+     "1.21.2-rc.2",
+     "1.21.2-rc.3",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6-rc.1",
+     "1.21.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.13.0-pre.1",
+    "created": "2026-02-18 11:18:21",
+    "changelog": "<p>This is a pre-release and may contain bugs.</p>\n<ul>\n<li>Add extra auditing on carry actions with boats/rafts</li>\n<li>Add Belarusian translation from k1llo</li>\n<li>Add japanesearchitecture to carryonmore\n<ul>\n<li>Adjust size and position and walk speed of carried tansu (for different sizes)</li>\n<li>Prevent tansu cabinet carried on back.</li>\n</ul>\n</li>\n<li>Rework of dropped block placement\n<ul>\n<li>Better checks on multiblock placement that allows larger items like tansu cabinets</li>\n<li>Blocks dropped over water should now stay on top (unless it requires support then it will sink - bye-bye vessel)</li>\n<li>Blocks dropped while in water should now be suspended in the liquid where they were dropped</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 34143,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.12_0eb443cbe7983aa54a762b7bcf4ee00c.zip?dl=CarryOn-1.21.0_v1.12.2.zip",
+    "filename": "CarryOn-1.21.0_v1.12.2.zip",
+    "fileid": 75263,
+    "downloads": 51303,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.2",
+     "1.21.3",
+     "1.21.4",
+     "1.21.5",
+     "1.21.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.12.2",
+    "created": "2026-02-08 09:57:46",
+    "changelog": "<ul>\n<li>Small fix to logging</li>\n</ul>"
+   },
+   {
+    "releaseid": 26801,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.12_82e530890b0651ae5b52934e09af4452.zip?dl=CarryOn-1.21.0_v1.12.1.zip",
+    "filename": "CarryOn-1.21.0_v1.12.1.zip",
+    "fileid": 58729,
+    "downloads": 154110,
+    "tags": [
+     "1.21.0",
+     "1.21.1",
+     "1.21.4"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.12.1",
+    "created": "2025-10-07 03:51:48",
+    "changelog": "<ul>\n<li>Fix HUD shading of icon for block on back.</li>\n<li>Changed '.carryon gui reset' to set default locations, colours and alphas.</li>\n<li>Removed invalid Anchor options from server config.</li>\n</ul>"
+   },
+   {
+    "releaseid": 26573,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.12_67b4e0294f2c2156cd60e64112664e4b.zip?dl=CarryOn-1.21.0_v1.12.0.zip",
+    "filename": "CarryOn-1.21.0_v1.12.0.zip",
+    "fileid": 58313,
+    "downloads": 12791,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.12.0",
+    "created": "2025-10-04 06:16:33",
+    "changelog": "<ul>\n<li>Added configurable anchor backgrounds, borders, and highlight colors with persistence<br />\n<ul>\n<li>Command documentation added to the mod description page</li>\n</ul>\n</li>\n<li>Implemented swap-back prevention for specific block types/behaviors\n<ul>\n<li>See the new PreventSwapFromBackOnTarget CarryOption in CaryOnConfig.json</li>\n<li>Added Door behavior so can open doors while sneaking again with block carried on back.</li>\n<li>Added class of <a href=\"https://mods.vintagestory.at/vikingportalsmodified\">Viking Portals Modified</a> to allow portal naming</li>\n<li>Config currenlty supports block behaviors and block classes with behavior:: and class:: prefixes.</li>\n</ul>\n</li>\n<li>Fixed bug with HUD block icons rendering without textures</li>\n</ul>"
+   },
+   {
+    "releaseid": 26365,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.11_e39a3ff15e5967531df17453d043be61.zip?dl=CarryOn-1.21.0_v1.11.0.zip",
+    "filename": "CarryOn-1.21.0_v1.11.0.zip",
+    "fileid": 57892,
+    "downloads": 11425,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.11.0",
+    "created": "2025-10-01 13:09:36",
+    "changelog": "<ul>\n<li>Add carried block indicators to GUI - shows icon for item on back by default.</li>\n<li>Add chat commands to control position and visibility of icons</li>\n<li>Add glow behind indicator when carry action is using that block</li>\n</ul>\n<p>&nbsp;</p>\n<p>Carried Block indicators are rendered on either side of the Hotbar in predefined anchor points<br />[L3] [L2] [L1] [HOTBAR] [R1] [R2] [R3]</p>\n<h3>Chat commands:</h3>\n<p><strong>Reset to default gui (Back in R1)</strong><br />.carryon gui reset</p>\n<p><strong>Set L1 Anchor to hands</strong><br />.carryon gui set L1 Hands</p>\n<p><strong>Sets R2 Anchor to back</strong><br />.carryon gui set R2 Back</p>\n<p><strong>Clears L1 anchor</strong><br />.carryon gui set L1 Clear</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 25694,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._bec44da580ab3c5dc82d33447d32f546.zip?dl=CarryOn-1.20.4_v1.9.10.zip",
+    "filename": "CarryOn-1.20.4_v1.9.10.zip",
+    "fileid": 56560,
+    "downloads": 3222,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.10",
+    "created": "2025-09-22 04:00:26",
+    "changelog": "<ul>\n<li>Allow oar, lantern, etc. to be detached with alternate keybinds</li>\n<li>Prevent swap back action when targetting a container with empty hands</li>\n</ul>"
+   },
+   {
+    "releaseid": 25082,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_f63cd5ca9a4a4678931c1a9981282e53.zip?dl=CarryOn-1.21.0_v1.10.9.zip",
+    "filename": "CarryOn-1.21.0_v1.10.9.zip",
+    "fileid": 55165,
+    "downloads": 35206,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.9",
+    "created": "2025-09-13 21:58:16",
+    "changelog": "<ul>\n<li>Compatability patch for <a href=\"https://mods.vintagestory.at/cartwrightscaravan\">Cartwright's Caravan</a> v1.7</li>\n</ul>"
+   },
+   {
+    "releaseid": 24974,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_4651c46a31fb264acb4ce6bac9eeb644.zip?dl=CarryOn-1.21.0_v1.10.8.zip",
+    "filename": "CarryOn-1.21.0_v1.10.8.zip",
+    "fileid": 54900,
+    "downloads": 5408,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.8",
+    "created": "2025-09-12 10:02:37",
+    "changelog": "<ul>\n<li>Added Ukrainian translation provided by RAGE</li>\n<li>Machine generated missing key translations for other languages</li>\n</ul>\n<p>&nbsp;</p>\n<p>Apologies if this has butchered anyone's language. Corrections are gladly accepted.</p>"
+   },
+   {
+    "releaseid": 24316,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_ed15fea02cf3498f3ef79d2c63cd838d.zip?dl=CarryOn-1.21.0_v1.10.7.zip",
+    "filename": "CarryOn-1.21.0_v1.10.7.zip",
+    "fileid": 53422,
+    "downloads": 20312,
+    "tags": [
+     "1.21.0",
+     "1.21.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.7",
+    "created": "2025-09-03 12:01:15",
+    "changelog": "<ul>\n<li>Fix desync with crate and barrel contents</li>\n</ul>"
+   },
+   {
+    "releaseid": 24311,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_fe5067f38329d601cef7db89fad6f5de.zip?dl=CarryOn-1.21.0_v1.10.6.zip",
+    "filename": "CarryOn-1.21.0_v1.10.6.zip",
+    "fileid": 53414,
+    "downloads": 305,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.6",
+    "created": "2025-09-03 10:44:54",
+    "changelog": "<p><strong>Known issue</strong>: Client/Server desync with carried storage.</p>\n<p>&nbsp;</p>\n<ul>\n<li>Mark block entity as dirty after updating the block entity attributes.\n<ul>\n<li><span style=\"text-decoration: line-through;\">Should fix crates and barrels mysterously gaining or losing contents</span></li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>After testing again it didn't fix the issue.</p>"
+   },
+   {
+    "releaseid": 24201,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_0791fc362fc477c0c4bc4ccfde784722.zip?dl=CarryOn-1.21.0_v1.10.5.zip",
+    "filename": "CarryOn-1.21.0_v1.10.5.zip",
+    "fileid": 53212,
+    "downloads": 4500,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.5",
+    "created": "2025-09-02 09:40:42",
+    "changelog": "<p><strong>Known issue</strong>: Client/Server desync with carried storage.</p>\n<ul>\n<li>Prevent more piles from being a pain and not letting you place carried blocks with certain keybinds.</li>\n</ul>"
+   },
+   {
+    "releaseid": 24139,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_47ea92ee2292165740b774fbf6237289.zip?dl=CarryOn-1.21.0_v1.10.4.zip",
+    "filename": "CarryOn-1.21.0_v1.10.4.zip",
+    "fileid": 53077,
+    "downloads": 2996,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.4",
+    "created": "2025-09-01 16:16:47",
+    "changelog": "<p><strong>Known issue</strong>: Client/Server desync with carried storage.</p>\n<p>&nbsp;</p>\n<p>Fix crash when interacting with boat rollers</p>"
+   },
+   {
+    "releaseid": 24126,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_679674c1b2ea244173a4edab528fc27c.zip?dl=CarryOn-1.21.0_v1.10.3.zip",
+    "filename": "CarryOn-1.21.0_v1.10.3.zip",
+    "fileid": 53059,
+    "downloads": 1256,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.3",
+    "created": "2025-09-01 10:49:07",
+    "changelog": "<p><strong>Known issue</strong>: Client/Server desync with carried storage.<br /><br /></p>\n<ul>\n<li>Fix IgnoreCarrySpeedPenalty so it actually does something</li>\n<li>Force player agent controls to sneak (ShiftKey) when placing blocks\n<ul>\n<li>This is a workaround for where some blocks like molds check if the player is sneaking when placing them</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 23862,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_9af249776327c054c2f73bad267a65c4.zip?dl=CarryOn-1.21.0_v1.10.2.zip",
+    "filename": "CarryOn-1.21.0_v1.10.2.zip",
+    "fileid": 52518,
+    "downloads": 7751,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.2",
+    "created": "2025-08-30 02:50:17",
+    "changelog": "<ul>\n<li>Add patch for Labeled Trunks mod support (Thanks The_Revisionist)</li>\n<li>Update trunk fix to support labeled trunks</li>\n<li>Fix swapback able to trigger when targetting non-origin block of multiblock trunks<br /><br /></li>\n</ul>"
+   },
+   {
+    "releaseid": 23688,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_8df895ccc6acf7b827f6d53a387c32d3.zip?dl=CarryOn-1.21.0_v1.10.1.zip",
+    "filename": "CarryOn-1.21.0_v1.10.1.zip",
+    "fileid": 52161,
+    "downloads": 6402,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.1",
+    "created": "2025-08-28 10:36:56",
+    "changelog": "<ul>\n<li>Allow oar, lantern, etc. to be detached with alternate keybinds</li>\n<li>Fix carryable patch issues caused by file location changes in main game</li>\n<li>Prevent swap back action when targetting a container with empty hands</li>\n</ul>"
+   },
+   {
+    "releaseid": 23486,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0_v1.10_4b25f55845e96bcdd1c8bd2f459b4cfe.zip?dl=CarryOn-1.21.0_v1.10.0.zip",
+    "filename": "CarryOn-1.21.0_v1.10.0.zip",
+    "fileid": 51728,
+    "downloads": 8230,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0",
+    "created": "2025-08-26 09:32:37",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Interim fix for AutoConfigLib not liking my weird handling of legacy config data</li>\n<li>Yay for vs-1.21.0</li>\n</ul>"
+   },
+   {
+    "releaseid": 22984,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0-rc.4__7e0b1f072f3484bb29e350a005449843.zip?dl=CarryOn-1.21.0-rc.4_v1.10.0-rc.3.zip",
+    "filename": "CarryOn-1.21.0-rc.4_v1.10.0-rc.3.zip",
+    "fileid": 50632,
+    "downloads": 4463,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0-rc.3",
+    "created": "2025-08-15 01:44:10",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Complete configuration system overhaul:\n<ul>\n<li>New hierarchical configuration structure with nested config classes</li>\n<li>Legacy config conversion with backup of old config</li>\n<li>Removed client side config - was no longer relevant</li>\n</ul>\n</li>\n</ul>\n<ul>\n<li>Updated asset patches to work with new game file structures:\n<ul>\n<li>Fixed carryability for items affected by vanilla game changes (flowerpots, henboxes, planters, molds)</li>\n<li>Fixed Interaction while carrying for doors and storage vessels with the addition of barrels</li>\n</ul>\n</li>\n<li>Made resonator carryable with config option to disable if required</li>\n<li>Removed a couple of Harmony patches that are no longer required</li>\n</ul>"
+   },
+   {
+    "releaseid": 22921,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._cdf2ebca9d4fcdd1e590095b464aa5c0.zip?dl=CarryOn-1.20.4_v1.9.9.zip",
+    "filename": "CarryOn-1.20.4_v1.9.9.zip",
+    "fileid": 50469,
+    "downloads": 20949,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.9",
+    "created": "2025-08-13 16:33:12",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Possibly fixed DoubleTap to dismount\n<ul>\n<li>Feature is disabled by default - use CTRL+K toggle on/off</li>\n<li>When on boats/rafts/elk double tap the sneak button to dismount</li>\n<li>This allows players to move/carry containers while seated</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>Known issue: Players sometimes appears to standup in boat seats in multiplayer when mounting/switching seats. This is a side-effect of booting them from wrong seats.</p>\n<p>Probably the last VS 1.20 release.</p>"
+   },
+   {
+    "releaseid": 22918,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0-rc.4__d813f9e91d83dc41f79aa02cda664e4c.zip?dl=CarryOn-1.21.0-rc.4_v1.10.0-rc.2.zip",
+    "filename": "CarryOn-1.21.0-rc.4_v1.10.0-rc.2.zip",
+    "fileid": 50465,
+    "downloads": 444,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0-rc.2",
+    "created": "2025-08-13 15:25:29",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Merged features from v1.9.8</li>\n<li>Possibly fixed DoubleTap to dismount\n<ul>\n<li>Feature is disabled by default - use CTRL+K toggle on/off</li>\n<li>When on boats/rafts/elk double tap the sneak button to dismount</li>\n<li>This allows players to move/carry containers while seated</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 22857,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._fd2c7e7c7757b72bb45fba7469b17d7e.zip?dl=CarryOn-1.20.4_v1.9.8.zip",
+    "filename": "CarryOn-1.20.4_v1.9.8.zip",
+    "fileid": 50343,
+    "downloads": 3219,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.8",
+    "created": "2025-08-12 10:26:18",
+    "changelog": "<h3>Changelog</h3>\n<p>&nbsp;</p>\n<ul>\n<li>Fixed multiplayer crash that was present in v1.9.7</li>\n<li>New server options added to CarryOnConfig</li>\n</ul>\n<div>\n<ul>\n<li style=\"list-style-type: none;\">\n<ul>\n<li>AllowSprintWhileCarrying - when true, players can still sprint while carrying chests, etc. (Default: false)</li>\n<li>IgnoreCarrySpeedPenalty - when true, players will have normal movement speed when carrying block in hands and on back (Default: false)</li>\n<li>\n<div>RemoveInteractDelayWhileCarrying - when true, players can open doors and chests instantly while carrying a block in their hands. (Default: false)</div>\n</li>\n<li>\n<div>InteractSpeedMultiplier - a variable multiplier to change the speed it of the progress circle when interacting with carryable blocks (Default 1.0)</div>\n</li>\n</ul>\n</li>\n<li>\n<div>Add interaction while carrying to containers from chiseltools and sortablestorage mods</div>\n</li>\n</ul>\n</div>"
+   },
+   {
+    "releaseid": 22760,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._f53eb758d2dd5199fc7dc65ea280c2b3.zip?dl=CarryOn-1.20.4_v1.9.6.zip",
+    "filename": "CarryOn-1.20.4_v1.9.6.zip",
+    "fileid": 50044,
+    "downloads": 2383,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.6",
+    "created": "2025-08-10 09:11:35",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Prevent boat containers from being removed if another player is accessing the inventory</li>\n<li>Improved doubletap dismount (Toggle on/off with CTRL+K)</li>\n<li>Add patch to detect boat seat desync\n<ul>\n<li>Vanilla issue with players remaining registered with seat after dismount</li>\n</ul>\n</li>\n<li>Add config to disable harmony patches for debugging (Will disable doubletap detection and boat seat desync detection)</li>\n</ul>"
+   },
+   {
+    "releaseid": 22697,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._0c74a9b6014fc2f7087ad9de0387439a.zip?dl=CarryOn-1.20.4_v1.9.4.zip",
+    "filename": "CarryOn-1.20.4_v1.9.4.zip",
+    "fileid": 49894,
+    "downloads": 2576,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.4",
+    "created": "2025-08-09 00:48:36",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add hotkey to toggle the Double Tap Dismount feature: Ctrl+K</li>\n<li>Increase time to register second tap</li>\n</ul>\n<p>&nbsp;</p>\n<p>Due to some players experiencing issues with the Double Tap Dismount feature, especially those on large servers, it has been disabled by default.</p>\n<p>Each player can enable it again with Ctrl+K&nbsp;<br />A message will appear in the chat showing the toggled status.</p>"
+   },
+   {
+    "releaseid": 22590,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._c7e80255b86346584a8e6db7567ebf50.zip?dl=CarryOn-1.20.4_v1.9.3.zip",
+    "filename": "CarryOn-1.20.4_v1.9.3.zip",
+    "fileid": 49625,
+    "downloads": 3078,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.3",
+    "created": "2025-08-06 11:56:39",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add compatibility for QP's Chisel Tools\n<ul>\n<li>All chiselled blocks made carryable in line with their equivalent vanilla versions</li>\n<li>Added flag to the chiselled blocks to prevent attaching to boats and carts - due to them not rendering.</li>\n</ul>\n</li>\n<li>Blocks attached to boats, rafts and carts should now retain a copy of their block entity attributes\n<ul>\n<li>This means containers will keep their labels which will show again when placed on ground.<br />Note: Labels are not rendered while attached.</li>\n</ul>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 22567,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._513ea50b6d029c2a15d028706d61464a.zip?dl=CarryOn-1.20.4_v1.9.2.zip",
+    "filename": "CarryOn-1.20.4_v1.9.2.zip",
+    "fileid": 49567,
+    "downloads": 1158,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.2",
+    "created": "2025-08-05 13:56:16",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix crash when taking damage while swapping block to back</li>\n</ul>"
+   },
+   {
+    "releaseid": 22459,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._b864c861e133d03e01286157534ad43e.zip?dl=CarryOn-1.20.4_v1.9.0.zip",
+    "filename": "CarryOn-1.20.4_v1.9.0.zip",
+    "fileid": 56060,
+    "downloads": 150,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.0",
+    "created": "2025-08-01 16:02:08",
+    "changelog": "<h3>Changelog</h3>\n<h2>CarryOn Boating</h2>\n<ul>\n<li>Allows compatible carried blocks to be attached to slots on rafts and sailboats</li>\n<li>Adds compatibility Cartwright's Caravan mod to allow placing blocks on carts and sleds</li>\n<li>More in game messages when a carry action cannot be done</li>\n<li>Error messages added to language file - currently only for English (Translations welcome)</li>\n<li>Dismount for raft/boat/elk, and other ridable entities, has changed and requires the crouch/sneak button to be tapped twice.</li>\n<li>Can now switch between block in hands and block on back without having to put any down</li>\n</ul>"
+   },
+   {
+    "releaseid": 22430,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._69dba86b085096022f759655e3c55c56.zip?dl=CarryOn-1.20.4_v1.9.0-pre.3.zip",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.3.zip",
+    "fileid": 49176,
+    "downloads": 336,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.0-pre.3",
+    "created": "2025-07-31 15:22:26",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Refactor carry handler and add on screen carry related error/warning messages.</li>\n<li>Add compatibility for Cartwright's Caravan</li>\n<li>Add error messages to language file (English only)</li>\n</ul>"
+   },
+   {
+    "releaseid": 22266,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0-rc.1__0b888be1731714e3f9e7596185b8c702.zip?dl=CarryOn-1.21.0-rc.1_v1.10.0-rc.1.zip",
+    "filename": "CarryOn-1.21.0-rc.1_v1.10.0-rc.1.zip",
+    "fileid": 48741,
+    "downloads": 2932,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0-rc.1",
+    "created": "2025-07-26 17:21:18",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Rebuild for vs1.21.0-rc.1</li>\n</ul>"
+   },
+   {
+    "releaseid": 22052,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0-pre.3_beb9d9318e32f0a5572f01ad2049f5d9.zip?dl=CarryOn-1.21.0-pre.3_v1.10.0-pre.2.zip",
+    "filename": "CarryOn-1.21.0-pre.3_v1.10.0-pre.2.zip",
+    "fileid": 48282,
+    "downloads": 610,
+    "tags": [
+     "1.21.0-pre.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0-pre.2",
+    "created": "2025-07-20 12:23:35",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>CarryOn Boating pre-release for vs1.21.0-pre.3:\n<ul>\n<li>Migrated CarryOn boating code - now CarryOn can be used with chests on rafts and boats.</li>\n<li>Since there is a conflict between the default carry key and dismounting boats/raft - dismounting now requires a double tap of the sneak key.</li>\n<li>Double tap sneak to dismount applies to all seatable entities such as Elk - This mean you can move carryable blocks whilst on and elk.</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>Have only tested in single player. Would welcome any feedback on how it handles in multiplayer.</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 22018,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._b00f9393ef1097bf5ace6de59674e3fc.zip?dl=CarryOn-1.20.4_v1.9.0-pre.2.zip",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.2.zip",
+    "fileid": 48191,
+    "downloads": 5058,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.0-pre.2",
+    "created": "2025-07-19 10:46:05",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>CarryOn Boating pre-release:\n<ul>\n<li>Reworked code to use harmony and remove the custom EntityBoat class. Left reference in place to prevent boats/rafts from pre.1 being removed.</li>\n<li>Double tap sneak to dismount now applies to all seatable entities such as Elk - This mean you can move carryable blocks whislt on and elk.</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>This is a test release so use with caution - testing has been done mainly in single player.</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 21868,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.9._1ac89e17c688ccd58a57abcc79f74e49.zip?dl=CarryOn-1.20.4_v1.9.0-pre.1.zip",
+    "filename": "CarryOn-1.20.4_v1.9.0-pre.1.zip",
+    "fileid": 47831,
+    "downloads": 4116,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.9.0-pre.1",
+    "created": "2025-07-13 12:36:54",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>CarryOn Boating pre-release:\n<ul>\n<li>Compatible carried containers can be attached to raft and sailboat slots.</li>\n<li>To exit a raft or boat double-tap the crouch button - this is to allow default keybinds of CarryOn to work whilst sitting on the boat.</li>\n</ul>\n</li>\n</ul>\n<p>&nbsp;</p>\n<p>This is a test release so use with caution - testing has been done mainly in single player.</p>\n<p>&nbsp;</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 21845,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.8._df2b92ea243750827ee2f1101b15dc0b.zip?dl=CarryOn-1.20.4_v1.8.2.zip",
+    "filename": "CarryOn-1.20.4_v1.8.2.zip",
+    "fileid": 47779,
+    "downloads": 13677,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11",
+     "1.20.12"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.2",
+    "created": "2025-07-12 16:18:26",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix carry issue when mouse buttons are swapped</li>\n</ul>"
+   },
+   {
+    "releaseid": 21808,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.21.0-pre.2_06851000f31b0fcb4118b8f05eec9e6c.zip?dl=CarryOn-1.21.0-pre.2_v1.10.0-pre.1.zip",
+    "filename": "CarryOn-1.21.0-pre.2_v1.10.0-pre.1.zip",
+    "fileid": 47711,
+    "downloads": 587,
+    "tags": [
+     "1.21.0-pre.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.10.0-pre.1",
+    "created": "2025-07-11 15:25:17",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Pre-release build for VS 1.21.0-pre.2</li>\n</ul>"
+   },
+   {
+    "releaseid": 20822,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.4_v1.8._72e3e47c3de28f9bcd7d6ff13e432dfa.zip?dl=CarryOn-1.20.4_v1.8.1.zip",
+    "filename": "CarryOn-1.20.4_v1.8.1.zip",
+    "fileid": 45074,
+    "downloads": 32628,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6",
+     "1.20.7",
+     "1.20.8",
+     "1.20.9",
+     "1.20.10",
+     "1.20.11"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.1",
+    "created": "2025-06-05 12:12:39",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix dropped trunk rotation code that was causing Server Error - Object reference not set to an instance of an object.</li>\n</ul>"
+   },
+   {
+    "releaseid": 19834,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20_v1.8.0_0a53b11d87a8cbec3b47ded79eca0723.zip?dl=CarryOn-1.20_v1.8.0.zip",
+    "filename": "CarryOn-1.20_v1.8.0.zip",
+    "fileid": 42931,
+    "downloads": 19734,
+    "tags": [
+     "1.20.6",
+     "1.20.10"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.0",
+    "created": "2025-05-09 23:53:07",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Added Russian translated provided by Redison</li>\n<li>Added new quick drop key binding. Default is CTRL+ALT+K. This will instantly drop block carried in hands.</li>\n</ul>\n<p>&nbsp;</p>\n<p>I am still invesitgating reports of players unable to drop crates or clutter. Have not been able to replicate so have included the quick drop key as a workaround.</p>"
+   },
+   {
+    "releaseid": 17995,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20_v1.8.0-_27480f7eda427c60a83c18e6f0bc3da5.zip?dl=CarryOn-1.20_v1.8.0-rc.4.zip",
+    "filename": "CarryOn-1.20_v1.8.0-rc.4.zip",
+    "fileid": 38654,
+    "downloads": 37364,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.0-rc.4",
+    "created": "2025-03-24 12:44:18",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Dont try to render carried items if client renderer hs not available&nbsp;</li>\n</ul>"
+   },
+   {
+    "releaseid": 17992,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20_v1.8.0-_19d514685163c28e78d4cc9f8e6a9818.zip?dl=CarryOn-1.20_v1.8.0-rc.3.zip",
+    "filename": "CarryOn-1.20_v1.8.0-rc.3.zip",
+    "fileid": 38651,
+    "downloads": 216,
+    "tags": [
+     "1.20.5",
+     "1.20.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.0-rc.3",
+    "created": "2025-03-24 12:16:12",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Added null check to renderer model material</li>\n<li>Added Alt modifier to CarryOn toggle key [ALT]+K</li>\n</ul>"
+   },
+   {
+    "releaseid": 17916,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20_v1.8.0-_9406933ac5d24940f0a4be5a85a6ac9f.zip?dl=CarryOn-1.20_v1.8.0-rc.2.zip",
+    "filename": "CarryOn-1.20_v1.8.0-rc.2.zip",
+    "fileid": 38482,
+    "downloads": 5104,
+    "tags": [
+     "1.20.4",
+     "1.20.5",
+     "1.20.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.0-rc.2",
+    "created": "2025-03-22 20:25:47",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Removed invalid boat config</li>\n<li>Fix reed basket configuration (Name changed from stationary basket)</li>\n<li>Add Czech translation provided by Ouk</li>\n<li>Reworking of key handling</li>\n<li>Code refactored in preparation for new features</li>\n</ul>"
+   },
+   {
+    "releaseid": 12471,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.20.0-pre_v_7805583c8a1301120e16e1119955b389.zip?dl=CarryOn-1.20.0-pre_v1.8.0-pre.1.zip",
+    "filename": "CarryOn-1.20.0-pre_v1.8.0-pre.1.zip",
+    "fileid": 26136,
+    "downloads": 91737,
+    "tags": [
+     "1.20.0-pre.0",
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.8.0-pre.1",
+    "created": "2024-10-10 16:06:10",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix carry animation which was spamming errors in the logs</li>\n</ul>"
+   },
+   {
+    "releaseid": 8380,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19_v1.7.4_9455b5706c9ebe605f84df057d0b7fc3.zip?dl=CarryOn-1.19_v1.7.4.zip",
+    "filename": "CarryOn-1.19_v1.7.4.zip",
+    "fileid": 18114,
+    "downloads": 74747,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.4",
+    "created": "2024-01-26 01:11:19",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix Japanese translation - thanks @RikeiR.</li>\n<li>Fix issue when unable to place carried block</li>\n</ul>"
+   },
+   {
+    "releaseid": 8336,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19_v1.7.3_1b138530f45939be38b726a3e11d218a.zip?dl=CarryOn-1.19_v1.7.3.zip",
+    "filename": "CarryOn-1.19_v1.7.3.zip",
+    "fileid": 18017,
+    "downloads": 1491,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.3",
+    "created": "2024-01-24 10:52:27",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add Japanese translatrion - thanks @RikeiR.</li>\n<li>Fix reed basket/chest direction when placed</li>\n<li>Fix reed basket config - movement speed back to how it was - no penalty when on back</li>\n</ul>"
+   },
+   {
+    "releaseid": 8264,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19_v1.7.2_b058160d9a498dcad4cc4a6fc86adcb7.zip?dl=CarryOn-1.19_v1.7.2.zip",
+    "filename": "CarryOn-1.19_v1.7.2.zip",
+    "fileid": 17899,
+    "downloads": 2978,
+    "tags": [
+     "1.19.0",
+     "1.19.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.2",
+    "created": "2024-01-20 13:07:47",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add pt-br translation - thanks @Yanazake.</li>\n<li>Reduce dependency to 1.19.0 (untested)</li>\n</ul>"
+   },
+   {
+    "releaseid": 8260,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19_v1.7.1_b0a28b5c05c106c6bd3d9e41a9f2fb8d.zip?dl=CarryOn-1.19_v1.7.1.zip",
+    "filename": "CarryOn-1.19_v1.7.1.zip",
+    "fileid": 17894,
+    "downloads": 629,
+    "tags": [
+     "1.19.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.1",
+    "created": "2024-01-20 09:19:49",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add null check in hope of fixing animator error in multiplayer.</li>\n</ul>"
+   },
+   {
+    "releaseid": 8257,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19_v1.7.0_0dbe8709be07d6c5cd911e44a208ebae.zip?dl=CarryOn-1.19_v1.7.0.zip",
+    "filename": "CarryOn-1.19_v1.7.0.zip",
+    "fileid": 17888,
+    "downloads": 916,
+    "tags": [
+     "1.19.1"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.0",
+    "created": "2024-01-20 01:51:25",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add workaround fix for crash when trying to place reed basket/chest</li>\n</ul>"
+   },
+   {
+    "releaseid": 7832,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19.0-pre.1_2259ea1d81fbafddd5495c2afa6fbeea.zip?dl=CarryOn-1.19.0-pre.10_v1.7.0-pre.3.zip",
+    "filename": "CarryOn-1.19.0-pre.10_v1.7.0-pre.3.zip",
+    "fileid": 17049,
+    "downloads": 4555,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.0-pre.3",
+    "created": "2023-12-21 02:20:20",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Rebuild for VS 1.19.0-pre.10</li>\n</ul>"
+   },
+   {
+    "releaseid": 7476,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19.0-pre.7_1a34a1c5466012e4113180d61bdde3e4.zip?dl=CarryOn-1.19.0-pre.7_v1.7.0-pre.2.zip",
+    "filename": "CarryOn-1.19.0-pre.7_v1.7.0-pre.2.zip",
+    "fileid": 16342,
+    "downloads": 3008,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.0-pre.2",
+    "created": "2023-11-22 11:34:09",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Compatibility fixes for VS 1.19.0-pre.7</li>\n<li>Fixed torso attachment causing carried block to be invisible in 3rd person</li>\n</ul>"
+   },
+   {
+    "releaseid": 7247,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18-net7_v1_5de3a27a70c23a463770ae2d6a0f4ae9.zip?dl=CarryOn-1.18-net7_v1.6.1.zip",
+    "filename": "CarryOn-1.18-net7_v1.6.1.zip",
+    "fileid": 15836,
+    "downloads": 11217,
+    "tags": [
+     "1.18.8",
+     "1.18.9",
+     "1.18.10",
+     "1.18.11",
+     "1.18.12",
+     "1.18.13",
+     "1.18.14",
+     "1.18.15"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.6.1",
+    "created": "2023-11-05 00:29:46",
+    "changelog": "<h3>Changelog</h3>\n<p>Added Ukrainian translation thanks to justOmi</p>"
+   },
+   {
+    "releaseid": 7241,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.19.0-pre.4_82612c09e597f8718c5ef575790e3a1b.zip?dl=CarryOn-1.19.0-pre.4_v1.7.0-pre.1.zip",
+    "filename": "CarryOn-1.19.0-pre.4_v1.7.0-pre.1.zip",
+    "fileid": 15828,
+    "downloads": 2490,
+    "tags": [
+     "1.19.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.7.0-pre.1",
+    "created": "2023-11-04 02:41:06",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Compatibility fixes for VS 1.19.0-pre.4</li>\n</ul>"
+   },
+   {
+    "releaseid": 6623,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18-net7_v1_6e608782ce76cf3b31c8eb15e488c8db.zip?dl=CarryOn-1.18-net7_v1.6.0.zip",
+    "filename": "CarryOn-1.18-net7_v1.6.0.zip",
+    "fileid": 14364,
+    "downloads": 12809,
+    "tags": [
+     "1.18.8",
+     "1.18.9",
+     "1.18.10"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.6.0",
+    "created": "2023-09-15 12:06:48",
+    "changelog": "<h3>Changelog</h3>\n<p>Added Polish translation thanks to @Kaofan</p>"
+   },
+   {
+    "releaseid": 6354,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18-net7_v1_8b05ee2e10a0fde97fcb77ae9e6f3392.zip?dl=CarryOn-1.18-net7_v1.5.0.zip",
+    "filename": "CarryOn-1.18-net7_v1.5.0.zip",
+    "fileid": 13687,
+    "downloads": 5938,
+    "tags": [
+     "1.18.8"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.5.0",
+    "created": "2023-08-23 06:39:07",
+    "changelog": "<h3>Changelog</h3>\n<p>Rebuilt for Vintage Story 1.18.8 DotNet 7</p>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 6318,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18_v1.4.0_3eef3142749a6baf8cb21e75055075c0.zip?dl=CarryOn-1.18_v1.4.0.zip",
+    "filename": "CarryOn-1.18_v1.4.0.zip",
+    "fileid": 13576,
+    "downloads": 2181,
+    "tags": [
+     "1.18.6",
+     "1.18.7",
+     "1.18.8"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.4.0",
+    "created": "2023-08-19 17:20:47",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18</p>\n<ul>\n<li>Add configurable hotkeys:\n<ul>\n<li>CarryOn - Pick Up / Put Down (Default: Shift)</li>\n<li>CarryOn - Swap to back modifier (Default: Ctrl)</li>\n<li>CarryOn - Enable / Disable interaction (Default: K)</li>\n</ul>\n</li>\n<li>Client config HoldControlForBackSwapFocus is no longer used.</li>\n</ul>\n<div>&nbsp;</div>"
+   },
+   {
+    "releaseid": 5978,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18_v1.3.0_945717ccba257a4ffe063876aacaeee1.zip?dl=CarryOn-1.18_v1.3.0.zip",
+    "filename": "CarryOn-1.18_v1.3.0.zip",
+    "fileid": 12895,
+    "downloads": 7717,
+    "tags": [
+     "1.18.0",
+     "1.18.1",
+     "1.18.2",
+     "1.18.3",
+     "1.18.4",
+     "1.18.5",
+     "1.18.6"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.3.0",
+    "created": "2023-07-20 14:27:25",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18</p>\n<ul>\n<li>Fix to allow sneak interactions with entities. i.e. Rafts and armour stands.</li>\n<li>Added Italian translation - provided by Kota</li>\n<li>Added French translation - provided by Laerinok</li>\n</ul>"
+   },
+   {
+    "releaseid": 5322,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18_v1.2.0_bb96d34728264a81cc08fbc1cc87abbb.zip?dl=CarryOn-1.18_v1.2.0.zip",
+    "filename": "CarryOn-1.18_v1.2.0.zip",
+    "fileid": 11456,
+    "downloads": 11144,
+    "tags": [
+     "1.18.5"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.2.0",
+    "created": "2023-05-20 03:47:38",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18</p>\n<ul>\n<li>Add measures to prevent invisible block issues with carryable trunks</li>\n<li>Add more config options to remove carry behaviour from certain blocks</li>\n</ul>\n<p>&nbsp;</p>"
+   },
+   {
+    "releaseid": 5229,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18_v1.1.0_24c337982020f56c86a2375e180fea27.zip?dl=CarryOn-1.18_v1.1.0.zip",
+    "filename": "CarryOn-1.18_v1.1.0.zip",
+    "fileid": 11294,
+    "downloads": 2977,
+    "tags": [
+     "1.18.1",
+     "1.18.2",
+     "1.18.3"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.1.0",
+    "created": "2023-05-14 00:01:05",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18</p>\n<ul>\n<li>Added by request: New 'BackSlotEnabled' config.\n<ul>\n<li>When false the player will not be able to move items to back slot.</li>\n<li>Set to true by default</li>\n</ul>\n</li>\n</ul>\n<p>Note: All players should remove items from back before this option is enabled otherwise they will not be able to put it down. (Dying should allow it to drop)</p>"
+   },
+   {
+    "releaseid": 4802,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18_v1.0.0_322d7a89dfaa5b64bcbf446ac7a70136.zip?dl=CarryOn-1.18_v1.0.0.zip",
+    "filename": "CarryOn-1.18_v1.0.0.zip",
+    "fileid": 10600,
+    "downloads": 7233,
+    "tags": [
+     "1.18.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.0.0",
+    "created": "2023-04-21 12:53:55",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18</p>\n<ul>\n<li>Target stable release of Vintage Story 1.18</li>\n</ul>"
+   },
+   {
+    "releaseid": 4757,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-rc.8__ab5369bada71fe31786cf6167c3db141.zip?dl=CarryOn-1.18.0-rc.8_v1.0.0-rc.3.zip",
+    "filename": "CarryOn-1.18.0-rc.8_v1.0.0-rc.3.zip",
+    "fileid": 10509,
+    "downloads": 1933,
+    "tags": [
+     "1.18.0-rc.8"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.0.0-rc.3",
+    "created": "2023-04-19 12:31:03",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18-rc.8</p>\n<ul>\n<li>Fix: Unable to pick up carryable blocks dropped on a claim</li>\n</ul>"
+   },
+   {
+    "releaseid": 4692,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-rc.5__b1845dca2f240eedb08d2b3d92458c33.zip?dl=CarryOn-1.18.0-rc.5_v1.0.0-rc.2.zip",
+    "filename": "CarryOn-1.18.0-rc.5_v1.0.0-rc.2.zip",
+    "fileid": 10397,
+    "downloads": 1674,
+    "tags": [
+     "1.18.0-rc.5"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.0.0-rc.2",
+    "created": "2023-04-12 11:50:11",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18-rc.5</p>\n<ul>\n<li>Fix ExtraChests to allow carried on back when AllowLargeChestsOnBack is true</li>\n</ul>"
+   },
+   {
+    "releaseid": 4583,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-rc.2__51e16d0b06d244358702d893d82b57f3.zip?dl=CarryOn-1.18.0-rc.2_v1.0.0-rc.1.zip",
+    "filename": "CarryOn-1.18.0-rc.2_v1.0.0-rc.1.zip",
+    "fileid": 10173,
+    "downloads": 1561,
+    "tags": [
+     "1.18.0-rc.2"
+    ],
+    "modidstr": "carryon",
+    "modversion": "1.0.0-rc.1",
+    "created": "2023-04-05 15:29:36",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18-rc.2</p>\n<ul>\n<li>Automagically make modded blocks carryable if similar to other carryables.</li>\n<li>Added mod icon.</li>\n<li>Made henbox carryable.</li>\n<li>Fixed trunk multiblock clobbering other blocks, again.</li>\n<li>Made CarryOnMore mod redundant.</li>\n<li>Added config options to carry crates, trunks and large chests (i.e. Extra Chests) on back.</li>\n<li>Dropped blocks that have no suitable space will now drop the items as if broken by the player. Containers will spill their contents.</li>\n<li>Updated dropped block notification to mention if item was dropped, destroyed and/or contents spilled. Including butchered translations for German and Spanish.</li>\n<li>Fixed possible infinite loop when looking for a location to drop a block.</li>\n<li>Added config option to turn on debug logs.</li>\n</ul>"
+   },
+   {
+    "releaseid": 4540,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-pre_v_ed9ef813bbc723789429b019a0020aa2.zip?dl=CarryOn-1.18.0-pre_v0.13.0-pre.3.zip",
+    "filename": "CarryOn-1.18.0-pre_v0.13.0-pre.3.zip",
+    "fileid": 10091,
+    "downloads": 1023,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.13.0-pre.3",
+    "created": "2023-03-30 06:54:30",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18 pre release</p>\n<ul>\n<li>Added more carryables:\n<ul>\n<li>Tall display case</li>\n<li>Bookshelves</li>\n<li>Clutter</li>\n</ul>\n</li>\n<li>Fixed placed display case not showing contents</li>\n<li>Added config options for bookshelf and clutter (disabled by default)</li>\n</ul>"
+   },
+   {
+    "releaseid": 4507,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.0_v0.12_a4aa3550b3f02ac9963f7256aa9ff360.zip?dl=CarryOn-1.17.0_v0.12.0.zip",
+    "filename": "CarryOn-1.17.0_v0.12.0.zip",
+    "fileid": 10036,
+    "downloads": 1430,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.12.0",
+    "created": "2023-03-24 01:53:56",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Fix play sound when carried block is dropped.</li>\n<li>Add notification when carried block is dropped.</li>\n<li>Fix for dropped trunk clobbering other blocks with multiblock.</li>\n<li>Allow interact with doors and storage when carrying (with a short delay).</li>\n<li>Fix pickup of trunk when targeting right side.</li>\n<li>Dropped blocks will now always create a ModData file.</li>\n<li>Dropped block info ModData now includes basic block details including container contents.</li>\n<li>Initial work to allow API and Events.</li>\n</ul>"
+   },
+   {
+    "releaseid": 4506,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-pre_v_5e95bb077aaaf1daca84824d33a5876e.zip?dl=CarryOn-1.18.0-pre_v0.13.0-pre.2.zip",
+    "filename": "CarryOn-1.18.0-pre_v0.13.0-pre.2.zip",
+    "fileid": 10035,
+    "downloads": 996,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.13.0-pre.2",
+    "created": "2023-03-24 01:50:22",
+    "changelog": "<h3>Changelog</h3>\n<p>For Vintage Story 1.18 pre release</p>\n<ul>\n<li>Fix play sound when carried block is dropped.</li>\n<li>Add notification when carried block is dropped.</li>\n<li>Fix for dropped trunk clobbering other blocks with multiblock.</li>\n<li>Allow interact with doors and storage when carrying (with a short delay).</li>\n<li>Fix pickup of trunk when targeting right side.</li>\n<li>Dropped blocks will now always create a ModData file.</li>\n<li>Dropped block info ModData now includes basic block details including container contents.</li>\n<li>Initial work to allow API and Events.</li>\n</ul>"
+   },
+   {
+    "releaseid": 4314,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.18.0-pre_v_dea38b9cd85fb125618325ba3dc5764c.zip?dl=CarryOn-1.18.0-pre_v0.11.0-pre.1.zip",
+    "filename": "CarryOn-1.18.0-pre_v0.11.0-pre.1.zip",
+    "fileid": 9648,
+    "downloads": 1845,
+    "tags": [
+     "1.18.0-pre.0"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.11.0-pre.1",
+    "created": "2023-02-26 19:58:39",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Target 1.18.0-pre API</li>\n</ul>"
+   },
+   {
+    "releaseid": 4228,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-0.10.4-rc.1-_d3acd5f52af8a674474cf083b3495a00.zip?dl=CarryOn-0.10.4-rc.1-net7.zip",
+    "filename": "CarryOn-0.10.4-rc.1-net7.zip",
+    "fileid": 9477,
+    "downloads": 1401,
+    "tags": [
+     "1.17.11"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.10.4-rc.1",
+    "created": "2023-02-17 11:51:15",
+    "changelog": "<p>Recompiled for new Vintage Story .net 7 Experimental build 1.17.11-rc.2</p>"
+   },
+   {
+    "releaseid": 3825,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.10_8ab0ab7b9744a3b32d192fdf69f9ba85.zip?dl=CarryOn-1.17.9_v0.10.3.zip",
+    "filename": "CarryOn-1.17.9_v0.10.3.zip",
+    "fileid": 8617,
+    "downloads": 7813,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9",
+     "1.17.10",
+     "1.17.11"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.10.3",
+    "created": "2022-12-04 06:53:30",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Allow players to pick up blocks that are dropped on claims and reinforced areas</li>\n<li>Reverted code that attempted to drop blocks outside of claims</li>\n<li>Now looks for the ground before scanning for a suitable location to drop blocks</li>\n<li>Added config to treat water and lava blocks as air when looking for ground (blocks sink in lakes)</li>\n<li>Dropped blocks will be placed in the air when no suitable location is found on the ground</li>\n<li>Split ModConfig files into separate client/server files</li>\n<li>Updated carryable patch files to be server-side</li>\n<li>Fixed rotation of placed signs</li>\n</ul>"
+   },
+   {
+    "releaseid": 3785,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.9._65ba4e230417420b8c7d8e22218a3bc5.zip?dl=CarryOn-1.17.9_v0.9.1.zip",
+    "filename": "CarryOn-1.17.9_v0.9.1.zip",
+    "fileid": 8526,
+    "downloads": 957,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.9.1",
+    "created": "2022-11-29 11:37:55",
+    "changelog": "<ul>\n<li>Fix null reference error when no land claims</li>\n</ul>"
+   },
+   {
+    "releaseid": 3743,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.9._7614cb9923f76f8c84bb8f5fa05788f8.zip?dl=CarryOn-1.17.9_v0.9.0.zip",
+    "filename": "CarryOn-1.17.9_v0.9.0.zip",
+    "fileid": 8420,
+    "downloads": 1662,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.9.0",
+    "created": "2022-11-20 07:05:46",
+    "changelog": "<h3>Changelog</h3>\n<ul>\n<li>Add Mod Config to enable/disable carryables</li>\n<li>Holding sneak/control will swap back slot even when focusing on a block. Can be disabled in config: HoldControlForBackSwapFocus</li>\n<li>Add more carryables (disabled by default):\n<ul>\n<li>Candles</li>\n<li>Chandelier</li>\n<li>Chest Trunk</li>\n<li>Display Case</li>\n<li>Flowerpot</li>\n<li>Resin Log</li>\n<li>Mold Rack</li>\n<li>Molds</li>\n<li>Oven</li>\n<li>Shelf</li>\n<li>Sign</li>\n<li>Tool Rack</li>\n<li>Torch Holder</li>\n</ul>\n</li>\n<li>Refactor code</li>\n</ul>\n<h3>Known issues</h3>\n<ul>\n<li>Some containers do not render contents when placed - contents reappear on the next block update.:\n<ul>\n<li>Display Case</li>\n<li>Oven</li>\n<li>Shelf</li>\n</ul>\n</li>\n<li>Chest Trunk can only be picked up when interacting with the left side. The right shows the pickup option but does not work</li>\n</ul>"
+   },
+   {
+    "releaseid": 3672,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.8._8e21d600e07f1d24c893e951c124f254.zip?dl=CarryOn-1.17.9_v0.8.0.zip",
+    "filename": "CarryOn-1.17.9_v0.8.0.zip",
+    "fileid": 8307,
+    "downloads": 2279,
+    "tags": [
+     "1.17.0",
+     "1.17.1",
+     "1.17.2",
+     "1.17.3",
+     "1.17.4",
+     "1.17.5",
+     "1.17.6",
+     "1.17.7",
+     "1.17.8",
+     "1.17.9"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.8.0",
+    "created": "2022-11-11 13:28:44",
+    "changelog": "<ul>\n<li>Prevent blocks dropping on land-claim, such as traders, where the player cannot pick up again.</li>\n<li>No longer throws an exception when no suitable drop location is found. The player keeps carrying blocks when this occurs.</li>\n</ul>"
+   },
+   {
+    "releaseid": 3561,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.7._8df85d199408c609dbea2edc03e90b7b.zip?dl=CarryOn-1.17.9_v0.7.1.zip",
+    "filename": "CarryOn-1.17.9_v0.7.1.zip",
+    "fileid": 8044,
+    "downloads": 1772,
+    "tags": [
+     "1.17.9"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.7.1",
+    "created": "2022-10-30 03:37:47",
+    "changelog": "<ul>\n<li>Removed duplicate patch files.</li>\n</ul>"
+   },
+   {
+    "releaseid": 3538,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOn-1.17.9_v0.7._eff0f566f3d5e779b941de3e822b54d4.zip?dl=CarryOn-1.17.9_v0.7.0.zip",
+    "filename": "CarryOn-1.17.9_v0.7.0.zip",
+    "fileid": 7996,
+    "downloads": 1219,
+    "tags": [
+     "1.17.9"
+    ],
+    "modidstr": "carryon",
+    "modversion": "0.7.0",
+    "created": "2022-10-25 10:46:17",
+    "changelog": "<ul>\n<li>Rebranded to CarryOn</li>\n<li>Changed all references to carrycapacity to carryon to match the new mod id</li>\n</ul>"
+   }
+  ],
+  "screenshots": [
+   {
+    "fileid": 8045,
+    "mainfile": "https://moddbcdn.vintagestory.at/CarryOnLogo2_ab523bf0047598a1474614c89fe0fb06.png",
+    "filename": "CarryOnLogo2.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/CarryOnLogo2_ab523bf0047598a1474614c89fe0fb06_55_60.png",
+    "created": "2022-10-30 03:46:26"
+   }
+  ]
+ },
+ "statuscode": "200"
+}

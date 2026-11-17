@@ -47,6 +47,7 @@ cases=(
     'test-e2e-api|-k|a or b'
     'test-e2e-web|-g|a b'
     'test-e2e-ci|-g|a b'
+    'record-moddb|--only|a b'
     'test-e2e|-k|a or b'
     'coverage-api|-k|a or b'
     'coverage-web|-t|a b'

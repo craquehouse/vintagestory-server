@@ -120,6 +120,8 @@ jobs:
           path: |
             web/playwright-report/
             web/test-results/
+            web/playwright-report-moddb/
+            web/test-results-moddb/
           if-no-files-found: ignore
           retention-days: 7
 

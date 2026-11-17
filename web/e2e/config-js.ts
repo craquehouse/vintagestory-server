@@ -52,3 +52,49 @@ export async function pretendServerInstalled(page: Page): Promise<void> {
     await route.fulfill({ response, json: body });
   });
 }
+
+/** A 1x1 transparent PNG, the answer to every mod image request in the replay run. */
+const PLACEHOLDER_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64'
+);
+
+/** The hosts of the manager under test: the E2E base URL's and the loopback names. */
+function managerHosts(): Set<string> {
+  const hosts = new Set(['127.0.0.1', 'localhost']);
+  const base = process.env.E2E_BASE_URL;
+  if (base) hosts.add(new URL(base).hostname);
+  return hosts;
+}
+
+/**
+ * In the replay run (scripts/e2e-ci.sh sets E2E_MODDB_REPLAY=1), keep the browser off the
+ * internet (Story 20.6, Epic 20 ADR-9): the mod database's image host and any other image
+ * host (mod descriptions embed images from GitHub, image hosts and others) get a 1x1 PNG,
+ * a request to the mod database itself is aborted, and any other request that does not go
+ * to the manager is aborted. The manager's own pages, scripts, styles and API pass
+ * untouched. The routes are set on the page's browser context, so a page the test opens
+ * later in that context is covered too. Does nothing in any other run: against the dev
+ * stack the page loads the real images.
+ */
+export async function serveModImagePlaceholders(page: Page): Promise<void> {
+  if (process.env.E2E_MODDB_REPLAY !== '1') return;
+  const context = page.context();
+  const local = managerHosts();
+  // Registered first, so the two explicit routes below take precedence over it
+  await context.route('**/*', (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (!['http:', 'https:'].includes(url.protocol) || local.has(url.hostname)) {
+      return route.fallback();
+    }
+    if (request.resourceType() === 'image') {
+      return route.fulfill({ contentType: 'image/png', body: PLACEHOLDER_PNG });
+    }
+    return route.abort();
+  });
+  await context.route('https://moddbcdn.vintagestory.at/**', (route) =>
+    route.fulfill({ contentType: 'image/png', body: PLACEHOLDER_PNG })
+  );
+  await context.route('https://mods.vintagestory.at/**', (route) => route.abort());
+}

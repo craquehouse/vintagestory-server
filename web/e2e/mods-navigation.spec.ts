@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for navigating the Mods pages.
@@ -14,6 +14,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  *   then `cd web && bunx playwright test e2e/mods-navigation.spec.ts`
  * - Network access to the public mod database. Cards are picked from the rendered
  *   grid, not hard-coded, because the database changes daily.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  * - Read-only: nothing is installed, removed or changed.
  */
 
@@ -51,10 +52,11 @@ async function settle(page: Page) {
   await page.waitForTimeout(1500);
 }
 
-// @moddb: navigates between live browse pages and mod details
+// @moddb: navigates between browse pages and mod details
 test.describe('Mods navigation', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
@@ -95,6 +97,9 @@ test.describe('Mods navigation', { tag: '@moddb' }, () => {
 
     // A new page has its own, empty sessionStorage: no browse state to return to
     const direct = await context.newPage();
+    // Routes set on `page` do not apply to a new page; the images' routes are on the context
+    await serveConfigKey(direct, API_KEY);
+    await pretendServerInstalled(direct);
     await direct.setViewportSize({ width: 1440, height: 900 });
     await direct.goto(`${BROWSE}/${slug}`);
     await expect(direct.getByTestId('mod-detail-back')).toBeVisible({ timeout: 60_000 });

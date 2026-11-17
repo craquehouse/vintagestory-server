@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for mod detail pages that cannot fail on bad mod database data.
@@ -10,7 +10,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  *   same browse state as Back to Browse on the loaded page.
  *
  * The failing lookup is simulated with `page.route` for one mod only; everything else
- * comes from the live mod database.
+ * comes from the mod database (live, or the recorded answers in CI).
  *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080): `just test-e2e-web`,
@@ -18,6 +18,7 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  *   `cd web && bunx playwright test e2e/mod-detail-bad-data.spec.ts`
  * - Network access to the public mod database. The card in the second test is read from
  *   the rendered grid, not hard-coded, because the database changes daily.
+ *   In CI the `@moddb` tests run on recorded answers instead (e2e/README.md).
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -46,10 +47,11 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// @moddb: opens live mod database entries whose data is known to be bad
+// @moddb: opens mod database entries whose data is known to be bad
 test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 

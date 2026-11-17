@@ -16,7 +16,7 @@ from typing import Literal
 
 import structlog
 
-from vintagestory_api.config import Settings
+from vintagestory_api.config import DEFAULT_MOD_DB_URL, Settings
 from vintagestory_api.models.mod_updates import StoredRelease
 from vintagestory_api.models.mods import (
     CompatibilityInfo,
@@ -111,6 +111,7 @@ def get_mod_service() -> ModService:
             # No game_version: compatibility follows the installed server version
             # (VSS-tpe). VS_GAME_VERSION, a former setting, is gone (Story 19.1).
             mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
+            mod_db_url=settings.mod_db_url,
         )
 
         # Load existing state, then re-read mods that older builds imported with
@@ -349,6 +350,7 @@ class ModService:
         game_version: str | None = None,
         mod_cache_max_size_mb: int = 500,
         game_version_provider: Callable[[], str | None] | None = None,
+        mod_db_url: str = DEFAULT_MOD_DB_URL,
     ) -> None:
         """Initialize the mod service.
 
@@ -365,7 +367,10 @@ class ModService:
                 version changes check compatibility against. Defaults to the installed
                 server version, read on each call (VSS-tpe). The former
                 VS_GAME_VERSION setting was removed in Story 19.1.
+            mod_db_url: The mod database's base address for the API client
+                (VS_MOD_DB_URL, Epic 20 ADR-9).
         """
+        self._mod_db_url = mod_db_url
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state
         self._server_running = False
@@ -1006,6 +1011,7 @@ class ModService:
             self._mod_api_client = ModApiClient(
                 cache_dir=self._cache_dir,
                 cache_eviction_service=self._cache_eviction,
+                mod_db_url=self._mod_db_url,
             )
         return self._mod_api_client
 

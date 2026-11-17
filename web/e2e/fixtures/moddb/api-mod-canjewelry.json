@@ -1,0 +1,2581 @@
+{
+ "mod": {
+  "modid": 1074,
+  "assetid": 5539,
+  "name": "C&N Jewelry",
+  "text": "<p><strong>Rough/cut gems, encrusting armor/tools with buffs, and gem extraction.</strong></p>\n<p>A full gem-cutting and socket-encrustment system for Vintage Story. Pan and mine rough gems, cut them at a gem cutting table, grind them on a jewel grinder, and encrust them into the sockets of your armor, tools and weapons — granting stat buffs while equipped. Extract gems from old gear and swap them at will.</p>\n<p style=\"background: #2c4f9e22; border-left: 4px solid #2c4f9e; padding: 10px 14px;\">Want wearable jewelry — rings, tiaras, necklaces, monocles, earrings and display stands for them? Add the companion mod <strong><a href=\"https://mods.vintagestory.at/canjewelryadornments\">C&amp;N Jewelry Adornments</a></strong>. This mod is the core system it builds on.</p>\n<hr>\n<h2>What’s in the mod</h2>\n<ul>\n<li><strong>Gem cutting table</strong> - chip a rough gem down to a round, baguette or pear cut, voxel by voxel.</li>\n<li><strong>Mechanical jewel grinder</strong> - connect mechanical power, drop a grindlayer, and refine your cut gems through up to three grinding steps for significantly higher buff values.</li>\n<li><strong>Socket encrustment</strong> - armor, tools and weapons carry sockets by tier; set a cut gem into one and wear the buff.</li>\n<li><strong>Jeweler’s table</strong> - a workstation with its own dialog: drop in an item, rotate its preview, see every socket colour-coded by tier, and slot in the gems that fit.</li>\n<li><strong>Knapster-style cutting settings</strong> - server-side accessibility options for the cutting table, editable in a GUI.</li>\n<li><strong>Iron &amp; steel pans</strong> - pan ore chunks of every metal type to extract rough gems.</li>\n<li><strong>Wire drawing bench</strong> - draw metal wire hanks used in jewelry crafting recipes.</li>\n<li><strong>Gem extraction</strong> - chisel a gem back out of its socket to re-use it or swap it for another. Both the gem and the item have a chance to survive intact.</li>\n<li><strong>Extra jewelry inventory slots</strong> - dedicated character slots for rings, earrings and nose rings, filled by the Adornments companion mod.</li>\n<li><strong>In-game guide dialog</strong> (press <code>J</code>) - color-coded stat tables with per-tier value ranges, socket-tier reference, cut-style comparison, and a full panning drop table by ore type and quality.</li>\n</ul>\n<h2>Cut styles</h2>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tbody>\n<tr>\n<td style=\"background: #3d1414; color: #ff8080; padding: 10px 14px; border: 2px solid #d04444; vertical-align: top; width: 33%;\"><strong style=\"font-size: 1.1em;\">Round</strong><br>Primary stat only.<br><strong>Highest main-stat after full grinding</strong> (~×2.19 of base). Best long-term choice.</td>\n<td style=\"background: #3d3214; color: #ffd866; padding: 10px 14px; border: 2px solid #d8a838; vertical-align: top; width: 33%;\"><strong style=\"font-size: 1.1em;\">Baguette</strong><br>Primary stat (~×1.99 fully ground) <strong>+ a random secondary buff</strong> from a stat-specific pool. Trades some main-stat power for a bonus stat.</td>\n<td style=\"background: #3d2814; color: #ffa550; padding: 10px 14px; border: 2px solid #ee8a3e; vertical-align: top; width: 33%;\"><strong style=\"font-size: 1.1em;\">Pear</strong><br>Primary stat only, but <strong>front-loaded ×1.7 without grinding</strong>. Round overtakes it after full processing — good for un-ground gems.</td>\n</tr>\n</tbody>\n</table>\n<h2>Socket tiers</h2>\n<p><span style=\"background: #2e6b34; color: #fff; padding: 4px 10px; border-radius: 3px; font-weight: bold;\">T1 — Bronze</span> &nbsp; tin / bismuth / black bronze socket, <strong>chipped (small) gems</strong></p>\n<p><span style=\"background: #2c4f9e; color: #fff; padding: 4px 10px; border-radius: 3px; font-weight: bold;\">T2 — Gold / Silver / Iron</span> &nbsp; meteoric iron also fits, <strong>flawed (medium) gems</strong></p>\n<p><span style=\"background: #6b2c9e; color: #fff; padding: 4px 10px; border-radius: 3px; font-weight: bold;\">T3 — Steel</span> &nbsp; <strong>normal (large) gems</strong></p>\n<h2>Cutting accessibility settings<br><br></h2>\n<p>Open the settings dialog with <code>/canjewelry cutting gui</code> (requires the <code>controlserver</code> privilege). Everything is also available as plain commands under <code>/canjewelry cutting</code>.</p>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tbody>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666; width: 30%;\"><strong>Voxels per click</strong><br><code>cutting voxels 1-8</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\">How many chisel strikes a single click performs, in 1x1 tool mode. Turns a hundred clicks into a dozen.</td>\n</tr>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><strong>Durability per voxel</strong><br><code>cutting durability true/false</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\">Whether every strike of a multi-strike click costs chisel durability, or the click only costs one.</td>\n</tr>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><strong>Instant complete</strong><br><code>cutting instant true/false</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\">Finish the selected cut on the very first strike. The full skip, for players who want the gems without the voxel work.</td>\n</tr>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><strong>Spare recipe voxels</strong><br><code>cutting spare true/false</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\">Line and area tool modes skip over voxels the recipe still needs, so a stray drag cannot ruin the gem.</td>\n</tr>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><strong>Hold to strike</strong><br><code>cutting hold 0-2000</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\">Milliseconds between strikes while the attack button is held down. Hold instead of clicking; <code>0</code> switches it off.</td>\n</tr>\n<tr>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><strong>Who it applies to</strong><br><code>cutting mode ...</code></td>\n<td style=\"padding: 8px 12px; border: 1px solid #666;\"><code>disabled</code> - off for everyone (vanilla cutting) · <code>enabled</code> - on for everyone · <code>whitelist</code> - only for named players · <code>blacklist</code> - everyone except named players. Names are managed with <code>cutting whitelist &lt;name&gt;</code> / <code>cutting blacklist &lt;name&gt;</code>, or in the dialog.</td>\n</tr>\n</tbody>\n</table>\n<p><code>/canjewelry cutting</code> with no arguments prints the current settings.</p>\n<h2>Companion mods</h2>\n<ul>\n<li><strong><a href=\"https://mods.vintagestory.at/canjewelryadornments\">C&amp;N Jewelry Adornments</a></strong> - 12+ wearable jewelry items with metal variants, plus necklace and headware display stands.</li>\n<li><strong><a href=\"https://mods.vintagestory.at/canjewelryxskill\">C&amp;N Jewelry × XSkills</a></strong> - two XSkills progression skills:\n<ul>\n<li><strong>Lapidary</strong> - perks for panning yield, material efficiency, grinding speed and quality. The <em>Prospector</em> perk unlocks additional rock types that can be panned for gems.</li>\n<li><strong>Jeweler</strong> - perks for encrusting buff strength, wire drawing, and gem extraction. <em>Extract License</em> unlocks gem removal; higher-tier perks improve the odds of keeping the gem and the item intact.</li>\n</ul>\n</li>\n<li><a href=\"https://github.com/kenigvovan/canjewelryexample\">Example mod for modders</a>&nbsp;</li>\n</ul>\n<h2>Integrations</h2>\n<p>Has integration with rough gems from <a href=\"https://mods.vintagestory.at/geologyaddons\">Geology Additions</a>.</p>\n<p>Compatible with:</p>\n<ul>\n<li><a href=\"https://mods.vintagestory.at/tstools\">Titanium-steel Tools</a> (partial)</li>\n<li><a href=\"https://mods.vintagestory.at/swordz\">Swordz</a></li>\n<li><a href=\"https://mods.vintagestory.at/show/mod/22373\">Blackguard Additions</a></li>\n<li>All <a href=\"https://mods.vintagestory.at/show/mod/25550\">Forgotten Armory</a> mods</li>\n</ul>\n<h2>Videos</h2>\n<ul>\n<li><a href=\"https://youtu.be/K2ahDkt_itU\">C&amp;N Jewelry #1 - Rough gems, drop tables and panning</a></li>\n<li><a href=\"https://youtu.be/xhkGaP6tOik\">Gem cutting (revisited)</a></li>\n<li><a href=\"https://youtu.be/h-RzEs__KO4\">0.5.15 Panning for gems</a></li></ul>",
+  "author": "KenigVovan",
+  "urlalias": "canjewelry",
+  "logofilename": "https://moddbcdn.vintagestory.at/480480j_3e957da5b8fb9bff39c507ab3fea3d8f_480_320.png",
+  "logofile": "https://moddbcdn.vintagestory.at/480480j_3e957da5b8fb9bff39c507ab3fea3d8f_480_320.png",
+  "logofiledb": "https://moddbcdn.vintagestory.at/480480j_3e957da5b8fb9bff39c507ab3fea3d8f.png",
+  "homepageurl": "https://discord.gg/s4uZ2WJz4a",
+  "sourcecodeurl": "https://github.com/kenigvovan/CAN_Jewelry",
+  "trailervideourl": "",
+  "issuetrackerurl": "",
+  "wikiurl": "https://github.com/kenigvovan/CAN_Jewelry/wiki",
+  "downloads": 148283,
+  "follows": 973,
+  "trendingpoints": 1,
+  "comments": 626,
+  "side": "both",
+  "type": "mod",
+  "created": "2023-03-15 16:07:35",
+  "lastreleased": "2026-11-14 07:54:30",
+  "lastmodified": "2026-11-17 16:31:48",
+  "tags": [
+   "Utility",
+   "Cosmetics",
+   "Crafting",
+   null
+  ],
+  "releases": [
+   {
+    "releaseid": 65886,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.8.2_acc39f7a98d392c208575bcce2cf2f23.zip?dl=canjewelry_0.8.2.zip",
+    "filename": "canjewelry_0.8.2.zip",
+    "fileid": 138875,
+    "downloads": 333,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.8.2",
+    "created": "2026-11-14 07:54:30",
+    "changelog": "<ul><li>recipe rotation fix</li></ul>"
+   },
+   {
+    "releaseid": 65883,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.8.1_e2466fcfa0cec90acab06c9f2eb84282.zip?dl=canjewelry_0.8.1.zip",
+    "filename": "canjewelry_0.8.1.zip",
+    "fileid": 138872,
+    "downloads": 13,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.8.1",
+    "created": "2026-11-14 07:31:51",
+    "changelog": "<ul><li>jewelry crafts display change</li></ul>"
+   },
+   {
+    "releaseid": 63669,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.8.0_4fbe994e9fc96dc9fa5e96804a5d1073.zip?dl=canjewelry_0.8.0.zip",
+    "filename": "canjewelry_0.8.0.zip",
+    "fileid": 134756,
+    "downloads": 1171,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.8.0",
+    "created": "2026-10-31 13:00:09",
+    "changelog": "<ul><li>updated blocks shapes</li>\n<li>gems weight(a loupe to check gem size and defects)</li></ul>"
+   },
+   {
+    "releaseid": 63590,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.14_497017ec3f5a6907db51a2982fb3feb0.zip?dl=canjewelry_0.7.14.zip",
+    "filename": "canjewelry_0.7.14.zip",
+    "fileid": 134587,
+    "downloads": 294,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.14",
+    "created": "2026-10-30 19:08:59",
+    "changelog": "<ul><li>forgotten armory compatibility (remove old config or generate a new one and place new values in your old)</li></ul>"
+   },
+   {
+    "releaseid": 63232,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.13_80c7e83bbd8f7d95897da31a334e45f3.zip?dl=canjewelry_0.7.13.zip",
+    "filename": "canjewelry_0.7.13.zip",
+    "fileid": 133947,
+    "downloads": 641,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.13",
+    "created": "2026-10-28 09:45:09",
+    "changelog": "<ul><li>suevite fix</li></ul>"
+   },
+   {
+    "releaseid": 61521,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.12_c3af36eda46513245090ba477360f600.zip?dl=canjewelry_0.7.12.zip",
+    "filename": "canjewelry_0.7.12.zip",
+    "fileid": 130791,
+    "downloads": 1479,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.12",
+    "created": "2026-10-16 18:40:51",
+    "changelog": "<ul><li>crash fix</li></ul>"
+   },
+   {
+    "releaseid": 60310,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.11_4a0f683436207f0fad9e784fcbb2024b.zip?dl=canjewelry_0.7.11.zip",
+    "filename": "canjewelry_0.7.11.zip",
+    "fileid": 128379,
+    "downloads": 1262,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.11",
+    "created": "2026-10-07 19:29:25",
+    "changelog": "<ul><li>game crash fix</li></ul>"
+   },
+   {
+    "releaseid": 58878,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.10_d53e9701a0772f9230c43b57e105a330.zip?dl=canjewelry_0.7.10.zip",
+    "filename": "canjewelry_0.7.10.zip",
+    "fileid": 125934,
+    "downloads": 1079,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.10",
+    "created": "2026-09-28 10:17:56",
+    "changelog": "<ul><li>gemcutting table attribs fix</li></ul>"
+   },
+   {
+    "releaseid": 57652,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.9_e4dc8931e2e02d24ddda15bef03e75bf.zip?dl=canjewelry_0.7.9.zip",
+    "filename": "canjewelry_0.7.9.zip",
+    "fileid": 123732,
+    "downloads": 1422,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.9",
+    "created": "2026-09-20 06:40:27",
+    "changelog": "<ul><li>ru translation update by <a href=\"https://mods.vintagestory.at/show/user/A628C6B3644FE4534F84\">ChimMAG</a></li></ul>"
+   },
+   {
+    "releaseid": 57644,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.8_ecb8a31581f26d82fd78d797a4596ea8.zip?dl=canjewelry_0.7.8.zip",
+    "filename": "canjewelry_0.7.8.zip",
+    "fileid": 123724,
+    "downloads": 42,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.8",
+    "created": "2026-09-20 05:51:13",
+    "changelog": "<ul><li><a href=\"https://mods.vintagestory.at/canjewelryadornments\">https://mods.vintagestory.at/canjewelryadornments</a> related changes for ring shape</li></ul>"
+   },
+   {
+    "releaseid": 56958,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.7_8581b0e3f5411bccb7c3b28e8c8754a1.zip?dl=canjewelry_0.7.7.zip",
+    "filename": "canjewelry_0.7.7.zip",
+    "fileid": 122385,
+    "downloads": 750,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.7",
+    "created": "2026-09-14 19:06:48",
+    "changelog": "<ul><li><pre>enableGemVisuals - for gems on tools' shapes<br><br></pre>\n</li>\n<li>\n<pre>enableAdditionalJewelrySlots - disable/enable additional jewelry slot</pre></li></ul>"
+   },
+   {
+    "releaseid": 55903,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.5_8cbb24a9aadce79c713bfbab9c48cf8c.zip?dl=canjewelry_0.7.5.zip",
+    "filename": "canjewelry_0.7.5.zip",
+    "fileid": 120325,
+    "downloads": 4088,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.5",
+    "created": "2026-09-06 13:57:56",
+    "changelog": "<ul><li>secondary stat for baguette issue fix (by <strong>aRTyficial</strong>)</li></ul>"
+   },
+   {
+    "releaseid": 55783,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.4_a4e4430075431f7c5d9154339743e1d3.zip?dl=canjewelry_0.7.4.zip",
+    "filename": "canjewelry_0.7.4.zip",
+    "fileid": 120116,
+    "downloads": 246,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.4",
+    "created": "2026-09-05 18:03:59",
+    "changelog": "<ul><li>compat with https://mods.vintagestory.at/visibleoresandminerals</li></ul>"
+   },
+   {
+    "releaseid": 55750,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.3_161d2aee768ef945e81a2ad414073bc4.zip?dl=canjewelry_0.7.3.zip",
+    "filename": "canjewelry_0.7.3.zip",
+    "fileid": 120053,
+    "downloads": 135,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.3",
+    "created": "2026-09-05 11:40:53",
+    "changelog": "<ul><li>items were dropped on death even with Dead installed fixed</li></ul>"
+   },
+   {
+    "releaseid": 55046,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.2_7b58612c91e899b8b4923ae65b338413.zip?dl=canjewelry_0.7.2.zip",
+    "filename": "canjewelry_0.7.2.zip",
+    "fileid": 118691,
+    "downloads": 1129,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.2",
+    "created": "2026-08-30 18:41:09",
+    "changelog": "<ul><li>dispose fix</li>\n<li>GetMatchingRecipes fix</li></ul>"
+   },
+   {
+    "releaseid": 54252,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.1_02e43bad8f43fd384038c332c085254e.zip?dl=canjewelry_0.7.1.zip",
+    "filename": "canjewelry_0.7.1.zip",
+    "fileid": 117342,
+    "downloads": 887,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.1",
+    "created": "2026-08-24 16:45:14",
+    "changelog": "<ul><li>warning fix</li></ul>"
+   },
+   {
+    "releaseid": 54077,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.7.0_8e71dc8461224c81d9962b6303bc872d.zip?dl=canjewelry_0.7.0.zip",
+    "filename": "canjewelry_0.7.0.zip",
+    "fileid": 117020,
+    "downloads": 480,
+    "tags": [
+     "1.22.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.7.0",
+    "created": "2026-08-23 12:23:07",
+    "changelog": "<ul><li><h1><span style=\"background-color: #e03e2d;\">the mod was split into 2, add <a href=\"https://mods.vintagestory.at/canjewelryadornments\">https://mods.vintagestory.at/canjewelryadornments</a> if you want jewelry items and <strong>Necklace and headware displays</strong></span></h1></li></ul>"
+   },
+   {
+    "releaseid": 51796,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.24_aeae79b642f298a3aa036914df4062b5.zip?dl=canjewelry_0.6.24.zip",
+    "filename": "canjewelry_0.6.24.zip",
+    "fileid": 112443,
+    "downloads": 2902,
+    "tags": [
+     "1.22.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.24",
+    "created": "2026-08-04 19:40:39",
+    "changelog": "<ul><li>rough grinder layer recipe with crushed diamond</li></ul>"
+   },
+   {
+    "releaseid": 51369,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.23_86c3b6b27a9971c3ce34fc0d92d75f6b.zip?dl=canjewelry_0.6.23.zip",
+    "filename": "canjewelry_0.6.23.zip",
+    "fileid": 111605,
+    "downloads": 2587,
+    "tags": [
+     "1.22.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.23",
+    "created": "2026-07-31 17:29:19",
+    "changelog": "<ul><li>CANBlockPan.OnLoaded crash fixed</li></ul>"
+   },
+   {
+    "releaseid": 50678,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.22_TE_78cb59b212d8ad09d817a0c59c0cb8f4.zip?dl=canjewelry_0.6.22_TESTING_ONLY.zip",
+    "filename": "canjewelry_0.6.22_TESTING_ONLY.zip",
+    "fileid": 110256,
+    "downloads": 685,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.22",
+    "created": "2026-07-26 18:34:47",
+    "changelog": "<ul><li>remove imgui dependency</li>\n<li>\n<h2><span style=\"color: #ba372a;\"><strong>TESTING VERSION</strong></span></h2></li></ul>"
+   },
+   {
+    "releaseid": 50647,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.21_TE_2dcc8fc3ed629d906d767fc12aecd736.zip?dl=canjewelry_0.6.21_TESTING_ONLY.zip",
+    "filename": "canjewelry_0.6.21_TESTING_ONLY.zip",
+    "fileid": 110200,
+    "downloads": 98,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.21",
+    "created": "2026-07-26 14:27:24",
+    "changelog": "<ul><li>delta logic for buffs replaced and config shrinked (as advised by Cpt MacTavish)</li>\n<li>\n<h2><strong><span style=\"color: #e03e2d;\">only for test version for now</span></strong></h2></li></ul>"
+   },
+   {
+    "releaseid": 48835,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.20_6c0fa95a294891121604d284f89952d3.zip?dl=canjewelry_0.6.20.zip",
+    "filename": "canjewelry_0.6.20.zip",
+    "fileid": 106652,
+    "downloads": 2366,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.20",
+    "created": "2026-07-12 08:11:02",
+    "changelog": "<ul><li><pre class=\"spoiler-text\" contenteditable=\"true\">CANItemWearable crash fix</pre></li></ul>"
+   },
+   {
+    "releaseid": 48557,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.19_4626f38d7e1ab3ed2df0211aeba8f3bf.zip?dl=canjewelry_0.6.19.zip",
+    "filename": "canjewelry_0.6.19.zip",
+    "fileid": 106114,
+    "downloads": 540,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.19",
+    "created": "2026-07-09 19:19:44",
+    "changelog": "<ul><li>remove log error msgs</li></ul>"
+   },
+   {
+    "releaseid": 47777,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.18_31006617aa2f1f174b5a9604bd106cb1.zip?dl=canjewelry_0.6.18.zip",
+    "filename": "canjewelry_0.6.18.zip",
+    "fileid": 104526,
+    "downloads": 1731,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.18",
+    "created": "2026-07-02 06:53:18",
+    "changelog": "<ul><li>socket extraction option (socketExtractionReturnChance in config)</li></ul>"
+   },
+   {
+    "releaseid": 46689,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.17_8df7bcbb88238e12c8f5159d78762113.zip?dl=canjewelry_0.6.17.zip",
+    "filename": "canjewelry_0.6.17.zip",
+    "fileid": 102315,
+    "downloads": 2343,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.17",
+    "created": "2026-06-21 09:52:46",
+    "changelog": "<ul><li>incorrect items render crash fix</li></ul>"
+   },
+   {
+    "releaseid": 46000,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.16_3be966f5e05f7ad1d39ad42cfd564ac8.zip?dl=canjewelry_0.6.16.zip",
+    "filename": "canjewelry_0.6.16.zip",
+    "fileid": 100994,
+    "downloads": 1463,
+    "tags": [
+     "1.22.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.16",
+    "created": "2026-06-15 19:36:54",
+    "changelog": "<ul><li>coronet's incorrect texture fix</li></ul>"
+   },
+   {
+    "releaseid": 45790,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.15_522cd2f3002beeda749a2e906c68568f.zip?dl=canjewelry_0.6.15.zip",
+    "filename": "canjewelry_0.6.15.zip",
+    "fileid": 100641,
+    "downloads": 1199,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.15",
+    "created": "2026-06-14 09:25:26",
+    "changelog": "<ul><li>socket type change after encrust fixed</li>\n<li>rotten king mask shape fix</li></ul>"
+   },
+   {
+    "releaseid": 45550,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.14_90acc40a574d5cd6eb5ae1bdef27b415.zip?dl=canjewelry_0.6.14.zip",
+    "filename": "canjewelry_0.6.14.zip",
+    "fileid": 100152,
+    "downloads": 834,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.14",
+    "created": "2026-06-12 16:47:05",
+    "changelog": "<ul><li>fix by Jikoo&nbsp; - <a href=\"https://github.com/kenigvovan/CAN_Jewelry/pull/20\">Guard against null reference when gem base is missing by Jikoo · Pull Request #20</a></li></ul>"
+   },
+   {
+    "releaseid": 45213,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.13_8fe5108f7d40274905dd6031ed7ef4cf.zip?dl=canjewelry_0.6.13.zip",
+    "filename": "canjewelry_0.6.13.zip",
+    "fileid": 99451,
+    "downloads": 944,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.13",
+    "created": "2026-06-09 15:47:56",
+    "changelog": "<ul><li>update panningDrops</li></ul>"
+   },
+   {
+    "releaseid": 44512,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.23_db028fcd50d793b9127e150258ec08f9.zip?dl=canjewelry_0.5.23.zip",
+    "filename": "canjewelry_0.5.23.zip",
+    "fileid": 97949,
+    "downloads": 79,
+    "tags": [
+     "1.21.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.23",
+    "created": "2026-06-03 16:38:03",
+    "changelog": "<ul><li>backport of 0.6.12</li></ul>"
+   },
+   {
+    "releaseid": 44268,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.12_70b7c4e73915242048814ae1a7d5c1d1.zip?dl=canjewelry_0.6.12.zip",
+    "filename": "canjewelry_0.6.12.zip",
+    "fileid": 97451,
+    "downloads": 1834,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.12",
+    "created": "2026-06-01 19:33:40",
+    "changelog": "<ul><li>gems' hitboxes change</li>\n<li>attempt to fix \"can't find the \"additionaljewellryclass\"\"</li></ul>"
+   },
+   {
+    "releaseid": 44068,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.11_a3ab217ce67672db0b0e2af316c42e18.zip?dl=canjewelry_0.6.11.zip",
+    "filename": "canjewelry_0.6.11.zip",
+    "fileid": 96997,
+    "downloads": 442,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.11",
+    "created": "2026-05-31 13:51:38",
+    "changelog": "<ul><li>canadditionalmetals support: new metals for tools, weapons, jewelry + recipes</li>\n<li>Grinder: new sound, plays only while grinding, more particles with gem color, faster rotation</li>\n<li>Cutting Table: knap sound on chip, better particles (gem-colored), Split removes 3×3×3 non-recipe voxels</li>\n<li>&nbsp;Bugfixes: config</li></ul>"
+   },
+   {
+    "releaseid": 42904,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.10_8d03c09ea1b37137eb846b4825307184.zip?dl=canjewelry_0.6.10.zip",
+    "filename": "canjewelry_0.6.10.zip",
+    "fileid": 94679,
+    "downloads": 1875,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.10",
+    "created": "2026-05-23 16:11:45",
+    "changelog": "<ul><li>Guide rewritten</li>\n<li>Item names changed</li>\n<li>Gem extraction: expanded tooltip with both percentages + confirmation popup</li>\n<li>Grinding progress is now stored on the socket and restored on extraction</li></ul>"
+   },
+   {
+    "releaseid": 42415,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.9_117a4b500df979c41e2f1fedded45073.zip?dl=canjewelry_0.6.9.zip",
+    "filename": "canjewelry_0.6.9.zip",
+    "fileid": 93706,
+    "downloads": 1015,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.9",
+    "created": "2026-05-19 19:23:36",
+    "changelog": "<ul>\n<li>gem cutting chisel render bug fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 42362,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.8_c3c3d4a829efc719ef6099c8681cf668.zip?dl=canjewelry_0.6.8.zip",
+    "filename": "canjewelry_0.6.8.zip",
+    "fileid": 93621,
+    "downloads": 146,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.8",
+    "created": "2026-05-19 14:41:57",
+    "changelog": "<ul>\n<li>cutting table selection box crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 41539,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.7_5ae52c3a5be828a61092b793745079bb.zip?dl=canjewelry_0.6.7.zip",
+    "filename": "canjewelry_0.6.7.zip",
+    "fileid": 92023,
+    "downloads": 1262,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.7",
+    "created": "2026-05-12 17:17:53",
+    "changelog": "<ul>\n<li>gem cut table selection box fixed</li>\n<li>additional check for drop Chance for panning&nbsp;</li>\n</ul>"
+   },
+   {
+    "releaseid": 40968,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.6_d150340b976eb5fdf70f28fd59733fd0.zip?dl=canjewelry_0.6.6.zip",
+    "filename": "canjewelry_0.6.6.zip",
+    "fileid": 90974,
+    "downloads": 1830,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.6",
+    "created": "2026-05-08 11:26:28",
+    "changelog": "<ul>\n<li>additional events for C&amp;N Jewelry/XSkill</li>\n</ul>"
+   },
+   {
+    "releaseid": 40950,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.5_ba7984c740d18d08918ef8844f7c8ecb.zip?dl=canjewelry_0.6.5.zip",
+    "filename": "canjewelry_0.6.5.zip",
+    "fileid": 90942,
+    "downloads": 94,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.5",
+    "created": "2026-05-08 06:55:10",
+    "changelog": "<ul>\n<li>Exception: Specified argument was out of the range of valid values fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 40870,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.4_bc95a870602a313d1aea92482443956d.zip?dl=canjewelry_0.6.4.zip",
+    "filename": "canjewelry_0.6.4.zip",
+    "fileid": 90772,
+    "downloads": 237,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.4",
+    "created": "2026-05-07 19:25:40",
+    "changelog": "<ul>\n<li>additional check</li>\n</ul>"
+   },
+   {
+    "releaseid": 40848,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.3_1cd5f0f156c37f8200df91e6375632a7.zip?dl=canjewelry_0.6.3.zip",
+    "filename": "canjewelry_0.6.3.zip",
+    "fileid": 90723,
+    "downloads": 96,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.3",
+    "created": "2026-05-07 17:11:01",
+    "changelog": "<ul>\n<li>gem grinder fixed</li>\n<li>extract gem button in jeweler's table (chance to break gem/item)</li>\n<li>jewelry can now be permanently inscribed with a custom text</li>\n</ul>"
+   },
+   {
+    "releaseid": 40455,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.2_c0328c6feeee2f6a0a4dbd90cbbad90c.zip?dl=canjewelry_0.6.2.zip",
+    "filename": "canjewelry_0.6.2.zip",
+    "fileid": 89964,
+    "downloads": 585,
+    "tags": [
+     "1.22.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.2",
+    "created": "2026-05-04 15:51:36",
+    "changelog": "<ul>\n<li>fix for <strong>wearable light</strong> items</li>\n</ul>"
+   },
+   {
+    "releaseid": 39868,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.1_cb2228714ee931242d1922f2a7f4b6ec.zip?dl=canjewelry_0.6.1.zip",
+    "filename": "canjewelry_0.6.1.zip",
+    "fileid": 88756,
+    "downloads": 854,
+    "tags": [
+     "1.22.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.1",
+    "created": "2026-04-30 17:55:10",
+    "changelog": "<ul>\n<li>vsimgui dependency</li>\n<li>guide gui</li>\n</ul>"
+   },
+   {
+    "releaseid": 38200,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_only_for__7775612bc3f3df93e778021322583b31.zip?dl=canjewelry_only_for_playermodellib_0.4.26.zip",
+    "filename": "canjewelry_only_for_playermodellib_0.4.26.zip",
+    "fileid": 85055,
+    "downloads": 193,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.26",
+    "created": "2026-04-14 08:26:46",
+    "changelog": "<ul>\n<li>only for playermodellib version</li>\n<li>only for vanila character inventory</li>\n</ul>"
+   },
+   {
+    "releaseid": 36540,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.22_eb8601b1332c3084696f90ab783e71cf.zip?dl=canjewelry_0.5.22.zip",
+    "filename": "canjewelry_0.5.22.zip",
+    "fileid": 80744,
+    "downloads": 2200,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.22",
+    "created": "2026-03-15 17:45:50",
+    "changelog": "<ul>\n<li>debug msg</li>\n</ul>"
+   },
+   {
+    "releaseid": 36278,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.6.0_0601dcd22fad3fde430985fcd5e6525d.zip?dl=canjewelry_0.6.0.zip",
+    "filename": "canjewelry_0.6.0.zip",
+    "fileid": 80002,
+    "downloads": 3323,
+    "tags": [
+     "1.22.0-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.6.0",
+    "created": "2026-03-11 20:17:04",
+    "changelog": "<ul>\n<li>rebuild</li>\n</ul>"
+   },
+   {
+    "releaseid": 35882,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.21_62b519d33f3f8d8bb0aba8c5cf95b1de.zip?dl=canjewelry_0.5.21.zip",
+    "filename": "canjewelry_0.5.21.zip",
+    "fileid": 79191,
+    "downloads": 891,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.21",
+    "created": "2026-03-06 20:19:59",
+    "changelog": "<ul>\n<li>Geology Addictions incorrect recipes fixed</li>\n<li>silver strap smithing recipe added</li>\n<li>typo fixed(thanks <a href=\"https://mods.vintagestory.at/show/user/F9EDC0650C735B0DFFB2\">Undercroft</a>)</li>\n</ul>"
+   },
+   {
+    "releaseid": 34534,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.20_d4e7b1133bd39d8fcac36af9b7e33ebf.zip?dl=canjewelry_0.5.20.zip",
+    "filename": "canjewelry_0.5.20.zip",
+    "fileid": 76091,
+    "downloads": 2025,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.20",
+    "created": "2026-02-14 09:19:34",
+    "changelog": "<ul>\n<li>part of Geology additions gems missing fixed</li>\n<li>&nbsp;socket type to level can be set in config</li>\n<li>command to set cutting type and custom buffs in creative + controlserver permissions /canjewelry sgb round walkspeed 0.6 meleeWeaponsDamage 0.3 armorDurabilityLoss 0.7</li>\n<li>Extra Firearms items added in config(delete old config and regenerate with the new version or add it into your old config)</li>\n</ul>"
+   },
+   {
+    "releaseid": 32384,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.19_1ad693cb64fd74ba7d875cbb5cebba32.zip?dl=canjewelry_0.5.19.zip",
+    "filename": "canjewelry_0.5.19.zip",
+    "fileid": 71278,
+    "downloads": 940,
+    "tags": [
+     "1.21.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.19",
+    "created": "2026-01-11 14:25:08",
+    "changelog": "<ul>\n<li><strong>for 1.21.4</strong></li>\n<li>rebuild</li>\n</ul>"
+   },
+   {
+    "releaseid": 32314,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.18_59ffee9bc81bbf58b3ad2b4666513c70.zip?dl=canjewelry_0.5.18.zip",
+    "filename": "canjewelry_0.5.18.zip",
+    "fileid": 71109,
+    "downloads": 2752,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.18",
+    "created": "2026-01-10 10:28:35",
+    "changelog": "<ul>\n<li>ring recipe fixed</li>\n</ul>"
+   },
+   {
+    "releaseid": 31747,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.17_a9e7639a57bd55df43b229eae0cc2e3a.zip?dl=canjewelry_0.5.17.zip",
+    "filename": "canjewelry_0.5.17.zip",
+    "fileid": 69937,
+    "downloads": 1111,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.17",
+    "created": "2026-01-01 13:36:53",
+    "changelog": "<ul>\n<li>additional jewelry inventory buffs were missing fixed</li>\n</ul>"
+   },
+   {
+    "releaseid": 31640,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.16_f3b60b709852e54c22854f66311203c9.zip?dl=canjewelry_0.5.16.zip",
+    "filename": "canjewelry_0.5.16.zip",
+    "fileid": 69682,
+    "downloads": 325,
+    "tags": [
+     "1.21.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.16",
+    "created": "2025-12-30 20:12:14",
+    "changelog": "<ul>\n<li>compatibility with <a href=\"https://mods.vintagestory.at/saltandsands\">Salt and Sands</a></li>\n<li>earings items change</li>\n<li>ring items added</li>\n<li>additional info on cut gem during grinding process</li>\n<li>minGrinderProcessingSpeed added into config</li>\n</ul>"
+   },
+   {
+    "releaseid": 29629,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.11_6379c7543800c541a9ac0f27d38519c6.zip?dl=canjewelry_0.3.11.zip",
+    "filename": "canjewelry_0.3.11.zip",
+    "fileid": 65412,
+    "downloads": 102,
+    "tags": [
+     "1.17.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.11",
+    "created": "2025-11-21 19:54:35",
+    "changelog": "<ul>\n<li>test</li>\n</ul>"
+   },
+   {
+    "releaseid": 29394,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.15_66fd2c6f1c72479aefe4ff9ab0c59693.zip?dl=canjewelry_0.5.15.zip",
+    "filename": "canjewelry_0.5.15.zip",
+    "fileid": 64858,
+    "downloads": 3447,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.15",
+    "created": "2025-11-17 15:54:51",
+    "changelog": "<ul>\n<li>Collection was modified exception fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 29340,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.14_d4fbd0223931b30b945f4d28fbaf815e.zip?dl=canjewelry_0.5.14.zip",
+    "filename": "canjewelry_0.5.14.zip",
+    "fileid": 64740,
+    "downloads": 251,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.14",
+    "created": "2025-11-16 10:46:43",
+    "changelog": "<ul>\n<li>necklace/headware display blocks</li>\n<li>game reconnect exception fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 29023,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.13_51b585042ae5129d0e6062d8bdcc6157.zip?dl=canjewelry_0.5.13.zip",
+    "filename": "canjewelry_0.5.13.zip",
+    "fileid": 64096,
+    "downloads": 552,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.13",
+    "created": "2025-11-10 18:35:47",
+    "changelog": "<p>&nbsp;</p>\n<ul>\n<li>fixed compatibility with <a href=\"https://mods.vintagestory.at/geologyaddons\">Geology Additions</a></li>\n</ul>"
+   },
+   {
+    "releaseid": 28883,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.12_fbab627167689a34ffa170e03f343ec7.zip?dl=canjewelry_0.5.12.zip",
+    "filename": "canjewelry_0.5.12.zip",
+    "fileid": 63752,
+    "downloads": 421,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.12",
+    "created": "2025-11-08 09:27:13",
+    "changelog": "<ul>\n<li>tab fixed</li>\n</ul>"
+   },
+   {
+    "releaseid": 28776,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.11_2b061e4d0d9dd609bb9d60f9585a63fd.zip?dl=canjewelry_0.5.11.zip",
+    "filename": "canjewelry_0.5.11.zip",
+    "fileid": 63498,
+    "downloads": 458,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.11",
+    "created": "2025-11-05 22:14:55",
+    "changelog": "<ul>\n<li>metal pan durability</li>\n</ul>"
+   },
+   {
+    "releaseid": 28596,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.10_377612048888a14f3625c1977bbc5647.zip?dl=canjewelry_0.5.10.zip",
+    "filename": "canjewelry_0.5.10.zip",
+    "fileid": 63080,
+    "downloads": 726,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.10",
+    "created": "2025-11-02 14:47:29",
+    "changelog": "<ul>\n<li>backpack texture fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 28546,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.9_7741700b0c8d5d9139ecd2e1ce4e32bc.zip?dl=canjewelry_0.5.9.zip",
+    "filename": "canjewelry_0.5.9.zip",
+    "fileid": 62962,
+    "downloads": 337,
+    "tags": [
+     "1.21.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.9",
+    "created": "2025-11-01 19:37:30",
+    "changelog": "<ul>\n<li>Forgotten aromory compatibility</li>\n</ul>"
+   },
+   {
+    "releaseid": 25644,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.8_6b66bd9939b93e573d56dda424e4cd2b.zip?dl=canjewelry_0.5.8.zip",
+    "filename": "canjewelry_0.5.8.zip",
+    "fileid": 56456,
+    "downloads": 3320,
+    "tags": [
+     "1.21.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.8",
+    "created": "2025-09-21 11:23:49",
+    "changelog": ""
+   },
+   {
+    "releaseid": 25634,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.7_a1220a6a86fd3fce9ccad116e0da5eec.zip?dl=canjewelry_0.5.7.zip",
+    "filename": "canjewelry_0.5.7.zip",
+    "fileid": 56436,
+    "downloads": 110,
+    "tags": [
+     "1.21.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.7",
+    "created": "2025-09-21 07:28:56",
+    "changelog": "<p>- Maltiez's firearms/exoskeletons items added into config</p>"
+   },
+   {
+    "releaseid": 23747,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.6_7bfb83f4595faae779ac8e50abde0b88.zip?dl=canjewelry_0.5.6.zip",
+    "filename": "canjewelry_0.5.6.zip",
+    "fileid": 52283,
+    "downloads": 1860,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.6",
+    "created": "2025-08-28 20:25:53",
+    "changelog": ""
+   },
+   {
+    "releaseid": 23648,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.5_f326896881f17f0500c1b2464f8871e4.zip?dl=canjewelry_0.5.5.zip",
+    "filename": "canjewelry_0.5.5.zip",
+    "fileid": 52035,
+    "downloads": 228,
+    "tags": [
+     "1.21.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.5",
+    "created": "2025-08-27 20:41:35",
+    "changelog": ""
+   },
+   {
+    "releaseid": 22874,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.4_5ceb493aa8768a8448b2957a221586f8.zip?dl=canjewelry_0.5.4.zip",
+    "filename": "canjewelry_0.5.4.zip",
+    "fileid": 50376,
+    "downloads": 285,
+    "tags": [
+     "1.21.0-rc.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.4",
+    "created": "2025-08-12 15:53:34",
+    "changelog": "<ul>\n<li>playermodellib crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 22873,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.25_ae8a47cfa4921f9486e76310dbf49d18.zip?dl=canjewelry_0.4.25.zip",
+    "filename": "canjewelry_0.4.25.zip",
+    "fileid": 50375,
+    "downloads": 1659,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.25",
+    "created": "2025-08-12 15:50:01",
+    "changelog": "<ul>\n<li>playermodellib crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 22496,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.24_bd9dfa72c7692e82ee84b5d5b64bfe90.zip?dl=canjewelry_0.4.24.zip",
+    "filename": "canjewelry_0.4.24.zip",
+    "fileid": 49352,
+    "downloads": 860,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.24",
+    "created": "2025-08-02 18:27:01",
+    "changelog": "<ul>\n<li>ru localization file by FourLanguages, sadCarb0ne, ripls</li>\n</ul>"
+   },
+   {
+    "releaseid": 22400,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.3_703bda3c078f3189b789c30ef195ae91.zip?dl=canjewelry_0.5.3.zip",
+    "filename": "canjewelry_0.5.3.zip",
+    "fileid": 49082,
+    "downloads": 178,
+    "tags": [
+     "1.21.0-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.3",
+    "created": "2025-07-30 15:33:07",
+    "changelog": "<ul>\n<li>crash for multiplayer fixed</li>\n<li>heart glasses added</li>\n</ul>"
+   },
+   {
+    "releaseid": 22224,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.2_92d2b5a4048b85a4e419247400bc9772.zip?dl=canjewelry_0.5.2.zip",
+    "filename": "canjewelry_0.5.2.zip",
+    "fileid": 48705,
+    "downloads": 125,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.2",
+    "created": "2025-07-26 07:43:36",
+    "changelog": "<ul>\n<li>additional panning block types</li>\n<li>TurnOffBuffs added into config to turn off any buffs from jewelry</li>\n<li>leather/metal Nadiyan necklaces</li>\n</ul>"
+   },
+   {
+    "releaseid": 22145,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.1_27bb6634e12a77154aae8c56373f8fe2.zip?dl=canjewelry_0.5.1.zip",
+    "filename": "canjewelry_0.5.1.zip",
+    "fileid": 48545,
+    "downloads": 97,
+    "tags": [
+     "1.21.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.1",
+    "created": "2025-07-23 17:19:12",
+    "changelog": "<ul>\n<li>additional jewelry inventory - nose ring, earings</li>\n</ul>"
+   },
+   {
+    "releaseid": 22091,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.5.0_bc109f187186f193c681d284932f83be.zip?dl=canjewelry_0.5.0.zip",
+    "filename": "canjewelry_0.5.0.zip",
+    "fileid": 48370,
+    "downloads": 83,
+    "tags": [
+     "1.21.0-pre.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.5.0",
+    "created": "2025-07-21 15:34:53",
+    "changelog": "<ul>\n<li>rebuild</li>\n<li>stat gui tab changed</li>\n</ul>"
+   },
+   {
+    "releaseid": 22022,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.23_74de8e44827cb4f40dbe566cc3ce42b0.zip?dl=canjewelry_0.4.23.zip",
+    "filename": "canjewelry_0.4.23.zip",
+    "fileid": 48198,
+    "downloads": 945,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.23",
+    "created": "2025-07-19 13:11:53",
+    "changelog": "<ul>\n<li>armband socket slot (update config manually or remove old one)</li>\n<li>silver tiara/coronet recipe</li>\n</ul>"
+   },
+   {
+    "releaseid": 22016,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.22_2dda086c2fe83b0120f248775b2a059b.zip?dl=canjewelry_0.4.22.zip",
+    "filename": "canjewelry_0.4.22.zip",
+    "fileid": 48188,
+    "downloads": 119,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.22",
+    "created": "2025-07-19 08:17:36",
+    "changelog": "<ul>\n<li>french translation by Wailwolf</li>\n<li>compat with Blackguard Additions (delete old config or update manually)</li>\n</ul>"
+   },
+   {
+    "releaseid": 21005,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.21_57e8635f817d1903ebb8da72cf826b95.zip?dl=canjewelry_0.4.21.zip",
+    "filename": "canjewelry_0.4.21.zip",
+    "fileid": 45494,
+    "downloads": 2058,
+    "tags": [
+     "1.20.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.21",
+    "created": "2025-06-11 15:47:51",
+    "changelog": "<ul>\n<li>show encrusted gems on item in gui slots again</li>\n<li>PossibleGemBuffs can be overwritten in config</li>\n</ul>"
+   },
+   {
+    "releaseid": 19583,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.20_2f63095f6693fe057d0922eb3e66d9d0.zip?dl=canjewelry_0.4.20.zip",
+    "filename": "canjewelry_0.4.20.zip",
+    "fileid": 42360,
+    "downloads": 1563,
+    "tags": [
+     "1.20.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.20",
+    "created": "2025-05-03 06:46:02",
+    "changelog": "<ul>\n<li>temporary fix for compatibility with Toolsmith (you do NOT need to download it if you don't have Toolsmith installed)</li>\n</ul>"
+   },
+   {
+    "releaseid": 19559,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.19_458c7ba500cbfc2cb84cb2f1abe4a620.zip?dl=canjewelry_0.4.19.zip",
+    "filename": "canjewelry_0.4.19.zip",
+    "fileid": 42303,
+    "downloads": 585,
+    "tags": [
+     "1.20.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.19",
+    "created": "2025-05-02 06:50:05",
+    "changelog": "<ul>\n<li>hammer right click on gem cutting table will give you finished gem even if you made a mistake and remove some part of it with some buff reduction</li>\n</ul>"
+   },
+   {
+    "releaseid": 18828,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.18_5eba776d6fb9c99e33b3d9641b641200.zip?dl=canjewelry_0.4.18.zip",
+    "filename": "canjewelry_0.4.18.zip",
+    "fileid": 40761,
+    "downloads": 1616,
+    "tags": [
+     "1.20.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.18",
+    "created": "2025-04-11 17:35:10",
+    "changelog": "<ul>\n<li>\n<p>Geology Additions integration</p>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 16815,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.17_38e35bbb2d0db031e1456a37ddc6e721.zip?dl=canjewelry_0.4.17.zip",
+    "filename": "canjewelry_0.4.17.zip",
+    "fileid": 34994,
+    "downloads": 5353,
+    "tags": [
+     "1.20.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.17",
+    "created": "2025-02-26 18:59:41",
+    "changelog": "<ul>\n<li>crash with Coinage press fixed</li>\n<li>suevite stone panning should work now</li>\n</ul>"
+   },
+   {
+    "releaseid": 16346,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.16_f4fc845c95a326cbeaba73a4c6663771.zip?dl=canjewelry_0.4.16.zip",
+    "filename": "canjewelry_0.4.16.zip",
+    "fileid": 33609,
+    "downloads": 1826,
+    "tags": [
+     "1.20.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.16",
+    "created": "2025-02-16 09:19:51",
+    "changelog": "<ul>\n<li>grinder memory leak</li>\n<li>amethyst desc</li>\n</ul>"
+   },
+   {
+    "releaseid": 16267,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.15_8c15e1462d08a24893e9232df113f481.zip?dl=canjewelry_0.4.15.zip",
+    "filename": "canjewelry_0.4.15.zip",
+    "fileid": 33456,
+    "downloads": 523,
+    "tags": [
+     "1.20.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.15",
+    "created": "2025-02-15 07:52:09",
+    "changelog": "<ul>\n<li>startup crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 16218,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.14_490286eda14246a6c6ca472f713cdb54.zip?dl=canjewelry_0.4.14.zip",
+    "filename": "canjewelry_0.4.14.zip",
+    "fileid": 33354,
+    "downloads": 217,
+    "tags": [
+     "1.20.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.14",
+    "created": "2025-02-14 15:41:56",
+    "changelog": "<ul>\n<li>1.20.4</li>\n</ul>"
+   },
+   {
+    "releaseid": 15800,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.13_7aa8533f5e6729ab79432abdfc5ea6aa.zip?dl=canjewelry_0.4.13.zip",
+    "filename": "canjewelry_0.4.13.zip",
+    "fileid": 32512,
+    "downloads": 1360,
+    "tags": [
+     "1.20.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.13",
+    "created": "2025-02-06 16:41:29",
+    "changelog": "<ul>\n<li>topaz drop + recipe</li>\n<li>wire drawing table fix</li>\n<li>durability exploit fix (thx tojurjen909)</li>\n</ul>"
+   },
+   {
+    "releaseid": 15713,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.12_d06b09aa2f741c535daa13d5b00ede9c.zip?dl=canjewelry_0.4.12.zip",
+    "filename": "canjewelry_0.4.12.zip",
+    "fileid": 32375,
+    "downloads": 570,
+    "tags": [
+     "1.20.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.12",
+    "created": "2025-02-04 16:54:59",
+    "changelog": "-coronet fix\n-incorrect gem drop on tool break\n-changed animatio for gem cutting table"
+   },
+   {
+    "releaseid": 15535,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.11_d540dcde711e34d978eb714d35429a45.zip?dl=canjewelry_0.4.11.zip",
+    "filename": "canjewelry_0.4.11.zip",
+    "fileid": 32048,
+    "downloads": 925,
+    "tags": [
+     "1.20.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.11",
+    "created": "2025-02-01 10:59:42",
+    "changelog": "<ul>\n<li>CO little integration</li>\n</ul>"
+   },
+   {
+    "releaseid": 15204,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.10_fc4f895c02cfeccf42f593b4b8cd4b68.zip?dl=canjewelry_0.4.10.zip",
+    "filename": "canjewelry_0.4.10.zip",
+    "fileid": 31452,
+    "downloads": 1347,
+    "tags": [
+     "1.20.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.10",
+    "created": "2025-01-26 11:04:22",
+    "changelog": "<ul>\n<li>stalgmites&nbsp; crash fix</li>\n<li>gem cutting table recipes fix</li>\n<li>small handbook page for panning</li>\n<li>additional ores for pan</li>\n</ul>"
+   },
+   {
+    "releaseid": 14681,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.9_3f64c070bcec0abf23e87e256b113574.zip?dl=canjewelry_0.4.9.zip",
+    "filename": "canjewelry_0.4.9.zip",
+    "fileid": 30528,
+    "downloads": 1159,
+    "tags": [
+     "1.20.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.9",
+    "created": "2025-01-18 11:42:54",
+    "changelog": "<ul>\n<li>monocle, horus eye fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 13973,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.8_f8616f075682e851ea99ed6417114e9d.zip?dl=canjewelry_0.4.8.zip",
+    "filename": "canjewelry_0.4.8.zip",
+    "fileid": 29137,
+    "downloads": 1664,
+    "tags": [
+     "1.20.0-rc.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.8",
+    "created": "2024-12-26 13:56:23",
+    "changelog": "<ul>\n<li>grind layers recipe fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 13831,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.10_4138c4207d4a804eca7ff6152c09a2ca.zip?dl=canjewelry_0.3.10.zip",
+    "filename": "canjewelry_0.3.10.zip",
+    "fileid": 28901,
+    "downloads": 582,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.10",
+    "created": "2024-12-20 10:17:33",
+    "changelog": "<ul>\n<li>horus eye crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 13726,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.7_db45e5b4febbe1bf6d43ee213f0e72a4.zip?dl=canjewelry_0.4.7.zip",
+    "filename": "canjewelry_0.4.7.zip",
+    "fileid": 28713,
+    "downloads": 486,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.7",
+    "created": "2024-12-16 10:01:37",
+    "changelog": "<ul>\n<li>block breaking crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 13648,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.6_a19b69b1413d13c17970083a491b9e9e.zip?dl=canjewelry_0.4.6.zip",
+    "filename": "canjewelry_0.4.6.zip",
+    "fileid": 28580,
+    "downloads": 313,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.6",
+    "created": "2024-12-14 10:00:46",
+    "changelog": "<ul>\n<li>added topaz and temporal grasp buff, which allows to receive unbroken blocks(peat, lakeice, soil...), configurable by config</li>\n</ul>"
+   },
+   {
+    "releaseid": 13627,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.9_88cb0772c5ef4bb4cb396d9d1516cdcd.zip?dl=canjewelry_0.3.9.zip",
+    "filename": "canjewelry_0.3.9.zip",
+    "fileid": 28544,
+    "downloads": 314,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.9",
+    "created": "2024-12-13 08:17:13",
+    "changelog": "<ul>\n<li>shouldn't crush even with old cut gems with attributes</li>\n</ul>"
+   },
+   {
+    "releaseid": 13619,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.5_d8f42ccf88632d82507e1adf5622a7ed.zip?dl=canjewelry_0.4.5.zip",
+    "filename": "canjewelry_0.4.5.zip",
+    "fileid": 28533,
+    "downloads": 396,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.5",
+    "created": "2024-12-12 19:45:25",
+    "changelog": "<ul>\n<li>same as 0.3.8</li>\n</ul>"
+   },
+   {
+    "releaseid": 13616,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.8_7457b1f4b7cf312476fbc5a1e4dc04e6.zip?dl=canjewelry_0.3.8.zip",
+    "filename": "canjewelry_0.3.8.zip",
+    "fileid": 28530,
+    "downloads": 569,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.8",
+    "created": "2024-12-12 19:39:08",
+    "changelog": "<ul>\n<li>old cut gem do not crush game during polish attempt now</li>\n</ul>"
+   },
+   {
+    "releaseid": 13601,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.4_274a3e358f6730810e38864f40dbcd16.zip?dl=canjewelry_0.4.4.zip",
+    "filename": "canjewelry_0.4.4.zip",
+    "fileid": 28499,
+    "downloads": 252,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.4",
+    "created": "2024-12-12 14:18:46",
+    "changelog": "<ul>\n<li>missing item info</li>\n<li>wire drawing bench recipes</li>\n</ul>"
+   },
+   {
+    "releaseid": 13575,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.7_33322c494310a55544e8812b86789849.zip?dl=canjewelry_0.3.7.zip",
+    "filename": "canjewelry_0.3.7.zip",
+    "fileid": 28444,
+    "downloads": 254,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.7",
+    "created": "2024-12-11 10:30:07",
+    "changelog": null
+   },
+   {
+    "releaseid": 13551,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.3_63c39f6b8cc88b1fab7de6575fbfe593.zip?dl=canjewelry_0.4.3.zip",
+    "filename": "canjewelry_0.4.3.zip",
+    "fileid": 28409,
+    "downloads": 403,
+    "tags": [
+     "1.20.0-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.3",
+    "created": "2024-12-09 19:37:18",
+    "changelog": "<ul>\n<li>incorrect info on already encrusted gem in jeweler's table</li>\n<li>fixed old version items cannot be re-encrusted</li>\n<li>some color marks for socket desc</li>\n<li>sockets' level restictions are now working</li>\n</ul>"
+   },
+   {
+    "releaseid": 12915,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.2_61dc8ac4319414b0f07d950111b8a5b2.zip?dl=canjewelry_0.4.2.zip",
+    "filename": "canjewelry_0.4.2.zip",
+    "fileid": 27116,
+    "downloads": 508,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.2",
+    "created": "2024-11-07 19:20:55",
+    "changelog": null
+   },
+   {
+    "releaseid": 12456,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.1_3ba9a252f55876192349877f159427e4.zip?dl=canjewelry_0.4.1.zip",
+    "filename": "canjewelry_0.4.1.zip",
+    "fileid": 26109,
+    "downloads": 569,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.1",
+    "created": "2024-10-09 15:08:28",
+    "changelog": "<ul>\n<li>fix dependencies</li>\n</ul>"
+   },
+   {
+    "releaseid": 12437,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.6_da67c201e8ba1cf29634f4422c645309.zip?dl=canjewelry_0.3.6.zip",
+    "filename": "canjewelry_0.3.6.zip",
+    "fileid": 26072,
+    "downloads": 1553,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.6",
+    "created": "2024-10-08 17:03:33",
+    "changelog": "<ul>\n<li>tiara recipe</li>\n<li>set buffs for old cut gems by placing them into Jeweler's table slot</li>\n</ul>"
+   },
+   {
+    "releaseid": 12407,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.4.0_8dacf63dc4699cf049f0afc4bc01a980.zip?dl=canjewelry_0.4.0.zip",
+    "filename": "canjewelry_0.4.0.zip",
+    "fileid": 26017,
+    "downloads": 316,
+    "tags": [
+     "1.20.0-pre.0"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.4.0",
+    "created": "2024-10-07 16:06:53",
+    "changelog": "<ul>\n<li>.20 rebuild</li>\n</ul>"
+   },
+   {
+    "releaseid": 12390,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.5_9f39e6fb4e298d19d1e9c7d083ac2bea.zip?dl=canjewelry_0.3.5.zip",
+    "filename": "canjewelry_0.3.5.zip",
+    "fileid": 25975,
+    "downloads": 429,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.5",
+    "created": "2024-10-06 18:28:35",
+    "changelog": "<ul>\n<li>pan recipe added</li>\n</ul>"
+   },
+   {
+    "releaseid": 12378,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.4_81ab6037bebada7add54c6316e5d706e.zip?dl=canjewelry_0.3.4.zip",
+    "filename": "canjewelry_0.3.4.zip",
+    "fileid": 25960,
+    "downloads": 315,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.4",
+    "created": "2024-10-06 09:44:23",
+    "changelog": "<ul>\n<li>animalHarvestingTime and animalSeekingRange bonus names had incorrect characters - update your old config or regenerate by removing them</li>\n</ul>"
+   },
+   {
+    "releaseid": 12376,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.3_9022a57858825bee4a1da365795eceea.zip?dl=canjewelry_0.3.3.zip",
+    "filename": "canjewelry_0.3.3.zip",
+    "fileid": 25958,
+    "downloads": 267,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.3",
+    "created": "2024-10-06 09:26:56",
+    "changelog": "<ul>\n<li>fix wiredrawing table sync issue</li>\n</ul>"
+   },
+   {
+    "releaseid": 12356,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.2_e266dbab59864df7511227c37678264b.zip?dl=canjewelry_0.3.2.zip",
+    "filename": "canjewelry_0.3.2.zip",
+    "fileid": 25916,
+    "downloads": 323,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.2",
+    "created": "2024-10-05 12:48:52",
+    "changelog": "<ul>\n<li>handbook page</li>\n<li>right click rotates gem on a table</li>\n<li>horus eye necklace added</li>\n</ul>"
+   },
+   {
+    "releaseid": 12333,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.1_1906ac5be6ccc96e0944a89a5c9dab60.zip?dl=canjewelry_0.3.1.zip",
+    "filename": "canjewelry_0.3.1.zip",
+    "fileid": 25880,
+    "downloads": 325,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.1",
+    "created": "2024-10-03 18:08:47",
+    "changelog": "<ul>\n<li>missing TakeLocked unlock</li>\n</ul>"
+   },
+   {
+    "releaseid": 12302,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.3.0_42bdeddbaf5a42a675907de9abd273dc.zip?dl=canjewelry_0.3.0.zip",
+    "filename": "canjewelry_0.3.0.zip",
+    "fileid": 25797,
+    "downloads": 405,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.3.0",
+    "created": "2024-10-01 16:01:47",
+    "changelog": "<ul>\n<li>changed buff logic and gem cutting (guide on wiki page will be updated later)</li>\n</ul>"
+   },
+   {
+    "releaseid": 11940,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.43_12b9a39cfbeef4131082dc236217af81.zip?dl=canjewelry_0.2.43.zip",
+    "filename": "canjewelry_0.2.43.zip",
+    "fileid": 25014,
+    "downloads": 1262,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.43",
+    "created": "2024-09-09 16:01:49",
+    "changelog": "<ul>\n<li>try to fix nullptr exception</li>\n</ul>"
+   },
+   {
+    "releaseid": 11683,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.42_82ed2aa80385a951f0d09a33fa53347d.zip?dl=canjewelry_0.2.42.zip",
+    "filename": "canjewelry_0.2.42.zip",
+    "fileid": 24520,
+    "downloads": 1004,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.42",
+    "created": "2024-08-15 17:35:54",
+    "changelog": "<ul>\n<li>jeweler set table gui shows proper amount and tier of sockets</li>\n</ul>"
+   },
+   {
+    "releaseid": 11659,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.41_4372cfd27f80d582624a17891f7eb81d.zip?dl=canjewelry_0.2.41.zip",
+    "filename": "canjewelry_0.2.41.zip",
+    "fileid": 24415,
+    "downloads": 399,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.41",
+    "created": "2024-08-14 10:39:12",
+    "changelog": "<ul>\n<li>OnPlayerNowPlaying for CANGemBuffAffected EB</li>\n<li>check for id of ItemSlot as SlotModified of \"hotbar\" can return &gt; 10 - slots of \"backpack\" - slots for bags</li>\n</ul>"
+   },
+   {
+    "releaseid": 11645,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.40_8f067710777036d12b3718de90db131e.zip?dl=canjewelry_0.2.40.zip",
+    "filename": "canjewelry_0.2.40.zip",
+    "fileid": 24386,
+    "downloads": 387,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.40",
+    "created": "2024-08-13 09:04:22",
+    "changelog": "<ul>\n<li>OnEntityDespawn checks if enity has inventory initialized, only relevant for server and first connection of a player on server</li>\n</ul>"
+   },
+   {
+    "releaseid": 11588,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.39_fae4f19366bc4e8f45a449799f916011.zip?dl=canjewelry_0.2.39.zip",
+    "filename": "canjewelry_0.2.39.zip",
+    "fileid": 24317,
+    "downloads": 382,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.39",
+    "created": "2024-08-09 13:33:48",
+    "changelog": "<ul>\n<li>change in CANGemBuffAffected</li>\n</ul>"
+   },
+   {
+    "releaseid": 11544,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.38_55f06f2afc3bbd19fd59e4214ab67f45.zip?dl=canjewelry_0.2.38.zip",
+    "filename": "canjewelry_0.2.38.zip",
+    "fileid": 24168,
+    "downloads": 444,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.38",
+    "created": "2024-08-06 15:07:46",
+    "changelog": "<ul>\n<li>check for inventory of player is available (on new world creation it's not prepared yet)</li>\n<li>armband</li>\n</ul>"
+   },
+   {
+    "releaseid": 11543,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.37_a72ebf6bd3762314d95da2a266972626.zip?dl=canjewelry_0.2.37.zip",
+    "filename": "canjewelry_0.2.37.zip",
+    "fileid": 24166,
+    "downloads": 317,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.37",
+    "created": "2024-08-06 09:40:31",
+    "changelog": "<ul>\n<li>changed buff update logic</li>\n</ul>"
+   },
+   {
+    "releaseid": 11536,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.36_472c95b4fdc5163b7735db82ecc4ae37.zip?dl=canjewelry_0.2.36.zip",
+    "filename": "canjewelry_0.2.36.zip",
+    "fileid": 24147,
+    "downloads": 359,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.36",
+    "created": "2024-08-05 19:02:38",
+    "changelog": "<ul>\n<li>additional checks for crash fix</li>\n<li>custom_variants_sockets_tiers to add tiers/sockets amount for items with variants by attributes</li>\n<li>monocle added</li>\n<li>rotten king mask implementation changed (you'll need to replace unknown items)</li>\n</ul>"
+   },
+   {
+    "releaseid": 11517,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.35_853fb9265070c0f68bb91883f64c29ad.zip?dl=canjewelry_0.2.35.zip",
+    "filename": "canjewelry_0.2.35.zip",
+    "fileid": 24115,
+    "downloads": 433,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.35",
+    "created": "2024-08-04 10:36:04",
+    "changelog": "<ul>\n<li>crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 11478,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.34_c4ba157d1915d9bc1c5c277577f012cb.zip?dl=canjewelry_0.2.34.zip",
+    "filename": "canjewelry_0.2.34.zip",
+    "fileid": 23985,
+    "downloads": 402,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.34",
+    "created": "2024-08-01 14:58:00",
+    "changelog": "<ul>\n<li>rough gems crash fix</li>\n<li>dry grass bonus buff</li>\n</ul>"
+   },
+   {
+    "releaseid": 11470,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.33_4060f917f9c49d010e26cc5b71f97e1a.zip?dl=canjewelry_0.2.33.zip",
+    "filename": "canjewelry_0.2.33.zip",
+    "fileid": 23973,
+    "downloads": 352,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.33",
+    "created": "2024-07-31 19:39:41",
+    "changelog": "<ul>\n<li>additional check</li>\n</ul>"
+   },
+   {
+    "releaseid": 11253,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.32_68ba1bfa107989aa202c466b8beb3280.zip?dl=canjewelry_0.2.32.zip",
+    "filename": "canjewelry_0.2.32.zip",
+    "fileid": 23413,
+    "downloads": 1015,
+    "tags": [
+     "1.19.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.32",
+    "created": "2024-07-13 11:44:48",
+    "changelog": "<ul>\n<li>gui for stats values</li>\n<li>GEM_BUFF_TYPE set for socket tree and check</li>\n</ul>"
+   },
+   {
+    "releaseid": 10400,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.31_c75c95e31174993e662c96f50aa3f76d.zip?dl=canjewelry_0.2.31.zip",
+    "filename": "canjewelry_0.2.31.zip",
+    "fileid": 21740,
+    "downloads": 2377,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.31",
+    "created": "2024-05-19 20:41:11",
+    "changelog": "<ul>\n<li>mask/coronet shape in gui fixed</li>\n</ul>"
+   },
+   {
+    "releaseid": 10392,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.30_7e8c6d4c5c4c01be9c0728003309cf45.zip?dl=canjewelry_0.2.30.zip",
+    "filename": "canjewelry_0.2.30.zip",
+    "fileid": 21730,
+    "downloads": 364,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.30",
+    "created": "2024-05-19 10:27:33",
+    "changelog": "<ul>\n<li>leper king mask and coronet added with recipes</li>\n</ul>"
+   },
+   {
+    "releaseid": 10208,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.29_2b3967dacb8801355132a3f755af0e07.zip?dl=canjewelry_0.2.29.zip",
+    "filename": "canjewelry_0.2.29.zip",
+    "fileid": 21397,
+    "downloads": 1236,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.29",
+    "created": "2024-05-05 14:34:20",
+    "changelog": "<ul>\n<li>fixed jeweler's table refusing to encrust gems</li>\n<li>leper king mask added without recipe</li>\n</ul>"
+   },
+   {
+    "releaseid": 10175,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.28_2f3f81f3c8d72e9250a6f318e53f2b9d.zip?dl=canjewelry_0.2.28.zip",
+    "filename": "canjewelry_0.2.28.zip",
+    "fileid": 21328,
+    "downloads": 631,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.28",
+    "created": "2024-05-02 16:23:44",
+    "changelog": "<ul>\n<li>new gem - amethyst, add additional durability for tools/armor</li>\n<li>new config parameter chance_gem_drop_on_item_broken (0...1.0) chance to gems to drop on tool broken</li>\n<li>grindlayers durability changed</li>\n</ul>"
+   },
+   {
+    "releaseid": 9935,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.27_75d9aa71bdf94a72f56eb155cbd75573.zip?dl=canjewelry_0.2.27.zip",
+    "filename": "canjewelry_0.2.27.zip",
+    "fileid": 20938,
+    "downloads": 1208,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.27",
+    "created": "2024-04-20 09:04:11",
+    "changelog": "<ul>\n<li>grind layer is now placed by right mouse click + CTRL, no GUI for gem grinder</li>\n<li>config adds default values only if there is no config file at all, if any additions will appear in newer version player will need to remove old config or update it</li>\n<li>since CollectibleBehavior is connected with class there were situation when for example copper falx had behavior but didn't have possible sockets slots, now such items won't be suitable for jeweler's table first slot</li>\n<li>checked synchronisation between server's config and client's, if server's has some changes client will get packet from server and update is applied, so clients do not need to manipulate with their files everytime</li>\n</ul>"
+   },
+   {
+    "releaseid": 9815,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.26_0549145667ec63ff1d68d0648619258e.zip?dl=canjewelry_0.2.26.zip",
+    "filename": "canjewelry_0.2.26.zip",
+    "fileid": 20766,
+    "downloads": 815,
+    "tags": [
+     "1.19.7"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.26",
+    "created": "2024-04-12 16:52:59",
+    "changelog": "<ul>\n<li>crash fix for encrusted items with not all sockets added</li>\n</ul>"
+   },
+   {
+    "releaseid": 9558,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.25_a3e423addeb81e110abd806afe755c6c.zip?dl=canjewelry_0.2.25.zip",
+    "filename": "canjewelry_0.2.25.zip",
+    "fileid": 20606,
+    "downloads": 562,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.25",
+    "created": "2024-03-29 08:31:04",
+    "changelog": "<ul>\n<li>\"armorDurabilityLoss\" buff values need to be negative to make sence (update config or remove old to be updated)</li>\n</ul>"
+   },
+   {
+    "releaseid": 9538,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.24_98ef8a663f365877644a9c078f3a7367.zip?dl=canjewelry_0.2.24.zip",
+    "filename": "canjewelry_0.2.24.zip",
+    "fileid": 20274,
+    "downloads": 480,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.24",
+    "created": "2024-03-27 19:03:36",
+    "changelog": "<ul>\n<li>fix caveins crash (GetDrops doesn't check for DropModbyStat existance, so fails on GetBlended())</li>\n</ul>"
+   },
+   {
+    "releaseid": 9525,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.23_d04ffadb3a3aefa6f53103857e03abce.zip?dl=canjewelry_0.2.23.zip",
+    "filename": "canjewelry_0.2.23.zip",
+    "fileid": 20255,
+    "downloads": 421,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.23",
+    "created": "2024-03-27 06:42:48",
+    "changelog": "<ul>\n<li>check for vanila gems</li>\n</ul>"
+   },
+   {
+    "releaseid": 9516,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.22_beb6cfa2faa70ff011919aa2a8e54fff.zip?dl=canjewelry_0.2.22.zip",
+    "filename": "canjewelry_0.2.22.zip",
+    "fileid": 20244,
+    "downloads": 383,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.22",
+    "created": "2024-03-26 22:20:44",
+    "changelog": "<ul>\n<li>typo fixed in default config for \"ore-fluorite-*\" (thx PervySage)</li>\n</ul>"
+   },
+   {
+    "releaseid": 9514,
+    "mainfile": "",
+    "filename": "",
+    "fileid": null,
+    "downloads": 0,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.20",
+    "created": "2024-03-26 19:43:33",
+    "changelog": "<ul>\n<li>gems_drops_table added to config</li>\n<li>default diamonds/emeralds/olivines now has recipes to new one and back</li>\n</ul>"
+   },
+   {
+    "releaseid": 9495,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.19_b2cd219000878c4a93badace08f190bd.zip?dl=canjewelry_0.2.19.zip",
+    "filename": "canjewelry_0.2.19.zip",
+    "fileid": 20209,
+    "downloads": 478,
+    "tags": [
+     "1.19.5"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.19",
+    "created": "2024-03-25 11:58:19",
+    "changelog": "<ul>\n<li>hide debug msgs</li>\n</ul>"
+   },
+   {
+    "releaseid": 9375,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.18_a250bb9f179bacacd54205a3c221e3e8.zip?dl=canjewelry_0.2.18.zip",
+    "filename": "canjewelry_0.2.18.zip",
+    "fileid": 19972,
+    "downloads": 848,
+    "tags": [
+     "1.19.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.18",
+    "created": "2024-03-17 12:28:29",
+    "changelog": "<ul>\n<li>max_buff_values added to config to set maximum buff for stats from gems (default values are { \"walkspeed\", 0.5f},<br />{ \"maxhealthExtraPoints\", 25})</li>\n</ul>"
+   },
+   {
+    "releaseid": 9360,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.17_aba2dc95c441626542e60d5cb8c7283a.zip?dl=canjewelry_0.2.17.zip",
+    "filename": "canjewelry_0.2.17.zip",
+    "fileid": 19940,
+    "downloads": 449,
+    "tags": [
+     "1.19.4"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.17",
+    "created": "2024-03-16 15:00:21",
+    "changelog": "<ul>\n<li>suevite stone panning</li>\n<li>config updated for swordz</li>\n</ul>"
+   },
+   {
+    "releaseid": 9216,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.16_208757cabdb248f33793164409c3803d.zip?dl=canjewelry_0.2.16.zip",
+    "filename": "canjewelry_0.2.16.zip",
+    "fileid": 19651,
+    "downloads": 832,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.16",
+    "created": "2024-03-05 19:46:26",
+    "changelog": "<ul>\n<li>\n<p>Titanium-steel Tools and amenities items added to config</p>\n</li>\n</ul>"
+   },
+   {
+    "releaseid": 9201,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.15_ddb90ddaa42691841b91a76bcca39a9c.zip?dl=canjewelry_0.2.15.zip",
+    "filename": "canjewelry_0.2.15.zip",
+    "fileid": 19613,
+    "downloads": 448,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.15",
+    "created": "2024-03-04 07:13:35",
+    "changelog": "<ul>\n<li>colors for particles for geology additions gems</li>\n</ul>"
+   },
+   {
+    "releaseid": 9192,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.14_a75a798444d0261731db2e6216ad795a.zip?dl=canjewelry_0.2.14.zip",
+    "filename": "canjewelry_0.2.14.zip",
+    "fileid": 19592,
+    "downloads": 453,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.14",
+    "created": "2024-03-03 12:03:34",
+    "changelog": "<ul>\n<li>geology additions integration fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 9168,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.13_a64d59733868129b7067339460ac4344.zip?dl=canjewelry_0.2.13.zip",
+    "filename": "canjewelry_0.2.13.zip",
+    "fileid": 19564,
+    "downloads": 515,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.13",
+    "created": "2024-03-02 10:23:54",
+    "changelog": "<ul>\n<li>old olivine_peridot was replaced in a loot table</li>\n</ul>"
+   },
+   {
+    "releaseid": 9123,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.12_f37e926d4c7b7b7d10070993420d0245.zip?dl=canjewelry_0.2.12.zip",
+    "filename": "canjewelry_0.2.12.zip",
+    "fileid": 19470,
+    "downloads": 443,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.12",
+    "created": "2024-02-28 18:09:17",
+    "changelog": "<ul>\n<li>xskillshotbar tryFlip fix</li>\n<li>some hardcoded parts for new gems added through jsons were replaced</li>\n</ul>"
+   },
+   {
+    "releaseid": 9122,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.31_ebb76c9b8557f008227126000360e5f9.zip?dl=canjewelry_0.1.31.zip",
+    "filename": "canjewelry_0.1.31.zip",
+    "fileid": 19469,
+    "downloads": 337,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.31",
+    "created": "2024-02-28 17:58:37",
+    "changelog": "<ul>\n<li>fix for \"xskillshotbar\" tryFlip slots</li>\n<li>tstools</li>\n</ul>"
+   },
+   {
+    "releaseid": 8784,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.11_70e862f1b050690205b83903b208f86b.zip?dl=canjewelry_0.2.11.zip",
+    "filename": "canjewelry_0.2.11.zip",
+    "fileid": 18961,
+    "downloads": 956,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.11",
+    "created": "2024-02-10 16:12:19",
+    "changelog": "<ul>\n<li>add integration for gems from Geology Additions</li>\n</ul>"
+   },
+   {
+    "releaseid": 8648,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.10_0d4b47c254204d52b7d35778df1d0d4e.zip?dl=canjewelry_0.2.10.zip",
+    "filename": "canjewelry_0.2.10.zip",
+    "fileid": 18694,
+    "downloads": 804,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.10",
+    "created": "2024-02-04 12:53:35",
+    "changelog": "<ul>\n<li>tiara search crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 8617,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.30_8046856f3e80ad27906465cafbca83d8.zip?dl=canjewelry_0.1.30.zip",
+    "filename": "canjewelry_0.1.30.zip",
+    "fileid": 18634,
+    "downloads": 486,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.30",
+    "created": "2024-02-03 10:40:16",
+    "changelog": "<ul>\n<li>right click fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 8613,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.9_ad85b5fcc50ec303fb5af30cdd6c90ff.zip?dl=canjewelry_0.2.9.zip",
+    "filename": "canjewelry_0.2.9.zip",
+    "fileid": 18629,
+    "downloads": 511,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.9",
+    "created": "2024-02-03 08:06:39",
+    "changelog": "<ul>\n<li>citrine drop table</li>\n<li>inventory.TakeLocked fix for jeweler's table</li>\n</ul>"
+   },
+   {
+    "releaseid": 8593,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.8_8d7cdf538b20d3558b97de38cf9beb8e.zip?dl=canjewelry_0.2.8.zip",
+    "filename": "canjewelry_0.2.8.zip",
+    "fileid": 18585,
+    "downloads": 477,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.8",
+    "created": "2024-02-02 17:56:28",
+    "changelog": "<ul>\n<li>tiara added</li>\n<li>socket tiers through the config</li>\n<li>right click/flip double stat set fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 8494,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.29_c3b5b2adf9b61c1b832cd076c52fa4c1.zip?dl=canjewelry_0.1.29.zip",
+    "filename": "canjewelry_0.1.29.zip",
+    "fileid": 18386,
+    "downloads": 402,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.29",
+    "created": "2024-01-29 05:39:24",
+    "changelog": "<ul>\n<li>same as 0.2.7</li>\n</ul>"
+   },
+   {
+    "releaseid": 8493,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.7_ac85b195058655f042e9fad3424ff764.zip?dl=canjewelry_0.2.7.zip",
+    "filename": "canjewelry_0.2.7.zip",
+    "fileid": 18388,
+    "downloads": 674,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.7",
+    "created": "2024-01-29 05:28:24",
+    "changelog": "<ul>\n<li>Postfix_ItemSlot_ActivateSlotLeftClick Postfix_ItemSlot_TakeOut now check for active slot not suitable items</li>\n<li>Postfix_ItemSlot_TryFlipWith changed ifs for hotbar and __result of prev op</li>\n</ul>"
+   },
+   {
+    "releaseid": 8461,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.6_ae113cd4e0d259464d70e249cc590800.zip?dl=canjewelry_0.2.6.zip",
+    "filename": "canjewelry_0.2.6.zip",
+    "fileid": 18309,
+    "downloads": 386,
+    "tags": [
+     "1.19.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.6",
+    "created": "2024-01-28 14:53:19",
+    "changelog": null
+   },
+   {
+    "releaseid": 8460,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.28_4016a552a0ee9a0cf423585ed0ec3069.zip?dl=canjewelry_0.1.28.zip",
+    "filename": "canjewelry_0.1.28.zip",
+    "fileid": 18299,
+    "downloads": 352,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.28",
+    "created": "2024-01-28 14:27:28",
+    "changelog": null
+   },
+   {
+    "releaseid": 8444,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.27_ac8bb8e2a95c006c52516406f768eecf.zip?dl=canjewelry_0.1.27.zip",
+    "filename": "canjewelry_0.1.27.zip",
+    "fileid": 18261,
+    "downloads": 404,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.27",
+    "created": "2024-01-28 08:41:34",
+    "changelog": "<ul>\n<li>libs fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 8427,
+    "mainfile": "",
+    "filename": "",
+    "fileid": null,
+    "downloads": 0,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.26",
+    "created": "2024-01-27 21:04:09",
+    "changelog": "<ul>\n<li>fix slots flip</li>\n</ul>"
+   },
+   {
+    "releaseid": 8424,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.5_f7874ed2decfb8da43619f213627ce1e.zip?dl=canjewelry_0.2.5.zip",
+    "filename": "canjewelry_0.2.5.zip",
+    "fileid": 18217,
+    "downloads": 461,
+    "tags": [
+     "1.19.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.5",
+    "created": "2024-01-27 20:49:15",
+    "changelog": "<ul>\n<li>fix slots flip</li>\n</ul>"
+   },
+   {
+    "releaseid": 8407,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.4_1749153c2d78cfc5279e3f7ab4005734.zip?dl=canjewelry_0.2.4.zip",
+    "filename": "canjewelry_0.2.4.zip",
+    "fileid": 18181,
+    "downloads": 374,
+    "tags": [
+     "1.19.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.4",
+    "created": "2024-01-27 11:37:08",
+    "changelog": "<ul>\n<li>citrine added - animalLootDropRate</li>\n<li>new table shape and gui</li>\n<li>items_codes_with_socket_count_and_tiers in config to specify which tier of socket can be added</li>\n</ul>"
+   },
+   {
+    "releaseid": 8147,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.25_b9d4372ddedf7ea12cdcfa73a1518819.zip?dl=canjewelry_0.1.25.zip",
+    "filename": "canjewelry_0.1.25.zip",
+    "fileid": 17689,
+    "downloads": 500,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.25",
+    "created": "2024-01-16 07:47:48",
+    "changelog": null
+   },
+   {
+    "releaseid": 8102,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.3_c2d5b96503ff497434b8ed3709092380.zip?dl=canjewelry_0.2.3.zip",
+    "filename": "canjewelry_0.2.3.zip",
+    "fileid": 17598,
+    "downloads": 891,
+    "tags": [
+     "1.19.0-rc.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.3",
+    "created": "2024-01-13 12:15:49",
+    "changelog": "<ul>\n<li>same fix as for 0.1.24</li>\n</ul>"
+   },
+   {
+    "releaseid": 8101,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.24_8a261463c0a04107d32f304942f09bde.zip?dl=canjewelry_0.1.24.zip",
+    "filename": "canjewelry_0.1.24.zip",
+    "fileid": 17597,
+    "downloads": 429,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.24",
+    "created": "2024-01-13 09:49:51",
+    "changelog": "<ul>\n<li>fix incorrect flip slots handler</li>\n</ul>"
+   },
+   {
+    "releaseid": 8059,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.2_62c2a970dffbcbab67352f3f1522140c.zip?dl=canjewelry_0.2.2.zip",
+    "filename": "canjewelry_0.2.2.zip",
+    "fileid": 17534,
+    "downloads": 401,
+    "tags": [
+     "1.19.0-rc.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.2",
+    "created": "2024-01-10 19:31:55",
+    "changelog": "<ul>\n<li>encrusted gems icon fix</li>\n<li>some log msgs removed</li>\n</ul>"
+   },
+   {
+    "releaseid": 8055,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.2.1_a0b266430e444148bfd57c13c4fbb2b1.zip?dl=canjewelry_0.2.1.zip",
+    "filename": "canjewelry_0.2.1.zip",
+    "fileid": 17529,
+    "downloads": 349,
+    "tags": [
+     "1.19.0-rc.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.1",
+    "created": "2024-01-10 16:06:33",
+    "changelog": "<ul>\n<li>crash fix</li>\n</ul>"
+   },
+   {
+    "releaseid": 8047,
+    "mainfile": "",
+    "filename": "",
+    "fileid": null,
+    "downloads": 0,
+    "tags": [
+     "1.19.0-rc.6"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.2.0",
+    "created": "2024-01-09 17:18:33",
+    "changelog": "<ul>\n<li>CANItemSimpleNecklace is now IWearableShapeSupplier, so we don't need harmony patch on addGearToShape in EntityAgent&nbsp; \\(o-o)/</li>\n</ul>"
+   },
+   {
+    "releaseid": 7991,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.23_51341e7dd56e460bb987987ff03c2763.zip?dl=canjewelry_0.1.23.zip",
+    "filename": "canjewelry_0.1.23.zip",
+    "fileid": 17393,
+    "downloads": 718,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.23",
+    "created": "2024-01-06 09:02:39",
+    "changelog": "<p>- fixed dependsOn patches for grindlayers</p>"
+   },
+   {
+    "releaseid": 7948,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.22_1277309d9f34dd83aba245b1230b6ea6.zip?dl=canjewelry_0.1.22.zip",
+    "filename": "canjewelry_0.1.22.zip",
+    "fileid": 17316,
+    "downloads": 531,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.22",
+    "created": "2024-01-02 20:44:08",
+    "changelog": "<p>- ruby missing parts</p>"
+   },
+   {
+    "releaseid": 7922,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.21_af00dda0ebca9553967a66dd0f55fd30.zip?dl=canjewelry_0.1.21.zip",
+    "filename": "canjewelry_0.1.21.zip",
+    "fileid": 17260,
+    "downloads": 470,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.21",
+    "created": "2023-12-30 20:37:30",
+    "changelog": "<p>- \"-antique\"&nbsp; in buffNameToPossibleItem for emerald, lapislazuli, malachite, olivine, uranium, quartz</p>"
+   },
+   {
+    "releaseid": 7913,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.20_38d587924659625d00f6307350561d93.zip?dl=canjewelry_0.1.20.zip",
+    "filename": "canjewelry_0.1.20.zip",
+    "fileid": 17234,
+    "downloads": 385,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.20",
+    "created": "2023-12-30 11:25:32",
+    "changelog": "<ul>\n<li>added ruby</li>\n<li>removed redundant shapes/textures</li>\n</ul>"
+   },
+   {
+    "releaseid": 7733,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.19_97cfde7331b11f890caaae44f4054011.zip?dl=canjewelry_0.1.19.zip",
+    "filename": "canjewelry_0.1.19.zip",
+    "fileid": 16836,
+    "downloads": 1023,
+    "tags": [
+     "1.18.15"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.19",
+    "created": "2023-12-11 18:17:16",
+    "changelog": "<p>\"armor-head-antique-*\": 1,<br />\"armor-legs-antique-*\": 1,<br />\"armor-body-antique-*\": 2,</p>\n<p>added&nbsp;</p>"
+   },
+   {
+    "releaseid": 6959,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.18_a2e2e920716b73ea6380b610bea9db7b.zip?dl=canjewelry_0.1.18.zip",
+    "filename": "canjewelry_0.1.18.zip",
+    "fileid": 15128,
+    "downloads": 1751,
+    "tags": [
+     "1.18.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.18",
+    "created": "2023-10-14 11:26:07",
+    "changelog": "<ul>\n<li>grindlayer durability status fixed</li>\n<li>crushed diamond from necessaries mod can be used for grindlayer craft</li>\n<li>grindlayer is now item, not block as before</li>\n<li>iron/stell pan added to get gems from ores (info on github wiki page)</li>\n<li>config updated due to <a href=\"https://github.com/kenigvovan/canjewelry_7/issues/1\">https://github.com/kenigvovan/canjewelry_7/issues/1</a></li>\n<li>old config format changed, old one should be trasfred by mod itself and save old one as well</li>\n</ul>"
+   },
+   {
+    "releaseid": 6738,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.16_fb6276dfb84f6640299628b6068df911.zip?dl=canjewelry_0.1.16.zip",
+    "filename": "canjewelry_0.1.16.zip",
+    "fileid": 14635,
+    "downloads": 953,
+    "tags": [
+     "1.18.12"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.16",
+    "created": "2023-09-23 13:35:50",
+    "changelog": "<p>- fix incorrect buff handling</p>"
+   },
+   {
+    "releaseid": 6440,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.15_9466ba98ecad2fe1e6cb0c00efab38c1.zip?dl=canjewelry_0.1.15.zip",
+    "filename": "canjewelry_0.1.15.zip",
+    "fileid": 13912,
+    "downloads": 983,
+    "tags": [
+     "1.18.8-rc.1",
+     "1.18.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.15",
+    "created": "2023-08-30 15:51:19",
+    "changelog": "<ul>\n<li>quick fix for Immersive Mouse Mode crash in jeweler's table gui</li>\n</ul>"
+   },
+   {
+    "releaseid": 6432,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.14_a7a9d5f01f95e92596e99044aef25233.zip?dl=canjewelry_0.1.14.zip",
+    "filename": "canjewelry_0.1.14.zip",
+    "fileid": 13888,
+    "downloads": 486,
+    "tags": [
+     "1.18.8-rc.1",
+     "1.18.8"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.14",
+    "created": "2023-08-29 14:49:27",
+    "changelog": "<ul>\n<li>quartz drop fixed</li>\n</ul>"
+   },
+   {
+    "releaseid": 6246,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.13_ne_78f54a9386f10198455703c176621945.zip?dl=canjewelry_0.1.13_net7.zip",
+    "filename": "canjewelry_0.1.13_net7.zip",
+    "fileid": 13405,
+    "downloads": 896,
+    "tags": [
+     "1.18.8-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.13",
+    "created": "2023-08-13 10:31:05",
+    "changelog": "<ul>\n<li>necklace wearable with different metal parts and encrusted gems</li>\n<li>some of the vanila jewelry can be break into metal bits</li>\n</ul>"
+   },
+   {
+    "releaseid": 6232,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_0.1.12_ne_817304656ae94cfc7c86fbb3c704489f.zip?dl=canjewelry_0.1.12_net7.zip",
+    "filename": "canjewelry_0.1.12_net7.zip",
+    "fileid": 13359,
+    "downloads": 482,
+    "tags": [
+     "1.18.8-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.12",
+    "created": "2023-08-11 15:15:38",
+    "changelog": "<ul>\n<li>memory leak fix</li>\n<li>jeweler's set shows which types of gems can be encrusted into the item</li>\n</ul>"
+   },
+   {
+    "releaseid": 6163,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.11_83ecd566e0ce18d8d782e6f8c47dabb9.zip?dl=canjewelry_v0.1.11.zip",
+    "filename": "canjewelry_v0.1.11.zip",
+    "fileid": 13235,
+    "downloads": 671,
+    "tags": [
+     "1.18.6-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.11",
+    "created": "2023-08-05 18:32:40",
+    "changelog": "<ul>\n<li>gui little bit updated</li>\n<li>socket smith recipe has 2 as output</li>\n</ul>"
+   },
+   {
+    "releaseid": 5743,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.10_d7037d75dadeb2aad05dfca3132da2ec.zip?dl=canjewelry_v0.1.10.zip",
+    "filename": "canjewelry_v0.1.10.zip",
+    "fileid": 12367,
+    "downloads": 1260,
+    "tags": [
+     "1.18.6-rc.1",
+     "1.18.6-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.10",
+    "created": "2023-06-27 14:53:13",
+    "changelog": "<p>- fixed json drop</p>"
+   },
+   {
+    "releaseid": 5728,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.9_d69a36ae51f1cd68e621647ee24ca670.zip?dl=canjewelry_v0.1.9.zip",
+    "filename": "canjewelry_v0.1.9.zip",
+    "fileid": 12344,
+    "downloads": 447,
+    "tags": [
+     "1.18.6-rc.1",
+     "1.18.6-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.9",
+    "created": "2023-06-26 15:49:30",
+    "changelog": "<p>- items_codes_with_socket_count in config for setting which items have Encrustable collectableBehavior and how much gems can be encrusted</p>"
+   },
+   {
+    "releaseid": 5234,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.8_d49bb3cbda5c90ccb288fffd5e344310.zip?dl=canjewelry_v0.1.8.zip",
+    "filename": "canjewelry_v0.1.8.zip",
+    "fileid": 11303,
+    "downloads": 964,
+    "tags": [
+     "1.18.2",
+     "1.18.3"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.8",
+    "created": "2023-05-14 07:28:52",
+    "changelog": "<p>&nbsp;- missing texture fix<br />&nbsp;- rough gems have buff desc</p>"
+   },
+   {
+    "releaseid": 5214,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.7_5e9bcf5f791a9e0f8a8aa8b8eb96afad.zip?dl=canjewelry_v0.1.7.zip",
+    "filename": "canjewelry_v0.1.7.zip",
+    "fileid": 11279,
+    "downloads": 438,
+    "tags": [
+     "1.18.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.7",
+    "created": "2023-05-13 09:08:14",
+    "changelog": null
+   },
+   {
+    "releaseid": 5139,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.6_52586e34b2a686540965b41bba68c97c.zip?dl=canjewelry_v0.1.6.zip",
+    "filename": "canjewelry_v0.1.6.zip",
+    "fileid": 11155,
+    "downloads": 552,
+    "tags": [
+     "1.18.1",
+     "1.18.2-rc.1",
+     "1.18.2-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.6",
+    "created": "2023-05-08 15:27:26",
+    "changelog": "<ul>\n<li>buff values moved to config file, added sync packet for client</li>\n<li>GetHeldItemInfo for cut gems</li>\n</ul>"
+   },
+   {
+    "releaseid": 5118,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.4_a64f3ef84e81842d03860c329147adb5.zip?dl=canjewelry_v0.1.4.zip",
+    "filename": "canjewelry_v0.1.4.zip",
+    "fileid": 11131,
+    "downloads": 446,
+    "tags": [
+     "1.18.1",
+     "1.18.2-rc.1",
+     "1.18.2-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.4",
+    "created": "2023-05-07 10:35:21",
+    "changelog": "<ul>\n<li>DarkPaapi's changed en lang file</li>\n<li>buffNameToPossibleItem moved to config file</li>\n</ul>"
+   },
+   {
+    "releaseid": 5108,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.3_16320f5573fc928da5f198bc7cc439b3.zip?dl=canjewelry_v0.1.3.zip",
+    "filename": "canjewelry_v0.1.3.zip",
+    "fileid": 11116,
+    "downloads": 487,
+    "tags": [
+     "1.18.2-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.3",
+    "created": "2023-05-06 17:07:09",
+    "changelog": "<p>- rough grindlayer recipe change</p>"
+   },
+   {
+    "releaseid": 5103,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.2_d75753e6dfba1e29faa39d04061136e1.zip?dl=canjewelry_v0.1.2.zip",
+    "filename": "canjewelry_v0.1.2.zip",
+    "fileid": 11097,
+    "downloads": 415,
+    "tags": [
+     "1.18.2-rc.2"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.2",
+    "created": "2023-05-06 14:12:51",
+    "changelog": "<ul>\n<li>falx added to weapons list</li>\n<li>the second item description removed</li>\n<li>added uk lang</li>\n</ul>"
+   },
+   {
+    "releaseid": 5090,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.1.1_21684d0cb12fa28b9df4016eceb75248.zip?dl=canjewelry_v0.1.1.zip",
+    "filename": "canjewelry_v0.1.1.zip",
+    "fileid": 11060,
+    "downloads": 437,
+    "tags": [
+     "1.18.2-rc.1"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.1.1",
+    "created": "2023-05-05 19:16:48",
+    "changelog": null
+   },
+   {
+    "releaseid": 4466,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.0.2_a45962052380595c37734a8d51ca772c.zip?dl=canjewelry_v0.0.2.zip",
+    "filename": "canjewelry_v0.0.2.zip",
+    "fileid": 9938,
+    "downloads": 662,
+    "tags": [
+     "1.17.11"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.0.2",
+    "created": "2023-03-15 18:22:30",
+    "changelog": "<p>- normal remap</p>"
+   },
+   {
+    "releaseid": 4465,
+    "mainfile": "https://moddbcdn.vintagestory.at/canjewelry_v0.0.1_27a438d33cdd3ac97015267778ec84d4.zip?dl=canjewelry_v0.0.1.zip",
+    "filename": "canjewelry_v0.0.1.zip",
+    "fileid": 9937,
+    "downloads": 425,
+    "tags": [
+     "1.17.11"
+    ],
+    "modidstr": "canjewelry",
+    "modversion": "0.0.1",
+    "created": "2023-03-15 16:08:29",
+    "changelog": "<p>init</p>"
+   }
+  ],
+  "screenshots": [
+   {
+    "fileid": 25953,
+    "mainfile": "https://moddbcdn.vintagestory.at/2024-10-06_10-34-56_161e9b9b7aa36775a2ac2727f2d48f18.png",
+    "filename": "2024-10-06_10-34-56.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2024-10-06_10-34-56_161e9b9b7aa36775a2ac2727f2d48f18_55_60.png",
+    "created": "2024-10-06 08:37:40"
+   },
+   {
+    "fileid": 134743,
+    "mainfile": "https://moddbcdn.vintagestory.at/2026-10-31_11-46-28_9c0ea3b9997565abb44a57b4db80ad60.png",
+    "filename": "2026-10-31_11-46-28.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2026-10-31_11-46-28_9c0ea3b9997565abb44a57b4db80ad60_55_60.png",
+    "created": "2026-10-31 11:59:06"
+   },
+   {
+    "fileid": 134744,
+    "mainfile": "https://moddbcdn.vintagestory.at/2026-10-31_11-49-13_7d75397db3463e4f8e86f43d2a3d226d.png",
+    "filename": "2026-10-31_11-49-13.png",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2026-10-31_11-49-13_7d75397db3463e4f8e86f43d2a3d226d_55_60.png",
+    "created": "2026-10-31 11:59:13"
+   },
+   {
+    "fileid": 134746,
+    "mainfile": "https://moddbcdn.vintagestory.at/2026-10-31_12-58-15_66817ad4d46c12cb287d50bbcecb2697.jpg",
+    "filename": "2026-10-31_12-58-15.jpg",
+    "thumbnailfilename": "https://moddbcdn.vintagestory.at/2026-10-31_12-58-15_66817ad4d46c12cb287d50bbcecb2697_55_60.jpg",
+    "created": "2026-10-31 11:59:58"
+   }
+  ]
+ },
+ "statuscode": "200"
+}

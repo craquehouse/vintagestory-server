@@ -8,6 +8,7 @@ Coverage targets:
 """
 
 import inspect
+import re
 import runpy
 from collections.abc import Mapping
 from io import StringIO
@@ -23,10 +24,13 @@ from fastapi.testclient import TestClient
 from vintagestory_api import __version__
 from vintagestory_api import jobs as jobs_module
 from vintagestory_api import main as main_module
+from vintagestory_api.config import DEFAULT_MOD_DB_URL, Settings
 from vintagestory_api.main import (
     CORSLoggingMiddleware,
     app,
+    create_app,
     get_scheduler_service,
+    log_mod_db_url,
 )
 from vintagestory_api.models.server import ServerState, ServerStatus
 from vintagestory_api.services import mods as mods_module
@@ -287,6 +291,7 @@ class TestLifespanAutoStart:
 
         settings = MagicMock()
         settings.data_dir = Path("/tmp/test_data")
+        settings.mod_db_url = DEFAULT_MOD_DB_URL
         api_settings_service = MagicMock()
         api_settings_service.get_settings.return_value.auto_start_server = auto_start
         server_service = MagicMock()
@@ -477,6 +482,7 @@ class TestLifespanAutoStart:
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
         mock_settings.data_dir = Path("/tmp/test_data")
+        mock_settings.mod_db_url = DEFAULT_MOD_DB_URL
         mock_settings.cors_origins = "http://localhost:3000"
         mock_settings.debug = False
         mock_settings.ensure_data_directories = MagicMock()
@@ -537,6 +543,7 @@ class TestLifespanAutoStart:
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
         mock_settings.data_dir = Path("/tmp/test_data")
+        mock_settings.mod_db_url = DEFAULT_MOD_DB_URL
         mock_settings.cors_origins = "http://localhost:3000"
         mock_settings.debug = False
         mock_settings.ensure_data_directories = MagicMock()
@@ -596,6 +603,7 @@ class TestLifespanAutoStart:
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
         mock_settings.data_dir = Path("/tmp/test_data")
+        mock_settings.mod_db_url = DEFAULT_MOD_DB_URL
         mock_settings.cors_origins = "http://localhost:3000"
         mock_settings.debug = False
         mock_settings.ensure_data_directories = MagicMock()
@@ -655,6 +663,7 @@ class TestLifespanAutoStart:
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
         mock_settings.data_dir = Path("/tmp/test_data")
+        mock_settings.mod_db_url = DEFAULT_MOD_DB_URL
         mock_settings.cors_origins = "http://localhost:3000"
         mock_settings.debug = False
         mock_settings.ensure_data_directories = MagicMock()
@@ -707,6 +716,7 @@ class TestLifespanAutoStart:
         mock_settings = MagicMock()
         mock_settings.auto_start_server = False
         mock_settings.data_dir = Path("/tmp/test_data")
+        mock_settings.mod_db_url = DEFAULT_MOD_DB_URL
         mock_settings.cors_origins = "http://localhost:3000"
         mock_settings.debug = False
         mock_settings.ensure_data_directories = MagicMock()
@@ -739,3 +749,57 @@ class TestLifespanAutoStart:
             # Check disabled log message
             logs = captured_logs.getvalue()
             assert "auto_start_server_disabled" in logs
+
+
+class TestLogModDbUrl:
+    """Start-up warns when VS_MOD_DB_URL is not the default (Story 20.6, Epic 20 ADR-9)."""
+
+    @staticmethod
+    def plain(captured_logs: StringIO) -> str:
+        return re.sub(r"\x1b\[[0-9;]*m", "", captured_logs.getvalue())
+
+    def test_no_log_line_for_the_default(self, captured_logs: StringIO) -> None:
+        log_mod_db_url(Settings())
+
+        assert self.plain(captured_logs) == ""
+
+    def test_one_warning_with_scheme_and_host_for_a_mirror(self, captured_logs: StringIO) -> None:
+        log_mod_db_url(Settings(mod_db_url="https://Mirror.Example:8443/"))
+
+        out = self.plain(captured_logs)
+        assert out.count("mod_db_url_overridden") == 1
+        assert "warning" in out
+        assert "scheme=https" in out
+        assert "host=mirror.example" in out
+        assert "8443" not in out
+        assert "https://mirror.example" not in out
+
+    def test_the_lifespan_logs_it_once_at_start_up(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        settings = Settings(
+            api_key_admin="lifespan-admin-key",
+            data_dir=tmp_path / "data",
+            mod_db_url="https://mirror.example",
+        )
+        app = create_app(settings, static_dir=tmp_path / "missing")
+        capsys.readouterr()
+
+        with TestClient(app):
+            out = capsys.readouterr().out
+
+        assert out.count("mod_db_url_overridden") == 1
+        assert "mirror.example" in out
+
+    def test_the_lifespan_logs_nothing_for_the_default(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        settings = Settings(api_key_admin="lifespan-admin-key", data_dir=tmp_path / "data")
+        app = create_app(settings, static_dir=tmp_path / "missing")
+        capsys.readouterr()
+
+        with TestClient(app):
+            out = capsys.readouterr().out
+
+        assert "api_starting" in out
+        assert "mod_db_url_overridden" not in out

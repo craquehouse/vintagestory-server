@@ -1,0 +1,1240 @@
+{
+ "statuscode": "200",
+ "gameversions": [
+  {
+   "tagid": -281492156858370,
+   "name": "1.4.4-dev.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281492156923906,
+   "name": "1.4.5-dev.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281492156989442,
+   "name": "1.4.6-dev.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281492157054978,
+   "name": "1.4.7-dev.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281492157169663,
+   "name": "1.4.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281492157186051,
+   "name": "1.4.9-dev.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496451563524,
+   "name": "1.5.0-dev.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496451629062,
+   "name": "1.5.1-dev.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496451694598,
+   "name": "1.5.2-dev.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496451874815,
+   "name": "1.5.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496451940351,
+   "name": "1.5.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281496452136959,
+   "name": "1.5.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281500746579967,
+   "name": "1.6.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281500747366399,
+   "name": "1.6.12",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281505042137087,
+   "name": "1.7.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281509336907775,
+   "name": "1.8.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281513632399359,
+   "name": "1.9.14",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281517927694335,
+   "name": "1.10.19",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281522222137343,
+   "name": "1.11.11",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281526517301247,
+   "name": "1.12.14",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281530811351039,
+   "name": "1.13.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281530811416575,
+   "name": "1.13.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281530811482111,
+   "name": "1.13.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281530811547647,
+   "name": "1.13.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281530811613183,
+   "name": "1.13.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106318335,
+   "name": "1.14.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106383871,
+   "name": "1.14.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106449407,
+   "name": "1.14.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106498561,
+   "name": "1.14.3-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106498562,
+   "name": "1.14.3-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106498563,
+   "name": "1.14.3-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106514943,
+   "name": "1.14.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106580479,
+   "name": "1.14.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106646015,
+   "name": "1.14.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106695169,
+   "name": "1.14.6-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106711551,
+   "name": "1.14.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106777087,
+   "name": "1.14.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106826241,
+   "name": "1.14.8-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106842623,
+   "name": "1.14.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106891777,
+   "name": "1.14.9-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106908159,
+   "name": "1.14.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281535106973695,
+   "name": "1.14.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401269249,
+   "name": "1.15.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401269250,
+   "name": "1.15.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401269251,
+   "name": "1.15.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401269252,
+   "name": "1.15.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401285631,
+   "name": "1.15.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401351167,
+   "name": "1.15.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401416703,
+   "name": "1.15.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401465857,
+   "name": "1.15.3-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401482239,
+   "name": "1.15.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401531393,
+   "name": "1.15.4-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401547775,
+   "name": "1.15.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401613311,
+   "name": "1.15.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401662465,
+   "name": "1.15.6-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401662466,
+   "name": "1.15.6-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401662467,
+   "name": "1.15.6-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401678847,
+   "name": "1.15.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401728001,
+   "name": "1.15.7-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401728002,
+   "name": "1.15.7-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401744383,
+   "name": "1.15.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401793537,
+   "name": "1.15.8-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401809919,
+   "name": "1.15.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401875455,
+   "name": "1.15.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281539401940991,
+   "name": "1.15.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696220160,
+   "name": "1.16.0-pre.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236545,
+   "name": "1.16.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236546,
+   "name": "1.16.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236547,
+   "name": "1.16.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236548,
+   "name": "1.16.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236549,
+   "name": "1.16.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236550,
+   "name": "1.16.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236551,
+   "name": "1.16.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696236552,
+   "name": "1.16.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696252927,
+   "name": "1.16.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696302081,
+   "name": "1.16.1-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696302082,
+   "name": "1.16.1-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696302083,
+   "name": "1.16.1-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696318463,
+   "name": "1.16.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696367617,
+   "name": "1.16.2-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696383999,
+   "name": "1.16.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696449535,
+   "name": "1.16.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696498689,
+   "name": "1.16.4-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696498690,
+   "name": "1.16.4-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696498691,
+   "name": "1.16.4-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696515071,
+   "name": "1.16.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696564225,
+   "name": "1.16.5-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281543696580607,
+   "name": "1.16.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991187456,
+   "name": "1.17.0-pre.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203841,
+   "name": "1.17.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203842,
+   "name": "1.17.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203843,
+   "name": "1.17.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203844,
+   "name": "1.17.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203845,
+   "name": "1.17.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203846,
+   "name": "1.17.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203847,
+   "name": "1.17.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991203848,
+   "name": "1.17.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991220223,
+   "name": "1.17.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991285759,
+   "name": "1.17.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991351295,
+   "name": "1.17.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991416831,
+   "name": "1.17.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991482367,
+   "name": "1.17.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991547903,
+   "name": "1.17.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991613439,
+   "name": "1.17.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991678975,
+   "name": "1.17.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991744511,
+   "name": "1.17.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991810047,
+   "name": "1.17.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991875583,
+   "name": "1.17.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547991941119,
+   "name": "1.17.11",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281547992006655,
+   "name": "1.17.12",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286154752,
+   "name": "1.18.0-pre.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171137,
+   "name": "1.18.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171138,
+   "name": "1.18.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171139,
+   "name": "1.18.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171140,
+   "name": "1.18.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171141,
+   "name": "1.18.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171142,
+   "name": "1.18.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171143,
+   "name": "1.18.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286171144,
+   "name": "1.18.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286187519,
+   "name": "1.18.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286253055,
+   "name": "1.18.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286302209,
+   "name": "1.18.2-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286302210,
+   "name": "1.18.2-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286302211,
+   "name": "1.18.2-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286302212,
+   "name": "1.18.2-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286318591,
+   "name": "1.18.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286384127,
+   "name": "1.18.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286449663,
+   "name": "1.18.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286515199,
+   "name": "1.18.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286564353,
+   "name": "1.18.6-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286564354,
+   "name": "1.18.6-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286580735,
+   "name": "1.18.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286646271,
+   "name": "1.18.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286695425,
+   "name": "1.18.8-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286711807,
+   "name": "1.18.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286760961,
+   "name": "1.18.9-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286777343,
+   "name": "1.18.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286842879,
+   "name": "1.18.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286908415,
+   "name": "1.18.11",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552286973951,
+   "name": "1.18.12",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552287039487,
+   "name": "1.18.13",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552287105023,
+   "name": "1.18.14",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281552287170559,
+   "name": "1.18.15",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581122048,
+   "name": "1.19.0-pre.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138433,
+   "name": "1.19.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138434,
+   "name": "1.19.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138435,
+   "name": "1.19.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138436,
+   "name": "1.19.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138437,
+   "name": "1.19.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138438,
+   "name": "1.19.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138439,
+   "name": "1.19.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581138440,
+   "name": "1.19.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581154815,
+   "name": "1.19.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581220351,
+   "name": "1.19.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581285887,
+   "name": "1.19.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581351423,
+   "name": "1.19.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581400577,
+   "name": "1.19.4-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581400578,
+   "name": "1.19.4-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581400579,
+   "name": "1.19.4-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581416959,
+   "name": "1.19.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581466113,
+   "name": "1.19.5-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581466114,
+   "name": "1.19.5-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581466115,
+   "name": "1.19.5-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581482495,
+   "name": "1.19.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581548031,
+   "name": "1.19.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581613567,
+   "name": "1.19.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281556581679103,
+   "name": "1.19.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876089344,
+   "name": "1.20.0-pre.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105729,
+   "name": "1.20.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105730,
+   "name": "1.20.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105731,
+   "name": "1.20.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105732,
+   "name": "1.20.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105733,
+   "name": "1.20.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105734,
+   "name": "1.20.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105735,
+   "name": "1.20.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105736,
+   "name": "1.20.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876105737,
+   "name": "1.20.0-rc.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876122111,
+   "name": "1.20.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876187647,
+   "name": "1.20.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876253183,
+   "name": "1.20.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876318719,
+   "name": "1.20.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876367873,
+   "name": "1.20.4-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876367874,
+   "name": "1.20.4-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876367875,
+   "name": "1.20.4-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876367876,
+   "name": "1.20.4-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876384255,
+   "name": "1.20.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876433409,
+   "name": "1.20.5-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876433410,
+   "name": "1.20.5-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876433411,
+   "name": "1.20.5-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876449791,
+   "name": "1.20.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876515327,
+   "name": "1.20.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876580863,
+   "name": "1.20.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876630017,
+   "name": "1.20.8-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876630018,
+   "name": "1.20.8-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876646399,
+   "name": "1.20.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876711935,
+   "name": "1.20.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876777471,
+   "name": "1.20.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876826625,
+   "name": "1.20.11-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876843007,
+   "name": "1.20.11",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281560876908543,
+   "name": "1.20.12",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171056641,
+   "name": "1.21.0-pre.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171056642,
+   "name": "1.21.0-pre.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171056643,
+   "name": "1.21.0-pre.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073025,
+   "name": "1.21.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073026,
+   "name": "1.21.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073027,
+   "name": "1.21.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073028,
+   "name": "1.21.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073029,
+   "name": "1.21.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073030,
+   "name": "1.21.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171073031,
+   "name": "1.21.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171089407,
+   "name": "1.21.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171138561,
+   "name": "1.21.1-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171138562,
+   "name": "1.21.1-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171154943,
+   "name": "1.21.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171204097,
+   "name": "1.21.2-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171204098,
+   "name": "1.21.2-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171204099,
+   "name": "1.21.2-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171220479,
+   "name": "1.21.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171286015,
+   "name": "1.21.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171351551,
+   "name": "1.21.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171417087,
+   "name": "1.21.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171466241,
+   "name": "1.21.6-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171482623,
+   "name": "1.21.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281565171548159,
+   "name": "1.21.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466023937,
+   "name": "1.22.0-pre.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466023938,
+   "name": "1.22.0-pre.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466023939,
+   "name": "1.22.0-pre.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466023940,
+   "name": "1.22.0-pre.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466023941,
+   "name": "1.22.0-pre.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040321,
+   "name": "1.22.0-rc.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040322,
+   "name": "1.22.0-rc.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040323,
+   "name": "1.22.0-rc.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040324,
+   "name": "1.22.0-rc.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040325,
+   "name": "1.22.0-rc.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040326,
+   "name": "1.22.0-rc.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040327,
+   "name": "1.22.0-rc.7",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040328,
+   "name": "1.22.0-rc.8",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040329,
+   "name": "1.22.0-rc.9",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466040330,
+   "name": "1.22.0-rc.10",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466056703,
+   "name": "1.22.0",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466122239,
+   "name": "1.22.1",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466187775,
+   "name": "1.22.2",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466253311,
+   "name": "1.22.3",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466318847,
+   "name": "1.22.4",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466384383,
+   "name": "1.22.5",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466449919,
+   "name": "1.22.6",
+   "color": "#CCCCCC"
+  },
+  {
+   "tagid": -281569466515455,
+   "name": "1.22.7",
+   "color": "#CCCCCC"
+  }
+ ]
+}

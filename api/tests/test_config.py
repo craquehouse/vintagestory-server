@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from vintagestory_api.config import (
+    DEFAULT_MOD_DB_URL,
     Settings,
     configure_logging,
     get_current_debug_setting,
@@ -460,6 +461,168 @@ class TestCspMode:
             Settings()
 
         assert self.MESSAGE in str(excinfo.value)
+
+
+class TestModDbUrl:
+    """VS_MOD_DB_URL: the mod database's base address (Epic 20 ADR-9)."""
+
+    BAD_URL = (
+        "VS_MOD_DB_URL must be an absolute https URL with a host, "
+        "for example https://mods.vintagestory.at."
+    )
+    CREDENTIALS = "VS_MOD_DB_URL must not contain a user name or password."
+    PATH = (
+        "VS_MOD_DB_URL must not contain a path, a query or a fragment; "
+        "give the site's base address only."
+    )
+    PLAIN_HTTP = (
+        "VS_MOD_DB_URL uses plain HTTP, which is for testing and needs VS_DEBUG=true. "
+        "Use an https address."
+    )
+
+    def test_default_when_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("VS_MOD_DB_URL", raising=False)
+
+        assert Settings().mod_db_url == "https://mods.vintagestory.at"
+        assert DEFAULT_MOD_DB_URL == "https://mods.vintagestory.at"
+
+    @pytest.mark.parametrize("value", ["", "   ", "\t"])
+    def test_blank_value_means_the_default(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", value)
+
+        assert Settings().mod_db_url == DEFAULT_MOD_DB_URL
+
+    def test_default_with_a_trailing_slash_is_the_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "https://mods.vintagestory.at/")
+
+        assert Settings().mod_db_url == DEFAULT_MOD_DB_URL
+
+    def test_scheme_and_host_are_lowercased_and_the_port_kept(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "HTTPS://Mirror.Example:8443/")
+
+        assert Settings().mod_db_url == "https://mirror.example:8443"
+
+    def test_spaces_around_the_value_are_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "  https://mirror.example  ")
+
+        assert Settings().mod_db_url == "https://mirror.example"
+
+    def test_ipv6_host_keeps_its_brackets(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "https://[::1]:8443")
+
+        assert Settings().mod_db_url == "https://[::1]:8443"
+
+    def test_plain_http_is_accepted_with_debug(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_DEBUG", "true")
+        monkeypatch.setenv("VS_MOD_DB_URL", "http://replay:8099")
+
+        assert Settings().mod_db_url == "http://replay:8099"
+
+    def test_plain_http_is_refused_with_debug_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "http://replay:8099")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings(debug=False)
+
+        assert self.PLAIN_HTTP in str(excinfo.value)
+
+    def test_plain_http_is_refused_with_debug_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("VS_DEBUG", raising=False)
+        monkeypatch.setenv("VS_MOD_DB_URL", "http://replay:8099")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert self.PLAIN_HTTP in str(excinfo.value)
+        assert "replay" not in str(excinfo.value)
+
+    def test_plain_http_is_refused_when_vs_debug_does_not_parse(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VS_DEBUG", "maybe")
+        monkeypatch.setenv("VS_MOD_DB_URL", "http://replay:8099")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert self.PLAIN_HTTP in str(excinfo.value)
+
+    @pytest.mark.parametrize(
+        ("value", "message"),
+        [
+            ("mods.example.com", BAD_URL),
+            ("//host", BAD_URL),
+            ("ftp://host", BAD_URL),
+            ("https://", BAD_URL),
+            ("https:/host", BAD_URL),
+            ("https://u:p@host", CREDENTIALS),
+            ("https://u@host", CREDENTIALS),
+            ("https://@host", CREDENTIALS),
+            ("https://host/api", PATH),
+            ("https://host//", PATH),
+            ("https://host?x=1", PATH),
+            ("https://host?", PATH),
+            ("https://host#f", PATH),
+            ("https://host#", PATH),
+            ("https://host:abc", BAD_URL),
+            ("https://host:99999", BAD_URL),
+            ("https://host:0", BAD_URL),
+            ("https://host:", BAD_URL),
+            ("https://ho st", BAD_URL),
+            ("https://exa\tmple.com", BAD_URL),
+            ("https://exa\x7fmple.com", BAD_URL),
+        ],
+    )
+    def test_refused_values_name_the_setting_and_the_problem(
+        self, monkeypatch: pytest.MonkeyPatch, value: str, message: str
+    ) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", value)
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        text = str(excinfo.value)
+        assert message in text
+        assert "mod_db_url" in text
+
+    def test_error_does_not_print_the_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_MOD_DB_URL", "https://user:PASSWORD@host")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        text = str(excinfo.value)
+        assert self.CREDENTIALS in text
+        assert "PASSWORD" not in text
+        assert "user:" not in text
+        assert "input_value" not in text
+
+    def test_error_does_not_print_other_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_API_KEY_ADMIN", "secret-admin-key-for-the-test")
+        monkeypatch.setenv("VS_MOD_DB_URL", "https://host/api")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        text = str(excinfo.value)
+        assert "secret-admin-key-for-the-test" not in text
+        assert "https://host/api" not in text
+
+    def test_other_settings_errors_do_not_print_their_value(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VS_CSP_MODE", "secret-looking-value")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert "secret-looking-value" not in str(excinfo.value)
 
 
 class TestConfigureLoggingContextVars:
