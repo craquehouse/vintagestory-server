@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+import { queryKeys } from '@/api/query-keys';
 import { FileManagerPanel } from './FileManagerPanel';
 
 // Create a fresh QueryClient for each test
@@ -1866,6 +1867,105 @@ describe('FileManagerPanel', () => {
         expect(screen.getByTestId('file-manager-error')).toBeInTheDocument();
       });
       expect(screen.queryByTestId('path-breadcrumb')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Story 19.1: note for roles other than Admin', () => {
+    const NOTE = 'Some folders are only shown to Admin keys.';
+
+    /** fetch that answers /auth/me with `authMe` and the listings with ModConfig and files. */
+    function roleFetch(authMe: () => Promise<unknown>) {
+      return vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/auth/me')) {
+          return authMe();
+        }
+        if (url.includes('/config/directories')) {
+          return {
+            ok: true,
+            json: () => Promise.resolve({ status: 'ok', data: { directories: ['ModConfig'] } }),
+          };
+        }
+        return { ok: true, json: () => Promise.resolve(mockFilesResponse) };
+      });
+    }
+
+    function roleResponse(role: string) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ status: 'ok', data: { role } }),
+      });
+    }
+
+    it('shows the note to a Monitor key and lists only what the API lists', async () => {
+      globalThis.fetch = roleFetch(() => roleResponse('monitor'));
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      const note = await screen.findByTestId('file-manager-admin-note');
+      expect(note).toHaveTextContent(NOTE);
+      expect(note.textContent).toBe(NOTE);
+      expect(screen.getByTestId('file-manager-panel')).toContainElement(note);
+
+      const list = screen.getByTestId('file-list');
+      await waitFor(() => {
+        expect(within(list).getByTestId('file-item-ModConfig')).toBeInTheDocument();
+      });
+      const names = within(list)
+        .getAllByTestId(/^file-item-/)
+        .map((item) => item.getAttribute('data-testid'));
+      expect(names).toEqual([
+        'file-item-ModConfig',
+        'file-item-serverconfig.json',
+        'file-item-worldconfig.json',
+        'file-item-clientsettings.json',
+      ]);
+    });
+
+    it('shows no note to the Admin key', async () => {
+      const fetchMock = roleFetch(() => roleResponse('admin'));
+      globalThis.fetch = fetchMock;
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-ModConfig')).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(
+          fetchMock.mock.calls.some(([url]) => String(url).includes('/auth/me'))
+        ).toBe(true);
+      });
+      expect(screen.queryByTestId('file-manager-admin-note')).not.toBeInTheDocument();
+    });
+
+    it('shows no note while the role is loading', async () => {
+      globalThis.fetch = roleFetch(() => new Promise(() => {}));
+      render(<FileManagerPanel />, { wrapper: createWrapper(createTestQueryClient()) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-ModConfig')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('file-manager-admin-note')).not.toBeInTheDocument();
+    });
+
+    it('shows no note when the role could not be loaded', async () => {
+      const queryClient = createTestQueryClient();
+      globalThis.fetch = roleFetch(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () =>
+            Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'Server error' } }),
+        })
+      );
+      render(<FileManagerPanel />, { wrapper: createWrapper(queryClient) });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('file-item-ModConfig')).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(queryClient.getQueryState(queryKeys.auth.me)?.status).toBe('error');
+      });
+      expect(screen.queryByTestId('file-manager-admin-note')).not.toBeInTheDocument();
     });
   });
 });

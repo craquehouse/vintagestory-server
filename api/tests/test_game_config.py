@@ -9,6 +9,7 @@ Tests are organized by task/AC:
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 from pathlib import Path
@@ -31,6 +32,7 @@ from vintagestory_api.services.game_config import (
     SettingValueInvalidError,
     has_secret_value,
     is_secret_key,
+    is_secret_value,
     redact_secrets,
 )
 
@@ -259,10 +261,70 @@ class TestSecretHelpers:
         """A secret setting's key is recognized in any letter case."""
         assert is_secret_key(key) is True
 
-    @pytest.mark.parametrize("key", ["ServerName", "Passwords", "Pass", "", "ServerIdentifier"])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            # One key per fragment (Epic 19 ADR-2 decision 2)
+            "MyPassword",
+            "db_passwd",
+            "clientSecret",
+            "bot_token",
+            "ApiKey",
+            "Private.Key",
+            "AWS Access Key",
+            "credentials",
+            "WebhookUrl",
+            "Authorization",
+            # Unmanaged secret keys of serverconfig.json
+            "StartupCommands",
+            "startup_commands",
+            # Separators and letter case are ignored
+            "api_key",
+            "api-key",
+            "api.key",
+            "API Key",
+            "Passwords",
+        ],
+    )
+    def test_secret_key_by_name(self, key: str) -> None:
+        """Story 19.1 AC 6: secret settings, unmanaged secret keys and secret fragments."""
+        assert is_secret_key(key) is True
+
+    @pytest.mark.parametrize(
+        "key",
+        ["ServerName", "Pass", "", "ServerIdentifier", "Seed", "WorldSeed", "Key1", "Port"],
+    )
     def test_other_keys_are_not_secret(self, key: str) -> None:
-        """Only a secret setting's key is a secret key."""
+        """Story 19.1 AC 6: other key names are not secret keys."""
         assert is_secret_key(key) is False
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "https://user:pass@host/x",
+            "https://user@host/",
+            "https://discord.com/api/webhooks/1/abc",
+            "https://DiscordApp.com/api/webhooks/1/abc",
+        ],
+    )
+    def test_secret_values(self, value: str) -> None:
+        """Story 19.1 AC 7: URLs with user info and Discord webhook URLs are secrets."""
+        assert is_secret_value(value) is True
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "https://example.com/api/webhooks/1",
+            "https://discord.com/channels/1",
+            "not a url",
+            "",
+            "http://[",
+            "C:\\path",
+        ],
+    )
+    def test_other_values_are_not_secret(self, value: str) -> None:
+        """Story 19.1 AC 7: other URLs and strings are not secrets."""
+        assert is_secret_value(value) is False
 
     @pytest.mark.parametrize(
         ("value", "expected"),
@@ -299,14 +361,65 @@ class TestSecretHelpers:
         """A secret value that is not a string is redacted too."""
         assert redact_secrets({"Password": 123}) == {"Password": REDACTED}
 
-    def test_nested_secret_is_unchanged(self) -> None:
-        """Only top-level keys are redacted (documented limit)."""
+    def test_nested_secret_is_redacted(self) -> None:
+        """Story 19.1 AC 6: secret keys are redacted at every depth."""
         content = {"Other": {"Password": "nested"}}
+        assert redact_secrets(content) == {"Other": {"Password": REDACTED}}
+
+    def test_secret_keys_in_a_list_of_objects(self) -> None:
+        """Story 19.1 AC 6: objects inside arrays are redacted too."""
+        assert redact_secrets([{"Token": "t"}, {"ApiKey": "k"}]) == [
+            {"Token": REDACTED},
+            {"ApiKey": REDACTED},
+        ]
+
+    @pytest.mark.parametrize("value", [{"a": "b"}, ["a", "b"], 123, True])
+    def test_whole_value_of_a_secret_key_is_redacted(self, value: object) -> None:
+        """Story 19.1 AC 6: a secret key's value is replaced whatever its type."""
+        assert redact_secrets({"Mod": {"bot_token": value}}) == {"Mod": {"bot_token": REDACTED}}
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_unset_secret_at_depth_is_unchanged(self, value: object) -> None:
+        """Story 19.1 AC 6: null and "" under a secret key stay at any depth."""
+        content = {"Mod": [{"Password": value}]}
         assert redact_secrets(content) == content
+
+    def test_secret_url_at_depth_in_an_array(self) -> None:
+        """Story 19.1 AC 7: a secret URL is redacted under any key name, at any depth."""
+        content = {"A": {"B": ["https://user:pass@host/", "https://example.com/"]}}
+        assert redact_secrets(content) == {"A": {"B": [REDACTED, "https://example.com/"]}}
+
+    def test_startup_commands_are_redacted(self) -> None:
+        """Story 19.1 AC 7: StartupCommands is free text and a secret."""
+        assert redact_secrets({"StartupCommands": "/op x"}) == {"StartupCommands": REDACTED}
+
+    def test_other_keys_at_depth_are_unchanged(self) -> None:
+        """Story 19.1 AC 6: Seed, WorldSeed and ServerName are unchanged at any depth."""
+        content = {"Seed": "123", "World": {"WorldSeed": 4, "ServerName": "x", "Key1": "k"}}
+        assert redact_secrets(content) == content
+
+    def test_does_not_change_nested_argument(self) -> None:
+        """Story 19.1: the parsed content is not modified in place, at any depth."""
+        content: object = {"A": [{"Password": SECRET, "B": {"Token": SECRET}}]}
+        before = copy.deepcopy(content)
+        redact_secrets(content)
+        assert content == before
+
+    def test_fails_closed_on_recursion_limit(self) -> None:
+        """Story 19.1: content too deep to walk is redacted as a whole."""
+        content: list[object] = []
+        inner = content
+        for _ in range(5000):
+            child: list[object] = []
+            inner.append(child)
+            inner = child
+        inner.append(SECRET)
+
+        assert redact_secrets(content) == REDACTED
 
     @pytest.mark.parametrize("content", [[1, 2], "text", 42, None, True])
     def test_arrays_and_scalars_are_unchanged(self, content: object) -> None:
-        """Only a JSON object is changed."""
+        """Arrays and scalars that hold no secret are unchanged."""
         assert redact_secrets(content) == content
 
     def test_does_not_change_its_argument(self) -> None:

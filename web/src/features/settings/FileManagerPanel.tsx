@@ -7,6 +7,7 @@
  * Story 6.6: File Manager UI - AC: 1, 2, 3, 4, 5
  * Story 9.7: Dynamic File Browser - Directory navigation
  * Story 16.7: File Browser Breadcrumbs - path segments replace the Back button
+ * Story 19.1: a note for roles other than Admin, which see fewer folders (FR233)
  */
 
 import { useState, useMemo } from 'react';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { FileList, type FileListItem } from '@/components/FileList';
 import { FileViewer } from '@/components/FileViewer';
 import { PathBreadcrumb } from '@/components/PathBreadcrumb';
+import { useAuthMe } from '@/api/hooks/use-auth-me';
 import {
   useConfigFiles,
   useConfigFileContent,
@@ -50,6 +52,12 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
   const [wordWrap, setWordWrap] = useState(false);
   // Story 9.7: Current directory path (null = root)
   const [currentDirectory, setCurrentDirectory] = useState<string | null>(null);
+
+  // Story 19.1 (FR233): roles other than Admin are shown fewer folders by the API. Hidden
+  // while the role is loading or could not be loaded (role undefined).
+  const { data: auth } = useAuthMe();
+  const role = auth?.data?.role;
+  const showAdminNote = role !== undefined && role !== 'admin';
 
   // Fetch directories for the current path (Story 9.7 - nested directory support)
   const { data: directoriesData, isLoading: isLoadingDirectories } =
@@ -154,6 +162,15 @@ export function FileManagerPanel({ className }: FileManagerPanelProps) {
       <div className="min-w-0 border-b px-3 py-2" data-testid="file-manager-breadcrumb-bar">
         {breadcrumb}
       </div>
+
+      {showAdminNote && (
+        <p
+          data-testid="file-manager-admin-note"
+          className="border-b px-3 py-1.5 text-xs text-muted-foreground"
+        >
+          Some folders are only shown to Admin keys.
+        </p>
+      )}
 
       <div className="flex min-h-0 flex-1">
         {/* File List - Left Side */}

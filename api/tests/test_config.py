@@ -175,6 +175,25 @@ class TestWebApiKey:
         assert settings.web_api_key_has_a_role() is has_role
 
 
+class TestRemovedSettings:
+    """Story 19.1 (FR209, Epic 19 ADR-4): VS_GAME_VERSION is no longer a setting.
+
+    ADR-4 decision 2: the removal is not breaking. Nothing read the setting (mod
+    compatibility follows the installed server version, VSS-tpe), and Settings reads
+    declared fields only, so a deployment that still sets VS_GAME_VERSION starts as
+    before and the variable is ignored.
+    """
+
+    def test_vs_game_version_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A set VS_GAME_VERSION neither fails Settings nor becomes a field."""
+        monkeypatch.setenv("VS_GAME_VERSION", "1.21.6")
+
+        settings = Settings(api_key_admin="admin-key")
+
+        assert "game_version" not in Settings.model_fields
+        assert not hasattr(settings, "game_version")
+
+
 class TestDirectoryCreationLogging:
     """Tests for directory creation logging (Story 9.2 AC#2, AC#3)."""
 

@@ -222,7 +222,6 @@ services:
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
-      - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=${VS_DEBUG:-false}
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
       - UV_LINK_MODE=copy
@@ -256,7 +255,6 @@ services:
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-dev-admin-key}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
-      - VS_GAME_VERSION=${VS_GAME_VERSION:-stable}
       - VS_DEBUG=true
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
       - UV_LINK_MODE=copy
@@ -467,5 +465,4 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 | -------------------- | -------- | ------------------------------ |
 | `VS_API_KEY_ADMIN`   | Yes      | Admin API key                  |
 | `VS_API_KEY_MONITOR` | No       | Read-only API key              |
-| `VS_GAME_VERSION`    | No       | Game version (default: stable) |
 | `VS_DEBUG`           | No       | Enable debug logging           |

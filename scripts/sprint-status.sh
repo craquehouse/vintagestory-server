@@ -16,6 +16,8 @@
 #   list [status]                - List all entries, optionally filtered by status
 #   retro-set <key> <status>     - Set status of a retro action item
 #   retro-add <key>              - Add a new retro action item (status: pending)
+#   remove <key>                 - Remove a story, retro item, or an epic with no stories
+#                                  (an epic's retrospective key goes with it)
 #
 # Valid statuses for stories:
 #   backlog, ready-for-dev, in-progress, review, done
@@ -226,6 +228,39 @@ cmd_retro_add() {
     echo "Added retro item: $key -> pending"
 }
 
+cmd_remove() {
+    local key="$1"
+
+    if [[ "$(yq ".retro_action_items.\"$key\"" "$SPRINT_FILE")" != "null" ]]; then
+        yq -i "del(.retro_action_items.\"$key\")" "$SPRINT_FILE"
+        echo "Removed: $key"
+        return
+    fi
+
+    if [[ "$(yq ".development_status.\"$key\"" "$SPRINT_FILE")" == "null" ]]; then
+        echo "Error: Key '$key' not found in sprint-status.yaml" >&2
+        exit 1
+    fi
+
+    if [[ "$key" == epic-* && "$key" != *-retrospective ]]; then
+        # An epic with stories left would orphan them; remove the stories first
+        local epic_num="${key#epic-}"
+        local stories
+        stories=$(yq ".development_status | keys | .[] | select(test(\"^${epic_num}-\"))" "$SPRINT_FILE")
+        if [[ -n "$stories" ]]; then
+            echo "Error: Epic '$key' still has stories; remove them first:" >&2
+            echo "$stories" >&2
+            exit 1
+        fi
+        yq -i "del(.development_status.\"$key\") | del(.development_status.\"$key-retrospective\")" "$SPRINT_FILE"
+        echo "Removed: $key and $key-retrospective"
+        return
+    fi
+
+    yq -i "del(.development_status.\"$key\")" "$SPRINT_FILE"
+    echo "Removed: $key"
+}
+
 # Main dispatch
 if [[ $# -lt 1 ]]; then
     usage
@@ -261,6 +296,10 @@ case "$command" in
     retro-add)
         [[ $# -lt 1 ]] && { echo "Error: retro-add requires key"; usage; }
         cmd_retro_add "$1"
+        ;;
+    remove)
+        [[ $# -lt 1 ]] && { echo "Error: remove requires a key"; usage; }
+        cmd_remove "$1"
         ;;
     help|--help|-h)
         usage

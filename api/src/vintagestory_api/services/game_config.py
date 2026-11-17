@@ -15,6 +15,7 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeGuard
+from urllib.parse import urlsplit
 
 import structlog
 
@@ -217,7 +218,37 @@ SECRET_SETTING_KEYS: frozenset[str] = frozenset(
 )
 """Keys of serverconfig.json whose values only the Admin role receives (Story 17.5)."""
 
-_SECRET_KEYS_FOLDED = frozenset(key.casefold() for key in SECRET_SETTING_KEYS)
+UNMANAGED_SECRET_KEYS: frozenset[str] = frozenset({"StartupCommands"})
+"""serverconfig.json keys that are not managed settings and hold secrets (Epic 19 ADR-2)."""
+
+SECRET_KEY_FRAGMENTS: tuple[str, ...] = (
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "apikey",
+    "privatekey",
+    "accesskey",
+    "credential",
+    "webhook",
+    "authorization",
+)
+"""A key that contains one of these, after normalising, is a secret (Epic 19 ADR-2)."""
+
+_DISCORD_WEBHOOK_HOSTS = frozenset({"discord.com", "discordapp.com"})
+
+
+def _normalise_key(key: str) -> str:
+    """casefold() and remove "_", "-", "." and spaces."""
+    folded = key.casefold()
+    for separator in ("_", "-", ".", " "):
+        folded = folded.replace(separator, "")
+    return folded
+
+
+_SECRET_KEYS_NORMALISED = frozenset(
+    _normalise_key(key) for key in SECRET_SETTING_KEYS | UNMANAGED_SECRET_KEYS
+)
 
 
 def _is_json_object(value: object) -> TypeGuard[dict[str, Any]]:
@@ -225,9 +256,44 @@ def _is_json_object(value: object) -> TypeGuard[dict[str, Any]]:
     return isinstance(value, dict)
 
 
+def _is_json_array(value: object) -> TypeGuard[list[Any]]:
+    """Whether parsed JSON is an array."""
+    return isinstance(value, list)
+
+
 def is_secret_key(key: str) -> bool:
-    """Whether a config key names a secret setting, in any letter case."""
-    return key.casefold() in _SECRET_KEYS_FOLDED
+    """Whether a config key names a secret (Epic 19 ADR-2).
+
+    A secret setting (Password), an unmanaged secret key (StartupCommands), or a key
+    containing one of SECRET_KEY_FRAGMENTS, all compared after _normalise_key (letter
+    case, "_", "-", "." and spaces ignored).
+    """
+    normalised = _normalise_key(key)
+    if normalised in _SECRET_KEYS_NORMALISED:
+        return True
+    return any(fragment in normalised for fragment in SECRET_KEY_FRAGMENTS)
+
+
+def is_secret_value(value: str) -> bool:
+    """Whether a string is a URL with user info or a Discord webhook URL (Epic 19 ADR-2 decision 4).
+
+    User info counts with or without a password. A Discord webhook URL is one on
+    discord.com or discordapp.com whose path starts with /api/webhooks/.
+    """
+    try:
+        parts = urlsplit(value)
+        if not (parts.scheme and parts.netloc):
+            return False
+        if parts.username is not None:
+            return True
+        hostname = parts.hostname
+    except ValueError:
+        return False
+    return (
+        hostname is not None
+        and hostname.lower() in _DISCORD_WEBHOOK_HOSTS
+        and parts.path.startswith("/api/webhooks/")
+    )
 
 
 def has_secret_value(value: object) -> bool:
@@ -235,18 +301,33 @@ def has_secret_value(value: object) -> bool:
     return value is not None and value != ""
 
 
-def redact_secrets(content: object) -> object:
-    """Parsed JSON with the value of every top-level secret key replaced by REDACTED.
+def _redact(value: object) -> object:
+    """The walk behind redact_secrets: a new value, the argument unchanged."""
+    if _is_json_object(value):
+        return {
+            key: REDACTED if is_secret_key(key) and has_secret_value(item) else _redact(item)
+            for key, item in value.items()
+        }
+    if _is_json_array(value):
+        return [_redact(item) for item in value]
+    if isinstance(value, str) and is_secret_value(value):
+        return REDACTED
+    return value
 
-    Only an object is changed, and only its own keys; null and "" stay, since they
-    hold no secret.
+
+def redact_secrets(content: object) -> object:
+    """Parsed JSON with every secret replaced by REDACTED, at every depth (Epic 19 ADR-2).
+
+    A secret key's (is_secret_key) whole value, of any type, is replaced unless it is
+    null or "" (has_secret_value); any other string is replaced when is_secret_value
+    (a URL with user info or a Discord webhook URL), under any key name. Fails closed:
+    if the walk hits the recursion limit the whole content is REDACTED. The argument
+    is not changed.
     """
-    if not _is_json_object(content):
-        return content
-    return {
-        key: REDACTED if is_secret_key(key) and has_secret_value(value) else value
-        for key, value in content.items()
-    }
+    try:
+        return _redact(content)
+    except RecursionError:
+        return REDACTED
 
 
 class SettingInfo:

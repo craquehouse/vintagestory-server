@@ -35,6 +35,10 @@ class ErrorCode:
     CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
     CONFIG_FILE_NOT_FOUND = "CONFIG_FILE_NOT_FOUND"
     CONFIG_PATH_INVALID = "CONFIG_PATH_INVALID"
+    # Story 19.1 (Epic 19 ADR-1): the config file viewer serves regular .json files
+    # that are UTF-8 text, up to 2 MiB
+    CONFIG_FILE_NOT_SUPPORTED = "CONFIG_FILE_NOT_SUPPORTED"
+    CONFIG_FILE_TOO_LARGE = "CONFIG_FILE_TOO_LARGE"
 
     # Game Settings (Epic 6) - serverconfig.json settings managed via console commands
     # These apply to VintageStory game server configuration (Port, ServerName, etc.)

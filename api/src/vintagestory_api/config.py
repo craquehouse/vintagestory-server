@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     api_key_monitor: str | None = None
     # VS_API_KEY: the key the web UI uses, served at runtime by /config.js (Epic 15 ADR-5)
     api_key: str | None = None
-    game_version: str = "stable"
     data_dir: Path = Path("/data")
     cors_origins: str = "http://localhost:5173"  # Comma-separated list of allowed origins
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect

@@ -57,6 +57,10 @@ The `scripts/sprint-status.sh` script provides the same functionality:
 # Manage retrospective action items
 ./scripts/sprint-status.sh retro-set A1-example done
 ./scripts/sprint-status.sh retro-add A5-new-action-item
+
+# Remove a story or retro item added by mistake (or an epic with no stories left;
+# its retrospective key goes with it)
+./scripts/sprint-status.sh remove 10-9-new-feature
 ```
 
 ## Valid Status Values

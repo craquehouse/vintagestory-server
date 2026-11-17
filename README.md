@@ -36,6 +36,8 @@ Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with
 
 The web UI receives its API key from the server at runtime (`/config.js`): `VS_API_KEY` if set, otherwise the Admin key. **Anyone who can load the web UI receives that key.** Keep port 8080 on a trusted network or put it behind a reverse proxy with authentication, and terminate TLS there. Setting `VS_API_KEY` to the Monitor key gives a read-only web UI. The image itself contains no key.
 
+**What a Monitor key can read.** In the file manager, a Monitor key sees the configuration files in the root of the server data directory and under `ModConfig` only; saves, backups, logs and player data are for the Admin key. Values under key names that look like secrets (password, token, secret, API key, webhook and similar), `StartupCommands`, URLs that contain a user name or password, and Discord webhook URLs are shown as `[redacted]`, and a file that is not valid JSON is not shown at all. A secret stored under another key name (for example `Key1`) is not recognised, so give Monitor keys only to people you would show your mod configuration to.
+
 ### Upgrading
 
 1. Read the release notes for every version between yours and the new one.

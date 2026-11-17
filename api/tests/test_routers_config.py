@@ -58,7 +58,11 @@ from vintagestory_api.routers.config import (
 from vintagestory_api.routers.config import router as config_router
 from vintagestory_api.routers.jobs import get_scheduler
 from vintagestory_api.services.api_settings import ApiSettingsService
-from vintagestory_api.services.config_files import ConfigFilesService
+from vintagestory_api.services.config_files import (
+    CONFIG_FILE_MAX_BYTES,
+    CONFIG_FILE_MAX_DEPTH,
+    ConfigFilesService,
+)
 from vintagestory_api.services.game_config import GameConfigService
 from vintagestory_api.services.pending_restart import PendingRestartState
 from vintagestory_api.services.scheduler import SchedulerService
@@ -1429,7 +1433,7 @@ class TestReadConfigFileSecrets:
 
     @pytest.mark.parametrize(
         "path",
-        ["ModConfig/copy.json", "serverconfig.backup.json", "serverconfig.tmp"],
+        ["ModConfig/copy.json", "serverconfig.backup.json"],
     )
     def test_copies_are_redacted(
         self,
@@ -1471,15 +1475,59 @@ class TestReadConfigFileSecrets:
             "PASSWORD": "c3-z",
         }
 
-    def test_nested_password_is_unchanged(
+    def test_secrets_are_redacted_at_every_depth(
         self, config_files_client: TestClient, config_file: Path
     ) -> None:
-        """Only top-level keys are redacted (pins the documented limit)."""
-        _write_config(config_file.parent / "nested.json", {"Other": {"Password": "nested"}})
+        """Story 19.1 AC 6, 7, 8: secret keys and secret URLs, at any depth, for Monitor only."""
+        mod: dict[str, object] = {
+            "Other": {"Password": SECRET + "-nested"},
+            "Accounts": [{"Token": SECRET + "-token"}, {"ApiKey": SECRET + "-apikey"}],
+            "bot_token": SECRET + "-bot",
+            "WebhookUrl": SECRET + "-webhook",
+            "Endpoint": f"https://user:{SECRET}@host/",
+            "Notify": {"Url": f"https://discord.com/api/webhooks/1/{SECRET}-discord"},
+            "Seed": "12345",
+            "Unset": {"Password": None},
+            "Empty": {"Password": ""},
+        }
+        path = config_file.parent / "ModConfig" / "mod.json"
+        path.parent.mkdir()
+        _write_config(path, mod)
 
-        for key in (TEST_MONITOR_KEY, TEST_ADMIN_KEY):
-            response = self._get(config_files_client, "nested.json", key)
-            assert response.json()["data"]["content"] == {"Other": {"Password": "nested"}}
+        monitor = self._get(config_files_client, "ModConfig/mod.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "ModConfig/mod.json", TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"] == {
+            "Other": {"Password": "[redacted]"},
+            "Accounts": [{"Token": "[redacted]"}, {"ApiKey": "[redacted]"}],
+            "bot_token": "[redacted]",
+            "WebhookUrl": "[redacted]",
+            "Endpoint": "[redacted]",
+            "Notify": {"Url": "[redacted]"},
+            "Seed": "12345",
+            "Unset": {"Password": None},
+            "Empty": {"Password": ""},
+        }
+        assert admin.json()["data"]["content"] == mod
+
+    def test_startup_commands_are_redacted(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        sample_config: dict[str, object],
+    ) -> None:
+        """Story 19.1 AC 7, 8: serverconfig.json StartupCommands is for Admin only."""
+        config = {**sample_config, "StartupCommands": f"/op {SECRET}"}
+        _write_config(config_file, config)
+
+        monitor = self._get(config_files_client, "serverconfig.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "serverconfig.json", TEST_ADMIN_KEY)
+
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"]["StartupCommands"] == "[redacted]"
+        assert admin.json()["data"]["content"] == config
 
     def test_broken_serverconfig(
         self, config_files_client: TestClient, config_file: Path
@@ -1498,10 +1546,14 @@ class TestReadConfigFileSecrets:
         assert SECRET in admin_content["_raw"]
         assert admin_content["_parse_error"]
 
-    def test_game_log_is_withheld(
+    def test_game_log_is_refused(
         self, config_files_client: TestClient, config_file: Path
     ) -> None:
-        """AC 4: a game log read through the viewer returns no text to Monitor."""
+        """Story 19.1 AC 2, 10: a game log is refused; its text is in neither body.
+
+        Monitor: 403, the Logs directory needs the Admin role (checked before the name).
+        Admin: 400, not a .json file.
+        """
         log = config_file.parent / "Logs" / "server-main.log"
         log.parent.mkdir()
         log.write_text(f"12:00:00 [Event] Handling /serverconfig password {SECRET}\n")
@@ -1510,8 +1562,11 @@ class TestReadConfigFileSecrets:
         admin = self._get(config_files_client, "Logs/server-main.log", TEST_ADMIN_KEY)
 
         assert SECRET not in monitor.text
-        assert monitor.json()["data"]["content"]["_raw"] == "[redacted]"
-        assert SECRET in admin.json()["data"]["content"]["_raw"]
+        assert SECRET not in admin.text
+        assert monitor.status_code == 403
+        assert monitor.json()["detail"]["code"] == ErrorCode.FORBIDDEN
+        assert admin.status_code == 400
+        assert admin.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED
 
     @pytest.mark.parametrize("content", [[1, 2], "text"])
     def test_arrays_and_strings_unchanged(
@@ -1543,6 +1598,295 @@ class TestReadConfigFileSecrets:
         response = self._get(config_files_client, path, key)
 
         assert response.status_code == status
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+BOTH_KEYS = [TEST_ADMIN_KEY, TEST_MONITOR_KEY]
+
+
+class TestConfigFileTypes:
+    """Story 19.1 (FR205, FR206): what the viewer refuses, and how, for both keys."""
+
+    def _get(self, client: TestClient, path: str, key: str):
+        return client.get(f"{FILES_URL}/{path}", headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_unsupported_files_are_400(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 2, 3: other names (existing or not), a directory, a binary file: 400, no-store."""
+        root = config_file.parent
+        (root / "notes.txt").write_text('{"a": 1}')
+        (root / "dir.json").mkdir()
+        (root / "bin.json").write_bytes(bytes(range(256)))
+
+        for path in ("notes.txt", "missing.log", "dir.json", "bin.json"):
+            response = self._get(config_files_client, path, key)
+            assert response.status_code == 400, path
+            assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_NOT_SUPPORTED, path
+            assert response.headers["Cache-Control"] == "no-store", path
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_too_large_is_413(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """AC 4: a file larger than 2 MiB is 413, no-store."""
+        (config_file.parent / "big.json").write_bytes(b" " * (CONFIG_FILE_MAX_BYTES + 1))
+
+        response = self._get(config_files_client, "big.json", key)
+
+        assert response.status_code == 413
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_TOO_LARGE
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_deep_nesting_is_raw_not_500(
+        self, config_files_client: TestClient, config_file: Path, key: str, opening: str
+    ) -> None:
+        """AC 5: 300 levels used to be a plain 500; it is the _raw form now."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * 300 + "1" + closing * 300
+        (config_file.parent / "deep.json").write_text(text)
+
+        response = self._get(config_files_client, "deep.json", key)
+
+        assert response.status_code == 200
+        content = response.json()["data"]["content"]
+        assert content["_raw"] == (text if key == TEST_ADMIN_KEY else "[redacted]")
+        assert content["_parse_error"]
+
+    @pytest.mark.parametrize("opening", ["[", '{"a":'])
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_nesting_at_the_limit_is_served(
+        self, config_files_client: TestClient, config_file: Path, key: str, opening: str
+    ) -> None:
+        """AC 5: content nested CONFIG_FILE_MAX_DEPTH levels still serializes."""
+        closing = "]" if opening == "[" else "}"
+        text = opening * CONFIG_FILE_MAX_DEPTH + "1" + closing * CONFIG_FILE_MAX_DEPTH
+        (config_file.parent / "deep.json").write_text(text)
+
+        response = self._get(config_files_client, "deep.json", key)
+
+        assert response.status_code == 200
+        assert response.json()["data"]["content"] == json.loads(text)
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_read_error_is_500_with_envelope(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        key: str,
+    ) -> None:
+        """ADR-1 decision 8: an OSError while reading is 500 INTERNAL_ERROR, no-store."""
+
+        def denied(self: Path) -> bytes:
+            raise PermissionError(13, "Permission denied")
+
+        monkeypatch.setattr(Path, "read_bytes", denied)
+
+        response = self._get(config_files_client, "serverconfig.json", key)
+
+        assert response.status_code == 500
+        assert response.json() == {
+            "detail": {
+                "code": ErrorCode.INTERNAL_ERROR,
+                "message": "Config file could not be read: serverconfig.json",
+            }
+        }
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+DIRECTORIES_URL = "/api/v1alpha1/config/directories"
+FORBIDDEN_DIRECTORIES = ["Playerdata", "playerdata", "Saves", "Backups", "Logs", "Mods", "Gone"]
+
+
+class TestMonitorDirectories:
+    """Story 19.1 (FR208, Epic 19 ADR-3): Monitor keys see the root and ModConfig only."""
+
+    @pytest.fixture
+    def data(self, config_file: Path) -> Path:
+        root = config_file.parent
+        for name in ("Playerdata", "Saves", "Backups", "Logs", "Mods", ".hidden"):
+            (root / name).mkdir()
+            (root / name / "p.json").write_text('{"p": 1}')
+        nested = root / "ModConfig" / "a" / "b"
+        nested.mkdir(parents=True)
+        (nested / "c.json").write_text('{"c": 1}')
+        return root
+
+    def _get(self, client: TestClient, url: str, key: str):
+        return client.get(url, headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("query", ["", "?directory=.", "?directory=ModConfig/.."])
+    def test_root_listing(self, config_files_client: TestClient, data: Path, query: str) -> None:
+        """AC 9: Monitor sees ModConfig only; Admin sees every directory, hidden ones too."""
+        monitor = self._get(config_files_client, DIRECTORIES_URL + query, TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, DIRECTORIES_URL + query, TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert monitor.json()["data"]["directories"] == ["ModConfig"]
+        assert admin.json()["data"]["directories"] == [
+            ".hidden",
+            "Backups",
+            "Logs",
+            "ModConfig",
+            "Mods",
+            "Playerdata",
+            "Saves",
+        ]
+        for response in (monitor, admin):
+            assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("directory", FORBIDDEN_DIRECTORIES)
+    def test_other_directories_are_403_for_monitor(
+        self, config_files_client: TestClient, data: Path, directory: str
+    ) -> None:
+        """AC 10: listing either way, or reading a file, is 403 for Monitor, no-store."""
+        urls = [
+            f"{DIRECTORIES_URL}?directory={directory}",
+            f"{FILES_URL}?directory={directory}",
+            f"{FILES_URL}/{directory}/p.json",
+        ]
+        for url in urls:
+            response = self._get(config_files_client, url, TEST_MONITOR_KEY)
+            assert response.status_code == 403, url
+            assert response.json() == {
+                "detail": {
+                    "code": ErrorCode.FORBIDDEN,
+                    "message": f"This directory needs the Admin role: {directory}"
+                    + ("/p.json" if url.endswith("/p.json") else ""),
+                }
+            }, url
+            assert response.headers["Cache-Control"] == "no-store", url
+
+    @pytest.mark.parametrize("directory", FORBIDDEN_DIRECTORIES)
+    def test_other_directories_for_admin(
+        self, config_files_client: TestClient, data: Path, directory: str
+    ) -> None:
+        """AC 10: Admin is answered as for any directory."""
+        exists = (data / directory).is_dir()
+        listing = self._get(
+            config_files_client, f"{FILES_URL}?directory={directory}", TEST_ADMIN_KEY
+        )
+        read = self._get(config_files_client, f"{FILES_URL}/{directory}/p.json", TEST_ADMIN_KEY)
+
+        assert listing.status_code == 200
+        assert listing.json()["data"]["files"] == (["p.json"] if exists else [])
+        assert read.status_code == (200 if exists else 404)
+
+    def test_modconfig_reads(
+        self, config_files_client: TestClient, data: Path
+    ) -> None:
+        """AC 11: nested ModConfig files are served; a symlink out of ModConfig is 403."""
+        (data / "ModConfig" / "link.json").symlink_to(data / "Playerdata" / "p.json")
+
+        nested = self._get(
+            config_files_client, f"{FILES_URL}/ModConfig/a/b/c.json", TEST_MONITOR_KEY
+        )
+        link = self._get(config_files_client, f"{FILES_URL}/ModConfig/link.json", TEST_MONITOR_KEY)
+        listing = self._get(
+            config_files_client, f"{FILES_URL}?directory=ModConfig", TEST_MONITOR_KEY
+        )
+        admin_listing = self._get(
+            config_files_client, f"{FILES_URL}?directory=ModConfig", TEST_ADMIN_KEY
+        )
+
+        assert nested.status_code == 200
+        assert nested.json()["data"]["content"] == {"c": 1}
+        assert link.status_code == 403
+        assert link.json()["detail"]["code"] == ErrorCode.FORBIDDEN
+        assert listing.json()["data"]["files"] == []
+        assert admin_listing.json()["data"]["files"] == ["link.json"]
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    @pytest.mark.parametrize(
+        ("url", "status"),
+        [
+            (DIRECTORIES_URL, 200),
+            (FILES_URL, 200),
+            (f"{FILES_URL}/serverconfig.json", 200),
+            (f"{DIRECTORIES_URL}?directory=../x", 400),
+            (f"{FILES_URL}?directory=../x", 400),
+            (f"{FILES_URL}//etc/passwd", 400),
+        ],
+    )
+    def test_no_store_on_every_answer(
+        self, config_files_client: TestClient, data: Path, key: str, url: str, status: int
+    ) -> None:
+        """AC 9: all three routes answer with no-store, for 200 and 400, both keys."""
+        response = self._get(config_files_client, url, key)
+
+        assert response.status_code == status
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+class TestConfigFilesReviewFixes:
+    """Story 19.1 review: inputs that used to give a plain 500 without no-store."""
+
+    def _get(self, client: TestClient, url: str, key: str):
+        return client.get(url, headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    @pytest.mark.parametrize(
+        "url",
+        [
+            f"{FILES_URL}/foo%00.json",
+            f"{FILES_URL}?directory=ModConfig%00",
+            f"{DIRECTORIES_URL}?directory=ModConfig%00",
+        ],
+    )
+    def test_nul_byte_in_a_path_is_400(
+        self, config_files_client: TestClient, config_file: Path, key: str, url: str
+    ) -> None:
+        """M1: a NUL byte in a path is 400 CONFIG_PATH_INVALID with no-store, not a 500."""
+        response = self._get(config_files_client, url, key)
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_PATH_INVALID
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_integer_too_long_to_convert_is_raw(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """M2: an integer past Python's conversion limit is the _raw form, not a 500."""
+        text = '{"n": ' + "1" * 5000 + "}"
+        path = config_file.parent / "ModConfig" / "bigint.json"
+        path.parent.mkdir()
+        path.write_text(text)
+
+        response = self._get(config_files_client, f"{FILES_URL}/ModConfig/bigint.json", key)
+
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+        content = response.json()["data"]["content"]
+        assert content["_raw"] == (text if key == TEST_ADMIN_KEY else "[redacted]")
+        assert content["_parse_error"]
+        assert "1" * 50 not in content["_parse_error"]
+        if key == TEST_MONITOR_KEY:
+            assert "1" * 50 not in response.text
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_file_that_grew_past_the_limit_is_413(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        key: str,
+    ) -> None:
+        """L1: a file that grows past 2 MiB between stat and read is refused, not served."""
+
+        def grown(self: Path) -> bytes:
+            return b" " * (CONFIG_FILE_MAX_BYTES + 1)
+
+        monkeypatch.setattr(Path, "read_bytes", grown)
+
+        response = self._get(config_files_client, f"{FILES_URL}/serverconfig.json", key)
+
+        assert response.status_code == 413
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_TOO_LARGE
         assert response.headers["Cache-Control"] == "no-store"
 
 
