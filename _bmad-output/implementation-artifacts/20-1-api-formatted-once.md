@@ -1,6 +1,6 @@
 # Story 20.1: The API Is Formatted Once and Stays Formatted
 
-Status: review
+Status: done
 
 <!-- Implements FR234-FR236 and Epic 20 ADR-1. Beads: VSS-3asx (TOOLS-006), the formatting half only; the type-check half and closing the bead are Story 20.3. First story of Epic 20 (order 20.1 to 20.7, each stacked on the previous); it merges before any other implementation branch of the epic is cut. Line references were verified at 7f04ea2 (epic-20-planning; its api/, Justfile, scripts/, README.md and .github/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time. Tooling and documentation only: no API behavior, web, Docker or E2E change. No new dependency. -->
 
@@ -295,3 +295,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `CLAUDE.md`
 - `project-context.md`
 - `_bmad-output/implementation-artifacts/20-1-api-formatted-once.md`
+- 2026-11-17: Code review (GLM-5.3-Flash): approved, informational notes only. Status done.
