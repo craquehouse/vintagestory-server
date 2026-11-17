@@ -1,6 +1,6 @@
 # Story 20.7: Reproducible Image Inputs and the Numbering Rule
 
-Status: review
+Status: done
 
 <!-- Implements FR255, FR256, FR257, Epic 20 ADR-10 and ADR-11. Beads: VSS-870 (INFRA-004), VSS-as6 (TOOLS-005), VSS-3q2s (DOCS-002, pulled in, Matt, 2026-11-17). Last story of Epic 20 (order 20.1 to 20.7, each stacked on the previous). Line references were verified at 7f04ea2 (epic-20-planning) and must be re-checked at implementation time: Stories 20.3 to 20.6 edit the Justfile, ci.yml and scripts/, and 20.6 adds VS_MOD_DB_URL, which Task 5 documents. Build, Renovate and documentation changes only: no file under api/src/ or web/src/ changes, no API contract change, no release note. No new dependencies. -->
 
@@ -357,6 +357,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive
 - Task 5, backlog drawdown at the controller's direction (overrides "Not changed"): in the same file, both compose snippets now match `docker-compose.yaml` and `docker-compose.dev.yaml` (`VS_API_KEY`, `VS_API_KEY_ADMIN` default `changeme`, 42420 tcp and udp), and the Dockerfile summary names node 26, bun 1.4.4, the .NET 10 Resolute base, Python 3.14, the digest pins and uv from `.mise.toml`. Docs only; committed with Task 5 (the commit subject names only the table).
 - Task 6: `just check` green: API 3,387 passed, web 3,307 passed in 132 files (0 skipped), Pyright 0 errors 0 warnings, all script tests passed (`test-docker-context.sh` 10/10). No suppression or `cast` in the diff. `just changelog` shows no entry from this story. `git diff 6448965..HEAD -- cliff.toml _bmad/` is empty. Not done here (controller): the PR (6.4), CI `Docker image` and `E2E tests` (6.5), and closing the beads after merge (6.6). No bead was changed.
 
+- CI (controller, 2026-11-17, PR #184), run https://github.com/craquehouse/vintagestory-server/actions/runs/44140309114 on `7f10069`: all six jobs green. `Docker image` built the pinned image for linux/amd64 (1 min 13 s), and `E2E tests` passed both passes (4 min 14 s). This first run built without the shared layer cache for the new digests, so its times are not comparable with 20.5 and 20.6. Bead closes (VSS-870, VSS-as6, VSS-3q2s) are after merge.
+
 ### File List
 
 - `Dockerfile`
@@ -367,7 +369,23 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive
 - `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`
 - `_bmad-output/implementation-artifacts/20-7-reproducible-image-and-conventions.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `6448965..7f10069`
+**Outcome:** Approve
+
+**Summary:** All nine ACs are met with verified evidence. The reviewer re-read the three digests from the registries the same day. All were current for their tags and the right kind: indexes for uv and node, the single amd64 manifest for .NET. It reproduced every negative case of the script test in a scratch tree, and every variant fails closed. It re-ran Renovate's config validator (44.251.0) itself and checked the org preset through `gh api`. It confirmed the numbering history against `sprint-status.yaml` and every environment-table claim against `config.py` and `main.py`. Reviewer ran `just lint`, `just lint-scripts`, `just test-scripts` (`test-docker-context.sh` 10/10) and the validator.
+
+### Action Items
+
+- [x] [Minor] M1 the record said "five" new assertions; there are four (corrected).
+- [x] [Minor] M2 and Info I3: `project-structure-boundaries.md` still said `ci.yaml` and summarised CI as three jobs. Fixed by the controller under the backlog-drawdown rule: the block now names `ci.yml` and its six jobs as they are.
+- [x] Dev follow-up, folded in by the controller under backlog drawdown: the working tuning settings `VS_DATA_DIR` (table), `VS_CONSOLE_HISTORY_LINES`, `VS_DISK_SPACE_WARNING_THRESHOLD_GB` and `VS_MOD_CACHE_MAX_SIZE_MB` are now in the README's Configuration table and `.env.example`. `Settings.log_level` (`VS_LOG_LEVEL`) is NOT documented, because nothing reads it: the log level follows `VS_DEBUG` (`main.py:170`). That is reported to the maintainer as a question (remove the field or make it work).
+- Info, not changed: the script test does not require a tag for node and .NET (Renovate handles digest-only references; tags are kept); hypothetical future Dockerfile shapes (`--platform`, ARG-substituted references) fail closed.
+
 ## Change Log
 
 - 2026-11-17: Story 20.7 created and validated (ready-for-dev).
 - 2026-11-17: Tasks 1-5 implemented, quality gate green; status review.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; M1, M2 and I3 fixed, tuning settings documented. CI green on PR #184. Status done.
