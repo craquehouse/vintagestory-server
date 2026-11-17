@@ -23,6 +23,16 @@
       "description": "Hold the .NET runtime on the major version VintageStory targets. VintagestoryServer.runtimeconfig.json (1.22.x) requests Microsoft.NETCore.App 10.0.0 with the default rollForward (Minor), so a .NET 11 runtime refuses to start it. Raise this when VintageStory's runtimeconfig tfm moves to net11.0; check with: docker run --rm -v \"$PWD/data/server:/s:ro\" mcr.microsoft.com/dotnet/runtime:<tag> dotnet /s/VintagestoryServer.dll --version",
       "matchDepNames": ["mcr.microsoft.com/dotnet/runtime"],
       "allowedVersions": "<11"
+    },
+    {
+      "description": "Move uv in the Dockerfile (ghcr.io/astral-sh/uv) and in .mise.toml (uv) in one pull request, so the image, development and CI use one uv (Epic 20 ADR-10). No release-age hold: GHCR gives no release timestamps, so a hold would keep the image half back for ever or let it open alone; the preset's one-day hold on mise tools exists for mise.lock, which this repository does not have. A uv update is tooling, not a release note: chore, with no breaking mark",
+      "matchDepNames": ["uv", "ghcr.io/astral-sh/uv"],
+      "groupName": "uv",
+      "groupSlug": "uv",
+      "minimumReleaseAge": null,
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "uv",
+      "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
     }
   ]
 }

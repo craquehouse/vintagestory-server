@@ -83,6 +83,10 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 | `VS_CSP_MODE` | No | How the web UI's Content-Security-Policy is sent: `enforce`, `report-only` or `off` (`enforce`). Any other value stops start-up |
 | `VS_MOD_DB_URL` | No | Base address of the mod database (`https://mods.vintagestory.at`). Set it only to use a mirror of the same database; mods are downloaded from this address. Must be an `https` URL with a host and nothing else; `http` is accepted only with `VS_DEBUG=true`. Any other value stops start-up |
 | `VS_CORS_ORIGINS` | No | Allowed browser origins for a separately hosted UI |
+| `VS_DATA_DIR` | No | Data directory inside the container (`/data`); change it only with a matching volume mount |
+| `VS_CONSOLE_HISTORY_LINES` | No | Console lines sent when the console connects (`100`) |
+| `VS_DISK_SPACE_WARNING_THRESHOLD_GB` | No | Free space below which the health check warns (`1.0`; `0` turns the fixed threshold off). Negative values stop start-up |
+| `VS_MOD_CACHE_MAX_SIZE_MB` | No | Size of the downloaded-mods cache before old files are evicted (`500`; `0` turns eviction off) |
 
 ## Development
 

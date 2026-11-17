@@ -54,7 +54,7 @@ just release 0.3.0-rc.1       # an explicit version (required for pre-releases)
 
 If anything fails, or you answer no, `main` is reset to where it was and the tag is deleted. Repository git hooks do not run for the release commit, tag and push.
 
-After Renovate updates uv, the release commit may also change the `revision` line in `api/uv.lock` (the pinned uv rewrites it). Dependency versions are not affected.
+Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request. After such an update, the release commit may also change the `revision` line in `api/uv.lock` (the pinned uv rewrites it). Dependency versions are not affected.
 
 ## What the workflow publishes
 
@@ -66,13 +66,19 @@ Pushing the tag starts [`.github/workflows/release.yml`](.github/workflows/relea
 
 Users verify an image as described in the [README](README.md#verifying-an-image).
 
+### What the image is built from
+
+- **Pinned:** the three images in the Dockerfile by digest (`node` for the web build, the .NET runtime base, and the uv binary), bun by version, the API's Python packages by `api/uv.lock` and the web's packages by `web/bun.lock`. The uv image's version is the one `.mise.toml` pins. `scripts/tests/test-docker-context.sh` fails if an image loses its digest or the two uv versions differ. Renovate moves the pins in pull requests, which CI builds and tests.
+- **Not pinned:** the system packages. The image runs `apt-get upgrade` and installs `python3.14` from Ubuntu without versions, so it gets security fixes newer than the base image. Two builds of one commit can therefore differ in that layer.
+- So a re-run of the image job builds the image again and can push a different digest under the same tags. Each run's provenance and SBOM attestations describe the digest that run pushed; a user checks the attestation of the digest they pulled.
+
 ### First release: make the package public
 
 The first push creates the `vintagestory-server` package as **private**, linked to this repository. Once, after the first release: open the package from the organization's **Packages** tab → **Package settings** → **Change visibility** → **Public**. This cannot be undone. Until then, pulls need a GitHub login with access to the repository.
 
 ## When something goes wrong
 
-- **A job failed for a transient reason** (registry or network errors, a runner problem): **Re-run failed jobs** on the run. Image tags and attestations are pushed again, and the release job updates a release it already created and re-uploads the SBOM.
+- **A job failed for a transient reason** (registry or network errors, a runner problem): **Re-run failed jobs** on the run. The image is built again, so it can push a different digest when Ubuntu has published package updates since the first run (see [What the image is built from](#what-the-image-is-built-from)); the tags move to it and the attestations pushed describe it. The release job updates a release it already created and re-uploads the SBOM.
 - **A job failed because of a bug in the workflow or the code:** a re-run uses the workflow file and code of the tagged commit, so a fix pushed to `main` does not reach it. Fix it on `main`, then cut the next version (a new patch or pre-release) instead of reusing the tag.
 - **A broken release must be withdrawn:** delete the GitHub release (`gh release delete vX.Y.Z`) and, if needed, the package version on GHCR. Do not reuse the version: tags are cached by users and mirrors. Cut the next patch version with the fix.
 - **The tag was pushed but `CHANGELOG.md` is wrong:** fix `CHANGELOG.md` in a normal commit; edit the GitHub release notes with `gh release edit vX.Y.Z --notes-file …`.

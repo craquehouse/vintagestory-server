@@ -215,13 +215,17 @@ services:
     image: ghcr.io/craquehouse/vintagestory-server:latest
     container_name: vintagestory-manager
     ports:
-      - "8080:8080"      # Web UI + API
-      - "42420:42420"    # Game server (for future connectivity if needed)
+      - "8080:8080"       # Web UI + API
+      - "42420:42420/tcp" # Game server
+      - "42420:42420/udp" # Game server
     volumes:
       - ./data:/data
     environment:
-      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN}
+      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
+      # Key the web UI receives at runtime from /config.js (Epic 19 ADR-5); unset, the
+      # page shows a set-up message
+      - VS_API_KEY=${VS_API_KEY:-}
       - VS_DEBUG=${VS_DEBUG:-false}
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
       - UV_LINK_MODE=copy
@@ -248,13 +252,16 @@ services:
       dockerfile: Dockerfile
     container_name: vintagestory-manager-dev
     ports:
-      - "8080:8080"      # Web UI + API
-      - "42420:42420"    # Game server (for future connectivity if needed)
+      - "8080:8080"       # Web UI + API
+      - "42420:42420/tcp" # Game server
+      - "42420:42420/udp" # Game server
     volumes:
       - ./data:/data
     environment:
-      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-dev-admin-key}
+      - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
+      # The dev stack gives the web UI the Admin key unless VS_API_KEY is set
+      - VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}
       - VS_DEBUG=true
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
       - UV_LINK_MODE=copy
@@ -425,24 +432,32 @@ docker compose -f docker-compose.dev.yaml up --build
 **Build Process:**
 
 ```dockerfile
-# Multi-stage Dockerfile
-FROM node:22-slim AS web-build
-# Install bun@1.3.5, build frontend → /app/dist
+# Multi-stage Dockerfile; every image is pinned by digest (Epic 20 ADR-10,
+# RELEASING.md "What the image is built from")
+FROM node:26-slim@sha256:... AS web-build
+# Install bun@1.4.4, build frontend → /app/dist
 
-FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
-# Ubuntu 24.04 Noble with:
-# - Python 3.12 (native to apt)
-# - .NET 8.0 runtime (for VintageStory game server)
-# Install uv, copy web build, install API deps, run uvicorn
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-resolute-amd64@sha256:... AS final
+# Ubuntu 26.04 Resolute with:
+# - Python 3.14 (native to apt)
+# - .NET 10 runtime (for VintageStory 1.22+)
+# Copy uv (ghcr.io/astral-sh/uv, the version .mise.toml pins), copy web build,
+# install API deps, run uvicorn
 ```
 
 **CI/CD Pipeline:**
 
 ```yaml
-# .github/workflows/ci.yaml
-# 1. Lint (ruff, eslint)
-# 2. Test (pytest, vitest)
-# 3. Build Docker image (not pushed)
+# .github/workflows/ci.yml: on pull requests to main, pushes to main and by hand;
+# every job skips the release commit (chore(release): ...)
+# - api:     lint (ruff check + format check), Pyright, pytest
+# - web:     type check (incl. web/e2e), Vitest, build
+# - scripts: version files agree, ShellCheck, actionlint, the scripts' bash tests
+# - docker:  build the image for linux/amd64 (not pushed)
+# - e2e:     the untagged Playwright tests on a throwaway container, then the
+#            @moddb tests on recorded answers (scripts/e2e-ci.sh)
+# - semgrep: PRs fail on added findings; main is scanned in full and
+#            uploaded to code scanning
 # Publishing: .github/workflows/release.yml on version tags (Epic 15 ADR-4)
 ```
 
@@ -461,8 +476,13 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0.22-noble-amd64 AS final
 
 **Environment Variables:**
 
-| Variable             | Required | Description                    |
-| -------------------- | -------- | ------------------------------ |
-| `VS_API_KEY_ADMIN`   | Yes      | Admin API key                  |
-| `VS_API_KEY_MONITOR` | No       | Read-only API key              |
-| `VS_DEBUG`           | No       | Enable debug logging           |
+| Variable | Required | Description |
+|---|---|---|
+| `VS_API_KEY_ADMIN` | Yes | Admin API key |
+| `VS_API_KEY_MONITOR` | No | Read-only API key |
+| `VS_API_KEY` | For the web UI | Key the API serves to the web UI at `/config.js` (Epic 19 ADR-5); unset, the web UI shows a set-up message |
+| `VS_CSP_MODE` | No | `enforce` (default), `report-only` or `off` for the web UI's Content-Security-Policy (Epic 19 ADR-6); any other value stops start-up |
+| `VS_DEBUG` | No | Debug logging; also serves `/docs`, `/redoc` and `/openapi.json` and the RBAC test routes (Epic 19 ADR-7), and allows a plain-HTTP `VS_MOD_DB_URL`. For development only |
+| `VS_MOD_DB_URL` | No | Base address of the mod database, for a mirror of the same database (default `https://mods.vintagestory.at`; Epic 20 ADR-9). Mod listings and downloads come from it. An `https` URL with a host and nothing else; `http` only with `VS_DEBUG=true`; any other value stops start-up. Images and links to mod pages shown in the browser do not follow it |
+
+The README's Configuration table and `.env.example` also describe `VS_CORS_ORIGINS`, `VS_DATA_DIR`, `VS_CONSOLE_HISTORY_LINES`, `VS_DISK_SPACE_WARNING_THRESHOLD_GB` and `VS_MOD_CACHE_MAX_SIZE_MB` (all with defaults). `Settings.log_level` (`VS_LOG_LEVEL`) exists in `config.py` but nothing reads it: the log level follows `VS_DEBUG` only (`main.py`), so it is not documented.

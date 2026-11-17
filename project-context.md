@@ -861,18 +861,18 @@ During testing, discover enhancement opportunity
 
 ### Story Numbering
 
-**Epics always start at Story 1, never Story 0.**
+**A preparation story is Story X.0. An epic without one starts at Story X.1.**
 
-The first story in any epic is the "Technical Preparation" or "Epic Preparation" story. Use Story 1, not Story 0.
+A preparation story (research, a spike, architecture work before the first feature) is optional. Add one only when the planning says what it must find out; it ships nothing a user sees, and X.0 says so at a glance. Feature stories are numbered from X.1 either way.
 
-| Pattern | Status |
-|---------|--------|
-| 12-1-epic-12-technical-preparation | ✅ Correct |
-| 12-0-epic-12-technical-preparation | ❌ Deprecated |
+| Epic | First story |
+|------|-------------|
+| Needs preparation | `13-0-epic-13-technical-preparation`, then `13-1-...` |
+| Needs none | `17-1-mod-detail-pages-cannot-fail-on-bad-data` |
 
-**Why:** Story 0 is confusing and inconsistent with natural counting. Preparation stories are real stories with deliverables (ADRs, architecture decisions, research docs) and deserve a real story number.
+**Why X.0:** the release notes configuration (`cliff.toml`) keeps `story-X.0` commits out of the notes, the BMAD story template names the spike Story X.0, and done stories cannot be renumbered.
 
-**Historical Note:** Epics 4-13 used Story 0 for preparation. Epic 12 onwards uses Story 1. The transition was documented in the Epic 13 retrospective (E13-A2).
+**History:** Epics 4 to 8 and 13 to 16 numbered their preparation story X.0. Epic 12 numbered it 12.1, following the Epic 13 retrospective item E13-A2 ("Eliminate Story 0 naming"), which this rule replaces (Epic 20 ADR-11). Epics 9 to 11 and 17 to 20 had no preparation story and started at X.1. Epics 1 to 3 predate preparation stories.
 
 ### File List Tracking
 
