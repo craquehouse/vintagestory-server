@@ -16,8 +16,9 @@ services:
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
-      # Key the web UI receives at runtime from /config.js; empty means the Admin key
-      - VS_API_KEY=${VS_API_KEY:-}
+      # Key the web UI receives at runtime from /config.js. The dev stack gives the web UI
+      # the Admin key unless VS_API_KEY is set; the API then logs web_api_key_is_admin_key.
+      - VS_API_KEY=${VS_API_KEY:-${VS_API_KEY_ADMIN:-changeme}}
       - VS_DEBUG=true
       - VS_DATA_DIR=${VS_DATA_DIR:-/data}
       - UV_LINK_MODE=copy
