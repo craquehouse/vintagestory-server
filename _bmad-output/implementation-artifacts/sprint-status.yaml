@@ -227,9 +227,9 @@ development_status:
   20-5-file-browser-e2e-in-ci: done
   20-6-mod-database-tests-in-ci: done
   20-7-reproducible-image-and-conventions: done
-  epic-21: backlog
+  epic-21: in-progress
   epic-21-retrospective: optional
-  21-1-web-formatted-once: backlog
+  21-1-web-formatted-once: ready-for-dev
   21-2-renovate-uv-hold-and-digests: backlog
   21-3-log-level-and-config-viewer: backlog
   21-4-remove-dialog-and-single-toast: backlog
