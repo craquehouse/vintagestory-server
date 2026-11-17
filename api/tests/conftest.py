@@ -9,6 +9,9 @@ from io import StringIO
 # This ensures RBAC integration tests work regardless of environment
 # IMPORTANT: Must be set BEFORE importing app, as app initializes once
 os.environ["VS_DEBUG"] = "true"
+# mise loads a developer's .env (.mise.toml); a mirror address there must not reach tests
+# that mock https://mods.vintagestory.at/... (Epic 20 ADR-9)
+os.environ.pop("VS_MOD_DB_URL", None)
 
 import pytest
 import structlog

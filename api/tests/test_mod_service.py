@@ -743,6 +743,54 @@ class TestGetModServiceDependency:
 
         assert calls == ["load", "repair"]
 
+    @pytest.mark.asyncio
+    async def test_service_client_calls_the_given_mod_db_url(
+        self, temp_dirs: tuple[Path, Path], restart_state: PendingRestartState
+    ) -> None:
+        """Story 20.6: the service builds its client on VS_MOD_DB_URL (Epic 20 ADR-9)."""
+        import respx
+        from httpx import Response
+
+        state_dir, mods_dir = temp_dirs
+        service = ModService(
+            state_dir=state_dir,
+            mods_dir=mods_dir,
+            restart_state=restart_state,
+            mod_db_url="https://mirror.example",
+        )
+
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get("https://mirror.example/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            await service.api_client.get_mod("smithingplus")
+
+        assert route.call_count == 1
+        await service.api_client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_mod_service_uses_vs_mod_db_url(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Story 20.6: get_mod_service() passes the setting to the service it builds."""
+        import respx
+        from httpx import Response
+
+        monkeypatch.setattr(mods_module, "_mod_service", None)
+        monkeypatch.setenv("VS_DATA_DIR", str(tmp_path / "data"))
+        monkeypatch.setenv("VS_MOD_DB_URL", "https://mirror.example")
+
+        service = get_mod_service()
+
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get("https://mirror.example/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+            await service.api_client.get_mod("smithingplus")
+
+        assert route.call_count == 1
+        await service.api_client.close()
+
 
 # --- Tests for ModService.install_mod ---
 

@@ -20,6 +20,7 @@ from uuid import uuid4
 import httpx
 import structlog
 
+from vintagestory_api.config import DEFAULT_MOD_DB_URL
 from vintagestory_api.models.moddb import (
     ModDict,
     ReleaseDict,
@@ -349,8 +350,6 @@ class ModApiClient:
     from mods.vintagestory.at.
 
     Attributes:
-        BASE_URL: Base URL for the mod API.
-        DOWNLOAD_URL: URL for file downloads.
         DEFAULT_TIMEOUT: Default timeout for API calls (30s).
         DOWNLOAD_TIMEOUT: Timeout for file downloads (120s).
         BROWSE_CACHE_TTL: Cache TTL for browse mod list and for each listing filtered by
@@ -364,8 +363,6 @@ class ModApiClient:
             or a timeout (60 seconds; Story 18.3).
     """
 
-    BASE_URL = "https://mods.vintagestory.at/api"
-    DOWNLOAD_URL = "https://mods.vintagestory.at/download"
     DEFAULT_TIMEOUT = 30.0
     DOWNLOAD_TIMEOUT = 120.0
     BROWSE_CACHE_TTL = timedelta(minutes=5)
@@ -378,6 +375,7 @@ class ModApiClient:
         self,
         cache_dir: Path,
         cache_eviction_service: CacheEvictionService | None = None,
+        mod_db_url: str = DEFAULT_MOD_DB_URL,
     ) -> None:
         """Initialize the mod API client.
 
@@ -385,7 +383,12 @@ class ModApiClient:
             cache_dir: Directory for caching downloaded mods.
             cache_eviction_service: Optional cache eviction service for managing
                 cache size. If provided, eviction is run after each download.
+            mod_db_url: The mod database's base address, already normalized by
+                Settings (VS_MOD_DB_URL, Epic 20 ADR-9). API calls go to
+                `<mod_db_url>/api`, downloads to `<mod_db_url>/download`.
         """
+        self._api_url = f"{mod_db_url}/api"
+        self._download_url = f"{mod_db_url}/download"
         self._cache_dir = cache_dir
         self._mods_cache = cache_dir / "mods"
         self._mods_cache.mkdir(parents=True, exist_ok=True)
@@ -431,7 +434,7 @@ class ModApiClient:
         that is JSON but not an object. Status rules beyond that are the caller's.
         """
         client = await self._get_client()
-        endpoint = url.removeprefix(self.BASE_URL)
+        endpoint = url.removeprefix(self._api_url)
         try:
             response = await client.get(url, params=params)
         except httpx.TimeoutException as e:
@@ -493,7 +496,7 @@ class ModApiClient:
             logger.warning("invalid_slug", slug=slug)
             return None
 
-        data = await self._get_json_object(f"{self.BASE_URL}/mod/{slug}")
+        data = await self._get_json_object(f"{self._api_url}/mod/{slug}")
 
         # CRITICAL: statuscode is STRING, not int!
         if data.get("statuscode") == "200":
@@ -692,7 +695,7 @@ class ModApiClient:
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             async with client.stream(
                 "GET",
-                f"{self.DOWNLOAD_URL}?fileid={fileid}",
+                f"{self._download_url}?fileid={fileid}",
                 timeout=self.DOWNLOAD_TIMEOUT,
             ) as response:
                 response.raise_for_status()
@@ -780,7 +783,7 @@ class ModApiClient:
 
     async def _fetch_all_mods(self) -> list[ModDict]:
         """Fetch the full listing and cache it; a failure leaves the cache as it was."""
-        data = await self._get_json_object(f"{self.BASE_URL}/mods")
+        data = await self._get_json_object(f"{self._api_url}/mods")
 
         # CRITICAL: statuscode is STRING, not int!
         if data.get("statuscode") == "200":
@@ -933,7 +936,7 @@ class ModApiClient:
             ExternalApiError: If the mod API is unavailable.
         """
         data = await self._get_json_object(
-            f"{self.BASE_URL}/mods", params={"gameversion": version_tagid}, require_200=True
+            f"{self._api_url}/mods", params={"gameversion": version_tagid}, require_200=True
         )
 
         # CRITICAL: statuscode is STRING, not int!
@@ -1001,7 +1004,7 @@ class ModApiClient:
 
     async def _fetch_game_versions(self) -> dict[str, int]:
         """Fetch the game version list and cache it; a failure leaves the cache as it was."""
-        body = await self._get_json_object(f"{self.BASE_URL}/gameversions", require_200=True)
+        body = await self._get_json_object(f"{self._api_url}/gameversions", require_200=True)
 
         # CRITICAL: statuscode is STRING, not int!
         # Story 18.3: browse reads this list on every request, so a malformed body

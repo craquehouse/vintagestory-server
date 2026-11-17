@@ -3,8 +3,10 @@
 import asyncio
 import gc
 import json
+import re
 from collections.abc import AsyncIterator
 from datetime import timedelta
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -2990,3 +2992,127 @@ class TestSharedFetchesHelper:
             assert seen == []
         finally:
             loop.set_exception_handler(None)
+
+
+# --- VS_MOD_DB_URL: the client follows the configured address (Story 20.6, Epic 20 ADR-9) ---
+
+MIRROR = "https://mirror.example"
+MIRROR_TAGID = -281565171286015
+
+
+def _mirror_client(cache_dir: Path) -> ModApiClient:
+    return ModApiClient(cache_dir=cache_dir, mod_db_url=MIRROR)
+
+
+class TestModApiClientModDbUrl:
+    """Every request goes to the configured base address; none to the default host."""
+
+    @pytest.mark.asyncio
+    async def test_get_mod_calls_the_mirror(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get(f"{MIRROR}/api/mod/smithingplus").mock(
+                return_value=Response(200, json={"statuscode": "200", "mod": SMITHINGPLUS_MOD})
+            )
+
+            result = await _mirror_client(cache_dir).get_mod("smithingplus")
+
+        assert route.call_count == 1
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_full_listing_calls_the_mirror(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get(f"{MIRROR}/api/mods").mock(
+                return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+            )
+
+            result = await _mirror_client(cache_dir).get_all_mods()
+
+        assert route.call_count == 1
+        assert len(result) == 3
+
+    @pytest.mark.asyncio
+    async def test_game_version_listing_calls_the_mirror(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get(f"{MIRROR}/api/mods", params={"gameversion": str(MIRROR_TAGID)}).mock(
+                return_value=Response(200, json=BROWSE_MODS_RESPONSE)
+            )
+
+            result = await _mirror_client(cache_dir).get_mods_by_version(MIRROR_TAGID)
+
+        assert route.call_count == 1
+        assert len(result) == 3
+
+    @pytest.mark.asyncio
+    async def test_game_version_list_calls_the_mirror(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get(f"{MIRROR}/api/gameversions").mock(
+                return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+            )
+
+            result = await _mirror_client(cache_dir).get_game_versions()
+
+        assert route.call_count == 1
+        assert result["1.21.3"] == MIRROR_TAGID
+
+    @pytest.mark.asyncio
+    async def test_download_calls_the_mirror(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get(f"{MIRROR}/download", params={"fileid": "11"}).mock(
+                return_value=Response(200, content=b"mod bytes")
+            )
+
+            path = await _mirror_client(cache_dir).download_release_file("demo", 11, "Demo.zip")
+
+        assert route.call_count == 1
+        assert path.read_bytes() == b"mod bytes"
+
+    @pytest.mark.asyncio
+    async def test_nothing_falls_back_to_the_default_host(self, cache_dir: Path) -> None:
+        client = _mirror_client(cache_dir)
+        with respx.mock(assert_all_called=False) as mock:
+            default = mock.route(host="mods.vintagestory.at").mock(
+                return_value=Response(200, json={"statuscode": "200"})
+            )
+            mock.route().mock(return_value=Response(503, text="mirror down"))
+
+            with pytest.raises(ExternalApiError):
+                await client.get_mod("smithingplus")
+            with pytest.raises(ExternalApiError):
+                await client.get_all_mods()
+            with pytest.raises(ExternalApiError):
+                await client.get_mods_by_version(MIRROR_TAGID)
+            with pytest.raises(ExternalApiError):
+                await client.get_game_versions()
+            with pytest.raises(DownloadError):
+                await client.download_release_file("demo", 11, "Demo.zip")
+
+        assert default.call_count == 0
+
+    @pytest.mark.asyncio
+    async def test_log_endpoint_is_the_path_not_the_address(
+        self, cache_dir: Path, captured_logs: StringIO
+    ) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            mock.get(f"{MIRROR}/api/mods", params={"gameversion": str(MIRROR_TAGID)}).mock(
+                return_value=Response(500, text="error")
+            )
+
+            with pytest.raises(ExternalApiError):
+                await _mirror_client(cache_dir).get_mods_by_version(MIRROR_TAGID)
+
+        logs = re.sub(r"\x1b\[[0-9;]*m", "", captured_logs.getvalue())
+        assert "mod_api_http_error" in logs
+        assert "endpoint=/mods" in logs
+        assert "mirror.example" not in logs
+
+    @pytest.mark.asyncio
+    async def test_client_without_an_address_calls_the_default_host(self, cache_dir: Path) -> None:
+        with respx.mock(assert_all_mocked=True) as mock:
+            route = mock.get("https://mods.vintagestory.at/api/gameversions").mock(
+                return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
+            )
+
+            await ModApiClient(cache_dir=cache_dir).get_game_versions()
+
+        assert route.call_count == 1

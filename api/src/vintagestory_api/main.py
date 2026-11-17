@@ -4,6 +4,7 @@ import json
 from collections.abc import AsyncGenerator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request, Response
@@ -13,7 +14,12 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from vintagestory_api import __version__
-from vintagestory_api.config import Settings, initialize_debug_state, is_debug_enabled
+from vintagestory_api.config import (
+    DEFAULT_MOD_DB_URL,
+    Settings,
+    initialize_debug_state,
+    is_debug_enabled,
+)
 from vintagestory_api.middleware.auth import get_current_user, get_settings
 from vintagestory_api.middleware.request_context import RequestContextMiddleware
 from vintagestory_api.routers import (
@@ -122,6 +128,25 @@ def log_web_api_key_state(settings: Settings) -> None:
         )
 
 
+def log_mod_db_url(settings: Settings) -> None:
+    """Warn at start-up when VS_MOD_DB_URL points somewhere other than the default.
+
+    Logs the scheme and the host only, never the whole address (Epic 20 ADR-9).
+    """
+    if settings.mod_db_url == DEFAULT_MOD_DB_URL:
+        return
+    parts = urlsplit(settings.mod_db_url)
+    logger.warning(
+        "mod_db_url_overridden",
+        scheme=parts.scheme,
+        host=parts.hostname,
+        hint=(
+            "VS_MOD_DB_URL is set: mod database requests and mod downloads go to this "
+            "address instead of https://mods.vintagestory.at"
+        ),
+    )
+
+
 def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     """Return the lifespan handler of an app that runs with the given settings."""
 
@@ -137,6 +162,7 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
         # Ensure data directories exist
         settings.ensure_data_directories()
         log_web_api_key_state(settings)
+        log_mod_db_url(settings)
         debug_enabled = is_debug_enabled()
         logger.info(
             "api_starting",
