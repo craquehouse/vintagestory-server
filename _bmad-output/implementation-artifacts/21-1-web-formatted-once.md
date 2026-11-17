@@ -1,6 +1,6 @@
 # Story 21.1: The Web Is Formatted Once and Stays Formatted
 
-Status: review
+Status: done
 
 <!-- Implements FR260-FR263 and Epic 21 ADR-1 (maintainer decision 5, Matt, 2026-11-17). Beads: none. First story of Epic 21 (order 21.1 to 21.8, each stacked on the previous); it merges before any other web branch of the epic is cut. Line references were verified at 966204f (epic-21-planning; its web/, Justfile, .github/, README.md, CLAUDE.md and project-context.md are identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time. Tooling and documentation only: no API or web behavior change, no Docker or E2E change. One new dev dependency (Prettier, approved by the maintainer). -->
 
@@ -358,3 +358,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive, 2026-11-17.
 - `.github/workflows/ci.yml` (modified: `just lint-web` in the `web` job)
 - `CLAUDE.md`, `project-context.md`, `README.md` (modified: command lists, frontend formatting rule)
 - `_bmad-output/implementation-artifacts/21-1-web-formatted-once.md` (this story)
+- 2026-11-17: Code review (GLM-5.3-Flash): approved, no findings. Status done.
