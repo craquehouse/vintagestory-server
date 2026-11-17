@@ -220,7 +220,7 @@ development_status:
   19-7-e2e-runs-in-ci: done
   epic-20: in-progress
   epic-20-retrospective: optional
-  20-1-api-formatted-once: ready-for-dev
+  20-1-api-formatted-once: review
   20-2-green-quiet-check: backlog
   20-3-lint-and-typecheck-coverage: backlog
   20-4-semgrep: backlog
