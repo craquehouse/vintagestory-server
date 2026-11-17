@@ -1,6 +1,6 @@
 # Story 19.5: The Mod State Matches the Mods Directory at Start-Up
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR231-FR232, Epic 19 ADR-10 (ADR-9 defines the recovery this runs after). Beads: none of its own; it rides with VSS-uoxl (API-092), which Story 19.4 starts and this story closes. Stacked on Story 19.4 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ are identical to 048fea9, the commit the ADRs cite) and must be re-checked at implementation time: Story 19.2 rebuilds main.py around an app factory, and Story 19.4 edits services/mod_state.py, services/mods.py and the start-up first. API only: no web source change, no new route, no new error code, no new dependency. -->
 
@@ -86,32 +86,32 @@ so that **the Installed list shows what is really there**.
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-19.5/task-N): ...; feat/fix only for changes an admin can see, subject written for admins. Red first. Only Task 3 changes what an admin sees. -->
 
-- [ ] Task 1: Make `sync_state_with_disk` safe + tests (AC: 1, 2, 3, 4, 5, 6, 8, 11, 13)
-  - [ ] 1.1: `services/mod_state.py`: a small frozen dataclass `ModSyncSummary(added: int, removed: int, skipped: int)` above `ModStateManager` (`:27`). `sync_state_with_disk` (`:492-549`) returns it instead of `None` (every existing caller ignores the result)
-  - [ ] 1.2: Rewrite the body in the order of Dev Notes "The sync": directory guard, one listing, removals, then additions over the sorted new names, one save. It must not call `import_mod` (Dev Notes "ADR against the code")
-  - [ ] 1.3: Removal (ADR-10 decision 4): an entry is removed only when its own file name is not among the names of one successful `iterdir()` of the mods directory. Not `state_files - disk_files` (`:530`) and not a per-entry `is_file()` (Dev Notes "Why a listing")
-  - [ ] 1.4: Addition (decisions 2 and 3): per new file, read and validate `modinfo.json` inside a guard that catches `Exception`; skip an unreadable archive; skip a file whose mod ID, lower-cased, is already in the state or was added earlier in this run; otherwise cache the modinfo and add the entry
-  - [ ] 1.5: One `save()` after all changes, only when something was added or removed; an `OSError` from it is caught (decision 6). The method never raises for anything the directory or an archive can contain
-  - [ ] 1.6: Update the method's docstring: what is added, skipped and removed, that it deletes no file, and that it is meant to be called once at start-up
-  - [ ] 1.7: Tests (Dev Notes "API tests", Task 1 rows), red first
+- [x] Task 1: Make `sync_state_with_disk` safe + tests (AC: 1, 2, 3, 4, 5, 6, 8, 11, 13)
+  - [x] 1.1: `services/mod_state.py`: a small frozen dataclass `ModSyncSummary(added: int, removed: int, skipped: int)` above `ModStateManager` (`:27`). `sync_state_with_disk` (`:492-549`) returns it instead of `None` (every existing caller ignores the result)
+  - [x] 1.2: Rewrite the body in the order of Dev Notes "The sync": directory guard, one listing, removals, then additions over the sorted new names, one save. It must not call `import_mod` (Dev Notes "ADR against the code")
+  - [x] 1.3: Removal (ADR-10 decision 4): an entry is removed only when its own file name is not among the names of one successful `iterdir()` of the mods directory. Not `state_files - disk_files` (`:530`) and not a per-entry `is_file()` (Dev Notes "Why a listing")
+  - [x] 1.4: Addition (decisions 2 and 3): per new file, read and validate `modinfo.json` inside a guard that catches `Exception`; skip an unreadable archive; skip a file whose mod ID, lower-cased, is already in the state or was added earlier in this run; otherwise cache the modinfo and add the entry
+  - [x] 1.5: One `save()` after all changes, only when something was added or removed; an `OSError` from it is caught (decision 6). The method never raises for anything the directory or an archive can contain
+  - [x] 1.6: Update the method's docstring: what is added, skipped and removed, that it deletes no file, and that it is meant to be called once at start-up
+  - [x] 1.7: Tests (Dev Notes "API tests", Task 1 rows), red first
 
-- [ ] Task 2: Log every change and one summary + tests (AC: 1, 2, 4, 5, 8, 9)
-  - [ ] 2.1: Events and keys exactly as in Dev Notes "Logging": `mod_state_sync_added`, `mod_state_sync_removed`, `mod_state_sync_skipped`, `mod_state_sync_mods_directory_not_found`, `mod_state_sync_mods_directory_unreadable`, `mod_state_sync_save_failed`, and always one `mod_state_synced`. The old events `mod_state_added` and `mod_state_removed_deleted_file` (`:523`, `:536`) go; nothing else uses them
-  - [ ] 2.2: Tests (Dev Notes "API tests", Task 2 rows), red first
+- [x] Task 2: Log every change and one summary + tests (AC: 1, 2, 4, 5, 8, 9)
+  - [x] 2.1: Events and keys exactly as in Dev Notes "Logging": `mod_state_sync_added`, `mod_state_sync_removed`, `mod_state_sync_skipped`, `mod_state_sync_mods_directory_not_found`, `mod_state_sync_mods_directory_unreadable`, `mod_state_sync_save_failed`, and always one `mod_state_synced`. The old events `mod_state_added` and `mod_state_removed_deleted_file` (`:523`, `:536`) go; nothing else uses them
+  - [x] 2.2: Tests (Dev Notes "API tests", Task 2 rows), red first
 
-- [ ] Task 3: Call the sync once at start-up, before the game server auto-start + tests (AC: 7, 9, 10, 13, 14)
-  - [ ] 3.1: `services/mods.py`: a module-level `sync_mod_state_at_startup() -> None` beside `close_mod_service` (`:121-130`): `get_mod_service().state_manager.sync_state_with_disk()` inside `try`/`except Exception`, logging `mod_state_sync_failed` at error level. It never raises. `get_mod_service` (`:77-118`) is not changed by this story (Dev Notes "Where it is called")
-  - [ ] 3.2: The lifespan in `main.py` (`:91-162` at b6ae2f2; reached through Story 19.2's app factory by then): call `sync_mod_state_at_startup()` after Story 19.4's recovery and before the auto-start block (`:117-141`), imported inside the lifespan as the block's other services are (`:118-120`). No route, no job, no timer, no call from `get_mod_service`
-  - [ ] 3.3: `api/tests/conftest.py`: an autouse fixture that replaces `vintagestory_api.services.mods.sync_mod_state_at_startup` with a no-op for every test (Dev Notes "Tests must not sync `dev/`"). If Story 19.4 added such a guard for its recovery, extend that one instead of adding a second
-  - [ ] 3.4: `README.md`: one sentence under Features, after the Mods bullet (`:13`), or in Installation after "Game data, mods and manager state live in `./data`" (`:33`): mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up the next time the manager container starts
-  - [ ] 3.5: Tests (Dev Notes "API tests", Task 3 rows), red first
+- [x] Task 3: Call the sync once at start-up, before the game server auto-start + tests (AC: 7, 9, 10, 13, 14)
+  - [x] 3.1: `services/mods.py`: a module-level `sync_mod_state_at_startup() -> None` beside `close_mod_service` (`:121-130`): `get_mod_service().state_manager.sync_state_with_disk()` inside `try`/`except Exception`, logging `mod_state_sync_failed` at error level. It never raises. `get_mod_service` (`:77-118`) is not changed by this story (Dev Notes "Where it is called")
+  - [x] 3.2: The lifespan in `main.py` (`:91-162` at b6ae2f2; reached through Story 19.2's app factory by then): call `sync_mod_state_at_startup()` after Story 19.4's recovery and before the auto-start block (`:117-141`), imported inside the lifespan as the block's other services are (`:118-120`). No route, no job, no timer, no call from `get_mod_service`
+  - [x] 3.3: `api/tests/conftest.py`: an autouse fixture that replaces `vintagestory_api.services.mods.sync_mod_state_at_startup` with a no-op for every test (Dev Notes "Tests must not sync `dev/`"). If Story 19.4 added such a guard for its recovery, extend that one instead of adding a second
+  - [x] 3.4: `README.md`: one sentence under Features, after the Mods bullet (`:13`), or in Installation after "Game data, mods and manager state live in `./data`" (`:33`): mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up the next time the manager container starts
+  - [x] 3.5: Tests (Dev Notes "API tests", Task 3 rows), red first
 
-- [ ] Task 4: API tests of start-up through the routes and of update status, and the Docker stack regression run (AC: 1, 2, 12, 14)
-  - [ ] 4.1: API integration tests (Dev Notes "API tests", Task 4 rows): the real lifespan over a hand-built directory and state, then `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates`
-  - [ ] 4.2: Docker dev stack (Dev Notes "E2E"): no new spec. With the guard conditions met, snapshot `GET /api/v1alpha1/mods`, rebuild the stack from this branch, compare, read the one `mod_state_synced` line from the container log, and re-run `web/e2e/installed-status.spec.ts`. Record the before and after bodies' equality (or the explained difference) and the summary line's numbers in the Dev Agent Record
+- [x] Task 4: API tests of start-up through the routes and of update status, and the Docker stack regression run (AC: 1, 2, 12, 14)
+  - [x] 4.1: API integration tests (Dev Notes "API tests", Task 4 rows): the real lifespan over a hand-built directory and state, then `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/mods/updates`
+  - [x] 4.2: Docker dev stack (Dev Notes "E2E"): no new spec. With the guard conditions met, snapshot `GET /api/v1alpha1/mods`, rebuild the stack from this branch, compare, read the one `mod_state_synced` line from the container log, and re-run `web/e2e/installed-status.spec.ts`. Record the before and after bodies' equality (or the explained difference) and the summary line's numbers in the Dev Agent Record
 
 - [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
+  - [x] 5.1: `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the 3 pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
   - [ ] 5.2: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): see Dev Notes "Manual check"
   - [ ] 5.3: Story status `review`, `just sprint set 19-5-mod-state-matches-the-mods-directory review`, PR (base: Story 19.4's branch while its PR is open, otherwise `main`), PR link on `VSS-uoxl`. The PR description carries "API contract changes" from this story. `VSS-uoxl` is closed with its AAR (covering Story 19.4's recovery and this story's sync) when this story is done, not before
 
@@ -354,14 +354,39 @@ Never start the game server with the check archive in place.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Line references re-checked at b5e78d2 (Stories 19.1 to 19.4 merged into this branch's base): the sync was `services/mod_state.py:500-557`, `scan_mods_directory` `:473-498`, `_extract_modinfo_from_zip` `:309-361`, `_cache_modinfo` `:363-393`, `save` `:101-136`. `main.py`'s lifespan is the closure in `lifespan_for(settings)` (`:124-200`); it calls Story 19.4's `prepare_mod_files()` (`services/mods.py:126-145`) inside `try`/`except Exception` (`mod_files_startup_failed`) before the auto-start block (`:155-179`). Story 19.4's autouse conftest fixture `prepare_mod_files_recorder` replaces `vintagestory_api.main.prepare_mod_files` in every test.
+- Red runs: Task 1, 23 of the new `TestSyncAtStartUp` tests failed against the old sync (with only a `ModSyncSummary` stub added so the module imports). Task 2, the 8 `TestSyncLogging` tests failed against the old sync. Task 3, collection failed without `sync_mod_state_at_startup`; with the function but no call from `prepare_mod_files`, 4 failed (the AC 7 test and the three lifespan order tests). Task 4's API tests are test-only and passed on first run against Task 3.
+- `grep -rn sync_state_with_disk api/src`: the definition (`services/mod_state.py:510`), a docstring mention (`:30`) and exactly one caller, `services/mods.py:158` in `sync_mod_state_at_startup`.
+- `dev/`: `dev/vsmanager/state` is empty and `dev/serverdata` has no `Mods`, before and after `just check`; `git status --short dev/` is empty.
+- Docker dev stack (Task 4.2): before the rebuild no game server process (`ps` in the container found none), server state `installed`, `auto_start_server` false. Snapshot: `GET /api/v1alpha1/mods` (5 mods, `pending_restart` false), `ls -la` and SHA-256 of each file in `data/serverdata/Mods` (5 files), SHA-256 of `data/vsmanager/state/mods.json`. `just docker restart` from this branch. After: the `GET /api/v1alpha1/mods` body is byte-identical, the listing and every file's bytes are the same, `mods.json` has the same checksum. The container log has exactly one `mod_state_synced added=0 removed=0 skipped=0 total=5`, followed by `auto_start_server_disabled`; no `mod_state_sync_*` change, skip or warning line, no `mod_files_startup_failed`. `web/e2e/installed-status.spec.ts`: 4 passed; afterwards `GET /api/v1alpha1/mods`, the directory's bytes and the `mods.json` checksum still equal the snapshot. No game server process after the runs.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist. A throwaway prototype of Tasks 1 to 3 (the rewritten sync returning a summary, `sync_mod_state_at_startup`, the lifespan call) was run against the whole API suite (2858 passed, as without it), pyright (0 errors, 3 warnings) and ruff, and against a hand-built directory with every case of AC 1 to 6, 8 and 11; it showed the write into `dev/` that Task 3.3 prevents. It was then discarded.
+- Task 1: `ModSyncSummary(added, removed, skipped)` (frozen dataclass) above `ModStateManager`; `sync_state_with_disk()` returns it and runs as in Dev Notes "The sync": `is_dir()` guard, one `iterdir()` listing plus `scan_mods_directory()` inside `except OSError`, removals of entries whose own name is not in the listing (sorted), then additions over the sorted candidates, one `save()` in `except OSError`. It does not call `import_mod`: `_read_new_archive()` reads with `_extract_modinfo_from_zip` and validates with `ModMetadata.model_validate` inside `except Exception`; mod IDs are compared lower-cased (comment names `ModService._lock_key`), against the remaining entries and the ones added earlier in the run. An `OSError` from `_cache_modinfo` is a warning and the entry is still added. The new log events (Task 2's table) landed in this commit, because the rewrite replaced the old ones.
+- Task 2: tests for every event in Dev Notes "Logging"; exactly one `mod_state_synced` per call, also with zeros and in both AC 8 cases; the old `mod_state_added` / `mod_state_removed_deleted_file` are gone. Beyond the table: `mod_state_sync_modinfo_not_cached` (warning, `filename`, `slug`, `error`) for the cache-write failure the story asks to log without naming an event, and an `error_type` key on an `unreadable` skip that caught an exception and on `mod_state_sync_failed`.
+- Task 3 (deviation from 3.2's wording, same order): `sync_mod_state_at_startup()` in `services/mods.py` (never raises; `mod_state_sync_failed` at error level) is called by Story 19.4's `prepare_mod_files()` as its step 2, right after the recovery and before the cache's old-layout removal, not by a second call in the lifespan. Story 19.4 left that slot for it (its docstring, Dev Notes "Start-up order"). Effects: the order recovery, sync, auto-start, scheduler holds; a failure of the cache step cannot skip the sync; if the recovery itself raises (unplanned; it logs and continues on `OSError` per file), the sync does not run and `mod_files_startup_failed` is logged, so an entry whose file is still `.vsm-bak` is not removed. In that one case there is no `mod_state_synced` line (AC 9 otherwise holds). Task 3.3: Story 19.4's autouse guard already replaces `main.prepare_mod_files`, which now holds the sync, so no second fixture was added; its docstring says it covers the sync, and `TestStartUpOnly` pins that entering `TestClient(app)` never calls `sync_state_with_disk`. README: one sentence in Installation step 5.
+- Task 3 tests: `tests/test_mod_state_sync_startup.py` (the real function on a singleton on `tmp_path`; failing sync and failing `get_mod_service`; AC 7 through the real `prepare_mod_files`; AC 10 no route with `sync`; AC 14 guard) and three tests in `tests/test_main.py` `TestLifespanAutoStart` (order recovery, sync, `start_server`, scheduler with one summary line before `auto_starting_game_server`; a raising sync still auto-starts; auto-start off still syncs once). `run_auto_start_lifespan` got an `auto_start` keyword (default on).
+- Task 4: `TestStartUpSyncThroughTheApi` drives the real lifespan with the real `prepare_mod_files` over `Kept.zip`/`Gone.zip` entries and hand-added `New.zip`/`Off.zip.disabled`, under respx with no routes (zero calls asserted): the list, 404 `MOD_NOT_INSTALLED` for the removed mod, `pending_restart` false, and update status (`unknown`/`not_checked` for both added mods, no item for the removed one, store bytes unchanged).
+- Results: `just check` green: API 3229 passed (3185 before, +44); web 3349 passed, 4 skipped (`VSS-hnl`); pyright 0 errors, 3 warnings (`VSS-1ar`); lint and script tests green. E2E: `installed-status.spec.ts` 4 passed on the rebuilt stack. No lint or type suppression and no `cast` in the diff. Only new and changed lines were formatted (`test_mod_state_sync_startup.py` is new and fully `ruff format`ted); `mods.py`, `test_main.py` and `test_mod_state.py` have older lines `ruff format` would change, left alone.
+- Not done here: Task 5.2 is the maintainer's manual check (unticked). Task 5.3's PR, its "API contract changes" description, the PR link on `VSS-uoxl` and closing `VSS-uoxl` were not done (the dev brief forbids push, PR and bead changes); story status and sprint status are `review`.
 
 ### File List
+
+- README.md (modified)
+- api/src/vintagestory_api/services/mod_state.py (modified)
+- api/src/vintagestory_api/services/mods.py (modified)
+- api/tests/conftest.py (modified)
+- api/tests/test_main.py (modified)
+- api/tests/test_mod_state.py (modified)
+- api/tests/test_mod_state_sync_startup.py (new)
+- _bmad-output/implementation-artifacts/19-5-mod-state-matches-the-mods-directory.md (modified)
 
 ## Change Log
 
 - 2026-11-17: Story 19.5 created and validated (ready-for-dev).
+- 2026-11-17: Tasks 1-4 and 5.1 implemented; status review. 5.2 (manual check) waits for the maintainer; 5.3's PR, bead link and `VSS-uoxl` closing are left to the maintainer.
