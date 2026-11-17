@@ -88,6 +88,8 @@ export VS_API_KEY_MONITOR="$MONITOR_KEY"
 unset VS_API_KEY
 export E2E_BASE_URL="$BASE_URL"
 export PLAYWRIGHT_BASE_URL="$BASE_URL"
+# web/e2e/file-browser-new-directory.spec.ts creates a directory in this container only
+export E2E_CONTAINER="$CONTAINER"
 # A failed local run would otherwise serve the HTML report and never return
 export PLAYWRIGHT_HTML_OPEN=never
 
