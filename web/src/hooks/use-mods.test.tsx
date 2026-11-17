@@ -1718,4 +1718,54 @@ describe('enable, disable and remove report errors', () => {
       expect(toast.error).toHaveBeenCalledWith('Error', { description: 'disk full' });
     });
   }
+
+  // Story 19.4 AC 18 (FR218, FR222): the file refusals reach the admin as the API wrote them
+  const fileRefusals = [
+    {
+      name: 'useEnableMod',
+      useHook: useEnableMod,
+      code: 'MOD_FILE_CONFLICT',
+      message:
+        "Cannot enable 'smithingplus': a file named smithingplus_1.8.3.zip already exists in the mods directory.",
+    },
+    {
+      name: 'useEnableMod',
+      useHook: useEnableMod,
+      code: 'MOD_FILE_MISSING',
+      message:
+        "Cannot enable 'smithingplus': its file smithingplus_1.8.3.zip.disabled is no longer in the mods directory. Remove the mod and install it again.",
+    },
+    {
+      name: 'useDisableMod',
+      useHook: useDisableMod,
+      code: 'MOD_FILE_CONFLICT',
+      message:
+        "Cannot disable 'smithingplus': a file named smithingplus_1.8.3.zip.disabled already exists in the mods directory.",
+    },
+    {
+      name: 'useDisableMod',
+      useHook: useDisableMod,
+      code: 'MOD_FILE_MISSING',
+      message:
+        "Cannot disable 'smithingplus': its file smithingplus_1.8.3.zip is no longer in the mods directory. Remove the mod and install it again.",
+    },
+  ] as const;
+
+  for (const { name, useHook, code, message } of fileRefusals) {
+    it(`${name} rolls back and shows the API message for ${code}`, async () => {
+      failWith(409, code, message);
+      const queryClient = createTestQueryClient();
+      queryClient.setQueryData(['mods'], mockModsList);
+      const { result } = renderHook(() => useHook(), { wrapper: createWrapper(queryClient) });
+
+      await act(async () => {
+        result.current.mutate('smithingplus');
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Error', { description: message });
+      expect(queryClient.getQueryData(['mods'])).toEqual(mockModsList);
+    });
+  }
 });
