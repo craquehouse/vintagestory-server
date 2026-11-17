@@ -65,6 +65,9 @@ for entry in "${cases[@]}"; do
     IFS='|' read -r -a words <<<"$entry"
     last=${words[${#words[@]} - 1]}
     run_just "${words[@]}"
+    status=$?
+    # A recipe that fails after logging its arguments (e.g. a later line splitting them) fails here
+    assert_eq "just ${words[0]} exits 0 with the stubs" 0 "$status"
     assert_logged "just ${words[0]} passes '$last' as one argument" "$last"
 done
 
