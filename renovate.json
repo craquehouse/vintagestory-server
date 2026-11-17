@@ -3,6 +3,16 @@
   "extends": [
     "local>craquehouse/renovate-config"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The semgrep version that scripts/semgrep.sh runs through uvx",
+      "managerFilePatterns": ["/^scripts/semgrep\\.sh$/"],
+      "matchStrings": ["SEMGREP_VERSION=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""],
+      "depNameTemplate": "semgrep",
+      "datasourceTemplate": "pypi"
+    }
+  ],
   "packageRules": [
     {
       "description": "Keep Python on the version Ubuntu 26.04 ships in the container image",

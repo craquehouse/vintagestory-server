@@ -90,4 +90,31 @@ done
 assert_contains "just semgrep runs the script with its arguments" './scripts/semgrep.sh "$@"' \
     "$(just --justfile "$justfile" --show semgrep 2>&1)"
 
+# --- D. The version line and the Renovate rule (AC 3) ---
+
+assert_eq "the script has one SEMGREP_VERSION line of the form Renovate matches" 1 \
+    "$(grep -cE '^SEMGREP_VERSION="[0-9]+\.[0-9]+\.[0-9]+"$' "$SEMGREP" 2>/dev/null)"
+
+renovate="$ROOT/renovate.json"
+semgrep_managers='[.customManagers[] | select(.datasourceTemplate == "pypi" and .depNameTemplate == "semgrep")]'
+assert_eq "renovate.json has one custom manager for semgrep on PyPI" 1 \
+    "$(yq -p json "$semgrep_managers | length" "$renovate" 2>/dev/null)"
+assert_contains "the custom manager reads scripts/semgrep.sh" 'scripts/semgrep\.sh' \
+    "$(yq -p json "$semgrep_managers | .[0].managerFilePatterns[]" "$renovate" 2>/dev/null)"
+# Renovate's pattern, run by Perl (which knows the named group), finds the script's version
+pattern=$(yq -p json "$semgrep_managers | .[0].matchStrings[0]" "$renovate" 2>/dev/null)
+matched=$(RE="$pattern" perl -ne 'print "$+{currentValue}\n" if /$ENV{RE}/' "$SEMGREP" 2>/dev/null)
+if [[ -n $version && $matched == "$version" ]]; then
+    pass
+else
+    fail "Renovate's pattern captures the script's version" "pattern '$pattern' gave '$matched', version '$version'"
+fi
+
+# The version is written once: nothing else pins semgrep, and CI runs it through the recipe
+pins=$(git -C "$ROOT" grep -nE 'semgrep==[0-9]' -- . ':(exclude)_bmad-output' ':(exclude)*.md' 2>&1)
+assert_eq "no file pins a semgrep version (git grep finds nothing)" "1" "$?"
+assert_eq "no file pins a semgrep version" "" "$pins"
+ci="$ROOT/.github/workflows/ci.yml"
+if ! grep -qE 'semgrep==|uvx' "$ci"; then pass; else fail "ci.yml runs semgrep only through just semgrep"; fi
+
 finish
