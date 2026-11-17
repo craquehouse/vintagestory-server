@@ -1,5 +1,6 @@
 """Tests for cache eviction service."""
 
+import os
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -18,10 +19,13 @@ def cache_dir(tmp_path: Path) -> Path:
 
 
 def create_test_file(cache_dir: Path, name: str, size_bytes: int) -> Path:
-    """Create a test file with specified size in the mods cache."""
-    mods_cache = cache_dir / "mods"
-    mods_cache.mkdir(parents=True, exist_ok=True)
-    file_path = mods_cache / name
+    """Create a test file with specified size in the mods cache.
+
+    Each file gets its own directory, as a download's file ID does (Story 19.4).
+    """
+    file_dir = cache_dir / "mods" / Path(name).stem
+    file_dir.mkdir(parents=True, exist_ok=True)
+    file_path = file_dir / name
     file_path.write_bytes(b"x" * size_bytes)
     return file_path
 
@@ -434,3 +438,71 @@ class TestLogging:
         captured = capsys.readouterr()
         assert "cache_file_stat_failed" in captured.out
         assert "Permission denied" in captured.out
+
+
+def age(path: Path, seconds: float) -> None:
+    """Set the file's modification time `seconds` in the past."""
+    then = time.time() - seconds
+    os.utime(path, (then, then))
+
+
+class TestFileIdLayout:
+    """Story 19.4 (FR221, Epic 19 ADR-11): cache/mods/<fileid>/<name>."""
+
+    def test_a_flat_file_is_not_counted(self, cache_dir: Path) -> None:
+        create_test_file(cache_dir, "mod1.zip", 1000)
+        (cache_dir / "mods" / "flat.zip").write_bytes(b"x" * 500)
+
+        stats = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100).get_cache_stats()
+
+        assert (stats["file_count"], stats["total_size_bytes"]) == (1, 1000)
+
+    def test_eviction_removes_the_directories_it_empties(self, cache_dir: Path) -> None:
+        old = create_test_file(cache_dir, "old.zip", 600 * 1024)
+        age(old, 3600)
+        new = create_test_file(cache_dir, "new.zip", 600 * 1024)
+        (new.parent / "notes.txt").write_bytes(b"kept")
+
+        result = CacheEvictionService(cache_dir=cache_dir, max_size_mb=1).evict_if_needed()
+
+        assert result.files_evicted == 1
+        assert not old.parent.exists()
+        assert new.exists()
+        assert [p.name for p in (cache_dir / "mods").iterdir()] == ["new"]
+
+    def test_evict_all_keeps_a_directory_that_is_not_empty(self, cache_dir: Path) -> None:
+        create_test_file(cache_dir, "mod1.zip", 1000)
+        other = create_test_file(cache_dir, "mod2.zip", 1000)
+        (other.parent / "notes.txt").write_bytes(b"kept")
+
+        result = CacheEvictionService(cache_dir=cache_dir, max_size_mb=100).evict_all()
+
+        assert result.files_evicted == 2
+        assert [p.name for p in (cache_dir / "mods").iterdir()] == ["mod2"]
+        assert [p.name for p in other.parent.iterdir()] == ["notes.txt"]
+
+
+class TestStaleTempFiles:
+    """Story 19.4 (FR221, Epic 19 ADR-11 decision 4): a crashed download's temp is removed."""
+
+    @pytest.mark.parametrize("max_size_mb", [100, 0], ids=["enabled", "disabled"])
+    def test_an_old_temp_is_removed_and_a_young_one_kept(
+        self, cache_dir: Path, capsys: pytest.CaptureFixture[str], max_size_mb: int
+    ) -> None:
+        stale = cache_dir / "mods" / "5" / "abc.tmp"
+        stale.parent.mkdir()
+        stale.write_bytes(b"partial")
+        age(stale, 2 * 3600)
+        young = cache_dir / "mods" / "6" / "def.tmp"
+        young.parent.mkdir()
+        young.write_bytes(b"partial")
+        age(young, 10 * 60)
+
+        CacheEvictionService(cache_dir=cache_dir, max_size_mb=max_size_mb).evict_if_needed()
+
+        assert not stale.exists()
+        assert not stale.parent.exists()
+        assert young.read_bytes() == b"partial"
+        out = capsys.readouterr().out
+        assert "cache_temp_file_removed" in out
+        assert "def.tmp" not in out

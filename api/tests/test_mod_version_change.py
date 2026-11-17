@@ -88,10 +88,10 @@ class TestDownloadUsesSafeFilename:
 
         assert result is not None
         assert result.filename == "escaped.zip"
-        assert result.path == tmp_path / "cache" / "mods" / "escaped.zip"
+        assert result.path == tmp_path / "cache" / "mods" / "7" / "escaped.zip"
         assert result.path.read_bytes() == b"zip-bytes"
         assert not (tmp_path / "escaped.zip").exists()
-        assert not list((tmp_path / "cache" / "mods").glob("*.tmp"))
+        assert not list((tmp_path / "cache" / "mods").rglob("*.tmp"))
 
     @respx.mock
     @pytest.mark.asyncio
@@ -114,7 +114,7 @@ class TestDownloadUsesSafeFilename:
 
         path = await client.download_release_file("demo", 7, "x/Demo 1.0.zip")
 
-        assert path == tmp_path / "cache" / "mods" / "Demo 1.0.zip"
+        assert path == tmp_path / "cache" / "mods" / "7" / "Demo 1.0.zip"
         assert path.read_bytes() == b"release"
 
 
@@ -307,7 +307,8 @@ class TestPrepareVersionChange:
 
         assert download.called
         assert prepared.target.modversion == "1.14.1"
-        assert prepared.archive == tmp_path / "cache" / "mods" / release["filename"]
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
+        assert prepared.archive == cached
 
     @respx.mock
     @pytest.mark.asyncio
@@ -316,7 +317,7 @@ class TestPrepareVersionChange:
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
         mock_lookup("carryon", "carryon")
         release = fixture_release("carryon", "carryon", "1.14.3")
-        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "1.14.3"}))
         download = mock_download(release)
@@ -328,6 +329,30 @@ class TestPrepareVersionChange:
 
     @respx.mock
     @pytest.mark.asyncio
+    async def test_an_archive_cached_under_another_file_id_is_not_used(
+        self, tmp_path: Path
+    ) -> None:
+        """Story 19.4 (FR221, Epic 19 ADR-11): the cache is keyed by file ID."""
+        service = make_service(tmp_path)
+        install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
+        mock_lookup("carryon", "carryon")
+        release = fixture_release("carryon", "carryon", "1.14.3")
+        elsewhere = service.api_client.cache_path(release["fileid"] + 1, release["filename"])
+        elsewhere.parent.mkdir(parents=True, exist_ok=True)
+        other_bytes = mod_zip_bytes({"modid": "carryon", "name": "x", "version": "1.14.3"})
+        elsewhere.write_bytes(other_bytes)
+        download = mock_download(release)
+
+        prepared = await service._prepare_version_change("carryon", "1.14.3", confirm=False)
+
+        assert download.called
+        assert prepared.archive == service.api_client.cache_path(
+            release["fileid"], release["filename"]
+        )
+        assert elsewhere.read_bytes() == other_bytes
+
+    @respx.mock
+    @pytest.mark.asyncio
     async def test_cached_archive_for_another_version_is_downloaded_again(
         self, tmp_path: Path
     ) -> None:
@@ -335,7 +360,7 @@ class TestPrepareVersionChange:
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
         mock_lookup("carryon", "carryon")
         release = fixture_release("carryon", "carryon", "1.14.3")
-        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "0.0.1"}))
         download = mock_download(release)
@@ -354,7 +379,7 @@ class TestPrepareVersionChange:
         install_existing(service, "carryon", "1.14.1", "carryon_1.14.1.zip")
         mock_lookup("carryon", "carryon")
         release = fixture_release("carryon", "carryon", "1.14.3")
-        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(mod_zip_bytes({"modid": "carryon", "name": "x", "version": "0.0.1"}))
         mock_download(release)
@@ -384,7 +409,7 @@ class TestPrepareVersionChange:
         mock_lookup("carryon", "carryon")
         release = fixture_release("carryon", "carryon", "1.14.3")
         mock_download(release, modinfo={"modid": "someothermod", "name": "x", "version": "1.14.3"})
-        cached = tmp_path / "cache" / "mods" / release["filename"]
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
         real_unlink = Path.unlink
 
         def unlink(self: Path, missing_ok: bool = False) -> None:
@@ -409,7 +434,8 @@ class TestPrepareVersionChange:
         with pytest.raises(ModValidationError):
             await service._prepare_version_change("carryon", "1.14.3", confirm=False)
 
-        assert not (tmp_path / "cache" / "mods" / release["filename"]).exists()
+        cached = service.api_client.cache_path(release["fileid"], release["filename"])
+        assert not cached.exists()
 
     @respx.mock
     @pytest.mark.asyncio

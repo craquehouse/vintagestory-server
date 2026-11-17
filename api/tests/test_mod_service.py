@@ -3,6 +3,7 @@
 import json
 import zipfile
 from collections.abc import Callable
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -2586,22 +2587,44 @@ class TestLookupInstallModId:
 
 
 class TestPrepareModFiles:
-    """Story 19.4 (Epic 19 ADR-9): the start-up work on the mods directory."""
+    """Story 19.4 (Epic 19 ADR-9, ADR-11): the start-up work on mods and the cache."""
 
-    def test_recovers_the_mods_directory(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    @pytest.fixture
+    def service(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ModService:
         service = ModService(
             state_dir=tmp_path / "state",
             mods_dir=tmp_path / "mods",
             cache_dir=tmp_path / "cache",
             restart_state=PendingRestartState(),
         )
-        mods_dir = service.state_manager.mods_dir
-        mods_dir.mkdir(parents=True)
-        (mods_dir / "Foo.zip.vsm-tmp").write_bytes(b"working copy")
+        service.state_manager.mods_dir.mkdir(parents=True)
         monkeypatch.setattr(mods_module, "get_mod_service", lambda: service)
+        return service
+
+    def test_recovers_mods_and_removes_the_old_cache_layout(
+        self, service: ModService, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        mods_dir = service.state_manager.mods_dir
+        (mods_dir / "Foo.zip.vsm-tmp").write_bytes(b"working copy")
+        mods_cache = tmp_path / "cache" / "mods"
+        (mods_cache / "11").mkdir(parents=True)
+        (mods_cache / "Old.zip").write_bytes(b"old layout")
+        (mods_cache / "11" / "New.zip").write_bytes(b"new layout")
 
         prepare_mod_files()
 
         assert list(mods_dir.iterdir()) == []
+        assert [p.name for p in mods_cache.iterdir()] == ["11"]
+        [line] = [
+            line for line in captured_logs.getvalue().splitlines()
+            if "mod_cache_old_layout_removed" in line
+        ]
+        assert "files" in line
+        assert "1" in line
+
+    def test_nothing_to_do_logs_no_removal(
+        self, service: ModService, captured_logs: StringIO
+    ) -> None:
+        prepare_mod_files()
+
+        assert "mod_cache_old_layout_removed" not in captured_logs.getvalue()

@@ -4,12 +4,20 @@ This module provides LRU-based cache eviction for the mod download cache,
 ensuring disk space is managed without manual intervention.
 """
 
+import time
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import structlog
 
 logger = structlog.get_logger()
+
+STALE_TEMP_AGE = timedelta(hours=1)
+"""A download's temporary file older than this was left by a crash (Epic 19 ADR-11).
+
+A download reads with a 120-second timeout per read, so an active one is far younger.
+"""
 
 
 @dataclass
@@ -50,12 +58,16 @@ class CacheEvictionService:
     file access times. When the cache exceeds the configured size limit,
     the oldest accessed files are evicted until the cache is under the limit.
 
+    Downloads are cached as `mods/<fileid>/<name>` (Epic 19 ADR-11): files are
+    counted one level below `mods/`, and a directory eviction empties is removed.
+
     Attributes:
         cache_dir: Directory containing cached files.
         max_size_bytes: Maximum cache size in bytes (0 to disable eviction).
     """
 
-    # File patterns to consider for eviction (mod archives)
+    # File patterns to consider for eviction (mod archives), matched in each
+    # file-ID directory under mods/
     CACHE_FILE_PATTERNS = ("*.zip", "*.cs")
 
     def __init__(
@@ -89,7 +101,9 @@ class CacheEvictionService:
         return self._max_size_bytes > 0
 
     def _get_cache_files(self) -> list[CacheFileInfo]:
-        """Get information about all files in the cache.
+        """Get information about all files in the cache (`mods/<fileid>/<name>`).
+
+        A file directly under `mods/` (the layout before Story 19.4) is not counted.
 
         Returns:
             List of CacheFileInfo for all cache files, sorted by access time
@@ -106,7 +120,7 @@ class CacheEvictionService:
             return files
 
         for pattern in self.CACHE_FILE_PATTERNS:
-            for path in mods_cache.glob(pattern):
+            for path in mods_cache.glob(f"*/{pattern}"):
                 if path.is_file():
                     try:
                         stat = path.stat()
@@ -127,6 +141,35 @@ class CacheEvictionService:
         # Sort by access time, oldest first (for LRU)
         files.sort(key=lambda f: f.access_time)
         return files
+
+    def _remove_stale_temp_files(self) -> None:
+        """Delete every `mods/*/*.tmp` older than STALE_TEMP_AGE, then its emptied directory.
+
+        Younger ones may belong to a download still running and are kept.
+        """
+        mods_cache = self._cache_dir / "mods"
+        if not mods_cache.is_dir():
+            return
+        cutoff = time.time() - STALE_TEMP_AGE.total_seconds()
+        for path in mods_cache.glob("*/*.tmp"):
+            try:
+                if not path.is_file() or path.stat().st_mtime >= cutoff:
+                    continue
+                path.unlink()
+                logger.info("cache_temp_file_removed", file=str(path.name))
+            except OSError as e:
+                logger.warning("cache_temp_file_not_removed", file=str(path), error=str(e))
+                continue
+            self._remove_if_empty(path.parent)
+
+    @staticmethod
+    def _remove_if_empty(directory: Path) -> None:
+        """Remove a file-ID directory that no longer holds anything."""
+        try:
+            directory.rmdir()
+        except OSError as e:
+            # Not empty, or already gone: either way nothing to do
+            logger.debug("cache_directory_kept", path=str(directory), error=str(e))
 
     def get_cache_size(self) -> int:
         """Get the current total size of the cache in bytes.
@@ -154,11 +197,13 @@ class CacheEvictionService:
         """Evict files if cache exceeds size limit.
 
         Uses LRU strategy - evicts oldest accessed files first until
-        the cache is under the size limit.
+        the cache is under the size limit. First removes temporary files a crashed
+        download left, also when eviction is disabled (Epic 19 ADR-11 decision 4).
 
         Returns:
             EvictionResult with eviction statistics.
         """
+        self._remove_stale_temp_files()
         if not self.eviction_enabled:
             files = self._get_cache_files()
             return EvictionResult(
@@ -203,6 +248,7 @@ class CacheEvictionService:
                     size_bytes=file_info.size_bytes,
                     reason="size_limit",
                 )
+                self._remove_if_empty(file_info.path.parent)
                 bytes_freed += file_info.size_bytes
                 current_size -= file_info.size_bytes
                 files_evicted += 1
@@ -255,6 +301,7 @@ class CacheEvictionService:
                     size_bytes=file_info.size_bytes,
                     reason="manual_clear",
                 )
+                self._remove_if_empty(file_info.path.parent)
                 bytes_freed += file_info.size_bytes
                 files_evicted += 1
             except OSError as e:

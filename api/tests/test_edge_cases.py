@@ -100,13 +100,14 @@ class TestModBrowseNormalization:
 
 class TestCacheEvictionEdgeCases:
     def write_cached_mod(self, cache_dir: Path, name: str, size_bytes: int) -> None:
-        mods_cache = cache_dir / "mods"
-        mods_cache.mkdir(parents=True, exist_ok=True)
-        (mods_cache / name).write_bytes(b"x" * size_bytes)
+        """Write `mods/<fileid>/<name>`, the cache's layout (Story 19.4)."""
+        file_dir = cache_dir / "mods" / "1"
+        file_dir.mkdir(parents=True, exist_ok=True)
+        (file_dir / name).write_bytes(b"x" * size_bytes)
 
     def test_directories_matching_pattern_are_not_counted(self, tmp_path: Path) -> None:
         self.write_cached_mod(tmp_path, "real.zip", 100)
-        (tmp_path / "mods" / "directory.zip").mkdir()
+        (tmp_path / "mods" / "2" / "directory.zip").mkdir(parents=True)
 
         stats = CacheEvictionService(cache_dir=tmp_path, max_size_mb=100).get_cache_stats()
 

@@ -962,3 +962,76 @@ class TestFileNamesIgnoreCase:
         assert link.is_symlink()
         assert mod_files(service) == ["Foo.zip"]
         assert service.state_manager.list_mods() == []
+
+
+def mock_same_file_name(modid: str, fileids: tuple[int, int]) -> None:
+    """Lookup and downloads of `modid`, whose releases are named `Same-<version>.zip`."""
+    respx.get(MOD_URL.format(modid)).mock(
+        return_value=Response(
+            200, json=entry(modid, "Same-1.1.0.zip", "Same-1.0.0.zip", fileids)
+        )
+    )
+    for fileid, version in zip(fileids, ("1.1.0", "1.0.0"), strict=True):
+        respx.get(DOWNLOAD_URL, params={"fileid": str(fileid)}).mock(
+            return_value=Response(
+                200, content=mod_zip_bytes({"modid": modid, "name": modid, "version": version})
+            )
+        )
+
+
+def modid_in(service: ModService, path: Path) -> str | None:
+    metadata = service.state_manager.read_modinfo(path)
+    return None if metadata is None else metadata.modid
+
+
+class TestDownloadsOfOneFileName:
+    """Story 19.4 AC 10 (FR221, Epic 19 ADR-11): each mod's download is its own."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_in_turn(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        mock_same_file_name("moda", (11, 10))
+        mock_same_file_name("modb", (21, 20))
+
+        await service.install_mod("moda")
+        service.remove_mod("moda")
+        await service.install_mod("modb")
+
+        mods_dir = service.state_manager.mods_dir
+        assert mod_files(service) == ["Same-1.1.0.zip"]
+        assert modid_in(service, mods_dir / "Same-1.1.0.zip") == "modb"
+        cache = service.api_client
+        assert modid_in(service, cache.cache_path(11, "Same-1.1.0.zip")) == "moda"
+        assert modid_in(service, cache.cache_path(21, "Same-1.1.0.zip")) == "modb"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_at_once(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        service = make_service(tmp_path)
+        mock_same_file_name("moda", (11, 10))
+        mock_same_file_name("modb", (21, 20))
+        started_a, release_a = gate_download(service, monkeypatch, "moda")
+        started_b, release_b = gate_download(service, monkeypatch, "modb")
+
+        first = asyncio.create_task(service.install_mod("moda"))
+        second = asyncio.create_task(service.install_mod("modb"))
+        await started_a.wait()
+        await started_b.wait()
+        release_a.set()
+        release_b.set()
+        results = await asyncio.gather(first, second, return_exceptions=True)
+
+        installed = [r for r in results if isinstance(r, InstallResult)]
+        refused = [r for r in results if isinstance(r, ModFileConflictError)]
+        assert len(installed) == 1
+        assert len(refused) == 1
+        winner = installed[0].slug
+        assert refused[0].slug != winner
+        mods_dir = service.state_manager.mods_dir
+        assert mod_files(service) == ["Same-1.1.0.zip"]
+        assert modid_in(service, mods_dir / "Same-1.1.0.zip") == winner
+        cache = service.api_client
+        assert modid_in(service, cache.cache_path(11, "Same-1.1.0.zip")) == "moda"
+        assert modid_in(service, cache.cache_path(21, "Same-1.1.0.zip")) == "modb"
+        assert service.busy_mod_ids == frozenset()

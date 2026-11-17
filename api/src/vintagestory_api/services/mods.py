@@ -38,7 +38,6 @@ from vintagestory_api.services.mod_api import (
     ReleaseDict,
     check_compatibility,
     extract_slug,
-    safe_release_filename,
     validate_slug,
 )
 from vintagestory_api.services.mod_api import (
@@ -125,15 +124,19 @@ def get_mod_service() -> ModService:
 
 
 def prepare_mod_files() -> None:
-    """Start-up work on the mods directory (Epic 19 ADR-9).
+    """Start-up work on the mods directory and the download cache (Epic 19 ADR-9, ADR-11).
 
     Called once by the API's lifespan, before the scheduler and the game server
     auto-start, so it runs before any mod operation. Steps, in order:
-    1. recover the manager's working files (ADR-9 decisions 6-7).
+    1. recover the manager's working files (ADR-9 decisions 6-7);
+    2. remove the download cache's old flat layout (ADR-11 decision 5).
     Story 19.5 adds the state sync (ADR-10) as step 3, after step 1.
     """
     service = get_mod_service()
     recover_working_files(service.state_manager)
+    removed = service.api_client.remove_flat_layout()
+    if removed:
+        logger.info("mod_cache_old_layout_removed", files=removed)
 
 
 async def close_mod_service() -> None:
@@ -1247,11 +1250,10 @@ class ModService:
     async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
         """Return a validated archive for the release: a valid cached copy, or a download."""
         try:
-            safe_name = safe_release_filename(target.filename)
+            cached = self.api_client.cache_path(target.fileid, target.filename)
         except ValueError as e:
             raise ModValidationError(slug, str(e)) from e
 
-        cached = self._cache_dir / "mods" / safe_name
         if cached.exists():
             if self._archive_matches(cached, slug, target.modversion):
                 logger.debug("mod_release_cache_hit", slug=slug, version=target.modversion)
