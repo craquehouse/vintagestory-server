@@ -58,7 +58,6 @@ VS_API_KEY=$DEV_API_KEY
 VS_CORS_ORIGINS="http://localhost:$WEB_PORT,http://localhost:$API_PORT"
 
 # Development settings
-VS_GAME_VERSION=stable
 VS_DEBUG=true
 
 # UV link mode

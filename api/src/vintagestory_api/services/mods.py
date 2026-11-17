@@ -97,8 +97,8 @@ def get_mod_service() -> ModService:
             mods_dir=mods_dir,
             cache_dir=cache_dir,
             restart_state=get_restart_state(),
-            # No game_version: compatibility follows the installed server, not
-            # VS_GAME_VERSION (the install channel). VSS-tpe.
+            # No game_version: compatibility follows the installed server version
+            # (VSS-tpe). VS_GAME_VERSION, a former setting, is gone (Story 19.1).
             mod_cache_max_size_mb=settings.mod_cache_max_size_mb,
         )
 
@@ -299,8 +299,8 @@ class ModService:
             mod_cache_max_size_mb: Maximum cache size in MB (0 to disable eviction).
             game_version_provider: Returns the game version that lookups, installs and
                 version changes check compatibility against. Defaults to the installed
-                server version, read on each call (VSS-tpe); never VS_GAME_VERSION,
-                which only chooses what to install.
+                server version, read on each call (VSS-tpe). The former
+                VS_GAME_VERSION setting was removed in Story 19.1.
         """
         self._state_manager = ModStateManager(state_dir=state_dir, mods_dir=mods_dir)
         self._restart_state = restart_state

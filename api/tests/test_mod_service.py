@@ -706,7 +706,6 @@ class TestGetModServiceDependency:
             mock_settings.return_value.vsmanager_dir = custom_state
             mock_settings.return_value.serverdata_dir = custom_serverdata
             mock_settings.return_value.cache_dir = custom_cache
-            mock_settings.return_value.game_version = "1.21.3"
 
             service = get_mod_service()
 
@@ -2072,8 +2071,8 @@ class TestModServiceProperties:
 
 
 class TestCompatibilityUsesInstalledServerVersion:
-    """VSS-tpe: lookup and install check compatibility against the installed server,
-    not VS_GAME_VERSION (the install channel, e.g. "stable" or an old pin)."""
+    """VSS-tpe: lookup and install check compatibility against the installed server
+    version. VS_GAME_VERSION, a former setting removed in Story 19.1, has no effect."""
 
     @staticmethod
     def make(
