@@ -171,6 +171,13 @@ if [[ -n $replay_line && -n $second_run && -n $web_line ]] \
 else
     fail "E2E_MODDB_REPLAY=1 is set on the second Playwright run only"
 fi
+# In the replay run the browser reaches nothing but the manager: a context route answers
+# every other image with the placeholder and aborts every other request (Story 20.6 review)
+helper=$(sed -n '/^export async function serveModImagePlaceholders/,/^}/p' "$ROOT/web/e2e/config-js.ts")
+for needle in "context.route('**/*'" "local.has(url.hostname)" "route.fallback()" \
+    "request.resourceType() === 'image'" "return route.abort();"; do
+    assert_contains "the replay helper routes every non-local request: $needle" "$needle" "$helper"
+done
 if grep -qF "process.env.E2E_MODDB_REPLAY !== '1'" "$ROOT/web/e2e/config-js.ts"; then
     pass
 else

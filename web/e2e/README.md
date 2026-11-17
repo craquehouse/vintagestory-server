@@ -90,6 +90,9 @@ nothing about any instance is in them.
   `no_recording GET <path>` line in the replay's log; a failed run prints those lines at
   the end. A test that opens a card picked from the grid needs that card's lookup: add the
   request the log names to the manifest and record only it.
+  To run it by hand, pass `--host 127.0.0.1` so it listens on loopback only:
+  `python3 scripts/moddb-replay.py --dir web/e2e/fixtures/moddb --host 127.0.0.1`
+  (its default, `0.0.0.0`, is for the private Docker network of the second pass).
 - `just record-moddb` fetches every request of the manifest from the live mod database
   (it needs the network), writes the files with the same trimming and their new dates, and
   prints per request the fields (key paths, list positions collapsed) that appeared (`+`)
@@ -117,12 +120,14 @@ answers the page's `GET /api/v1alpha1/server/status` as installed when the stack
 game server; a stack with a game server is passed through unchanged. Both are routes on
 the page, so a test that opens a second page calls them for that page too.
 `serveModImagePlaceholders(page)` does nothing unless `E2E_MODDB_REPLAY=1` (the second
-pass sets it): then it answers every image request to `moddbcdn.vintagestory.at` with a
-1x1 PNG and aborts any request to `mods.vintagestory.at`, on the page's browser context,
-so a second page is covered too. Every spec with a `@moddb` test calls it in its set-up.
-A mod description can embed images from other hosts (GitHub, image hosts); those are
-not the mod database and are not stubbed. A trailer is an embed that loads only on a
-click, so no test loads one.
+pass sets it): then it keeps the browser off the internet. Every image request that does
+not go to the manager (`moddbcdn.vintagestory.at`, and the GitHub, image-host and other
+images that mod descriptions embed) gets a 1x1 PNG, a request to `mods.vintagestory.at` is
+aborted, and so is any other request that does not go to the manager (the host of
+`E2E_BASE_URL`, `127.0.0.1` or `localhost`). The manager's own pages, scripts, styles and
+API pass untouched. The routes are on the page's browser context, so a second page is
+covered too. Every spec with a `@moddb` test calls it in its set-up. A trailer is an
+embed that loads only on a click, so no test loads one.
 
 ## The fixture
 
