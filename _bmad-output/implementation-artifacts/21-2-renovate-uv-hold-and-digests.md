@@ -1,6 +1,6 @@
 # Story 21.2: Renovate: the uv Hold and Digest Refreshes
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR264, FR265, Epic 21 ADR-2 and ADR-3. Beads: none (maintainer decisions 1 and 2; Matt, 2026-11-17). Epic 21 order 21.1 to 21.8, each stacked on the previous; this story touches no file under web/ and needs no other story's code (epics.md "Dependencies"). Line references were verified at 966204f (epic-21-planning; renovate.json, RELEASING.md, cliff.toml, Dockerfile, .mise.toml and scripts/tests/ are identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time: Story 21.1 edits the Justfile and CI, and 21.3 edits the README. Renovate configuration, script tests and documentation only: no file under api/ or web/ changes, no API contract change, no release note. No new dependencies. -->
 
@@ -65,38 +65,38 @@ so that **Renovate's pull requests follow the organisation's rules and the relea
 
 <!-- Commit per task: type(story-21.2/task-N): ... . Types are fixed for this story: chore (Tasks 1, 2: Renovate configuration with its tests, as Story 20.7 Task 2 and 66c4b21 "chore(renovate): ..."), docs (Task 3). No feat/fix/perf: nothing here is a release note (sprint-change-proposal-2026-11-17-epic-21.md section 2, "No note: Story 21.2 (chore, docs)"). Red first in Tasks 1 and 2. -->
 
-- [ ] Task 1: The uv rule keeps the preset's hold (AC: 1, 3, 5)
-  - [ ] 1.1: Red first. Create `scripts/tests/test-renovate.sh` with the header, the `uv` block of the Python check and the assertion of Dev Notes "The script test" (leave out the `digest` block and the "retypes" loop for now). `run.sh` calls `bash "$file"`, so the mode does not matter to it; make it executable like `test-docker-context.sh` and `test-changelog.sh` (`git ls-files -s` shows `100755`). Run `just test-scripts test-renovate.sh` against today's `renovate.json` and record in the Debug Log that it fails with exactly "the uv rule sets no minimumReleaseAge (the preset's hold applies)"
-  - [ ] 1.2: `renovate.json:32`: delete the line `"minimumReleaseAge": null,`. Change nothing else in the rule's keys (`matchDepNames`, `groupName`, `groupSlug`, `semanticCommitType`, `semanticCommitScope`, `commitMessagePrefix` stay as they are at `:29-35`)
-  - [ ] 1.3: `renovate.json:28`: replace the uv rule's `description` with the text of Dev Notes "The uv rule" (one JSON string, no line breaks, matching the file's style). Edit by hand; do not reformat the file with a JSON tool (Story 20.7 Task 2.1)
-  - [ ] 1.4: `python3 -m json.tool renovate.json >/dev/null`; `just test-scripts test-renovate.sh test-docker-context.sh` passes (`test-docker-context.sh` 10/10, unchanged)
-  - [ ] 1.5: Commit `chore(story-21.2/task-1): keep Renovate's one-day hold on uv updates`
+- [x] Task 1: The uv rule keeps the preset's hold (AC: 1, 3, 5)
+  - [x] 1.1: Red first. Create `scripts/tests/test-renovate.sh` with the header, the `uv` block of the Python check and the assertion of Dev Notes "The script test" (leave out the `digest` block and the "retypes" loop for now). `run.sh` calls `bash "$file"`, so the mode does not matter to it; make it executable like `test-docker-context.sh` and `test-changelog.sh` (`git ls-files -s` shows `100755`). Run `just test-scripts test-renovate.sh` against today's `renovate.json` and record in the Debug Log that it fails with exactly "the uv rule sets no minimumReleaseAge (the preset's hold applies)"
+  - [x] 1.2: `renovate.json:32`: delete the line `"minimumReleaseAge": null,`. Change nothing else in the rule's keys (`matchDepNames`, `groupName`, `groupSlug`, `semanticCommitType`, `semanticCommitScope`, `commitMessagePrefix` stay as they are at `:29-35`)
+  - [x] 1.3: `renovate.json:28`: replace the uv rule's `description` with the text of Dev Notes "The uv rule" (one JSON string, no line breaks, matching the file's style). Edit by hand; do not reformat the file with a JSON tool (Story 20.7 Task 2.1)
+  - [x] 1.4: `python3 -m json.tool renovate.json >/dev/null`; `just test-scripts test-renovate.sh test-docker-context.sh` passes (`test-docker-context.sh` 10/10, unchanged)
+  - [x] 1.5: Commit `chore(story-21.2/task-1): keep Renovate's one-day hold on uv updates`
 
-- [ ] Task 2: Digest refreshes of Dockerfile images are `chore(container)` (AC: 4, 5, 7)
-  - [ ] 2.1: Red first. Add the `digest` block and the "retypes" loop of Dev Notes "The script test" to `test-renovate.sh`. Run it and record that it fails with exactly "one rule types dockerfile digest and pinDigest updates chore"
-  - [ ] 2.2: Append the rule of Dev Notes "The digest rule" as the fourth and last entry of `packageRules` (after the uv rule, whose closing `}` is at `:36` today; add the `,`). Last, so that it is applied after every preset rule and after the uv rule (Dev Notes "Rule order")
-  - [ ] 2.3: `scripts/tests/test-changelog.sh`: add the block of Dev Notes "The changelog test" just before `# --- Version bumps on 0.x and pre-release tags` (`:108` today). It must pass without any change to `cliff.toml`
-  - [ ] 2.4: `just test-scripts` passes (all files; `test-renovate.sh` 1/1, `test-changelog.sh` 24/24, `test-docker-context.sh` 10/10). Negative checks, reverted afterwards and recorded: with `"minimumReleaseAge": null` put back the test fails on the uv line; with the digest rule's `semanticCommitType` set to `"fix"` it fails on the digest line; with a rule `{"matchManagers": ["dockerfile"], "matchUpdateTypes": ["patch"], "semanticCommitType": "chore"}` inserted before the digest rule it fails on "retypes" only (inserted after it, the "last entry" check fails too)
-  - [ ] 2.5: `just lint-scripts` passes (ShellCheck covers `scripts/tests/*.sh`)
-  - [ ] 2.6: Commit `chore(story-21.2/task-2): commit Dockerfile image digest refreshes as chore(container)`
+- [x] Task 2: Digest refreshes of Dockerfile images are `chore(container)` (AC: 4, 5, 7)
+  - [x] 2.1: Red first. Add the `digest` block and the "retypes" loop of Dev Notes "The script test" to `test-renovate.sh`. Run it and record that it fails with exactly "one rule types dockerfile digest and pinDigest updates chore"
+  - [x] 2.2: Append the rule of Dev Notes "The digest rule" as the fourth and last entry of `packageRules` (after the uv rule, whose closing `}` is at `:36` today; add the `,`). Last, so that it is applied after every preset rule and after the uv rule (Dev Notes "Rule order")
+  - [x] 2.3: `scripts/tests/test-changelog.sh`: add the block of Dev Notes "The changelog test" just before `# --- Version bumps on 0.x and pre-release tags` (`:108` today). It must pass without any change to `cliff.toml`
+  - [x] 2.4: `just test-scripts` passes (all files; `test-renovate.sh` 1/1, `test-changelog.sh` 24/24, `test-docker-context.sh` 10/10). Negative checks, reverted afterwards and recorded: with `"minimumReleaseAge": null` put back the test fails on the uv line; with the digest rule's `semanticCommitType` set to `"fix"` it fails on the digest line; with a rule `{"matchManagers": ["dockerfile"], "matchUpdateTypes": ["patch"], "semanticCommitType": "chore"}` inserted before the digest rule it fails on "retypes" only (inserted after it, the "last entry" check fails too)
+  - [x] 2.5: `just lint-scripts` passes (ShellCheck covers `scripts/tests/*.sh`)
+  - [x] 2.6: Commit `chore(story-21.2/task-2): commit Dockerfile image digest refreshes as chore(container)`
 
-- [ ] Task 3: `RELEASING.md` (AC: 2)
-  - [ ] 3.1: Replace the first sentence of `RELEASING.md:57` ("Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request.") with the paragraph of Dev Notes "RELEASING.md"; keep the rest of `:57` (the `api/uv.lock` `revision` sentence and "Dependency versions are not affected.") as it is, after the new text
-  - [ ] 3.2: `RELEASING.md:71`: after "Renovate moves the pins in pull requests, which CI builds and tests." add the release-note sentence of Dev Notes "RELEASING.md"
-  - [ ] 3.3: Read the result once in rendered form (`gh markdown-preview` is not needed; a plain read is enough) and check that no other line of `RELEASING.md` still says the two uv halves arrive at once (`grep -n "one pull request\|uv" RELEASING.md`)
-  - [ ] 3.4: Commit `docs(story-21.2/task-3): say a uv pull request waits a day for its .mise.toml half, and which image updates make a release note`
+- [x] Task 3: `RELEASING.md` (AC: 2)
+  - [x] 3.1: Replace the first sentence of `RELEASING.md:57` ("Renovate updates uv in `.mise.toml` and the Dockerfile in one pull request.") with the paragraph of Dev Notes "RELEASING.md"; keep the rest of `:57` (the `api/uv.lock` `revision` sentence and "Dependency versions are not affected.") as it is, after the new text
+  - [x] 3.2: `RELEASING.md:71`: after "Renovate moves the pins in pull requests, which CI builds and tests." add the release-note sentence of Dev Notes "RELEASING.md"
+  - [x] 3.3: Read the result once in rendered form (`gh markdown-preview` is not needed; a plain read is enough) and check that no other line of `RELEASING.md` still says the two uv halves arrive at once (`grep -n "one pull request\|uv" RELEASING.md`)
+  - [x] 3.4: Commit `docs(story-21.2/task-3): say a uv pull request waits a day for its .mise.toml half, and which image updates make a release note`
 
-- [ ] Task 4: Validate and record (AC: 6, 8, 9)
-  - [ ] 4.1: Renovate's validator, from a scratch directory outside the repository (it downloads Renovate into Bun's cache; nothing is added to the project): `cd <scratch dir> && bunx --package renovate renovate --version && bunx --package renovate renovate-config-validator --no-global <worktree>/renovate.json; echo "exit=$?"`. Expect "Validating <path>/renovate.json as repo config", "Config validated successfully against 1 file(s)", `exit=0`. Use `--no-global` and run under Node, not `bunx --bun` (Story 20.7 Task 2.2). Record the version and output in the Debug Log
-  - [ ] 4.2: `git status --short` in the worktree shows nothing the validator wrote (`web/package.json` and `web/bun.lock` unchanged)
-  - [ ] 4.3: Record the state of PR #185 read-only: `gh pr view 185 --json state,files,headRefOid,statusCheckRollup`. Do not merge, close, rebase, comment on or push to it. Write in the Completion Notes and the PR description what the maintainer should know (Dev Notes "Pull request #185")
-  - [ ] 4.4: `just semgrep` (needs the network) reports 0 findings with the new test file tracked (semgrep scans only tracked files, so run it after the Task 2 commit)
+- [x] Task 4: Validate and record (AC: 6, 8, 9)
+  - [x] 4.1: Renovate's validator, from a scratch directory outside the repository (it downloads Renovate into Bun's cache; nothing is added to the project): `cd <scratch dir> && bunx --package renovate renovate --version && bunx --package renovate renovate-config-validator --no-global <worktree>/renovate.json; echo "exit=$?"`. Expect "Validating <path>/renovate.json as repo config", "Config validated successfully against 1 file(s)", `exit=0`. Use `--no-global` and run under Node, not `bunx --bun` (Story 20.7 Task 2.2). Record the version and output in the Debug Log
+  - [x] 4.2: `git status --short` in the worktree shows nothing the validator wrote (`web/package.json` and `web/bun.lock` unchanged)
+  - [x] 4.3: Record the state of PR #185 read-only: `gh pr view 185 --json state,files,headRefOid,statusCheckRollup`. Do not merge, close, rebase, comment on or push to it. Write in the Completion Notes and the PR description what the maintainer should know (Dev Notes "Pull request #185")
+  - [x] 4.4: `just semgrep` (needs the network) reports 0 findings with the new test file tracked (semgrep scans only tracked files, so run it after the Task 2 commit)
 
 - [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `just check` passes; the diff adds no lint or type suppression; `git status --short` is clean after it
-  - [ ] 5.2: `just changelog` shows no entry from this story's commits (all `chore` or `docs`)
-  - [ ] 5.3: AC 3 check: `git diff <base>..HEAD -- scripts/tests/test-docker-context.sh cliff.toml Dockerfile .mise.toml` prints nothing
-  - [ ] 5.4: (status moves by the dev agent; PR by the controller) Story status `review`, `just sprint set 21-2-renovate-uv-hold-and-digests review`, PR against the previous story's branch while its PR is open, otherwise `main`. The PR description says: no API contract change, no release note; uv PRs will now be red for about a day by design; image digest refreshes become `chore(container)`; the validator output; the state of PR #185 and the timing note of Dev Notes "Pull request #185"
+  - [x] 5.1: `just check` passes; the diff adds no lint or type suppression; `git status --short` is clean after it
+  - [x] 5.2: `just changelog` shows no entry from this story's commits (all `chore` or `docs`)
+  - [x] 5.3: AC 3 check: `git diff <base>..HEAD -- scripts/tests/test-docker-context.sh cliff.toml Dockerfile .mise.toml` prints nothing
+  - [x] 5.4: (status moves by the dev agent; PR by the controller) Story status `review`, `just sprint set 21-2-renovate-uv-hold-and-digests review`, PR against the previous story's branch while its PR is open, otherwise `main`. The PR description says: no API contract change, no release note; uv PRs will now be red for about a day by design; image digest refreshes become `chore(container)`; the validator output; the state of PR #185 and the timing note of Dev Notes "Pull request #185"
   - [ ] 5.5: After the merge (may be completed by the controller or the maintainer later; leave unchecked until observed): record in the Completion Notes (a) the first uv pull request under the new rule: did it open with the Dockerfile half only, did `test-docker-context.sh` fail it, and did the `.mise.toml` half join about a day later (ADR-2 consequences; if the held half never joins, report it to the maintainer for a new decision); (b) the first Dockerfile digest pull request: its title starts `chore(container):` (AC 6). No bead is closed by this story
 
 ## Dev Notes
@@ -333,14 +333,42 @@ Files touched: `renovate.json`, `scripts/tests/test-renovate.sh` (new), `scripts
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Task 1.1 (red): `just test-scripts test-renovate.sh` against the base `renovate.json`: 0/1, `expected '', got 'the uv rule sets no minimumReleaseAge (the preset's hold applies)'`. After 1.2-1.3: `test-renovate.sh` 1/1, `test-docker-context.sh` 10/10; `python3 -m json.tool renovate.json` clean.
+- Task 2.1 (red): with the digest block and the "retypes" loop added: 0/1, `expected '', got 'one rule types dockerfile digest and pinDigest updates chore'`. After 2.2-2.3: `just test-scripts` all green (`test-renovate.sh` 1/1, `test-changelog.sh` 24/24, `test-docker-context.sh` 10/10). `cliff.toml` unchanged.
+- Task 2.4 negative checks, each on the final `renovate.json` and restored byte for byte afterwards (`cmp` against a scratch copy): `"minimumReleaseAge": null` put back in the uv rule: 0/1 on the uv line only; the digest rule's `semanticCommitType` set to `"fix"`: 0/1 on the digest line only; `{"matchManagers": ["dockerfile"], "matchUpdateTypes": ["patch"], "semanticCommitType": "chore"}` inserted before the digest rule: 0/1 on "a rule retypes ['patch'] updates" only; appended after it: 0/1 on both the digest line ("last entry") and "retypes".
+- Task 2.5: `just lint-scripts` clean (ShellCheck on `scripts/tests/*.sh`, ruff, pyright).
+- Task 4.1: from a scratch directory outside the repository, `bunx --package renovate renovate --version` → `44.251.0`; `bunx --package renovate renovate-config-validator --no-global <worktree>/renovate.json` → ` INFO: Validating <worktree>/renovate.json as repo config`, ` INFO: Config validated successfully against 1 file(s)`, `exit=0` (run under Node, not `--bun`).
+- Task 4.2: `git status --short` afterwards showed only `_bmad-output/implementation-artifacts/sprint-status.yaml` (the `just sprint set` of the story start); `web/package.json` and `web/bun.lock` unchanged.
+- Task 4.3: `gh pr view 185 --json state,mergedAt,mergeCommit,files,headRefOid,statusCheckRollup` (read-only): `MERGED` at 2026-11-17T22:17:52Z, merge commit `a7e2e62`, head `14d5c28`, files `.mise.toml` and `Dockerfile`, all six checks SUCCESS (API tests, Web tests and build, Release scripts, Docker image, E2E tests, Semgrep).
+- Task 4.4: `just semgrep` after the Task 2 commit (test file tracked): "Ran 280 rules on 228 files: 0 findings."
+- Task 5.1: `just check` exit 0: API 3387 passed; web 132 files, 3307 tests passed; pyright 0 errors, 0 warnings; script tests all green. No suppression in the diff (`grep` for nosemgrep/noqa/type: ignore/pyright: ignore/eslint-disable/shellcheck disable over `git diff 38990a2..HEAD`: none).
+- Task 5.2: `just changelog` shows no entry from `c6a81e8`, `b410baa` or `1253446` (all `chore`/`docs`).
+- Task 5.3: `git diff 38990a2..HEAD -- scripts/tests/test-docker-context.sh cliff.toml Dockerfile .mise.toml` prints nothing.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 (create-story, non-interactive, base 966204f) and validated against the create-story checklist. Prototypes, discarded: the two `renovate.json` changes (Renovate 44.251.0 validator, `--no-global` from a scratch directory: "Validating ... as repo config", "Config validated successfully against 1 file(s)", exit 0; worktree unchanged apart from the edit); `test-renovate.sh` (1/1 on the new file, 0/1 with both expected lines on today's); the changelog block (24/24); ShellCheck clean; `just semgrep` 0 findings; a Renovate dry run in a scratch copy (Dev Notes "What the dry run showed"). No E2E.
+- Implemented 2026-11-17 on `story/21-2-renovate-uv-hold-and-digests` (stacked on Story 21.1). Task 1: the uv rule in `renovate.json` no longer sets `minimumReleaseAge`, so the preset's one-day hold on mise tools applies to the `.mise.toml` half; its `description` now says the pull request opens with the Dockerfile half, is failed by `scripts/tests/test-docker-context.sh` until the `.mise.toml` half joins about a day later, and must not be merged before it holds both files and CI is green. All other keys of the rule are unchanged (`groupName`/`groupSlug` `uv`, `chore(uv)`, the `commitMessagePrefix`).
+- Task 2: a fourth and last `packageRules` entry types `dockerfile` `digest` and `pinDigest` updates `chore`, with no scope, topic or prefix, so the preset's `container` scope and `image <name>` topic stay. No rule that names `patch`, `minor` or `major` sets a commit type; the uv rule's `chore(uv)` for every uv update is the one existing exception. `scripts/tests/test-renovate.sh` (new, mode 100755) pins both rules and the "no retyping" rule; it reads only `renovate.json` and does not depend on any uv version number. `scripts/tests/test-changelog.sh` gains one block (23 → 24) showing that `chore(container): update image node digest (...)` makes no note and `fix(container): update image ... (10.0.14 → 10.0.15)` does, with `cliff.toml` unchanged.
+- Task 3: `RELEASING.md` says a uv pull request opens with only the Dockerfile change, is failed by `test-docker-context.sh` for about a day until the `.mise.toml` change joins, that this is expected, and not to merge it until it changes both files and CI is green; the `api/uv.lock` `revision` sentence is kept. The "What the image is built from" bullet now says a new image version is `fix(container)`/`feat(container)` and a release note, a new digest under the same tag is `chore(container)` and is not. No other line of `RELEASING.md` says the uv halves arrive together.
+- Task 4 / AC 8: Renovate 44.251.0 config validator, `--no-global` from a scratch directory: "Validating ... as repo config", "Config validated successfully against 1 file(s)", exit 0; the worktree was unchanged by the run.
+- AC 9, pull request #185 (`chore(uv): Update uv (0.13.8 → 0.13.9)`, `renovate/uv`): merged before this story, by the maintainer's decision, after the story was drafted (state `MERGED`, 2026-11-17T22:17:52Z, merge commit `a7e2e62` on `main`; both `.mise.toml` and `Dockerfile`; all six CI checks green). This story did not merge, close, rebase, comment on or push to it. Because it merged under the old rule, the new rule changes nothing for it; the Dev Notes timing note (a rebuilt red `renovate/uv` if the story merged first) no longer applies. The merge is not on this story's base (stacked on 21.1, which branches from before `a7e2e62`), so this branch still has uv 0.13.8 in `Dockerfile` and `.mise.toml`; the story leaves both files untouched (Task 5.3) and they come from `main` when the stack merges.
+- No API contract change, no release note (all commits `chore` or `docs`), no E2E (nothing in the running product changes), no new dependency.
+- Left for after the merge (Task 5.5, unchecked): (a) the first uv pull request under the new rule (Dockerfile half only, `test-docker-context.sh` red, `.mise.toml` half joining about a day later; if it never joins, a new maintainer decision is needed); (b) the first Dockerfile digest pull request's title starting `chore(container):` (AC 6). AC 6 and AC 7 are confirmed now only by the rules and the changelog test, not by a real Renovate pull request.
 
 ### File List
+
+- `renovate.json` (modified: uv rule `description`, `minimumReleaseAge` removed; new digest rule)
+- `scripts/tests/test-renovate.sh` (new)
+- `scripts/tests/test-changelog.sh` (modified: one block)
+- `RELEASING.md` (modified: `:57`, `:71`)
+- `_bmad-output/implementation-artifacts/21-2-renovate-uv-hold-and-digests.md` (this story)
 
 ## Change Log
 
 - 2026-11-17: Story 21.2 created and validated (ready-for-dev).
+- 2026-11-17: Implemented (Tasks 1-4, 5.1-5.4); status review. Task 5 stays open: 5.5 waits for the first uv and digest pull requests after the merge.
