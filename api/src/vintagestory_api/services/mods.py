@@ -763,6 +763,8 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileConflictError: The enabled file name is taken in the mods directory or
+                the mod state, ignoring case (Epic 19 ADR-8).
         """
         logger.debug("enable_mod_start", slug=slug)
         self._refuse_if_busy(slug)
@@ -781,6 +783,8 @@ class ModService:
         new_filename = state.filename.removesuffix(".disabled")
         new_path = self._state_manager.mods_dir / new_filename
 
+        # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
+        self._refuse_taken_names(slug, (new_filename,), state.filename, "enable")
         old_path.rename(new_path)
 
         # Update state
@@ -821,6 +825,8 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileConflictError: The disabled file name is taken in the mods directory or
+                the mod state, ignoring case (Epic 19 ADR-8).
         """
         logger.debug("disable_mod_start", slug=slug)
         self._refuse_if_busy(slug)
@@ -839,6 +845,8 @@ class ModService:
         new_filename = state.filename + ".disabled"
         new_path = self._state_manager.mods_dir / new_filename
 
+        # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
+        self._refuse_taken_names(slug, (new_filename,), state.filename, "disable")
         old_path.rename(new_path)
 
         # Update state
@@ -981,6 +989,8 @@ class ModService:
 
         Raises:
             ModOperationInProgressError: An install or version change is running for this mod.
+            ModFileConflictError: The release's file name, or its .disabled form, is taken
+                in the mods directory or the mod state, ignoring case (Epic 19 ADR-8).
             ModVersionChangeFailedError: Placing the file or saving state failed.
             ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
@@ -1032,19 +1042,30 @@ class ModService:
     def _apply_version_change(self, state: ModState, prepared: PreparedVersionChange) -> str:
         """Swap the validated archive into the mods directory and update state.
 
-        Returns the new filename. On failure, restores the original file and state.
+        Refuses before writing anything when the release's file name, or its .disabled
+        form, is taken by another file or state entry, ignoring case (Epic 19 ADR-8).
+        Returns the new filename. On a later failure, restores the original file and state.
+
+        Raises:
+            ModFileConflictError: A name the change would create is taken.
+            ModVersionChangeFailedError: Placing the file or saving state failed.
         """
         slug = state.slug
+        release_name = prepared.archive.name
+        self._refuse_taken_names(
+            slug,
+            (release_name, f"{release_name}.disabled"),
+            state.filename,
+            "change the version of",
+        )
         mods_dir = self._state_manager.mods_dir
         mods_dir.mkdir(parents=True, exist_ok=True)
-        new_name = prepared.archive.name if state.enabled else f"{prepared.archive.name}.disabled"
+        new_name = release_name if state.enabled else f"{release_name}.disabled"
         old_path = mods_dir / state.filename
         new_path = mods_dir / new_name
-        same_file = new_name == state.filename
-        if new_path.exists() and not same_file:
-            raise ModVersionChangeFailedError(
-                slug, f"{new_name} already exists in the mods directory"
-            )
+        # A name that differs only in case is the same file on a case-insensitive volume,
+        # so it takes the same-file path on every volume (Epic 19 ADR-8 decision 4)
+        same_file = new_name.casefold() == state.filename.casefold()
 
         temp_path = new_path.with_name(new_path.name + ".tmp")
         # A reused filename would be overwritten by the rename, so keep the old file aside.
@@ -1106,7 +1127,12 @@ class ModService:
             logger.error("mod_version_rollback_state_not_saved", slug=old_state.slug, error=str(e))
         try:
             if backup_path is not None:
-                backup_path.replace(new_path)
+                # Back under the original name, which a case-only change does not share
+                # with the new file: remove that file first (Story 19.4)
+                old_path = new_path.with_name(old_state.filename)
+                if new_path.name != old_path.name:
+                    new_path.unlink(missing_ok=True)
+                backup_path.replace(old_path)
             else:
                 new_path.unlink(missing_ok=True)
         except OSError as e:

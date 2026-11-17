@@ -399,6 +399,7 @@ class ModUpdateService:
         # services.mods imports this module; import its errors here to avoid a cycle.
         from vintagestory_api.services.mods import (
             ModConfirmationRequiredError,
+            ModFileConflictError,
             ModNotFoundError,
             ModOperationInProgressError,
             ModValidationError,
@@ -427,6 +428,7 @@ class ModUpdateService:
                     ModNotFoundError,
                     ModValidationError,
                     ModVersionChangeFailedError,
+                    ModFileConflictError,
                     ModOperationInProgressError,
                     OSError,
                     # Unexpected data or state errors from one mod must not abort the run

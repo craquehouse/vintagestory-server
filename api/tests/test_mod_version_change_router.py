@@ -28,6 +28,7 @@ from vintagestory_api.services.mod_updates import (
     get_mod_update_service,
 )
 from vintagestory_api.services.mods import (
+    ModFileConflictError,
     ModOperationInProgressError,
     ModService,
     ModVersionChangeFailedError,
@@ -272,6 +273,11 @@ class TestChangeVersionEndpoint:
                 500,
                 ErrorCode.MOD_VERSION_CHANGE_FAILED,
             ),
+            (
+                ModFileConflictError("carryon", "x.zip", operation="change the version of"),
+                409,
+                ErrorCode.MOD_FILE_CONFLICT,
+            ),
         ],
     )
     def test_service_errors_map_to_responses(
@@ -292,6 +298,40 @@ class TestChangeVersionEndpoint:
 
         assert response.status_code == status
         assert error_code(response) == code
+
+    @respx.mock
+    def test_a_taken_file_name_is_a_conflict(
+        self, client: TestClient, service: ModService, update_service: ModUpdateService
+    ) -> None:
+        """Story 19.4 AC 4 (FR219): 409 MOD_FILE_CONFLICT, nothing changed or recorded."""
+        seeded = seed_record(update_service)
+        new_name = release("1.14.3")["filename"]
+        stray = service.state_manager.mods_dir / new_name
+        stray.write_bytes(b"stray bytes")
+        respx.get(MOD_URL).mock(return_value=Response(200, json=carryon()))
+        mock_download("1.14.3")
+
+        response = client.put(URL, json={"version": "1.14.3"}, headers=ADMIN)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_FILE_CONFLICT",
+                "message": (
+                    f"Cannot change the version of 'carryon': a file named {new_name} "
+                    "already exists in the mods directory."
+                ),
+            }
+        }
+        assert stray.read_bytes() == b"stray bytes"
+        assert sorted(p.name for p in service.state_manager.mods_dir.iterdir()) == sorted(
+            ["carryon_1.14.1.zip", new_name]
+        )
+        state = service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert (state.filename, state.version) == ("carryon_1.14.1.zip", "1.14.1")
+        assert update_service.store.get("carryon") == seeded
+        assert ModUpdateStore(update_service.store.path.parent).get("carryon") == seeded
 
     def test_monitor_is_forbidden(self, client: TestClient) -> None:
         assert client.put(URL, json={"version": "1.14.3"}, headers=MONITOR).status_code == 403

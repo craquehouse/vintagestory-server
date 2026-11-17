@@ -1201,6 +1201,43 @@ class TestEnableModEndpoint:
         assert response.status_code == 409
         assert response.json() == BUSY_BODY
 
+    def test_enable_with_a_file_in_the_way_returns_409(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """A file with the enabled name is never replaced (Story 19.4 AC 1, FR218)."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "testmod_1.0.0.zip.disabled",
+            {"modid": "testmod", "name": "Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+        stray = mods_dir / "testmod_1.0.0.zip"
+        stray.write_bytes(b"stray bytes")
+        listing = client.get("/api/v1alpha1/mods", headers=admin_headers).json()
+
+        response = client.post("/api/v1alpha1/mods/testmod/enable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_FILE_CONFLICT",
+                "message": (
+                    "Cannot enable 'testmod': a file named testmod_1.0.0.zip "
+                    "already exists in the mods directory."
+                ),
+            }
+        }
+        assert stray.read_bytes() == b"stray bytes"
+        assert sorted(p.name for p in mods_dir.iterdir()) == [
+            "testmod_1.0.0.zip",
+            "testmod_1.0.0.zip.disabled",
+        ]
+        assert client.get("/api/v1alpha1/mods", headers=admin_headers).json() == listing
+
 
 class TestDisableModEndpoint:
     """Tests for POST /api/v1alpha1/mods/{slug}/disable endpoint."""
@@ -1378,6 +1415,43 @@ class TestDisableModEndpoint:
 
         assert response.status_code == 409
         assert response.json() == BUSY_BODY
+
+    def test_disable_with_a_file_in_the_way_returns_409(
+        self,
+        client: TestClient,
+        admin_headers: dict[str, str],
+        mod_service: ModService,
+        temp_data_dir: Path,
+    ) -> None:
+        """A file with the disabled name is never replaced (Story 19.4 AC 2, FR218)."""
+        mods_dir = temp_data_dir / "mods"
+        create_mod_zip_file(
+            mods_dir / "testmod_1.0.0.zip",
+            {"modid": "testmod", "name": "Test", "version": "1.0.0"},
+        )
+        mod_service.state_manager.sync_state_with_disk()
+        stray = mods_dir / "testmod_1.0.0.zip.disabled"
+        stray.write_bytes(b"stray bytes")
+        listing = client.get("/api/v1alpha1/mods", headers=admin_headers).json()
+
+        response = client.post("/api/v1alpha1/mods/testmod/disable", headers=admin_headers)
+
+        assert response.status_code == 409
+        assert response.json() == {
+            "detail": {
+                "code": "MOD_FILE_CONFLICT",
+                "message": (
+                    "Cannot disable 'testmod': a file named testmod_1.0.0.zip.disabled "
+                    "already exists in the mods directory."
+                ),
+            }
+        }
+        assert stray.read_bytes() == b"stray bytes"
+        assert sorted(p.name for p in mods_dir.iterdir()) == [
+            "testmod_1.0.0.zip",
+            "testmod_1.0.0.zip.disabled",
+        ]
+        assert client.get("/api/v1alpha1/mods", headers=admin_headers).json() == listing
 
 
 class TestRemoveModEndpoint:

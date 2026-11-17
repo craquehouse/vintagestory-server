@@ -879,6 +879,8 @@ async def enable_mod(
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
         HTTPException: 409 if another operation on this mod is in progress
+        HTTPException: 409 if the name the file would be renamed to is taken in the mods
+            directory or the mod state (MOD_FILE_CONFLICT)
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -920,6 +922,15 @@ async def enable_mod(
             },
         )
 
+    except ModFileConflictError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_CONFLICT,
+                "message": str(e),
+            },
+        )
+
 
 @router.post("/{slug}/disable", response_model=ApiResponse)
 async def disable_mod(
@@ -955,6 +966,8 @@ async def disable_mod(
         HTTPException: 403 if user is not Admin
         HTTPException: 404 if mod is not installed
         HTTPException: 409 if another operation on this mod is in progress
+        HTTPException: 409 if the name the file would be renamed to is taken in the mods
+            directory or the mod state (MOD_FILE_CONFLICT)
     """
     # Defense-in-depth: validate slug format before state lookup
     if not validate_slug(slug):
@@ -992,6 +1005,15 @@ async def disable_mod(
             status_code=409,
             detail={
                 "code": ErrorCode.MOD_OPERATION_IN_PROGRESS,
+                "message": str(e),
+            },
+        )
+
+    except ModFileConflictError as e:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": ErrorCode.MOD_FILE_CONFLICT,
                 "message": str(e),
             },
         )
@@ -1100,7 +1122,10 @@ async def change_mod_version(
 
     The installed file is only replaced after the new release is validated; any
     failure leaves the mod unchanged. Returns 409 if another operation on this mod is
-    in progress. A completed change stores the mod's update record from its own lookup,
+    in progress. A release file name, or its .disabled form, that is taken in the mods
+    directory or the mod state (ignoring case) is 409 MOD_FILE_CONFLICT; 500
+    MOD_VERSION_CHANGE_FAILED is for a failure to place the file or save state, rolled
+    back. A completed change stores the mod's update record from its own lookup,
     so its update status shows without waiting for the next check (Story 18.2).
     """
     try:
@@ -1134,6 +1159,8 @@ async def change_mod_version(
         raise _version_change_error(502, ErrorCode.EXTERNAL_API_ERROR, e) from None
     except DownloadError as e:
         raise _version_change_error(502, ErrorCode.DOWNLOAD_FAILED, e) from None
+    except ModFileConflictError as e:
+        raise _version_change_error(409, ErrorCode.MOD_FILE_CONFLICT, e) from None
     except ModVersionChangeFailedError as e:
         raise _version_change_error(500, ErrorCode.MOD_VERSION_CHANGE_FAILED, e) from None
     return ApiResponse(status="ok", data=asdict(result))
