@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for an install refused because its file name is in use.
@@ -75,11 +76,14 @@ async function expectRefusalShown(page: Page, slug: string, posted: string[]) {
   expect(posted).toEqual([slug]);
 }
 
-test.describe('Install refused when the file name is in use (Story 18.2)', () => {
+// @moddb: opens the live carryon entry and the live browse list
+test.describe(
+  'Install refused when the file name is in use (Story 18.2)',
+  { tag: '@moddb' },
+  () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test('detail page shows the refusal and keeps the dialog open', async ({ page }) => {

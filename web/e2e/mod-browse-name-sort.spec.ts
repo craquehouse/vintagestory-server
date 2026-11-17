@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Response } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the mod browser's Name (A-Z) sort.
@@ -100,11 +101,11 @@ async function expectCardsMatch(page: Page, mods: BrowseMod[]) {
   expect(cardIds).toEqual(mods.map((mod) => `mod-card-name-${mod.slug}`));
 }
 
-test.describe('Mod browser Name (A-Z) sort', () => {
+// @moddb: checks the order of the live browse list
+test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

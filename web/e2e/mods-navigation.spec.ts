@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for navigating the Mods pages.
@@ -50,11 +51,11 @@ async function settle(page: Page) {
   await page.waitForTimeout(1500);
 }
 
-test.describe('Mods navigation', () => {
+// @moddb: navigates between live browse pages and mod details
+test.describe('Mods navigation', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

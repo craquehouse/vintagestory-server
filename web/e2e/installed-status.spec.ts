@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for an installed mod's status wherever it is shown.
@@ -142,12 +143,15 @@ async function installedSlugs(request: APIRequestContext): Promise<string[]> {
 
 test.describe('Installed status is right everywhere (Story 17.4)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
-  test('the Instruments card shows Installed for vsinstrumentsbase, like its detail page', async ({
+  // @moddb: searches the live browse list for Instruments
+  test(
+    'the Instruments card shows Installed for vsinstrumentsbase, like its detail page',
+    { tag: '@moddb' },
+    async ({
     page,
   }) => {
     await fakeInstalledMods(page, [{ slug: 'vsinstrumentsbase', version: '2.0.7' }]);
@@ -195,7 +199,11 @@ test.describe('Installed status is right everywhere (Story 17.4)', () => {
   }
 });
 
-test.describe('A new install shows its update status at once: real API (Story 17.4)', () => {
+// @moddb @install: installs a real mod from the mod database and removes it again
+test.describe(
+  'A new install shows its update status at once: real API (Story 17.4)',
+  { tag: ['@moddb', '@install'] },
+  () => {
   test.describe.configure({ mode: 'serial' });
 
   let before: string[] = [];
@@ -216,9 +224,8 @@ test.describe('A new install shows its update status at once: real API (Story 17
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test.afterEach(async ({ request }) => {

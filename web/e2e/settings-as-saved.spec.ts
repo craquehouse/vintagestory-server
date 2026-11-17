@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for settings that behave as saved.
@@ -34,17 +35,9 @@ interface JobInfo {
 }
 
 async function usePageKey(page: Page): Promise<void> {
-  await page.addInitScript((apiKey) => {
-    localStorage.setItem('apiKey', apiKey);
-  }, API_KEY);
-  // The page takes its key from /config.js (Story 17.5); the Scheduled Jobs tab and the
-  // API settings exist only for an Admin key
-  await page.route('**/config.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey: API_KEY })};`,
-    })
-  );
+  // The Scheduled Jobs tab and the API settings exist only for an Admin key
+  await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 

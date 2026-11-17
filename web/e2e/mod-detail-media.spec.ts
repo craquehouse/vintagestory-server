@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for a mod's screenshots, trailer link and description links on its detail page.
@@ -96,14 +97,10 @@ function lookupBody(variant: Variant) {
   };
 }
 
-/** Answer /config.js with the Admin key (Story 17.5) and refuse every write to the API. */
+/** Admin key from /config.js, server shown as installed (19.7), every write refused. */
 async function readOnly(page: Page) {
-  await page.route('**/config.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey: API_KEY })};`,
-    })
-  );
+  await serveConfigKey(page, API_KEY);
+  await pretendServerInstalled(page);
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
@@ -379,7 +376,11 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
     });
   });
 
-  test('the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL', async ({
+  // @moddb: looks up the live betterruins entry
+  test(
+    'the live betterruins lookup passes only CDN images and a youtube-nocookie embed URL',
+    { tag: '@moddb' },
+    async ({
     page,
   }) => {
     test.setTimeout(90_000);

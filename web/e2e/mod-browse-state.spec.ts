@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the mod browser keeping its state across a mod's detail page.
@@ -123,11 +124,11 @@ async function expectCardInViewport(page: Page, slug: string) {
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 }
 
-test.describe('Mod browser state survives mod details', () => {
+// @moddb: browses, filters and opens live mod database entries
+test.describe('Mod browser state survives mod details', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

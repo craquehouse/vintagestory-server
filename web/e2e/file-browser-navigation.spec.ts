@@ -1,4 +1,5 @@
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for directory navigation in the File Manager (Settings → File Manager).
@@ -73,9 +74,7 @@ async function findNestedPath(request: APIRequestContext): Promise<string[]> {
 
 async function openFileManager(page: Page, width: number, height = 900) {
   await page.setViewportSize({ width, height });
-  await page.addInitScript((apiKey) => {
-    localStorage.setItem('apiKey', apiKey);
-  }, API_KEY);
+  await serveConfigKey(page, API_KEY);
   await page.goto('/config');
   await page.getByTestId('file-manager-tab').click();
   await expect(page.getByTestId('file-manager-panel')).toBeVisible({ timeout: 30000 });
@@ -104,7 +103,9 @@ async function documentOverflowX(page: Page): Promise<number> {
   );
 }
 
-test.describe('Story 16.7: file browser breadcrumbs', () => {
+// @game-server: needs a directory inside another under serverdata (e.g. Logs/Archive), which
+// only a game server that has run creates
+test.describe('Story 16.7: file browser breadcrumbs', { tag: '@game-server' }, () => {
   let nestedPath: string[];
 
   test.beforeAll(async ({ request }) => {

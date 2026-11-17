@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for game settings with no value and the masked password.
@@ -11,9 +12,10 @@ import { test, expect, type APIRequestContext } from '@playwright/test';
  * value on the running stack and is skipped, with the reason, when it has one.
  *
  * Requirements:
- * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a game server
- *   installed: `just test-e2e-web`, or `just docker restart` then
- *   `cd web && bunx playwright test e2e/settings-empty-values.spec.ts`
+ * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json,
+ *   which the seeded stack and a stack with a game server both have (the page is shown as
+ *   installed by `pretendServerInstalled`): `just test-e2e-ci`, `just test-e2e-web`, or
+ *   `just docker restart` then `cd web && bunx playwright test e2e/settings-empty-values.spec.ts`
  */
 
 // API key from environment or default from docker-compose.dev.yaml
@@ -40,17 +42,9 @@ async function settingValues(request: APIRequestContext): Promise<Map<string, un
 
 test.describe('Game settings with no value', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
-    // Story 17.5: the page takes its key from /config.js, which may serve a Monitor key;
-    // the password field only exists for an Admin key
-    await page.route('**/config.js', (route) =>
-      route.fulfill({
-        contentType: 'application/javascript',
-        body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey: API_KEY })};`,
-      })
-    );
+    // The password field only exists for an Admin key
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

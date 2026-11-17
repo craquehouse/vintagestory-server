@@ -137,6 +137,7 @@ just test-api -k "restart"                   # Run tests matching pattern
 just test-api tests/test_server.py -xvs      # Run specific file, verbose
 just test-api --tb=short                     # Run with short traceback
 just test-web                                # Run all web tests
+just test-e2e-ci                             # Untagged E2E tests (the CI set) on a throwaway container
 
 # Validation
 just check                                   # Full validation: lint + typecheck + test

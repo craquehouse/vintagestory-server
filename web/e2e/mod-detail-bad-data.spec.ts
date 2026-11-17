@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for mod detail pages that cannot fail on bad mod database data.
@@ -45,11 +46,11 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-test.describe('Mod detail pages cannot fail on bad data', () => {
+// @moddb: opens live mod database entries whose data is known to be bad
+test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test('a mod with releases that have no file opens and lists those releases', async ({

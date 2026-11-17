@@ -90,6 +90,16 @@ test-e2e-web *ARGS:
 
     exit ${TEST_EXIT:-0}
 
+# Run the untagged E2E tests (the CI set) on a throwaway seeded container on port 18080
+# Examples: just test-e2e-ci | just test-e2e-ci e2e/settings-as-saved.spec.ts
+test-e2e-ci *ARGS:
+    mise exec -- ./scripts/e2e-ci.sh {{ARGS}}
+
+# Install the Chromium builds the web and API E2E tests use (once per machine)
+install-e2e-browsers:
+    mise exec -C web -- bunx playwright install --with-deps chromium
+    mise exec -C api -- uv run playwright install chromium
+
 # Alias for backward compatibility
 test-e2e *ARGS: test-e2e-api
 
@@ -140,7 +150,7 @@ lint-web:
 
 # Lint the bash scripts (ShellCheck); sprint-status.sh is not yet clean (VSS-1eb)
 lint-scripts:
-    mise exec -- shellcheck -x scripts/version.sh scripts/release.sh scripts/release-notes.sh scripts/worktree-setup.sh scripts/tests/*.sh
+    mise exec -- shellcheck -x scripts/version.sh scripts/release.sh scripts/release-notes.sh scripts/worktree-setup.sh scripts/e2e-ci.sh scripts/tests/*.sh
 
 # Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
 lint-workflows:

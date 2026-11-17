@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Response } from '@playwright/test';
+import { pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game version indicator on mod browser cards.
@@ -98,9 +99,8 @@ function isBrowseResponse(response: Response): boolean {
 
 test.describe('Game version indicator on browse cards', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
+    await pretendServerInstalled(page);
   });
 
   test('shows the badge, the muted text and nothing for true, false and null', async ({
@@ -164,7 +164,8 @@ test.describe('Game version indicator on browse cards', () => {
     });
   }
 
-  test('live: the cards agree with the browse response', async ({ page }) => {
+  // @moddb: compares the cards with a live browse response
+  test('live: the cards agree with the browse response', { tag: '@moddb' }, async ({ page }) => {
     const browse = page.waitForResponse(
       (r) =>
         isBrowseResponse(r) &&

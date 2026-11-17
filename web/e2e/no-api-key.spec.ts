@@ -57,7 +57,9 @@ test.describe('No API key (Story 19.2)', () => {
       await expect(screen).toContainText('VS_API_KEY');
       await expect(page.getByRole('navigation')).toHaveCount(0);
 
-      await page.waitForLoadState('networkidle');
+      // Every script has run and the screen has rendered; the screen mounts nothing that
+      // could call the API later (Playwright discourages 'networkidle')
+      await page.waitForLoadState('load');
       expect(traffic.apiRequests).toEqual([]);
       expect(traffic.webSockets).toEqual([]);
     });
