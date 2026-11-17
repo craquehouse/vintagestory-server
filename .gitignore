@@ -100,6 +100,10 @@ Thumbs.db
 # Playwright-mcp
 .playwright-mcp
 
+# Playwright output (local E2E runs write it; CI uploads it when the e2e job fails)
+web/playwright-report/
+web/test-results/
+
 # Beads
 .beads/bd.sock.startlock
 .beads/.bv.lock
