@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for settings that behave as saved.
@@ -101,7 +101,7 @@ test.describe('Boolean game settings with no value (Story 17.6)', () => {
     });
     await page.route('**/api/v1alpha1/config/game', async (route) => {
       if (route.request().method() !== 'GET') return route.fallback();
-      const response = await route.fetch();
+      const response = await fetchOnNewConnection(route);
       const body = (await response.json()) as {
         data: { settings: Array<Record<string, unknown>> };
       };

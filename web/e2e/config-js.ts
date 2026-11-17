@@ -19,17 +19,19 @@ interface ServerStatusBody {
 }
 
 /**
- * `route.fetch()`, tried once more when the first attempt fails. A full run against the dev
- * stack once had the connection reset (ECONNRESET), which the browser itself would retry.
- * Any error is retried once, including an abort when the page closes at the end of a test;
- * a second failure propagates, so a fetch that keeps failing still fails the test.
+ * `route.fetch()` on a connection of its own. `route.fetch()` runs in the test process and
+ * reuses a pooled keep-alive connection; the API's uvicorn closes one that has been idle for
+ * 5 s (its default `--timeout-keep-alive`), and a reuse that lands just then fails with
+ * "socket hang up (ECONNRESET)" (Story 20.5: a probe with 4.90-5.10 s pauses between two
+ * status requests had 5 resets in 210 attempts, all at 4.99-5.00 s, on the throwaway
+ * container). `connection: close` is passed on to the API, so no connection is reused and
+ * the same probe had none in 84 attempts. That removes the cause, so the one retry this
+ * helper had (Story 19.7) is gone and any failure fails the test. Every stub that passes a
+ * request on to the API uses this helper.
  */
-async function fetchWithOneRetry(route: Route): Promise<APIResponse> {
-  try {
-    return await route.fetch();
-  } catch {
-    return route.fetch();
-  }
+export async function fetchOnNewConnection(route: Route): Promise<APIResponse> {
+  const headers = await route.request().allHeaders();
+  return route.fetch({ headers: { ...headers, connection: 'close' } });
 }
 
 /**
@@ -42,7 +44,7 @@ async function fetchWithOneRetry(route: Route): Promise<APIResponse> {
 export async function pretendServerInstalled(page: Page): Promise<void> {
   await page.route('**/api/v1alpha1/server/status', async (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
-    const response = await fetchWithOneRetry(route);
+    const response = await fetchOnNewConnection(route);
     const body: ServerStatusBody = await response.json();
     if (response.ok() && body.data?.state === 'not_installed') {
       body.data = { ...body.data, state: 'installed', version: FIXTURE_GAME_VERSION };

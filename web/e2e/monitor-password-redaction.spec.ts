@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game server password with a Monitor key.
@@ -134,7 +134,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
       await pretendServerInstalled(page);
       await page.route(`**${GAME_API}`, async (route) => {
         if (route.request().method() !== 'GET') return route.fallback();
-        const response = await route.fetch();
+        const response = await fetchOnNewConnection(route);
         const body = (await response.json()) as { data: { settings: Setting[] } };
         body.data.settings = body.data.settings.map((setting) =>
           setting.key === 'Password'

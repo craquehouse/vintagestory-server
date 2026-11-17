@@ -50,11 +50,49 @@ else
     fail "the script re-checks /healthz before the API E2E tests"
 fi
 
+# The throwaway container's serverdata holds a directory inside another, so the file
+# browser's navigation tests run in CI (Story 20.5 AC 1)
+assert_eq "the script seeds a nested directory" 'SEEDED_DIR="Logs/Archive"' \
+    "$(grep -E '^SEEDED_DIR=' "$e2e_script" 2>/dev/null)"
+
+# The new-directory spec runs only in the throwaway container: the script exports its name
+# before Playwright starts, and the spec names the same container, so CI cannot skip it
+# (Story 20.5 AC 5)
+export_line=$(grep -nxF "export E2E_CONTAINER=\"\$CONTAINER\"" "$e2e_script" 2>/dev/null | cut -d: -f1)
+if [[ -n $export_line && -n $web_line ]] && ((export_line < web_line)); then
+    pass
+else
+    fail "the script exports E2E_CONTAINER before the Playwright tests"
+fi
+script_container=$(sed -nE 's/^CONTAINER="([^"]*)"$/\1/p' "$e2e_script" 2>/dev/null)
+if [[ -n $script_container ]]; then pass; else fail "the script names its container in CONTAINER=\"...\""; fi
+new_dir_spec="$ROOT/web/e2e/file-browser-new-directory.spec.ts"
+spec_container=$(sed -nE "s/^const THROWAWAY_CONTAINER = '([^']*)';.*/\\1/p" "$new_dir_spec" 2>/dev/null)
+assert_eq "the new-directory spec names the script's container" "$script_container" "$spec_container"
+# The spec's /data/serverdata depends on it
+assert_eq "the script still sets VS_DATA_DIR=/data" "1" \
+    "$(grep -cE '^ +-e VS_DATA_DIR=/data \\$' "$e2e_script" 2>/dev/null)"
+
 # The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
 ci="$ROOT/.github/workflows/ci.yml"
 assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"
 assert_eq "ci.yml e2e job runs just test-e2e-ci" "1" \
     "$(yq '[.jobs.e2e.steps[] | select(.run == "just test-e2e-ci")] | length' "$ci")"
+
+# The e2e job restores the Playwright browsers from a cache keyed by the two Playwright
+# versions, before it installs them (Story 20.5 AC 7)
+cache_index=$(yq '.jobs.e2e.steps | to_entries | map(select(.value.uses | test("^actions/cache@"))) | .[0].key // ""' "$ci")
+install_index=$(yq '.jobs.e2e.steps | to_entries | map(select(.value.run == "just install-e2e-browsers")) | .[0].key // ""' "$ci")
+if [[ -n $cache_index && -n $install_index ]] && ((cache_index < install_index)); then
+    pass
+else
+    fail "ci.yml e2e job restores the browser cache before just install-e2e-browsers"
+fi
+assert_eq "the browser cache holds ~/.cache/ms-playwright" "true" \
+    "$(i=${cache_index:-0} yq '.jobs.e2e.steps[env(i)].with.path == "~/.cache/ms-playwright"' "$ci")"
+assert_eq "the browser cache key comes from the playwright step" "true" \
+    "$(i=${cache_index:-0} want="\${{ steps.playwright.outputs.key }}" \
+        yq '.jobs.e2e.steps[env(i)].with.key == strenv(want)' "$ci")"
 secrets=$(grep -n 'secrets\.' "$ci" || true)
 assert_eq "ci.yml reads no secret" "" "$secrets"
 
