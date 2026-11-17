@@ -222,7 +222,7 @@ development_status:
   epic-20-retrospective: optional
   20-1-api-formatted-once: done
   20-2-green-quiet-check: done
-  20-3-lint-and-typecheck-coverage: review
+  20-3-lint-and-typecheck-coverage: done
   20-4-semgrep: backlog
   20-5-file-browser-e2e-in-ci: backlog
   20-6-mod-database-tests-in-ci: backlog

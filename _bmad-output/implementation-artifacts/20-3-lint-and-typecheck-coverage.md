@@ -1,6 +1,6 @@
 # Story 20.3: Lint and Type Checks Cover Everything
 
-Status: review
+Status: done
 
 <!-- Implements FR240-FR243, Epic 20 ADR-4 and ADR-5. Beads: VSS-3asx (TOOLS-006, the type-check half; the bead closes here, Story 20.1 did the format half), VSS-6354 (TOOLS-009), VSS-1eb (TOOLS-004), VSS-uw9z (TOOLS-008). Third story of Epic 20, stacked on Story 20.2 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning) and must be re-checked at implementation time: Story 20.1 reformats the API and edits `lint-api` in the Justfile, Story 20.2 may touch the web test set-up. Tooling, tests, CI and docs only: no API or web source change, no API contract change, no new dependency, no release note. -->
 
@@ -323,3 +323,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `web/playwright-report/index.html` (removed from the index, kept on disk)
 - `web/test-results/.last-run.json` (removed from the index, kept on disk)
 - `_bmad-output/implementation-artifacts/20-3-lint-and-typecheck-coverage.md
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; the low finding fixed by the controller. Status done.
