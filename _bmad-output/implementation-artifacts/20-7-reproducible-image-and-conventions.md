@@ -246,7 +246,7 @@ Add one line under the table: the full list, with `VS_CORS_ORIGINS`, `VS_DATA_DI
 
 ### Existing tests that change
 
-- `scripts/tests/test-docker-context.sh`: gains five assertions (Task 1.1). No existing assertion changes. It fails against the Dockerfile at 7f04ea2 by design (red first), and passes after Task 1.3.
+- `scripts/tests/test-docker-context.sh`: gains four assertions (Task 1.1). No existing assertion changes. It fails against the Dockerfile at 7f04ea2 by design (red first), and passes after Task 1.3.
 - No API, web or E2E test changes. No other script test reads the Dockerfile (`grep -rn Dockerfile scripts/ .github/workflows/` at 7f04ea2: only `test-docker-context.sh:15-16`).
 
 ### E2E
@@ -349,7 +349,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive
 - Story created 2026-11-17 (create-story, non-interactive, base 7f04ea2) and validated against the create-story checklist. Prototypes, discarded: the three pins in the Dockerfile (built `--platform linux/amd64` with a distinct tag, uv 0.13.8 confirmed in the image, image removed); the script test (10/10 pinned, 8/10 unpinned, 9/10 with a wrong uv tag; ShellCheck clean); the Renovate rule (Renovate 44.251.0 validator, `--no-global`: "Config validated successfully"). No E2E run in planning.
 
 - Implemented 2026-11-17. Line numbers had moved since 7f04ea2 (the story section is now `project-context.md:862-876`; `renovate.json`'s `packageRules` is at `:16-27` after a `customManagers` block for semgrep); the edits went to the same places.
-- Task 1: the three images pinned by digest with tags kept, uv at the `.mise.toml` version 0.13.8, the uv comment says the versions must match and Renovate moves both. Five assertions added to `test-docker-context.sh` (red first, then 10/10).
+- Task 1: the three images pinned by digest with tags kept, uv at the `.mise.toml` version 0.13.8, the uv comment says the versions must match and Renovate moves both. Four assertions added to `test-docker-context.sh` (red first, then 10/10).
 - Task 2: the uv rule appended as the third `packageRules` entry, as drafted (`minimumReleaseAge: null`, `chore(uv)`); the existing rules are unchanged. Open question for the maintainer: keep the one-day hold and accept a red uv pull request on its first day, instead of clearing the hold for uv?
 - Task 3: `RELEASING.md` has "What the image is built from" (pinned inputs, the apt layer that is not pinned, a re-run can push another digest and its attestations describe that digest), the re-run bullet links to it, and the uv sentence says Renovate moves `.mise.toml` and the Dockerfile in one pull request.
 - Task 4: "Story Numbering" rewritten with the drafted text.
