@@ -88,7 +88,14 @@ export PLAYWRIGHT_HTML_OPEN=never
 
 failed=0
 (cd web && bun run test:e2e --grep-invert "$TAGS" "$@") || failed=1
-# The API's E2E tests import the app, which reads VS_DATA_DIR; keep it off dev/ and ./data
-PYTEST_DATA_DIR=$(mktemp -d)
-(cd api && VS_DATA_DIR="$PYTEST_DATA_DIR" uv run pytest tests/e2e) || failed=1
+# The API's E2E tests skip when the address does not answer, and pytest passes on all-skip,
+# so a container that died during the web tests must fail the run here instead.
+if ! curl -sf "$BASE_URL/healthz" >/dev/null 2>&1; then
+    echo "API stopped answering /healthz before the API E2E tests" >&2
+    failed=1
+else
+    # The API's E2E tests import the app, which reads VS_DATA_DIR; keep it off dev/ and ./data
+    PYTEST_DATA_DIR=$(mktemp -d)
+    (cd api && VS_DATA_DIR="$PYTEST_DATA_DIR" uv run pytest tests/e2e) || failed=1
+fi
 if ((failed)); then exit 1; fi

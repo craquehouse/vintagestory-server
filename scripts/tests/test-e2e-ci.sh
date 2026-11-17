@@ -38,6 +38,18 @@ expanded=$(grep -nE '\$\{?VS_API_KEY' "$e2e_script" 2>/dev/null || true)
 assert_eq "the script expands no VS_API_KEY* variable" "" "$expanded"
 if [[ -f $e2e_script ]]; then pass; else fail "scripts/e2e-ci.sh exists"; fi
 
+# The API E2E tests skip (and pytest passes) when the address does not answer, so the script
+# checks /healthz again right before them and fails the run if the container is gone
+web_line=$(grep -n 'test:e2e' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
+health_line=$(grep -n 'healthz' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
+pytest_line=$(grep -n 'pytest tests/e2e' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
+if [[ -n $web_line && -n $health_line && -n $pytest_line ]] \
+    && ((web_line < health_line && health_line < pytest_line)); then
+    pass
+else
+    fail "the script re-checks /healthz before the API E2E tests"
+fi
+
 # The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
 ci="$ROOT/.github/workflows/ci.yml"
 assert_eq "ci.yml e2e job has a timeout" "30" "$(yq '.jobs.e2e.timeout-minutes' "$ci")"
