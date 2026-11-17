@@ -16,7 +16,7 @@ import { serveConfigKey } from './config-js';
  *   `connect-src 'self'` (AC 4).
  * - An injected inline script does not run and a frame on another origin does not load (AC 5).
  *
- * Reads only. Every write to the API is refused, apart from `POST /api/v1alpha1/ws-token`:
+ * Reads only. Every write to the API is refused, apart from `POST /api/v1alpha1/auth/ws-token`:
  * the console needs a token to open its socket, and the token store is in memory. Nothing is
  * installed or changed; the game server is neither started nor stopped; no screenshot.
  *
