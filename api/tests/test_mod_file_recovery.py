@@ -20,8 +20,25 @@ from vintagestory_api.services.mod_file_recovery import (
 from vintagestory_api.services.mods import ModService
 
 
-def archive(version: str) -> bytes:
-    return mod_zip_bytes({"modid": "demo", "name": "Demo", "version": version})
+def archive(version: str, modid: str = "demo") -> bytes:
+    return mod_zip_bytes({"modid": modid, "name": modid, "version": version})
+
+
+def add_state(service: ModService, filename: str, version: str, slug: str = "demo") -> None:
+    """Save a state entry for `slug` under `filename`."""
+    manager = service.state_manager
+    manager.set_mod_state(
+        filename,
+        ModState(
+            filename=filename,
+            slug=slug,
+            version=version,
+            enabled=not filename.endswith(".disabled"),
+            installed_at=datetime(2026, 1, 1, tzinfo=UTC),
+            asset_id=1,
+        ),
+    )
+    manager.save()
 
 
 def build(service: ModService, files: dict[str, bytes], state: tuple[str, str] | None) -> None:
@@ -31,19 +48,7 @@ def build(service: ModService, files: dict[str, bytes], state: tuple[str, str] |
     for name, content in files.items():
         (manager.mods_dir / name).write_bytes(content)
     if state is not None:
-        filename, version = state
-        manager.set_mod_state(
-            filename,
-            ModState(
-                filename=filename,
-                slug="demo",
-                version=version,
-                enabled=not filename.endswith(".disabled"),
-                installed_at=datetime(2026, 1, 1, tzinfo=UTC),
-                asset_id=1,
-            ),
-        )
-        manager.save()
+        add_state(service, *state)
 
 
 def contents(service: ModService) -> dict[str, bytes]:
@@ -192,6 +197,68 @@ class TestInterruptedOperations:
         recover_working_files(service.state_manager)
 
         assert contents(service) == {"X.zip": V1, "Y.zip.disabled": V2}
+
+
+class TestAnotherModInOtherCase:
+    """Review HIGH-1: a state from before Story 19.4 may hold `Foo.zip` and `foo.zip` for
+    two mods (the old checks compared names exactly). Recovery never deletes a kept-aside
+    original because the other mod's file or entry spells its name in other case.
+    """
+
+    def test_the_other_mods_file_does_not_complete_the_change(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        service = make_service(tmp_path)
+        moda, modb = archive("1.0.0", "moda"), archive("2.0.0", "modb")
+        build(service, {"Foo.zip": moda, f"foo.zip{BAK}": modb}, None)
+        add_state(service, "Foo.zip", "1.0.0", "moda")
+        add_state(service, "foo.zip", "2.0.0", "modb")
+        state_before = snapshot(service)[1]
+
+        recover_working_files(service.state_manager)
+
+        # Kept, not restored: on a case-insensitive volume foo.zip would replace Foo.zip
+        assert contents(service) == {"Foo.zip": moda, f"foo.zip{BAK}": modb}
+        assert snapshot(service)[1] == state_before
+        assert log_lines(captured_logs, "mod_backup_removed") == []
+        [line] = log_lines(captured_logs, "mod_backup_kept")
+        assert f"foo.zip{BAK}" in line
+        assert "Foo.zip" in line
+
+    def test_a_restored_backup_does_not_complete_another_mods_change(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        """Two kept-aside originals whose names differ only in case.
+
+        They can exist side by side only on a case-sensitive volume (CI). On a
+        case-insensitive one the second write lands in the first's entry; either way no
+        archive may be deleted.
+        """
+        service = make_service(tmp_path)
+        moda, modb = archive("1.0.0", "moda"), archive("1.0.0", "modb")
+        build(service, {f"X.zip{BAK}": moda, f"x.zip{BAK}": modb}, None)
+        add_state(service, "X.zip", "1.0.0", "moda")
+        add_state(service, "x.zip", "1.0.0", "modb")
+        archives_before = sorted(contents(service).values())
+
+        recover_working_files(service.state_manager)
+
+        assert sorted(contents(service).values()) == archives_before
+        assert log_lines(captured_logs, "mod_backup_removed") == []
+        if len(archives_before) == 2:  # case-sensitive volume: both originals existed
+            assert contents(service) == {"X.zip": moda, f"x.zip{BAK}": modb}
+
+    def test_an_entry_of_another_mod_under_the_exact_name_keeps_the_backup(
+        self, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        service = make_service(tmp_path)
+        build(service, {f"X.zip{BAK}": archive("1.0.0", "moda")}, None)
+        add_state(service, "X.zip", "1.0.0", "modb")
+
+        recover_working_files(service.state_manager)
+
+        assert contents(service) == {f"X.zip{BAK}": archive("1.0.0", "moda")}
+        assert len(log_lines(captured_logs, "mod_backup_kept")) == 1
 
 
 class TestUnknownLeftovers:
