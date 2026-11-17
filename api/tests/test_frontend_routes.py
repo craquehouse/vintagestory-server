@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
-from vintagestory_api.main import register_frontend
+from vintagestory_api.main import frontend_security_headers, register_frontend
 
 INDEX = "<html>SPA index</html>"
 PRIVATE = "outside the static directory"
@@ -133,13 +133,29 @@ class TestRuntimeConfig:
         assert client.get("/config.js").text == 'window.__VSM_CONFIG__ = {"apiKey": ""};\n'
 
     def test_key_is_json_encoded(self, static_dir: Path) -> None:
-        key = 'a"b\\c</script>\u2028'
+        key = 'a"b\\c\u2028'
         client = self._client(static_dir, Settings(api_key_admin="admin", api_key=key))
 
         body = client.get("/config.js").text
 
         assert body == f"window.__VSM_CONFIG__ = {json.dumps({'apiKey': key})};\n"
         assert '"a\\"b' in body and "\\u2028" in body
+
+    def test_markup_characters_in_the_key_are_escaped(self, static_dir: Path) -> None:
+        # Defence in depth (Story 19.2 review L-1): the body could never close a script element
+        key = "k</script><script>alert(1)</script>&amp;"
+        client = self._client(static_dir, Settings(api_key_admin="admin", api_key=key))
+
+        body = client.get("/config.js").text
+
+        assert body == (
+            'window.__VSM_CONFIG__ = {"apiKey": '
+            '"k\\u003c/script\\u003e\\u003cscript\\u003ealert(1)\\u003c/script\\u003e\\u0026amp;"'
+            "};\n"
+        )
+        assert not any(char in body for char in "<>&")
+        prefix, suffix = "window.__VSM_CONFIG__ = ", ";\n"
+        assert json.loads(body.removeprefix(prefix).removesuffix(suffix)) == {"apiKey": key}
 
     def test_is_a_never_cached_script(self, static_dir: Path) -> None:
         client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
@@ -163,3 +179,92 @@ class TestRuntimeConfig:
         client = self._client(static_dir, Settings(api_key_admin="admin", api_key="web"))
 
         assert '"apiKey": "web"' in client.get("/config.js").text
+
+
+# Written out, not imported from main: a changed directive is a deliberate edit in two places
+POLICY = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-src 'none'; "
+    "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+)
+ALWAYS = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
+HEADERS_BY_MODE: dict[str, dict[str, str]] = {
+    "enforce": {"Content-Security-Policy": POLICY, "X-Frame-Options": "DENY", **ALWAYS},
+    "report-only": {"Content-Security-Policy-Report-Only": POLICY, **ALWAYS},
+    "off": dict(ALWAYS),
+}
+POLICY_HEADERS = ("content-security-policy", "content-security-policy-report-only")
+
+
+class TestSecurityHeaders:
+    """The web UI's pages carry the Content-Security-Policy (Story 19.3, Epic 19 ADR-6)."""
+
+    def _client(self, static_dir: Path, csp_mode: str) -> TestClient:
+        target = FastAPI()
+        register_frontend(target, static_dir, Settings(api_key_admin="admin", csp_mode=csp_mode))
+        return TestClient(target)
+
+    @pytest.mark.parametrize("mode", ["enforce", "report-only", "off"])
+    def test_headers_for_each_mode(self, mode: str) -> None:
+        assert frontend_security_headers(mode) == HEADERS_BY_MODE[mode]
+
+    @pytest.mark.parametrize(
+        "path", ["/", "/dashboard", "/game-server/mods/browse/x", "/favicon.ico"]
+    )
+    def test_enforce(self, static_dir: Path, path: str) -> None:
+        response = self._client(static_dir, "enforce").get(path)
+
+        assert response.status_code == 200
+        assert response.headers["content-security-policy"] == POLICY
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["referrer-policy"] == "no-referrer"
+        assert response.headers["x-frame-options"] == "DENY"
+        assert "content-security-policy-report-only" not in response.headers
+
+    @pytest.mark.parametrize(
+        "path", ["/", "/dashboard", "/game-server/mods/browse/x", "/favicon.ico"]
+    )
+    def test_report_only(self, static_dir: Path, path: str) -> None:
+        response = self._client(static_dir, "report-only").get(path)
+
+        assert response.status_code == 200
+        assert response.headers["content-security-policy-report-only"] == POLICY
+        assert "content-security-policy" not in response.headers
+        assert "x-frame-options" not in response.headers
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["referrer-policy"] == "no-referrer"
+
+    @pytest.mark.parametrize(
+        "path", ["/", "/dashboard", "/game-server/mods/browse/x", "/favicon.ico"]
+    )
+    def test_off(self, static_dir: Path, path: str) -> None:
+        response = self._client(static_dir, "off").get(path)
+
+        assert response.status_code == 200
+        assert not any(header in response.headers for header in POLICY_HEADERS)
+        assert "x-frame-options" not in response.headers
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["referrer-policy"] == "no-referrer"
+
+    def test_file_keeps_its_own_headers(self, static_dir: Path) -> None:
+        response = self._client(static_dir, "enforce").get("/favicon.ico")
+
+        assert "etag" in response.headers
+        assert "last-modified" in response.headers
+
+    def test_config_js_keeps_exactly_its_three_headers(self, static_dir: Path) -> None:
+        response = self._client(static_dir, "enforce").get("/config.js")
+
+        assert not any(header in response.headers for header in POLICY_HEADERS)
+        assert "x-frame-options" not in response.headers
+        assert "referrer-policy" not in response.headers
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["cross-origin-resource-policy"] == "same-origin"
+        assert response.headers["x-content-type-options"] == "nosniff"
+
+    def test_assets_have_no_policy(self, static_dir: Path) -> None:
+        response = self._client(static_dir, "enforce").get("/assets/main.js")
+
+        assert response.status_code == 200
+        assert not any(header in response.headers for header in POLICY_HEADERS)
+        assert "x-frame-options" not in response.headers

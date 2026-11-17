@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 import structlog
+from pydantic import ValidationError
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from vintagestory_api.config import (
@@ -431,6 +432,47 @@ class TestCorsOriginsValidation:
         with patch.dict(os.environ, {"VS_CORS_ORIGINS": "https://secure.example.com"}):
             settings = Settings()
             assert settings.cors_origins == "https://secure.example.com"
+
+
+class TestCspMode:
+    """VS_CSP_MODE selects how the web UI's Content-Security-Policy is sent (Epic 19 ADR-6)."""
+
+    MESSAGE = "VS_CSP_MODE must be one of: enforce, report-only, off."
+
+    def test_default_is_enforce(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("VS_CSP_MODE", raising=False)
+
+        assert Settings().csp_mode == "enforce"
+
+    @pytest.mark.parametrize("mode", ["enforce", "report-only", "off"])
+    def test_valid_values_from_the_environment(
+        self, monkeypatch: pytest.MonkeyPatch, mode: str
+    ) -> None:
+        monkeypatch.setenv("VS_CSP_MODE", mode)
+
+        assert Settings().csp_mode == mode
+
+    def test_case_and_surrounding_spaces_are_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_CSP_MODE", " Report-Only ")
+
+        assert Settings().csp_mode == "report-only"
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_blank_value_means_enforce(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+        monkeypatch.setenv("VS_CSP_MODE", value)
+
+        assert Settings().csp_mode == "enforce"
+
+    @pytest.mark.parametrize("value", ["bogus", "enforced", "report_only"])
+    def test_unknown_value_names_the_variable_and_the_valid_values(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
+        monkeypatch.setenv("VS_CSP_MODE", value)
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert self.MESSAGE in str(excinfo.value)
 
 
 class TestConfigureLoggingContextVars:

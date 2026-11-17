@@ -258,4 +258,8 @@
     -webkit-mask: var(--external-link-icon) center / contain no-repeat;
     mask: var(--external-link-icon) center / contain no-repeat;
   }
+  /* Story 19.3: a description image the page cannot load securely (VSS-my4c) */
+  .mod-description [data-image-not-shown] {
+    @apply text-muted-foreground text-sm italic;
+  }
 }

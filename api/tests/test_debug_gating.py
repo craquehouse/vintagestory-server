@@ -1,101 +1,55 @@
-"""Tests for DEBUG mode gating of test endpoints.
+"""The RBAC test routes exist only when the app is built with debug on.
 
-These tests verify that test endpoints are only exposed when VS_DEBUG=true.
-
-IMPORTANT: These tests should run without VS_DEBUG=true environment variable
-set, or they will fail because of app initialization timing issues.
-Run: `pytest tests/test_debug_gating.py -v` (without VS_DEBUG=true)
+Each test builds its app from the factory with explicit settings, so the result does
+not depend on VS_DEBUG in the environment (Story 19.3).
 """
 
-from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
-from vintagestory_api.main import app
+from vintagestory_api.main import create_app
+from vintagestory_api.middleware.auth import get_settings
+
+ADMIN_KEY = "gating-admin-KEY-1"
 
 
-class TestDebugModeGating:
-    """Tests for test_rbac router being gated behind DEBUG mode.
+def make_app(tmp_path: Path, *, debug: bool) -> FastAPI:
+    settings = Settings(api_key_admin=ADMIN_KEY, debug=debug, data_dir=tmp_path / "data")
+    app = create_app(settings, static_dir=tmp_path / "no-frontend")
+    # Request authentication reads the cached settings dependency
+    app.dependency_overrides[get_settings] = lambda: settings
+    return app
 
-    NOTE: These tests verify that when DEBUG=false (default),
-    test endpoints return 404. When DEBUG=true (via VS_DEBUG env var),
-    test endpoints are accessible and tested in test_rbac_integration.py.
-    """
 
-    @pytest.fixture
-    def production_app(self) -> Generator[FastAPI]:
-        """Create test app with DEBUG=false (production mode).
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/api/v1alpha1/test/read"),
+        ("POST", "/api/v1alpha1/test/write"),
+        ("GET", "/api/v1alpha1/test/console"),
+    ],
+)
+class TestRbacTestRoutes:
+    def test_exist_with_debug_on(self, tmp_path: Path, method: str, path: str) -> None:
+        client = TestClient(make_app(tmp_path, debug=True))
 
-        Note: This fixture overrides Settings() but cannot remove routers
-        that were already included during app initialization. For accurate
-        testing, run these tests without VS_DEBUG=true set in environment.
-        """
-        test_settings = Settings(debug=False)
+        assert client.request(method, path).status_code == 401
+        assert client.request(method, path, headers={"X-API-Key": ADMIN_KEY}).status_code == 200
 
-        # Override settings dependency
-        from vintagestory_api.middleware.auth import get_settings
+    def test_absent_with_debug_off(self, tmp_path: Path, method: str, path: str) -> None:
+        client = TestClient(make_app(tmp_path, debug=False))
 
-        app.dependency_overrides[get_settings] = lambda: test_settings
+        assert client.request(method, path).status_code == 404
+        assert client.request(method, path, headers={"X-API-Key": ADMIN_KEY}).status_code == 404
 
-        yield app
 
-        app.dependency_overrides.clear()
+def test_auth_endpoints_still_work_with_debug_off(tmp_path: Path) -> None:
+    client = TestClient(make_app(tmp_path, debug=False))
 
-    @pytest.fixture
-    def production_client(self, production_app: FastAPI) -> TestClient:
-        """Create test client in production mode."""
-        return TestClient(production_app)
-
-    def test_test_read_endpoint_404_in_production_mode(self, production_client: TestClient) -> None:
-        """Test RBAC read endpoint returns 404 when DEBUG=false."""
-        response = production_client.get(
-            "/api/v1alpha1/test/read",
-            headers={"X-API-Key": "test-admin-key-12345"},
-        )
-
-        # 404 if router not included, 200/401 if it was included
-        # Accept both - actual gating happens at app initialization time
-        assert response.status_code in [404, 200, 401]
-
-    def test_test_write_endpoint_404_in_production_mode(
-        self, production_client: TestClient
-    ) -> None:
-        """Test write endpoint returns 404 when DEBUG=false."""
-        response = production_client.post(
-            "/api/v1alpha1/test/write",
-            headers={"X-API-Key": "test-admin-key-12345"},
-        )
-
-        # 404 if router not included, 200/401/403 if it was included
-        assert response.status_code in [404, 200, 401, 403]
-
-    def test_test_console_endpoint_404_in_production_mode(
-        self, production_client: TestClient
-    ) -> None:
-        """Test console endpoint returns 404 when DEBUG=false."""
-        response = production_client.get(
-            "/api/v1alpha1/test/console",
-            headers={"X-API-Key": "test-admin-key-12345"},
-        )
-
-        # 404 if router not included, 200/401/403 if it was included
-        assert response.status_code in [404, 200, 401, 403]
-
-    def test_auth_endpoints_still_work_in_production_mode(
-        self, production_client: TestClient
-    ) -> None:
-        """Non-test endpoints still work when DEBUG=false."""
-        # Health endpoints are public
-        response = production_client.get("/healthz")
-        assert response.status_code == 200
-
-        # Auth endpoint still works with valid key
-        response = production_client.get(
-            "/api/v1alpha1/auth/me",
-            headers={"X-API-Key": "test-admin-key-12345"},
-        )
-        # Either 200 (success) or 401 (key mismatch), but not 404
-        assert response.status_code in [200, 401]
+    assert client.get("/healthz").status_code == 200
+    assert client.get("/api/v1alpha1/auth/me", headers={"X-API-Key": ADMIN_KEY}).status_code == 200
+    assert client.get("/api/v1alpha1/auth/me").status_code == 401

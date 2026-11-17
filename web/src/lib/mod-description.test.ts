@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import DOMPurify from 'dompurify';
-import { OPENS_IN_NEW_TAB, sanitizeModDescription } from './mod-description';
+import { IMAGE_NOT_SHOWN, OPENS_IN_NEW_TAB, sanitizeModDescription } from './mod-description';
 
 /** Parse sanitized markup so assertions inspect elements, not substrings. */
 function parse(html: string | null): HTMLElement {
@@ -248,5 +248,114 @@ describe('hook isolation', () => {
     expect(el.querySelector('a')?.hasAttribute('target')).toBe(false);
     expect(el.querySelector('[data-new-tab-note]')).toBeNull();
     expect(el.textContent).toBe('x');
+    expect(parse(DOMPurify.sanitize('<img src="http://x.test/a.png">')).querySelector('img')).not.toBeNull();
+  });
+});
+
+describe('images the page cannot load (Story 19.3, VSS-my4c)', () => {
+  it.each([
+    'http://x.test/a.png',
+    '/rel.png',
+    'rel.png',
+    '//x.test/a.png',
+    'https:a.png',
+    'data:text/html,x',
+    'javascript:alert(1)',
+  ])('replaces an image with src %s by a note', (src) => {
+    const el = parse(sanitizeModDescription(`<img src="${src}" alt="logo">`));
+    const note = el.querySelector('[data-image-not-shown]');
+    expect(el.querySelector('img')).toBeNull();
+    expect(note?.tagName).toBe('SPAN');
+    expect(note?.textContent).toBe(`${IMAGE_NOT_SHOWN}: logo`);
+  });
+
+  it('replaces an image without src', () => {
+    const el = parse(sanitizeModDescription('<img alt="logo">'));
+    expect(el.querySelector('img')).toBeNull();
+    expect(el.querySelector('[data-image-not-shown]')?.textContent).toBe('Image not shown: logo');
+  });
+
+  it.each([
+    ['no alt', '<img src="http://x.test/a.png">'],
+    ['a blank alt', '<img src="http://x.test/a.png" alt="   ">'],
+  ])('says only "Image not shown" with %s', (_name, html) => {
+    const el = parse(sanitizeModDescription(html));
+    expect(el.querySelector('[data-image-not-shown]')?.textContent).toBe('Image not shown');
+  });
+
+  it.each(['https://x.test/a.png', 'HTTPS://x.test/a.png', 'data:image/png;base64,AAAA'])(
+    'keeps an image with src %s unchanged',
+    (src) => {
+      const el = parse(sanitizeModDescription(`<img src="${src}" alt="logo">`));
+      expect(el.querySelector('img')?.getAttribute('src')).toBe(src);
+      expect(el.querySelector('[data-image-not-shown]')).toBeNull();
+    }
+  );
+
+  it('drops srcset and sizes from a kept image', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<img src="https://x.test/a.png" srcset="http://x.test/b.png 2x" sizes="50vw">'
+      )
+    );
+    const img = el.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('https://x.test/a.png');
+    expect(img?.hasAttribute('srcset')).toBe(false);
+    expect(img?.hasAttribute('sizes')).toBe(false);
+  });
+
+  it('shows alt text as text, never as markup', () => {
+    const el = parse(sanitizeModDescription('<img src="http://x.test/a.png" alt="<b>bold</b>">'));
+    const note = el.querySelector('[data-image-not-shown]');
+    expect(note?.children).toHaveLength(0);
+    expect(note?.textContent).toBe('Image not shown: <b>bold</b>');
+  });
+
+  it('replaces each image in a row and keeps the paragraphs around them', () => {
+    const el = parse(
+      sanitizeModDescription(
+        '<p>Before</p>' +
+          '<img src="http://x.test/1.png" alt="one">' +
+          '<img src="/2.png" alt="two">' +
+          '<img src="https://x.test/3.png" alt="three">' +
+          '<img src="//x.test/4.png" alt="four">' +
+          '<p>After</p>'
+      )
+    );
+    const children = Array.from(el.children);
+    expect(children.map((child) => child.tagName)).toEqual(['P', 'SPAN', 'SPAN', 'IMG', 'SPAN', 'P']);
+    expect(children.map((child) => child.textContent)).toEqual([
+      'Before',
+      'Image not shown: one',
+      'Image not shown: two',
+      '',
+      'Image not shown: four',
+      'After',
+    ]);
+    expect(el.querySelectorAll('[data-image-not-shown]')).toHaveLength(3);
+  });
+
+  it('puts the note inside a link that keeps its new-tab handling', () => {
+    const el = parse(
+      sanitizeModDescription('<a href="https://x.test/"><img src="http://x.test/a.png" alt="pic"></a>')
+    );
+    const link = el.querySelector('a');
+    expect(link?.getAttribute('target')).toBe('_blank');
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(link?.querySelector('[data-image-not-shown]')?.textContent).toBe('Image not shown: pic');
+    expect(link?.querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
+    expect(link?.lastElementChild?.hasAttribute('data-new-tab-note')).toBe(true);
+  });
+
+  it('keeps one note per image when sanitized again', () => {
+    const once = sanitizeModDescription(
+      '<img src="http://x.test/a.png" alt="a"><img src="/b.png" alt="b">'
+    );
+    const el = parse(sanitizeModDescription(once));
+    expect(el.querySelector('img')).toBeNull();
+    expect(Array.from(el.querySelectorAll('[data-image-not-shown]')).map((n) => n.textContent)).toEqual([
+      'Image not shown: a',
+      'Image not shown: b',
+    ]);
   });
 });

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     console_history_lines: int = 100  # Default history lines sent on WebSocket connect
     disk_space_warning_threshold_gb: float = 1.0  # Warn when available space below this
     mod_cache_max_size_mb: int = 500  # Maximum size of mod cache in MB (0 to disable)
+    # VS_CSP_MODE: how the web UI's Content-Security-Policy is sent (Epic 19 ADR-6):
+    # enforce (default), report-only or off. Blank means unset
+    csp_mode: str = "enforce"
 
     @property
     def web_api_key(self) -> str:
@@ -92,6 +95,20 @@ class Settings(BaseSettings):
                 "Use 0 to disable cache eviction."
             )
         return v
+
+    @field_validator("csp_mode")
+    @classmethod
+    def validate_csp_mode(cls, v: str) -> str:
+        """Normalize VS_CSP_MODE; a blank value is the default, an unknown one an error.
+
+        A plain str rather than a Literal, so the error names VS_CSP_MODE (Epic 19 ADR-6).
+        """
+        mode = v.strip().lower()
+        if not mode:
+            return "enforce"
+        if mode not in ("enforce", "report-only", "off"):
+            raise ValueError("VS_CSP_MODE must be one of: enforce, report-only, off.")
+        return mode
 
     @field_validator("cors_origins")
     @classmethod
