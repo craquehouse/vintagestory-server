@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from conftest import PrepareModFilesRecorder
 from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
@@ -279,6 +280,85 @@ class TestImportTimeWiring:
 
 class TestLifespanAutoStart:
     """Tests for lifespan auto-start server logic (lines 118-131)."""
+
+    async def run_auto_start_lifespan(self, recorder: PrepareModFilesRecorder) -> None:
+        """Run the lifespan with auto-start on, recording start_server and the scheduler."""
+        from vintagestory_api.main import lifespan_for
+
+        settings = MagicMock()
+        settings.data_dir = Path("/tmp/test_data")
+        api_settings_service = MagicMock()
+        api_settings_service.get_settings.return_value.auto_start_server = True
+        server_service = MagicMock()
+        server_service.get_server_status.return_value = ServerStatus(
+            state=ServerState.INSTALLED, uptime_seconds=0
+        )
+
+        async def start_server() -> None:
+            recorder.calls.append("start_server")
+
+        server_service.start_server = start_server
+        scheduler = MagicMock()
+        scheduler.start.side_effect = lambda: recorder.calls.append("scheduler_start")
+
+        with (
+            patch("vintagestory_api.main.initialize_debug_state"),
+            patch("vintagestory_api.main.is_debug_enabled", return_value=False),
+            patch(
+                "vintagestory_api.services.api_settings.ApiSettingsService",
+                return_value=api_settings_service,
+            ),
+            patch(
+                "vintagestory_api.services.server.get_server_service",
+                return_value=server_service,
+            ),
+            patch("vintagestory_api.main.SchedulerService", return_value=scheduler),
+            patch.object(jobs_module, "register_default_jobs"),
+            patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
+        ):
+            async with lifespan_for(settings)(FastAPI()):
+                pass
+
+    @pytest.mark.asyncio
+    async def test_mod_files_are_prepared_once_before_auto_start_and_the_scheduler(
+        self, prepare_mod_files_recorder: PrepareModFilesRecorder
+    ) -> None:
+        """Story 19.4 AC 15 (Epic 19 ADR-9): before any mod operation can run."""
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "prepare_mod_files",
+            "start_server",
+            "scheduler_start",
+        ]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error",
+        [OSError("read-only file system"), RuntimeError("read-only file system")],
+        ids=["os-error", "other-error"],
+    )
+    async def test_a_failure_to_prepare_mod_files_is_logged_and_start_up_continues(
+        self,
+        prepare_mod_files_recorder: PrepareModFilesRecorder,
+        captured_logs: StringIO,
+        error: Exception,
+    ) -> None:
+        prepare_mod_files_recorder.error = error
+
+        await self.run_auto_start_lifespan(prepare_mod_files_recorder)
+
+        assert prepare_mod_files_recorder.calls == [
+            "prepare_mod_files",
+            "start_server",
+            "scheduler_start",
+        ]
+        [line] = [
+            line for line in captured_logs.getvalue().splitlines()
+            if "mod_files_startup_failed" in line
+        ]
+        assert "read-only file system" in line
+        assert type(error).__name__ in line
 
     @pytest.mark.asyncio
     async def test_auto_start_server_enabled_and_installed(

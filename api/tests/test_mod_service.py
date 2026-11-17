@@ -3,6 +3,7 @@
 import json
 import zipfile
 from collections.abc import Callable
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -11,6 +12,7 @@ import pytest
 
 from vintagestory_api.models.moddb import MOD_FIELDS, RELEASE_FIELDS, normalize_mod
 from vintagestory_api.models.mods import ModInfo, ModLookupResponse
+from vintagestory_api.services import mods as mods_module
 from vintagestory_api.services.mod_api import CompatibilityStatus
 from vintagestory_api.services.mod_state import ModStateManager
 from vintagestory_api.services.mods import (
@@ -18,6 +20,7 @@ from vintagestory_api.services.mods import (
     ModNotFoundError,
     ModService,
     get_mod_service,
+    prepare_mod_files,
 )
 from vintagestory_api.services.pending_restart import PendingRestartState
 
@@ -872,7 +875,7 @@ class TestModServiceInstallMod:
     async def test_install_mod_temp_file_does_not_clobber_same_stem_file(
         self, install_service: ModService, temp_dirs: tuple[Path, Path]
     ) -> None:
-        """install_mod() stages its copy under name + ".tmp", not a suffix swap."""
+        """install_mod() stages its copy under name + ".vsm-tmp", not a suffix swap."""
         import respx
         from httpx import Response
 
@@ -896,6 +899,8 @@ class TestModServiceInstallMod:
 
         assert unrelated.read_bytes() == b"not ours"
         assert (mods_dir / "smithingplus_1.8.3.zip").exists()
+        # No working file is left after a successful install (Story 19.4)
+        assert list(mods_dir.glob("*.vsm-*")) == []
 
     @pytest.mark.asyncio
     async def test_install_mod_specific_version(
@@ -1116,7 +1121,7 @@ class TestModServiceInstallMod:
 
         # Verify no temp or final files left behind
         assert not (mods_dir / "smithingplus_1.8.3.zip").exists()
-        assert not (mods_dir / "smithingplus_1.8.3.tmp").exists()
+        assert not (mods_dir / "smithingplus_1.8.3.zip.vsm-tmp").exists()
 
     @pytest.mark.asyncio
     async def test_install_mod_cleans_up_temp_file_on_rename_failure(
@@ -1152,7 +1157,7 @@ class TestModServiceInstallMod:
             def selective_failing_rename(self: Path, target: Path) -> Path:
                 # Only fail on the second rename (in mods_dir, not cache_dir)
                 # First rename is in download_mod (cache), second is in install_mod (mods_dir)
-                if str(self).endswith(".tmp") and str(self.parent) == str(mods_dir):
+                if str(self).endswith(".vsm-tmp") and str(self.parent) == str(mods_dir):
                     # This is the install_mod rename (line 727)
                     raise OSError("Permission denied - disk full")
                 # Otherwise, use original rename for cache operations
@@ -1163,7 +1168,7 @@ class TestModServiceInstallMod:
                     await install_service.install_mod("smithingplus")
 
         # Verify temp file was cleaned up (line 736 executed)
-        assert not (mods_dir / "smithingplus_1.8.3.tmp").exists()
+        assert not (mods_dir / "smithingplus_1.8.3.zip.vsm-tmp").exists()
         # Verify final file was not created
         assert not (mods_dir / "smithingplus_1.8.3.zip").exists()
 
@@ -2579,3 +2584,47 @@ class TestLookupInstallModId:
         assert downloaded is not None
         assert looked_up.latest_version == downloaded.version
         assert looked_up.install_mod_id == downloaded.release["modidstr"]
+
+
+class TestPrepareModFiles:
+    """Story 19.4 (Epic 19 ADR-9, ADR-11): the start-up work on mods and the cache."""
+
+    @pytest.fixture
+    def service(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ModService:
+        service = ModService(
+            state_dir=tmp_path / "state",
+            mods_dir=tmp_path / "mods",
+            cache_dir=tmp_path / "cache",
+            restart_state=PendingRestartState(),
+        )
+        service.state_manager.mods_dir.mkdir(parents=True)
+        monkeypatch.setattr(mods_module, "get_mod_service", lambda: service)
+        return service
+
+    def test_recovers_mods_and_removes_the_old_cache_layout(
+        self, service: ModService, tmp_path: Path, captured_logs: StringIO
+    ) -> None:
+        mods_dir = service.state_manager.mods_dir
+        (mods_dir / "Foo.zip.vsm-tmp").write_bytes(b"working copy")
+        mods_cache = tmp_path / "cache" / "mods"
+        (mods_cache / "11").mkdir(parents=True)
+        (mods_cache / "Old.zip").write_bytes(b"old layout")
+        (mods_cache / "11" / "New.zip").write_bytes(b"new layout")
+
+        prepare_mod_files()
+
+        assert list(mods_dir.iterdir()) == []
+        assert [p.name for p in mods_cache.iterdir()] == ["11"]
+        [line] = [
+            line for line in captured_logs.getvalue().splitlines()
+            if "mod_cache_old_layout_removed" in line
+        ]
+        assert "files" in line
+        assert "1" in line
+
+    def test_nothing_to_do_logs_no_removal(
+        self, service: ModService, captured_logs: StringIO
+    ) -> None:
+        prepare_mod_files()
+
+        assert "mod_cache_old_layout_removed" not in captured_logs.getvalue()

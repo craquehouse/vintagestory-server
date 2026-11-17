@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypeGuard, cast
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import httpx
 import structlog
@@ -552,8 +553,45 @@ class ModApiClient:
             asset_id=resolved.asset_id,
         )
 
+    def cache_path(self, fileid: int, filename: str) -> Path:
+        """Where the release with this file ID is cached: `cache/mods/<fileid>/<name>`.
+
+        Keyed by file ID, so two mods whose releases share a file name never share a
+        path (Epic 19 ADR-11). The name is `safe_release_filename(filename)`.
+
+        Raises:
+            ValueError: If the filename is unusable (see `safe_release_filename`).
+        """
+        return self._mods_cache / str(fileid) / safe_release_filename(filename)
+
+    def remove_flat_layout(self) -> int:
+        """Delete the files the cache held directly under `cache/mods` before Story 19.4.
+
+        Directories (the file-ID layout) are kept; a symlink is unlinked, not followed.
+        A file that cannot be deleted is logged and skipped (Epic 19 ADR-11 decision 5).
+
+        Returns:
+            The number of files deleted.
+        """
+        removed = 0
+        if not self._mods_cache.is_dir():
+            return removed
+        for path in sorted(self._mods_cache.iterdir()):
+            if not (path.is_symlink() or path.is_file(follow_symlinks=False)):
+                continue
+            try:
+                path.unlink()
+                removed += 1
+            except OSError as e:
+                logger.warning("mod_cache_old_file_not_removed", path=str(path), error=str(e))
+        return removed
+
     async def download_release_file(self, slug: str, fileid: int, filename: str) -> Path:
         """Download one release file into the mod cache, atomically.
+
+        The file lands at `cache_path(fileid, filename)`, written first to a temporary
+        file of its own in that directory, so downloads at the same time never share one
+        (Epic 19 ADR-11).
 
         Args:
             slug: Mod slug, for logging and errors.
@@ -570,16 +608,17 @@ class ModApiClient:
         if fileid <= 0:
             raise ModReleaseNotDownloadableError(slug)
         try:
-            safe_name = safe_release_filename(filename)
+            dest_path = self.cache_path(fileid, filename)
         except ValueError as e:
             logger.error("mod_download_unsafe_filename", slug=slug, filename=filename)
             raise DownloadError(slug, str(e)) from e
-
-        dest_path = self._mods_cache / safe_name
-        temp_path = dest_path.with_name(dest_path.name + ".tmp")
+        safe_name = dest_path.name
+        # Unique per download; eviction removes one a crash left (Epic 19 ADR-11)
+        temp_path = dest_path.parent / f"{uuid4().hex}.tmp"
 
         client = await self._get_client()
         try:
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
             async with client.stream(
                 "GET",
                 f"{self.DOWNLOAD_URL}?fileid={fileid}",
@@ -587,7 +626,7 @@ class ModApiClient:
             ) as response:
                 response.raise_for_status()
 
-                with open(temp_path, "wb") as f:
+                with open(temp_path, "xb") as f:
                     async for chunk in response.aiter_bytes(chunk_size=8192):
                         f.write(chunk)
 

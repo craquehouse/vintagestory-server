@@ -25,6 +25,7 @@ from vintagestory_api.services.mod_updates import (
 )
 from vintagestory_api.services.mods import (
     ModConfirmationRequiredError,
+    ModFileConflictError,
     ModOperationInProgressError,
     ModVersionChangeFailedError,
     VersionChangeResult,
@@ -152,6 +153,7 @@ class TestApplyAll:
         "error",
         [
             ModVersionChangeFailedError("alpha", "disk full"),
+            ModFileConflictError("alpha", "Alpha.zip", operation="change the version of"),
             ModOperationInProgressError("alpha"),
             DownloadError("alpha", "connection reset"),
             ExternalApiError("mod database unavailable"),

@@ -717,8 +717,8 @@ class TestInstallReleasesTheLock:
         assert service.busy_mod_ids == frozenset()
 
 
-def mock_foo_zip(modid: str, *, readable: bool = True) -> None:
-    """Lookup and download of `modid` 1.0.0, whose release file is named `Foo.zip`.
+def mock_foo_zip(modid: str, *, readable: bool = True, filename: str = "Foo.zip") -> None:
+    """Lookup and download of `modid` 1.0.0, whose release file is named `filename`.
 
     With `readable=False` the archive has no modinfo.json.
     """
@@ -731,7 +731,7 @@ def mock_foo_zip(modid: str, *, readable: bool = True) -> None:
                     "assetid": 2,
                     "releases": [
                         {"modversion": "1.0.0", "modidstr": modid, "fileid": 20,
-                         "filename": "Foo.zip", "tags": ["1.22.7"]},
+                         "filename": filename, "tags": ["1.22.7"]},
                     ],
                 },
             },
@@ -884,4 +884,154 @@ class TestInstallRefusesAFileNameInUse:
         assert other.read_bytes() == other_bytes
         assert state_of(service, "moda") == other_state
         assert service.state_manager.get_mod("Foo.zip") is None
+        assert service.busy_mod_ids == frozenset()
+
+
+class TestFileNamesIgnoreCase:
+    """Story 19.4 (FR220, Epic 19 ADR-8): an install compares file names ignoring case.
+
+    The checks list the mods directory instead of probing a name, so they hold on a
+    case-sensitive volume (CI) and a case-insensitive one (macOS) alike.
+    """
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
+    @pytest.mark.parametrize("release", ["foo.zip", "FOO.ZIP"])
+    async def test_another_mods_file_in_other_case_is_untouched(
+        self, tmp_path: Path, enabled: bool, release: str
+    ) -> None:
+        service = make_service(tmp_path)
+        other = install_existing(service, "moda", "1.0.0", "Foo.zip", enabled=enabled)
+        other_bytes = other.read_bytes()
+        other_state = state_of(service, "moda")
+        files_before = mod_files(service)
+        mock_foo_zip("modb", filename=release)
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        in_use = "Foo.zip" if enabled else "Foo.zip.disabled"
+        assert raised.value.filename == in_use
+        assert raised.value.operation == "install"
+        assert str(raised.value) == (
+            f"Cannot install 'modb': a file named {in_use} already exists in the mods directory."
+        )
+        assert other.read_bytes() == other_bytes
+        assert state_of(service, "moda") == other_state
+        assert mod_files(service) == files_before
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert saved_slugs(service) == ["moda"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_state_entry_in_other_case_without_a_file_is_a_name_in_use(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip").unlink()
+        entry_before = service.state_manager.get_mod("Foo.zip")
+        mock_foo_zip("modb", filename="foo.zip")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert service.state_manager.get_mod("Foo.zip") == entry_before
+        assert mod_files(service) == []
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert saved_slugs(service) == ["moda"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_dangling_symlink_in_other_case_is_a_name_in_use(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        mods_dir = service.state_manager.mods_dir
+        mods_dir.mkdir(parents=True)
+        link = mods_dir / "Foo.zip"
+        link.symlink_to(tmp_path / "missing-target.zip")
+        mock_foo_zip("modb", filename="foo.zip")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert link.is_symlink()
+        assert mod_files(service) == ["Foo.zip"]
+        assert service.state_manager.list_mods() == []
+
+
+def mock_same_file_name(modid: str, fileids: tuple[int, int]) -> None:
+    """Lookup and downloads of `modid`, whose releases are named `Same-<version>.zip`."""
+    respx.get(MOD_URL.format(modid)).mock(
+        return_value=Response(
+            200, json=entry(modid, "Same-1.1.0.zip", "Same-1.0.0.zip", fileids)
+        )
+    )
+    for fileid, version in zip(fileids, ("1.1.0", "1.0.0"), strict=True):
+        respx.get(DOWNLOAD_URL, params={"fileid": str(fileid)}).mock(
+            return_value=Response(
+                200, content=mod_zip_bytes({"modid": modid, "name": modid, "version": version})
+            )
+        )
+
+
+def modid_in(service: ModService, path: Path) -> str | None:
+    metadata = service.state_manager.read_modinfo(path)
+    return None if metadata is None else metadata.modid
+
+
+class TestDownloadsOfOneFileName:
+    """Story 19.4 AC 10 (FR221, Epic 19 ADR-11): each mod's download is its own."""
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_in_turn(self, tmp_path: Path) -> None:
+        service = make_service(tmp_path)
+        mock_same_file_name("moda", (11, 10))
+        mock_same_file_name("modb", (21, 20))
+
+        await service.install_mod("moda")
+        service.remove_mod("moda")
+        await service.install_mod("modb")
+
+        mods_dir = service.state_manager.mods_dir
+        assert mod_files(service) == ["Same-1.1.0.zip"]
+        assert modid_in(service, mods_dir / "Same-1.1.0.zip") == "modb"
+        cache = service.api_client
+        assert modid_in(service, cache.cache_path(11, "Same-1.1.0.zip")) == "moda"
+        assert modid_in(service, cache.cache_path(21, "Same-1.1.0.zip")) == "modb"
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_at_once(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        service = make_service(tmp_path)
+        mock_same_file_name("moda", (11, 10))
+        mock_same_file_name("modb", (21, 20))
+        started_a, release_a = gate_download(service, monkeypatch, "moda")
+        started_b, release_b = gate_download(service, monkeypatch, "modb")
+
+        first = asyncio.create_task(service.install_mod("moda"))
+        second = asyncio.create_task(service.install_mod("modb"))
+        await started_a.wait()
+        await started_b.wait()
+        release_a.set()
+        release_b.set()
+        results = await asyncio.gather(first, second, return_exceptions=True)
+
+        installed = [r for r in results if isinstance(r, InstallResult)]
+        refused = [r for r in results if isinstance(r, ModFileConflictError)]
+        assert len(installed) == 1
+        assert len(refused) == 1
+        winner = installed[0].slug
+        assert refused[0].slug != winner
+        mods_dir = service.state_manager.mods_dir
+        assert mod_files(service) == ["Same-1.1.0.zip"]
+        assert modid_in(service, mods_dir / "Same-1.1.0.zip") == winner
+        cache = service.api_client
+        assert modid_in(service, cache.cache_path(11, "Same-1.1.0.zip")) == "moda"
+        assert modid_in(service, cache.cache_path(21, "Same-1.1.0.zip")) == "modb"
         assert service.busy_mod_ids == frozenset()

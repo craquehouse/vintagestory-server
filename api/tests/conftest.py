@@ -14,6 +14,7 @@ import pytest
 import structlog
 from fastapi.testclient import TestClient
 
+import vintagestory_api.main as main_module
 from vintagestory_api.main import app
 
 # Shared test API keys - use these instead of defining locally in test files
@@ -49,6 +50,35 @@ def reset_structlog_for_tests() -> Generator[None]:
     yield
 
     # No cleanup needed - next test will reconfigure
+
+
+class PrepareModFilesRecorder:
+    """Stands in for `prepare_mod_files` in the API's lifespan (Story 19.4).
+
+    Appends "prepare_mod_files" to `calls` on each call; raises `error` when it is set.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.error: Exception | None = None
+
+    def __call__(self) -> None:
+        self.calls.append("prepare_mod_files")
+        if self.error is not None:
+            raise self.error
+
+
+@pytest.fixture(autouse=True)
+def prepare_mod_files_recorder(monkeypatch: pytest.MonkeyPatch) -> PrepareModFilesRecorder:
+    """Keep every lifespan a test runs away from the real mods directory and cache.
+
+    `just test-api` sets VS_DATA_DIR to the dev stack's data (`dev/`); the real start-up
+    work renames and deletes files there. Tests of `prepare_mod_files` itself import it
+    from `services.mods` and give it a temporary service.
+    """
+    recorder = PrepareModFilesRecorder()
+    monkeypatch.setattr(main_module, "prepare_mod_files", recorder)
+    return recorder
 
 
 @pytest.fixture

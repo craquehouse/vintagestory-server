@@ -415,6 +415,25 @@ class TestModStateManagerListMods:
         assert slugs == {"mod1", "mod2"}
 
 
+class TestModStateManagerFilenames:
+    """filenames() returns exactly the state's keys (Story 19.4, Epic 19 ADR-8)."""
+
+    def test_filenames_follow_set_and_remove(self, state_manager: ModStateManager) -> None:
+        now = datetime.now(UTC)
+        assert state_manager.filenames() == []
+
+        for name, slug in (("Foo.zip", "foo"), ("bar.zip.disabled", "bar")):
+            state_manager.set_mod_state(
+                name,
+                ModState(filename=name, slug=slug, version="1.0.0", enabled=True,
+                         installed_at=now),
+            )
+        assert sorted(state_manager.filenames()) == ["Foo.zip", "bar.zip.disabled"]
+
+        state_manager.remove_mod("Foo.zip")
+        assert state_manager.filenames() == ["bar.zip.disabled"]
+
+
 class TestModStateManagerSetModState:
     """Tests for updating mod state."""
 

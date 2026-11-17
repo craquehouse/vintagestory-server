@@ -332,3 +332,39 @@ class TestApplyAllStoresEachChangesRecord:
             StoredRelease.from_api(r) for r in carryon()["mod"]["releases"]
         ]
         assert stored_carryon.checked_at > SEEDED_AT
+
+    @respx.mock
+    def test_a_taken_file_name_fails_that_mod_and_the_run_continues(
+        self,
+        client: TestClient,
+        mod_service: ModService,
+        update_service: ModUpdateService,
+        seeded: dict[str, StoredModRecord],
+    ) -> None:
+        """Story 19.4 AC 5 (FR219): a file-name conflict is a failed item, not an abort."""
+        carryon_file = next(
+            r["filename"] for r in carryon()["mod"]["releases"] if r["modversion"] == "1.14.3"
+        )
+        stray = mod_service.state_manager.mods_dir / carryon_file
+        stray.write_bytes(b"stray bytes")
+        self.mock_lookups(
+            demo_download=Response(
+                200, content=zip_bytes({"modid": "demo", "name": "Demo", "version": "1.1.0"})
+            )
+        )
+
+        response = client.post(URL, headers=ADMIN)
+
+        assert response.status_code == 200
+        results = {r["slug"]: r for r in response.json()["data"]["results"]}
+        assert results["carryon"]["outcome"] == "failed"
+        assert results["carryon"]["error"] == (
+            f"Cannot change the version of 'carryon': a file named {carryon_file} "
+            "already exists in the mods directory."
+        )
+        assert results["demo"]["outcome"] == "updated"
+        assert stray.read_bytes() == b"stray bytes"
+        assert update_service.store.get("carryon") == seeded["carryon"]
+        state = mod_service.state_manager.get_mod_by_slug("carryon")
+        assert state is not None
+        assert (state.filename, state.version) == ("carryon_1.14.1.zip", "1.14.1")

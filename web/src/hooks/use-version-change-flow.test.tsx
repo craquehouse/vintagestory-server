@@ -191,6 +191,31 @@ describe('useVersionChangeFlow', () => {
     expect(result.current.confirmation).toBeNull();
   });
 
+  it('shows the file name conflict and asks for no confirmation', async () => {
+    // Story 19.4 AC 18 (FR219): a taken file name is 409 MOD_FILE_CONFLICT
+    const message =
+      "Cannot change the version of 'carryon': a file named CarryOn-1.22.0_v1.14.3.zip already exists in the mods directory.";
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: () => Promise.resolve({ detail: { code: 'MOD_FILE_CONFLICT', message } }),
+    });
+    globalThis.fetch = mockFetch;
+    const { result } = renderHook(() => useVersionChangeFlow(), { wrapper });
+
+    act(() => result.current.start(update));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to update Carry On', {
+        description: message,
+      });
+    });
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(result.current.confirmation).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('reports the slug in flight', async () => {
     let resolve: (value: unknown) => void = () => {};
     globalThis.fetch = vi.fn().mockReturnValue(new Promise((r) => (resolve = r)));

@@ -150,6 +150,53 @@ describe('UpdateAllDialog', () => {
     ).toHaveLength(1);
   });
 
+  it('shows a file name conflict as the failed mod\'s message', async () => {
+    // Story 19.4 AC 18 (FR219): Update All reports the conflict and goes on
+    const message =
+      "Cannot change the version of 'delta': a file named delta_4.1.0.zip already exists in the mods directory.";
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          status: 'ok',
+          data: {
+            results: [
+              {
+                slug: 'alpha',
+                name: 'ALPHA',
+                from_version: '1.0.0',
+                to_version: '1.1.0',
+                outcome: 'updated',
+                reasons: [],
+                error: null,
+              },
+              {
+                slug: 'delta',
+                name: 'DELTA',
+                from_version: '4.0.0',
+                to_version: '4.1.0',
+                outcome: 'failed',
+                reasons: [],
+                error: message,
+              },
+            ],
+            updated: 1,
+            skipped: 0,
+            failed: 1,
+            pending_restart: false,
+          },
+        }),
+    });
+    renderDialog();
+
+    fireEvent.click(screen.getByTestId('update-all-confirm'));
+
+    const results = await screen.findByTestId('update-all-results');
+    const items = results.querySelectorAll('li');
+    expect(items[0]).toHaveTextContent('ALPHA v1.0.0 → v1.1.0Updated');
+    expect(items[1]).toHaveTextContent(`Failed: ${message}`);
+  });
+
   it('omits the restart message when no restart is needed', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(summaryResponse(false));
     renderDialog();

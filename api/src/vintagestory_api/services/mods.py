@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import structlog
 
@@ -37,7 +38,6 @@ from vintagestory_api.services.mod_api import (
     ReleaseDict,
     check_compatibility,
     extract_slug,
-    safe_release_filename,
     validate_slug,
 )
 from vintagestory_api.services.mod_api import (
@@ -47,6 +47,11 @@ from vintagestory_api.services.mod_compatibility import (
     SupportedRange,
     compare_game_versions,
     supported_game_versions,
+)
+from vintagestory_api.services.mod_file_recovery import (
+    KEPT_ASIDE_SUFFIX,
+    WORKING_COPY_SUFFIX,
+    recover_working_files,
 )
 from vintagestory_api.services.mod_media import build_screenshots, trailer_link_url
 from vintagestory_api.services.mod_release_selection import select_install_release
@@ -116,6 +121,26 @@ def get_mod_service() -> ModService:
         )
 
     return _mod_service
+
+
+def prepare_mod_files() -> None:
+    """Start-up work on the mods directory and the download cache (Epic 19 ADR-9, ADR-11).
+
+    Called once by the API's lifespan, before the scheduler and the game server
+    auto-start, so it runs before any mod operation. Steps, in order:
+    1. recover the manager's working files (ADR-9 decisions 6-7);
+    2. remove the download cache's old flat layout (ADR-11 decision 5).
+    Story 19.5 adds the state sync (ADR-10) as step 3, after step 1.
+
+    Uses the process settings through `get_mod_service()` (read from the environment),
+    not the app factory's `settings`; the app factory's settings must match the
+    environment.
+    """
+    service = get_mod_service()
+    recover_working_files(service.state_manager)
+    removed = service.api_client.remove_flat_layout()
+    if removed:
+        logger.info("mod_cache_old_layout_removed", files=removed)
 
 
 async def close_mod_service() -> None:
@@ -188,15 +213,33 @@ class ModOperationInProgressError(Exception):
         )
 
 
-class ModFileConflictError(Exception):
-    """Raised when an install's file name is already in use (Story 18.2, Epic 18 ADR-4)."""
+ModFileOperation = Literal["install", "enable", "disable", "change the version of"]
+"""The mod operations that place or rename a file, as their messages name them."""
 
-    def __init__(self, slug: str, filename: str) -> None:
+
+class ModFileConflictError(Exception):
+    """Raised when a name a mod operation would create is taken (Epic 19 ADR-8)."""
+
+    def __init__(self, slug: str, filename: str, *, operation: ModFileOperation) -> None:
         self.slug = slug
         self.filename = filename
+        self.operation = operation
         super().__init__(
-            f"Cannot install '{slug}': a file named {filename} "
+            f"Cannot {operation} '{slug}': a file named {filename} "
             "already exists in the mods directory."
+        )
+
+
+class ModFileMissingError(Exception):
+    """Raised when a mod's own file is no longer in the mods directory (Epic 19 ADR-9)."""
+
+    def __init__(self, slug: str, filename: str, *, operation: ModFileOperation) -> None:
+        self.slug = slug
+        self.filename = filename
+        self.operation = operation
+        super().__init__(
+            f"Cannot {operation} '{slug}': its file {filename} is no longer in the mods "
+            "directory. Remove the mod and install it again."
         )
 
 
@@ -342,6 +385,35 @@ class ModService:
         """Raise ModOperationInProgressError if an operation holds this mod's lock."""
         if self._lock_key(mod_id) in self._busy:
             raise ModOperationInProgressError(mod_id)
+
+    def _refuse_taken_names(
+        self,
+        slug: str,
+        names: tuple[str, ...],
+        own: str | None,
+        operation: ModFileOperation,
+    ) -> None:
+        """Raise ModFileConflictError when a name an operation will create is taken (ADR-8).
+
+        Compares with casefold() against the mods directory listing (not probed, so a name
+        that differs only in case and a dangling symlink count on every volume) and the
+        state's keys. `own` (the mod's current file, None for an install) is never "taken".
+        Working files (.vsm-tmp, .vsm-bak, old .tmp/.bak) are never one of `names`, so they
+        never conflict (Epic 19 ADR-9 decision 8). The error names the entry in the way as
+        it is spelled in the directory, or else in the state.
+        """
+        taken: dict[str, str] = {}
+        for key in self._state_manager.filenames():
+            taken.setdefault(key.casefold(), key)
+        mods_dir = self._state_manager.mods_dir
+        if mods_dir.is_dir():
+            for path in mods_dir.iterdir():
+                taken[path.name.casefold()] = path.name
+        own_key = None if own is None else own.casefold()
+        for name in names:
+            key = name.casefold()
+            if key != own_key and key in taken:
+                raise ModFileConflictError(slug, taken[key], operation=operation)
 
     @contextmanager
     def _hold(self, mod_id: str) -> Generator[None]:
@@ -728,6 +800,10 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileMissingError: The mod's own file is no longer in the mods directory
+                (Epic 19 ADR-9).
+            ModFileConflictError: The enabled file name is taken in the mods directory or
+                the mod state, ignoring case (Epic 19 ADR-8).
         """
         logger.debug("enable_mod_start", slug=slug)
         self._refuse_if_busy(slug)
@@ -746,6 +822,12 @@ class ModService:
         new_filename = state.filename.removesuffix(".disabled")
         new_path = self._state_manager.mods_dir / new_filename
 
+        # A file removed by hand cannot be renamed (Epic 19 ADR-9); a directory or a
+        # dangling symlink under the name counts as missing
+        if not old_path.is_file():
+            raise ModFileMissingError(slug, state.filename, operation="enable")
+        # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
+        self._refuse_taken_names(slug, (new_filename,), state.filename, "enable")
         old_path.rename(new_path)
 
         # Update state
@@ -786,6 +868,10 @@ class ModService:
         Raises:
             ModOperationInProgressError: An install or version change is running for the mod.
             ModNotFoundError: If the mod is not found.
+            ModFileMissingError: The mod's own file is no longer in the mods directory
+                (Epic 19 ADR-9).
+            ModFileConflictError: The disabled file name is taken in the mods directory or
+                the mod state, ignoring case (Epic 19 ADR-8).
         """
         logger.debug("disable_mod_start", slug=slug)
         self._refuse_if_busy(slug)
@@ -804,6 +890,12 @@ class ModService:
         new_filename = state.filename + ".disabled"
         new_path = self._state_manager.mods_dir / new_filename
 
+        # A file removed by hand cannot be renamed (Epic 19 ADR-9); a directory or a
+        # dangling symlink under the name counts as missing
+        if not old_path.is_file():
+            raise ModFileMissingError(slug, state.filename, operation="disable")
+        # Never replace a file: a rename onto a taken name would (Epic 19 ADR-8)
+        self._refuse_taken_names(slug, (new_filename,), state.filename, "disable")
         old_path.rename(new_path)
 
         # Update state
@@ -946,6 +1038,8 @@ class ModService:
 
         Raises:
             ModOperationInProgressError: An install or version change is running for this mod.
+            ModFileConflictError: The release's file name, or its .disabled form, is taken
+                in the mods directory or the mod state, ignoring case (Epic 19 ADR-8).
             ModVersionChangeFailedError: Placing the file or saving state failed.
             ModReleaseNotDownloadableError: The target release has no downloadable file.
             See `_prepare_version_change` for lookup, confirmation and validation errors.
@@ -997,23 +1091,38 @@ class ModService:
     def _apply_version_change(self, state: ModState, prepared: PreparedVersionChange) -> str:
         """Swap the validated archive into the mods directory and update state.
 
-        Returns the new filename. On failure, restores the original file and state.
+        Refuses before writing anything when the release's file name, or its .disabled
+        form, is taken by another file or state entry, ignoring case (Epic 19 ADR-8).
+        Returns the new filename. On a later failure, restores the original file and state.
+
+        Raises:
+            ModFileConflictError: A name the change would create is taken.
+            ModVersionChangeFailedError: Placing the file or saving state failed.
         """
         slug = state.slug
+        release_name = prepared.archive.name
+        self._refuse_taken_names(
+            slug,
+            (release_name, f"{release_name}.disabled"),
+            state.filename,
+            "change the version of",
+        )
         mods_dir = self._state_manager.mods_dir
         mods_dir.mkdir(parents=True, exist_ok=True)
-        new_name = prepared.archive.name if state.enabled else f"{prepared.archive.name}.disabled"
+        new_name = release_name if state.enabled else f"{release_name}.disabled"
         old_path = mods_dir / state.filename
         new_path = mods_dir / new_name
-        same_file = new_name == state.filename
-        if new_path.exists() and not same_file:
-            raise ModVersionChangeFailedError(
-                slug, f"{new_name} already exists in the mods directory"
-            )
+        # A name that differs only in case is the same file on a case-insensitive volume,
+        # so it takes the same-file path on every volume (Epic 19 ADR-8 decision 4)
+        same_file = new_name.casefold() == state.filename.casefold()
 
-        temp_path = new_path.with_name(new_path.name + ".tmp")
-        # A reused filename would be overwritten by the rename, so keep the old file aside.
-        backup_path = old_path.with_name(old_path.name + ".bak") if same_file else None
+        # The working copy, renamed into place once complete; recovery deletes a leftover
+        temp_path = new_path.with_name(new_path.name + WORKING_COPY_SUFFIX)
+        # A reused filename would be overwritten by the rename, so keep the old file aside;
+        # recovery puts it back, or deletes it once the state names the new file (ADR-9)
+        backup_path = (
+            old_path.with_name(old_path.name + KEPT_ASIDE_SUFFIX) if same_file else None
+        )
         try:
             shutil.copy2(prepared.archive, temp_path)
             if backup_path is not None:
@@ -1071,7 +1180,12 @@ class ModService:
             logger.error("mod_version_rollback_state_not_saved", slug=old_state.slug, error=str(e))
         try:
             if backup_path is not None:
-                backup_path.replace(new_path)
+                # Back under the original name, which a case-only change does not share
+                # with the new file: remove that file first (Story 19.4)
+                old_path = new_path.with_name(old_state.filename)
+                if new_path.name != old_path.name:
+                    new_path.unlink(missing_ok=True)
+                backup_path.replace(old_path)
             else:
                 new_path.unlink(missing_ok=True)
         except OSError as e:
@@ -1140,11 +1254,10 @@ class ModService:
     async def _acquire_release_archive(self, slug: str, target: StoredRelease) -> Path:
         """Return a validated archive for the release: a valid cached copy, or a download."""
         try:
-            safe_name = safe_release_filename(target.filename)
+            cached = self.api_client.cache_path(target.fileid, target.filename)
         except ValueError as e:
             raise ModValidationError(slug, str(e)) from e
 
-        cached = self._cache_dir / "mods" / safe_name
         if cached.exists():
             if self._archive_matches(cached, slug, target.modversion):
                 logger.debug("mod_release_cache_hit", slug=slug, version=target.modversion)
@@ -1209,7 +1322,8 @@ class ModService:
             ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
                 or the archive's mod ID) is already installed.
             ModFileConflictError: If the download's file name, or its .disabled form, is
-                already in the mods directory or the mod state (Epic 18 ADR-4).
+                already in the mods directory or the mod state, ignoring case (Epic 18
+                ADR-4, Epic 19 ADR-8).
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1271,8 +1385,9 @@ class ModService:
         """Copy a downloaded archive into the mods directory, import it and save state.
 
         Refuses before writing anything when the download's file name, or its .disabled
-        form, is already in the mods directory or the mod state (Epic 18 ADR-4), so an
-        install never replaces another mod's file and its cleanup never removes one.
+        form, is already in the mods directory or the mod state, names compared ignoring
+        case (Epic 18 ADR-4, Epic 19 ADR-8), so an install never replaces another mod's
+        file and its cleanup never removes one.
 
         Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
         and no other operation may run between that check and the state save.
@@ -1281,20 +1396,15 @@ class ModService:
             ModFileConflictError: The file name, or its .disabled form, is in use.
         """
         name = download_result.filename
-        mods_dir = self._state_manager.mods_dir
-        for candidate in (name, f"{name}.disabled"):
-            if (
-                (mods_dir / candidate).exists(follow_symlinks=False)
-                or self._state_manager.get_mod(candidate) is not None
-            ):
-                raise ModFileConflictError(slug, candidate)
+        self._refuse_taken_names(slug, (name, f"{name}.disabled"), None, "install")
 
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")
 
         # Copy from cache to mods directory (atomic write pattern)
         dest_path = self._state_manager.mods_dir / download_result.filename
-        temp_path = dest_path.with_name(dest_path.name + ".tmp")
+        # The working copy, renamed into place once complete; recovery deletes a leftover
+        temp_path = dest_path.with_name(dest_path.name + WORKING_COPY_SUFFIX)
 
         # Ensure mods directory exists
         self._state_manager.mods_dir.mkdir(parents=True, exist_ok=True)

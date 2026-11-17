@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -592,8 +593,8 @@ class TestModApiClientDownloadMod:
 
         # Verify no temp files left behind
         mods_cache = cache_dir / "mods"
-        assert list(mods_cache.glob("*.tmp")) == []
-        assert not (mods_cache / "smithingplus_1.8.3.zip").exists()
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -634,7 +635,8 @@ class TestModApiClientDownloadMod:
 
         # Verify no temp files left behind
         mods_cache = cache_dir / "mods"
-        assert list(mods_cache.glob("*.tmp")) == []
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -695,7 +697,8 @@ class TestModApiClientDownloadMod:
 
         # Verify no temp files left behind
         mods_cache = cache_dir / "mods"
-        assert list(mods_cache.glob("*.tmp")) == []
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -734,8 +737,8 @@ class TestModApiClientDownloadMod:
 
         # Verify temp file was cleaned up
         mods_cache = cache_dir / "mods"
-        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
-        assert not temp_path.exists()
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -772,8 +775,8 @@ class TestModApiClientDownloadMod:
 
         # Verify temp file was cleaned up
         mods_cache = cache_dir / "mods"
-        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
-        assert not temp_path.exists()
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -812,8 +815,8 @@ class TestModApiClientDownloadMod:
 
         # Verify temp file was cleaned up
         mods_cache = cache_dir / "mods"
-        temp_path = mods_cache / "smithingplus_1.8.3.zip.tmp"
-        assert not temp_path.exists()
+        assert list(mods_cache.rglob("*.tmp")) == []
+        assert not (mods_cache / "59176" / "smithingplus_1.8.3.zip").exists()
 
     @respx.mock
     @pytest.mark.asyncio
@@ -1189,6 +1192,133 @@ class TestResolveInstall:
         )
         assert result.release is resolved.release
         assert result.path.read_bytes() == b"zip"
+
+
+def gated_downloads(bodies: dict[int, bytes]) -> tuple[asyncio.Event, list[int]]:
+    """Serve each file ID's body in two halves with `release` awaited in between.
+
+    Returns (release, started): `started` lists the file IDs whose first half was sent.
+    """
+    release = asyncio.Event()
+    started: list[int] = []
+
+    class GatedStream(httpx.AsyncByteStream):
+        def __init__(self, fileid: int) -> None:
+            self.fileid = fileid
+
+        async def __aiter__(self) -> AsyncIterator[bytes]:
+            body = bodies[self.fileid]
+            yield body[: len(body) // 2]
+            started.append(self.fileid)
+            await release.wait()
+            yield body[len(body) // 2 :]
+
+    def serve(request: httpx.Request) -> Response:
+        fileid = int(request.url.params["fileid"])
+        return Response(200, stream=GatedStream(fileid))
+
+    respx.get("https://mods.vintagestory.at/download").mock(side_effect=serve)
+    return release, started
+
+
+async def release_when_started(release: asyncio.Event, started: list[int], count: int) -> None:
+    while len(started) < count:
+        await asyncio.sleep(0)
+    release.set()
+
+
+class TestCacheKeyedByFileId:
+    """Story 19.4 (FR221, Epic 19 ADR-11): cache/mods/<fileid>/<name>."""
+
+    def test_cache_path(self, mod_api_client: ModApiClient, cache_dir: Path) -> None:
+        mods_cache = cache_dir / "mods"
+        assert mod_api_client.cache_path(7, "Demo.zip") == mods_cache / "7" / "Demo.zip"
+        assert mod_api_client.cache_path(8, "Demo.zip") != mod_api_client.cache_path(
+            7, "Demo.zip"
+        )
+        assert mod_api_client.cache_path(7, "../../x/evil.zip") == mods_cache / "7" / "evil.zip"
+        with pytest.raises(ValueError):
+            mod_api_client.cache_path(7, "..")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_two_mods_with_one_file_name_in_turn(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        respx.get("https://mods.vintagestory.at/download", params={"fileid": "11"}).mock(
+            return_value=Response(200, content=b"mod a")
+        )
+        respx.get("https://mods.vintagestory.at/download", params={"fileid": "21"}).mock(
+            return_value=Response(200, content=b"mod b")
+        )
+
+        first = await mod_api_client.download_release_file("moda", 11, "Same.zip")
+        second = await mod_api_client.download_release_file("modb", 21, "Same.zip")
+
+        assert first == cache_dir / "mods" / "11" / "Same.zip"
+        assert second == cache_dir / "mods" / "21" / "Same.zip"
+        assert (first.read_bytes(), second.read_bytes()) == (b"mod a", b"mod b")
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_two_mods_with_one_file_name_at_once(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        bodies = {11: b"mod a " * 1000, 21: b"mod b " * 1000}
+        release, started = gated_downloads(bodies)
+
+        first, second, _ = await asyncio.gather(
+            mod_api_client.download_release_file("moda", 11, "Same.zip"),
+            mod_api_client.download_release_file("modb", 21, "Same.zip"),
+            release_when_started(release, started, 2),
+        )
+
+        assert sorted(started) == [11, 21]
+        assert first.read_bytes() == bodies[11]
+        assert second.read_bytes() == bodies[21]
+        assert list((cache_dir / "mods").rglob("*.tmp")) == []
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_one_release_twice_at_once(
+        self, mod_api_client: ModApiClient, cache_dir: Path
+    ) -> None:
+        bodies = {11: b"mod a " * 1000}
+        release, started = gated_downloads(bodies)
+
+        first, second, _ = await asyncio.gather(
+            mod_api_client.download_release_file("moda", 11, "Same.zip"),
+            mod_api_client.download_release_file("moda", 11, "Same.zip"),
+            release_when_started(release, started, 2),
+        )
+
+        assert first == second == cache_dir / "mods" / "11" / "Same.zip"
+        assert first.read_bytes() == bodies[11]
+        assert [p.name for p in (cache_dir / "mods" / "11").iterdir()] == ["Same.zip"]
+
+    def test_remove_flat_layout(self, mod_api_client: ModApiClient, cache_dir: Path) -> None:
+        mods_cache = cache_dir / "mods"
+        for name in ("Old.zip", "other.cs", "Half.zip.tmp"):
+            (mods_cache / name).write_bytes(b"old")
+        (mods_cache / "11").mkdir()
+        (mods_cache / "11" / "New.zip").write_bytes(b"new")
+
+        assert mod_api_client.remove_flat_layout() == 3
+
+        assert [p.name for p in mods_cache.iterdir()] == ["11"]
+        assert (mods_cache / "11" / "New.zip").read_bytes() == b"new"
+
+    def test_remove_flat_layout_unlinks_a_symlink_not_its_target(
+        self, mod_api_client: ModApiClient, cache_dir: Path, tmp_path: Path
+    ) -> None:
+        target = tmp_path / "target.zip"
+        target.write_bytes(b"target")
+        (cache_dir / "mods" / "Link.zip").symlink_to(target)
+
+        assert mod_api_client.remove_flat_layout() == 1
+
+        assert list((cache_dir / "mods").iterdir()) == []
+        assert target.read_bytes() == b"target"
 
 
 class TestModApiClientLifecycle:
