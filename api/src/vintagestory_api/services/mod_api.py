@@ -9,10 +9,11 @@ from __future__ import annotations
 import asyncio
 import re
 import unicodedata
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, TypeGuard
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -269,6 +270,44 @@ def _is_json_array(value: object) -> TypeGuard[list[object]]:
     return isinstance(value, list)
 
 
+class SharedFetches[K, T]:
+    """Running mod database fetches by key; callers that find one running share it.
+
+    Epic 19 ADR-13 decision 5: the pattern of Story 18.3's filtered listings, used for the
+    game version list and the full listing too. A finished task is removed, so a failure
+    reaches every waiter and is not kept. Callers await the task through
+    `asyncio.shield`, so one caller's cancellation does not cancel it for the others.
+    """
+
+    def __init__(self) -> None:
+        self._tasks: dict[K, asyncio.Task[T]] = {}
+
+    def get(self, key: K, fetch: Callable[[], Coroutine[Any, Any, T]]) -> asyncio.Task[T]:
+        """The running fetch for `key`, or `fetch()` started as a task when none is running."""
+        task = self._tasks.get(key)
+        if task is None:
+            task = asyncio.create_task(fetch())
+            self._tasks[key] = task
+
+            def finished(done: asyncio.Task[T]) -> None:
+                if self._tasks.get(key) is done:
+                    del self._tasks[key]
+                if not done.cancelled():
+                    # Retrieved, so a failure nobody awaited is not reported as lost
+                    done.exception()
+
+            task.add_done_callback(finished)
+        return task
+
+    async def cancel_all(self) -> None:
+        """Cancel every running fetch and wait until they have finished."""
+        tasks = list(self._tasks.values())
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+
 @dataclass(frozen=True)
 class VersionListing:
     """The mod database listing filtered by one game version tag, as cached (Story 18.3).
@@ -346,8 +385,13 @@ class ModApiClient:
         # replaced or evicted), the fetch running for each tag ID, and when the flag
         # lookup last failed
         self._version_listings: dict[int, VersionListing] = {}
-        self._version_fetches: dict[int, asyncio.Task[VersionListing]] = {}
+        self._version_fetches: SharedFetches[int, VersionListing] = SharedFetches()
         self._version_flags_failed_at: datetime | None = None
+
+        # Story 19.6: the full listing and the game version list fetch, shared by
+        # concurrent callers (Epic 19 ADR-13 decision 5)
+        self._all_mods_fetch: SharedFetches[None, list[ModDict]] = SharedFetches()
+        self._game_versions_fetch: SharedFetches[None, dict[str, int]] = SharedFetches()
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
@@ -401,12 +445,10 @@ class ModApiClient:
         return body
 
     async def close(self) -> None:
-        """Cancel any filtered listing fetch still running, then close the HTTP client."""
-        fetches = list(self._version_fetches.values())
-        for task in fetches:
-            task.cancel()
-        if fetches:
-            await asyncio.gather(*fetches, return_exceptions=True)
+        """Cancel any mod database fetch still running, then close the HTTP client."""
+        await self._all_mods_fetch.cancel_all()
+        await self._game_versions_fetch.cancel_all()
+        await self._version_fetches.cancel_all()
         if self._client is not None:
             await self._client.aclose()
             self._client = None
@@ -694,8 +736,14 @@ class ModApiClient:
         This method fetches the complete mod list from the API and caches
         it in memory for 5 minutes to avoid hammering the external API.
 
+        Concurrent callers that find the cache cold or expired share one request, and a
+        forced refresh joins a fetch that is already running (Story 19.6, Epic 19
+        ADR-13). A failure reaches every waiting caller and is not kept: the next call
+        fetches again.
+
         Args:
-            force_refresh: If True, bypass the cache and fetch fresh data.
+            force_refresh: If True, bypass the cache; joins a running fetch, otherwise
+                fetches fresh data.
 
         Returns:
             List of normalized mod dictionaries from the API.
@@ -708,7 +756,8 @@ class ModApiClient:
             logger.debug("browse_cache_hit", count=len(self._browse_cache or []))
             return self._browse_cache or []
 
-        return await self._fetch_all_mods()
+        # Shielded: one caller's cancellation does not cancel the shared fetch
+        return await asyncio.shield(self._all_mods_fetch.get(None, self._fetch_all_mods))
 
     async def _fetch_all_mods(self) -> list[ModDict]:
         """Fetch the full listing and cache it; a failure leaves the cache as it was."""
@@ -740,8 +789,8 @@ class ModApiClient:
         """Clear the browse mod list cache and the filtered listings.
 
         This forces the next call to get_all_mods() or get_mods_by_version() to fetch
-        fresh data and resets the flag lookup's retry pause. A filtered listing fetch
-        that is running is left to finish.
+        fresh data and resets the flag lookup's retry pause. A listing fetch that is
+        running (full or filtered) is left to finish and fills the cache afterwards.
         """
         self._browse_cache = None
         self._browse_cache_time = None
@@ -774,19 +823,9 @@ class ModApiClient:
 
     def _version_fetch(self, version_tagid: int) -> asyncio.Task[VersionListing]:
         """The running fetch for a tag, started if there is none. Callers share it."""
-        task = self._version_fetches.get(version_tagid)
-        if task is None:
-            task = asyncio.create_task(self._refresh_version_listing(version_tagid))
-            self._version_fetches[version_tagid] = task
-
-            def finished(done: asyncio.Task[VersionListing]) -> None:
-                self._version_fetches.pop(version_tagid, None)
-                if not done.cancelled():
-                    # Retrieved, so a failure nobody awaited is not reported as lost
-                    done.exception()
-
-            task.add_done_callback(finished)
-        return task
+        return self._version_fetches.get(
+            version_tagid, lambda: self._refresh_version_listing(version_tagid)
+        )
 
     async def get_mods_by_version(self, version_tagid: int) -> list[ModDict]:
         """Get mods filtered by game version from the VintageStory mod database.
@@ -842,7 +881,12 @@ class ModApiClient:
                     tagid = (await self.get_game_versions()).get(game_version)
                     if tagid is None:
                         return None
-                    return (await asyncio.shield(self._version_fetch(tagid))).mod_ids
+                    # Another caller may have cached this tag's listing while this one
+                    # waited for the game version list (Story 19.6)
+                    listing = self._fresh_version_listing(tagid)
+                    if listing is None:
+                        listing = await asyncio.shield(self._version_fetch(tagid))
+                    return listing.mod_ids
             except (TimeoutError, ExternalApiError) as e:
                 self._version_flags_failed_at = datetime.now()
                 logger.warning(
@@ -917,8 +961,14 @@ class ModApiClient:
         This method fetches the game versions list from the VintageStory API
         and caches it in memory for 1 hour (game versions change infrequently).
 
+        Concurrent callers that find the cache cold or expired share one request, and a
+        forced refresh joins a fetch that is already running (Story 19.6, Epic 19
+        ADR-13). A failure reaches every waiting caller and is not kept: the next call
+        fetches again.
+
         Args:
-            force_refresh: If True, bypass the cache and fetch fresh data.
+            force_refresh: If True, bypass the cache; joins a running fetch, otherwise
+                fetches fresh data.
 
         Returns:
             Dictionary mapping version strings (e.g., "1.21.3") to tagids.
@@ -933,7 +983,10 @@ class ModApiClient:
             )
             return self._gameversions_cache or {}
 
-        return await self._fetch_game_versions()
+        # Shielded: one caller's cancellation does not cancel the shared fetch
+        return await asyncio.shield(
+            self._game_versions_fetch.get(None, self._fetch_game_versions)
+        )
 
     async def _fetch_game_versions(self) -> dict[str, int]:
         """Fetch the game version list and cache it; a failure leaves the cache as it was."""
@@ -973,7 +1026,8 @@ class ModApiClient:
     def clear_gameversions_cache(self) -> None:
         """Clear the game versions cache.
 
-        This forces the next call to get_game_versions() to fetch fresh data.
+        This forces the next call to get_game_versions() to fetch fresh data. A fetch
+        that is running is left to finish and fills the cache afterwards.
         """
         self._gameversions_cache = None
         self._gameversions_cache_time = None
