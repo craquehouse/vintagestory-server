@@ -5,6 +5,7 @@ import {
   buildLogWebSocketUrl,
   LOG_WS_CLOSE_CODES,
 } from './use-log-stream';
+import { setTestUrl } from '../../tests/location';
 
 // Mock the ws-token module
 vi.mock('../api/ws-token', () => ({
@@ -92,23 +93,19 @@ describe('useLogStream', () => {
     vi.clearAllMocks();
     MockWebSocket.instances = [];
     MockWebSocket.lastUrl = '';
-    // @ts-expect-error - Mocking global WebSocket
-    global.WebSocket = MockWebSocket;
+    vi.stubGlobal('WebSocket', MockWebSocket);
     // Set up default token mock
     mockRequestWebSocketToken.mockResolvedValue(MOCK_TOKEN_DATA);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('buildLogWebSocketUrl', () => {
     it('builds correct URL with filename, token, and default history lines', () => {
-      // Mock window.location
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
 
       const url = buildLogWebSocketUrl('server-main.log', 'test-token-abc');
 
@@ -118,10 +115,7 @@ describe('useLogStream', () => {
     });
 
     it('uses wss for https protocol', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'https:', host: 'example.com' },
-        writable: true,
-      });
+      setTestUrl('https://example.com/');
 
       const url = buildLogWebSocketUrl('app.log', 'secure-token');
 
@@ -131,10 +125,7 @@ describe('useLogStream', () => {
     });
 
     it('accepts custom history lines parameter', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost' },
-        writable: true,
-      });
+      setTestUrl('http://localhost/');
 
       const url = buildLogWebSocketUrl('debug.log', 'token-xyz', 500);
 
@@ -142,10 +133,7 @@ describe('useLogStream', () => {
     });
 
     it('URL-encodes filename with special characters', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost' },
-        writable: true,
-      });
+      setTestUrl('http://localhost/');
 
       const url = buildLogWebSocketUrl('logs/app server.log', 'token123');
 
@@ -153,10 +141,7 @@ describe('useLogStream', () => {
     });
 
     it('URL-encodes token with special characters', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost' },
-        writable: true,
-      });
+      setTestUrl('http://localhost/');
 
       const url = buildLogWebSocketUrl('app.log', 'token+with/special=chars');
 
@@ -166,10 +151,7 @@ describe('useLogStream', () => {
 
   describe('connection lifecycle', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('starts in disconnected state when enabled is false', () => {
@@ -368,10 +350,7 @@ describe('useLogStream', () => {
 
   describe('callbacks', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('calls onStateChange callback on state changes', async () => {
@@ -479,10 +458,7 @@ describe('useLogStream', () => {
   describe('reconnection logic', () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     afterEach(() => {
@@ -765,10 +741,7 @@ describe('useLogStream', () => {
 
   describe('manual controls', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('disconnect closes the WebSocket with normal code', async () => {
@@ -832,10 +805,7 @@ describe('useLogStream', () => {
 
   describe('enabled flag', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('does not connect when enabled is false', async () => {
@@ -905,10 +875,7 @@ describe('useLogStream', () => {
 
   describe('history lines option', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('uses default history lines of 100', async () => {
@@ -938,10 +905,7 @@ describe('useLogStream', () => {
 
   describe('cleanup', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('closes WebSocket on unmount', async () => {
@@ -1001,10 +965,7 @@ describe('useLogStream', () => {
 
   describe('edge cases', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('handles WebSocket error event', async () => {

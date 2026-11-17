@@ -3043,7 +3043,7 @@ class TestModTagsEndpoint:
         admin_headers: dict[str, str],
     ) -> None:
         """GET /mods/tags handles mods with no tags."""
-        mods_without_tags = {
+        mods_without_tags: dict[str, Any] = {
             "statuscode": "200",
             "mods": [
                 {"modid": 1, "name": "Mod 1"},

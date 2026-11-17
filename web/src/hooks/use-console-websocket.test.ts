@@ -5,6 +5,7 @@ import {
   buildConsoleWebSocketUrl,
   WS_CLOSE_CODES,
 } from './use-console-websocket';
+import { setTestUrl } from '../../tests/location';
 
 // Mock the ws-token module
 vi.mock('../api/ws-token', () => ({
@@ -92,23 +93,19 @@ describe('useConsoleWebSocket', () => {
     vi.clearAllMocks();
     MockWebSocket.instances = [];
     MockWebSocket.lastUrl = '';
-    // @ts-expect-error - Mocking global WebSocket
-    global.WebSocket = MockWebSocket;
+    vi.stubGlobal('WebSocket', MockWebSocket);
     // Set up default token mock
     mockRequestWebSocketToken.mockResolvedValue(MOCK_TOKEN_DATA);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('buildConsoleWebSocketUrl', () => {
     it('builds correct URL with token (AC: 5)', () => {
-      // Mock window.location
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
 
       const url = buildConsoleWebSocketUrl('test-token-abc', 100);
 
@@ -118,10 +115,7 @@ describe('useConsoleWebSocket', () => {
     });
 
     it('uses wss for https', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'https:', host: 'example.com' },
-        writable: true,
-      });
+      setTestUrl('https://example.com/');
 
       const url = buildConsoleWebSocketUrl('test-token', 50);
 
@@ -131,10 +125,7 @@ describe('useConsoleWebSocket', () => {
     });
 
     it('uses default history lines of 100', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost' },
-        writable: true,
-      });
+      setTestUrl('http://localhost/');
 
       const url = buildConsoleWebSocketUrl('test-token');
 
@@ -143,10 +134,7 @@ describe('useConsoleWebSocket', () => {
     });
 
     it('URL-encodes token with special characters', () => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost' },
-        writable: true,
-      });
+      setTestUrl('http://localhost/');
 
       const url = buildConsoleWebSocketUrl('token+with/special=chars');
 
@@ -156,10 +144,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('connection lifecycle (AC: 1, 4)', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('starts in connecting state', () => {
@@ -359,10 +344,7 @@ describe('useConsoleWebSocket', () => {
   describe('reconnection logic (AC: 4)', () => {
     beforeEach(() => {
       vi.useFakeTimers();
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     afterEach(() => {
@@ -585,10 +567,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('sendCommand', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('sends command as JSON message when connected', async () => {
@@ -669,10 +648,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('disconnect', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('closes the WebSocket with normal code', async () => {
@@ -764,10 +740,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('reconnect', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('creates a new connection', async () => {
@@ -908,10 +881,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('cleanup', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('closes WebSocket on unmount', async () => {
@@ -968,10 +938,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('sendCommand edge cases', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('does not send when WebSocket does not exist', async () => {
@@ -989,10 +956,7 @@ describe('useConsoleWebSocket', () => {
 
   describe('WebSocket error handling', () => {
     beforeEach(() => {
-      Object.defineProperty(window, 'location', {
-        value: { protocol: 'http:', host: 'localhost:8080' },
-        writable: true,
-      });
+      setTestUrl('http://localhost:8080/');
     });
 
     it('handles WebSocket error events', async () => {

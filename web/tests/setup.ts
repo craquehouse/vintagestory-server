@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { installMatchMedia, resetViewport } from './viewport';
+import { resetTestUrl } from './location';
 
 // Mock ResizeObserver for components like Recharts ResponsiveContainer
 class MockResizeObserver {
@@ -10,9 +11,6 @@ class MockResizeObserver {
   disconnect = vi.fn();
 }
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-
-// jsdom has no matchMedia; evaluate width queries against innerWidth (Story 16.5)
-installMatchMedia();
 
 // Mock localStorage
 class LocalStorageMock {
@@ -48,13 +46,34 @@ class LocalStorageMock {
   }
 }
 
-Object.defineProperty(global, 'localStorage', {
-  value: new LocalStorageMock(),
-  writable: true,
+// The DOM steps run only in jsdom; a `@vitest-environment node` file has no window (Story 20.2)
+if (typeof window !== 'undefined') {
+  // jsdom has no matchMedia; evaluate width queries against innerWidth (Story 16.5)
+  installMatchMedia();
+
+  Object.defineProperty(global, 'localStorage', {
+    value: new LocalStorageMock(),
+    writable: true,
+  });
+}
+
+// jsdom has no Element.scrollIntoView and only a "not implemented" window.scrollTo.
+// Fresh no-op stubs before each test, so a test that installs its own spy cannot leak it
+// into the next test or, under vmThreads, the next file (Story 20.2 review)
+beforeEach(() => {
+  if (typeof window !== 'undefined') {
+    Element.prototype.scrollIntoView = () => {};
+    vi.stubGlobal('scrollTo', () => {});
+  }
 });
 
 afterEach(() => {
-  cleanup();
-  resetViewport();
+  if (typeof window !== 'undefined') {
+    cleanup();
+    resetViewport();
+    resetTestUrl();
+    // Browse state (search, opened mod) lives in sessionStorage; no test inherits another's
+    window.sessionStorage.clear();
+  }
   vi.clearAllMocks();
 });
