@@ -103,6 +103,9 @@ Thumbs.db
 # Playwright output (local E2E runs write it; CI uploads it when the e2e job fails)
 web/playwright-report/
 web/test-results/
+# The second pass of scripts/e2e-ci.sh, the @moddb tests on recorded answers (Story 20.6)
+web/playwright-report-moddb/
+web/test-results-moddb/
 
 # Beads
 .beads/bd.sock.startlock

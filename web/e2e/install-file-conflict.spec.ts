@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for an install refused because its file name is in use.
@@ -83,6 +83,7 @@ test.describe(
   () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 

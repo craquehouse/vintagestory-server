@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for which release Install picks.
@@ -127,6 +127,7 @@ async function versionOptions(page: Page): Promise<Array<{ testId: string; text:
 test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 

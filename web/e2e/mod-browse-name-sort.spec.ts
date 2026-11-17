@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Response } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for the mod browser's Name (A-Z) sort.
@@ -105,6 +105,7 @@ async function expectCardsMatch(page: Page, mods: BrowseMod[]) {
 test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });

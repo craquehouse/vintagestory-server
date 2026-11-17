@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for a mod's screenshots, trailer link and description links on its detail page.
@@ -385,6 +385,7 @@ test.describe('Mod detail media and links (Story 18.1)', () => {
   }) => {
     test.setTimeout(90_000);
     await readOnly(page);
+    await serveModImagePlaceholders(page);
     const lookup = page.waitForResponse((response) =>
       response.url().includes('/mods/lookup/betterruins')
     );

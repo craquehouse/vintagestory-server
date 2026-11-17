@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for mod detail pages that cannot fail on bad mod database data.
@@ -50,6 +50,7 @@ function escapeRegExp(value: string): string {
 test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 

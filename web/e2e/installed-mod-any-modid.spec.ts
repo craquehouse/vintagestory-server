@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for recognizing an installed mod by any mod ID of its mod database entry.
@@ -89,6 +89,7 @@ async function versionOptionTestIds(page: Page): Promise<string[]> {
 test.describe('Installed mod recognized by any mod ID (Story 16.2)', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 

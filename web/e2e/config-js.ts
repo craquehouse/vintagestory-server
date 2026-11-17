@@ -52,3 +52,25 @@ export async function pretendServerInstalled(page: Page): Promise<void> {
     await route.fulfill({ response, json: body });
   });
 }
+
+/** A 1x1 transparent PNG, the answer to every mod image request in the replay run. */
+const PLACEHOLDER_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64'
+);
+
+/**
+ * In the replay run (scripts/e2e-ci.sh sets E2E_MODDB_REPLAY=1), answer the mod database's
+ * image host with a 1x1 PNG and abort any request to the mod database itself, so the run
+ * sends nothing to the live hosts (Story 20.6, Epic 20 ADR-9). The routes are set on the
+ * page's browser context, so a page the test opens later in that context is covered too.
+ * Does nothing in any other run: against the dev stack the page loads the real images.
+ */
+export async function serveModImagePlaceholders(page: Page): Promise<void> {
+  if (process.env.E2E_MODDB_REPLAY !== '1') return;
+  const context = page.context();
+  await context.route('https://moddbcdn.vintagestory.at/**', (route) =>
+    route.fulfill({ contentType: 'image/png', body: PLACEHOLDER_PNG })
+  );
+  await context.route('https://mods.vintagestory.at/**', (route) => route.abort());
+}

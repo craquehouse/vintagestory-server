@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for navigating the Mods pages.
@@ -55,6 +55,7 @@ async function settle(page: Page) {
 test.describe('Mods navigation', { tag: '@moddb' }, () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
     await page.setViewportSize({ width: 1440, height: 900 });
   });

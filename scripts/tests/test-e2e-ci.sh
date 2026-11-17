@@ -40,8 +40,10 @@ if [[ -f $e2e_script ]]; then pass; else fail "scripts/e2e-ci.sh exists"; fi
 
 # The API E2E tests skip (and pytest passes) when the address does not answer, so the script
 # checks /healthz again right before them and fails the run if the container is gone
-web_line=$(grep -n 'test:e2e' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
-health_line=$(grep -n 'healthz' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
+# (the first Playwright run, the first pass's /healthz re-check, then pytest; Story 20.6 adds
+# a second run after them)
+web_line=$(grep -n 'test:e2e' "$e2e_script" 2>/dev/null | head -1 | cut -d: -f1)
+health_line=$(grep -nF "curl -sf \"\$BASE_URL/healthz\"" "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
 pytest_line=$(grep -n 'pytest tests/e2e' "$e2e_script" 2>/dev/null | tail -1 | cut -d: -f1)
 if [[ -n $web_line && -n $health_line && -n $pytest_line ]] \
     && ((web_line < health_line && health_line < pytest_line)); then
@@ -122,6 +124,61 @@ print("\n".join(problems))
 PY
 )
 assert_eq "the mod database recordings match their manifest" "" "$moddb_problems"
+
+# The second pass runs the @moddb tests on recorded answers (Story 20.6 AC 9, 10, 15)
+assert_eq "the live-only tags" "LIVE_ONLY_TAGS='@moddb-live|@install'" \
+    "$(grep -E '^LIVE_ONLY_TAGS=' "$e2e_script" 2>/dev/null)"
+second_run=$(grep -n "test:e2e --grep '@moddb' --grep-invert \"\$LIVE_ONLY_TAGS\"" "$e2e_script" 2>/dev/null | cut -d: -f1)
+if [[ -n $second_run ]]; then pass; else fail "the second run selects @moddb and leaves out \$LIVE_ONLY_TAGS"; fi
+# The two docker create calls: the first container's, then the second's
+first_start="^start_api_container \"\\\$CONTAINER\""
+second_start="^start_api_container \"\\\$MODDB_CONTAINER\""
+# Each call runs from its first line to the first line that does not end in a backslash
+first_call=$(sed -n "\#$first_start#,/[^\\]\$/p" "$e2e_script" 2>/dev/null)
+second_call=$(sed -n "\#$second_start#,/[^\\]\$/p" "$e2e_script" 2>/dev/null)
+assert_eq "the first API container is started once" "1" "$(grep -c "$first_start" "$e2e_script")"
+assert_eq "the second API container is started once" "1" "$(grep -c "$second_start" "$e2e_script")"
+assert_contains "the second API container gets VS_DEBUG=true" "-e VS_DEBUG=true" "$second_call"
+assert_contains "the second API container's VS_MOD_DB_URL is the replay" \
+    "-e VS_MOD_DB_URL=\"http://\$REPLAY_CONTAINER:" "$second_call"
+assert_contains "the second API container is on the replay's network" "--network \"\$NETWORK\"" "$second_call"
+if [[ -n $first_call && $first_call != *VS_DEBUG* && $first_call != *VS_MOD_DB_URL* ]]; then
+    pass
+else
+    fail "the first API container has neither VS_DEBUG nor VS_MOD_DB_URL" "$first_call"
+fi
+create_block=$(sed -n '/^start_api_container() {/,/^}/p' "$e2e_script" 2>/dev/null)
+assert_contains "both API containers are created with the blocked hosts" "\"\${add_hosts[@]}\"" "$create_block"
+for word in VS_DEBUG VS_MOD_DB_URL; do
+    if [[ $create_block != *$word* ]]; then pass; else fail "the shared docker create sets no $word"; fi
+done
+assert_eq "the blocked hosts" \
+    "BLOCKED_HOSTS=(mods.vintagestory.at api.vintagestory.at cdn.vintagestory.at moddbcdn.vintagestory.at)" \
+    "$(grep -E '^BLOCKED_HOSTS=' "$e2e_script" 2>/dev/null)"
+remove_block=$(sed -n '/^remove_all() {/,/^}/p' "$e2e_script" 2>/dev/null)
+assert_contains "cleanup removes the three containers" \
+    "docker rm -f \"\$CONTAINER\" \"\$MODDB_CONTAINER\" \"\$REPLAY_CONTAINER\"" "$remove_block"
+assert_contains "cleanup removes the network" "docker network rm \"\$NETWORK\"" "$remove_block"
+cleanup_block=$(sed -n '/^cleanup() {/,/^}/p' "$e2e_script" 2>/dev/null)
+assert_contains "the exit trap runs remove_all" "remove_all" "$cleanup_block"
+assert_eq "E2E_MODDB_REPLAY=1 is set once, for the second run" "1" \
+    "$(grep -c 'E2E_MODDB_REPLAY=1' "$e2e_script")"
+replay_line=$(grep -n 'E2E_MODDB_REPLAY=1' "$e2e_script" | head -1 | cut -d: -f1)
+if [[ -n $replay_line && -n $second_run && -n $web_line ]] \
+    && ((web_line < replay_line && replay_line <= second_run && second_run - replay_line <= 3)); then
+    pass
+else
+    fail "E2E_MODDB_REPLAY=1 is set on the second Playwright run only"
+fi
+if grep -qF "process.env.E2E_MODDB_REPLAY !== '1'" "$ROOT/web/e2e/config-js.ts"; then
+    pass
+else
+    fail "web/e2e/config-js.ts reads E2E_MODDB_REPLAY"
+fi
+# No workflow runs the E2E tests on a schedule (against the live mod database)
+scheduled=$(grep -lE '^\s*schedule:' "$ROOT"/.github/workflows/*.yml 2>/dev/null \
+    | xargs -r grep -lE 'test-e2e|playwright' 2>/dev/null || true)
+assert_eq "no scheduled workflow runs E2E tests" "" "$scheduled"
 
 # The e2e job exists, has a timeout, and the workflow reads no secret (Story 19.7 AC 1, 2, 10)
 ci="$ROOT/.github/workflows/ci.yml"

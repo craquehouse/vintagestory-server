@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { pretendServerInstalled, serveConfigKey, serveModImagePlaceholders } from './config-js';
 
 /**
  * E2E tests for an installed mod's status wherever it is shown.
@@ -144,6 +144,7 @@ async function installedSlugs(request: APIRequestContext): Promise<string[]> {
 test.describe('Installed status is right everywhere (Story 17.4)', () => {
   test.beforeEach(async ({ page }) => {
     await serveConfigKey(page, API_KEY);
+    await serveModImagePlaceholders(page);
     await pretendServerInstalled(page);
   });
 
