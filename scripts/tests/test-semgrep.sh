@@ -117,4 +117,38 @@ assert_eq "no file pins a semgrep version" "" "$pins"
 ci="$ROOT/.github/workflows/ci.yml"
 if ! grep -qE 'semgrep==|uvx' "$ci"; then pass; else fail "ci.yml runs semgrep only through just semgrep"; fi
 
+# --- E. The job (AC 8, 9, 10) ---
+
+assert_eq "the semgrep job may read the code and write code scanning results" \
+    '{"contents":"read","security-events":"write"}' \
+    "$(yq -o json -I0 '.jobs.semgrep.permissions' "$ci" 2>/dev/null)"
+assert_eq "the workflow default permission is contents: read" '{"contents":"read"}' \
+    "$(yq -o json -I0 '.permissions' "$ci" 2>/dev/null)"
+assert_eq "no other job has its own permissions" "semgrep" \
+    "$(yq '.jobs | to_entries | .[] | select(.value | has("permissions")) | .key' "$ci" 2>/dev/null | xargs)"
+assert_eq "security-events appears once in ci.yml" 1 "$(grep -c 'security-events' "$ci")"
+assert_eq "the semgrep job has a timeout" 10 "$(yq '.jobs.semgrep.timeout-minutes' "$ci" 2>/dev/null)"
+assert_eq "the semgrep job checks out the full history" 0 \
+    "$(yq '.jobs.semgrep.steps[] | select(.uses == "actions/checkout@*") | .with.fetch-depth' "$ci" 2>/dev/null)"
+
+steps='.jobs.semgrep.steps[]'
+pr_scan="$steps | select(.run == \"just semgrep *--baseline-commit*\")"
+assert_eq "one step scans a pull request against its base" 1 \
+    "$(yq "[$pr_scan] | length" "$ci" 2>/dev/null)"
+assert_contains "the baseline scan runs on pull requests only" "github.event_name == 'pull_request'" \
+    "$(yq "$pr_scan | .if" "$ci" 2>/dev/null)"
+full_scan="$steps | select(.env.SEMGREP_REPORT_ONLY == \"1\")"
+assert_eq "one step runs the report-only full scan" 1 "$(yq "[$full_scan] | length" "$ci" 2>/dev/null)"
+assert_eq "the full scan writes semgrep.sarif" "just semgrep --sarif-output=semgrep.sarif" \
+    "$(yq "$full_scan | .run" "$ci" 2>/dev/null)"
+assert_eq "SEMGREP_REPORT_ONLY is the string 1" '"1"' \
+    "$(yq -o json "$full_scan | .env.SEMGREP_REPORT_ONLY" "$ci" 2>/dev/null)"
+upload="$steps | select(.uses == \"github/codeql-action/upload-sarif@*\")"
+assert_eq "the upload sends semgrep.sarif" semgrep.sarif "$(yq "$upload | .with.sarif_file" "$ci" 2>/dev/null)"
+full_if=$(yq "$full_scan | .if" "$ci" 2>/dev/null)
+if [[ -n $full_if && $full_if != null ]]; then pass; else fail "the full scan has an if"; fi
+assert_eq "the upload runs when the full scan runs" "$full_if" "$(yq "$upload | .if" "$ci" 2>/dev/null)"
+
+if ! grep -qi semgrep "$ROOT/.github/workflows/release.yml"; then pass; else fail "release.yml does not run semgrep"; fi
+
 finish

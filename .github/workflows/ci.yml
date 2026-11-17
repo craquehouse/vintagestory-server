@@ -109,3 +109,33 @@ jobs:
             web/test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  semgrep:
+    name: Semgrep
+    # The release commit only changes version numbers; the tag's release workflow builds it
+    if: "${{ !startsWith(github.event.head_commit.message, 'chore(release): ') }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The only job that may write code scanning results; the workflow default stays contents: read
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # --baseline-commit needs the merge base with main, which a depth-1 checkout lacks
+          fetch-depth: 0
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5.2.8
+      # Pull request: fail only on a finding the pull request adds
+      - if: ${{ github.event_name == 'pull_request' }}
+        run: just semgrep --baseline-commit "$(git merge-base origin/main HEAD)"
+      # main and manual runs: scan everything, report to code scanning, never fail on a finding
+      - if: ${{ github.event_name != 'pull_request' }}
+        run: just semgrep --sarif-output=semgrep.sarif
+        env:
+          SEMGREP_REPORT_ONLY: "1"
+      - if: ${{ github.event_name != 'pull_request' }}
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
