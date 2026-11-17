@@ -976,9 +976,7 @@ class TestModServiceIntegration:
         """start_server() notifies mod service that server is running."""
         del mock_subprocess  # Fixture sets up mock, not inspected
 
-        with patch(
-            "vintagestory_api.services.server._get_mod_service_module"
-        ) as mock_get_module:
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
             mock_mod_service = MagicMock()
             mock_module = MagicMock()
             mock_module.get_mod_service.return_value = mock_mod_service
@@ -997,9 +995,7 @@ class TestModServiceIntegration:
 
         await installed_service.start_server()
 
-        with patch(
-            "vintagestory_api.services.server._get_mod_service_module"
-        ) as mock_get_module:
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
             mock_mod_service = MagicMock()
             mock_module = MagicMock()
             mock_module.get_mod_service.return_value = mock_mod_service
@@ -1016,9 +1012,7 @@ class TestModServiceIntegration:
         """restart_server() clears pending restart state after successful restart."""
         del mock_subprocess  # Fixture sets up mock, not inspected
 
-        with patch(
-            "vintagestory_api.services.server._get_mod_service_module"
-        ) as mock_get_module:
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
             mock_restart_state = MagicMock()
             mock_mod_service = MagicMock()
             mock_module = MagicMock()
@@ -1040,9 +1034,7 @@ class TestModServiceIntegration:
         mock_process.wait = AsyncMock(return_value=1)
         mock_process.returncode = 1
 
-        with patch(
-            "vintagestory_api.services.server._get_mod_service_module"
-        ) as mock_get_module:
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
             mock_mod_service = MagicMock()
             mock_module = MagicMock()
             mock_module.get_mod_service.return_value = mock_mod_service
@@ -1062,9 +1054,7 @@ class TestModServiceIntegration:
         """Server lifecycle operations succeed even when mod service unavailable."""
         del mock_subprocess  # Fixture sets up mock, not inspected
 
-        with patch(
-            "vintagestory_api.services.server._get_mod_service_module"
-        ) as mock_get_module:
+        with patch("vintagestory_api.services.server._get_mod_service_module") as mock_get_module:
             # Simulate mod service not available
             mock_get_module.side_effect = ImportError("No mod service")
 

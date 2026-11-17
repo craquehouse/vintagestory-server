@@ -253,9 +253,7 @@ class TestEndToEndConfigGeneration:
             assert setting in mapped_keys, f"Missing ENV_VAR_MAP for {setting}"
             assert setting in template_config, f"Template missing {setting}"
 
-    def test_apply_env_override_to_template(
-        self, template_config: dict[str, Any]
-    ) -> None:
+    def test_apply_env_override_to_template(self, template_config: dict[str, Any]) -> None:
         """Simulate applying environment variable overrides to template."""
         # Simulate env vars that would be set
         mock_env_vars = {
@@ -293,9 +291,7 @@ class TestEndToEndConfigGeneration:
         assert config["AdvertiseServer"] is False  # Template default
         assert config["CompressPackets"] is True  # Template default
 
-    def test_generated_config_is_json_serializable(
-        self, template_config: dict[str, Any]
-    ) -> None:
+    def test_generated_config_is_json_serializable(self, template_config: dict[str, Any]) -> None:
         """Config with applied overrides can be serialized back to JSON."""
         import json
 
@@ -316,9 +312,7 @@ class TestEndToEndConfigGeneration:
         assert reparsed["ServerName"] == "Serialization Test"
         assert reparsed["Port"] == 42421
 
-    def test_nested_config_key_override(
-        self, template_config: dict[str, Any]
-    ) -> None:
+    def test_nested_config_key_override(self, template_config: dict[str, Any]) -> None:
         """Nested config keys (WorldConfig.Seed) are applied correctly."""
         mock_env_vars = {
             "VS_CFG_WORLD_NAME": "My Custom World",

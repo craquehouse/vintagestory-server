@@ -623,8 +623,7 @@ class TestModLookupResponse:
         data = response.model_dump(mode="json")
         assert data["compatibility"]["status"] == "incompatible"
         assert (
-            data["compatibility"]["message"]
-            == "Mod version 1.5.0 is only compatible with 1.19.x"
+            data["compatibility"]["message"] == "Mod version 1.5.0 is only compatible with 1.19.x"
         )
 
     def test_create_with_releases_and_metadata(self) -> None:

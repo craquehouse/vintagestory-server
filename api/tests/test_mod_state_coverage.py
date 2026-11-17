@@ -223,9 +223,7 @@ class TestGetCachedMetadataPathTraversal:
 class TestScanModsDirectoryNotFound:
     """Tests for lines 391-392: mods_directory_not_found when directory doesn't exist."""
 
-    def test_scan_mods_directory_logs_when_directory_missing(
-        self, tmp_path: Path
-    ) -> None:
+    def test_scan_mods_directory_logs_when_directory_missing(self, tmp_path: Path) -> None:
         """scan_mods_directory() returns empty list when mods dir doesn't exist (lines 391-392)."""
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)
@@ -264,11 +262,13 @@ class TestExtractModinfoPathTraversal:
     ) -> None:
         """_extract_modinfo_from_zip() blocks path traversal attempts in zip member paths."""
         zip_path = temp_mods_dir / "malicious_traversal.zip"
-        modinfo_content = json.dumps({
-            "modid": "evilmod",
-            "name": "Evil Mod",
-            "version": "1.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "evilmod",
+                "name": "Evil Mod",
+                "version": "1.0.0",
+            }
+        )
 
         # Create zip with various traversal attempts
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -286,11 +286,13 @@ class TestExtractModinfoPathTraversal:
     ) -> None:
         """_extract_modinfo_from_zip() accepts safe nested paths."""
         zip_path = temp_mods_dir / "safe_nested.zip"
-        modinfo_content = json.dumps({
-            "modid": "safemod",
-            "name": "Safe Mod",
-            "version": "1.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "safemod",
+                "name": "Safe Mod",
+                "version": "1.0.0",
+            }
+        )
 
         # Create zip with safe nested path
         with zipfile.ZipFile(zip_path, "w") as zf:

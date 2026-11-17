@@ -114,9 +114,7 @@ class TestListJobsEndpoint:
 
         assert response.status_code == 403
 
-    def test_list_jobs_no_auth_unauthorized(
-        self, lifespan_client: TestClient
-    ) -> None:
+    def test_list_jobs_no_auth_unauthorized(self, lifespan_client: TestClient) -> None:
         """Request without auth returns 401."""
         response = lifespan_client.get("/api/v1alpha1/jobs")
 
@@ -203,9 +201,7 @@ class TestDeleteJobEndpoint:
 
         assert response.status_code == 403
 
-    def test_delete_job_no_auth_unauthorized(
-        self, lifespan_client: TestClient
-    ) -> None:
+    def test_delete_job_no_auth_unauthorized(self, lifespan_client: TestClient) -> None:
         """Delete without auth returns 401."""
         response = lifespan_client.delete("/api/v1alpha1/jobs/some_job")
 

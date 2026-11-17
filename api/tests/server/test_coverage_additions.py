@@ -327,9 +327,7 @@ class TestInstallServerVersionAlias:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_install_server_alias_resolution_failure(
-        self, test_settings: Settings
-    ) -> None:
+    async def test_install_server_alias_resolution_failure(self, test_settings: Settings) -> None:
         """install_server returns error when alias resolution fails (lines 727-735)."""
         # Mock API to return empty (no versions)
         respx.get(VS_STABLE_API).mock(return_value=Response(200, json={}))
@@ -722,9 +720,7 @@ class TestInstallEndpointValidation:
         finally:
             app.dependency_overrides.clear()
 
-    def test_install_when_installation_in_progress_returns_409(
-        self, temp_data_dir: Path
-    ) -> None:
+    def test_install_when_installation_in_progress_returns_409(self, temp_data_dir: Path) -> None:
         """POST /server/install returns 409 when installation already in progress (line 86).
 
         This tests the router's check for concurrent installation attempts.

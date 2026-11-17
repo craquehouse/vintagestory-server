@@ -25,9 +25,7 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 
-def _filter_by_minutes(
-    snapshots: list[MetricsSnapshot], minutes: int
-) -> list[MetricsSnapshot]:
+def _filter_by_minutes(snapshots: list[MetricsSnapshot], minutes: int) -> list[MetricsSnapshot]:
     """Filter snapshots to only those within the last N minutes.
 
     Args:

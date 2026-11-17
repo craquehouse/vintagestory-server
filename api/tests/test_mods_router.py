@@ -566,9 +566,7 @@ class TestLookupModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -823,9 +821,7 @@ class TestLookupModEndpoint:
         data = response.json()["data"]
         raw_releases = payload["mod"]["releases"]
         assert len(data["releases"]) == len(raw_releases)
-        assert [r["version"] for r in data["releases"]] == [
-            r["modversion"] for r in raw_releases
-        ]
+        assert [r["version"] for r in data["releases"]] == [r["modversion"] for r in raw_releases]
         assert [r["version"] for r in data["releases"] if r["file_id"] is None] == [
             "0.2.20",
             "0.1.26",
@@ -875,7 +871,6 @@ class TestLookupModEndpoint:
                 "modidstr": "",
             }
         ]
-
 
     @respx.mock
     @pytest.mark.parametrize(
@@ -1022,7 +1017,6 @@ class TestLookupModEndpoint:
         assert "trailer_url" in data
         assert data["trailer_url"] is None
 
-
     @respx.mock
     def test_lookup_drops_unchecked_urls(
         self,
@@ -1072,7 +1066,6 @@ class TestLookupModEndpoint:
         assert data["logo_url"] == "https://moddbcdn.vintagestory.at/x.png"
         assert data["homepage_url"] == "https://example.com/home"
         assert data["source_url"] == "https://github.com/a/b"
-
 
     @respx.mock
     def test_lookup_malformed_body_is_502_then_recovers(
@@ -1136,9 +1129,7 @@ class TestEnableModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1346,9 +1337,7 @@ class TestDisableModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1600,9 +1589,7 @@ class TestRemoveModEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -1798,9 +1785,7 @@ class TestListModsEndpoint:
         return PendingRestartState()
 
     @pytest.fixture
-    def mod_service(
-        self, temp_data_dir: Path, restart_state: PendingRestartState
-    ) -> ModService:
+    def mod_service(self, temp_data_dir: Path, restart_state: PendingRestartState) -> ModService:
         """Create a ModService with test directories."""
         return ModService(
             state_dir=temp_data_dir / "state",
@@ -1811,9 +1796,7 @@ class TestListModsEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2098,9 +2081,7 @@ class TestBrowseModsEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -2165,9 +2146,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?page=1&page_size=2", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?page=1&page_size=2", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2208,9 +2187,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2232,9 +2209,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=trending", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=trending", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2256,9 +2231,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=recent", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=recent", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2281,9 +2254,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=name", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=name", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2344,9 +2315,7 @@ class TestBrowseModsEndpoint:
         admin_headers: dict[str, str],
     ) -> None:
         """GET /mods/browse returns 422 for page=0 (AC: 5)."""
-        response = client.get(
-            "/api/v1alpha1/mods/browse?page=0", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?page=0", headers=admin_headers)
 
         assert response.status_code == 422
 
@@ -2356,9 +2325,7 @@ class TestBrowseModsEndpoint:
         admin_headers: dict[str, str],
     ) -> None:
         """GET /mods/browse returns 422 for page_size > 100 (AC: 5)."""
-        response = client.get(
-            "/api/v1alpha1/mods/browse?page_size=500", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?page_size=500", headers=admin_headers)
 
         assert response.status_code == 422
 
@@ -2396,9 +2363,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?page=2&page_size=2", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?page=2&page_size=2", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2438,9 +2403,7 @@ class TestBrowseModsEndpoint:
         admin_headers: dict[str, str],
     ) -> None:
         """GET /mods/browse returns 422 for invalid sort value."""
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=invalid", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=invalid", headers=admin_headers)
 
         assert response.status_code == 422
 
@@ -2455,9 +2418,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?page=100", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?page=100", headers=admin_headers)
 
         # Should not error, but clamp to last valid page
         assert response.status_code == 200
@@ -2509,9 +2470,7 @@ class TestBrowseModsEndpoint:
             return_value=Response(200, json=BROWSE_MODS_API_RESPONSE)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?sort=downloads", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -2556,9 +2515,7 @@ class TestBrowseModsEndpoint:
             params={"gameversion": "-281565171286015"},
         ).mock(return_value=Response(200, json=BROWSE_MODS_API_RESPONSE))
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
 
         assert response.status_code == 200
         assert route.called
@@ -2587,9 +2544,7 @@ class TestBrowseModsEndpoint:
             )
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?version=9.99.99", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?version=9.99.99", headers=admin_headers)
 
         assert response.status_code == 400
         data = response.json()
@@ -2669,14 +2624,11 @@ class TestBrowseModsEndpoint:
             side_effect=httpx.ConnectError("connection refused")
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?version=1.21.3", headers=admin_headers)
 
         assert response.status_code == 502
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
-
 
     @respx.mock
     def test_browse_drops_logos_not_on_the_cdn(
@@ -2713,7 +2665,6 @@ class TestBrowseModsEndpoint:
             "mod2": None,
             "mod3": None,
         }
-
 
     @respx.mock
     def test_browse_malformed_listing_is_502_then_recovers(
@@ -2831,9 +2782,7 @@ class TestGameVersionsEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -3023,9 +2972,7 @@ class TestModTagsEndpoint:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -3150,7 +3097,6 @@ class TestModTagsEndpoint:
         data = response.json()
         assert data["detail"]["code"] == "EXTERNAL_API_ERROR"
 
-
     @respx.mock
     def test_list_mod_tags_malformed_listing_is_502(
         self,
@@ -3213,9 +3159,7 @@ class TestBrowseItemSlugUrlalias:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -3547,9 +3491,7 @@ class TestBrowseModsFilters:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -3639,9 +3581,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?side=client", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?side=client", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3662,9 +3602,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?side=server", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?side=server", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3685,9 +3623,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?side=both", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?side=both", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3731,9 +3667,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?tags=Crafting", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?tags=Crafting", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3753,9 +3687,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?tags=UI,Crafting", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?tags=UI,Crafting", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3797,9 +3729,7 @@ class TestBrowseModsFilters:
             return_value=Response(200, json=diverse_mods)
         )
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse?tags=,,", headers=admin_headers
-        )
+        response = client.get("/api/v1alpha1/mods/browse?tags=,,", headers=admin_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -3865,9 +3795,7 @@ class TestInstallModVersionNotFound:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -4048,9 +3976,7 @@ class TestEnableDisableRemoveInvalidSlug:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -4150,9 +4076,7 @@ class TestGameVersionsParsing:
         )
 
     @pytest.fixture
-    def test_app(
-        self, mod_service: ModService, test_settings: Settings
-    ) -> Generator[FastAPI]:
+    def test_app(self, mod_service: ModService, test_settings: Settings) -> Generator[FastAPI]:
         """Create app with test mod service and settings injected."""
         app.dependency_overrides[get_mod_service] = lambda: mod_service
         app.dependency_overrides[get_settings] = lambda: test_settings
@@ -4532,9 +4456,7 @@ class TestBrowseGameVersionFlag:
         stripped."""
         installed["version"] = installed_version
         respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
-        filtered = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
+        filtered = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2, 3)))
 
         data = self.browse(client)
@@ -4548,12 +4470,8 @@ class TestBrowseGameVersionFlag:
     def test_one_filtered_request_for_many_browse_requests(self, client: TestClient) -> None:
         """Pages, sorts and searches share one filtered listing request; no per-mod request
         (AC 2). respx fails any request to /api/mod/<slug>, which has no route."""
-        versions = respx.get(GAMEVERSIONS_URL).mock(
-            return_value=Response(200, json=FLAG_VERSIONS)
-        )
-        filtered = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
+        versions = respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2, 3)))
 
         page_1 = self.browse(client, "?page=1&page_size=2&sort=downloads")
@@ -4576,12 +4494,8 @@ class TestBrowseGameVersionFlag:
         """No server: game_version and every flag null, no version list or filtered request
         (AC 4)."""
         installed["version"] = None
-        versions = respx.get(GAMEVERSIONS_URL).mock(
-            return_value=Response(200, json=FLAG_VERSIONS)
-        )
-        filtered = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
+        versions = respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
 
         data = self.browse(client)
@@ -4607,9 +4521,7 @@ class TestBrowseGameVersionFlag:
             restart_state=PendingRestartState(),
             game_version_provider=unreadable,
         )
-        filtered = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
+        filtered = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
 
         data = self.browse(client)
@@ -4628,12 +4540,8 @@ class TestBrowseGameVersionFlag:
     ) -> None:
         """An installed version with no tag: nulls, one version list request (AC 4)."""
         installed["version"] = installed_version
-        versions = respx.get(GAMEVERSIONS_URL).mock(
-            return_value=Response(200, json=FLAG_VERSIONS)
-        )
-        filtered = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
+        versions = respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
+        filtered = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
 
         data = self.browse(client)
@@ -4696,9 +4604,7 @@ class TestBrowseGameVersionFlag:
         filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
         respx.get(MODS_URL).mock(side_effect=httpx.ConnectError("refused"))
 
-        response = client.get(
-            "/api/v1alpha1/mods/browse", headers={"X-API-Key": TEST_ADMIN_KEY}
-        )
+        response = client.get("/api/v1alpha1/mods/browse", headers={"X-API-Key": TEST_ADMIN_KEY})
 
         assert response.status_code == 502
         assert response.json()["detail"]["code"] == "EXTERNAL_API_ERROR"
@@ -4709,12 +4615,8 @@ class TestBrowseGameVersionFlag:
     ) -> None:
         """Another installed version is used on the next request, without clearing (AC 6)."""
         respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=FLAG_VERSIONS))
-        route_7 = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(1))
-        )
-        route_8 = filtered_route(TAG_1_22_8).mock(
-            return_value=Response(200, json=flag_listing(2))
-        )
+        route_7 = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(1)))
+        route_8 = filtered_route(TAG_1_22_8).mock(return_value=Response(200, json=flag_listing(2)))
         plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1, 2)))
 
         before = self.browse(client)
@@ -4750,9 +4652,7 @@ class TestBrowseGameVersionFlag:
         route_3 = filtered_route(TAG_1_21_3).mock(
             return_value=Response(200, json=flag_listing(4, 5, 6))
         )
-        route_7 = filtered_route(TAG_1_22_7).mock(
-            return_value=Response(200, json=flag_listing(5))
-        )
+        route_7 = filtered_route(TAG_1_22_7).mock(return_value=Response(200, json=flag_listing(5)))
         plain = respx.get(MODS_URL).mock(return_value=Response(200, json=flag_listing(1)))
 
         page_1 = self.browse(client, "?version=1.21.3&page=1&page_size=2&sort=downloads")

@@ -41,6 +41,7 @@ def _get_mod_service_module():
         _mod_service_module = mod_service_module
     return _mod_service_module
 
+
 logger = structlog.get_logger()
 
 # Module-level service instance (singleton pattern for state tracking)
@@ -57,6 +58,7 @@ def get_server_service() -> ServerService:
     if _server_service is None:
         _server_service = ServerService()
     return _server_service
+
 
 # VintageStory API endpoints
 VS_STABLE_API = "https://api.vintagestory.at/stable.json"
@@ -988,9 +990,7 @@ class ServerService:
         # --dataPath tells VintageStory where to store persistent data (Mods, Saves, configs)
         # VintageStory expects a path relative to its data root (/data), so we extract
         # just the relative portion (e.g., "serverdata" from "/data/serverdata")
-        serverdata_relative = self._settings.serverdata_dir.relative_to(
-            self._settings.data_dir
-        )
+        serverdata_relative = self._settings.serverdata_dir.relative_to(self._settings.data_dir)
         command = [
             "dotnet",
             str(self._settings.server_dir / "VintagestoryServer.dll"),

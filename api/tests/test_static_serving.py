@@ -1,6 +1,5 @@
 """Tests for static file serving and SPA routing."""
 
-
 from fastapi.testclient import TestClient
 
 from vintagestory_api.main import app

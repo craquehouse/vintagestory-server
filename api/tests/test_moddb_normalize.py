@@ -154,9 +154,7 @@ class TestNormalizeModRules:
             {"releases": [None, "oops", 3, ["a"], {"modversion": "1.0.0", "fileid": None}]}
         )
         assert len(mod["releases"]) == 1
-        assert mod["releases"][0] == normalized_release(
-            {"modversion": "1.0.0", "fileid": None}
-        )
+        assert mod["releases"][0] == normalized_release({"modversion": "1.0.0", "fileid": None})
 
     @pytest.mark.parametrize("raw", [None, "mod", 3, True, [1, 2], ["a"]])
     def test_non_object_entry_is_none(self, raw: object) -> None:

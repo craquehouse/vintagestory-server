@@ -196,9 +196,7 @@ class TestJobInfoIntegration:
         svc.shutdown(wait=False)
 
     @pytest.mark.asyncio
-    async def test_serialize_real_interval_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_serialize_real_interval_job(self, scheduler: SchedulerService) -> None:
         """job_to_info() works with real interval job from scheduler."""
 
         async def dummy_task() -> None:

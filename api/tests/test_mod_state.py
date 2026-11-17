@@ -44,9 +44,7 @@ def state_manager(temp_state_dir: Path, temp_mods_dir: Path) -> ModStateManager:
 class TestModStateManagerInit:
     """Tests for ModStateManager initialization."""
 
-    def test_creates_with_directories(
-        self, temp_state_dir: Path, temp_mods_dir: Path
-    ) -> None:
+    def test_creates_with_directories(self, temp_state_dir: Path, temp_mods_dir: Path) -> None:
         """ModStateManager initializes with state and mods directories."""
         manager = ModStateManager(
             state_dir=temp_state_dir,
@@ -63,9 +61,7 @@ class TestModStateManagerInit:
 class TestModStateManagerLoad:
     """Tests for loading mod state from file."""
 
-    def test_load_creates_empty_state_if_no_file(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_load_creates_empty_state_if_no_file(self, state_manager: ModStateManager) -> None:
         """load() returns empty dict if state file doesn't exist."""
         state_manager.load()
         assert state_manager.list_mods() == []
@@ -358,15 +354,11 @@ class TestModStateManagerDiskIOErrors:
 class TestModStateManagerGetMod:
     """Tests for getting individual mod state."""
 
-    def test_get_mod_returns_none_if_not_found(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_get_mod_returns_none_if_not_found(self, state_manager: ModStateManager) -> None:
         """get_mod() returns None for unknown filename."""
         assert state_manager.get_mod("nonexistent.zip") is None
 
-    def test_get_mod_returns_state_by_filename(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_get_mod_returns_state_by_filename(self, state_manager: ModStateManager) -> None:
         """get_mod() returns ModState for known filename."""
         now = datetime.now(UTC)
         state = ModState(
@@ -428,8 +420,7 @@ class TestModStateManagerFilenames:
         for name, slug in (("Foo.zip", "foo"), ("bar.zip.disabled", "bar")):
             state_manager.set_mod_state(
                 name,
-                ModState(filename=name, slug=slug, version="1.0.0", enabled=True,
-                         installed_at=now),
+                ModState(filename=name, slug=slug, version="1.0.0", enabled=True, installed_at=now),
             )
         assert sorted(state_manager.filenames()) == ["Foo.zip", "bar.zip.disabled"]
 
@@ -456,9 +447,7 @@ class TestModStateManagerSetModState:
         assert result is not None
         assert result.slug == "newmod"
 
-    def test_set_mod_state_updates_existing_mod(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_set_mod_state_updates_existing_mod(self, state_manager: ModStateManager) -> None:
         """set_mod_state() updates existing mod state."""
         now = datetime.now(UTC)
         state1 = ModState(
@@ -488,9 +477,7 @@ class TestModStateManagerSetModState:
 class TestModStateManagerRemoveMod:
     """Tests for removing mod from state."""
 
-    def test_remove_mod_deletes_from_state(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_remove_mod_deletes_from_state(self, state_manager: ModStateManager) -> None:
         """remove_mod() removes mod from state index."""
         now = datetime.now(UTC)
         state = ModState(
@@ -506,9 +493,7 @@ class TestModStateManagerRemoveMod:
         state_manager.remove_mod("testmod.zip")
         assert state_manager.get_mod("testmod.zip") is None
 
-    def test_remove_mod_ignores_nonexistent(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_remove_mod_ignores_nonexistent(self, state_manager: ModStateManager) -> None:
         """remove_mod() silently ignores non-existent mods."""
         # Should not raise
         state_manager.remove_mod("nonexistent.zip")
@@ -902,11 +887,13 @@ class TestZipSlipProtection:
     ) -> None:
         """import_mod() blocks modinfo.json with simple path traversal (../)."""
         zip_path = temp_mods_dir / "malicious_simple.zip"
-        modinfo_content = json.dumps({
-            "modid": "evilmod",
-            "name": "Evil Mod",
-            "version": "1.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "evilmod",
+                "name": "Evil Mod",
+                "version": "1.0.0",
+            }
+        )
 
         # Create zip with path traversal in modinfo.json path
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -923,11 +910,13 @@ class TestZipSlipProtection:
     ) -> None:
         """import_mod() blocks modinfo.json with nested path traversal (subdir/../../)."""
         zip_path = temp_mods_dir / "malicious_nested.zip"
-        modinfo_content = json.dumps({
-            "modid": "sneakymod",
-            "name": "Sneaky Mod",
-            "version": "2.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "sneakymod",
+                "name": "Sneaky Mod",
+                "version": "2.0.0",
+            }
+        )
 
         # Create zip with nested path traversal
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -944,11 +933,13 @@ class TestZipSlipProtection:
     ) -> None:
         """import_mod() blocks modinfo.json with absolute path."""
         zip_path = temp_mods_dir / "malicious_absolute.zip"
-        modinfo_content = json.dumps({
-            "modid": "absmod",
-            "name": "Absolute Mod",
-            "version": "3.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "absmod",
+                "name": "Absolute Mod",
+                "version": "3.0.0",
+            }
+        )
 
         # Create zip with absolute path
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -965,11 +956,13 @@ class TestZipSlipProtection:
     ) -> None:
         """import_mod() accepts modinfo.json in safe subdirectory."""
         zip_path = temp_mods_dir / "safe_subdir.zip"
-        modinfo_content = json.dumps({
-            "modid": "safemod",
-            "name": "Safe Mod",
-            "version": "1.0.0",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "safemod",
+                "name": "Safe Mod",
+                "version": "1.0.0",
+            }
+        )
 
         # Create zip with modinfo.json in subdirectory (safe pattern)
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -986,11 +979,13 @@ class TestZipSlipProtection:
     ) -> None:
         """import_mod() accepts modinfo.json with dots in directory names (not traversal)."""
         zip_path = temp_mods_dir / "dots_in_name.zip"
-        modinfo_content = json.dumps({
-            "modid": "dotmod",
-            "name": "Dot Mod",
-            "version": "1.2.3",
-        })
+        modinfo_content = json.dumps(
+            {
+                "modid": "dotmod",
+                "name": "Dot Mod",
+                "version": "1.2.3",
+            }
+        )
 
         # Create zip with dots in directory name (safe - not traversal)
         with zipfile.ZipFile(zip_path, "w") as zf:
@@ -1087,9 +1082,7 @@ class TestGetCachedMetadata:
         result = state_manager.get_cached_metadata("testmod", "../1.0.0")
         assert result is None
 
-    def test_get_cached_metadata_blocks_slash_in_slug(
-        self, state_manager: ModStateManager
-    ) -> None:
+    def test_get_cached_metadata_blocks_slash_in_slug(self, state_manager: ModStateManager) -> None:
         """get_cached_metadata() returns None for slash in slug."""
         result = state_manager.get_cached_metadata("evil/mod", "1.0.0")
         assert result is None
@@ -1210,9 +1203,7 @@ class TestScanModsDirectory:
         filenames = state_manager.scan_mods_directory()
         assert filenames == []
 
-    def test_scan_mods_directory_handles_nonexistent_directory(
-        self, tmp_path: Path
-    ) -> None:
+    def test_scan_mods_directory_handles_nonexistent_directory(self, tmp_path: Path) -> None:
         """scan_mods_directory() returns empty list if mods directory doesn't exist."""
         state_dir = tmp_path / "state"
         state_dir.mkdir(parents=True)

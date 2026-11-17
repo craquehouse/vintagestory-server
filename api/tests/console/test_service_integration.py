@@ -106,7 +106,6 @@ class TestServerServiceConsoleIntegration:
         mock_process.wait = AsyncMock(return_value=0)
         mock_process.send_signal = Mock()
 
-
         original_create_subprocess = asyncio.create_subprocess_exec
 
         async def mock_create_subprocess(*args: object, **kwargs: object) -> AsyncMock:
@@ -185,9 +184,7 @@ class TestServerServiceConsoleIntegration:
         assert len(history) == 2
 
     @pytest.mark.asyncio
-    async def test_buffer_preserves_content_after_server_stop(
-        self, service: ServerService
-    ) -> None:
+    async def test_buffer_preserves_content_after_server_stop(self, service: ServerService) -> None:
         """Test that buffer content is preserved when server stops (AC4)."""
         # Add some content to buffer
         await service.console_buffer.append("Server starting...")

@@ -64,8 +64,10 @@ def make_version_getter(
     versions: dict[str, dict[str, VersionInfo]],
 ) -> Callable[[str], dict[str, VersionInfo]]:
     """Create a typed getter function for mock side_effect."""
+
     def getter(channel: str) -> dict[str, VersionInfo]:
         return versions.get(channel, {})
+
     return getter
 
 
@@ -128,9 +130,7 @@ class TestListVersions:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions should return versions from all channels."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -156,18 +156,12 @@ class TestListVersions:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions?channel=stable should return only stable versions."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
-            mock_service.get_available_versions = AsyncMock(
-                return_value=mock_versions["stable"]
-            )
+            mock_service.get_available_versions = AsyncMock(return_value=mock_versions["stable"])
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions?channel=stable", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions?channel=stable", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -182,18 +176,12 @@ class TestListVersions:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions?channel=unstable should return only unstable versions."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
-            mock_service.get_available_versions = AsyncMock(
-                return_value=mock_versions["unstable"]
-            )
+            mock_service.get_available_versions = AsyncMock(return_value=mock_versions["unstable"])
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions?channel=unstable", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions?channel=unstable", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -205,9 +193,7 @@ class TestListVersions:
         self, client: TestClient, auth_headers: dict[str, str]
     ) -> None:
         """GET /versions?channel=invalid should return 422 validation error."""
-        response = client.get(
-            "/api/v1alpha1/versions?channel=invalid", headers=auth_headers
-        )
+        response = client.get("/api/v1alpha1/versions?channel=invalid", headers=auth_headers)
 
         assert response.status_code == 422
 
@@ -218,9 +204,7 @@ class TestListVersions:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """Response should include total count of versions."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -240,9 +224,7 @@ class TestListVersions:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """Response should include cached indicator."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -273,9 +255,7 @@ class TestGetVersionDetail:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions/{version} should return version details when found."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -298,18 +278,14 @@ class TestGetVersionDetail:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions/{version} should return 404 when version not found."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/99.99.99", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/99.99.99", headers=auth_headers)
 
             assert response.status_code == 404
             data = response.json()
@@ -322,18 +298,14 @@ class TestGetVersionDetail:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """GET /versions/{version} should find unstable versions."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/1.22.0-pre.1", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/1.22.0-pre.1", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -346,9 +318,7 @@ class TestGetVersionDetail:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """Version detail response should include cached indicator."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -378,9 +348,7 @@ class TestMonitorRoleAccess:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """Monitor role should be able to list versions (read-only)."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
@@ -398,18 +366,14 @@ class TestMonitorRoleAccess:
         mock_versions: dict[str, dict[str, VersionInfo]],
     ) -> None:
         """Monitor role should be able to get version detail (read-only)."""
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=make_version_getter(mock_versions)
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/1.21.3", headers=monitor_headers
-            )
+            response = client.get("/api/v1alpha1/versions/1.21.3", headers=monitor_headers)
 
             assert response.status_code == 200
 
@@ -426,6 +390,7 @@ class TestCacheFallback:
         """GET /versions should fall back to cache when API fails."""
         # Pre-populate cache with data
         from vintagestory_api.services.versions_cache import get_versions_cache
+
         cache = get_versions_cache()
 
         # Convert VersionInfo objects to dictionaries for cache
@@ -435,10 +400,9 @@ class TestCacheFallback:
         cache.set_versions("unstable", unstable_dicts)
 
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
@@ -464,10 +428,9 @@ class TestCacheFallback:
     ) -> None:
         """GET /versions should return 503 when API fails and no cache."""
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
@@ -490,25 +453,23 @@ class TestCacheFallback:
         """GET /versions?channel=stable should fall back to cache when API fails."""
         # Pre-populate cache with stable data
         from vintagestory_api.services.versions_cache import get_versions_cache
+
         cache = get_versions_cache()
 
         stable_dicts = [v.model_dump() for v in mock_versions["stable"].values()]
         cache.set_versions("stable", stable_dicts)
 
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions?channel=stable", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions?channel=stable", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -526,19 +487,16 @@ class TestCacheFallback:
     ) -> None:
         """GET /versions?channel=stable should return 503 when API fails and no cache."""
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions?channel=stable", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions?channel=stable", headers=auth_headers)
 
             assert response.status_code == 503
             data = response.json()
@@ -555,6 +513,7 @@ class TestCacheFallback:
         """GET /versions/{version} should fall back to cache when API fails."""
         # Pre-populate cache with data
         from vintagestory_api.services.versions_cache import get_versions_cache
+
         cache = get_versions_cache()
 
         stable_dicts = [v.model_dump() for v in mock_versions["stable"].values()]
@@ -563,19 +522,16 @@ class TestCacheFallback:
         cache.set_versions("unstable", unstable_dicts)
 
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/1.21.3", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/1.21.3", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -594,6 +550,7 @@ class TestCacheFallback:
         """GET /versions/{version} should find unstable version in cache."""
         # Pre-populate cache with data
         from vintagestory_api.services.versions_cache import get_versions_cache
+
         cache = get_versions_cache()
 
         stable_dicts = [v.model_dump() for v in mock_versions["stable"].values()]
@@ -602,19 +559,16 @@ class TestCacheFallback:
         cache.set_versions("unstable", unstable_dicts)
 
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/1.22.0-pre.1", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/1.22.0-pre.1", headers=auth_headers)
 
             assert response.status_code == 200
             data = response.json()
@@ -631,19 +585,16 @@ class TestCacheFallback:
     ) -> None:
         """GET /versions/{version} should return 503 when API fails and no cache."""
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
             )
             mock_get_service.return_value = mock_service
 
-            response = client.get(
-                "/api/v1alpha1/versions/1.21.3", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/1.21.3", headers=auth_headers)
 
             assert response.status_code == 503
             data = response.json()
@@ -659,16 +610,16 @@ class TestCacheFallback:
         """GET /versions/{version} should return 404 when version not in cache."""
         # Pre-populate cache with data
         from vintagestory_api.services.versions_cache import get_versions_cache
+
         cache = get_versions_cache()
 
         stable_dicts = [v.model_dump() for v in mock_versions["stable"].values()]
         cache.set_versions("stable", stable_dicts)
 
         # Mock API to raise HTTPError
-        with patch(
-            "vintagestory_api.routers.versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.routers.versions.get_server_service") as mock_get_service:
             import httpx
+
             mock_service = AsyncMock()
             mock_service.get_available_versions = AsyncMock(
                 side_effect=httpx.HTTPError("API unavailable")
@@ -676,9 +627,7 @@ class TestCacheFallback:
             mock_get_service.return_value = mock_service
 
             # Request a version that's not in the cache
-            response = client.get(
-                "/api/v1alpha1/versions/99.99.99", headers=auth_headers
-            )
+            response = client.get("/api/v1alpha1/versions/99.99.99", headers=auth_headers)
 
             assert response.status_code == 404
             data = response.json()

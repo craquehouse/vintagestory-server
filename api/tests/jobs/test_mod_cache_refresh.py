@@ -124,9 +124,7 @@ class TestScheduledUpdateCheck:
         assert "mod_cache_refresh_completed" in out
 
     @pytest.mark.asyncio
-    async def test_no_installed_mods(
-        self, tmp_path: Path, capsys: CaptureFixture[str]
-    ) -> None:
+    async def test_no_installed_mods(self, tmp_path: Path, capsys: CaptureFixture[str]) -> None:
         from vintagestory_api.jobs.mod_cache_refresh import refresh_mod_cache
 
         svc = ModUpdateService(

@@ -99,9 +99,7 @@ async def _get_channel_versions(
         is_cached = False
 
     except httpx.HTTPError as e:
-        logger.warning(
-            "versions_api_error_using_cache", channel=channel, error=str(e)
-        )
+        logger.warning("versions_api_error_using_cache", channel=channel, error=str(e))
         # Fall back to cache if API fails
         cached = cache.get_versions(channel)
         if cached:

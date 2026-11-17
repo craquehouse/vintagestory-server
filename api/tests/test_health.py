@@ -82,9 +82,7 @@ class TestHealthz:
             "stopping",
         ]
 
-    def test_healthz_game_server_not_installed_by_default(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_game_server_not_installed_by_default(self, client: TestClient) -> None:
         """Test that game_server status is not_installed by default."""
         response = client.get("/healthz")
         data = response.json()
@@ -156,9 +154,7 @@ class TestHealthzWithMockedServer:
             assert data["data"]["game_server_uptime"] == 3600
             assert data["data"]["game_server"] == "running"
 
-    def test_healthz_returns_pending_restart_when_true(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_returns_pending_restart_when_true(self, client: TestClient) -> None:
         """Test that game_server_pending_restart reflects actual state."""
         mock_restart_state = MagicMock()
         mock_restart_state.pending_restart = True
@@ -234,9 +230,7 @@ class TestHealthEndpointsNoAuth:
 class TestApiAvailability:
     """Tests that API remains available regardless of game server status."""
 
-    def test_api_responds_when_game_server_not_installed(
-        self, client: TestClient
-    ) -> None:
+    def test_api_responds_when_game_server_not_installed(self, client: TestClient) -> None:
         """Test that API responds to health checks when game server not installed."""
         response = client.get("/healthz")
         assert response.status_code == 200
@@ -257,9 +251,7 @@ class TestApiResponseEnvelope:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_success_envelope_excludes_null_error_field(
-        self, client: TestClient
-    ) -> None:
+    def test_success_envelope_excludes_null_error_field(self, client: TestClient) -> None:
         """Test that success responses don't include null error field.
 
         The ApiResponse model uses exclude_none to ensure cleaner JSON output.
@@ -269,8 +261,7 @@ class TestApiResponseEnvelope:
         data = response.json()
         # Error field should be absent entirely, not present as null
         assert "error" not in data, (
-            "Success responses should not include 'error' field. "
-            f"Got: {list(data.keys())}"
+            f"Success responses should not include 'error' field. Got: {list(data.keys())}"
         )
 
     def test_envelope_status_is_literal(self, client: TestClient) -> None:
@@ -326,9 +317,7 @@ class TestHealthzScheduler:
             data = response.json()
             assert data["data"]["scheduler"]["job_count"] == 0
 
-    def test_healthz_scheduler_stopped_when_unavailable(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_scheduler_stopped_when_unavailable(self, client: TestClient) -> None:
         """Test that scheduler status is 'stopped' when scheduler unavailable."""
         with patch(
             "vintagestory_api.routers.health.get_scheduler",
@@ -340,9 +329,7 @@ class TestHealthzScheduler:
             assert data["data"]["scheduler"]["status"] == "stopped"
             assert data["data"]["scheduler"]["job_count"] == 0
 
-    def test_healthz_scheduler_stopped_on_unexpected_error(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_scheduler_stopped_on_unexpected_error(self, client: TestClient) -> None:
         """Test that scheduler status is 'stopped' on unexpected errors."""
         with patch(
             "vintagestory_api.routers.health.get_scheduler",
@@ -354,9 +341,7 @@ class TestHealthzScheduler:
             assert data["data"]["scheduler"]["status"] == "stopped"
             assert data["data"]["scheduler"]["job_count"] == 0
 
-    def test_healthz_scheduler_stopped_when_not_running(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_scheduler_stopped_when_not_running(self, client: TestClient) -> None:
         """Test that scheduler status is 'stopped' when is_running is False."""
         mock_scheduler = MagicMock()
         mock_scheduler.is_running = False
@@ -495,9 +480,7 @@ class TestHealthzDiskSpace:
             data = response.json()
             assert data["data"]["disk_space"]["warning"] is True
 
-    def test_healthz_disk_space_no_warning_when_sufficient(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_disk_space_no_warning_when_sufficient(self, client: TestClient) -> None:
         """Test that warning is False when available space is above threshold."""
         mock_usage = MagicMock()
         mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
@@ -535,9 +518,7 @@ class TestHealthzDiskSpace:
             # Verify disk_usage was called with settings.data_dir
             mock_disk_usage.assert_called()
 
-    def test_healthz_disk_space_respects_threshold_config(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_disk_space_respects_threshold_config(self, client: TestClient) -> None:
         """Test that warning uses max of GB threshold and 10% of total."""
         mock_usage = MagicMock()
         mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
@@ -551,9 +532,7 @@ class TestHealthzDiskSpace:
             assert data["data"]["disk_space"]["warning"] is False
             assert data["data"]["disk_space"]["available_gb"] == 12.0
 
-    def test_healthz_disk_space_percentage_threshold_warning(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_disk_space_percentage_threshold_warning(self, client: TestClient) -> None:
         """Test that 10% threshold triggers warning on large disks."""
         mock_usage = MagicMock()
         mock_usage.total = 100 * 1024 * 1024 * 1024  # 100 GB
@@ -566,9 +545,7 @@ class TestHealthzDiskSpace:
             data = response.json()
             assert data["data"]["disk_space"]["warning"] is True
 
-    def test_healthz_disk_space_boundary_exactly_at_threshold(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_disk_space_boundary_exactly_at_threshold(self, client: TestClient) -> None:
         """Test boundary: available_gb exactly equals effective threshold (no warning)."""
         mock_usage = MagicMock()
         mock_usage.total = 10 * 1024 * 1024 * 1024  # 10 GB total
@@ -582,9 +559,7 @@ class TestHealthzDiskSpace:
             # 1 GB is NOT less than 1 GB, so no warning
             assert data["data"]["disk_space"]["warning"] is False
 
-    def test_healthz_disk_space_zero_total_returns_none(
-        self, client: TestClient
-    ) -> None:
+    def test_healthz_disk_space_zero_total_returns_none(self, client: TestClient) -> None:
         """Test that zero total disk (empty/unmounted) returns None."""
         mock_usage = MagicMock()
         mock_usage.total = 0

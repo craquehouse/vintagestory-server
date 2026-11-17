@@ -164,9 +164,7 @@ class TestWebApiKey:
 
         assert Settings(api_key_admin="admin-key").web_api_key == ""
 
-    def test_vs_api_key_is_read_from_the_environment(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_vs_api_key_is_read_from_the_environment(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("VS_API_KEY", raising=False)
         assert Settings(api_key_admin="a").web_api_key == ""
 
@@ -229,17 +227,13 @@ class TestRemovedSettings:
 class TestDirectoryCreationLogging:
     """Tests for directory creation logging (Story 9.2 AC#2, AC#3)."""
 
-    def test_logs_directory_created_event(
-        self, tmp_path: Path, captured_logs: StringIO
-    ) -> None:
+    def test_logs_directory_created_event(self, tmp_path: Path, captured_logs: StringIO) -> None:
         """When directories are created, logs directory_created event (AC#2).
 
         Verifies that all 6 directories are logged when created:
         server, serverdata, vsmanager, cache, state, logs.
         """
-        with patch.dict(
-            os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
-        ):
+        with patch.dict(os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}):
             settings = Settings()
             settings.ensure_data_directories()
 
@@ -251,17 +245,11 @@ class TestDirectoryCreationLogging:
                 assert "directory_created" in output, (
                     "Expected 'directory_created' event in log output"
                 )
-                assert dir_name in output, (
-                    f"Expected '{dir_name}' directory in logged output"
-                )
+                assert dir_name in output, f"Expected '{dir_name}' directory in logged output"
 
-    def test_no_log_when_directories_exist(
-        self, tmp_path: Path, captured_logs: StringIO
-    ) -> None:
+    def test_no_log_when_directories_exist(self, tmp_path: Path, captured_logs: StringIO) -> None:
         """When directories already exist, no creation logs are emitted (AC#3)."""
-        with patch.dict(
-            os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
-        ):
+        with patch.dict(os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}):
             settings = Settings()
 
             # First call creates directories
@@ -276,17 +264,14 @@ class TestDirectoryCreationLogging:
 
             output = captured_logs.getvalue()
             assert "directory_created" not in output, (
-                f"Expected no directory_created events on second call, "
-                f"got: {output}"
+                f"Expected no directory_created events on second call, got: {output}"
             )
 
     def test_logs_error_on_permission_failure(
         self, tmp_path: Path, captured_logs: StringIO
     ) -> None:
         """When directory creation fails, logs directory_creation_failed event (AC#4)."""
-        with patch.dict(
-            os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}
-        ):
+        with patch.dict(os.environ, {"VS_DATA_DIR": str(tmp_path), "VS_API_KEY_ADMIN": "test-key"}):
             settings = Settings()
 
             # Mock mkdir to raise OSError for permission failure
@@ -379,7 +364,9 @@ class TestCorsOriginsValidation:
 
     def test_cors_origins_multiple(self) -> None:
         """Multiple CORS origins can be specified."""
-        with patch.dict(os.environ, {"VS_CORS_ORIGINS": "http://localhost:5173,https://example.com"}):
+        with patch.dict(
+            os.environ, {"VS_CORS_ORIGINS": "http://localhost:5173,https://example.com"}
+        ):
             settings = Settings()
             assert settings.cors_origins == "http://localhost:5173,https://example.com"
 
@@ -658,6 +645,7 @@ class TestDebugStateManagement:
         with patch.dict(os.environ, {"VS_DEBUG": "true"}):
             # Import the module to reset state
             import vintagestory_api.config as config_module
+
             config_module._debug_initialized = False
             config_module._debug_enabled = False
 
@@ -669,6 +657,7 @@ class TestDebugStateManagement:
         """initialize_debug_state reads VS_DEBUG=false from environment."""
         with patch.dict(os.environ, {"VS_DEBUG": "false"}):
             import vintagestory_api.config as config_module
+
             config_module._debug_initialized = False
             config_module._debug_enabled = False
 
@@ -680,6 +669,7 @@ class TestDebugStateManagement:
         """initialize_debug_state reads VS_DEBUG=1 as true."""
         with patch.dict(os.environ, {"VS_DEBUG": "1"}):
             import vintagestory_api.config as config_module
+
             config_module._debug_initialized = False
             config_module._debug_enabled = False
 
@@ -691,6 +681,7 @@ class TestDebugStateManagement:
         """initialize_debug_state reads VS_DEBUG=yes as true."""
         with patch.dict(os.environ, {"VS_DEBUG": "yes"}):
             import vintagestory_api.config as config_module
+
             config_module._debug_initialized = False
             config_module._debug_enabled = False
 
@@ -702,6 +693,7 @@ class TestDebugStateManagement:
         """initialize_debug_state only runs once."""
         with patch.dict(os.environ, {"VS_DEBUG": "true"}):
             import vintagestory_api.config as config_module
+
             config_module._debug_initialized = False
             config_module._debug_enabled = False
 
@@ -718,6 +710,7 @@ class TestDebugStateManagement:
     def test_set_debug_enabled_toggle_on(self) -> None:
         """set_debug_enabled toggles debug mode on."""
         import vintagestory_api.config as config_module
+
         config_module._debug_enabled = False
 
         result = set_debug_enabled(True)
@@ -728,6 +721,7 @@ class TestDebugStateManagement:
     def test_set_debug_enabled_toggle_off(self) -> None:
         """set_debug_enabled toggles debug mode off."""
         import vintagestory_api.config as config_module
+
         config_module._debug_enabled = True
 
         result = set_debug_enabled(False)
@@ -738,6 +732,7 @@ class TestDebugStateManagement:
     def test_set_debug_enabled_no_change(self) -> None:
         """set_debug_enabled returns False when state doesn't change."""
         import vintagestory_api.config as config_module
+
         config_module._debug_enabled = True
 
         result = set_debug_enabled(True)
@@ -748,6 +743,7 @@ class TestDebugStateManagement:
     def test_get_current_debug_setting(self) -> None:
         """get_current_debug_setting returns current debug state (deprecated)."""
         import vintagestory_api.config as config_module
+
         config_module._debug_enabled = True
 
         assert get_current_debug_setting() is True
@@ -781,6 +777,7 @@ class TestReconfigureLoggingIfChanged:
     def test_reconfigure_logging_if_changed_first_call(self) -> None:
         """reconfigure_logging_if_changed returns True on first call."""
         import vintagestory_api.config as config_module
+
         config_module._last_debug_state = None
         config_module._debug_enabled = False
 
@@ -793,6 +790,7 @@ class TestReconfigureLoggingIfChanged:
     def test_reconfigure_logging_if_changed_state_changed(self) -> None:
         """reconfigure_logging_if_changed returns True when state changes."""
         import vintagestory_api.config as config_module
+
         config_module._last_debug_state = False
         config_module._debug_enabled = True
 
@@ -805,6 +803,7 @@ class TestReconfigureLoggingIfChanged:
     def test_reconfigure_logging_if_changed_no_change(self) -> None:
         """reconfigure_logging_if_changed returns False when state unchanged."""
         import vintagestory_api.config as config_module
+
         config_module._last_debug_state = True
         config_module._debug_enabled = True
 

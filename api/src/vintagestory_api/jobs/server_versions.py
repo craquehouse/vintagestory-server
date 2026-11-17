@@ -113,13 +113,9 @@ async def check_server_versions() -> None:
     # Story 13.1: Cache full version lists for each channel
     # Only update if API call succeeded (preserves stale cache on errors)
     if not stable_error and stable_versions:
-        cache.set_versions(
-            "stable", [v.model_dump() for v in stable_versions.values()]
-        )
+        cache.set_versions("stable", [v.model_dump() for v in stable_versions.values()])
     if not unstable_error and unstable_versions:
-        cache.set_versions(
-            "unstable", [v.model_dump() for v in unstable_versions.values()]
-        )
+        cache.set_versions("unstable", [v.model_dump() for v in unstable_versions.values()])
 
     # Log summary
     logger.info(

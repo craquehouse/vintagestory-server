@@ -326,9 +326,7 @@ class TestConsoleWebSocketSendFailure:
         original_send_text = WebSocket.send_text
 
         with patch.object(WebSocket, "send_text", patched_send_text):
-            with ws_client.websocket_connect(
-                f"/api/v1alpha1/console/ws?api_key={admin_key}"
-            ):
+            with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?api_key={admin_key}"):
                 # At this point, connection is established and subscriber is registered
                 assert len(test_service.console_buffer._subscribers) == 1
 
@@ -379,9 +377,7 @@ class TestConsoleWebSocketSendFailure:
             return await original_send_text(self, data, **kwargs)
 
         with patch.object(WebSocket, "send_text", failing_send_text):
-            with ws_client.websocket_connect(
-                f"/api/v1alpha1/console/ws?api_key={admin_key}"
-            ):
+            with ws_client.websocket_connect(f"/api/v1alpha1/console/ws?api_key={admin_key}"):
                 # Connection established, subscriber registered
                 assert len(test_service.console_buffer._subscribers) == 1
 

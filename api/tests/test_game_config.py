@@ -492,9 +492,7 @@ class TestGetSettings:
         for expected_key in LIVE_SETTINGS.keys():
             assert expected_key in keys, f"Missing setting: {expected_key}"
 
-    def test_get_settings_returns_source_file(
-        self, game_config_service: GameConfigService
-    ) -> None:
+    def test_get_settings_returns_source_file(self, game_config_service: GameConfigService) -> None:
         """AC 1: Response includes source_file metadata."""
         response = game_config_service.get_settings()
 
@@ -576,18 +574,14 @@ class TestGetSettings:
         assert max_clients.env_managed is True
         assert max_clients.env_var == "VS_CFG_MAX_CLIENTS"
 
-    def test_get_settings_file_not_found_raises(
-        self, temp_settings: Settings
-    ) -> None:
+    def test_get_settings_file_not_found_raises(self, temp_settings: Settings) -> None:
         """get_settings raises FileNotFoundError when config doesn't exist."""
         service = GameConfigService(settings=temp_settings)
 
         with pytest.raises(FileNotFoundError):
             service.get_settings()
 
-    def test_get_settings_to_dict(
-        self, game_config_service: GameConfigService
-    ) -> None:
+    def test_get_settings_to_dict(self, game_config_service: GameConfigService) -> None:
         """SettingsResponse.to_dict() produces valid dict for API response."""
         response = game_config_service.get_settings()
         result = response.to_dict()
@@ -1052,9 +1046,7 @@ class TestCommandInjectionPrevention:
         assert "backslash" in exc_info.value.message.lower()
 
     @pytest.mark.asyncio
-    async def test_reject_newlines_in_string(
-        self, game_config_service: GameConfigService
-    ) -> None:
+    async def test_reject_newlines_in_string(self, game_config_service: GameConfigService) -> None:
         """String values with newlines are rejected."""
         from vintagestory_api.services.game_config import SettingValueInvalidError
 
@@ -1110,9 +1102,7 @@ class TestTypeValidation:
         assert exc_info.value.code == "SETTING_VALUE_INVALID"
 
     @pytest.mark.asyncio
-    async def test_accept_int_for_int_setting(
-        self, game_config_service: GameConfigService
-    ) -> None:
+    async def test_accept_int_for_int_setting(self, game_config_service: GameConfigService) -> None:
         """Int value for int setting is accepted."""
         result = await game_config_service.update_setting("MaxClients", 32)
 
@@ -1352,9 +1342,7 @@ class TestPasswordRedaction:
             await game_config_service.update_setting("Password", "my-secret-password")
 
             # Check that logger.info was called with value="***"
-            calls = [
-                c for c in mock_logger.info.call_args_list if "setting_updated" in str(c)
-            ]
+            calls = [c for c in mock_logger.info.call_args_list if "setting_updated" in str(c)]
             assert len(calls) > 0
             for call in calls:
                 kwargs = call[1]
@@ -1527,9 +1515,7 @@ class TestGameDefaults:
         assert defaults == {"EntitySpawning": True}
 
     def test_no_secret_setting_has_a_default(self) -> None:
-        assert all(
-            setting.default is None for setting in LIVE_SETTINGS.values() if setting.secret
-        )
+        assert all(setting.default is None for setting in LIVE_SETTINGS.values() if setting.secret)
 
     def test_setting_info_omits_default_when_none(self) -> None:
         info = SettingInfo(

@@ -57,15 +57,13 @@ class TestListDirectories:
         (serverdata / "Playerdata").mkdir()
         (serverdata / "Macros").mkdir()
         # Also create a file to verify it's not included
-        (serverdata / "serverconfig.json").write_text('{}')
+        (serverdata / "serverconfig.json").write_text("{}")
 
         result = service.list_directories(role="admin")
 
         assert result == ["Macros", "ModConfigs", "Playerdata"]
 
-    def test_list_directories_empty_directory(
-        self, service: ConfigFilesService
-    ) -> None:
+    def test_list_directories_empty_directory(self, service: ConfigFilesService) -> None:
         """Should return empty list when no subdirectories exist."""
         result = service.list_directories()
         assert result == []
@@ -98,8 +96,8 @@ class TestListDirectories:
         """Should only return directories, not files."""
         serverdata = mock_settings.serverdata_dir
         (serverdata / "ModConfigs").mkdir()
-        (serverdata / "serverconfig.json").write_text('{}')
-        (serverdata / "not-a-dir.txt").write_text('text')
+        (serverdata / "serverconfig.json").write_text("{}")
+        (serverdata / "not-a-dir.txt").write_text("text")
 
         result = service.list_directories(role="admin")
 
@@ -114,7 +112,7 @@ class TestListDirectories:
         cache_dir.mkdir()
         (cache_dir / "unpack").mkdir()
         (cache_dir / "downloads").mkdir()
-        (cache_dir / "temp.json").write_text('{}')
+        (cache_dir / "temp.json").write_text("{}")
 
         result = service.list_directories("Cache", role="admin")
 
@@ -181,15 +179,13 @@ class TestListFiles:
         (subdir / "mod2.json").write_text('{"enabled": false}')
         (subdir / "readme.txt").write_text("not json")
         # Root level file should not be included
-        (serverdata / "serverconfig.json").write_text('{}')
+        (serverdata / "serverconfig.json").write_text("{}")
 
         result = service.list_files(directory="ModConfigs", role="admin")
 
         assert result == ["mod1.json", "mod2.json"]
 
-    def test_list_files_subdirectory_not_exists(
-        self, service: ConfigFilesService
-    ) -> None:
+    def test_list_files_subdirectory_not_exists(self, service: ConfigFilesService) -> None:
         """Should return empty list when subdirectory doesn't exist."""
         result = service.list_files(directory="NonExistent", role="admin")
 
@@ -261,9 +257,7 @@ class TestListFiles:
 class TestReadFile:
     """Tests for ConfigFilesService.read_file()."""
 
-    def test_read_file_success(
-        self, service: ConfigFilesService, mock_settings: MagicMock
-    ) -> None:
+    def test_read_file_success(self, service: ConfigFilesService, mock_settings: MagicMock) -> None:
         """Should return filename and parsed JSON content."""
         serverdata = mock_settings.serverdata_dir
         content = {"Port": 42420, "ServerName": "Test Server"}
@@ -409,9 +403,7 @@ class TestViewableFiles:
         text = '"' + "a" * (CONFIG_FILE_MAX_BYTES - 2) + '"'
         (mock_settings.serverdata_dir / "exact.json").write_text(text)
 
-        assert service.read_file("exact.json", role)["content"] == "a" * (
-            CONFIG_FILE_MAX_BYTES - 2
-        )
+        assert service.read_file("exact.json", role)["content"] == "a" * (CONFIG_FILE_MAX_BYTES - 2)
 
     @pytest.mark.parametrize("role", ROLES)
     def test_byte_order_mark_is_parsed(
@@ -536,9 +528,7 @@ class TestReadFileSecrets:
         role: str | None,
     ) -> None:
         """AC 3, 6: every path to the file, every role but Admin: redacted."""
-        result = (
-            service.read_file(filename) if role is None else service.read_file(filename, role)
-        )
+        result = service.read_file(filename) if role is None else service.read_file(filename, role)
 
         assert result["content"] == {"ServerName": "Test", "Password": REDACTED, "Port": 42420}
         assert SECRET not in json.dumps(result)

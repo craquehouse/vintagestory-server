@@ -314,9 +314,7 @@ class TestModApiClientGetMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mod_extracts_slug_from_url(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mod_extracts_slug_from_url(self, mod_api_client: ModApiClient) -> None:
         """get_mod() extracts slug from full URL."""
         respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
             return_value=Response(
@@ -325,9 +323,7 @@ class TestModApiClientGetMod:
             )
         )
 
-        result = await mod_api_client.get_mod(
-            "https://mods.vintagestory.at/smithingplus"
-        )
+        result = await mod_api_client.get_mod("https://mods.vintagestory.at/smithingplus")
 
         assert result is not None
         assert result["name"] == "Smithing Plus"
@@ -347,9 +343,7 @@ class TestModApiClientGetMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mod_connection_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mod_connection_error(self, mod_api_client: ModApiClient) -> None:
         """get_mod() raises ExternalApiError on connection error."""
         respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
             side_effect=httpx.ConnectError("connection refused")
@@ -362,9 +356,7 @@ class TestModApiClientGetMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mod_unexpected_status(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mod_unexpected_status(self, mod_api_client: ModApiClient) -> None:
         """get_mod() raises ExternalApiError for unexpected status codes (VSS-d15).
 
         Returning None would read as "not found" to callers.
@@ -437,9 +429,7 @@ class TestModApiClientGetMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mod_generic_http_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mod_generic_http_error(self, mod_api_client: ModApiClient) -> None:
         """get_mod() raises ExternalApiError on generic HTTPError."""
         respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
             side_effect=httpx.HTTPError("Generic HTTP error")
@@ -523,9 +513,7 @@ class TestModApiClientDownloadMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_download_mod_not_found(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_download_mod_not_found(self, mod_api_client: ModApiClient) -> None:
         """download_mod() raises ModNotFoundError for missing mod."""
         respx.get("https://mods.vintagestory.at/api/mod/nonexistent").mock(
             return_value=Response(
@@ -541,9 +529,7 @@ class TestModApiClientDownloadMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_download_version_not_found(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_download_version_not_found(self, mod_api_client: ModApiClient) -> None:
         """download_mod() raises ModVersionNotFoundError for missing version."""
         respx.get("https://mods.vintagestory.at/api/mod/smithingplus").mock(
             return_value=Response(
@@ -822,9 +808,7 @@ class TestModApiClientDownloadMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_download_mod_no_releases(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_download_mod_no_releases(self, mod_api_client: ModApiClient) -> None:
         """download_mod() raises ModNotFoundError for mod with no releases."""
         mod_without_releases = {
             **SMITHINGPLUS_MOD,
@@ -845,9 +829,7 @@ class TestModApiClientDownloadMod:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_download_api_unavailable(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_download_api_unavailable(self, mod_api_client: ModApiClient) -> None:
         """download_mod() raises ExternalApiError when API unavailable."""
         respx.get("https://mods.vintagestory.at/api/mod/anymod").mock(
             side_effect=httpx.ConnectError("connection refused")
@@ -873,9 +855,7 @@ class TestModApiClientDownloadMod:
             return_value=Response(200, content=b"content")
         )
 
-        result = await mod_api_client.download_mod(
-            "https://mods.vintagestory.at/smithingplus"
-        )
+        result = await mod_api_client.download_mod("https://mods.vintagestory.at/smithingplus")
 
         assert result is not None
         assert result.version == "1.8.3"
@@ -1013,9 +993,7 @@ class TestDownloadModReleaseSelection:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_only_prereleases_downloads_the_first(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_only_prereleases_downloads_the_first(self, mod_api_client: ModApiClient) -> None:
         payload = _fixture_payload("carryon")
         payload["mod"]["releases"] = [
             r for r in payload["mod"]["releases"] if "-" in r["modversion"]
@@ -1121,8 +1099,14 @@ class TestResolveInstall:
         ("fixture", "slug", "mod_id", "version", "file_id", "asset_id"),
         [
             ("instruments", "instruments", "instruments", "1.2.2", 12840, 463),
-            ("egocaribautomapmarkers", "automapmarkers", "egocaribautomapmarkers", "5.0.3",
-             90054, 797),
+            (
+                "egocaribautomapmarkers",
+                "automapmarkers",
+                "egocaribautomapmarkers",
+                "5.0.3",
+                90054,
+                797,
+            ),
         ],
     )
     async def test_resolves_without_downloading(
@@ -1154,9 +1138,7 @@ class TestResolveInstall:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_resolve_accepts_a_url_and_a_version(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_resolve_accepts_a_url_and_a_version(self, mod_api_client: ModApiClient) -> None:
         respx.get("https://mods.vintagestory.at/api/mod/instruments").mock(
             return_value=Response(200, json=_fixture_payload("instruments"))
         )
@@ -1235,9 +1217,7 @@ class TestCacheKeyedByFileId:
     def test_cache_path(self, mod_api_client: ModApiClient, cache_dir: Path) -> None:
         mods_cache = cache_dir / "mods"
         assert mod_api_client.cache_path(7, "Demo.zip") == mods_cache / "7" / "Demo.zip"
-        assert mod_api_client.cache_path(8, "Demo.zip") != mod_api_client.cache_path(
-            7, "Demo.zip"
-        )
+        assert mod_api_client.cache_path(8, "Demo.zip") != mod_api_client.cache_path(7, "Demo.zip")
         assert mod_api_client.cache_path(7, "../../x/evil.zip") == mods_cache / "7" / "evil.zip"
         with pytest.raises(ValueError):
             mod_api_client.cache_path(7, "..")
@@ -1766,9 +1746,7 @@ class TestModApiClientGetAllMods:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_all_mods_caches_result(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_all_mods_caches_result(self, mod_api_client: ModApiClient) -> None:
         """get_all_mods() caches result and returns cached data on subsequent calls."""
         route = respx.get("https://mods.vintagestory.at/api/mods").mock(
             return_value=Response(200, json=BROWSE_MODS_RESPONSE)
@@ -1787,9 +1765,7 @@ class TestModApiClientGetAllMods:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_all_mods_force_refresh(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_all_mods_force_refresh(self, mod_api_client: ModApiClient) -> None:
         """get_all_mods(force_refresh=True) bypasses cache."""
         route = respx.get("https://mods.vintagestory.at/api/mods").mock(
             return_value=Response(200, json=BROWSE_MODS_RESPONSE)
@@ -1818,9 +1794,7 @@ class TestModApiClientGetAllMods:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_all_mods_connection_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_all_mods_connection_error(self, mod_api_client: ModApiClient) -> None:
         """get_all_mods() raises ExternalApiError on connection error."""
         respx.get("https://mods.vintagestory.at/api/mods").mock(
             side_effect=httpx.ConnectError("connection refused")
@@ -1833,9 +1807,7 @@ class TestModApiClientGetAllMods:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_all_mods_generic_http_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_all_mods_generic_http_error(self, mod_api_client: ModApiClient) -> None:
         """get_all_mods() raises ExternalApiError on generic HTTPError."""
         respx.get("https://mods.vintagestory.at/api/mods").mock(
             side_effect=httpx.HTTPError("Generic HTTP error")
@@ -1848,9 +1820,7 @@ class TestModApiClientGetAllMods:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_all_mods_unexpected_status(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_all_mods_unexpected_status(self, mod_api_client: ModApiClient) -> None:
         """get_all_mods() raises ExternalApiError on unexpected status."""
         respx.get("https://mods.vintagestory.at/api/mods").mock(
             return_value=Response(200, json={"statuscode": "500", "error": "Server error"})
@@ -1899,9 +1869,7 @@ class TestModApiClientBrowseCache:
         await mod_api_client.get_all_mods()
         assert route.call_count == 2
 
-    def test_is_browse_cache_valid_when_empty(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    def test_is_browse_cache_valid_when_empty(self, mod_api_client: ModApiClient) -> None:
         """_is_browse_cache_valid() returns False when cache is empty."""
         # Access protected member for testing
         result = mod_api_client._is_browse_cache_valid()  # pyright: ignore[reportPrivateUsage]
@@ -1909,9 +1877,7 @@ class TestModApiClientBrowseCache:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_is_browse_cache_valid_when_populated(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_is_browse_cache_valid_when_populated(self, mod_api_client: ModApiClient) -> None:
         """_is_browse_cache_valid() returns True after cache is populated."""
         respx.get("https://mods.vintagestory.at/api/mods").mock(
             return_value=Response(200, json=BROWSE_MODS_RESPONSE)
@@ -1945,9 +1911,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_success(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_success(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() returns version mapping on success."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
@@ -1961,9 +1925,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_caches_result(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_caches_result(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() caches result and returns cached data on subsequent calls."""
         route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
@@ -1982,9 +1944,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_force_refresh(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_force_refresh(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions(force_refresh=True) bypasses cache."""
         route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
@@ -2000,9 +1960,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_timeout(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_timeout(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on timeout."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             side_effect=httpx.TimeoutException("timeout")
@@ -2015,9 +1973,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_connection_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_connection_error(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on connection error."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             side_effect=httpx.ConnectError("connection refused")
@@ -2030,9 +1986,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_http_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_http_error(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on HTTP error status."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(503, content=b"Service Unavailable")
@@ -2045,9 +1999,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_invalid_json(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_invalid_json(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on invalid JSON."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, content=b"<html>Not JSON</html>")
@@ -2060,9 +2012,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_unexpected_status(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_unexpected_status(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on unexpected status."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, json={"statuscode": "500", "error": "Server error"})
@@ -2075,9 +2025,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_game_versions_generic_http_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_game_versions_generic_http_error(self, mod_api_client: ModApiClient) -> None:
         """get_game_versions() raises ExternalApiError on generic HTTPError."""
         respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             side_effect=httpx.HTTPError("Generic HTTP error")
@@ -2090,9 +2038,7 @@ class TestModApiClientGameVersions:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_clear_gameversions_cache(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_clear_gameversions_cache(self, mod_api_client: ModApiClient) -> None:
         """clear_gameversions_cache() clears the cache."""
         route = respx.get("https://mods.vintagestory.at/api/gameversions").mock(
             return_value=Response(200, json=GAMEVERSIONS_RESPONSE)
@@ -2109,9 +2055,7 @@ class TestModApiClientGameVersions:
         await mod_api_client.get_game_versions()
         assert route.call_count == 2
 
-    def test_is_gameversions_cache_valid_when_empty(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    def test_is_gameversions_cache_valid_when_empty(self, mod_api_client: ModApiClient) -> None:
         """_is_gameversions_cache_valid() returns False when cache is empty."""
         # Access protected member for testing
         # pyright: ignore[reportPrivateUsage]
@@ -2187,9 +2131,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_success(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_success(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() returns mods filtered by version."""
         version_tagid = -281565171286015  # 1.21.3
         route = respx.get(
@@ -2204,9 +2146,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_normalizes_items(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_normalizes_items(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() normalizes items and drops non-objects (Story 17.1)."""
         version_tagid = -281565171286015
         respx.get(
@@ -2243,9 +2183,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_cache_hit(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_cache_hit(self, mod_api_client: ModApiClient) -> None:
         """A second call for the same tag is served from the cache (Story 18.3)."""
         version_tagid = -281565171286015
         route = respx.get(
@@ -2287,9 +2225,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_cache_expires(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_cache_expires(self, mod_api_client: ModApiClient) -> None:
         """With the cache lifetime at zero the second call requests again (Story 18.3)."""
         mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
         route = respx.get(
@@ -2330,9 +2266,7 @@ class TestModApiClientModsByVersion:
     ) -> None:
         """The filter path raises on failure even when an expired copy exists (Story 18.3)."""
         mod_api_client.BROWSE_CACHE_TTL = timedelta(0)
-        respx.get(
-            "https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}
-        ).mock(
+        respx.get("https://mods.vintagestory.at/api/mods", params={"gameversion": "-1"}).mock(
             side_effect=[
                 Response(200, json=_listing(1)),
                 Response(500, content=b"error"),
@@ -2345,9 +2279,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_timeout(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_timeout(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() raises ExternalApiError on timeout."""
         version_tagid = -281565171286015
         respx.get(
@@ -2362,9 +2294,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_connection_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_connection_error(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() raises ExternalApiError on connection error."""
         version_tagid = -281565171286015
         respx.get(
@@ -2379,9 +2309,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_http_error(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_http_error(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() raises ExternalApiError on HTTP error status."""
         version_tagid = -281565171286015
         respx.get(
@@ -2396,9 +2324,7 @@ class TestModApiClientModsByVersion:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_get_mods_by_version_invalid_json(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_get_mods_by_version_invalid_json(self, mod_api_client: ModApiClient) -> None:
         """get_mods_by_version() raises ExternalApiError on invalid JSON."""
         version_tagid = -281565171286015
         respx.get(
@@ -2494,9 +2420,7 @@ class TestModApiClientVersionListingCache:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_concurrent_callers_share_one_fetch(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_concurrent_callers_share_one_fetch(self, mod_api_client: ModApiClient) -> None:
         """The flag lookup and the version filter for one tag make one request together."""
         respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
         route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
@@ -2600,9 +2524,7 @@ class TestModApiClientVersionListingCache:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_version_mod_ids_pause_after_failure(
-        self, mod_api_client: ModApiClient
-    ) -> None:
+    async def test_version_mod_ids_pause_after_failure(self, mod_api_client: ModApiClient) -> None:
         """After a failure the lookup is not retried until VERSION_FLAGS_RETRY_AFTER passes."""
         respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
         route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
@@ -2669,9 +2591,7 @@ class TestModApiClientVersionListingCache:
             return Response(200, json=_listing(1, 2))
 
         respx.get(GAMEVERSIONS_URL).mock(return_value=Response(200, json=VERSION_LIST_RESPONSE))
-        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(
-            side_effect=slow
-        )
+        route = respx.get(MODS_URL, params={"gameversion": str(TAG_1_22_7)}).mock(side_effect=slow)
 
         assert await mod_api_client.get_version_mod_ids("1.22.7") is None
         # Within the pause it answers at once, even with a long wait configured

@@ -53,27 +53,21 @@ class TestCollectMetricsJob:
         assert len(service.buffer) == initial_count + 1
 
     @pytest.mark.asyncio
-    async def test_collect_metrics_logs_start_event(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_collect_metrics_logs_start_event(self, captured_logs: StringIO) -> None:
         """collect_metrics() logs job start event (via @safe_job)."""
         await collect_metrics()
 
         assert "metrics_collection_started" in captured_logs.getvalue()
 
     @pytest.mark.asyncio
-    async def test_collect_metrics_logs_completion_event(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_collect_metrics_logs_completion_event(self, captured_logs: StringIO) -> None:
         """collect_metrics() logs job completion event (via @safe_job)."""
         await collect_metrics()
 
         assert "metrics_collection_completed" in captured_logs.getvalue()
 
     @pytest.mark.asyncio
-    async def test_collect_metrics_logs_via_service(
-        self, captured_logs: StringIO
-    ) -> None:
+    async def test_collect_metrics_logs_via_service(self, captured_logs: StringIO) -> None:
         """collect_metrics() logs collected metrics details via service."""
         await collect_metrics()
 
@@ -87,9 +81,7 @@ class TestCollectMetricsJob:
         self, captured_logs: StringIO
     ) -> None:
         """collect_metrics() handles errors gracefully via @safe_job."""
-        with patch(
-            "vintagestory_api.jobs.metrics_collection.get_metrics_service"
-        ) as mock_get:
+        with patch("vintagestory_api.jobs.metrics_collection.get_metrics_service") as mock_get:
             mock_service = MagicMock()
             mock_service.collect.side_effect = RuntimeError("Simulated error")
             mock_get.return_value = mock_service

@@ -61,9 +61,7 @@ class TestWebSocketTokenService:
         return WebSocketTokenService()
 
     @pytest.mark.asyncio
-    async def test_create_token_returns_stored_token(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_create_token_returns_stored_token(self, service: WebSocketTokenService) -> None:
         """create_token returns a StoredToken with all fields populated."""
         result = await service.create_token("admin")
 
@@ -74,9 +72,7 @@ class TestWebSocketTokenService:
         assert result.created_at <= datetime.now(UTC)
 
     @pytest.mark.asyncio
-    async def test_create_token_uses_secure_random(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_create_token_uses_secure_random(self, service: WebSocketTokenService) -> None:
         """Token generation uses cryptographically secure random bytes."""
         # Create multiple tokens and verify they're unique
         tokens: set[str] = set()
@@ -86,9 +82,7 @@ class TestWebSocketTokenService:
         assert len(tokens) == 10  # All unique
 
     @pytest.mark.asyncio
-    async def test_create_token_preserves_role_admin(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_create_token_preserves_role_admin(self, service: WebSocketTokenService) -> None:
         """create_token preserves 'admin' role."""
         result = await service.create_token("admin")
         assert result.role == "admin"
@@ -102,9 +96,7 @@ class TestWebSocketTokenService:
         assert result.role == "monitor"
 
     @pytest.mark.asyncio
-    async def test_create_token_sets_expiry(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_create_token_sets_expiry(self, service: WebSocketTokenService) -> None:
         """create_token sets expiry based on TTL."""
         result = await service.create_token("admin")
 
@@ -150,9 +142,7 @@ class TestWebSocketTokenService:
         stored = await service.create_token("admin")
 
         # Manually expire the token by manipulating the stored entry
-        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
+        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
         role = await service.validate_token(stored.token)
 
@@ -177,9 +167,7 @@ class TestWebSocketTokenService:
         assert token_str not in service._tokens
 
     @pytest.mark.asyncio
-    async def test_cleanup_expired_removes_old_tokens(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_cleanup_expired_removes_old_tokens(self, service: WebSocketTokenService) -> None:
         """_cleanup_expired_unlocked removes all expired tokens."""
         # Create some tokens
         token1 = await service.create_token("admin")
@@ -187,12 +175,8 @@ class TestWebSocketTokenService:
         token3 = await service.create_token("admin")
 
         # Expire first two
-        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
-        service._tokens[token2.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
+        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
+        service._tokens[token2.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
         # Trigger cleanup (must acquire lock manually for internal method)
         async with service._lock:
@@ -203,9 +187,7 @@ class TestWebSocketTokenService:
         assert token3.token in service._tokens
 
     @pytest.mark.asyncio
-    async def test_active_token_count_after_create(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_active_token_count_after_create(self, service: WebSocketTokenService) -> None:
         """active_token_count reflects number of valid tokens."""
         assert await service.active_token_count() == 0
 
@@ -224,24 +206,18 @@ class TestWebSocketTokenService:
         await service.create_token("monitor")
 
         # Expire one
-        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
+        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
         # Count triggers cleanup
         assert await service.active_token_count() == 1
 
     @pytest.mark.asyncio
-    async def test_create_triggers_cleanup(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_create_triggers_cleanup(self, service: WebSocketTokenService) -> None:
         """Creating a new token triggers cleanup of expired tokens."""
         token1 = await service.create_token("admin")
 
         # Expire the first token
-        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
+        service._tokens[token1.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
         # Create new token - should trigger cleanup
         await service.create_token("monitor")
@@ -250,9 +226,7 @@ class TestWebSocketTokenService:
         assert token1.token not in service._tokens
 
     @pytest.mark.asyncio
-    async def test_token_length_is_reasonable(
-        self, service: WebSocketTokenService
-    ) -> None:
+    async def test_token_length_is_reasonable(self, service: WebSocketTokenService) -> None:
         """Generated tokens have reasonable length for URL safety."""
         token = await service.create_token("admin")
 
@@ -309,9 +283,7 @@ class TestTokenExpiration:
         stored = await service.create_token("admin")
 
         # Set expiry to 1 second from now
-        service._tokens[stored.token].expires_at = datetime.now(UTC) + timedelta(
-            seconds=1
-        )
+        service._tokens[stored.token].expires_at = datetime.now(UTC) + timedelta(seconds=1)
 
         role = await service.validate_token(stored.token)
         assert role == "admin"
@@ -323,9 +295,7 @@ class TestTokenExpiration:
         stored = await service.create_token("admin")
 
         # Set expiry to 1 microsecond ago
-        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(
-            microseconds=1
-        )
+        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(microseconds=1)
 
         role = await service.validate_token(stored.token)
         assert role is None
@@ -352,9 +322,7 @@ class TestTokenExpiration:
         assert await service.validate_token(stored.token) == "admin"
 
         # Expire the token
-        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(
-            seconds=1
-        )
+        service._tokens[stored.token].expires_at = datetime.now(UTC) - timedelta(seconds=1)
 
         # Validate again - should fail
         assert await service.validate_token(stored.token) is None

@@ -323,9 +323,7 @@ class TestMetricsServiceEdgeCases:
                 raise Exception("Unexpected psutil error")
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
 
             # Should raise since we only catch specific psutil exceptions
@@ -352,9 +350,7 @@ class TestMetricsServiceEdgeCases:
                 return mock_game_process  # type: ignore[return-value]
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
             snapshot = service.collect()
 
@@ -381,9 +377,7 @@ class TestMetricsServiceEdgeCases:
                 return mock_game_process  # type: ignore[return-value]
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
             snapshot = service.collect()
 
@@ -453,9 +447,7 @@ class TestMetricsServiceEdgeCases:
                 return mock_game_process  # type: ignore[return-value]
             return original_process(pid)
 
-        with patch(
-            "vintagestory_api.services.metrics.psutil.Process", mock_process_factory
-        ):
+        with patch("vintagestory_api.services.metrics.psutil.Process", mock_process_factory):
             service = MetricsService(buffer=buffer, server_service=mock_server_service)
             snapshot = service.collect()
 

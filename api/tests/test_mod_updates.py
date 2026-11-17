@@ -194,7 +194,6 @@ class TestUnparsableVersions:
         assert result.offered.modversion == "2.0.0-rc.2"
 
 
-
 def installed(slug: str, version: str, name: str = "Demo") -> ModInfo:
     return ModInfo(
         filename=f"{slug}_{version}.zip",
@@ -464,9 +463,7 @@ class TestCheckRobustness:
     ) -> None:
         respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, json=payload))
         respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
-        service, _ = make_service(
-            tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")]
-        )
+        service, _ = make_service(tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")])
 
         summary = await service.check()
 
@@ -538,9 +535,7 @@ class TestCheckRobustness:
     ) -> None:
         respx.get(MOD_URL.format("bad")).mock(return_value=Response(200, content=raw_body))
         respx.get(MOD_URL.format("carryon")).mock(return_value=fixture_response("carryon"))
-        service, _ = make_service(
-            tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")]
-        )
+        service, _ = make_service(tmp_path, [installed("bad", "1"), installed("carryon", "1.14.1")])
 
         summary = await service.check()
 
@@ -694,9 +689,7 @@ class TestRecordInstall:
         assert service.get_status()[0].status == "update_available"
         assert not (tmp_path / "state").exists()
 
-    def test_bad_release_data_stores_nothing(
-        self, tmp_path: Path, captured_logs: StringIO
-    ) -> None:
+    def test_bad_release_data_stores_nothing(self, tmp_path: Path, captured_logs: StringIO) -> None:
         service, store = make_service(tmp_path, [installed("carryon", "1.14.1")])
         bad: list[ReleaseDict] = json.loads("[1]")
 
@@ -818,4 +811,3 @@ class TestModelHardening:
 
     def test_compatibility_literal_matches_mod_api(self) -> None:
         assert get_args(Compatibility) == get_args(CompatibilityStatus)
-

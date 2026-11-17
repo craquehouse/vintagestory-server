@@ -151,9 +151,7 @@ class TestCheckedUrl:
         assert checked_url(url, mod_image_url, slug="m", field="logo_url") == url
         assert checked_url("https://evil.example/a", mod_image_url, slug="m", field="f") is None
 
-    def test_dropped_url_is_logged_at_debug_without_the_url(
-        self, captured_logs: StringIO
-    ) -> None:
+    def test_dropped_url_is_logged_at_debug_without_the_url(self, captured_logs: StringIO) -> None:
         checked_url(
             "javascript:alert('evil')", external_link_url, slug="somemod", field="homepage_url"
         )

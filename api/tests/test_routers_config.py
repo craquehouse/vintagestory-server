@@ -179,9 +179,7 @@ def client(integration_app: FastAPI) -> TestClient:
 class TestGetGameSettings:
     """Tests for GET /config/game endpoint - AC 1."""
 
-    def test_get_game_settings_returns_all_settings(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_returns_all_settings(self, client: TestClient) -> None:
         """AC 1: GET returns all settings with metadata."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -194,9 +192,7 @@ class TestGetGameSettings:
         assert "settings" in data["data"]
         assert len(data["data"]["settings"]) > 0
 
-    def test_get_game_settings_includes_source_file(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_includes_source_file(self, client: TestClient) -> None:
         """AC 1: Response includes source_file metadata."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -206,9 +202,7 @@ class TestGetGameSettings:
         data = response.json()
         assert data["data"]["source_file"] == "serverconfig.json"
 
-    def test_get_game_settings_includes_last_modified(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_includes_last_modified(self, client: TestClient) -> None:
         """AC 1: Response includes last_modified timestamp."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -218,9 +212,7 @@ class TestGetGameSettings:
         data = response.json()
         assert "last_modified" in data["data"]
 
-    def test_get_game_settings_setting_has_metadata(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_setting_has_metadata(self, client: TestClient) -> None:
         """AC 1: Each setting includes key, value, type, live_update, env_managed."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -235,9 +227,7 @@ class TestGetGameSettings:
         assert "live_update" in setting
         assert "env_managed" in setting
 
-    def test_get_game_settings_monitor_can_access(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_monitor_can_access(self, client: TestClient) -> None:
         """AC 1: Monitor role can access GET endpoint (read-only)."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -246,9 +236,7 @@ class TestGetGameSettings:
 
         assert response.status_code == 200
 
-    def test_get_game_settings_unauthenticated_blocked(
-        self, client: TestClient
-    ) -> None:
+    def test_get_game_settings_unauthenticated_blocked(self, client: TestClient) -> None:
         """Unauthenticated request returns 401."""
         response = client.get("/api/v1alpha1/config/game")
 
@@ -355,9 +343,7 @@ class TestGetGameSettingsSecrets:
         monitor = _settings_by_key(
             client.get(GAME_URL, headers={"X-API-Key": TEST_MONITOR_KEY}).json()
         )
-        admin = _settings_by_key(
-            client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY}).json()
-        )
+        admin = _settings_by_key(client.get(GAME_URL, headers={"X-API-Key": TEST_ADMIN_KEY}).json())
 
         assert monitor.keys() == admin.keys()
         for key, setting in admin.items():
@@ -519,9 +505,7 @@ class TestUpdateGameSettingEnvManaged:
 
             app.dependency_overrides[get_settings] = get_test_settings
             app.dependency_overrides[get_server_service] = get_test_server_service
-            app.dependency_overrides[get_game_config_service] = (
-                get_test_game_config_service
-            )
+            app.dependency_overrides[get_game_config_service] = get_test_game_config_service
 
             try:
                 client = TestClient(app)
@@ -543,9 +527,7 @@ class TestUpdateGameSettingEnvManaged:
 class TestUpdateGameSettingErrors:
     """Tests for POST /config/game/settings/{key} error handling."""
 
-    def test_update_unknown_setting_returns_400(
-        self, client: TestClient
-    ) -> None:
+    def test_update_unknown_setting_returns_400(self, client: TestClient) -> None:
         """Unknown setting key returns 400 with SETTING_UNKNOWN error."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/UnknownSetting",
@@ -557,9 +539,7 @@ class TestUpdateGameSettingErrors:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.SETTING_UNKNOWN
 
-    def test_update_invalid_value_returns_400(
-        self, client: TestClient
-    ) -> None:
+    def test_update_invalid_value_returns_400(self, client: TestClient) -> None:
         """Invalid value returns 400 with SETTING_VALUE_INVALID error."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/Port",
@@ -633,9 +613,7 @@ class TestUpdateGameSettingErrors:
 class TestUpdateGameSettingRBAC:
     """Tests for POST endpoint RBAC - AC 5."""
 
-    def test_admin_can_update_setting(
-        self, client: TestClient
-    ) -> None:
+    def test_admin_can_update_setting(self, client: TestClient) -> None:
         """Admin role can update settings."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/ServerName",
@@ -645,9 +623,7 @@ class TestUpdateGameSettingRBAC:
 
         assert response.status_code == 200
 
-    def test_monitor_blocked_from_update(
-        self, client: TestClient
-    ) -> None:
+    def test_monitor_blocked_from_update(self, client: TestClient) -> None:
         """AC 5: Monitor role is blocked from POST with 403 Forbidden."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/ServerName",
@@ -659,9 +635,7 @@ class TestUpdateGameSettingRBAC:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.FORBIDDEN
 
-    def test_unauthenticated_blocked_from_update(
-        self, client: TestClient
-    ) -> None:
+    def test_unauthenticated_blocked_from_update(self, client: TestClient) -> None:
         """Unauthenticated request returns 401."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/ServerName",
@@ -679,9 +653,7 @@ class TestUpdateGameSettingRBAC:
 class TestGameSettingsResponseFormat:
     """Tests for game settings API response envelope format."""
 
-    def test_get_response_uses_standard_envelope(
-        self, client: TestClient
-    ) -> None:
+    def test_get_response_uses_standard_envelope(self, client: TestClient) -> None:
         """GET response uses standard API envelope."""
         response = client.get(
             "/api/v1alpha1/config/game",
@@ -693,9 +665,7 @@ class TestGameSettingsResponseFormat:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_post_response_uses_standard_envelope(
-        self, client: TestClient
-    ) -> None:
+    def test_post_response_uses_standard_envelope(self, client: TestClient) -> None:
         """POST response uses standard API envelope."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/ServerName",
@@ -708,9 +678,7 @@ class TestGameSettingsResponseFormat:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_error_response_uses_detail_structure(
-        self, client: TestClient
-    ) -> None:
+    def test_error_response_uses_detail_structure(self, client: TestClient) -> None:
         """Error response uses FastAPI detail structure."""
         response = client.post(
             "/api/v1alpha1/config/game/settings/Unknown",
@@ -763,9 +731,7 @@ def api_settings_client(api_settings_app: FastAPI) -> TestClient:
 class TestGetApiSettings:
     """Tests for GET /config/api endpoint - Story 6.3 AC 1."""
 
-    def test_get_api_settings_returns_all_settings(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_get_api_settings_returns_all_settings(self, api_settings_client: TestClient) -> None:
         """AC 1: GET returns all API settings."""
         response = api_settings_client.get(
             "/api/v1alpha1/config/api",
@@ -783,9 +749,7 @@ class TestGetApiSettings:
         assert "mod_list_refresh_interval" in settings
         assert "server_versions_refresh_interval" in settings
 
-    def test_get_api_settings_returns_defaults(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_get_api_settings_returns_defaults(self, api_settings_client: TestClient) -> None:
         """AC 1: When no file exists, returns default values."""
         response = api_settings_client.get(
             "/api/v1alpha1/config/api",
@@ -804,9 +768,7 @@ class TestModUpdateWebhookRedaction:
 
     URL = "https://discord.com/api/webhooks/1/redaction-token"
 
-    def test_update_and_read_report_only_configured(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_update_and_read_report_only_configured(self, api_settings_client: TestClient) -> None:
         headers = {"X-API-Key": TEST_ADMIN_KEY}
 
         update = api_settings_client.post(
@@ -847,9 +809,7 @@ class TestModUpdateWebhookRedaction:
 class TestGetApiSettingsRBAC:
     """Tests for GET /config/api RBAC - Story 6.3 AC 4."""
 
-    def test_admin_can_access_api_settings(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_admin_can_access_api_settings(self, api_settings_client: TestClient) -> None:
         """Admin role can access GET /config/api."""
         response = api_settings_client.get(
             "/api/v1alpha1/config/api",
@@ -858,9 +818,7 @@ class TestGetApiSettingsRBAC:
 
         assert response.status_code == 200
 
-    def test_monitor_blocked_from_api_settings(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_monitor_blocked_from_api_settings(self, api_settings_client: TestClient) -> None:
         """AC 4: Monitor role is blocked from GET /config/api with 403."""
         response = api_settings_client.get(
             "/api/v1alpha1/config/api",
@@ -883,9 +841,7 @@ class TestGetApiSettingsRBAC:
 class TestUpdateApiSetting:
     """Tests for POST /config/api/settings/{key} - Story 6.3 AC 2."""
 
-    def test_update_api_setting_success(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_update_api_setting_success(self, api_settings_client: TestClient) -> None:
         """AC 2: POST updates setting and confirms update."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/auto_start_server",
@@ -899,9 +855,7 @@ class TestUpdateApiSetting:
         assert data["data"]["key"] == "auto_start_server"
         assert data["data"]["value"] is True
 
-    def test_update_api_setting_persists(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_update_api_setting_persists(self, api_settings_client: TestClient) -> None:
         """AC 2: Update is persisted to api-settings.json."""
         # Update setting
         api_settings_client.post(
@@ -923,9 +877,7 @@ class TestUpdateApiSetting:
 class TestUpdateApiSettingErrors:
     """Tests for POST /config/api/settings/{key} error handling."""
 
-    def test_unknown_setting_returns_400(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_unknown_setting_returns_400(self, api_settings_client: TestClient) -> None:
         """Unknown setting returns 400 with API_SETTING_UNKNOWN."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/unknown_setting",
@@ -938,9 +890,7 @@ class TestUpdateApiSettingErrors:
         assert error["code"] == ErrorCode.API_SETTING_UNKNOWN
         assert "unknown_setting" in error["message"]
 
-    def test_invalid_value_returns_400(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_invalid_value_returns_400(self, api_settings_client: TestClient) -> None:
         """Invalid value returns 400 with API_SETTING_INVALID."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/mod_list_refresh_interval",
@@ -956,9 +906,7 @@ class TestUpdateApiSettingErrors:
 class TestUpdateApiSettingRBAC:
     """Tests for POST /config/api/settings/{key} RBAC - Story 6.3 AC 4."""
 
-    def test_admin_can_update_api_setting(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_admin_can_update_api_setting(self, api_settings_client: TestClient) -> None:
         """Admin role can update API settings."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/auto_start_server",
@@ -968,9 +916,7 @@ class TestUpdateApiSettingRBAC:
 
         assert response.status_code == 200
 
-    def test_monitor_blocked_from_update_api_setting(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_monitor_blocked_from_update_api_setting(self, api_settings_client: TestClient) -> None:
         """AC 4: Monitor role is blocked from POST with 403."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/auto_start_server",
@@ -997,9 +943,7 @@ class TestUpdateApiSettingRBAC:
 class TestApiSettingsResponseFormat:
     """Tests for API response format - Story 6.3."""
 
-    def test_get_response_uses_standard_envelope(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_get_response_uses_standard_envelope(self, api_settings_client: TestClient) -> None:
         """GET response uses standard API envelope."""
         response = api_settings_client.get(
             "/api/v1alpha1/config/api",
@@ -1011,9 +955,7 @@ class TestApiSettingsResponseFormat:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_post_response_uses_standard_envelope(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_post_response_uses_standard_envelope(self, api_settings_client: TestClient) -> None:
         """POST response uses standard API envelope."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/auto_start_server",
@@ -1026,9 +968,7 @@ class TestApiSettingsResponseFormat:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_error_response_uses_detail_structure(
-        self, api_settings_client: TestClient
-    ) -> None:
+    def test_error_response_uses_detail_structure(self, api_settings_client: TestClient) -> None:
         """Error response uses FastAPI detail structure."""
         response = api_settings_client.post(
             "/api/v1alpha1/config/api/settings/unknown",
@@ -1122,9 +1062,7 @@ class TestListConfigDirectories:
         finally:
             app.dependency_overrides.clear()
 
-    def test_list_directories_empty_when_no_subdirs(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_directories_empty_when_no_subdirs(self, config_files_client: TestClient) -> None:
         """Returns empty list when no subdirectories exist."""
         response = config_files_client.get(
             "/api/v1alpha1/config/directories",
@@ -1135,9 +1073,7 @@ class TestListConfigDirectories:
         data = response.json()
         assert data["data"]["directories"] == []
 
-    def test_list_directories_monitor_can_access(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_directories_monitor_can_access(self, config_files_client: TestClient) -> None:
         """Monitor role can access GET endpoint (read-only)."""
         response = config_files_client.get(
             "/api/v1alpha1/config/directories",
@@ -1194,9 +1130,7 @@ class TestListConfigDirectories:
         finally:
             app.dependency_overrides.clear()
 
-    def test_list_directories_path_traversal_blocked(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_directories_path_traversal_blocked(self, config_files_client: TestClient) -> None:
         """Story 9.7: Rejects path traversal in directory param with 400."""
         response = config_files_client.get(
             "/api/v1alpha1/config/directories?directory=../secret",
@@ -1211,9 +1145,7 @@ class TestListConfigDirectories:
 class TestListConfigFiles:
     """Tests for GET /config/files endpoint - Story 6.5 AC 1, Story 9.7."""
 
-    def test_list_config_files_returns_json_files(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_config_files_returns_json_files(self, config_files_client: TestClient) -> None:
         """AC 1: GET returns list of JSON config files."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files",
@@ -1312,9 +1244,7 @@ class TestListConfigFiles:
         finally:
             app.dependency_overrides.clear()
 
-    def test_list_config_files_monitor_can_access(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_config_files_monitor_can_access(self, config_files_client: TestClient) -> None:
         """AC 1: Monitor role can access GET endpoint (read-only)."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files",
@@ -1350,9 +1280,7 @@ class TestReadConfigFile:
         assert data["data"]["filename"] == "serverconfig.json"
         assert data["data"]["content"]["ServerName"] == sample_config["ServerName"]
 
-    def test_read_config_file_not_found(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_read_config_file_not_found(self, config_files_client: TestClient) -> None:
         """AC 2: Returns 404 for non-existent file."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files/nonexistent.json",
@@ -1363,9 +1291,7 @@ class TestReadConfigFile:
         error = response.json()["detail"]
         assert error["code"] == ErrorCode.CONFIG_FILE_NOT_FOUND
 
-    def test_read_config_file_monitor_can_access(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_read_config_file_monitor_can_access(self, config_files_client: TestClient) -> None:
         """Monitor role can read config files."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files/serverconfig.json",
@@ -1378,9 +1304,7 @@ class TestReadConfigFile:
         self, config_files_client: TestClient
     ) -> None:
         """Unauthenticated request returns 401."""
-        response = config_files_client.get(
-            "/api/v1alpha1/config/files/serverconfig.json"
-        )
+        response = config_files_client.get("/api/v1alpha1/config/files/serverconfig.json")
 
         assert response.status_code == 401
 
@@ -1529,9 +1453,7 @@ class TestReadConfigFileSecrets:
         assert monitor.json()["data"]["content"]["StartupCommands"] == "[redacted]"
         assert admin.json()["data"]["content"] == config
 
-    def test_broken_serverconfig(
-        self, config_files_client: TestClient, config_file: Path
-    ) -> None:
+    def test_broken_serverconfig(self, config_files_client: TestClient, config_file: Path) -> None:
         """AC 4, 5: a file that does not parse returns its text to Admin only."""
         config_file.write_text('{"Password": "' + SECRET + '", }')
 
@@ -1546,9 +1468,7 @@ class TestReadConfigFileSecrets:
         assert SECRET in admin_content["_raw"]
         assert admin_content["_parse_error"]
 
-    def test_game_log_is_refused(
-        self, config_files_client: TestClient, config_file: Path
-    ) -> None:
+    def test_game_log_is_refused(self, config_files_client: TestClient, config_file: Path) -> None:
         """Story 19.1 AC 2, 10: a game log is refused; its text is in neither body.
 
         Monitor: 403, the Logs directory needs the Admin role (checked before the name).
@@ -1776,9 +1696,7 @@ class TestMonitorDirectories:
         assert listing.json()["data"]["files"] == (["p.json"] if exists else [])
         assert read.status_code == (200 if exists else 404)
 
-    def test_modconfig_reads(
-        self, config_files_client: TestClient, data: Path
-    ) -> None:
+    def test_modconfig_reads(self, config_files_client: TestClient, data: Path) -> None:
         """AC 11: nested ModConfig files are served; a symlink out of ModConfig is 403."""
         (data / "ModConfig" / "link.json").symlink_to(data / "Playerdata" / "p.json")
 
@@ -2009,9 +1927,7 @@ class TestOtherConfigPathsWithAPassword:
             "/config/files/{filename:path}",
         }
         assert all(
-            route.include_in_schema
-            for route in config_router.routes
-            if isinstance(route, APIRoute)
+            route.include_in_schema for route in config_router.routes if isinstance(route, APIRoute)
         )
 
 
@@ -2063,9 +1979,7 @@ class TestConfigFilePathTraversal:
         # with the malicious path - any non-200 response is acceptable
         assert response.status_code in (400, 404)
 
-    def test_path_traversal_absolute_path(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_path_traversal_absolute_path(self, config_files_client: TestClient) -> None:
         """AC 3: Rejects absolute paths like /etc/passwd with 400 error.
 
         Double slash in URL creates an absolute path that bypasses
@@ -2097,9 +2011,7 @@ class TestConfigFilePathTraversal:
 class TestConfigFilesResponseFormat:
     """Tests for config files API response format - Story 6.5."""
 
-    def test_list_response_uses_standard_envelope(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_list_response_uses_standard_envelope(self, config_files_client: TestClient) -> None:
         """GET /config/files response uses standard API envelope."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files",
@@ -2111,9 +2023,7 @@ class TestConfigFilesResponseFormat:
         assert "data" in data
         assert data["status"] == "ok"
 
-    def test_read_response_uses_standard_envelope(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_read_response_uses_standard_envelope(self, config_files_client: TestClient) -> None:
         """GET /config/files/{filename} response uses standard API envelope."""
         response = config_files_client.get(
             "/api/v1alpha1/config/files/serverconfig.json",
@@ -2127,9 +2037,7 @@ class TestConfigFilesResponseFormat:
         assert "filename" in data["data"]
         assert "content" in data["data"]
 
-    def test_error_response_uses_detail_structure(
-        self, config_files_client: TestClient
-    ) -> None:
+    def test_error_response_uses_detail_structure(self, config_files_client: TestClient) -> None:
         """Error response uses FastAPI detail structure."""
         # Use absolute path (double slash) to trigger path traversal error
         response = config_files_client.get(
@@ -2269,15 +2177,9 @@ async def reschedule_scheduler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> AsyncIterator[SchedulerService]:
     """A real started scheduler whose interval jobs are no-ops."""
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job
-    )
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job
-    )
-    monkeypatch.setattr(
-        "vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job
-    )
+    monkeypatch.setattr("vintagestory_api.jobs.mod_cache_refresh.refresh_mod_cache", _no_op_job)
+    monkeypatch.setattr("vintagestory_api.jobs.server_versions.check_server_versions", _no_op_job)
+    monkeypatch.setattr("vintagestory_api.jobs.metrics_collection.collect_metrics", _no_op_job)
     svc = SchedulerService()
     svc.start()
     yield svc
@@ -2350,9 +2252,7 @@ class TestIntervalSettingsReschedule:
         assert jobs[job_id]["trigger_details"] == "every 3600 seconds"
 
         # The writes went to the temp state directory
-        saved = json.loads(
-            (temp_settings.state_dir / "api-settings.json").read_text()
-        )
+        saved = json.loads((temp_settings.state_dir / "api-settings.json").read_text())
         assert saved[key] == 3600
 
     async def test_same_value_again_restarts_the_countdown(
@@ -2426,9 +2326,7 @@ class TestIntervalSettingsReschedule:
         def failing_add_interval_job(*_args: object, **_kwargs: object) -> None:
             raise RuntimeError("scheduler unavailable")
 
-        monkeypatch.setattr(
-            reschedule_scheduler, "add_interval_job", failing_add_interval_job
-        )
+        monkeypatch.setattr(reschedule_scheduler, "add_interval_job", failing_add_interval_job)
 
         response = await _save(reschedule_client, "mod_list_refresh_interval", 1800)
 

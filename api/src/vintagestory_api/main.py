@@ -52,6 +52,7 @@ def get_scheduler_service() -> SchedulerService:
         raise RuntimeError("Scheduler service not initialized")
     return scheduler_service
 
+
 # Static files directory (frontend build output)
 STATIC_DIR = Path("/app/static")
 

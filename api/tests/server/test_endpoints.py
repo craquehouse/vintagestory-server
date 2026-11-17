@@ -822,9 +822,14 @@ class TestServerStatusEndpoint:
         assert data["status"] == "ok"
         # Check expected fields in data - 8 fields (API-008 added disk_space)
         assert set(data["data"].keys()) == {
-            "state", "version", "uptime_seconds", "last_exit_code",
-            "available_stable_version", "available_unstable_version", "version_last_checked",
-            "disk_space"
+            "state",
+            "version",
+            "uptime_seconds",
+            "last_exit_code",
+            "available_stable_version",
+            "available_unstable_version",
+            "version_last_checked",
+            "disk_space",
         }
 
     def test_status_returns_starting_state(self, temp_data_dir: Path) -> None:
@@ -1102,9 +1107,7 @@ class TestServerStatusVersionFields:
         assert data["data"]["available_unstable_version"] is None
         assert data["data"]["version_last_checked"] is None
 
-    def test_status_includes_cached_stable_version(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_includes_cached_stable_version(self, integration_client: TestClient) -> None:
         """GET /server/status returns cached stable version."""
         from vintagestory_api.services.versions_cache import get_versions_cache
 
@@ -1122,9 +1125,7 @@ class TestServerStatusVersionFields:
         assert data["data"]["available_stable_version"] == "1.22.3"
         assert data["data"]["version_last_checked"] is not None
 
-    def test_status_includes_cached_unstable_version(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_includes_cached_unstable_version(self, integration_client: TestClient) -> None:
         """GET /server/status returns cached unstable version."""
         from vintagestory_api.services.versions_cache import get_versions_cache
 
@@ -1141,9 +1142,7 @@ class TestServerStatusVersionFields:
         data = response.json()
         assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
 
-    def test_status_includes_both_cached_versions(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_includes_both_cached_versions(self, integration_client: TestClient) -> None:
         """GET /server/status returns both stable and unstable versions."""
         from vintagestory_api.services.versions_cache import get_versions_cache
 
@@ -1184,9 +1183,7 @@ class TestServerStatusVersionFields:
         assert data["data"]["available_stable_version"] == "1.22.3"
         assert data["data"]["available_unstable_version"] == "1.22.0-pre.1"
 
-    def test_status_versions_accessible_by_monitor(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_status_versions_accessible_by_monitor(self, integration_client: TestClient) -> None:
         """GET /server/status version fields accessible by Monitor role."""
         from vintagestory_api.services.versions_cache import get_versions_cache
 
@@ -1246,16 +1243,12 @@ class TestServerUninstallEndpoint:
         (server_dir / "VintagestoryLib.dll").touch()
         (vsmanager_dir / "current_version").write_text(version)
 
-    def test_uninstall_requires_authentication(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_uninstall_requires_authentication(self, integration_client: TestClient) -> None:
         """DELETE /server requires API key."""
         response = integration_client.delete("/api/v1alpha1/server")
         assert response.status_code == 401
 
-    def test_uninstall_requires_admin_role(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_uninstall_requires_admin_role(self, integration_client: TestClient) -> None:
         """DELETE /server requires Admin role (monitor cannot uninstall)."""
         response = integration_client.delete(
             "/api/v1alpha1/server",
@@ -1263,9 +1256,7 @@ class TestServerUninstallEndpoint:
         )
         assert response.status_code == 403
 
-    def test_uninstall_when_not_installed_returns_404(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_uninstall_when_not_installed_returns_404(self, integration_client: TestClient) -> None:
         """DELETE /server returns 404 when no server installed."""
         response = integration_client.delete(
             "/api/v1alpha1/server",
@@ -1342,9 +1333,7 @@ class TestServerUninstallEndpoint:
         # Verify server dir deleted
         assert not (temp_data_dir / "server").exists()
 
-    def test_uninstall_error_response_structure(
-        self, integration_client: TestClient
-    ) -> None:
+    def test_uninstall_error_response_structure(self, integration_client: TestClient) -> None:
         """Error responses use proper detail structure with code and message."""
         response = integration_client.delete(
             "/api/v1alpha1/server",

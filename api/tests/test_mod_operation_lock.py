@@ -44,10 +44,20 @@ def entry(modid: str, file_new: str, file_old: str, fileids: tuple[int, int]) ->
         "mod": {
             "assetid": 1,
             "releases": [
-                {"modversion": "1.1.0", "modidstr": modid, "fileid": new_id,
-                 "filename": file_new, "tags": ["1.22.7"]},
-                {"modversion": "1.0.0", "modidstr": modid, "fileid": old_id,
-                 "filename": file_old, "tags": ["1.22.7"]},
+                {
+                    "modversion": "1.1.0",
+                    "modidstr": modid,
+                    "fileid": new_id,
+                    "filename": file_new,
+                    "tags": ["1.22.7"],
+                },
+                {
+                    "modversion": "1.0.0",
+                    "modidstr": modid,
+                    "fileid": old_id,
+                    "filename": file_old,
+                    "tags": ["1.22.7"],
+                },
             ],
         },
     }
@@ -531,9 +541,7 @@ class TestInstallHoldsTheInstallModId:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_i6_archive_naming_an_installed_mod_places_nothing(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_i6_archive_naming_an_installed_mod_places_nothing(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         # Same filename as the download, to prove the installed file is not replaced
         other = install_existing(service, "other", "1.0.0", "demo-1.1.0.zip")
@@ -593,7 +601,6 @@ class TestInstallHoldsTheInstallModId:
         assert raised.value.slug == "Demo"
         assert mod_files(service) == ["demo-1.1.0.zip"]
         assert service.busy_mod_ids == frozenset()
-
 
     @respx.mock
     @pytest.mark.asyncio
@@ -668,8 +675,9 @@ class TestInstallReleasesTheLock:
     async def test_i9_after_a_failed_download(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         respx.get(MOD_URL.format("demo")).mock(
-            return_value=Response(200, json=entry("demo", "demo-1.1.0.zip", "demo-1.0.0.zip",
-                                                  (11, 10)))
+            return_value=Response(
+                200, json=entry("demo", "demo-1.1.0.zip", "demo-1.0.0.zip", (11, 10))
+            )
         )
         respx.get(DOWNLOAD_URL).mock(
             side_effect=[
@@ -730,8 +738,13 @@ def mock_foo_zip(modid: str, *, readable: bool = True, filename: str = "Foo.zip"
                 "mod": {
                     "assetid": 2,
                     "releases": [
-                        {"modversion": "1.0.0", "modidstr": modid, "fileid": 20,
-                         "filename": filename, "tags": ["1.22.7"]},
+                        {
+                            "modversion": "1.0.0",
+                            "modidstr": modid,
+                            "fileid": 20,
+                            "filename": filename,
+                            "tags": ["1.22.7"],
+                        },
                     ],
                 },
             },
@@ -945,9 +958,7 @@ class TestFileNamesIgnoreCase:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_a_dangling_symlink_in_other_case_is_a_name_in_use(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_a_dangling_symlink_in_other_case_is_a_name_in_use(self, tmp_path: Path) -> None:
         service = make_service(tmp_path)
         mods_dir = service.state_manager.mods_dir
         mods_dir.mkdir(parents=True)
@@ -967,9 +978,7 @@ class TestFileNamesIgnoreCase:
 def mock_same_file_name(modid: str, fileids: tuple[int, int]) -> None:
     """Lookup and downloads of `modid`, whose releases are named `Same-<version>.zip`."""
     respx.get(MOD_URL.format(modid)).mock(
-        return_value=Response(
-            200, json=entry(modid, "Same-1.1.0.zip", "Same-1.0.0.zip", fileids)
-        )
+        return_value=Response(200, json=entry(modid, "Same-1.1.0.zip", "Same-1.0.0.zip", fileids))
     )
     for fileid, version in zip(fileids, ("1.1.0", "1.0.0"), strict=True):
         respx.get(DOWNLOAD_URL, params={"fileid": str(fileid)}).mock(

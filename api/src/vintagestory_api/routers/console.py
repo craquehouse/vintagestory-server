@@ -387,9 +387,7 @@ async def console_websocket(
 
                 # Validate command (match REST endpoint validation)
                 if not command:
-                    await websocket.send_json(
-                        {"type": "error", "content": "Empty command"}
-                    )
+                    await websocket.send_json({"type": "error", "content": "Empty command"})
                     continue
 
                 if len(command) > 1000:
@@ -405,9 +403,7 @@ async def console_websocket(
                 success = await service.send_command(command)
 
                 if not success:
-                    await websocket.send_json(
-                        {"type": "error", "content": "Server is not running"}
-                    )
+                    await websocket.send_json({"type": "error", "content": "Server is not running"})
             else:
                 # Unknown message type
                 logger.debug(
@@ -524,7 +520,7 @@ async def logs_websocket(
         resolved_path = file_path.resolve()
         resolved_logs_dir = logs_dir.resolve()
         resolved_path.relative_to(resolved_logs_dir)
-    except (ValueError, OSError):
+    except ValueError, OSError:
         logger.warning(
             "logs_websocket_path_traversal",
             client_ip=client_ip,
@@ -585,9 +581,7 @@ async def logs_websocket(
             try:
                 # Get file size in executor to avoid blocking event loop
                 loop = asyncio.get_event_loop()
-                current_size = await loop.run_in_executor(
-                    None, lambda: file_path.stat().st_size
-                )
+                current_size = await loop.run_in_executor(None, lambda: file_path.stat().st_size)
 
                 # File was truncated or rotated
                 if current_size < last_position:

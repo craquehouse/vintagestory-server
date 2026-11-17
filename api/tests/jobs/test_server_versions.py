@@ -84,9 +84,7 @@ class TestServerVersionsExecution:
         """check_server_versions logs server_versions_check_started event."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = AsyncMock(return_value={})
             mock_get_service.return_value = mock_service
@@ -104,9 +102,7 @@ class TestServerVersionsExecution:
         """check_server_versions logs server_versions_check_completed event on success."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = AsyncMock(return_value={})
             mock_get_service.return_value = mock_service
@@ -122,9 +118,7 @@ class TestServerVersionsExecution:
         """check_server_versions queries both stable and unstable channels."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = AsyncMock(return_value={})
             mock_get_service.return_value = mock_service
@@ -156,9 +150,7 @@ class TestServerVersionsExecution:
                 return stable_versions
             return unstable_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = mock_get_versions
             mock_get_service.return_value = mock_service
@@ -192,14 +184,14 @@ class TestServerVersionsNewVersionDetection:
             "1.21.3": make_version_info("1.21.3", "stable", is_latest=True),
         }
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
-            mock_service.get_available_versions = AsyncMock(side_effect=[
-                stable_versions,  # stable call
-                {},  # unstable call
-            ])
+            mock_service.get_available_versions = AsyncMock(
+                side_effect=[
+                    stable_versions,  # stable call
+                    {},  # unstable call
+                ]
+            )
             mock_get_service.return_value = mock_service
 
             capsys.readouterr()
@@ -226,14 +218,14 @@ class TestServerVersionsNewVersionDetection:
             "1.22.0-pre.2": make_version_info("1.22.0-pre.2", "unstable", is_latest=True),
         }
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
-            mock_service.get_available_versions = AsyncMock(side_effect=[
-                {},  # stable call
-                unstable_versions,  # unstable call
-            ])
+            mock_service.get_available_versions = AsyncMock(
+                side_effect=[
+                    {},  # stable call
+                    unstable_versions,  # unstable call
+                ]
+            )
             mock_get_service.return_value = mock_service
 
             capsys.readouterr()
@@ -260,14 +252,14 @@ class TestServerVersionsNewVersionDetection:
             "1.21.3": make_version_info("1.21.3", "stable", is_latest=True),
         }
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
-            mock_service.get_available_versions = AsyncMock(side_effect=[
-                stable_versions,
-                {},
-            ])
+            mock_service.get_available_versions = AsyncMock(
+                side_effect=[
+                    stable_versions,
+                    {},
+                ]
+            )
             mock_get_service.return_value = mock_service
 
             capsys.readouterr()
@@ -296,9 +288,7 @@ class TestServerVersionsErrorHandling:
                 raise httpx.HTTPError("Stable API unavailable")
             return unstable_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = mock_get_versions
             mock_get_service.return_value = mock_service
@@ -328,9 +318,7 @@ class TestServerVersionsErrorHandling:
                 raise httpx.HTTPError("Unstable API unavailable")
             return stable_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = mock_get_versions
             mock_get_service.return_value = mock_service
@@ -365,9 +353,7 @@ class TestServerVersionsErrorHandling:
                 raise httpx.HTTPError("Stable API unavailable")
             return unstable_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = mock_get_versions
             mock_get_service.return_value = mock_service
@@ -401,9 +387,7 @@ class TestServerVersionsErrorHandling:
                 raise httpx.HTTPError("Unstable API unavailable")
             return stable_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = mock_get_versions
             mock_get_service.return_value = mock_service
@@ -421,9 +405,7 @@ class TestServerVersionsErrorHandling:
         """check_server_versions never raises exceptions (critical for scheduler)."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             # Simulate catastrophic failure
             mock_get_service.side_effect = RuntimeError("Catastrophic failure")
 
@@ -440,9 +422,7 @@ class TestServerVersionsErrorHandling:
         """check_server_versions logs server_versions_check_failed on exception."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_get_service.side_effect = RuntimeError("Catastrophic failure")
 
             capsys.readouterr()  # Clear prior output
@@ -472,14 +452,14 @@ class TestServerVersionsWithNoLatestVersion:
             "1.22.0-pre.1": make_version_info("1.22.0-pre.1", "unstable", is_latest=True),
         }
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
-            mock_service.get_available_versions = AsyncMock(side_effect=[
-                stable_versions,
-                unstable_versions,
-            ])
+            mock_service.get_available_versions = AsyncMock(
+                side_effect=[
+                    stable_versions,
+                    unstable_versions,
+                ]
+            )
             mock_get_service.return_value = mock_service
 
             capsys.readouterr()
@@ -501,9 +481,7 @@ class TestServerVersionsWithNoLatestVersion:
         """check_server_versions handles empty version lists gracefully."""
         from vintagestory_api.jobs.server_versions import check_server_versions
 
-        with patch(
-            "vintagestory_api.jobs.server_versions.get_server_service"
-        ) as mock_get_service:
+        with patch("vintagestory_api.jobs.server_versions.get_server_service") as mock_get_service:
             mock_service = MagicMock()
             mock_service.get_available_versions = AsyncMock(return_value={})
             mock_get_service.return_value = mock_service

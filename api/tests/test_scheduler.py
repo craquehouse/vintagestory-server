@@ -75,9 +75,7 @@ class TestSchedulerServiceLifecycle:
         assert scheduler.is_running is False
 
     @pytest.mark.asyncio
-    async def test_start_logs_scheduler_started(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    async def test_start_logs_scheduler_started(self, capsys: pytest.CaptureFixture[str]) -> None:
         """start() logs 'scheduler_started' event."""
         scheduler = SchedulerService()
 
@@ -127,9 +125,7 @@ class TestSchedulerServiceJobManagement:
         svc.shutdown(wait=False)
 
     @pytest.mark.asyncio
-    async def test_add_interval_job_registers_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_add_interval_job_registers_job(self, scheduler: SchedulerService) -> None:
         """add_interval_job() registers a job with interval trigger."""
 
         async def dummy_job() -> None:
@@ -158,9 +154,7 @@ class TestSchedulerServiceJobManagement:
         assert "job_added" in captured.out
 
     @pytest.mark.asyncio
-    async def test_add_cron_job_registers_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_add_cron_job_registers_job(self, scheduler: SchedulerService) -> None:
         """add_cron_job() registers a job with cron trigger."""
 
         async def dummy_job() -> None:
@@ -189,9 +183,7 @@ class TestSchedulerServiceJobManagement:
         assert "job_added" in captured.out
 
     @pytest.mark.asyncio
-    async def test_remove_job_removes_registered_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_remove_job_removes_registered_job(self, scheduler: SchedulerService) -> None:
         """remove_job() removes a registered job."""
 
         async def dummy_job() -> None:
@@ -205,9 +197,7 @@ class TestSchedulerServiceJobManagement:
         assert scheduler.get_job("to_remove") is None
 
     @pytest.mark.asyncio
-    async def test_remove_job_raises_for_unknown_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_remove_job_raises_for_unknown_job(self, scheduler: SchedulerService) -> None:
         """remove_job() raises JobLookupError for non-existent job."""
         with pytest.raises(JobLookupError):
             scheduler.remove_job("nonexistent")
@@ -231,9 +221,7 @@ class TestSchedulerServiceJobManagement:
         assert "job_removed" in captured.out
 
     @pytest.mark.asyncio
-    async def test_get_jobs_returns_all_jobs(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_get_jobs_returns_all_jobs(self, scheduler: SchedulerService) -> None:
         """get_jobs() returns list of all scheduled jobs."""
 
         async def job1() -> None:
@@ -262,9 +250,7 @@ class TestSchedulerServiceJobManagement:
         assert jobs == []
 
     @pytest.mark.asyncio
-    async def test_get_job_returns_specific_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_get_job_returns_specific_job(self, scheduler: SchedulerService) -> None:
         """get_job() returns specific job by ID."""
 
         async def dummy_job() -> None:
@@ -278,9 +264,7 @@ class TestSchedulerServiceJobManagement:
         assert job.id == "specific_job"  # type: ignore[reportUnknownMemberType]
 
     @pytest.mark.asyncio
-    async def test_get_job_returns_none_for_unknown_job(
-        self, scheduler: SchedulerService
-    ) -> None:
+    async def test_get_job_returns_none_for_unknown_job(self, scheduler: SchedulerService) -> None:
         """get_job() returns None for non-existent job."""
         job = scheduler.get_job("does_not_exist")
 
