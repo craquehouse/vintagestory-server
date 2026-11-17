@@ -133,8 +133,8 @@ The VintageStory mod database API is documented in `agentdocs/vintagestory-modap
 # Testing - ALWAYS use just for tests
 just test                                    # Run all tests (api + web)
 just test-api                                # Run all API tests
-just test-api -k "restart"                   # Run tests matching pattern
-just test-api tests/test_server.py -xvs      # Run specific file, verbose
+just test-api -k "restart or install"        # Run tests matching an expression (quote it)
+just test-api tests/test_health.py -xvs      # Run specific file, verbose
 just test-api --tb=short                     # Run with short traceback
 just test-web                                # Run all web tests
 just test-e2e-ci                             # Untagged E2E tests (the CI set) on a throwaway container

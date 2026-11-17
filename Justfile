@@ -6,8 +6,8 @@
 # Examples:
 #   just test                              - Run all tests
 #   just test-api                          - Run all API tests
-#   just test-api -k "restart"             - Run API tests matching "restart"
-#   just test-api tests/test_server.py -xvs - Run specific file, verbose
+#   just test-api -k "restart or install"  - Run API tests matching "restart" or "install"
+#   just test-api tests/test_health.py -xvs - Run specific file, verbose
 #   just check                             - Full validation (lint + typecheck + test)
 #   just build                             - Build all projects
 #
@@ -30,18 +30,21 @@ test: test-api test-web test-scripts
 
 # Run API tests (Python/pytest) - accepts optional pytest args
 # Excludes E2E tests by default (run with just test-e2e-api)
-# Examples: just test-api -k "restart" | just test-api tests/test_server.py -xvs
+# Examples: just test-api -k "restart or install" | just test-api tests/test_health.py -xvs
+[positional-arguments]
 test-api *ARGS:
-    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e "$@"
 
 # Run web tests (Vitest) - accepts optional vitest args
+[positional-arguments]
 test-web *ARGS:
-    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run "$@"
 
 # Examples: just test-scripts | just test-scripts test-version.sh
 # Run tests for the release and version scripts (bash) - accepts optional test files
+[positional-arguments]
 test-scripts *ARGS:
-    mise exec -- ./scripts/tests/run.sh {{ARGS}}
+    mise exec -- ./scripts/tests/run.sh "$@"
 
 # Run API tests in watch mode (TDD)
 test-api-watch:
@@ -53,13 +56,15 @@ test-web-watch:
 
 # Run API E2E tests (pytest) - requires Docker stack running
 # Examples: just test-e2e-api | just test-e2e-api -k "health"
+[positional-arguments]
 test-e2e-api *ARGS:
-    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest tests/e2e {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest tests/e2e "$@"
 
 # Run web E2E tests (Playwright) - manages Docker stack automatically
 # Starts fresh Docker stack, waits for health, runs tests, then stops stack
 # Uses DOCKER_PORT env var for host port (default: 8080)
 # Examples: just test-e2e-web | just test-e2e-web --headed | just test-e2e-web --ui
+[positional-arguments]
 test-e2e-web *ARGS:
     #!/usr/bin/env bash
     set -e
@@ -83,7 +88,7 @@ test-e2e-web *ARGS:
     done
 
     echo "🎭 Running Playwright tests..."
-    mise exec -C web -- bun run test:e2e {{ARGS}} || TEST_EXIT=$?
+    mise exec -C web -- bun run test:e2e "$@" || TEST_EXIT=$?
 
     echo "🧹 Stopping Docker stack..."
     just docker stop
@@ -92,8 +97,9 @@ test-e2e-web *ARGS:
 
 # Run the untagged E2E tests (the CI set) on a throwaway seeded container on port 18080
 # Examples: just test-e2e-ci | just test-e2e-ci e2e/settings-as-saved.spec.ts
+[positional-arguments]
 test-e2e-ci *ARGS:
-    mise exec -- ./scripts/e2e-ci.sh {{ARGS}}
+    mise exec -- ./scripts/e2e-ci.sh "$@"
 
 # Install the Chromium builds the web and API E2E tests use (once per machine)
 install-e2e-browsers:
@@ -101,7 +107,9 @@ install-e2e-browsers:
     mise exec -C api -- uv run playwright install chromium
 
 # Alias for backward compatibility
-test-e2e *ARGS: test-e2e-api
+[positional-arguments]
+test-e2e *ARGS:
+    just test-e2e-api "$@"
 
 # =============================================================================
 # COVERAGE
@@ -111,12 +119,14 @@ test-e2e *ARGS: test-e2e-api
 coverage: coverage-api coverage-web
 
 # Run API tests with coverage report
+[positional-arguments]
 coverage-api *ARGS:
-    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e --cov --cov-report=term-missing {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C api -- uv run pytest --ignore=tests/e2e --cov --cov-report=term-missing "$@"
 
 # Run web tests with coverage report
+[positional-arguments]
 coverage-web *ARGS:
-    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run --coverage {{ARGS}}
+    VS_DATA_DIR=../dev mise exec -C web -- bun run test --run --coverage "$@"
 
 # =============================================================================
 # BUILDING
@@ -141,8 +151,9 @@ build-web:
 lint: lint-api lint-web lint-scripts lint-workflows
 
 # Lint API (ruff check, then ruff format --check) - optional args go to ruff check
+[positional-arguments]
 lint-api *ARGS:
-    mise exec -C api -- uv run ruff check . {{ARGS}}
+    mise exec -C api -- uv run ruff check . "$@"
     mise exec -C api -- uv run ruff format --check .
 
 # Lint web (TypeScript type checking)
@@ -165,8 +176,9 @@ lint-workflows:
 typecheck: typecheck-api typecheck-web
 
 # Type check API (Pyright) - includes src/ and tests/, accepts optional pyright args
+[positional-arguments]
 typecheck-api *ARGS:
-    mise exec -C api -- uv run pyright src/ tests/ {{ARGS}}
+    mise exec -C api -- uv run pyright src/ tests/ "$@"
 
 # Type check web (TypeScript)
 typecheck-web:
@@ -201,23 +213,27 @@ format-web:
 # Start API dev server - accepts optional uvicorn args
 # Examples: just dev-api --port 8001 | just dev-api --host 0.0.0.0
 # Sets up local development environment with relative data directory and dev API key
+[positional-arguments]
 dev-api *ARGS:
-    env VS_DATA_DIR=../dev mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload --port $API_PORT {{ARGS}}
+    env VS_DATA_DIR=../dev mise exec -C api -- uv run uvicorn vintagestory_api.main:app --reload --port $API_PORT "$@"
 
 # Start web dev server - accepts optional args
+[positional-arguments]
 dev-web *ARGS:
-    mise exec -C web -- bun run dev --port $WEB_PORT {{ARGS}}
+    mise exec -C web -- bun run dev --port $WEB_PORT "$@"
 
 # Install all dependencies
 install: install-api install-web
 
 # Install API dependencies - accepts optional uv sync args
+[positional-arguments]
 install-api *ARGS:
-    mise exec -C api -- uv sync --dev {{ARGS}}
+    mise exec -C api -- uv sync --dev "$@"
 
 # Install web dependencies - accepts optional bun install args
+[positional-arguments]
 install-web *ARGS:
-    mise exec -C web -- bun install {{ARGS}}
+    mise exec -C web -- bun install "$@"
 
 # =============================================================================
 # DOCKER
@@ -226,32 +242,35 @@ install-web *ARGS:
 # Docker commands: build, start, stop, restart, status, logs
 # Usage: just docker <command> [args]
 # Uses DOCKER_PORT env var for host port mapping (default: 8080)
+[positional-arguments]
 docker COMMAND *ARGS:
     #!/usr/bin/env bash
     DOCKER_PORT="${DOCKER_PORT:-8080}"
-    case "{{COMMAND}}" in
+    command="$1"
+    shift
+    case "$command" in
         build)
-            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml build "$@"
             ;;
         start)
-            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml up -d --build {{ARGS}}
+            VS_DATA_DIR=/data VITE_API_BASE_URL="http://localhost:$DOCKER_PORT" docker compose -f docker-compose.dev.yaml up -d --build "$@"
             ;;
         stop)
-            docker compose -f docker-compose.dev.yaml down {{ARGS}}
+            docker compose -f docker-compose.dev.yaml down "$@"
             docker rm -f vintagestory-manager-dev
             ;;
         restart)
-            just docker stop {{ARGS}}
-            just docker start {{ARGS}}
+            just docker stop "$@"
+            just docker start "$@"
             ;;
         status)
-            docker compose -f docker-compose.dev.yaml ps {{ARGS}}
+            docker compose -f docker-compose.dev.yaml ps "$@"
             ;;
         logs)
-            docker compose -f docker-compose.dev.yaml logs -f {{ARGS}}
+            docker compose -f docker-compose.dev.yaml logs -f "$@"
             ;;
         *)
-            echo "Unknown docker command: {{COMMAND}}"
+            echo "Unknown docker command: $command"
             echo "Available commands: build, start, stop, restart, status, logs"
             exit 1
             ;;
@@ -267,13 +286,15 @@ version:
 
 # Examples: just changelog | just changelog --tag v0.2.0 (heading as the release would show it)
 # Print the release notes for unreleased commits (writes nothing) - accepts git-cliff args
+[positional-arguments]
 changelog *ARGS:
-    @mise exec -- git cliff --unreleased --strip header {{ARGS}}
+    @mise exec -- git cliff --unreleased --strip header "$@"
 
 # Examples: just release --dry-run | just release | just release minor | just release 0.3.0-rc.1
 # Cut a release: version files, CHANGELOG.md, commit, tag, then push after confirmation
+[positional-arguments]
 release *ARGS:
-    mise exec -- ./scripts/release.sh {{ARGS}}
+    mise exec -- ./scripts/release.sh "$@"
 
 # =============================================================================
 # DATA MANAGEMENT
@@ -297,6 +318,7 @@ clean-data:
 #   just sprint set 10-1-mod-browse-api review
 #   just sprint list in-progress
 #   just sprint add-story 10 10-9-new-feature
+[positional-arguments]
 sprint *ARGS:
-    ./scripts/sprint-status.sh {{ARGS}}
+    ./scripts/sprint-status.sh "$@"
 
