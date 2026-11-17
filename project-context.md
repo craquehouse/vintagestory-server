@@ -169,6 +169,7 @@ Do not mark a task as complete if:
 - To change the URL, call `setTestUrl(url)` from `web/tests/location.ts`; `tests/setup.ts` resets it after each test.
 - For configurable globals (`WebSocket`, `fetch`, `EventSource`), use `vi.stubGlobal` with `vi.unstubAllGlobals()` in `afterEach`, not assignment.
 - To test code with no `document`, put those tests in their own file whose first line is `// @vitest-environment node`.
+- Browser APIs jsdom lacks and many components call (`scrollIntoView`, `scrollTo`, `ResizeObserver`, `matchMedia`) are stubbed once in `web/tests/setup.ts`, fresh before each test; a test that needs a spy installs its own in `beforeEach`. `tests/setup.ts` also clears `sessionStorage` after each test, so no test inherits another's browse state.
 
 ### 3. API Response Envelope
 

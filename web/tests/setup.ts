@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { installMatchMedia, resetViewport } from './viewport';
 import { resetTestUrl } from './location';
 
@@ -57,11 +57,23 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// jsdom has no Element.scrollIntoView and only a "not implemented" window.scrollTo.
+// Fresh no-op stubs before each test, so a test that installs its own spy cannot leak it
+// into the next test or, under vmThreads, the next file (Story 20.2 review)
+beforeEach(() => {
+  if (typeof window !== 'undefined') {
+    Element.prototype.scrollIntoView = () => {};
+    vi.stubGlobal('scrollTo', () => {});
+  }
+});
+
 afterEach(() => {
   if (typeof window !== 'undefined') {
     cleanup();
     resetViewport();
     resetTestUrl();
+    // Browse state (search, opened mod) lives in sessionStorage; no test inherits another's
+    window.sessionStorage.clear();
   }
   vi.clearAllMocks();
 });
