@@ -1436,6 +1436,26 @@ class TestReadConfigFileSecrets:
         }
         assert admin.json()["data"]["content"] == mod
 
+    def test_ptb_and_canary_webhook_urls_are_redacted(
+        self, config_files_client: TestClient, config_file: Path
+    ) -> None:
+        """Story 21.3 AC 10: Discord's ptb and canary hosts are webhook hosts too."""
+        mod: dict[str, object] = {
+            "Ptb": f"https://ptb.discord.com/api/webhooks/1/{SECRET}-ptb",
+            "Canary": f"https://canary.discord.com/api/webhooks/1/{SECRET}-canary",
+        }
+        path = config_file.parent / "ModConfig" / "mod.json"
+        path.parent.mkdir()
+        _write_config(path, mod)
+
+        monitor = self._get(config_files_client, "ModConfig/mod.json", TEST_MONITOR_KEY)
+        admin = self._get(config_files_client, "ModConfig/mod.json", TEST_ADMIN_KEY)
+
+        assert monitor.status_code == 200
+        assert SECRET not in monitor.text
+        assert monitor.json()["data"]["content"] == {"Ptb": "[redacted]", "Canary": "[redacted]"}
+        assert admin.json()["data"]["content"] == mod
+
     def test_startup_commands_are_redacted(
         self,
         config_files_client: TestClient,

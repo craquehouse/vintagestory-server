@@ -20,6 +20,8 @@ logger = structlog.get_logger()
 DISCORD_HOSTS = frozenset(
     {"discord.com", "discordapp.com", "ptb.discord.com", "canary.discord.com"}
 )
+"""Discord's webhook hosts: the one definition, used by the webhook sender
+(is_discord_webhook) and by the config viewer's redaction (game_config.is_secret_value)."""
 CONTENT_LIMIT = 2000
 """Discord's limit for a message's `content`; applied to every receiver."""
 TIMEOUT_SECONDS = 10.0
