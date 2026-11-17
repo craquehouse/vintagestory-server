@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish)'
+    description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
   - date: '2026-11-17'
     description: 'Added FR234-FR259 for Epic 20 (Tooling and Test Health); revised the same day: FR252 changed and FR258-FR259 added for the mod database address setting'
   - date: '2026-11-17'
@@ -879,3 +879,7 @@ If trivial to implement:
 - FR283: The Scheduled Jobs and Version tables do not scroll inside themselves from 320 to 1023px in either sidebar state, and every page of the web UI has recorded measurements at those widths
 - FR284: With no sidebar choice stored, the sidebar is collapsed from 768 to 1023px and expanded from 1024px; an explicit choice applies at every width and is kept; the choice can be set back to automatic
 - FR285: Page content is at most 1280px wide and centered; the console pages use the full width
+
+#### Pulled In (Matt, 2026-11-17)
+
+- FR286: When the installed game version changes, the mod data in the web UI that depends on it (the browse cards' release badges, compatibility and update status) is fetched again without a reload, triggered by the version the server status reports

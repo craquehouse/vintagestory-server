@@ -7,7 +7,7 @@ inputDocuments:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR285'
+    description: 'Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR286 (revised the same day with the maintainer''s answers: every default confirmed, VSS-q38r pulled into Story 21.4 with FR286)'
   - date: '2026-11-17'
     description: 'Added Epic 20 (7 stories) for Tooling and Test Health; FR234-FR259 (revised the same day with the maintainer''s answers: a mod database address setting, three beads pulled in)'
   - date: '2026-11-17'
@@ -499,6 +499,7 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR283 | Epic 21 | Jobs and Version tables fit phones; every page measured |
 | FR284 | Epic 21 | The sidebar follows the width until the user chooses |
 | FR285 | Epic 21 | 1280px maximum content width, console excepted |
+| FR286 | Epic 21 | Mod data is refreshed when the installed game version changes |
 
 ## Epic List
 
@@ -6466,11 +6467,11 @@ So that **a release build does not change without a commit, and the documentatio
 
 ## Epic 21: Maintainer Decisions and Web Polish
 
-**Goal:** Five decisions the maintainer made after Epic 20 are carried out: the web is formatted by Prettier and stays formatted, Renovate holds uv like every other tool and stops writing release notes for image rebuilds, `VS_LOG_LEVEL` works, and the mod remove dialog waits for the removal. Fourteen open beads about the web's tables, dialogs, mod detail page, tabs and layout, and about the config file viewer, are closed.
+**Goal:** Five decisions the maintainer made after Epic 20 are carried out: the web is formatted by Prettier and stays formatted, Renovate holds uv like every other tool and stops writing release notes for image rebuilds, `VS_LOG_LEVEL` works, and the mod remove dialog waits for the removal. Fifteen open beads about the web's tables, dialogs, mod browser, mod detail page, tabs and layout, and about the config file viewer, are closed.
 
-**Architecture:** `architecture/epic-21-maintainer-decisions-and-web-polish.md` (ADR-1 to ADR-15, with the facts checked at `05436da`). There is no preparation story. Story 21.7 starts its arrow key work with a time-boxed reproduction (ADR-12 decision 3).
+**Architecture:** `architecture/epic-21-maintainer-decisions-and-web-polish.md` (ADR-1 to ADR-16, with the facts checked at `05436da`). There is no preparation story. Story 21.7 starts its arrow key work with a time-boxed reproduction (ADR-12 decision 3).
 
-**Decided by the maintainer (Matt, 2026-11-17):** the five decisions and the fourteen beads. For each decision: Prettier as a pinned dev dependency, one dedicated reformat commit that is first among the web stories and listed in `.git-blame-ignore-revs`, and a format check in `just lint-web` (ADR-1); the uv rule loses `minimumReleaseAge: null` and the red first day is documented (ADR-2); digest refreshes of Dockerfile images are `chore(container)` (ADR-3); `VS_LOG_LEVEL` with four values, case-insensitive, today's behaviour when unset and a start-up error when invalid (ADR-4); the remove dialog stays open with "Removing..." until the DELETE finishes and tracks its own mod (ADR-6). What the planner decided inside those and for the beads is listed as open questions in the change proposal (`sprint-change-proposal-2026-11-17-epic-21.md`, section 5), each with a default the stories follow.
+**Decided by the maintainer (Matt, 2026-11-17):** the five decisions and the fourteen beads. For each decision: Prettier as a pinned dev dependency, one dedicated reformat commit that is first among the web stories and listed in `.git-blame-ignore-revs`, and a format check in `just lint-web` (ADR-1); the uv rule loses `minimumReleaseAge: null` and the red first day is documented (ADR-2); digest refreshes of Dockerfile images are `chore(container)` (ADR-3); `VS_LOG_LEVEL` with four values, case-insensitive, today's behaviour when unset and a start-up error when invalid (ADR-4); the remove dialog stays open with "Removing..." until the DELETE finishes and tracks its own mod (ADR-6). The same day he answered the proposal's ten open questions (`sprint-change-proposal-2026-11-17-epic-21.md`, section 5): every default stands, `VSS-q38r` is pulled into Story 21.4 and `VSS-koo1` is not pulled in. The answers are written into the ADRs' status lines. One planner decision made after his answers is not reviewed yet: what triggers the refresh for `VSS-q38r` (ADR-16 decision 1).
 
 **Order:** 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8.
 
@@ -6484,7 +6485,7 @@ So that **a release build does not change without a commit, and the documentatio
 - Story 21.8 comes last and directly after 21.7: both extend `web/e2e/layout-widths.spec.ts`, 21.7 measures every page at phone and tablet widths before 21.8 changes the sidebar default there, and 21.8 changes the width of almost every page.
 - Stories 21.4 to 21.8 are run one after another.
 
-**Beads:** fourteen in scope, each closed with an AAR by its story: `VSS-wv0w` in 21.3; `VSS-oc28` in 21.4; `VSS-qxxo`, `VSS-whnb`, `VSS-759m` and `VSS-nuef` in 21.5; `VSS-woae`, `VSS-pzj8` and `VSS-4vbj` in 21.6; `VSS-3ry`, `VSS-vt4` and `VSS-f9y` in 21.7; `VSS-w85` and `VSS-alx` in 21.8. Stories 21.1 and 21.2 carry maintainer decisions and have no bead. What planning found is in the stories (the change proposal lists it), not in new beads.
+**Beads:** fifteen in scope (the fourteen the maintainer picked and one pull-in he approved on 2026-11-17, `VSS-q38r` in 21.4), each closed with an AAR by its story: `VSS-wv0w` in 21.3; `VSS-oc28` and `VSS-q38r` in 21.4; `VSS-qxxo`, `VSS-whnb`, `VSS-759m` and `VSS-nuef` in 21.5; `VSS-woae`, `VSS-pzj8` and `VSS-4vbj` in 21.6; `VSS-3ry`, `VSS-vt4` and `VSS-f9y` in 21.7; `VSS-w85` and `VSS-alx` in 21.8. Stories 21.1 and 21.2 carry maintainer decisions and have no bead. What planning found is in the stories (the change proposal lists it), not in new beads.
 
 **Product changes:** one new working setting, `VS_LOG_LEVEL` (21.3); three small corrections to the config file routes (21.3); the rest is behaviour and layout of the web UI. No route, response field or status code of an existing successful request changes. Nothing is breaking.
 
@@ -6496,6 +6497,7 @@ So that **a release build does not change without a commit, and the documentatio
 - Discord webhook URLs on `ptb.` and `canary.` hosts are not redacted for read-only keys; an Admin directory listing shows links that leave the data directory; a read-only key gets an empty list instead of 403 when the data directory is missing
 - The mod remove dialog closes at once and the removal runs behind it; its "Removing..." label is shared by every mod's dialog
 - A failed mod install shows two error toasts, and so do a failed server install, uninstall and restart and a failed webhook setting
+- After another game version is installed, browse cards keep the old version's badges for up to five minutes
 - Sorting by version puts a release before its pre-releases in the installed mods list and on the Version page; the installed mods headers have no `aria-sort`; dialog and sheet close buttons are 16px
 - Five links open a new tab without saying so, and SVG links in descriptions cannot; the mod detail page is 674px wide on a 390px screen; mod descriptions show headings, lists and links as plain text
 - Tab buttons are about 30px tall on phones; the Settings tabs can lose arrow key presses just after they render; the Scheduled Jobs and Version tables scroll inside themselves on phones
@@ -6507,7 +6509,7 @@ So that **a release build does not change without a commit, and the documentatio
 - A uv update follows the preset's hold, and `RELEASING.md` says its pull request is red for a day and must wait; image rebuilds are `chore(container)` and stay out of the release notes
 - `VS_LOG_LEVEL` sets the log level, an invalid value stops start-up, and the debug switch still gives DEBUG
 - The config file viewer redacts all four Discord hosts, lists nothing that leaves the data directory, and answers 403 before it looks for the directory
-- The remove dialog waits for its own mod's removal and stays open on an error; every failed action shows one toast
+- The remove dialog waits for its own mod's removal and stays open on an error; every failed action shows one toast; mod data is fetched again when the installed game version changes
 - Versions sort by Semantic Versioning precedence everywhere; sortable headers announce their state; close buttons are 44px
 - Every new-tab link says so; the mod detail page fits a phone; descriptions are typeset in both themes
 - Tabs are 44px tall below 1024px; the arrow key fault is fixed or explained; the two tables fit phones and every page has been measured there
@@ -6619,6 +6621,8 @@ So that **formatting a file I work on never adds changes that are not mine**.
 **Sprint key:** `21-2-renovate-uv-hold-and-digests`
 **Beads:** none (maintainer decisions 1 and 2; Matt, 2026-11-17)
 **FRs:** FR264, FR265
+
+**Planning note (2026-11-17):** a Renovate pull request for uv 0.13.9 (#185, branch `renovate/uv`) is already open. It was opened under the current rule (no hold), so it holds both the Dockerfile and the `.mise.toml` change. Merging or closing it is the maintainer's call; this story does not merge, close or rebase it. If it is still open when the story merges, the story records what Renovate does with it under the new rule.
 
 As the **maintainer**,
 I want **uv held like every other tool and image rebuilds kept out of the release notes**,
@@ -6767,12 +6771,12 @@ So that **I can have quieter or more detailed logs without debug mode, and read-
 ### Story 21.4: The Mod Remove Dialog Waits, and One Toast per Failure
 
 **Sprint key:** `21-4-remove-dialog-and-single-toast`
-**Beads:** `VSS-oc28` (UI-096); maintainer decision 4 (Matt, 2026-11-17)
-**FRs:** FR271, FR272, FR273, FR274
+**Beads:** `VSS-oc28` (UI-096), `VSS-q38r` (UI-097; pulled in, Matt, 2026-11-17); maintainer decision 4 (Matt, 2026-11-17)
+**FRs:** FR271, FR272, FR273, FR274, FR286
 
 As an **administrator**,
-I want **the remove dialog to show me the removal until it is done, and one message when something fails**,
-So that **I know whether the mod was removed and am not told the same error twice**.
+I want **the remove dialog to show me the removal until it is done, one message when something fails, and mod data that follows the installed game version**,
+So that **I know whether the mod was removed, am not told the same error twice, and do not read badges for a game version I no longer run**.
 
 **Acceptance Criteria:**
 
@@ -6786,7 +6790,7 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** I press Escape
 **Then** the dialog stays open
 
-*(Covers FR271; ADR-6 decision 4)*
+*(Covers FR271; ADR-6 decision 4; Matt, 2026-11-17)*
 
 **Given** a removal that is running
 **When** the DELETE succeeds
@@ -6798,7 +6802,7 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** the DELETE fails
 **Then** exactly one error toast is shown, the dialog stays open with the confirm button enabled and labelled "Remove" again, and the mod is back in the list behind it
 
-*(Covers FR272; ADR-6 decision 3)*
+*(Covers FR272; ADR-6 decision 3; Matt, 2026-11-17)*
 
 **Given** the dialog after a failed removal
 **When** I confirm again or cancel
@@ -6834,28 +6838,52 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** the request fails
 **Then** exactly one error toast is shown, with the caller's title and the API's message
 
-*(Covers FR274; ADR-7 decision 2, found in planning)*
+*(Covers FR274; ADR-7 decision 2; Matt, 2026-11-17)*
 
 **Given** `project-context.md`
 **When** I read its frontend rules
 **Then** it says that a hook-level `onError` replaces the query client's default, that an `onError` passed to `mutate` runs in addition, and that a hook either reports its error or silences the default for its callers
 
-*(Covers FR274; ADR-7 decision 5)*
+*(Covers FR274; ADR-7 decision 5; Matt, 2026-11-17)*
+
+**Given** the mod browser was opened while game version A was installed
+**When** the server status reports game version B (after an install of another version has finished)
+**Then** the browse cards are fetched again without a reload and show the "Has a release for" badges of version B, within one status poll and not after the five-minute cache time
+
+*(Covers FR286; `VSS-q38r`)*
+
+**Given** the installed game version changes, or the server is uninstalled, or a server is installed where none was
+**When** I next open the installed mods list or a mod detail page
+**Then** their compatibility and update information is fetched again for the new version
+
+*(Covers FR286; ADR-16 decision 3)*
+
+**Given** the server status is polled and the installed game version has not changed
+**When** any number of polls arrive, including the first one after a page load
+**Then** no mod query is invalidated
+
+*(Covers FR286; ADR-16 decision 2)*
+
+**Given** a server install has been started and has not finished
+**When** the install request's success handler runs
+**Then** the refresh of mod data does not depend on it: the trigger is the version the server status reports
+
+*(Covers FR286; ADR-16 decision 1)*
 
 **Given** the E2E suite
 **When** CI runs it
-**Then** an untagged spec covers the remove dialog with the DELETE stubbed (a delayed success and an error), sends no request that changes the stack, and passes on the throwaway container
+**Then** untagged specs cover the remove dialog with the DELETE stubbed (a delayed success and an error) and the browse refresh with the server status and the browse answer stubbed (the version changes between two polls), send no request that changes the stack, and pass on the throwaway container
 
-*(Covers FR271, FR272)*
+*(Covers FR271, FR272, FR286)*
 
 **Tasks:**
 
-- [ ] The remove dialog: a plain destructive confirm button, open until the DELETE succeeds, Cancel and Escape blocked while it runs, open with "Remove" again after an error; unit tests for running, success and failure; a `fix(web)` commit with the release note (Epic 21 ADR-6 decisions 1 to 4, 6)
+- [ ] The remove dialog: a plain destructive confirm button, open until the DELETE succeeds, Cancel and Escape blocked while it runs, open with "Remove" again after an error; the same Escape guard for the server uninstall dialog; unit tests for running, success and failure; a `fix(web)` commit with the release note (Epic 21 ADR-6 decisions 1 to 4, 6 and 7)
 - [ ] The pending state compares the mutation's `variables` with the dialog's mod; unit test with a second mod's dialog (ADR-6 decision 5)
-- [ ] The same Escape guard in `UninstallConfirmDialog`'s page, with a unit test (ADR-6 decision 7)
 - [ ] `useInstallMod` silences the default `onError`; a test that a failed install shows one toast; a `fix(web)` commit with its release note (ADR-7 decisions 1 and 3) (`VSS-oc28`)
 - [ ] The same for `useRestartServer`, `useInstallServer`, `useUninstallServer` and `useSetModUpdateWebhook`, after checking every caller reports the error; one test each; a `fix(web)` commit with its release note; the rule in `project-context.md` (ADR-7 decisions 2, 5 and 6)
-- [ ] E2E spec for the remove dialog with the DELETE stubbed; update the counts in `web/e2e/README.md` (ADR-6 decision 8)
+- [ ] A hook mounted once in the layout watches the installed game version in the server status and invalidates the mod queries when it changes; unit tests for a change, no change, the first value and uninstall; a `fix(web)` commit with its release note (ADR-16) (`VSS-q38r`)
+- [ ] E2E specs with stubbed answers: the remove dialog (delayed success, error) and the browse refresh on a version change; update the counts in `web/e2e/README.md` (ADR-6 decision 8, ADR-16 decision 5)
 
 ---
 

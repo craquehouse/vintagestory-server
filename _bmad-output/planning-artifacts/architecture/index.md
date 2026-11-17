@@ -195,3 +195,4 @@
     - [ADR-13: On Phones the Jobs and Version Tables Fit Their Container, and Every Page Is Measured](./epic-21-maintainer-decisions-and-web-polish.md#adr-13-on-phones-the-jobs-and-version-tables-fit-their-container-and-every-page-is-measured)
     - [ADR-14: With No Choice Stored the Sidebar Follows the Width; a Choice Wins at Every Width](./epic-21-maintainer-decisions-and-web-polish.md#adr-14-with-no-choice-stored-the-sidebar-follows-the-width-a-choice-wins-at-every-width)
     - [ADR-15: Page Content Is at Most 1280px Wide and Centered; the Console Pages Are the Exception](./epic-21-maintainer-decisions-and-web-polish.md#adr-15-page-content-is-at-most-1280px-wide-and-centered-the-console-pages-are-the-exception)
+    - [ADR-16: Mod Data Is Refreshed When the Server Status Reports Another Installed Game Version](./epic-21-maintainer-decisions-and-web-polish.md#adr-16-mod-data-is-refreshed-when-the-server-status-reports-another-installed-game-version)

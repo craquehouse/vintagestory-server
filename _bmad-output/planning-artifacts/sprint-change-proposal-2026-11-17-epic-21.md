@@ -4,7 +4,7 @@
 **Author:** BMAD planner (PM and Architect), for Matt
 **Workflow:** correct-course (batch, non-interactive; scope approved before the workflow ran)
 **Scope classification:** Minor
-**Status:** Scope approved by Matt before planning (2026-11-17): five decisions of his own and fourteen beads. The five decisions are written in as decided. What the planner decided inside them and for the beads is in ten open questions (section 5), each with a default that the stories follow unless he answers otherwise. Eight stories, fourteen beads.
+**Status:** Scope approved by Matt before planning (2026-11-17): five decisions of his own and fourteen beads, written in as decided. Revised the same day with Matt's answers to the ten open questions (section 5): every default stands; `VSS-q38r` is pulled into Story 21.4 (FR286, ADR-16) and `VSS-koo1` is not pulled in. Eight stories, fifteen beads. No question is open; one planner decision made after his answers (ADR-16 decision 1, what triggers the refresh for `VSS-q38r`) has not been reviewed.
 
 ## 1. Issue Summary
 
@@ -38,6 +38,7 @@
 | 4. Mod remove dialog | Stays open with "Removing..." and a disabled confirm button until the DELETE finishes, then closes; an error is shown by a toast; the spinner tracks this mod's removal only; a `fix(web)` with a release note, unit tests and a stubbed E2E |
 | 5. Prettier for the web | A pinned dev dependency (approved), a configuration matching the code's style, one dedicated reformat commit first among the web stories and listed in `.git-blame-ignore-revs`, a format check in `just lint-web` and CI, `just format` fixed |
 | Typography | Prefer hand-written styles to `@tailwindcss/typography` unless a new dependency is justified |
+| Answers and pull-in (Matt, 2026-11-17) | All ten open questions follow the defaults (section 5). `VSS-q38r` is pulled into Story 21.4, with the uninstall dialog's Escape guard folded into its first task to stay at six tasks; `VSS-koo1` is not pulled in. 15 issues in 8 stories |
 
 **Grouping, and what changed from the suggested starting point:**
 
@@ -46,7 +47,7 @@
 | 21.1 The Web Is Formatted Once and Stays Formatted | Decision 5 | As suggested: its own story and pull request, first among the web stories, reviewed by reproducing it |
 | 21.2 Renovate: the uv Hold and Digest Refreshes | Decisions 1, 2 | As suggested: `renovate.json` and `RELEASING.md` |
 | 21.3 A Working `VS_LOG_LEVEL` and Config Viewer Edge Cases | Decision 3, `VSS-wv0w` | As suggested: the API's settings and one service, no web file |
-| 21.4 The Mod Remove Dialog Waits, and One Toast per Failure | Decision 4, `VSS-oc28` | The suggested "mod table and dialogs" story is split in two. This half is behaviour of mutations: the dialog's pending and error states and the error toasts. Planning found the two-toast fault in four more hooks, which fills the story |
+| 21.4 The Mod Remove Dialog Waits, and One Toast per Failure | Decision 4, `VSS-oc28`, `VSS-q38r` (pulled in) | The suggested "mod table and dialogs" story is split in two. This half is behaviour of mutations: the dialog's pending and error states and the error toasts. Planning found the two-toast fault in four more hooks. `VSS-q38r` lives in the same hook file (`use-server-status.ts`) as two of them |
 | 21.5 Version Sort, Sort State for Screen Readers and Close Buttons | `VSS-qxxo`, `VSS-whnb`, `VSS-759m`, `VSS-nuef` | The other half: sorting and accessibility of the two sortable tables (`ModTable`, `VersionTable`) and the shared close button. Six beads and a decision in one story would have passed six tasks |
 | 21.6 Mod Detail Page Polish | `VSS-woae`, `VSS-pzj8`, `VSS-4vbj` | As suggested: one page, its sanitizer and its styles |
 | 21.7 Tabs and Tables on Phones | `VSS-3ry`, `VSS-vt4`, `VSS-f9y` | The suggested "tabs and layout" story is split in two. This half is what is too small or too wide below 1024px, and includes the measurement of every page that the comment on `VSS-f9y` asks for |
@@ -62,14 +63,14 @@
 
 | Artifact | Change |
 |---|---|
-| PRD | Add FR260-FR285; frontmatter |
+| PRD | Add FR260-FR286; frontmatter |
 | Epics | Add Epic 21; FR coverage rows; Story Summary row; frontmatter |
-| Architecture | New `architecture/epic-21-maintainer-decisions-and-web-polish.md` (facts, ADR-1 to ADR-15); index entry |
+| Architecture | New `architecture/epic-21-maintainer-decisions-and-web-polish.md` (facts, ADR-1 to ADR-16); index entry |
 | UX spec | No text change. Stories 21.7 and 21.8 build rules it already states (`:1209-1215`, `:1254-1258`, `:1289-1292`); the console exception to the maximum width is recorded in ADR-15 |
 | CI | The `web` job gains a `just lint-web` step (21.1). No new job; the job-list guard in `scripts/tests/test-release.sh` is not affected |
 | Project rules | `project-context.md`: the web format commands (21.1), the Logging section (21.3), the mutation error rule (21.4). `CLAUDE.md`: the command list (21.1) |
 | Deployment and documentation | README and `.env.example` gain `VS_LOG_LEVEL` (21.3); `RELEASING.md` gains the uv pull request note and which image updates make a release note (21.2); no deployment has to change |
-| Beads | Epic `Epic 21: Maintainer Decisions and Web Polish` (`VSS-syuj`) with the 14 in-scope issues as children |
+| Beads | Epic `Epic 21: Maintainer Decisions and Web Polish` (`VSS-syuj`) with the 15 in-scope issues as children |
 
 **Technical impact:**
 
@@ -92,12 +93,12 @@
 | 21.3 | The same two routes, for roles other than Admin, when the server data directory does not exist | A directory the role may not list answers 403 `FORBIDDEN` (was 200 with an empty list); a traversal answers 400 | Fix |
 | 21.8 | Cookie `vs_ui_prefs` | New key `sidebar` (`auto`, `expanded`, `collapsed`); `sidebarCollapsed` is read once for migration and no longer written | Web-only |
 
-No route is added or removed, no successful response gains or loses a field, and nothing is breaking. A deployment that sets `VS_LOG_LEVEL` to a value outside the four will not start after the update; no file in the repository sets it (open question 2).
+No route is added or removed, no successful response gains or loses a field, and nothing is breaking. A deployment that sets `VS_LOG_LEVEL` to a value outside the four will not start after the update; no file in the repository sets it, and the change is not marked breaking (Matt, 2026-11-17). `VSS-q38r` adds no contract change: the web fetches the same mod routes again when the server status reports another version.
 
 **Draft release-note text** (commit subjects; the story scope is removed by git-cliff):
 
 - Features: `feat(api): VS_LOG_LEVEL sets the log level`; `feat(web): collapse the sidebar by default on tablet-sized screens`; `feat(web): limit page width to 1280px on wide screens`
-- Fixes: `fix(api): hide Discord webhook URLs on ptb and canary hosts from read-only keys`; `fix(api): leave links that point outside the data directory out of the config file listing`; `fix(web): the remove mod dialog stays open until the mod is removed`; `fix(web): a failed mod install shows one error message, not two`; `fix(web): a failed server install, removal or restart shows one error message, not two`; `fix(web): sort versions with pre-releases before their release`; `fix(web): announce the sort order of table columns to screen readers`; `fix(web): make dialog close buttons easier to tap`; `fix(web): say which links open in a new tab`; `fix(web): fit the mod detail page on phone screens`; `fix(web): show headings, lists and links in mod descriptions`; `fix(web): make tabs easier to tap on phones`; `fix(web): fit the scheduled jobs and version tables on phone screens`; and, only if the arrow key fault is fixed in code, `fix(web): settings tabs respond to arrow keys as soon as they appear`
+- Fixes: `fix(api): hide Discord webhook URLs on ptb and canary hosts from read-only keys`; `fix(api): leave links that point outside the data directory out of the config file listing`; `fix(web): the remove mod dialog stays open until the mod is removed`; `fix(web): a failed mod install shows one error message, not two`; `fix(web): a failed server install, removal or restart shows one error message, not two`; `fix(web): browse cards update their game-version badges after the server version changes`; `fix(web): sort versions with pre-releases before their release`; `fix(web): announce the sort order of table columns to screen readers`; `fix(web): make dialog close buttons easier to tap`; `fix(web): say which links open in a new tab`; `fix(web): fit the mod detail page on phone screens`; `fix(web): show headings, lists and links in mod descriptions`; `fix(web): make tabs easier to tap on phones`; `fix(web): fit the scheduled jobs and version tables on phone screens`; and, only if the arrow key fault is fixed in code, `fix(web): settings tabs respond to arrow keys as soon as they appear`
 - No note: Story 21.1 (`chore`, `ci`, `docs`), Story 21.2 (`chore`, `docs`), the cast removal (`refactor`), tests and documentation
 
 ## 3. Recommended Approach
@@ -121,7 +122,9 @@ No route is added or removed, no successful response gains or loses a field, and
 - Story 21.2: after the change, every uv pull request is red for about a day. That is the maintainer's decision; the risk is that someone merges it early, which the script test and the documentation are there to prevent.
 - Story 21.2: Renovate's behaviour for a group whose halves become ready at different times was reasoned in Story 20.7, not observed. The story records what the first update does.
 - Story 21.3: a deployment with an invalid `VS_LOG_LEVEL` stops starting. The error names the setting, and the release note says it.
-- Story 21.3: the debug switch and `VS_LOG_LEVEL` interact; the rule (ADR-4 decision 3) is the planner's and is open question 1.
+- Story 21.3: the debug switch and `VS_LOG_LEVEL` interact; the rule (ADR-4 decision 3) is confirmed (Matt, 2026-11-17) and has a test for each combination.
+- Story 21.4: the refresh for `VSS-q38r` depends on the server status reporting the new version; if the API reported it late, the cards would be late by the same time. The stubbed E2E fixes the web's side; the story checks the real order once on the dev stack.
+- Story 21.4: six tasks, the project's limit; `create-story` should not add to them.
 - Story 21.4: silencing the default error handler for a hook leaves a failure unreported if a caller shows no toast. The story checks every caller and tests each hook for exactly one toast.
 - Story 21.4: a dialog that cannot be dismissed while a request runs holds the user for as long as the request is unanswered. Any failure, a network failure included, returns the dialog to its error state, and the story tests that case.
 - Story 21.5: a comparison function written by hand can be wrong at the edges. It is small, follows a published rule, and its tests list every case.
@@ -136,7 +139,7 @@ No route is added or removed, no successful response gains or loses a field, and
 
 ### 4.1 PRD (`prd.md`)
 
-**Frontmatter:** update entry "Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish)".
+**Frontmatter:** update entry "Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r".
 
 **New section after FR259:**
 
@@ -192,11 +195,15 @@ No route is added or removed, no successful response gains or loses a field, and
 - FR284: With no sidebar choice stored, the sidebar is collapsed from 768 to 1023px and expanded from 1024px; an explicit choice applies at every width and is kept; the choice can be set back to automatic
 - FR285: Page content is at most 1280px wide and centered; the console pages use the full width
 
+#### Pulled In (Matt, 2026-11-17)
+
+- FR286: When the installed game version changes, the mod data in the web UI that depends on it (the browse cards' release badges, compatibility and update status) is fetched again without a reload, triggered by the version the server status reports
+
 ### 4.2 Epics Structure (`epics.md`)
 
-**Frontmatter:** update entry "Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR285".
+**Frontmatter:** update entry "Added Epic 21 (8 stories) for Maintainer Decisions and Web Polish; FR260-FR286".
 
-**FR Coverage Map:** rows FR260 to FR285 appended after FR259, each mapped to Epic 21.
+**FR Coverage Map:** rows FR260 to FR286 appended after FR259, each mapped to Epic 21.
 
 **Story Summary:**
 
@@ -217,11 +224,11 @@ NEW:
 
 ## Epic 21: Maintainer Decisions and Web Polish
 
-**Goal:** Five decisions the maintainer made after Epic 20 are carried out: the web is formatted by Prettier and stays formatted, Renovate holds uv like every other tool and stops writing release notes for image rebuilds, `VS_LOG_LEVEL` works, and the mod remove dialog waits for the removal. Fourteen open beads about the web's tables, dialogs, mod detail page, tabs and layout, and about the config file viewer, are closed.
+**Goal:** Five decisions the maintainer made after Epic 20 are carried out: the web is formatted by Prettier and stays formatted, Renovate holds uv like every other tool and stops writing release notes for image rebuilds, `VS_LOG_LEVEL` works, and the mod remove dialog waits for the removal. Fifteen open beads about the web's tables, dialogs, mod browser, mod detail page, tabs and layout, and about the config file viewer, are closed.
 
-**Architecture:** `architecture/epic-21-maintainer-decisions-and-web-polish.md` (ADR-1 to ADR-15, with the facts checked at `05436da`). There is no preparation story. Story 21.7 starts its arrow key work with a time-boxed reproduction (ADR-12 decision 3).
+**Architecture:** `architecture/epic-21-maintainer-decisions-and-web-polish.md` (ADR-1 to ADR-16, with the facts checked at `05436da`). There is no preparation story. Story 21.7 starts its arrow key work with a time-boxed reproduction (ADR-12 decision 3).
 
-**Decided by the maintainer (Matt, 2026-11-17):** the five decisions and the fourteen beads. For each decision: Prettier as a pinned dev dependency, one dedicated reformat commit that is first among the web stories and listed in `.git-blame-ignore-revs`, and a format check in `just lint-web` (ADR-1); the uv rule loses `minimumReleaseAge: null` and the red first day is documented (ADR-2); digest refreshes of Dockerfile images are `chore(container)` (ADR-3); `VS_LOG_LEVEL` with four values, case-insensitive, today's behaviour when unset and a start-up error when invalid (ADR-4); the remove dialog stays open with "Removing..." until the DELETE finishes and tracks its own mod (ADR-6). What the planner decided inside those and for the beads is listed as open questions in the change proposal (`sprint-change-proposal-2026-11-17-epic-21.md`, section 5), each with a default the stories follow.
+**Decided by the maintainer (Matt, 2026-11-17):** the five decisions and the fourteen beads. For each decision: Prettier as a pinned dev dependency, one dedicated reformat commit that is first among the web stories and listed in `.git-blame-ignore-revs`, and a format check in `just lint-web` (ADR-1); the uv rule loses `minimumReleaseAge: null` and the red first day is documented (ADR-2); digest refreshes of Dockerfile images are `chore(container)` (ADR-3); `VS_LOG_LEVEL` with four values, case-insensitive, today's behaviour when unset and a start-up error when invalid (ADR-4); the remove dialog stays open with "Removing..." until the DELETE finishes and tracks its own mod (ADR-6). The same day he answered the proposal's ten open questions (`sprint-change-proposal-2026-11-17-epic-21.md`, section 5): every default stands, `VSS-q38r` is pulled into Story 21.4 and `VSS-koo1` is not pulled in. The answers are written into the ADRs' status lines. One planner decision made after his answers is not reviewed yet: what triggers the refresh for `VSS-q38r` (ADR-16 decision 1).
 
 **Order:** 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8.
 
@@ -235,7 +242,7 @@ NEW:
 - Story 21.8 comes last and directly after 21.7: both extend `web/e2e/layout-widths.spec.ts`, 21.7 measures every page at phone and tablet widths before 21.8 changes the sidebar default there, and 21.8 changes the width of almost every page.
 - Stories 21.4 to 21.8 are run one after another.
 
-**Beads:** fourteen in scope, each closed with an AAR by its story: `VSS-wv0w` in 21.3; `VSS-oc28` in 21.4; `VSS-qxxo`, `VSS-whnb`, `VSS-759m` and `VSS-nuef` in 21.5; `VSS-woae`, `VSS-pzj8` and `VSS-4vbj` in 21.6; `VSS-3ry`, `VSS-vt4` and `VSS-f9y` in 21.7; `VSS-w85` and `VSS-alx` in 21.8. Stories 21.1 and 21.2 carry maintainer decisions and have no bead. What planning found is in the stories (the change proposal lists it), not in new beads.
+**Beads:** fifteen in scope (the fourteen the maintainer picked and one pull-in he approved on 2026-11-17, `VSS-q38r` in 21.4), each closed with an AAR by its story: `VSS-wv0w` in 21.3; `VSS-oc28` and `VSS-q38r` in 21.4; `VSS-qxxo`, `VSS-whnb`, `VSS-759m` and `VSS-nuef` in 21.5; `VSS-woae`, `VSS-pzj8` and `VSS-4vbj` in 21.6; `VSS-3ry`, `VSS-vt4` and `VSS-f9y` in 21.7; `VSS-w85` and `VSS-alx` in 21.8. Stories 21.1 and 21.2 carry maintainer decisions and have no bead. What planning found is in the stories (the change proposal lists it), not in new beads.
 
 **Product changes:** one new working setting, `VS_LOG_LEVEL` (21.3); three small corrections to the config file routes (21.3); the rest is behaviour and layout of the web UI. No route, response field or status code of an existing successful request changes. Nothing is breaking.
 
@@ -247,6 +254,7 @@ NEW:
 - Discord webhook URLs on `ptb.` and `canary.` hosts are not redacted for read-only keys; an Admin directory listing shows links that leave the data directory; a read-only key gets an empty list instead of 403 when the data directory is missing
 - The mod remove dialog closes at once and the removal runs behind it; its "Removing..." label is shared by every mod's dialog
 - A failed mod install shows two error toasts, and so do a failed server install, uninstall and restart and a failed webhook setting
+- After another game version is installed, browse cards keep the old version's badges for up to five minutes
 - Sorting by version puts a release before its pre-releases in the installed mods list and on the Version page; the installed mods headers have no `aria-sort`; dialog and sheet close buttons are 16px
 - Five links open a new tab without saying so, and SVG links in descriptions cannot; the mod detail page is 674px wide on a 390px screen; mod descriptions show headings, lists and links as plain text
 - Tab buttons are about 30px tall on phones; the Settings tabs can lose arrow key presses just after they render; the Scheduled Jobs and Version tables scroll inside themselves on phones
@@ -258,7 +266,7 @@ NEW:
 - A uv update follows the preset's hold, and `RELEASING.md` says its pull request is red for a day and must wait; image rebuilds are `chore(container)` and stay out of the release notes
 - `VS_LOG_LEVEL` sets the log level, an invalid value stops start-up, and the debug switch still gives DEBUG
 - The config file viewer redacts all four Discord hosts, lists nothing that leaves the data directory, and answers 403 before it looks for the directory
-- The remove dialog waits for its own mod's removal and stays open on an error; every failed action shows one toast
+- The remove dialog waits for its own mod's removal and stays open on an error; every failed action shows one toast; mod data is fetched again when the installed game version changes
 - Versions sort by Semantic Versioning precedence everywhere; sortable headers announce their state; close buttons are 44px
 - Every new-tab link says so; the mod detail page fits a phone; descriptions are typeset in both themes
 - Tabs are 44px tall below 1024px; the arrow key fault is fixed or explained; the two tables fit phones and every page has been measured there
@@ -370,6 +378,8 @@ So that **formatting a file I work on never adds changes that are not mine**.
 **Sprint key:** `21-2-renovate-uv-hold-and-digests`
 **Beads:** none (maintainer decisions 1 and 2; Matt, 2026-11-17)
 **FRs:** FR264, FR265
+
+**Planning note (2026-11-17):** a Renovate pull request for uv 0.13.9 (#185, branch `renovate/uv`) is already open. It was opened under the current rule (no hold), so it holds both the Dockerfile and the `.mise.toml` change. Merging or closing it is the maintainer's call; this story does not merge, close or rebase it. If it is still open when the story merges, the story records what Renovate does with it under the new rule.
 
 As the **maintainer**,
 I want **uv held like every other tool and image rebuilds kept out of the release notes**,
@@ -518,12 +528,12 @@ So that **I can have quieter or more detailed logs without debug mode, and read-
 ### Story 21.4: The Mod Remove Dialog Waits, and One Toast per Failure
 
 **Sprint key:** `21-4-remove-dialog-and-single-toast`
-**Beads:** `VSS-oc28` (UI-096); maintainer decision 4 (Matt, 2026-11-17)
-**FRs:** FR271, FR272, FR273, FR274
+**Beads:** `VSS-oc28` (UI-096), `VSS-q38r` (UI-097; pulled in, Matt, 2026-11-17); maintainer decision 4 (Matt, 2026-11-17)
+**FRs:** FR271, FR272, FR273, FR274, FR286
 
 As an **administrator**,
-I want **the remove dialog to show me the removal until it is done, and one message when something fails**,
-So that **I know whether the mod was removed and am not told the same error twice**.
+I want **the remove dialog to show me the removal until it is done, one message when something fails, and mod data that follows the installed game version**,
+So that **I know whether the mod was removed, am not told the same error twice, and do not read badges for a game version I no longer run**.
 
 **Acceptance Criteria:**
 
@@ -537,7 +547,7 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** I press Escape
 **Then** the dialog stays open
 
-*(Covers FR271; ADR-6 decision 4)*
+*(Covers FR271; ADR-6 decision 4; Matt, 2026-11-17)*
 
 **Given** a removal that is running
 **When** the DELETE succeeds
@@ -549,7 +559,7 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** the DELETE fails
 **Then** exactly one error toast is shown, the dialog stays open with the confirm button enabled and labelled "Remove" again, and the mod is back in the list behind it
 
-*(Covers FR272; ADR-6 decision 3)*
+*(Covers FR272; ADR-6 decision 3; Matt, 2026-11-17)*
 
 **Given** the dialog after a failed removal
 **When** I confirm again or cancel
@@ -585,28 +595,52 @@ So that **I know whether the mod was removed and am not told the same error twic
 **When** the request fails
 **Then** exactly one error toast is shown, with the caller's title and the API's message
 
-*(Covers FR274; ADR-7 decision 2, found in planning)*
+*(Covers FR274; ADR-7 decision 2; Matt, 2026-11-17)*
 
 **Given** `project-context.md`
 **When** I read its frontend rules
 **Then** it says that a hook-level `onError` replaces the query client's default, that an `onError` passed to `mutate` runs in addition, and that a hook either reports its error or silences the default for its callers
 
-*(Covers FR274; ADR-7 decision 5)*
+*(Covers FR274; ADR-7 decision 5; Matt, 2026-11-17)*
+
+**Given** the mod browser was opened while game version A was installed
+**When** the server status reports game version B (after an install of another version has finished)
+**Then** the browse cards are fetched again without a reload and show the "Has a release for" badges of version B, within one status poll and not after the five-minute cache time
+
+*(Covers FR286; `VSS-q38r`)*
+
+**Given** the installed game version changes, or the server is uninstalled, or a server is installed where none was
+**When** I next open the installed mods list or a mod detail page
+**Then** their compatibility and update information is fetched again for the new version
+
+*(Covers FR286; ADR-16 decision 3)*
+
+**Given** the server status is polled and the installed game version has not changed
+**When** any number of polls arrive, including the first one after a page load
+**Then** no mod query is invalidated
+
+*(Covers FR286; ADR-16 decision 2)*
+
+**Given** a server install has been started and has not finished
+**When** the install request's success handler runs
+**Then** the refresh of mod data does not depend on it: the trigger is the version the server status reports
+
+*(Covers FR286; ADR-16 decision 1)*
 
 **Given** the E2E suite
 **When** CI runs it
-**Then** an untagged spec covers the remove dialog with the DELETE stubbed (a delayed success and an error), sends no request that changes the stack, and passes on the throwaway container
+**Then** untagged specs cover the remove dialog with the DELETE stubbed (a delayed success and an error) and the browse refresh with the server status and the browse answer stubbed (the version changes between two polls), send no request that changes the stack, and pass on the throwaway container
 
-*(Covers FR271, FR272)*
+*(Covers FR271, FR272, FR286)*
 
 **Tasks:**
 
-- [ ] The remove dialog: a plain destructive confirm button, open until the DELETE succeeds, Cancel and Escape blocked while it runs, open with "Remove" again after an error; unit tests for running, success and failure; a `fix(web)` commit with the release note (Epic 21 ADR-6 decisions 1 to 4, 6)
+- [ ] The remove dialog: a plain destructive confirm button, open until the DELETE succeeds, Cancel and Escape blocked while it runs, open with "Remove" again after an error; the same Escape guard for the server uninstall dialog; unit tests for running, success and failure; a `fix(web)` commit with the release note (Epic 21 ADR-6 decisions 1 to 4, 6 and 7)
 - [ ] The pending state compares the mutation's `variables` with the dialog's mod; unit test with a second mod's dialog (ADR-6 decision 5)
-- [ ] The same Escape guard in `UninstallConfirmDialog`'s page, with a unit test (ADR-6 decision 7)
 - [ ] `useInstallMod` silences the default `onError`; a test that a failed install shows one toast; a `fix(web)` commit with its release note (ADR-7 decisions 1 and 3) (`VSS-oc28`)
 - [ ] The same for `useRestartServer`, `useInstallServer`, `useUninstallServer` and `useSetModUpdateWebhook`, after checking every caller reports the error; one test each; a `fix(web)` commit with its release note; the rule in `project-context.md` (ADR-7 decisions 2, 5 and 6)
-- [ ] E2E spec for the remove dialog with the DELETE stubbed; update the counts in `web/e2e/README.md` (ADR-6 decision 8)
+- [ ] A hook mounted once in the layout watches the installed game version in the server status and invalidates the mod queries when it changes; unit tests for a change, no change, the first value and uninstall; a `fix(web)` commit with its release note (ADR-16) (`VSS-q38r`)
+- [ ] E2E specs with stubbed answers: the remove dialog (delayed success, error) and the browse refresh on a version change; update the counts in `web/e2e/README.md` (ADR-6 decision 8, ADR-16 decision 5)
 
 ---
 
@@ -928,21 +962,22 @@ So that **content has room at tablet widths and stays readable on large monitors
 
 | ADR | Decision | Story | Decided by |
 |---|---|---|---|
-| ADR-1 | Prettier at an exact version; `singleQuote`, `printWidth: 100`, `trailingComma: es5`; every tracked `.ts`, `.tsx`, `.css` and `.json` under `web/` except recorded fixtures (Markdown, HTML and output directories ignored); one reformat commit of about 231 files, its own story, first among the web stories, in `.git-blame-ignore-revs`; `just lint-web` becomes the format check and CI's `web` job runs it | 21.1 | Matt, 2026-11-17; options and covered files by the planner |
+| ADR-1 | Prettier at an exact version; `singleQuote`, `printWidth: 100`, `trailingComma: es5`; every tracked `.ts`, `.tsx`, `.css` and `.json` under `web/` except recorded fixtures (Markdown, HTML and output directories ignored); one reformat commit of about 231 files, its own story, first among the web stories, in `.git-blame-ignore-revs`; `just lint-web` becomes the format check and CI's `web` job runs it | 21.1 | Matt, 2026-11-17; options and covered files proposed by the planner and confirmed by Matt, 2026-11-17 |
 | ADR-2 | `minimumReleaseAge: null` is removed from the uv rule; the pull request opens with the Dockerfile half, fails the uv version test for about a day and must not be merged before the `.mise.toml` half joins; the rule's description and `RELEASING.md` say so; the script test is not relaxed | 21.2 | Matt, 2026-11-17 |
 | ADR-3 | One rule: `dockerfile` manager, update types `digest` and `pinDigest`, type `chore`; the preset's `container` scope stays; version changes keep the preset's `fix` or `feat` | 21.2 | Matt, 2026-11-17; the rule's form by the planner |
-| ADR-4 | `VS_LOG_LEVEL` is validated when the settings are read (four values, any case, blank is unset, anything else stops start-up naming the setting); it sets the level at start-up and nothing else `VS_DEBUG` controls; the run-time debug switch still sets DEBUG and returns to the configured level; the debug state comes from the settings | 21.3 | Matt, 2026-11-17; the switch rule by the planner |
+| ADR-4 | `VS_LOG_LEVEL` is validated when the settings are read (four values, any case, blank is unset, anything else stops start-up naming the setting); it sets the level at start-up and nothing else `VS_DEBUG` controls; the run-time debug switch still sets DEBUG and returns to the configured level; the debug state comes from the settings | 21.3 | Matt, 2026-11-17; the switch rule proposed by the planner and confirmed by Matt, 2026-11-17 |
 | ADR-5 | One list of four Discord hosts for redaction and sending; listings leave out entries that resolve outside the data directory for every role; the path and role checks run before the missing-directory shortcut | 21.3 | Planner |
-| ADR-6 | The remove dialog's confirm is a plain button: the dialog stays open and cannot be dismissed while the DELETE runs, closes on success, and stays open with "Remove" enabled again on an error (one toast); pending is the mutation's `variables` equal to the dialog's mod; the optimistic removal stays; the uninstall dialog gets the same Escape guard | 21.4 | Matt, 2026-11-17; error and dismissal behaviour by the planner |
-| ADR-7 | A failed mutation shows one toast: where callers report the error, the hook silences the client default with its own `onError` (the existing form of two hooks); applied to `useInstallMod` and four more hooks with the same fault; the rule goes into `project-context.md`; no `MutationCache` redesign | 21.4 | Planner |
+| ADR-6 | The remove dialog's confirm is a plain button: the dialog stays open and cannot be dismissed while the DELETE runs, closes on success, and stays open with "Remove" enabled again on an error (one toast); pending is the mutation's `variables` equal to the dialog's mod; the optimistic removal stays; the uninstall dialog gets the same Escape guard | 21.4 | Matt, 2026-11-17; error and dismissal behaviour proposed by the planner and confirmed by Matt, 2026-11-17 |
+| ADR-7 | A failed mutation shows one toast: where callers report the error, the hook silences the client default with its own `onError` (the existing form of two hooks); applied to `useInstallMod` and four more hooks with the same fault; the rule goes into `project-context.md`; no `MutationCache` redesign | 21.4 | Planner; confirmed by Matt, 2026-11-17 |
 | ADR-8 | One `compareVersions` in `web/src/lib/version-compare.ts` following Semantic Versioning precedence, total and tolerant of loose strings, used by both tables and the "newer" mark; no package added | 21.5 | Planner |
 | ADR-9 | `aria-sort` (`ascending`, `descending`, `none`) on every sortable header of both tables; the two casts in `VersionTable.tsx` are removed; the close button of dialogs and sheets is a 44px box at every width with the icon where it is | 21.5 | Planner |
 | ADR-10 | One component for application links that open a new tab, with the hidden note; the same words in the three `aria-label` links; a visible mark on Homepage and Source; SVG links in descriptions get a `<title>` note from the sanitizer hook, confirmed in a browser | 21.6 | Planner |
-| ADR-11 | The mod detail header stacks below `md`; descriptions are styled by rules under `.mod-description` with theme tokens, wide content contained, the dead `prose` classes removed; `@tailwindcss/typography` is not added | 21.6 | Planner |
+| ADR-11 | The mod detail header stacks below `md`; descriptions are styled by rules under `.mod-description` with theme tokens, wide content contained, the dead `prose` classes removed; `@tailwindcss/typography` is not added | 21.6 | Planner; confirmed by Matt, 2026-11-17 |
 | ADR-12 | Tab triggers are at least 44px tall below `lg`, changed once in `ui/tabs.tsx` and checked on all three tab lists; the arrow key fault gets a time-boxed reproduction with a real keyboard first, then a fix in the project's code or a closure with evidence, never a workaround | 21.7 | Planner |
-| ADR-13 | Scheduled Jobs becomes cards below `lg`; the Version table hides Channel below `sm` and shows it under the version; every page is measured at five widths in both sidebar states, same-kind faults are fixed and the rest reported | 21.7 | Planner |
-| ADR-14 | The sidebar preference becomes `auto`, `expanded` or `collapsed` (old `true` is `collapsed`, old `false` is `auto`); `auto` is collapsed from 768 to 1023px and expanded from 1024px, live; a choice wins at every width; UI Preferences offers the three values; the phone sheet always shows the full sidebar | 21.8 | Planner |
-| ADR-15 | `Layout` caps content at 1280px, centered, from one constant; the mod browser grid is capped (it keeps its four columns); the two console pages are not capped | 21.8 | Planner |
+| ADR-13 | Scheduled Jobs becomes cards below `lg`; the Version table hides Channel below `sm` and shows it under the version; every page is measured at five widths in both sidebar states, same-kind faults are fixed and the rest reported | 21.7 | Planner; confirmed by Matt, 2026-11-17 |
+| ADR-14 | The sidebar preference becomes `auto`, `expanded` or `collapsed` (old `true` is `collapsed`, old `false` is `auto`); `auto` is collapsed from 768 to 1023px and expanded from 1024px, live; a choice wins at every width; UI Preferences offers the three values; the phone sheet always shows the full sidebar | 21.8 | Planner; confirmed by Matt, 2026-11-17 |
+| ADR-15 | `Layout` caps content at 1280px, centered, from one constant; the mod browser grid is capped (it keeps its four columns); the two console pages are not capped | 21.8 | Planner; confirmed by Matt, 2026-11-17 |
+| ADR-16 | Mod data is refreshed when the server status reports another installed game version: a hook mounted once in `Layout` compares `ServerStatus.version` with the value it saw before and invalidates every query under `['mods']`. The install mutation is not the trigger, because it succeeds when the installation starts | 21.4 | Pull-in approved by Matt, 2026-11-17; the trigger by the planner, not reviewed |
 
 The file also records the facts the decisions rest on, with file and line references.
 
@@ -951,7 +986,7 @@ The file also records the facts the decisions rest on, with file and line refere
 | Artifact | Change | When |
 |---|---|---|
 | `sprint-status.yaml` | `epic-21` (backlog), `epic-21-retrospective` (optional) and the eight story keys (backlog), via `scripts/sprint-status.sh` | Now |
-| Beads | Epic `Epic 21: Maintainer Decisions and Web Polish` (`VSS-syuj`), labels UI, API and TOOLS; the 14 in-scope issues are its children. No child bead's content was changed | Now, and per story |
+| Beads | Epic `Epic 21: Maintainer Decisions and Web Polish` (`VSS-syuj`), labels UI, API and TOOLS; the 15 in-scope issues are its children (`VSS-q38r` was added on 2026-11-17 after Matt's approval). No child bead's content was changed | Now, and per story |
 | `architecture/index.md` | Entry for the Epic 21 ADRs | Now |
 | `project-context.md`, `CLAUDE.md`, README, `.env.example`, `RELEASING.md`, `web/e2e/README.md`, `architecture/project-structure-boundaries.md` | The rules, commands and settings the stories change | Stories 21.1 to 21.8 |
 | `.github/workflows/ci.yml`, `Justfile`, `renovate.json`, `.git-blame-ignore-revs`, `web/package.json` | As the stories say | Stories 21.1 and 21.2 |
@@ -965,29 +1000,29 @@ The file also records the facts the decisions rest on, with file and line refere
 | Scrum Master (`create-story`) | Create story files 21.1 to 21.8 from `epics.md` and the Epic 21 ADRs |
 | Developer (`dev-story`) | Implement each story. In 21.1, the format commit holds nothing else and merges before any other web branch is cut. In 21.3, 21.4, 21.5, 21.6, 21.7 and 21.8, each change with a release note is its own commit with the subject written for users |
 | Reviewer (`code-review`) | Delegated review per story. For 21.1, reproduce the format commit and compare trees |
-| Maintainer (Matt) | Answers the open questions below, before the story each belongs to starts; watches the first uv pull request after 21.2 |
+| Maintainer (Matt) | Decides what happens to the open uv pull request #185; watches the first uv pull request after 21.2; reviews ADR-16 decision 1 |
 
 **Decided by the maintainer before planning (Matt, 2026-11-17), not open:** the five decisions as listed in section 1, and the fourteen beads.
 
-**Open questions for the maintainer.** Each has a default; a story follows it unless he answers otherwise.
+**Open questions for the maintainer.** Answered 2026-11-17: all ten follow the defaults.
 
-1. **`VS_LOG_LEVEL` against the run-time debug switch (ADR-4 decision 3; Story 21.3).** Default: `VS_LOG_LEVEL` sets the level at start-up and wins over `VS_DEBUG` there; turning debug logging on in the UI still sets DEBUG, and turning it off returns to `VS_LOG_LEVEL` (or INFO when unset). Alternative: `VS_LOG_LEVEL` always wins and the switch changes only the output format, which makes the switch do nothing visible when the variable is set.
-2. **Is the start-up error for an invalid `VS_LOG_LEVEL` marked as breaking? (ADR-4 consequences; Story 21.3)** Default: no. The setting did nothing until now and no file in the repository sets it; the release note and README say that an invalid value stops start-up. Alternative: mark the commit breaking (`feat(api)!`), which puts it under Breaking Changes.
-3. **The remove dialog on an error and while it waits (ADR-6 decisions 3 and 4; Story 21.4).** Default: on an error the dialog stays open with "Remove" enabled again (one toast), like the server uninstall dialog; while the request runs, Cancel is disabled and Escape is ignored. Alternative: close the dialog on an error, as today, and rely on the toast.
-4. **The four other actions that show two toasts (ADR-7 decision 2; Story 21.4).** Default: fix all five in Story 21.4 (mod install from `VSS-oc28`, and server install, uninstall, restart and the webhook setting found in planning). Alternative: fix only the mod install and leave the others as they are.
-5. **Description typography by hand, not by the plugin (ADR-11 decisions 3 and 6; Story 21.6).** Default: rules under `.mod-description` with theme tokens, no new dependency. Alternative: add `@tailwindcss/typography` (a new dev dependency; its `prose-invert` palette would still need overrides for the light theme).
-6. **The sidebar preference (ADR-14; Story 21.8).** Default: three values (`auto`, `expanded`, `collapsed`); with `auto` the sidebar is collapsed from 768 to 1023px; an explicit choice wins at every width; an old stored `false` is read as `auto` (so a user who had expanded by choice gets the tablet default once), an old `true` as `collapsed`; UI Preferences offers the three values. Alternatives: keep the boolean and never collapse by width for a browser that has a cookie (the default would then reach only new browsers); or remember a choice per width range.
-7. **Exceptions to the 1280px width (ADR-15 decisions 3 and 4; Story 21.8).** Default: the two console pages use the full width; the mod browser is capped and keeps its four columns (cards about 308px wide at 1920px where they are about 416px today). Alternative: leave the mod browser uncapped and give it more columns on wide screens, which is a larger change.
-8. **Prettier's options and what it covers (ADR-1 decisions 2 to 4 and 8; Story 21.1).** Default: `singleQuote`, `printWidth: 100`, `trailingComma: es5`; the shadcn files in `src/components/ui` are formatted like the rest; Markdown and `index.html` are not covered; `just lint-web` becomes the format check (its `tsc` run duplicated `just typecheck-web`) and CI's `web` job gains the step. Alternatives: `trailingComma: all` (Prettier's default; 265 files instead of 242 before ignores), or leaving `src/components/ui` out (23 fewer files, two styles in the tree).
-9. **The two tables on phones (ADR-13 decisions 1 and 2; Story 21.7).** Default: Scheduled Jobs as cards below 1024px; the Version table hides its Channel column below 640px and shows the channel under the version. Alternative: hide columns in both and accept that Scheduled Jobs still scrolls at 320px.
-10. **Pull-ins (below).** Default: `VSS-q38r` into Story 21.4; `VSS-koo1` not now.
+1. **`VS_LOG_LEVEL` against the run-time debug switch (ADR-4 decision 3; Story 21.3).** Default: `VS_LOG_LEVEL` sets the level at start-up and wins over `VS_DEBUG` there; turning debug logging on in the UI still sets DEBUG, and turning it off returns to `VS_LOG_LEVEL` (or INFO when unset). Alternative: `VS_LOG_LEVEL` always wins and the switch changes only the output format, which makes the switch do nothing visible when the variable is set. *Confirmed (Matt, 2026-11-17): the switch on gives DEBUG, and off returns to `VS_LOG_LEVEL`.*
+2. **Is the start-up error for an invalid `VS_LOG_LEVEL` marked as breaking? (ADR-4 consequences; Story 21.3)** Default: no. The setting did nothing until now and no file in the repository sets it; the release note and README say that an invalid value stops start-up. Alternative: mark the commit breaking (`feat(api)!`), which puts it under Breaking Changes. *Confirmed (Matt, 2026-11-17): not marked breaking.*
+3. **The remove dialog on an error and while it waits (ADR-6 decisions 3 and 4; Story 21.4).** Default: on an error the dialog stays open with "Remove" enabled again (one toast), like the server uninstall dialog; while the request runs, Cancel is disabled and Escape is ignored. Alternative: close the dialog on an error, as today, and rely on the toast. *Confirmed (Matt, 2026-11-17): on an error the dialog stays open with Remove enabled again; Cancel and Escape are blocked while the request is pending.*
+4. **The four other actions that show two toasts (ADR-7 decision 2; Story 21.4).** Default: fix all five in Story 21.4 (mod install from `VSS-oc28`, and server install, uninstall, restart and the webhook setting found in planning). Alternative: fix only the mod install and leave the others as they are. *Confirmed (Matt, 2026-11-17): all five hooks are fixed, and the TanStack `onError` rule is added to `project-context.md`.*
+5. **Description typography by hand, not by the plugin (ADR-11 decisions 3 and 6; Story 21.6).** Default: rules under `.mod-description` with theme tokens, no new dependency. Alternative: add `@tailwindcss/typography` (a new dev dependency; its `prose-invert` palette would still need overrides for the light theme). *Confirmed (Matt, 2026-11-17): hand-written description styles, no typography plugin.*
+6. **The sidebar preference (ADR-14; Story 21.8).** Default: three values (`auto`, `expanded`, `collapsed`); with `auto` the sidebar is collapsed from 768 to 1023px; an explicit choice wins at every width; an old stored `false` is read as `auto` (so a user who had expanded by choice gets the tablet default once), an old `true` as `collapsed`; UI Preferences offers the three values. Alternatives: keep the boolean and never collapse by width for a browser that has a cookie (the default would then reach only new browsers); or remember a choice per width range. *Confirmed (Matt, 2026-11-17): the three-value preference; an old `true` maps to `collapsed`, an old `false` to `auto`.*
+7. **Exceptions to the 1280px width (ADR-15 decisions 3 and 4; Story 21.8).** Default: the two console pages use the full width; the mod browser is capped and keeps its four columns (cards about 308px wide at 1920px where they are about 416px today). Alternative: leave the mod browser uncapped and give it more columns on wide screens, which is a larger change. *Confirmed (Matt, 2026-11-17): the console pages are exempt from the 1280px cap; the mod browser is capped.*
+8. **Prettier's options and what it covers (ADR-1 decisions 2 to 4 and 8; Story 21.1).** Default: `singleQuote`, `printWidth: 100`, `trailingComma: es5`; the shadcn files in `src/components/ui` are formatted like the rest; Markdown and `index.html` are not covered; `just lint-web` becomes the format check (its `tsc` run duplicated `just typecheck-web`) and CI's `web` job gains the step. Alternatives: `trailingComma: all` (Prettier's default; 265 files instead of 242 before ignores), or leaving `src/components/ui` out (23 fewer files, two styles in the tree). *Confirmed (Matt, 2026-11-17): Prettier as in ADR-1, the shadcn files included, `just lint-web` becomes the format check.*
+9. **The two tables on phones (ADR-13 decisions 1 and 2; Story 21.7).** Default: Scheduled Jobs as cards below 1024px; the Version table hides its Channel column below 640px and shows the channel under the version. Alternative: hide columns in both and accept that Scheduled Jobs still scrolls at 320px. *Confirmed (Matt, 2026-11-17): Scheduled Jobs becomes cards below 1024px; the Version table hides Channel below 640px.*
+10. **Pull-ins (below).** Default: `VSS-q38r` into Story 21.4; `VSS-koo1` not now. *Answered (Matt, 2026-11-17): `VSS-q38r` goes into Story 21.4, with the uninstall dialog's Escape guard folded into its first task to stay at six tasks; `VSS-koo1` is not pulled in.*
 
-**Other open beads that share files with this epic (proposed, not added):**
+**Other open beads that share files with this epic** (proposed by the planner; answered by Matt, 2026-11-17: `VSS-q38r` pulled in, `VSS-koo1` not):
 
 | Bead | Shares | Recommendation |
 |---|---|---|
-| `VSS-q38r` (UI-097, size-s) Browse cards keep the old game version's badges after the installed version changes | `web/src/hooks/use-server-status.ts`: the fix invalidates the browse queries in `useInstallServer` and `useUninstallServer`, the hooks Story 21.4 edits for the toasts | Pull into Story 21.4. The story already has six tasks, so the uninstall dialog's Escape guard would be folded into the first task to keep the limit. One more bead closed |
-| `VSS-koo1` (API-094, size-s) Content-Security-Policy follow-ups | Its second half (description media the policy blocks) is in `web/src/lib/mod-description.ts`, which Story 21.6 edits | Not now. Each item needs a policy decision (allow, strip or replace), which is security work for its own story, not polish |
+| `VSS-q38r` (UI-097, size-s) Browse cards keep the old game version's badges after the installed version changes | `web/src/hooks/use-server-status.ts`, which Story 21.4 edits for the toasts | Pulled into Story 21.4 (Matt, 2026-11-17): it is a child of `VSS-syuj`, its task, FR286 and ADR-16 are in the plan, and the uninstall dialog's Escape guard is folded into the story's first task to keep six tasks |
+| `VSS-koo1` (API-094, size-s) Content-Security-Policy follow-ups | Its second half (description media the policy blocks) is in `web/src/lib/mod-description.ts`, which Story 21.6 edits | Not now. Each item needs a policy decision (allow, strip or replace), which is security work for its own story, not polish. Not pulled in (Matt, 2026-11-17) |
 
 Seen and not proposed, because they share no file with a story: `VSS-2bp` (favicon; web polish, but `index.html` and `public/` only), `VSS-7z3` (read-only game settings for a Monitor key), `VSS-o8s` (file browser paths with a slash), `VSS-9jv` (interval fields).
 
@@ -998,7 +1033,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2bp` (favic
 3. `main.py:170` does not set the log level, it logs a derived string; the level is set in `config.py:312-325`. ADR-4 names the right place, and the log line is corrected.
 4. `VS_DEBUG` is parsed twice with different rules (`on` is true for the settings and false for logging); Story 21.3 uses one.
 5. `project-context.md` describes `VS_LOG_LEVEL` as working, and does not contain the mutation `onError` rule that the code comments rely on; Stories 21.3 and 21.4 correct both.
-6. Four more hooks show two toasts on failure (server install, uninstall, restart; the webhook setting); Story 21.4 fixes them with the bead's one (open question 4).
+6. Four more hooks show two toasts on failure (server install, uninstall, restart; the webhook setting); Story 21.4 fixes them with the bead's one (confirmed, Matt, 2026-11-17).
 7. The server uninstall dialog, the model for the remove dialog, closes on Escape while its request runs; Story 21.4 guards it.
 8. The Version page sorts versions with the same fault as `VSS-qxxo`, and its "newer" mark puts `rc.12` before `rc.2`; Story 21.5 uses the one comparison everywhere.
 9. `VersionTable` sets no `aria-sort="none"` on unsorted sortable columns, and the phone navigation sheet's close button has the fault of `VSS-nuef`; Story 21.5 covers both.
@@ -1008,6 +1043,7 @@ Seen and not proposed, because they share no file with a story: `VSS-2bp` (favic
 13. A stored collapsed sidebar is shown icon-only inside the 256px phone sheet (by reading the code); Story 21.8 confirms and fixes it.
 14. The mod browser grid never has more than four columns, so the cap does not reduce its columns as `VSS-alx` feared; it narrows the cards. ADR-15 records the numbers.
 15. Admin listings may also show a `.json` file link that leaves the data directory (the same shortcut as for directories); Story 21.3 tests files and directories.
+16. Found when `VSS-q38r` was pulled in: the server install request succeeds when the installation starts, not when it ends, so the bead's suggestion (invalidate the browse queries after the install mutation) would fetch the cards while the old version is still installed. ADR-16 uses the installed version in the server status as the trigger, and refreshes the mod detail, compatibility and update status queries as well, which have the same five-minute fault.
 
 **Seen and left alone, with the reason (no bead filed):**
 
@@ -1017,9 +1053,9 @@ Seen and not proposed, because they share no file with a story: `VSS-2bp` (favic
 4. A redesign of mutation error handling around a `MutationCache` handler (ADR-7 decision 4).
 5. More mod browser columns on very wide screens (ADR-15 decision 3).
 6. The web still has no ESLint. Prettier is what the maintainer decided; a linter is a separate decision.
-7. Pull request #185 (uv 0.13.9) is open under the current rule with both halves; it can be merged before or after Story 21.2.
+7. Pull request #185 (uv 0.13.9) is open under the current rule with both halves. Merging or closing it is the maintainer's call; no story acts on it, and Story 21.2's text says so.
 
-**Planned net bead change:** closed 14 (the beads the maintainer picked). Opened 1 (the epic bead `VSS-syuj`, which closes with the epic). Filed from planning: none. Net: 14 fewer open beads, from 32 open before the epic to 18 after it (17 if `VSS-q38r` is pulled in).
+**Planned net bead change (after the pull-in was approved):** closed 15 (the 14 beads the maintainer picked and the pull-in `VSS-q38r`). Opened 1 (the epic bead `VSS-syuj`, which closes with the epic). Filed from planning: none. Net: 15 fewer open beads, from 32 open before the epic to 17 after it.
 
 **Success criteria:**
 
@@ -1027,21 +1063,21 @@ Seen and not proposed, because they share no file with a story: `VSS-2bp` (favic
 - `renovate.json` validates; the uv rule has no hold override and `RELEASING.md` explains the red first day; a digest refresh of a Dockerfile image is committed as `chore(container)`
 - `VS_LOG_LEVEL=warning` gives WARNING-level logs, an invalid value stops start-up naming the setting, and with it unset nothing changes
 - The three config viewer cases of `VSS-wv0w` answer as ADR-5 says, for both roles
-- The remove dialog stays open until its own mod's DELETE has succeeded and stays open on an error; each of the five failing actions shows one toast
+- The remove dialog stays open until its own mod's DELETE has succeeded and stays open on an error; each of the five failing actions shows one toast; the browse cards are fetched again when the server status reports another game version
 - `1.0.0-rc.2 < 1.0.0-rc.12 < 1.0.0` in both tables; sortable headers carry `aria-sort`; close buttons measure 44px
 - The mod detail page has no sideways scroll at 320px, descriptions show headings, lists and links in both themes, and every new-tab link says so
 - Tab buttons measure 44px below 1024px; the arrow key bead is closed with a fix or with evidence; the two tables fit at 320px; every page has measurements
 - A fresh browser at 900px has a collapsed sidebar, a stored choice wins, and content is at most 1280px wide except on the console pages
-- Each of the 14 in-scope beads is closed with an AAR by its story
+- Each of the 15 in-scope beads is closed with an AAR by its story
 - `just check` and CI pass throughout
 
 ## Checklist Record
 
 | Section | Result |
 |---|---|
-| 1. Trigger and context | [x] 1.1 trigger: five maintainer decisions after Epic 20 and fourteen beads he chose. [x] 1.2 type: one bug (`VSS-vt4`), twelve web polish tasks, one API task, and five decisions on tooling, configuration and behaviour. [x] 1.3 evidence: section 1 and the ADR file |
+| 1. Trigger and context | [x] 1.1 trigger: five maintainer decisions after Epic 20 and fourteen beads he chose, and one related bead pulled in on his approval. [x] 1.2 type: one bug (`VSS-vt4`), twelve web polish tasks, one API task, and five decisions on tooling, configuration and behaviour. [x] 1.3 evidence: section 1 and the ADR file |
 | 2. Epic impact | [x] 2.1 no current epic is blocked. [x] 2.2 add one epic. [x] 2.3 no remaining epic changes. [x] 2.4 nothing made obsolete except one line of Story 20.7's Renovate rule and Epic 20 ADR-1 decision 7. [x] 2.5 no resequencing; order inside Epic 21 is set |
-| 3. Artifact conflicts | [x] 3.1 PRD: FR260-FR285 added, MVP unaffected. [x] 3.2 architecture: new Epic 21 ADRs. [x] 3.3 UX spec: no text change; two of its rules are built and one exception is recorded in ADR-15. [!] 3.4 CI: one new step in the `web` job; one new dev dependency; one setting starts to work and can stop start-up when invalid |
+| 3. Artifact conflicts | [x] 3.1 PRD: FR260-FR286 added, MVP unaffected. [x] 3.2 architecture: new Epic 21 ADRs. [x] 3.3 UX spec: no text change; two of its rules are built and one exception is recorded in ADR-15. [!] 3.4 CI: one new step in the `web` job; one new dev dependency; one setting starts to work and can stop start-up when invalid |
 | 4. Path forward | [x] 4.1 Direct Adjustment: viable. [x] 4.2 Rollback: not viable. [x] 4.3 MVP Review: not needed. [x] 4.4 selected Option 1 |
 | 5. Proposal components | [x] 5.1 to 5.5: sections 1 to 5 |
-| 6. Review and handoff | [x] 6.1 scope approved before planning; the five decisions are Matt's (2026-11-17). [!] 6.2, 6.3 ten open questions with defaults are waiting for the maintainer; the planner's ADRs (ADR-5 and ADR-7 to ADR-15, and parts of ADR-1, ADR-3, ADR-4 and ADR-6) have not been reviewed yet. [x] 6.4 handoff in section 5 |
+| 6. Review and handoff | [x] 6.1 scope approved before planning; the five decisions are Matt's (2026-11-17). [x] 6.2, 6.3 the ten open questions were answered by Matt on 2026-11-17 and are written in; ADR-16 decision 1 (the trigger for `VSS-q38r`) is the planner's reading of the pull-in and has not been reviewed yet. [x] 6.4 handoff in section 5 |
