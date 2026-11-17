@@ -1,6 +1,6 @@
 # Story 19.7: E2E Runs in CI
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR228-FR230, Epic 19 ADR-14 (and ADR-5 decision 8). Bead: VSS-wenx (TOOLS-007, task, P4, size-m). Last story of Epic 19, stacked on Story 19.6 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning) and must be re-checked at implementation time: Story 19.2 adds the `/config.js` helper and its no-key spec, Story 19.3 adds the policy spec, and Stories 19.1 and 19.2 edit the compose files and the README. Tests, tooling and CI only: no API source change, no web source change, no API contract change, no new dependency, no release note. -->
 
@@ -31,49 +31,49 @@ so that **a change that breaks the page is caught before it is merged**.
 
 <!-- Commit per task: type(story-19.7/task-N): ... with type test, ci, build, chore or docs. No feat, fix or perf: nothing here is visible to an admin, so nothing may reach the release notes. The order differs from the epic's task list in one place: the recipe (Task 3) comes before the tagging (Task 4), because the tagging is decided by running each spec against the stack the recipe starts. -->
 
-- [ ] Task 1: Every spec gets its key through the Story 19.2 helper, and the dead `localStorage` scripts go + test (AC: 9) (`VSS-wenx`)
-  - [ ] 1.1: New `scripts/tests/test-e2e-ci.sh` (style of `scripts/tests/test-docker-context.sh`, `lib.sh` helpers `pass`, `fail`, `assert_eq`, `finish`). First assertion, red first: `grep -rn "localStorage.setItem" web/e2e api/tests/e2e` finds nothing. `scripts/tests/run.sh` picks up `test-*.sh` by itself. Later tasks add assertions to this file
-  - [ ] 1.2: Remove the 17 `page.addInitScript(... localStorage.setItem('apiKey', apiKey) ...)` blocks from the fifteen specs (Dev Notes "Inventory", column "Init scripts"), with the comments that describe them (for example `terminal.spec.ts:28-29`)
-  - [ ] 1.3: Replace the six hand-written `/config.js` answers with the helper: `layout-widths.spec.ts:104-109`, `mod-detail-media.spec.ts:101-106`, `settings-desktop-layout.spec.ts:40-45`, `settings-empty-values.spec.ts:48-53`, `settings-as-saved.spec.ts:42-47`, `monitor-password-redaction.spec.ts:45-50` (`usePageKey`, which takes the key as an argument and is called with the Monitor key at `:108`). Keep what else those functions do (`readOnly` also refuses every write, `:110-117`)
-  - [ ] 1.4: The twelve specs that relied on the stack's own `/config.js` call the helper with the Admin key before their first `page.goto`. Use the helper exactly as Story 19.2 shipped it (name, file, signature). Do not write a second helper and do not copy its body into a spec
-  - [ ] 1.5: `api/tests/e2e/conftest.py`: delete the unused `authenticated_page` fixture (`:81-94`), which sets the same dead `localStorage` key, and fix the two docstrings that name a recipe that does not exist (`just docker-start` at `:56` and `:61` is `just docker start`)
-  - [ ] 1.6: `cd web && bunx playwright test --list` still lists every test (127 at b6ae2f2 plus the tests of Stories 19.2 and 19.3) with no load error. Then `git restore web/playwright-report web/test-results` (Dev Notes "Tracked report files")
+- [x] Task 1: Every spec gets its key through the Story 19.2 helper, and the dead `localStorage` scripts go + test (AC: 9) (`VSS-wenx`)
+  - [x] 1.1: New `scripts/tests/test-e2e-ci.sh` (style of `scripts/tests/test-docker-context.sh`, `lib.sh` helpers `pass`, `fail`, `assert_eq`, `finish`). First assertion, red first: `grep -rn "localStorage.setItem" web/e2e api/tests/e2e` finds nothing. `scripts/tests/run.sh` picks up `test-*.sh` by itself. Later tasks add assertions to this file
+  - [x] 1.2: Remove the 17 `page.addInitScript(... localStorage.setItem('apiKey', apiKey) ...)` blocks from the fifteen specs (Dev Notes "Inventory", column "Init scripts"), with the comments that describe them (for example `terminal.spec.ts:28-29`)
+  - [x] 1.3: Replace the six hand-written `/config.js` answers with the helper: `layout-widths.spec.ts:104-109`, `mod-detail-media.spec.ts:101-106`, `settings-desktop-layout.spec.ts:40-45`, `settings-empty-values.spec.ts:48-53`, `settings-as-saved.spec.ts:42-47`, `monitor-password-redaction.spec.ts:45-50` (`usePageKey`, which takes the key as an argument and is called with the Monitor key at `:108`). Keep what else those functions do (`readOnly` also refuses every write, `:110-117`)
+  - [x] 1.4: The twelve specs that relied on the stack's own `/config.js` call the helper with the Admin key before their first `page.goto`. Use the helper exactly as Story 19.2 shipped it (name, file, signature). Do not write a second helper and do not copy its body into a spec
+  - [x] 1.5: `api/tests/e2e/conftest.py`: delete the unused `authenticated_page` fixture (`:81-94`), which sets the same dead `localStorage` key, and fix the two docstrings that name a recipe that does not exist (`just docker-start` at `:56` and `:61` is `just docker start`)
+  - [x] 1.6: `cd web && bunx playwright test --list` still lists every test (127 at b6ae2f2 plus the tests of Stories 19.2 and 19.3) with no load error. Then `git restore web/playwright-report web/test-results` (Dev Notes "Tracked report files")
 
-- [ ] Task 2: The `serverconfig.json` fixture and the server status stub + test (AC: 5, 11)
-  - [ ] 2.1: `web/e2e/fixtures/serverconfig.json` (Dev Notes "The fixture"): a copy of `api/src/vintagestory_api/templates/serverconfig-template.json` with four values changed. Add to `scripts/tests/test-e2e-ci.sh`, red first: the file parses as JSON (`yq` is in `mise.toml`), `ServerName` is `E2E Fixture Server`, `ServerDescription` and `Ip` are `null`, `Password` is `e2e-fixture-password`
-  - [ ] 2.2: In the module that holds Story 19.2's key helper, add a function that makes a stack without a game server look installed to the page (Dev Notes "The server status stub"). It rewrites the answer only when the real state is `not_installed`
-  - [ ] 2.3: Call it in the set-up of every spec whose tests open a page behind the installed check: `/game-server/settings`, `/game-server/mods/**`, `/game-server/console`. That is every spec except `file-browser-navigation` (it opens `/config` only). Include the specs of Stories 19.2 and 19.3 where they open such a page
-  - [ ] 2.4: Update the header comment of each spec that says it needs "a game server installed" only for the page to render (`settings-desktop-layout.spec.ts:16`, `settings-empty-values.spec.ts:14-15`, `monitor-password-redaction.spec.ts:19-20`, `layout-widths.spec.ts:30-31`): it now needs a `serverconfig.json`, which the seeded stack and a stack with a game server both have
+- [x] Task 2: The `serverconfig.json` fixture and the server status stub + test (AC: 5, 11)
+  - [x] 2.1: `web/e2e/fixtures/serverconfig.json` (Dev Notes "The fixture"): a copy of `api/src/vintagestory_api/templates/serverconfig-template.json` with four values changed. Add to `scripts/tests/test-e2e-ci.sh`, red first: the file parses as JSON (`yq` is in `mise.toml`), `ServerName` is `E2E Fixture Server`, `ServerDescription` and `Ip` are `null`, `Password` is `e2e-fixture-password`
+  - [x] 2.2: In the module that holds Story 19.2's key helper, add a function that makes a stack without a game server look installed to the page (Dev Notes "The server status stub"). It rewrites the answer only when the real state is `not_installed`
+  - [x] 2.3: Call it in the set-up of every spec whose tests open a page behind the installed check: `/game-server/settings`, `/game-server/mods/**`, `/game-server/console`. That is every spec except `file-browser-navigation` (it opens `/config` only). Include the specs of Stories 19.2 and 19.3 where they open such a page
+  - [x] 2.4: Update the header comment of each spec that says it needs "a game server installed" only for the page to render (`settings-desktop-layout.spec.ts:16`, `settings-empty-values.spec.ts:14-15`, `monitor-password-redaction.spec.ts:19-20`, `layout-widths.spec.ts:30-31`): it now needs a `serverconfig.json`, which the seeded stack and a stack with a game server both have
 
-- [ ] Task 3: `just test-e2e-ci`: one command that starts the seeded stack, runs the untagged tests and removes the stack + test (AC: 1, 2, 5, 7, 8, 12)
-  - [ ] 3.1: New `scripts/e2e-ci.sh` (Dev Notes "The stack the recipe starts" has the steps and the reasons). Add it to the ShellCheck list in the `lint-scripts` recipe (`Justfile:143`)
-  - [ ] 3.2: `Justfile`, in the TESTING section after `test-e2e-web` (`:59-91`): `test-e2e-ci *ARGS:` runs `mise exec -- ./scripts/e2e-ci.sh {{ARGS}}`, and `install-e2e-browsers:` runs `mise exec -C web -- bunx playwright install --with-deps chromium` and `mise exec -C api -- uv run playwright install chromium`. One comment line above each, as the other recipes have. `test-e2e-web` and `test-e2e-api` do not change (AC 8)
-  - [ ] 3.3: `web/playwright.config.ts`: when `process.env.CI` is set the reporter is `[['list'], ['html']]`, otherwise `'html'` as today (`:23`), so the job log names each failing test. Correct the header comment (`:6-12`): the stack may have no game server. Nothing else in the config changes (`forbidOnly`, `retries`, `workers` at `:20-22` and `baseURL` at `:27` already suit CI)
-  - [ ] 3.4: Add to `scripts/tests/test-e2e-ci.sh`: the script and `web/e2e/README.md` name the same three tags; the script defines both keys as constants and never expands a `VS_API_KEY*` variable it did not set itself
-  - [ ] 3.5: Run `just install-e2e-browsers` once, then `just test-e2e-ci`. It will fail on the tests Task 4 tags or repairs. Confirm the container is gone afterwards (`docker ps -a --filter name=vintagestory-manager-e2e` is empty) and that the dev stack, if it was running, is untouched
+- [x] Task 3: `just test-e2e-ci`: one command that starts the seeded stack, runs the untagged tests and removes the stack + test (AC: 1, 2, 5, 7, 8, 12)
+  - [x] 3.1: New `scripts/e2e-ci.sh` (Dev Notes "The stack the recipe starts" has the steps and the reasons). Add it to the ShellCheck list in the `lint-scripts` recipe (`Justfile:143`)
+  - [x] 3.2: `Justfile`, in the TESTING section after `test-e2e-web` (`:59-91`): `test-e2e-ci *ARGS:` runs `mise exec -- ./scripts/e2e-ci.sh {{ARGS}}`, and `install-e2e-browsers:` runs `mise exec -C web -- bunx playwright install --with-deps chromium` and `mise exec -C api -- uv run playwright install chromium`. One comment line above each, as the other recipes have. `test-e2e-web` and `test-e2e-api` do not change (AC 8)
+  - [x] 3.3: `web/playwright.config.ts`: when `process.env.CI` is set the reporter is `[['list'], ['html']]`, otherwise `'html'` as today (`:23`), so the job log names each failing test. Correct the header comment (`:6-12`): the stack may have no game server. Nothing else in the config changes (`forbidOnly`, `retries`, `workers` at `:20-22` and `baseURL` at `:27` already suit CI)
+  - [x] 3.4: Add to `scripts/tests/test-e2e-ci.sh`: the script and `web/e2e/README.md` name the same three tags; the script defines both keys as constants and never expands a `VS_API_KEY*` variable it did not set itself
+  - [x] 3.5: Run `just install-e2e-browsers` once, then `just test-e2e-ci`. It will fail on the tests Task 4 tags or repairs. Confirm the container is gone afterwards (`docker ps -a --filter name=vintagestory-manager-e2e` is empty) and that the dev stack, if it was running, is untouched
 
-- [ ] Task 4: Tag the specs after running each against the seeded stack, repair `terminal.spec.ts`, and record what runs in CI (AC: 4, 6, 7, 8, 13)
-  - [ ] 4.1: Start from Dev Notes "Inventory". Tag with Playwright's `tag` option on a `test.describe` or on a single test, and add a one-line reason as a comment next to each tag
-  - [ ] 4.2: `just test-e2e-ci` decides. An untagged test that fails there gets the tag for what it needs, or a `page.route` stub when it needs one answer and the test is about the page (Dev Notes "When an untagged test fails"). A test never gets a tag to hide a failure that is a bug. Stop and ask the maintainer if a test fails for a reason that is none of the three tags
-  - [ ] 4.3: `terminal.spec.ts` (Dev Notes "terminal.spec.ts"): confirm that all 8 tests fail at the base commit on any stack, then move the spec to `/game-server/console`
-  - [ ] 4.4: The four settings specs (AC 6): record per test whether it passed on the seeded stack. The inventory expects all 15 to pass and to carry no tag
-  - [ ] 4.5: Run the full suite once against the dev stack with a game server installed, `just test-e2e-web` (AC 8), and record passed, failed and skipped. The real-install specs restore what they install (their snapshot guards are unchanged). Do not start or stop the game server. Compare `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/config/api` before and after and record that they are equal
-  - [ ] 4.6: Record in the Dev Agent Record the output of `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"` as a count per spec, and the same for each tag with `--grep`. The two totals add up to the whole suite
+- [x] Task 4: Tag the specs after running each against the seeded stack, repair `terminal.spec.ts`, and record what runs in CI (AC: 4, 6, 7, 8, 13)
+  - [x] 4.1: Start from Dev Notes "Inventory". Tag with Playwright's `tag` option on a `test.describe` or on a single test, and add a one-line reason as a comment next to each tag
+  - [x] 4.2: `just test-e2e-ci` decides. An untagged test that fails there gets the tag for what it needs, or a `page.route` stub when it needs one answer and the test is about the page (Dev Notes "When an untagged test fails"). A test never gets a tag to hide a failure that is a bug. Stop and ask the maintainer if a test fails for a reason that is none of the three tags
+  - [x] 4.3: `terminal.spec.ts` (Dev Notes "terminal.spec.ts"): confirm that all 8 tests fail at the base commit on any stack, then move the spec to `/game-server/console`
+  - [x] 4.4: The four settings specs (AC 6): record per test whether it passed on the seeded stack. The inventory expects all 15 to pass and to carry no tag
+  - [x] 4.5: Run the full suite once against the dev stack with a game server installed, `just test-e2e-web` (AC 8), and record passed, failed and skipped. The real-install specs restore what they install (their snapshot guards are unchanged). Do not start or stop the game server. Compare `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/config/api` before and after and record that they are equal
+  - [x] 4.6: Record in the Dev Agent Record the output of `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"` as a count per spec, and the same for each tag with `--grep`. The two totals add up to the whole suite
 
-- [ ] Task 5: The `e2e` job in `.github/workflows/ci.yml` + lint (AC: 1, 2, 3, 10)
-  - [ ] 5.1: Add the job after `docker` (`ci.yml:54-66`). Dev Notes "The job" has the steps, the pins and the reasons
-  - [ ] 5.2: Add to `scripts/tests/test-e2e-ci.sh`: `ci.yml` has an `e2e` job with `timeout-minutes`, and `ci.yml` contains no `secrets.` reference. The existing assertion in `test-docker-context.sh:19-22` already fails on an action that is not pinned by commit
-  - [ ] 5.3: `just lint-workflows`, `just lint-scripts` and `just test-scripts` pass
+- [x] Task 5: The `e2e` job in `.github/workflows/ci.yml` + lint (AC: 1, 2, 3, 10)
+  - [x] 5.1: Add the job after `docker` (`ci.yml:54-66`). Dev Notes "The job" has the steps, the pins and the reasons
+  - [x] 5.2: Add to `scripts/tests/test-e2e-ci.sh`: `ci.yml` has an `e2e` job with `timeout-minutes`, and `ci.yml` contains no `secrets.` reference. The existing assertion in `test-docker-context.sh:19-22` already fails on an action that is not pinned by commit
+  - [x] 5.3: `just lint-workflows`, `just lint-scripts` and `just test-scripts` pass
 
-- [ ] Task 6: Documentation (AC: 4, 7)
-  - [ ] 6.1: New `web/e2e/README.md`, short: what each tag means with one example spec, the rule that a test with no tag needs only the stack `just test-e2e-ci` starts, how to add a tag, the two ways to run (`just test-e2e-ci` for the CI set on a throwaway container, `just test-e2e-web` for everything against the dev stack), the helper and the status stub in two sentences, the fixture and why its password is set
-  - [ ] 6.2: `README.md` "End-to-end tests" (`:109-115`): replace the raw `mise exec` line (`:112`) with `just install-e2e-browsers`, add `just test-e2e-ci`, and link `web/e2e/README.md`
-  - [ ] 6.3: `CLAUDE.md` command list (Testing block): one line for `just test-e2e-ci`
+- [x] Task 6: Documentation (AC: 4, 7)
+  - [x] 6.1: New `web/e2e/README.md`, short: what each tag means with one example spec, the rule that a test with no tag needs only the stack `just test-e2e-ci` starts, how to add a tag, the two ways to run (`just test-e2e-ci` for the CI set on a throwaway container, `just test-e2e-web` for everything against the dev stack), the helper and the status stub in two sentences, the fixture and why its password is set
+  - [x] 6.2: `README.md` "End-to-end tests" (`:109-115`): replace the raw `mise exec` line (`:112`) with `just install-e2e-browsers`, add `just test-e2e-ci`, and link `web/e2e/README.md`
+  - [x] 6.3: `CLAUDE.md` command list (Testing block): one line for `just test-e2e-ci`
 
 - [ ] Task 7: Quality gate and review hand-off (AC: all)
-  - [ ] 7.1: `just check` passes. `just test-e2e-ci` passes twice in a row on a clean checkout of the branch. The diff adds no lint or type suppression, no `cast`, no `test.skip`, `test.fixme` or `test.only`, and no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/` or `web/test-results/`
-  - [ ] 7.2: `git grep -n "localStorage.setItem" -- web/e2e api/tests/e2e` prints nothing (AC 9)
-  - [ ] 7.3: Story status `review` and `just sprint set 19-7-e2e-runs-in-ci review`
+  - [x] 7.1: `just check` passes. `just test-e2e-ci` passes twice in a row on a clean checkout of the branch. The diff adds no lint or type suppression, no `cast`, no `test.skip`, `test.fixme` or `test.only`, and no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/` or `web/test-results/`
+  - [x] 7.2: `git grep -n "localStorage.setItem" -- web/e2e api/tests/e2e` prints nothing (AC 9)
+  - [x] 7.3: Story status `review` and `just sprint set 19-7-e2e-runs-in-ci review`
   - [ ] 7.4: The controller pushes the branch and opens the pull request (the dev agent does not push or open it). CI runs only on pull requests that target `main` and on pushes to `main` (`ci.yml:3-8`), so while this branch is stacked on Story 19.6's branch a pull request against that branch runs nothing. The controller either opens the pull request against `main` once 19.6 is merged, or starts the run by hand with `gh workflow run ci.yml --ref <branch>` (`workflow_dispatch` is on, `ci.yml:8`). The story is not done until the `E2E tests` job has passed on this branch
   - [ ] 7.5: Record the run URL, the job's duration and the number of tests it ran in the Dev Agent Record (AC 14). If the job fails, fix the cause on the branch and wait for a green run. Do not raise the retries, widen a tag or lengthen the job's timeout to get one
   - [ ] 7.6: PR link on `VSS-wenx`. The PR description says: no API contract change, no release note, the count of tests that run in CI and the count per tag, and the decisions listed in Dev Notes "Decisions for the maintainer"
@@ -376,14 +376,70 @@ Each is written into the story and can be reversed in review:
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Inventory at the start (branch base 1025367, after Stories 19.1-19.6): `bunx playwright test --list` gave 149 tests in 23 files, not the story's 127 in 18. Added since b6ae2f2: `no-api-key` 5 (19.2), `content-security-policy` 6 (19.3), `file-browser-monitor-note` 5 (19.1), `mod-file-refusals` 3 (19.4), `mod-database-urls` 3 (19.6). Init scripts: 17 in 15 specs, as the story says. Hand-written `/config.js` answers: 7, not 6; Story 19.1's `file-browser-monitor-note.spec.ts` had its own `usePageKey` too.
+- First `just test-e2e-ci` (after Task 3, before tagging): 102 passed, 46 failed, 1 did not run; API E2E 3 passed. The failures: the expected `@moddb` and `@game-server` tests, the 8 `terminal.spec.ts` tests, and 3 `content-security-policy` tests (below).
+- `terminal.spec.ts` at the base commit (`git show 1025367:web/e2e/terminal.spec.ts`, run with `just test-e2e-ci e2e/terminal.spec.ts`, then restored): 8 failed, as predicted (`/terminal` renders the 404 route; no "Terminal page" element).
+- Story 19.3's `content-security-policy.spec.ts` on the seeded stack: (1) the Browse page logged two 502s (`/mods/gameversions`, `/mods/tags`, the mod database is unreachable) and (2) the Version page logged a 503 (`/versions`, the vendor's API is unreachable): Dev Notes case 2, stubbed with `page.route` in `prepare`. (3) "the console socket and the log stream connect" counted the disabled "No log files available" menu item as a log file and waited for a log socket that never comes: case 5, a test bug; it now counts enabled items only (`getByRole('menuitem', { disabled: false })`), so on a stack with no log file it takes its existing "not exercised" branch.
+- Final CI set (`just test-e2e-ci`, twice in a row on the clean branch): 113 passed (18.3 s and 17.9 s), API E2E 3 passed each time. With `CI=true` (one worker, retries 2, list + html reporter): "Running 113 tests using 1 worker", 113 passed in 1.9 min. After every run `docker ps -a --filter name=vintagestory-manager-e2e` was empty and `vintagestory-manager-dev` was untouched.
+- Task 4.5, full suite on the dev stack (`just docker restart` first; game server installed, not running; no VintagestoryServer process before or after). Run 1: 147 passed, 1 failed, 1 skipped. The failure, `mod-detail-bad-data` "Back to Browse on a failed mod..." (`@moddb`), was `route.fetch: socket hang up (ECONNRESET)` inside the new status stub, so the stub now tries a failed fetch once more (commit 1c1615e). Run 2 (with the retry): 147 passed, 1 failed, 1 skipped. The failure, `mod-browse-state` "the Browse tab keeps search..." (`@moddb`), timed out waiting for a live mod detail page (`mod-detail-back`, 30 s test timeout); not in the CI set and not reproduced. The skip in both runs is `mod-install-release` "a plain install of carryon..." (`@moddb @install`), which skips itself when carryon is already installed on the stack. `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/config/api` before and after each run: equal. `just test-e2e-web` stops the dev stack at its end; it was started again with `just docker start` after each run.
+- `just check`: passed. API 3334 passed; Pyright 0 errors, 3 warnings (VSS-1ar); web 3349 passed, 4 skipped (VSS-hnl); scripts all green (`test-e2e-ci.sh` 17/17). `just lint-workflows`, `just lint-scripts` passed.
+- Task 4.6, `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"`: 113 tests in 15 files. Per spec: browse-game-version 4, content-security-policy 6, file-browser-monitor-note 5, installed-mods-phone 4, installed-status 2, layout-widths 54, mod-database-urls 3, mod-detail-media 4, mod-file-refusals 3, monitor-password-redaction 5, no-api-key 5, settings-as-saved 3, settings-desktop-layout 5, settings-empty-values 2, terminal 8. `--grep @moddb`: 31 in 10 files (browse-game-version 1, install-file-conflict 2, installed-mod-any-modid 3, installed-status 2, mod-browse-name-sort 3, mod-browse-state 7, mod-detail-bad-data 2, mod-detail-media 1, mod-install-release 6, mods-navigation 4). `--grep @game-server`: 5 (file-browser-navigation). `--grep @install`: 3 (installed-status 1, mod-install-release 2), all also `@moddb`. 113 + 31 + 5 = 149, the whole suite.
 
 ### Completion Notes List
 
 - Story created 2026-11-16 (create-story, non-interactive) and validated against the create-story checklist. Prototypes, discarded: the `tag` option with `--grep-invert` on two specs (`playwright test --list`), the `e2e` job appended to `ci.yml` (`just lint-workflows` passed), and `scripts/e2e-ci.sh` (ShellCheck passed). No container was started and no E2E test was run, so the inventory's "Expected" column is a prediction from reading the specs and the web source.
+- Task 1: the 17 dead `localStorage` init scripts are gone from 15 specs, each replaced by `serveConfigKey(page, API_KEY)` from `web/e2e/config-js.ts` (Story 19.2's helper, unchanged). The seven hand-written `/config.js` answers use the helper too: `readOnly` in `layout-widths` and `mod-detail-media` (still refuses every write), the three settings specs (the comment keeps why the key must be Admin), and `usePageKey` in `monitor-password-redaction` and `file-browser-monitor-note`, removed in favour of `serveConfigKey(page, <key>)` with the same key at each call. `no-api-key.spec.ts` waits for `load` instead of the deprecated `networkidle` (19.2 review L-2): the no-key screen mounts nothing that could call the API later. `api/tests/e2e/conftest.py`: `authenticated_page` and its now unused `Page` import removed, `just docker-start` corrected to `just docker start` twice. `git grep -n "localStorage.setItem" -- web/e2e api/tests/e2e` prints nothing.
+- Task 2: `web/e2e/fixtures/serverconfig.json` is the template with exactly the four changes of the Dev Notes table (`diff` shows lines 2, 4, 20). `config-js.ts` now also exports `FIXTURE_GAME_VERSION = '1.22.7'` and `pretendServerInstalled(page)`, the stub of the Dev Notes with a declared body type; it rewrites only a `not_installed` answer and passes any other through. It is called next to the key helper in 19 specs: the 17 the story lists plus `mod-file-refusals` and `mod-database-urls` (19.4, 19.6). Not in `file-browser-navigation`, `file-browser-monitor-note` (both `/config` only), `no-api-key` (no key, or `/`) or `content-security-policy` (it already stubs the status as installed). Four header comments now say the spec needs a `serverconfig.json`.
+- Task 3: `scripts/e2e-ci.sh` follows the Dev Notes steps. Additions: `docker create --platform linux/amd64`; `unset VS_API_KEY` before the tests, so no developer key from `.env` reaches the test processes; the API E2E tests run with `VS_DATA_DIR` set to a temporary directory that the trap removes, so importing the app touches neither `dev/` nor `./data`. The script ends with `if ((failed)); then exit 1; fi` because ShellCheck 0.11 reported the trap handler as never invoked (SC2329) when the last line was `exit "$failed"`. `--with-deps` in `install-e2e-browsers` installs nothing extra on macOS.
+- Task 4: tags as the inventory predicted, with a one-line reason next to each. `terminal.spec.ts` now opens `/game-server/console` with the key helper and the status stub; it keeps 8 tests. Dropped as the story directs: `getByLabel('Terminal page')` and its `flex`/`h-full` classes. The styling test now checks the Console page's own layout (`console-page` has `flex-col` and `h-[calc(100vh-80px)]`), so no test was deleted. The heading is checked with `getByRole('heading', { level: 1, name: 'Server Console' })`, the status checks are scoped to `console-panel`, the sidebar link is "Console" in the navigation, and `waitForTimeout(1000)` is replaced by `page.waitForEvent('websocket', ...)`. None of the 8 needed `@game-server`. The four settings specs (AC 6): all 15 tests passed on the seeded stack and carry no tag; `settings-empty-values` test 1 ran (Description and IP Address are `null`), not skipped; `monitor-password-redaction` ran its password-not-leaked assertions because the fixture sets a password.
+- Task 5: the job as in the Dev Notes, with two comments. No `needs: docker`; the measured time is not known until the first CI run.
+- Task 6: `web/e2e/README.md`, `README.md` "End-to-end tests" (raw `mise exec` line replaced, `just test-e2e-ci` and the link added) and one line in `CLAUDE.md`.
+- Deviations: the inventory counts (see Debug Log); `pretendServerInstalled` retries one failed fetch (Task 4.5); the CSP spec got three stubs and a test fix instead of only stubs; the styling test in `terminal.spec.ts` was retargeted rather than emptied.
+- Left for the controller and maintainer: 7.4 (push, PR or `gh workflow run ci.yml --ref story/19-7-e2e-runs-in-ci`), 7.5 (record the `E2E tests` run URL, duration and test count, AC 14) and 7.6 (PR description and the link on `VSS-wenx`). This run was told not to push, open PRs or change beads. No API contract change; no file under `api/src/` or `web/src/` changed.
 
 ### File List
+
+- `.github/workflows/ci.yml` (modified)
+- `CLAUDE.md` (modified)
+- `Justfile` (modified)
+- `README.md` (modified)
+- `api/tests/e2e/conftest.py` (modified)
+- `scripts/e2e-ci.sh` (new)
+- `scripts/tests/test-e2e-ci.sh` (new)
+- `web/playwright.config.ts` (modified)
+- `web/e2e/README.md` (new)
+- `web/e2e/config-js.ts` (modified)
+- `web/e2e/fixtures/serverconfig.json` (new)
+- `web/e2e/browse-game-version.spec.ts` (modified)
+- `web/e2e/content-security-policy.spec.ts` (modified)
+- `web/e2e/file-browser-monitor-note.spec.ts` (modified)
+- `web/e2e/file-browser-navigation.spec.ts` (modified)
+- `web/e2e/install-file-conflict.spec.ts` (modified)
+- `web/e2e/installed-mod-any-modid.spec.ts` (modified)
+- `web/e2e/installed-mods-phone.spec.ts` (modified)
+- `web/e2e/installed-status.spec.ts` (modified)
+- `web/e2e/layout-widths.spec.ts` (modified)
+- `web/e2e/mod-browse-name-sort.spec.ts` (modified)
+- `web/e2e/mod-browse-state.spec.ts` (modified)
+- `web/e2e/mod-database-urls.spec.ts` (modified)
+- `web/e2e/mod-detail-bad-data.spec.ts` (modified)
+- `web/e2e/mod-detail-media.spec.ts` (modified)
+- `web/e2e/mod-file-refusals.spec.ts` (modified)
+- `web/e2e/mod-install-release.spec.ts` (modified)
+- `web/e2e/mods-navigation.spec.ts` (modified)
+- `web/e2e/monitor-password-redaction.spec.ts` (modified)
+- `web/e2e/no-api-key.spec.ts` (modified)
+- `web/e2e/settings-as-saved.spec.ts` (modified)
+- `web/e2e/settings-desktop-layout.spec.ts` (modified)
+- `web/e2e/settings-empty-values.spec.ts` (modified)
+- `web/e2e/terminal.spec.ts` (modified)
+- `_bmad-output/implementation-artifacts/19-7-e2e-runs-in-ci.md` (modified)
 
 ## Change Log
 
 - 2026-11-16: Story 19.7 created and validated (ready-for-dev).
+- 2026-11-16: Tasks 1-6 and 7.1-7.3 implemented (dev-story); status review. CI run (7.4-7.6) pending with the controller.
