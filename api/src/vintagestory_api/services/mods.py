@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 import structlog
 
@@ -188,14 +189,19 @@ class ModOperationInProgressError(Exception):
         )
 
 
-class ModFileConflictError(Exception):
-    """Raised when an install's file name is already in use (Story 18.2, Epic 18 ADR-4)."""
+ModFileOperation = Literal["install", "enable", "disable", "change the version of"]
+"""The mod operations that place or rename a file, as their messages name them."""
 
-    def __init__(self, slug: str, filename: str) -> None:
+
+class ModFileConflictError(Exception):
+    """Raised when a name a mod operation would create is taken (Epic 19 ADR-8)."""
+
+    def __init__(self, slug: str, filename: str, *, operation: ModFileOperation) -> None:
         self.slug = slug
         self.filename = filename
+        self.operation = operation
         super().__init__(
-            f"Cannot install '{slug}': a file named {filename} "
+            f"Cannot {operation} '{slug}': a file named {filename} "
             "already exists in the mods directory."
         )
 
@@ -342,6 +348,35 @@ class ModService:
         """Raise ModOperationInProgressError if an operation holds this mod's lock."""
         if self._lock_key(mod_id) in self._busy:
             raise ModOperationInProgressError(mod_id)
+
+    def _refuse_taken_names(
+        self,
+        slug: str,
+        names: tuple[str, ...],
+        own: str | None,
+        operation: ModFileOperation,
+    ) -> None:
+        """Raise ModFileConflictError when a name an operation will create is taken (ADR-8).
+
+        Compares with casefold() against the mods directory listing (not probed, so a name
+        that differs only in case and a dangling symlink count on every volume) and the
+        state's keys. `own` (the mod's current file, None for an install) is never "taken".
+        Working files (.vsm-tmp, .vsm-bak, old .tmp/.bak) are never one of `names`, so they
+        never conflict (Epic 19 ADR-9 decision 8). The error names the entry in the way as
+        it is spelled in the directory, or else in the state.
+        """
+        taken: dict[str, str] = {}
+        for key in self._state_manager.filenames():
+            taken.setdefault(key.casefold(), key)
+        mods_dir = self._state_manager.mods_dir
+        if mods_dir.is_dir():
+            for path in mods_dir.iterdir():
+                taken[path.name.casefold()] = path.name
+        own_key = None if own is None else own.casefold()
+        for name in names:
+            key = name.casefold()
+            if key != own_key and key in taken:
+                raise ModFileConflictError(slug, taken[key], operation=operation)
 
     @contextmanager
     def _hold(self, mod_id: str) -> Generator[None]:
@@ -1209,7 +1244,8 @@ class ModService:
             ModAlreadyInstalledError: If the mod (the requested slug, the install mod ID
                 or the archive's mod ID) is already installed.
             ModFileConflictError: If the download's file name, or its .disabled form, is
-                already in the mods directory or the mod state (Epic 18 ADR-4).
+                already in the mods directory or the mod state, ignoring case (Epic 18
+                ADR-4, Epic 19 ADR-8).
             ApiModNotFoundError: If the mod doesn't exist in the database.
             ModVersionNotFoundError: If no release of the mod ID has that version.
             ModReleaseNotDownloadableError: If the release to install has no file.
@@ -1271,8 +1307,9 @@ class ModService:
         """Copy a downloaded archive into the mods directory, import it and save state.
 
         Refuses before writing anything when the download's file name, or its .disabled
-        form, is already in the mods directory or the mod state (Epic 18 ADR-4), so an
-        install never replaces another mod's file and its cleanup never removes one.
+        form, is already in the mods directory or the mod state, names compared ignoring
+        case (Epic 18 ADR-4, Epic 19 ADR-8), so an install never replaces another mod's
+        file and its cleanup never removes one.
 
         Synchronous on purpose: `install_mod` checks the archive's mod ID just before this,
         and no other operation may run between that check and the state save.
@@ -1281,13 +1318,7 @@ class ModService:
             ModFileConflictError: The file name, or its .disabled form, is in use.
         """
         name = download_result.filename
-        mods_dir = self._state_manager.mods_dir
-        for candidate in (name, f"{name}.disabled"):
-            if (
-                (mods_dir / candidate).exists(follow_symlinks=False)
-                or self._state_manager.get_mod(candidate) is not None
-            ):
-                raise ModFileConflictError(slug, candidate)
+        self._refuse_taken_names(slug, (name, f"{name}.disabled"), None, "install")
 
         # Check compatibility with game version
         compatibility = check_compatibility(download_result.release, self.game_version() or "")

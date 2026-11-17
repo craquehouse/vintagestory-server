@@ -168,6 +168,14 @@ class ModStateManager:
         """
         return list(self._state.values())
 
+    def filenames(self) -> list[str]:
+        """Get the file names the state holds (its keys), as `get_mod` looks them up.
+
+        Returns:
+            List of the state's file names.
+        """
+        return list(self._state)
+
     def set_mod_state(self, filename: str, state: ModState) -> None:
         """Set or update mod state.
 

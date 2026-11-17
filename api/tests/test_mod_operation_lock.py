@@ -717,8 +717,8 @@ class TestInstallReleasesTheLock:
         assert service.busy_mod_ids == frozenset()
 
 
-def mock_foo_zip(modid: str, *, readable: bool = True) -> None:
-    """Lookup and download of `modid` 1.0.0, whose release file is named `Foo.zip`.
+def mock_foo_zip(modid: str, *, readable: bool = True, filename: str = "Foo.zip") -> None:
+    """Lookup and download of `modid` 1.0.0, whose release file is named `filename`.
 
     With `readable=False` the archive has no modinfo.json.
     """
@@ -731,7 +731,7 @@ def mock_foo_zip(modid: str, *, readable: bool = True) -> None:
                     "assetid": 2,
                     "releases": [
                         {"modversion": "1.0.0", "modidstr": modid, "fileid": 20,
-                         "filename": "Foo.zip", "tags": ["1.22.7"]},
+                         "filename": filename, "tags": ["1.22.7"]},
                     ],
                 },
             },
@@ -885,3 +885,80 @@ class TestInstallRefusesAFileNameInUse:
         assert state_of(service, "moda") == other_state
         assert service.state_manager.get_mod("Foo.zip") is None
         assert service.busy_mod_ids == frozenset()
+
+
+class TestFileNamesIgnoreCase:
+    """Story 19.4 (FR220, Epic 19 ADR-8): an install compares file names ignoring case.
+
+    The checks list the mods directory instead of probing a name, so they hold on a
+    case-sensitive volume (CI) and a case-insensitive one (macOS) alike.
+    """
+
+    @respx.mock
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("enabled", [True, False], ids=["enabled", "disabled"])
+    @pytest.mark.parametrize("release", ["foo.zip", "FOO.ZIP"])
+    async def test_another_mods_file_in_other_case_is_untouched(
+        self, tmp_path: Path, enabled: bool, release: str
+    ) -> None:
+        service = make_service(tmp_path)
+        other = install_existing(service, "moda", "1.0.0", "Foo.zip", enabled=enabled)
+        other_bytes = other.read_bytes()
+        other_state = state_of(service, "moda")
+        files_before = mod_files(service)
+        mock_foo_zip("modb", filename=release)
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        in_use = "Foo.zip" if enabled else "Foo.zip.disabled"
+        assert raised.value.filename == in_use
+        assert raised.value.operation == "install"
+        assert str(raised.value) == (
+            f"Cannot install 'modb': a file named {in_use} already exists in the mods directory."
+        )
+        assert other.read_bytes() == other_bytes
+        assert state_of(service, "moda") == other_state
+        assert mod_files(service) == files_before
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert saved_slugs(service) == ["moda"]
+        assert service.busy_mod_ids == frozenset()
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_state_entry_in_other_case_without_a_file_is_a_name_in_use(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        install_existing(service, "moda", "1.0.0", "Foo.zip").unlink()
+        entry_before = service.state_manager.get_mod("Foo.zip")
+        mock_foo_zip("modb", filename="foo.zip")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert service.state_manager.get_mod("Foo.zip") == entry_before
+        assert mod_files(service) == []
+        assert service.state_manager.get_mod_by_slug("modb") is None
+        assert saved_slugs(service) == ["moda"]
+
+    @respx.mock
+    @pytest.mark.asyncio
+    async def test_a_dangling_symlink_in_other_case_is_a_name_in_use(
+        self, tmp_path: Path
+    ) -> None:
+        service = make_service(tmp_path)
+        mods_dir = service.state_manager.mods_dir
+        mods_dir.mkdir(parents=True)
+        link = mods_dir / "Foo.zip"
+        link.symlink_to(tmp_path / "missing-target.zip")
+        mock_foo_zip("modb", filename="foo.zip")
+
+        with pytest.raises(ModFileConflictError) as raised:
+            await service.install_mod("modb")
+
+        assert raised.value.filename == "Foo.zip"
+        assert link.is_symlink()
+        assert mod_files(service) == ["Foo.zip"]
+        assert service.state_manager.list_mods() == []

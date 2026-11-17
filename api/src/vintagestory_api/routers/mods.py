@@ -743,7 +743,7 @@ async def install_mod(
         HTTPException: 404 if specific version not found
         HTTPException: 409 if mod is already installed
         HTTPException: 409 if a file with the download's name (or its .disabled form) is
-            already in the mods directory or the mod state
+            already in the mods directory or the mod state, ignoring letter case
         HTTPException: 409 if another operation on this mod is in progress
         HTTPException: 422 if the release to install has no downloadable file
         HTTPException: 502 if mod database API is unavailable
