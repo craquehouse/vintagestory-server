@@ -1,6 +1,6 @@
 # Story 19.4: Mod Files Are Never Overwritten
 
-Status: review
+Status: done
 
 <!-- Implements FR218-FR223, Epic 19 ADR-8, ADR-9 and ADR-11. Beads: VSS-52fy (API-085), VSS-40ja (API-082, bug), VSS-macf (API-083), VSS-yhmt (API-091, bug), VSS-uoxl (API-092; stays open after this story and is closed with Story 19.5), VSS-n0qv (API-084). Stories run in order 19.1 to 19.7, each stacked on the previous. Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ equal the code the ADRs cite at 048fea9, shifted by Story 18.2's lines) and must be re-checked at implementation time: Stories 19.2 and 19.3 rework the start-up in main.py (app factory, one settings object) and the router test fixtures that build the app. API change, web unit test pins and one E2E spec; no web source change. No new dependencies. -->
 
@@ -487,8 +487,26 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - web/src/hooks/use-version-change-flow.test.tsx (modified)
 - _bmad-output/implementation-artifacts/19-4-mod-files-are-never-overwritten.md (modified)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `e4c67c2..2551f85`, then a re-review of the fixes `2551f85..f93e8ce`
+**Outcome:** Changes requested → resolved → Approve
+
+**Summary:** All 19 ACs met. The shared name check, the 409 mappings, the cache re-key, eviction one level down, stale temp cleanup, the web pins and the lifespan order were found sound. No `await` between check and rename, the old flat cache removal cannot reach outside `cache/mods`, and recovery targets are built from `iterdir()` names. One HIGH data-safety defect in the start-up recovery was reproduced against the branch. Reviewer ran `just test-api` (3181 passed), `just test-web` (3349 passed, 4 skipped), `just lint` and `just typecheck`; nothing under `dev/`. E2E was not re-run by the reviewer (no Docker access).
+
+### Action Items
+
+- [x] [High] HIGH-1 recovery deleted a kept-aside original (the only copy of that mod) when another mod's file or state entry spelled the same name in another letter case. Reproduced with a pre-19.4 state `Foo.zip` -> moda, `foo.zip` -> modb and modb's `foo.zip.vsm-bak`; the second-order variant had two backups that differ only in case. Fixed in 5441b2c. A backup is deleted only when exactly one state key matches its name ignoring case, the entry belongs to the backup's own mod, and that mod's file holds the entry's version. A restore replaces only files of the same mod. Anything else keeps the backup and logs `mod_backup_kept` with `in_the_way=`. New tests are red on the old code. The two-backups test needs a case-sensitive volume: it was red/green on a case-sensitive disk image and runs in full on CI's Ubuntu job.
+- [x] [Low] LOW-2 the lifespan caught only `OSError` from `prepare_mod_files()`. Fixed in b55bb51: any `Exception` is logged as `mod_files_startup_failed`, and start-up continues; tested with `OSError` and `RuntimeError`.
+- [x] [Low] LOW-1 `prepare_mod_files()` uses the process settings via `get_mod_service()`, not the factory's. It is fine today and is now documented in its docstring and in Dev Notes for Story 19.5 (f93e8ce).
+- [x] [Nit] the cache temp-file log lines now log the path relative to the cache directory (02512fc).
+- Not changed: the missing-file check follows symlinks on purpose, so a mod file an admin symlinked in keeps working (recorded in Dev Notes). The bookkeeping commit type and the File List omission of `sprint-status.yaml` follow project convention.
+- Re-review: approve. Fourteen scenarios were reproduced against `2551f85` and HEAD on case-insensitive and case-sensitive volumes. No path deletes or overwrites a file of another mod; genuine completed changes still remove their backup; every keep path warns. `just test-api` 3185 passed, lint and typecheck clean. One accepted residual: an unreadable backup modinfo falls back to the exact-name entry (ADR-9 decision 6 verbatim).
+
 ## Change Log
 
 - 2026-11-16: Story 19.4 created and validated (ready-for-dev).
 - 2026-11-16: Tasks 1-5 and 6.1-6.3 implemented; status review. 6.4 (manual check) waits for the maintainer; 6.5's PR and bead links are left to the maintainer.
 - 2026-11-16: Code review fixes (HIGH-1, LOW-1, LOW-2, nit); status stays review.
+- 2026-11-17: Code review (GLM-5.3-Flash): changes requested (one high, two low, one nit), fixed in 5441b2c, b55bb51, 02512fc, f93e8ce; re-review approved. Status done.
