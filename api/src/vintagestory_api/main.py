@@ -312,11 +312,10 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
     )
 
     # Configure CORS middleware for cross-origin requests
-    # Origins are loaded from VS_CORS_ORIGINS environment variable (comma-separated)
+    # Origins come from the settings' VS_CORS_ORIGINS (comma-separated)
     # allow_credentials=True is required for X-API-Key header authentication.
     # This is safe because: (1) origins are controlled via VS_CORS_ORIGINS,
     # (2) we don't use cookie-based auth, and (3) API validates all requests.
-    cors_settings = Settings()
 
     # Middleware registration order note:
     # FastAPI/Starlette processes middleware in reverse registration order.
@@ -327,7 +326,7 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_settings.cors_origins.split(","),
+        allow_origins=settings.cors_origins.split(","),
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["X-API-Key", "Content-Type", "Authorization"],
@@ -358,7 +357,7 @@ def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
     api_v1.include_router(ws_token.router)
 
     # Test RBAC endpoints - only exposed in DEBUG mode for development/testing
-    if Settings().debug:
+    if settings.debug:
         api_v1.include_router(test_rbac.router)
         logger.warning(
             "test_rbac_router_enabled", message="RBAC test endpoints exposed (DEBUG mode)"

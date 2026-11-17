@@ -250,15 +250,10 @@ def load_fresh_app(*, static_dir_exists: bool) -> FastAPI:
 class TestImportTimeWiring:
     """Tests for routes that main.py only adds under certain conditions."""
 
-    @pytest.mark.parametrize(("debug", "expected_status"), [("true", 401), ("false", 404)])
-    def test_rbac_test_routes_only_exist_in_debug_mode(
-        self, monkeypatch: pytest.MonkeyPatch, debug: str, expected_status: int
-    ) -> None:
-        monkeypatch.setenv("VS_DEBUG", debug)
-
-        client = TestClient(load_fresh_app(static_dir_exists=False))
-
-        assert client.get("/api/v1alpha1/test/read").status_code == expected_status
+    def test_main_builds_no_settings_of_its_own(self) -> None:
+        # The app is built from get_settings(); the factory reads only its argument
+        # (Story 19.3). The RBAC routes both ways are in test_debug_gating.py
+        assert "Settings(" not in inspect.getsource(main_module)
 
     def test_client_routes_are_not_served_without_static_dir(self) -> None:
         client = TestClient(load_fresh_app(static_dir_exists=False))
