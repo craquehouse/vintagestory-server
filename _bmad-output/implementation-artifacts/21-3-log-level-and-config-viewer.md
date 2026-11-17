@@ -1,6 +1,6 @@
 # Story 21.3: A Working `VS_LOG_LEVEL` and Config Viewer Edge Cases
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR266-FR270, Epic 21 ADR-4 and ADR-5. Beads: VSS-wv0w (API-096); maintainer decision 3 (VS_LOG_LEVEL, Matt, 2026-11-17). Stories run in order 21.1 to 21.8, each stacked on the previous; this story touches no file under web/ and needs no other story's code (epics.md, Epic 21 "Order"). Line references were verified at 966204f (epic-21-planning; its api/ is identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time. API change and documentation only; no web source change, no E2E spec. No new dependencies. -->
 
@@ -80,37 +80,37 @@ so that **I can have quieter or more detailed logs without debug mode, and read-
 
 <!-- Each functional task includes its tests in the same commit, red first. Commit names: type(story-21.3/task-N): ...; the two fix commits and the feat commit use the release-note subjects of the change proposal (section 2) with the `api` scope, which RELEASING.md:26 shows in the release notes. -->
 
-- [ ] Task 1: `VS_LOG_LEVEL` sets the level, `VS_DEBUG` is parsed once, and the debug switch keeps its meaning + tests (AC: 1-8, 13)
-  - [ ] 1.1: `config.py` `Settings`: a `field_validator("log_level")` after `validate_csp_mode` (`:121-133`), shaped like it (Dev Notes "The validator"). The field stays `log_level: str | None = None` (`:40`); update its comment to point at Epic 21 ADR-4. A module constant `LOG_LEVELS: tuple[str, ...] = ("DEBUG", "INFO", "WARNING", "ERROR")` and the message `"VS_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR."`
-  - [ ] 1.2: `config.py` debug state (`:295-368`): delete `_read_debug_from_env` (`:301-309`); add `_configured_log_level: str | None = None` and `_current_log_level: str = "INFO"` beside `_debug_enabled` (`:297-298`); `initialize_debug_state(debug: bool, log_level: str | None) -> None` (`:312-325`) keeps its once-guard, remembers both, applies `log_level or ("DEBUG" if debug else "INFO")`; a new public `current_log_level() -> str`; `set_debug_enabled` (`:337-356`) as in Dev Notes "The switch"; `reconfigure_logging_if_changed` (`:439-475`) passes `log_level=_current_log_level`. `configure_logging` (`:371-432`) keeps its signature and body; fix its docstring's "Runtime Debug Toggle" paragraph (`:386-389`, which says it checks the `VS_DEBUG` environment variable) and the comment at `:295-296`
-  - [ ] 1.3: `main.py` lifespan (`:157-172`): `initialize_debug_state(settings.debug, settings.log_level)` (`:160`; update the comment at `:158-159`); the `api_starting` line's `log_level=current_log_level()` (`:170`); import `current_log_level` in the `config` import block (`:16-21`, alphabetical)
-  - [ ] 1.4: `api/tests/conftest.py`: after the `VS_MOD_DB_URL` pop (`:12-14`), `os.environ.pop("VS_LOG_LEVEL", None)` with a one-line comment (a developer's `.env`, loaded by mise, must not change test results; AC 13)
-  - [ ] 1.5: Tests (Dev Notes "API tests", Task 1 rows) and the rewrites in "Existing tests that change", red first
-  - [ ] 1.6: Commit `feat(api): VS_LOG_LEVEL sets the log level` (the body names Story 21.3 / task 1 and says that a value other than the four now stops start-up)
+- [x] Task 1: `VS_LOG_LEVEL` sets the level, `VS_DEBUG` is parsed once, and the debug switch keeps its meaning + tests (AC: 1-8, 13)
+  - [x] 1.1: `config.py` `Settings`: a `field_validator("log_level")` after `validate_csp_mode` (`:121-133`), shaped like it (Dev Notes "The validator"). The field stays `log_level: str | None = None` (`:40`); update its comment to point at Epic 21 ADR-4. A module constant `LOG_LEVELS: tuple[str, ...] = ("DEBUG", "INFO", "WARNING", "ERROR")` and the message `"VS_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR."`
+  - [x] 1.2: `config.py` debug state (`:295-368`): delete `_read_debug_from_env` (`:301-309`); add `_configured_log_level: str | None = None` and `_current_log_level: str = "INFO"` beside `_debug_enabled` (`:297-298`); `initialize_debug_state(debug: bool, log_level: str | None) -> None` (`:312-325`) keeps its once-guard, remembers both, applies `log_level or ("DEBUG" if debug else "INFO")`; a new public `current_log_level() -> str`; `set_debug_enabled` (`:337-356`) as in Dev Notes "The switch"; `reconfigure_logging_if_changed` (`:439-475`) passes `log_level=_current_log_level`. `configure_logging` (`:371-432`) keeps its signature and body; fix its docstring's "Runtime Debug Toggle" paragraph (`:386-389`, which says it checks the `VS_DEBUG` environment variable) and the comment at `:295-296`
+  - [x] 1.3: `main.py` lifespan (`:157-172`): `initialize_debug_state(settings.debug, settings.log_level)` (`:160`; update the comment at `:158-159`); the `api_starting` line's `log_level=current_log_level()` (`:170`); import `current_log_level` in the `config` import block (`:16-21`, alphabetical)
+  - [x] 1.4: `api/tests/conftest.py`: after the `VS_MOD_DB_URL` pop (`:12-14`), `os.environ.pop("VS_LOG_LEVEL", None)` with a one-line comment (a developer's `.env`, loaded by mise, must not change test results; AC 13)
+  - [x] 1.5: Tests (Dev Notes "API tests", Task 1 rows) and the rewrites in "Existing tests that change", red first
+  - [x] 1.6: Commit `feat(api): VS_LOG_LEVEL sets the log level` (the body names Story 21.3 / task 1 and says that a value other than the four now stops start-up)
 
-- [ ] Task 2: Document `VS_LOG_LEVEL` (AC: 9)
-  - [ ] 2.1: `README.md` Configuration table (`:78-90`): a `VS_LOG_LEVEL` row directly after `VS_DEBUG` (`:83`), text in Dev Notes "Documentation text"
-  - [ ] 2.2: `.env.example`: a commented block after `VS_DEBUG` (`:25-30`), before `VS_CSP_MODE`, in the style of the `VS_CSP_MODE` block (`:32-39`)
-  - [ ] 2.3: `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`: a `VS_LOG_LEVEL` row after `VS_DEBUG` (`:485`); in `:488` drop the sentence saying nothing reads `Settings.log_level`
-  - [ ] 2.4: `project-context.md` "Logging Conventions" → "Configuration" (`:396-404`): replace the two bullet lists with the text in Dev Notes "Documentation text" (the `VS_LOG_LEVEL` bullet at `:400` is wrong today: nothing reads it)
-  - [ ] 2.5: Commit `docs(story-21.3/task-2): document VS_LOG_LEVEL`
+- [x] Task 2: Document `VS_LOG_LEVEL` (AC: 9)
+  - [x] 2.1: `README.md` Configuration table (`:78-90`): a `VS_LOG_LEVEL` row directly after `VS_DEBUG` (`:83`), text in Dev Notes "Documentation text"
+  - [x] 2.2: `.env.example`: a commented block after `VS_DEBUG` (`:25-30`), before `VS_CSP_MODE`, in the style of the `VS_CSP_MODE` block (`:32-39`)
+  - [x] 2.3: `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`: a `VS_LOG_LEVEL` row after `VS_DEBUG` (`:485`); in `:488` drop the sentence saying nothing reads `Settings.log_level`
+  - [x] 2.4: `project-context.md` "Logging Conventions" → "Configuration" (`:396-404`): replace the two bullet lists with the text in Dev Notes "Documentation text" (the `VS_LOG_LEVEL` bullet at `:400` is wrong today: nothing reads it)
+  - [x] 2.5: Commit `docs(story-21.3/task-2): document VS_LOG_LEVEL`
 
-- [ ] Task 3: One set of Discord hosts for redaction and for the webhook sender + tests (AC: 10, 13) (`VSS-wv0w`)
-  - [ ] 3.1: `services/game_config.py`: delete `_DISCORD_WEBHOOK_HOSTS` (`:238`); import `DISCORD_HOSTS` from `vintagestory_api.services.mod_update_alerts` (import block `:22-25`) and use it in `is_secret_value` (`:294`); its docstring (`:278-282`) names the four hosts by pointing at `DISCORD_HOSTS`. `mod_update_alerts.DISCORD_HOSTS` (`:20-22`) stays the one definition; give it a docstring saying both the sender and the redaction rule use it (Dev Notes "One set of hosts")
-  - [ ] 3.2: `services/config_files.py` module docstring (`:20-26`): "a Discord webhook URL" stays; nothing else in that file changes in this task
-  - [ ] 3.3: Tests (Dev Notes "API tests", Task 3 rows), red first
-  - [ ] 3.4: Commit `fix(api): hide Discord webhook URLs on ptb and canary hosts from read-only keys`
+- [x] Task 3: One set of Discord hosts for redaction and for the webhook sender + tests (AC: 10, 13) (`VSS-wv0w`)
+  - [x] 3.1: `services/game_config.py`: delete `_DISCORD_WEBHOOK_HOSTS` (`:238`); import `DISCORD_HOSTS` from `vintagestory_api.services.mod_update_alerts` (import block `:22-25`) and use it in `is_secret_value` (`:294`); its docstring (`:278-282`) names the four hosts by pointing at `DISCORD_HOSTS`. `mod_update_alerts.DISCORD_HOSTS` (`:20-22`) stays the one definition; give it a docstring saying both the sender and the redaction rule use it (Dev Notes "One set of hosts")
+  - [x] 3.2: `services/config_files.py` module docstring (`:20-26`): "a Discord webhook URL" stays; nothing else in that file changes in this task
+  - [x] 3.3: Tests (Dev Notes "API tests", Task 3 rows), red first
+  - [x] 3.4: Commit `fix(api): hide Discord webhook URLs on ptb and canary hosts from read-only keys`
 
-- [ ] Task 4: Listings leave out entries outside the data directory, and the path and role checks run first + tests (AC: 11, 12, 13) (`VSS-wv0w`)
-  - [ ] 4.1: `services/config_files.py` `_role_may_open` (`:223-240`): move the containment check (`:232-234`) above the Admin return (`:230-231`); docstring: nothing outside the server data directory, for any role (Epic 21 ADR-5 decision 2). `read_file` (`:349`) already refuses such a path earlier, in `_safe_path`, so reads do not change
-  - [ ] 4.2: `list_files` (`:301-347`): drop the now redundant `f.resolve().is_relative_to(base_resolved)` clause (`:342`) and the `base_resolved` local (`:337`) it used; `list_directories`' filter (`:292-296`) needs no edit (it already calls `_role_may_open`)
-  - [ ] 4.3: Remove the `serverdata_dir.exists()` shortcuts in `list_directories` (`:282-284`) and `list_files` (`:326-328`) and the then unused `serverdata_dir` locals; `_target_directory` (`:242-258`) checks the root's existence too (Dev Notes "Missing data directory"). Keep the `serverdata_dir_not_found` debug event for a missing root
-  - [ ] 4.4: Docstrings: `list_directories` and `list_files` (Returns/Raises: an empty list only for an allowed directory that does not exist; entries resolving outside the data directory are never listed); `routers/config.py` module docstring (`:26-28`) and the two listing routes (`:411-438`, `:459-490`): entries resolving outside the server data directory are not listed for any role; 403 holds whether or not the data directory exists. These docstrings are the routes' OpenAPI text
-  - [ ] 4.5: Tests (Dev Notes "API tests", Task 4 rows), red first
-  - [ ] 4.6: Commit `fix(api): leave links that point outside the data directory out of the config file listing` (the body also names the 403 correction, which the web UI never meets)
+- [x] Task 4: Listings leave out entries outside the data directory, and the path and role checks run first + tests (AC: 11, 12, 13) (`VSS-wv0w`)
+  - [x] 4.1: `services/config_files.py` `_role_may_open` (`:223-240`): move the containment check (`:232-234`) above the Admin return (`:230-231`); docstring: nothing outside the server data directory, for any role (Epic 21 ADR-5 decision 2). `read_file` (`:349`) already refuses such a path earlier, in `_safe_path`, so reads do not change
+  - [x] 4.2: `list_files` (`:301-347`): drop the now redundant `f.resolve().is_relative_to(base_resolved)` clause (`:342`) and the `base_resolved` local (`:337`) it used; `list_directories`' filter (`:292-296`) needs no edit (it already calls `_role_may_open`)
+  - [x] 4.3: Remove the `serverdata_dir.exists()` shortcuts in `list_directories` (`:282-284`) and `list_files` (`:326-328`) and the then unused `serverdata_dir` locals; `_target_directory` (`:242-258`) checks the root's existence too (Dev Notes "Missing data directory"). Keep the `serverdata_dir_not_found` debug event for a missing root
+  - [x] 4.4: Docstrings: `list_directories` and `list_files` (Returns/Raises: an empty list only for an allowed directory that does not exist; entries resolving outside the data directory are never listed); `routers/config.py` module docstring (`:26-28`) and the two listing routes (`:411-438`, `:459-490`): entries resolving outside the server data directory are not listed for any role; 403 holds whether or not the data directory exists. These docstrings are the routes' OpenAPI text
+  - [x] 4.5: Tests (Dev Notes "API tests", Task 4 rows), red first
+  - [x] 4.6: Commit `fix(api): leave links that point outside the data directory out of the config file listing` (the body also names the 403 correction, which the web UI never meets)
 
 - [ ] Task 5: Quality gate and review hand-off (AC: all)
-  - [ ] 5.1: `ruff format` on every API file this story changes (not `just format-api` on the tree); `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
+  - [x] 5.1: `ruff format` on every API file this story changes (not `just format-api` on the tree); `just check` passes; the diff adds no lint or type suppression and no `cast`; pyright stays at 0 errors and the pre-existing warnings (`VSS-1ar`); after `just test-api`, `git status --short` shows nothing under `dev/`
   - [ ] 5.2: Manual check: none required (Dev Notes "Manual check"); if the maintainer wants one, he does it
   - [ ] 5.3: Story status `review`, `just sprint set 21-3-log-level-and-config-viewer review`, PR against `main` (or the previous story's branch while its PR is open); the PR description lists "API contract changes" from this story; PR link on `VSS-wv0w`
 
@@ -359,14 +359,48 @@ None required: the lifespan tests start the real app with each combination. Chan
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Task 1 red: the new tests failed at collection (`current_log_level`, `LOG_LEVELS` not defined). Task 3 red: 6 failures (ptb/canary values not redacted, the shared-host test). Task 4 red: 9 failures (Admin directory listing showed `away`; with the data directory missing, Monitor `Playerdata` and every `../x` gave `[]`).
+- `just check` at the end: API 3460 passed, pyright 0 errors 0 warnings; web 132 files / 3307 tests passed, 0 skipped, tsc 0 errors; script tests passed. `git status --short dev/` empty after the API run.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist. A throwaway prototype of Tasks 1, 3 and 4 (validator, start-up and switch, the shared host set, containment before the Admin return, no missing-directory shortcut) was run against the whole API suite (3374 passed, the 13 failures listed in "Existing tests that change") and by hand against the edge cases, then discarded.
+- Task 1: `Settings.validate_log_level` normalises `VS_LOG_LEVEL` (strip, upper; blank is `None`) and refuses anything outside `LOG_LEVELS` with `VS_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR.`; `hide_input_in_errors` keeps the value out. `_read_debug_from_env` and the `os` import are gone; `initialize_debug_state(debug, log_level)` takes both from the settings (once-guarded) and applies `log_level or DEBUG/INFO`; `current_log_level()` is new; `set_debug_enabled` gives DEBUG on and the configured level (or INFO) off, and reports `changed` when the debug state or the level changes; `reconfigure_logging_if_changed` passes `_current_log_level`. The lifespan passes `settings.debug, settings.log_level` and `api_starting` logs `current_log_level()`. conftest pops `VS_LOG_LEVEL`.
+- Task 1 deviation (tests): `test_debug_api.py`'s autouse `reset_debug_state` fixture was rewritten with `monkeypatch` to also reset `_configured_log_level` and `_current_log_level` (the story listed it as unchanged; without the reset the `changed` answers depend on the level a previous test left), and `test_enable_debug_already_enabled` now also sets the level to DEBUG (debug on at INFO is now a change). `test_runtime_debug_toggle.py`'s `TestInitializeDebugState` and `TestSetDebugEnabled` use a `fresh_debug_state` monkeypatch fixture instead of `setup_method` with ignore comments; `TestRuntimeDebugToggleBehavior` is unchanged. No ignore comment was added.
+- Task 2: README row, `.env.example` block, `project-structure-boundaries.md` row (and the "nothing reads it" sentence dropped), `project-context.md` Logging "Configuration" replaced, with the story's text.
+- Task 3: `game_config._DISCORD_WEBHOOK_HOSTS` removed; `is_secret_value` uses `mod_update_alerts.DISCORD_HOSTS`, which has a docstring naming both users. `config_files.py`'s module docstring needed no change.
+- Task 4: `_role_may_open` checks containment before the Admin return; `list_files` lost its own containment clause; the two `serverdata_dir.exists()` shortcuts are gone and `_target_directory` checks existence after the path and role checks (root included, `serverdata_dir_not_found` kept for a missing root). Service and route docstrings updated.
+- Task 5: 5.2 left unticked: no manual check is required, and any check on the Docker stack (recreating the container) is the maintainer's. 5.3 left unticked: status and sprint status are `review`; the PR and the PR link on `VSS-wv0w` are for the orchestrator.
+- API contract changes as shipped: as listed in Dev Notes "API contract changes", including `/debug/enable` answering `changed: true` when only the level changes (`VS_DEBUG=true` with `VS_LOG_LEVEL` other than DEBUG).
 
 ### File List
+
+- `api/src/vintagestory_api/config.py`
+- `api/src/vintagestory_api/main.py`
+- `api/src/vintagestory_api/services/game_config.py`
+- `api/src/vintagestory_api/services/mod_update_alerts.py`
+- `api/src/vintagestory_api/services/config_files.py`
+- `api/src/vintagestory_api/routers/config.py`
+- `api/tests/conftest.py`
+- `api/tests/test_config.py`
+- `api/tests/test_runtime_debug_toggle.py`
+- `api/tests/test_debug_api.py`
+- `api/tests/test_main.py`
+- `api/tests/test_debug_gating.py`
+- `api/tests/test_game_config.py`
+- `api/tests/test_config_files.py`
+- `api/tests/test_routers_config.py`
+- `README.md`
+- `.env.example`
+- `project-context.md`
+- `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`
+- `_bmad-output/implementation-artifacts/21-3-log-level-and-config-viewer.md`
 
 ## Change Log
 
 - 2026-11-17: Story 21.3 created and validated (ready-for-dev).
+- 2026-11-17: Story 21.3 implemented (Tasks 1-4, quality gate); status review.
