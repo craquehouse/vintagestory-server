@@ -153,10 +153,6 @@ describe('FilterControls', () => {
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument();
   });
 
-  it.skip('handles version filter selection - DISABLED (requires API enhancement)', async () => {
-    // Game version filter disabled until API provides compatibility data
-  });
-
   it('handles mod type filter selection', async () => {
     const user = userEvent.setup();
 

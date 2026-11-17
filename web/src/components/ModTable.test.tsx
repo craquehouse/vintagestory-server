@@ -1050,11 +1050,8 @@ describe('ModTable', () => {
       });
     });
 
-    // Skip: Testing intermediate mutation loading state with React Query is unreliable.
-    // The act() wrapper required to observe isPending causes timeouts with TanStack Query.
-    // The loading state itself works in practice - this is a testing limitation.
-    it.skip('shows loading state in remove button when removing', async () => {
-      let resolveRemove: () => void;
+    it('closes the dialog at once and reports the removal when the request completes', async () => {
+      let resolveRemove: () => void = () => {};
       const removePromise = new Promise<void>((resolve) => {
         resolveRemove = resolve;
       });
@@ -1085,34 +1082,32 @@ describe('ModTable', () => {
       });
 
       const queryClient = createTestQueryClient();
-      render(<ModTable />, { wrapper: createWrapper(queryClient) });
+      const onRemoved = vi.fn();
+      render(<ModTable onRemoved={onRemoved} />, { wrapper: createWrapper(queryClient) });
 
       await waitFor(() => {
         expect(screen.getByTestId('mod-remove-smithingplus')).toBeInTheDocument();
       });
 
-      // Open dialog
       fireEvent.click(screen.getByTestId('mod-remove-smithingplus'));
 
       await waitFor(() => {
         expect(screen.getByTestId('remove-dialog-confirm')).toBeInTheDocument();
       });
 
-      // Click confirm - need act() here to ensure React processes mutation start
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
-      });
+      fireEvent.click(screen.getByTestId('remove-dialog-confirm'));
 
-      // Should show "Removing..." text
+      // The dialog closes at once; the request is still pending
+      expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
       await waitFor(() => {
-        expect(screen.getByText('Removing...')).toBeInTheDocument();
+        expect(removeFetch).toHaveBeenCalledTimes(1);
       });
+      expect(onRemoved).not.toHaveBeenCalled();
 
-      // Resolve the remove
-      resolveRemove!();
+      resolveRemove();
 
       await waitFor(() => {
-        expect(screen.queryByTestId('remove-dialog')).not.toBeInTheDocument();
+        expect(onRemoved).toHaveBeenCalledWith('smithingplus');
       });
     });
 

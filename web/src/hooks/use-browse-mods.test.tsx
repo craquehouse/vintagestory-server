@@ -243,17 +243,6 @@ describe('filterModsByFilters', () => {
     expect(result).toHaveLength(0);
   });
 
-  // Game version filter disabled - API doesn't provide version compatibility data
-  it.skip('filters by gameVersion - DISABLED (requires API enhancement)', () => {
-    // lastReleased is a timestamp, not a version string
-    // Game version compatibility would need to come from releases array
-    // which isn't included in browse endpoint
-  });
-
-  it.skip('handles mods with null lastReleased - DISABLED (requires API enhancement)', () => {
-    // Game version filtering disabled until API provides compatibility data
-  });
-
   it('combines multiple filters with AND logic', () => {
     const result = filterModsByFilters(mockMods, {
       side: 'both',
