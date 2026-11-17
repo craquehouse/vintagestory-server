@@ -96,6 +96,8 @@ just install
 
 `mise install` installs the versions pinned in [`.mise.toml`](.mise.toml): Python 3.14, uv, Bun, just, yq, git-cliff, actionlint and ShellCheck.
 
+`git blame` can skip formatting-only commits, listed in [`.git-blame-ignore-revs`](.git-blame-ignore-revs). GitHub's blame view does this by itself. Locally it needs the git setting `blame.ignoreRevsFile`, which `scripts/worktree-setup.sh` sets; in another clone run `git config blame.ignoreRevsFile ':(optional).git-blame-ignore-revs'` once (the `:(optional)` prefix keeps `git blame` working on branches without the file; on an older Git leave it out).
+
 ### Development commands
 
 Run `just` to list every recipe. Common ones:
