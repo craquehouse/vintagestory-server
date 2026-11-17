@@ -16,7 +16,9 @@ services:
     environment:
       - VS_API_KEY_ADMIN=${VS_API_KEY_ADMIN:-changeme}
       - VS_API_KEY_MONITOR=${VS_API_KEY_MONITOR:-}
-      # Key the web UI receives at runtime from /config.js; empty means the Admin key.
+      # Key the web UI receives at runtime from /config.js. The web UI gets a key only
+      # when VS_API_KEY is set; without it the page shows a set-up message. Set it in .env
+      # to the Monitor key (read-only, recommended) or the Admin key (full access).
       # Anyone who can load the web UI receives this key.
       - VS_API_KEY=${VS_API_KEY:-}
       - VS_DEBUG=${VS_DEBUG:-false}

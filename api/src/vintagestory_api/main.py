@@ -1,8 +1,8 @@
 """FastAPI application entry point."""
 
 import json
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
 
 import structlog
@@ -88,143 +88,109 @@ class CORSLoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    """Application lifespan handler for startup and shutdown."""
-    global scheduler_service
+def log_web_api_key_state(settings: Settings) -> None:
+    """Warn at start-up when the web UI's key is missing, the Admin key or has no role.
 
-    settings = Settings()
-    # Initialize debug state from VS_DEBUG env var (FR48)
-    # This must be called before any logging to ensure correct log levels
-    initialize_debug_state()
-
-    # Ensure data directories exist
-    settings.ensure_data_directories()
-    if not settings.web_api_key_has_a_role():
-        # The web UI would get 401 on every request; never log the key itself
+    Never logs the key itself (Epic 19 ADR-5).
+    """
+    state = settings.web_api_key_state()
+    if state == "not_set":
+        logger.warning(
+            "web_api_key_not_set",
+            hint=(
+                "/config.js serves no API key, so the web UI shows a set-up message. "
+                "Set VS_API_KEY to VS_API_KEY_MONITOR (read-only) or VS_API_KEY_ADMIN "
+                "(full access); anyone who can load the web UI receives that key"
+            ),
+        )
+    elif state == "admin":
+        logger.warning(
+            "web_api_key_is_admin_key",
+            hint=(
+                "Anyone who can load the web UI receives the Admin key. Set VS_API_KEY to "
+                "VS_API_KEY_MONITOR for a read-only web UI, or put the web UI behind an "
+                "authenticating proxy"
+            ),
+        )
+    elif state == "no_role":
+        # The web UI would get 401 on every request
         logger.warning(
             "web_api_key_matches_no_role",
             hint="VS_API_KEY must equal VS_API_KEY_ADMIN or VS_API_KEY_MONITOR",
         )
-    debug_enabled = is_debug_enabled()
-    logger.info(
-        "api_starting",
-        debug_mode=debug_enabled,
-        log_level="DEBUG" if debug_enabled else "INFO",
-        data_dir=str(settings.data_dir),
-    )
-
-    # Auto-start game server if enabled in API settings
-    from vintagestory_api.models.server import ServerState
-    from vintagestory_api.services.api_settings import ApiSettingsService
-    from vintagestory_api.services.server import get_server_service
-
-    api_settings_service = ApiSettingsService(settings)
-    api_settings = api_settings_service.get_settings()
-
-    if api_settings.auto_start_server:
-        logger.info("auto_start_server_enabled", auto_start=True)
-        try:
-            server_service = get_server_service()
-            # Only start if server is installed and not already running
-            status = server_service.get_server_status()
-            if status.state == ServerState.INSTALLED:
-                logger.info("auto_starting_game_server")
-                await server_service.start_server()
-            elif status.state == ServerState.NOT_INSTALLED:
-                logger.warning("auto_start_skipped", reason="server_not_installed")
-            else:
-                logger.info("auto_start_skipped", reason=f"server_state_{status.state.value}")
-        except Exception as e:
-            logger.error("auto_start_failed", error=str(e))
-    else:
-        logger.debug("auto_start_server_disabled")
-
-    # Initialize and start scheduler (after auto-start, before yield)
-    scheduler_service = SchedulerService()
-    scheduler_service.start()
-
-    # Register default periodic jobs (Story 8.0)
-    from vintagestory_api.jobs import register_default_jobs
-
-    register_default_jobs(scheduler_service)
-
-    yield
-
-    # Shutdown scheduler first (before other cleanup)
-    if scheduler_service:
-        scheduler_service.shutdown(wait=True)
-
-    # Shutdown: close any open resources
-    from vintagestory_api.services.mods import close_mod_service
-
-    await close_mod_service()
-    logger.info("api_shutting_down")
 
 
-app = FastAPI(
-    title="VintageStory Server Manager",
-    description="API for managing VintageStory dedicated game server",
-    version=__version__,
-    lifespan=lifespan,
-)
+def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+    """Return the lifespan handler of an app that runs with the given settings."""
 
-# Configure CORS middleware for cross-origin requests
-# Origins are loaded from VS_CORS_ORIGINS environment variable (comma-separated)
-# allow_credentials=True is required for X-API-Key header authentication.
-# This is safe because: (1) origins are controlled via VS_CORS_ORIGINS,
-# (2) we don't use cookie-based auth, and (3) API validates all requests.
-settings = Settings()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        """Application lifespan handler for startup and shutdown."""
+        global scheduler_service
 
-# Middleware registration order note:
-# FastAPI/Starlette processes middleware in reverse registration order.
-# Registered last = runs first. So our order is:
-# 1. CORSMiddleware (registered first, runs last for outgoing)
-# 2. CORSLoggingMiddleware (logs CORS requests)
-# 3. RequestContextMiddleware (registered last, runs FIRST to set up request_id)
+        # Initialize debug state from VS_DEBUG env var (FR48)
+        # This must be called before any logging to ensure correct log levels
+        initialize_debug_state()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["X-API-Key", "Content-Type", "Authorization"],
-    max_age=600,  # Cache preflight requests for 10 minutes
-)
+        # Ensure data directories exist
+        settings.ensure_data_directories()
+        log_web_api_key_state(settings)
+        debug_enabled = is_debug_enabled()
+        logger.info(
+            "api_starting",
+            debug_mode=debug_enabled,
+            log_level="DEBUG" if debug_enabled else "INFO",
+            data_dir=str(settings.data_dir),
+        )
 
-# Add CORS logging middleware
-app.add_middleware(CORSLoggingMiddleware)
+        # Auto-start game server if enabled in API settings
+        from vintagestory_api.models.server import ServerState
+        from vintagestory_api.services.api_settings import ApiSettingsService
+        from vintagestory_api.services.server import get_server_service
 
-# Request context middleware runs FIRST (registered last due to reverse order)
-# Sets up request_id for all log entries within the request
-app.add_middleware(RequestContextMiddleware)
+        api_settings_service = ApiSettingsService(settings)
+        api_settings = api_settings_service.get_settings()
 
-# Health endpoints at root (NOT versioned - K8s convention)
-app.include_router(health.router)
+        if api_settings.auto_start_server:
+            logger.info("auto_start_server_enabled", auto_start=True)
+            try:
+                server_service = get_server_service()
+                # Only start if server is installed and not already running
+                status = server_service.get_server_status()
+                if status.state == ServerState.INSTALLED:
+                    logger.info("auto_starting_game_server")
+                    await server_service.start_server()
+                elif status.state == ServerState.NOT_INSTALLED:
+                    logger.warning("auto_start_skipped", reason="server_not_installed")
+                else:
+                    logger.info("auto_start_skipped", reason=f"server_state_{status.state.value}")
+            except Exception as e:
+                logger.error("auto_start_failed", error=str(e))
+        else:
+            logger.debug("auto_start_server_disabled")
 
-# API v1alpha1 endpoints (versioned, auth-protected)
-api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
-api_v1.include_router(auth.router)
-api_v1.include_router(config.router)
-api_v1.include_router(console.router)
-api_v1.include_router(debug.router)
-api_v1.include_router(jobs.router)
-api_v1.include_router(metrics.router)
-api_v1.include_router(mods.router)
-api_v1.include_router(server.router)
-api_v1.include_router(versions.router)
-api_v1.include_router(ws_token.router)
+        # Initialize and start scheduler (after auto-start, before yield)
+        scheduler_service = SchedulerService()
+        scheduler_service.start()
 
-# Test RBAC endpoints - only exposed in DEBUG mode for development/testing
-if Settings().debug:
-    api_v1.include_router(test_rbac.router)
-    logger.warning("test_rbac_router_enabled", message="RBAC test endpoints exposed (DEBUG mode)")
+        # Register default periodic jobs (Story 8.0)
+        from vintagestory_api.jobs import register_default_jobs
 
-app.include_router(api_v1)
+        register_default_jobs(scheduler_service)
 
-# WebSocket endpoints (separate from api_v1 to avoid auth dependency issues)
-# WebSocket handles its own authentication via query parameter
-app.include_router(console.ws_router, prefix="/api/v1alpha1")
+        yield
+
+        # Shutdown scheduler first (before other cleanup)
+        if scheduler_service:
+            scheduler_service.shutdown(wait=True)
+
+        # Shutdown: close any open resources
+        from vintagestory_api.services.mods import close_mod_service
+
+        await close_mod_service()
+        logger.info("api_shutting_down")
+
+    return lifespan
 
 
 def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
@@ -243,8 +209,8 @@ def _resolve_frontend_file(static_root: Path, requested: str) -> Path:
     return index
 
 
-def register_frontend(target: FastAPI, static_dir: Path) -> None:
-    """Serve the built frontend from static_dir on the given app."""
+def register_frontend(target: FastAPI, static_dir: Path, settings: Settings) -> None:
+    """Serve the built frontend from static_dir on the given app, with the given settings."""
     static_root = static_dir.resolve()
 
     # Mount assets directory for JS, CSS, and other static files
@@ -258,7 +224,7 @@ def register_frontend(target: FastAPI, static_dir: Path) -> None:
     # <script> load skips CORS, so Cross-Origin-Resource-Policy stops other sites'
     # pages from including it and reading the key.
     @target.get("/config.js", include_in_schema=False)
-    async def serve_runtime_config(settings: Settings = Depends(get_settings)) -> Response:
+    async def serve_runtime_config() -> Response:
         """Serve the web UI's runtime configuration as a classic script."""
         config = json.dumps({"apiKey": settings.web_api_key})
         return Response(
@@ -278,6 +244,79 @@ def register_frontend(target: FastAPI, static_dir: Path) -> None:
         return FileResponse(_resolve_frontend_file(static_root, full_path))
 
 
-# Static file serving for frontend SPA
-if STATIC_DIR.exists():
-    register_frontend(app, STATIC_DIR)
+def create_app(settings: Settings, static_dir: Path = STATIC_DIR) -> FastAPI:
+    """Build the application for the given settings."""
+    app = FastAPI(
+        title="VintageStory Server Manager",
+        description="API for managing VintageStory dedicated game server",
+        version=__version__,
+        lifespan=lifespan_for(settings),
+    )
+
+    # Configure CORS middleware for cross-origin requests
+    # Origins are loaded from VS_CORS_ORIGINS environment variable (comma-separated)
+    # allow_credentials=True is required for X-API-Key header authentication.
+    # This is safe because: (1) origins are controlled via VS_CORS_ORIGINS,
+    # (2) we don't use cookie-based auth, and (3) API validates all requests.
+    cors_settings = Settings()
+
+    # Middleware registration order note:
+    # FastAPI/Starlette processes middleware in reverse registration order.
+    # Registered last = runs first. So our order is:
+    # 1. CORSMiddleware (registered first, runs last for outgoing)
+    # 2. CORSLoggingMiddleware (logs CORS requests)
+    # 3. RequestContextMiddleware (registered last, runs FIRST to set up request_id)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_settings.cors_origins.split(","),
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=["X-API-Key", "Content-Type", "Authorization"],
+        max_age=600,  # Cache preflight requests for 10 minutes
+    )
+
+    # Add CORS logging middleware
+    app.add_middleware(CORSLoggingMiddleware)
+
+    # Request context middleware runs FIRST (registered last due to reverse order)
+    # Sets up request_id for all log entries within the request
+    app.add_middleware(RequestContextMiddleware)
+
+    # Health endpoints at root (NOT versioned - K8s convention)
+    app.include_router(health.router)
+
+    # API v1alpha1 endpoints (versioned, auth-protected)
+    api_v1 = APIRouter(prefix="/api/v1alpha1", dependencies=[Depends(get_current_user)])
+    api_v1.include_router(auth.router)
+    api_v1.include_router(config.router)
+    api_v1.include_router(console.router)
+    api_v1.include_router(debug.router)
+    api_v1.include_router(jobs.router)
+    api_v1.include_router(metrics.router)
+    api_v1.include_router(mods.router)
+    api_v1.include_router(server.router)
+    api_v1.include_router(versions.router)
+    api_v1.include_router(ws_token.router)
+
+    # Test RBAC endpoints - only exposed in DEBUG mode for development/testing
+    if Settings().debug:
+        api_v1.include_router(test_rbac.router)
+        logger.warning(
+            "test_rbac_router_enabled", message="RBAC test endpoints exposed (DEBUG mode)"
+        )
+
+    app.include_router(api_v1)
+
+    # WebSocket endpoints (separate from api_v1 to avoid auth dependency issues)
+    # WebSocket handles its own authentication via query parameter
+    app.include_router(console.ws_router, prefix="/api/v1alpha1")
+
+    # Static file serving for frontend SPA
+    if static_dir.exists():
+        register_frontend(app, static_dir, settings)
+
+    return app
+
+
+app = create_app(get_settings())

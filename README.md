@@ -22,7 +22,7 @@ This project is developed with the assistance of AI coding tools (such as Claude
 Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with their version (`0.1.0`), their minor version (`0.1`) and `latest`. The image is built for `linux/amd64`. Pin a full version so upgrades happen only when you choose; release notes are on the [GitHub releases page](https://github.com/craquehouse/vintagestory-server/releases) and in [`CHANGELOG.md`](CHANGELOG.md).
 
 1. Download [`docker-compose.yaml`](docker-compose.yaml) and [`.env.example`](.env.example) into an empty directory, and rename `.env.example` to `.env`.
-2. In `.env`, set `VS_API_KEY_ADMIN` to a long random value (`openssl rand -hex 32`). Optionally set `VS_API_KEY_MONITOR` for read-only access.
+2. In `.env`, set `VS_API_KEY_ADMIN` to a long random value (`openssl rand -hex 32`). Optionally set `VS_API_KEY_MONITOR` for read-only access. Also set `VS_API_KEY` to the key the web UI should use (see [Security](#security)), or the web UI shows a set-up message instead of the app.
 3. In `docker-compose.yaml`, replace `:latest` with the version you want, for example `ghcr.io/craquehouse/vintagestory-server:0.1.0`.
 4. Start it:
 
@@ -34,7 +34,7 @@ Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with
 
 ### Security
 
-The web UI receives its API key from the server at runtime (`/config.js`): `VS_API_KEY` if set, otherwise the Admin key. **Anyone who can load the web UI receives that key.** Keep port 8080 on a trusted network or put it behind a reverse proxy with authentication, and terminate TLS there. Setting `VS_API_KEY` to the Monitor key gives a read-only web UI. The image itself contains no key.
+The web UI receives its API key from the server at runtime (`/config.js`): the value of `VS_API_KEY`. There is no fallback: with `VS_API_KEY` unset, the page shows what to set instead of the app. **Anyone who can load the web UI receives that key.** Set it to the Monitor key for a read-only web UI (recommended). Setting it to the Admin key means everyone who can load the page has full access, including the game server password, and the API logs a warning at every start. Keep port 8080 on a trusted network or put it behind a reverse proxy with authentication, and terminate TLS there; that is the way to use the Admin key in the page safely. The image itself contains no key.
 
 **What a Monitor key can read.** In the file manager, a Monitor key sees the configuration files in the root of the server data directory and under `ModConfig` only; saves, backups, logs and player data are for the Admin key. Values under key names that look like secrets (password, token, secret, API key, webhook and similar), `StartupCommands`, URLs that contain a user name or password, and Discord webhook URLs are shown as `[redacted]`, and a file that is not valid JSON is not shown at all. A secret stored under another key name (for example `Key1`) is not recognised, so give Monitor keys only to people you would show your mod configuration to.
 
@@ -74,7 +74,7 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 |---|---|---|
 | `VS_API_KEY_ADMIN` | Yes | Admin API key (full access) |
 | `VS_API_KEY_MONITOR` | No | Read-only API key |
-| `VS_API_KEY` | No | Key the web UI uses (default: the Admin key). Set it to the Admin or Monitor key; any other value logs a warning at start-up and the UI cannot sign in |
+| `VS_API_KEY` | For the web UI | Key the web UI uses. Unset: the web UI shows a set-up message. Set it to the Monitor key (read-only) or the Admin key (full access); any other value logs a warning at start-up and the UI cannot sign in |
 | `VS_DEBUG` | No | Verbose, human-readable logs (`false`) |
 | `VS_CORS_ORIGINS` | No | Allowed browser origins for a separately hosted UI |
 

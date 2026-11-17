@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 
 from vintagestory_api.config import Settings
 from vintagestory_api.main import register_frontend
-from vintagestory_api.middleware.auth import get_settings
 
 INDEX = "<html>SPA index</html>"
 PRIVATE = "outside the static directory"
@@ -36,7 +35,7 @@ def static_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def client(static_dir: Path) -> TestClient:
     target = FastAPI()
-    register_frontend(target, static_dir)
+    register_frontend(target, static_dir, Settings(api_key_admin="admin"))
     return TestClient(target)
 
 
@@ -77,7 +76,7 @@ class TestFrontendFiles:
         root.mkdir()
         (root / "index.html").write_text(INDEX)
         target = FastAPI()
-        register_frontend(target, root)
+        register_frontend(target, root, Settings(api_key_admin="admin"))
 
         assert_serves_index(TestClient(target), "/dashboard")
 
@@ -116,8 +115,7 @@ class TestRuntimeConfig:
 
     def _client(self, static_dir: Path, settings: Settings) -> TestClient:
         target = FastAPI()
-        register_frontend(target, static_dir)
-        target.dependency_overrides[get_settings] = lambda: settings
+        register_frontend(target, static_dir, settings)
         return TestClient(target)
 
     def test_serves_vs_api_key(self, static_dir: Path) -> None:
@@ -128,10 +126,11 @@ class TestRuntimeConfig:
         assert response.status_code == 200
         assert response.text == 'window.__VSM_CONFIG__ = {"apiKey": "web"};\n'
 
-    def test_falls_back_to_admin_key(self, static_dir: Path) -> None:
+    def test_serves_an_empty_key_when_vs_api_key_is_unset(self, static_dir: Path) -> None:
+        # No fallback to the Admin key (Epic 19 ADR-5)
         client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
-        assert client.get("/config.js").text == 'window.__VSM_CONFIG__ = {"apiKey": "admin"};\n'
+        assert client.get("/config.js").text == 'window.__VSM_CONFIG__ = {"apiKey": ""};\n'
 
     def test_key_is_json_encoded(self, static_dir: Path) -> None:
         key = 'a"b\\c</script>\u2028'
@@ -143,7 +142,7 @@ class TestRuntimeConfig:
         assert '"a\\"b' in body and "\\u2028" in body
 
     def test_is_a_never_cached_script(self, static_dir: Path) -> None:
-        client = self._client(static_dir, Settings(api_key_admin="admin"))
+        client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
         response = client.get("/config.js")
 
@@ -153,7 +152,7 @@ class TestRuntimeConfig:
 
     def test_other_sites_cannot_include_it(self, static_dir: Path) -> None:
         # A classic <script src> from another site's page skips CORS; CORP blocks it
-        client = self._client(static_dir, Settings(api_key_admin="admin"))
+        client = self._client(static_dir, Settings(api_key_admin="admin", api_key=None))
 
         response = client.get("/config.js")
 

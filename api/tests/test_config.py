@@ -146,33 +146,64 @@ class TestApiKeyValidation:
 
 
 class TestWebApiKey:
-    """The key served to the web UI at runtime (Story 15.2, Epic 15 ADR-5)."""
+    """The key served to the web UI at runtime (Story 15.2; no fallback, Epic 19 ADR-5)."""
 
     def test_uses_vs_api_key_when_set(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("VS_API_KEY", "web-key")
 
         assert Settings(api_key_admin="admin-key").web_api_key == "web-key"
 
-    def test_falls_back_to_admin_key_when_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_is_empty_when_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("VS_API_KEY", raising=False)
 
-        assert Settings(api_key_admin="admin-key").web_api_key == "admin-key"
+        assert Settings(api_key_admin="admin-key").web_api_key == ""
 
-    def test_falls_back_to_admin_key_when_blank(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_is_empty_when_blank(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("VS_API_KEY", "  ")
 
-        assert Settings(api_key_admin="admin-key").web_api_key == "admin-key"
+        assert Settings(api_key_admin="admin-key").web_api_key == ""
+
+    def test_vs_api_key_is_read_from_the_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("VS_API_KEY", raising=False)
+        assert Settings(api_key_admin="a").web_api_key == ""
+
+        monkeypatch.setenv("VS_API_KEY", "a")
+        assert Settings(api_key_admin="a").web_api_key_state() == "admin"
 
     @pytest.mark.parametrize(
-        ("web_key", "has_role"),
-        [(None, True), ("admin-key", True), ("monitor-key", True), ("other-key", False)],
+        ("web_key", "state"),
+        [
+            (None, "not_set"),
+            ("", "not_set"),
+            ("  ", "not_set"),
+            ("admin-key", "admin"),
+            ("monitor-key", "monitor"),
+            ("other-key", "no_role"),
+        ],
     )
-    def test_web_api_key_has_a_role(self, web_key: str | None, has_role: bool) -> None:
+    def test_web_api_key_state(self, web_key: str | None, state: str) -> None:
         settings = Settings(
             api_key_admin="admin-key", api_key_monitor="monitor-key", api_key=web_key
         )
 
-        assert settings.web_api_key_has_a_role() is has_role
+        assert settings.web_api_key_state() == state
+
+    def test_admin_wins_when_both_role_keys_are_equal(self) -> None:
+        settings = Settings(api_key_admin="k", api_key_monitor="k", api_key="k")
+
+        assert settings.web_api_key_state() == "admin"
+
+    def test_an_empty_monitor_key_matches_nothing(self) -> None:
+        assert (
+            Settings(api_key_admin="a", api_key_monitor="", api_key="x").web_api_key_state()
+            == "no_role"
+        )
+        assert (
+            Settings(api_key_admin="a", api_key_monitor="", api_key="").web_api_key_state()
+            == "not_set"
+        )
 
 
 class TestRemovedSettings:

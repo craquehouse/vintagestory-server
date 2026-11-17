@@ -289,7 +289,7 @@ class TestLifespanAutoStart:
         self, captured_logs: StringIO
     ) -> None:
         """Auto-start starts server when enabled and server is INSTALLED."""
-        from vintagestory_api.main import lifespan
+        from vintagestory_api.main import lifespan_for
 
         # Mock dependencies
         mock_settings = MagicMock()
@@ -320,7 +320,6 @@ class TestLifespanAutoStart:
 
         # Patch all dependencies - note that some are imported inside lifespan
         with (
-            patch("vintagestory_api.main.Settings", return_value=mock_settings),
             patch("vintagestory_api.main.initialize_debug_state"),
             patch("vintagestory_api.main.is_debug_enabled", return_value=False),
             patch(
@@ -336,7 +335,7 @@ class TestLifespanAutoStart:
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             # Execute lifespan
-            async with lifespan(test_app):
+            async with lifespan_for(mock_settings)(test_app):
                 pass
 
             # Verify auto-start was attempted
@@ -353,7 +352,7 @@ class TestLifespanAutoStart:
         self, captured_logs: StringIO
     ) -> None:
         """Auto-start skips when server is NOT_INSTALLED."""
-        from vintagestory_api.main import lifespan
+        from vintagestory_api.main import lifespan_for
 
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
@@ -382,7 +381,6 @@ class TestLifespanAutoStart:
         test_app = FastAPI()
 
         with (
-            patch("vintagestory_api.main.Settings", return_value=mock_settings),
             patch("vintagestory_api.main.initialize_debug_state"),
             patch("vintagestory_api.main.is_debug_enabled", return_value=False),
             patch(
@@ -397,7 +395,7 @@ class TestLifespanAutoStart:
             patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
-            async with lifespan(test_app):
+            async with lifespan_for(mock_settings)(test_app):
                 pass
 
             # Verify auto-start was skipped
@@ -415,7 +413,7 @@ class TestLifespanAutoStart:
         self, captured_logs: StringIO
     ) -> None:
         """Auto-start skips when server is already RUNNING."""
-        from vintagestory_api.main import lifespan
+        from vintagestory_api.main import lifespan_for
 
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
@@ -444,7 +442,6 @@ class TestLifespanAutoStart:
         test_app = FastAPI()
 
         with (
-            patch("vintagestory_api.main.Settings", return_value=mock_settings),
             patch("vintagestory_api.main.initialize_debug_state"),
             patch("vintagestory_api.main.is_debug_enabled", return_value=False),
             patch(
@@ -459,7 +456,7 @@ class TestLifespanAutoStart:
             patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
-            async with lifespan(test_app):
+            async with lifespan_for(mock_settings)(test_app):
                 pass
 
             # Verify auto-start was skipped
@@ -477,7 +474,7 @@ class TestLifespanAutoStart:
         self, captured_logs: StringIO
     ) -> None:
         """Auto-start handles errors gracefully and logs them."""
-        from vintagestory_api.main import lifespan
+        from vintagestory_api.main import lifespan_for
 
         mock_settings = MagicMock()
         mock_settings.auto_start_server = True
@@ -504,7 +501,6 @@ class TestLifespanAutoStart:
         test_app = FastAPI()
 
         with (
-            patch("vintagestory_api.main.Settings", return_value=mock_settings),
             patch("vintagestory_api.main.initialize_debug_state"),
             patch("vintagestory_api.main.is_debug_enabled", return_value=False),
             patch(
@@ -520,7 +516,7 @@ class TestLifespanAutoStart:
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
             # Should not raise - errors are caught and logged
-            async with lifespan(test_app):
+            async with lifespan_for(mock_settings)(test_app):
                 pass
 
             # Check error was logged
@@ -532,7 +528,7 @@ class TestLifespanAutoStart:
     @pytest.mark.asyncio
     async def test_auto_start_disabled(self, captured_logs: StringIO) -> None:
         """Auto-start is skipped when disabled in settings."""
-        from vintagestory_api.main import lifespan
+        from vintagestory_api.main import lifespan_for
 
         mock_settings = MagicMock()
         mock_settings.auto_start_server = False
@@ -553,7 +549,6 @@ class TestLifespanAutoStart:
         test_app = FastAPI()
 
         with (
-            patch("vintagestory_api.main.Settings", return_value=mock_settings),
             patch("vintagestory_api.main.initialize_debug_state"),
             patch("vintagestory_api.main.is_debug_enabled", return_value=False),
             patch(
@@ -564,7 +559,7 @@ class TestLifespanAutoStart:
             patch.object(jobs_module, "register_default_jobs"),
             patch("vintagestory_api.services.mods.close_mod_service", new_callable=AsyncMock),
         ):
-            async with lifespan(test_app):
+            async with lifespan_for(mock_settings)(test_app):
                 pass
 
             # Check disabled log message
