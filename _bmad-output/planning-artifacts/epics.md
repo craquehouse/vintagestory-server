@@ -7,7 +7,7 @@ inputDocuments:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added Epic 19 (6 stories) for API Security and Mod File Safety; FR205-FR230 (revised the same day: follow-ups folded in, VSS-9wv split out)'
+    description: 'Added Epic 19 (7 stories) for API Security and Mod File Safety; FR205-FR233 (revised twice the same day: follow-ups folded in, VSS-9wv split out, start-up mod state sync added as Story 19.5)'
   - date: '2026-11-16'
     description: 'Added Epic 18 (4 stories) for Mod Media and Fixes; FR194-FR204'
   - date: '2026-11-15'
@@ -437,9 +437,12 @@ This document provides the complete epic and story breakdown for vintagestory-se
 | FR225 | Epic 19 | Homepage and source URLs checked |
 | FR226 | Epic 19 | Malformed mod database bodies are 502 |
 | FR227 | Epic 19 | One shared request for the listing and for the game version list |
-| FR228 | Epic 19 | E2E job in CI against the built image |
-| FR229 | Epic 19 | E2E tags for tests CI leaves out |
+| FR228 | Epic 19 | E2E job in CI against the built image with a seeded `serverconfig.json` |
+| FR229 | Epic 19 | E2E tags for tests CI leaves out; settings specs run in CI |
 | FR230 | Epic 19 | One `/config.js` key helper, no `localStorage` key scripts |
+| FR231 | Epic 19 | Mod state reconciled with the mods directory at start-up |
+| FR232 | Epic 19 | The start-up sync skips what is not a readable mod archive and never fails start-up |
+| FR233 | Epic 19 | Note in the file browser for roles other than Admin |
 
 ## Epic List
 
@@ -1953,8 +1956,8 @@ So that **I can monitor background task status**.
 | Epic 16: UI Polish | 16.0, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 16.8 | 9 |
 | Epic 17: Mod Data Correctness and Fixes | 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 17.8 | 8 |
 | Epic 18: Mod Media and Fixes | 18.1, 18.2, 18.3, 18.4 | 4 |
-| Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6 | 6 |
-| **Total** | | **112** |
+| Epic 19: API Security and Mod File Safety | 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7 | 7 |
+| **Total** | | **113** |
 
 ---
 
@@ -5019,23 +5022,27 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 
 **Goal:** Only the Admin role, and only someone the operator chose to give the Admin key to, can read secrets or act as Admin; every page the manager serves runs under a Content-Security-Policy; no mod operation can replace or lose a mod's file; nothing the mod database sends reaches a link, an image or a 500; and the browser tests run on every pull request.
 
-**Architecture:** `architecture/epic-19-api-security-and-mod-file-safety.md` (ADR-1 to ADR-13, with the code facts at `048fea9` and the mod database facts checked on 2026-11-16). There is no preparation story. Story 19.3 confirms two browser behaviours before it settles the policy (ADR-6 decisions 7 and 12).
+**Architecture:** `architecture/epic-19-api-security-and-mod-file-safety.md` (ADR-1 to ADR-14, with the code facts at `048fea9` and the mod database facts checked on 2026-11-16). There is no preparation story. Story 19.3 confirms two browser behaviours before it settles the policy (ADR-6 decisions 7 and 12).
 
 **Revised 2026-11-17** after the maintainer's review: seven follow-up beads found in planning were folded in, and `VSS-9wv` became its own story (19.2). Six stories, eighteen beads.
 
-**Order:** 19.1, 19.2, 19.3, 19.4, 19.5, 19.6.
+**Revised again 2026-11-17:** Matt decided four observations from the first revision, and each is written into a story: the mod state is reconciled with the mods directory at start-up (new Story 19.5, so the two later stories moved down one), CI seeds a `serverconfig.json` so the settings specs run (19.7), `main.py` uses one settings object and the app can be built with chosen settings in tests (19.2 and 19.3), and the file browser tells a role other than Admin that some folders are hidden (19.1). Seven stories, eighteen beads; Story 19.5 has no bead of its own.
+
+**Order:** 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7.
 
 **Dependencies:**
 
 - Story 19.2 needs no other story's code. It comes second so the breaking change is on `main` early and the release that carries it can be prepared.
 - Story 19.3 comes after 19.2: its E2E spec loads every page with a key through the `/config.js` helper Story 19.2 adds, and both stories edit `register_frontend` in `main.py` and `config.py`.
-- Stories 19.4 and 19.5 need no other story's code. Both edit `services/mods.py` and `services/mod_api.py` in different places, so run them one after another.
-- Story 19.6 comes last: it uses Story 19.2's helper and key handling, and puts the specs of Stories 19.2 and 19.3 into CI.
+- Story 19.3 also builds on the app construction Story 19.2 introduces (ADR-5 decision 11, ADR-7 decision 6).
+- Story 19.5 comes directly after 19.4: its sync runs after 19.4's start-up recovery and relies on 19.4's working-file suffixes, and it edits the same files (`services/mod_state.py`, `services/mods.py`, the start-up in `main.py`).
+- Stories 19.4 and 19.6 need no other story's code. Both edit `services/mods.py` and `services/mod_api.py` in different places, so run them one after another.
+- Story 19.7 comes last: it uses Story 19.2's helper and key handling, and puts the specs of Stories 19.2 and 19.3 into CI.
 - Stories 19.1 and 19.2 both edit `config.py`, `.env.example` and the compose files (`VS_GAME_VERSION` in 19.1, `VS_API_KEY` in 19.2); run them one after another.
 
 **Breaking change:** Story 19.2 stops handing the Admin key to the web UI when `VS_API_KEY` is unset (ADR-5). Every deployment that does not set `VS_API_KEY` must set it when it upgrades, including the maintainer's cluster deployment, which is configured in another repository and is not changed by this epic.
 
-**Size:** Story 19.4 carries six beads, all in the mod file code. Its six tasks are at the project's limit; `create-story` should not add to them.
+**Size:** Story 19.4 carries six beads, all in the mod file code. Its six tasks are at the project's limit; `create-story` should not add to them. That is why the start-up sync is Story 19.5 and not a seventh task.
 
 ### Current State
 
@@ -5049,6 +5056,7 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 - Two mods whose releases share a file name share one cache file, and two such downloads at once write one temporary file
 - Logo, homepage and source URLs from the mod database reach `src` and `href` unchecked
 - A mod database answer that is not a JSON object makes the mod browser answer 500, and several first requests each download the whole listing
+- A mod file added or deleted by hand never reaches the Installed list: `sync_state_with_disk` exists and nothing calls it
 - The E2E specs run only on a developer's machine, and fifteen of them carry an init script that does nothing
 
 ### Target State
@@ -5058,8 +5066,9 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 - The web UI gets a key only when `VS_API_KEY` names one; the API warns when that key is the Admin key and when there is none
 - The web UI's pages are served with an enforced Content-Security-Policy and every page works under it; the API documentation pages are served only in debug mode
 - Install, enable, disable and version change refuse a taken file name with 409 `MOD_FILE_CONFLICT`, ignoring case; a missing mod file is 409 `MOD_FILE_MISSING`; start-up recovers interrupted operations; the download cache is keyed by file ID
+- The Installed list matches the mods directory after every start
 - Only checked `https` URLs leave the API, a malformed mod database answer is a 502, and cold caches are filled by one request
-- CI starts the built image and runs every E2E test that needs nothing outside it
+- CI starts the built image with a seeded `serverconfig.json` and runs every E2E test that needs nothing outside it, the settings specs included
 
 ---
 
@@ -5067,7 +5076,7 @@ So that **the list is as usable on a tablet or a small laptop as on a wide scree
 
 **Sprint key:** `19-1-secrets-stay-with-admin`
 **Beads:** `VSS-633` (API-077, bug), `VSS-sg1` (API-078, bug), `VSS-3hs2` (API-089), `VSS-ms0` (API-070)
-**FRs:** FR205, FR206, FR207, FR208, FR209
+**FRs:** FR205, FR206, FR207, FR208, FR209, FR233
 
 As an **operator who gives other people Monitor access**,
 I want **secrets and player data to reach only the Admin role**,
@@ -5141,6 +5150,12 @@ So that **read-only access stays read-only**.
 
 *(Covers FR208)*
 
+**Given** a Monitor key in the web UI
+**When** I open the file browser
+**Then** it shows the note "Some folders are only shown to Admin keys.", which names no folder and gives no count; with the Admin key, or while the role is not yet known, the note is not shown
+
+*(Covers FR233)*
+
 **Given** a deployment that still sets `VS_GAME_VERSION`
 **When** the API starts
 **Then** it starts as before; the variable is no longer a setting and is not in the compose files, `.env.example` or the worktree set-up script
@@ -5153,7 +5168,8 @@ So that **read-only access stays read-only**.
 - [ ] Recursive redaction by key name with `UNMANAGED_SECRET_KEYS`, `SECRET_KEY_FRAGMENTS` and the two value rules; replace `test_nested_password_is_unchanged` (ADR-2) (`VSS-sg1`)
 - [ ] The role's directories: `MONITOR_CONFIG_DIRECTORIES`, filtered listings and 403 on the three config file routes, checked on the resolved path (ADR-3) (`VSS-3hs2`)
 - [ ] Remove `Settings.game_version` and every `VS_GAME_VERSION` line; test that setting it is harmless; committed as `fix(docker):` (ADR-4) (`VSS-ms0`)
-- [ ] Tests for both roles with the raw response body checked; confirm the web file browser shows a Monitor only what the API lists; API documentation and README (what the Monitor role can read)
+- [ ] Web: the static note in `FileManagerPanel` for a role other than Admin, from `useAuthMe()` as `SettingsPage` does; component tests for Monitor, Admin and the loading state; confirm the file browser shows a Monitor only what the API lists (ADR-3 decision 9; Matt, 2026-11-17)
+- [ ] Tests for both roles with the raw response body checked; API documentation and README (what the Monitor role can read)
 
 ---
 
@@ -5206,6 +5222,12 @@ So that **opening the page does not hand out the Admin key**.
 
 *(Covers FR212)*
 
+**Given** the API tests
+**When** they need the app in one of the four `VS_API_KEY` states
+**Then** they build the app with those settings through the app factory, and each start-up warning is asserted both ways: logged in its state and not logged in the others
+
+*(Covers FR211)*
+
 **Given** the commit that removes the fallback
 **When** the release notes are generated with `just changelog`
 **Then** the change is listed under Breaking Changes and its line says to set `VS_API_KEY` to the Monitor or the Admin key
@@ -5214,11 +5236,12 @@ So that **opening the page does not hand out the Admin key**.
 
 **Tasks:**
 
+- [ ] `main.py`: an app factory that takes the settings, with the lifespan using the cached `get_settings()` instead of a new `Settings()` (ADR-5 decision 11; Matt, 2026-11-17)
 - [ ] `Settings.web_api_key` without the fallback, one function for the four start-up states, the two new warnings, `/config.js` with an empty key; committed as `feat(api)!:` with a `BREAKING CHANGE:` footer and the subject of ADR-5 "Release" (`VSS-9wv`)
 - [ ] Web: the "No API key configured" screen, shown before any request (ADR-5 decision 4)
 - [ ] `docker-compose.dev.yaml` default, `docker-compose.yaml` comment, `.env.example`, README (ADR-5 decisions 6 and 7)
 - [ ] E2E: one `/config.js` helper in `web/e2e/` and the empty-key spec, written to run without the mod database (ADR-5 decision 8)
-- [ ] API tests for `/config.js` and the start-up log in the four states; `just changelog` checked for the breaking entry
+- [ ] API tests for `/config.js` and the start-up log in the four states, each from an app built with those settings; `just changelog` checked for the breaking entry
 
 ---
 
@@ -5300,12 +5323,18 @@ So that **an injected script cannot run on an origin that holds an API key**.
 
 *(Covers FR217)*
 
+**Given** the API tests
+**When** they check the documentation paths and the RBAC test routes
+**Then** they build one app with debug on and one with debug off through the app factory and assert both, and `main.py` no longer calls `Settings()` itself
+
+*(Covers FR217)*
+
 **Tasks:**
 
 - [ ] `VS_CSP_MODE` in `Settings` with validation; the policy as one constant; the headers on `serve_spa` responses (Epic 19 ADR-6 decisions 1, 3, 9 and 10) (`VSS-3qb8`)
 - [ ] Browser checks first: the WebSockets under `connect-src 'self'` and the next-themes inline script (ADR-6 decisions 7 and 12); record what was seen and any hash added
 - [ ] Sanitizer: replace description images that are not `https:` or `data:image/` (ADR-6 decision 14) (`VSS-my4c`)
-- [ ] `docs_url`, `redoc_url` and `openapi_url` off unless debug; adapt `test_version.py` (ADR-7) (`VSS-5mes`)
+- [ ] `docs_url`, `redoc_url` and `openapi_url` off unless debug, set in the app factory; the CORS and RBAC-router `Settings()` calls in `main.py` moved to the same settings object; adapt `test_version.py`; the commit subject names the change for the release notes (ADR-7, decision 6; Matt, 2026-11-17) (`VSS-5mes`)
 - [ ] API tests: the headers in each mode and on which routes, the documentation paths with debug off and on; `mod-description.test.ts` for the image rule
 - [ ] E2E spec against the Docker stack with stubbed mod data: every page in both themes with no violation, and the blocked inline script (ADR-6 decision 13); README and `.env.example`
 
@@ -5314,7 +5343,7 @@ So that **an injected script cannot run on an origin that holds an API key**.
 ### Story 19.4: Mod Files Are Never Overwritten
 
 **Sprint key:** `19-4-mod-files-are-never-overwritten`
-**Beads:** `VSS-40ja` (API-082, bug), `VSS-macf` (API-083), `VSS-52fy` (API-085), `VSS-n0qv` (API-084), `VSS-yhmt` (API-091, bug), `VSS-uoxl` (API-092)
+**Beads:** `VSS-40ja` (API-082, bug), `VSS-macf` (API-083), `VSS-52fy` (API-085), `VSS-n0qv` (API-084), `VSS-yhmt` (API-091, bug), `VSS-uoxl` (API-092; stays open until Story 19.5, which rides with it)
 **FRs:** FR218, FR219, FR220, FR221, FR222, FR223
 
 As an **administrator**,
@@ -5431,14 +5460,95 @@ So that **the mods directory always holds what the Installed list says**.
 - [ ] `enable_mod` and `disable_mod`: the name check and the missing-file check; 409 `MOD_FILE_CONFLICT` and 409 `MOD_FILE_MISSING` on both routes (ADR-8, ADR-9 decisions 1 to 4) (`VSS-40ja`, `VSS-yhmt`)
 - [ ] `_apply_version_change`: the name check, `same_file` ignoring case, 409 on the version route, `ModFileConflictError` in the Update All loop (ADR-8 decisions 4 and 7) (`VSS-macf`)
 - [ ] Working files as `.vsm-tmp` and `.vsm-bak`, start-up recovery, the warning for old-style leftovers (ADR-9 decisions 5 to 8) (`VSS-uoxl`)
-- [ ] Cache layout `cache/mods/<fileid>/<name>`, one path function, a temporary file per download, removal of the old layout at start, `CacheEvictionService` for the new layout (ADR-10) (`VSS-n0qv`)
+- [ ] Cache layout `cache/mods/<fileid>/<name>`, one path function, a temporary file per download, removal of the old layout at start, `CacheEvictionService` for the new layout (ADR-11) (`VSS-n0qv`)
 - [ ] Tests for every case above with file bytes and state compared before and after, on a case-sensitive directory; confirm the web shows each message; API documentation of the changed errors
 
 ---
 
-### Story 19.5: Mod Database Data Is Checked
+### Story 19.5: The Mod State Matches the Mods Directory at Start-Up
 
-**Sprint key:** `19-5-mod-database-data-is-checked`
+**Sprint key:** `19-5-mod-state-matches-the-mods-directory`
+**Beads:** none of its own (Matt, 2026-11-17). It rides with `VSS-uoxl` (API-092), which Story 19.4 starts and this story finishes: close `VSS-uoxl` with its AAR when this story is done.
+**FRs:** FR231, FR232
+
+As an **administrator who sometimes adds or deletes mod files by hand**,
+I want **the manager to bring its list of installed mods in line with the mods directory when it starts**,
+So that **the Installed list shows what is really there**.
+
+**Acceptance Criteria:**
+
+**Given** a readable mod archive `New.zip` copied into the mods directory by hand, and another as `Off.zip.disabled`
+**When** the API starts
+**Then** both are in `GET /api/v1alpha1/mods` with the mod ID and version from their `modinfo.json`, the first enabled and the second disabled, and each addition is logged with its file name and mod ID
+
+*(Covers FR231)*
+
+**Given** a mod state entry whose file is no longer in the mods directory
+**When** the API starts
+**Then** the entry is gone from the Installed list and the removal is logged with its file name and mod ID
+
+*(Covers FR231)*
+
+**Given** a state entry whose file exists under a name that does not end in `.zip` or `.zip.disabled`
+**When** the API starts
+**Then** the entry stays
+
+*(Covers FR231)*
+
+**Given** a `.zip` in the mods directory that cannot be read or has no usable `modinfo.json`
+**When** the API starts
+**Then** start-up completes, the file is not added, it is not deleted, and one warning names it
+
+*(Covers FR232)*
+
+**Given** a `.zip` added by hand whose mod ID is already installed under another file
+**When** the API starts
+**Then** the existing entry stays, no second entry is added, and one warning names both files
+
+*(Covers FR232)*
+
+**Given** `.vsm-tmp`, `.vsm-bak`, `.tmp` and `.bak` files, a directory and a text file in the mods directory
+**When** the API starts
+**Then** none of them is added to the state, and none is changed by the sync
+
+*(Covers FR232)*
+
+**Given** an interrupted version change left a working file and a kept-aside original
+**When** the API starts
+**Then** Story 19.4's recovery runs first and the sync then sees the recovered file, so the mod is neither removed nor added twice
+
+*(Covers FR231)*
+
+**Given** the mods directory does not exist when the API starts
+**When** the sync runs
+**Then** no state entry is removed, and a warning says the directory was not found
+
+*(Covers FR232)*
+
+**Given** any start-up
+**When** the sync has run
+**Then** one summary line gives the numbers added, removed and skipped, also when all are zero, and the game server's auto-start comes after it
+
+*(Covers FR231, FR232)*
+
+**Given** the API
+**When** I look for a way to run the sync again
+**Then** there is no route and no button for it; it runs only at start-up
+
+*(Covers FR231)*
+
+**Tasks:**
+
+- [ ] Make `sync_state_with_disk` safe: guard each import, decide removal by the entry's own file, skip a second file for an installed mod ID, one save (Epic 19 ADR-10 decisions 2 to 4 and 6)
+- [ ] Logging: a line per addition, removal and skip, and the summary line (ADR-10 decision 5)
+- [ ] Call it once in start-up, after the recovery of Story 19.4 and before the game server auto-start (ADR-10 decision 1)
+- [ ] Tests from hand-built directories and states for every case above, including that start-up continues; README: mods added or removed by hand are picked up at the next restart
+
+---
+
+### Story 19.6: Mod Database Data Is Checked
+
+**Sprint key:** `19-6-mod-database-data-is-checked`
 **Beads:** `VSS-2zis` (API-081), `VSS-ce0h` (API-086), `VSS-0lkb` (API-090)
 **FRs:** FR224, FR225, FR226, FR227
 
@@ -5510,17 +5620,17 @@ So that **a mod author's data or a mod database fault cannot misuse or break the
 
 **Tasks:**
 
-- [ ] `external_link_url` in `services/mod_media.py`; `mod_image_url` on `logo_url` in the lookup and the browse item; debug log without the URL (Epic 19 ADR-11 decisions 1 to 3 and 6) (`VSS-2zis`)
-- [ ] Web: `referrerPolicy="no-referrer"` on the three logo images; confirm the placeholder and the missing links (ADR-11 decision 5)
-- [ ] One guarded JSON fetch in `ModApiClient`, used by the four fetchers, each keeping its status rules (ADR-12 decisions 1 to 4) (`VSS-ce0h`)
-- [ ] One shared in-flight fetch helper for the game version list, the full listing and the filtered listings (ADR-12 decisions 5 and 6) (`VSS-0lkb`)
+- [ ] `external_link_url` in `services/mod_media.py`; `mod_image_url` on `logo_url` in the lookup and the browse item; debug log without the URL (Epic 19 ADR-12 decisions 1 to 3 and 6) (`VSS-2zis`)
+- [ ] Web: `referrerPolicy="no-referrer"` on the three logo images; confirm the placeholder and the missing links (ADR-12 decision 5)
+- [ ] One guarded JSON fetch in `ModApiClient`, used by the four fetchers, each keeping its status rules (ADR-13 decisions 1 to 4) (`VSS-ce0h`)
+- [ ] One shared in-flight fetch helper for the game version list, the full listing and the filtered listings (ADR-13 decisions 5 and 6) (`VSS-0lkb`)
 - [ ] Tests: URL rules with a synthetic bad-data fixture for lookup and browse; each fetcher with the five malformed bodies and an unchanged cache; concurrent cold calls for both caches; API documentation of `null` for the three URL fields
 
 ---
 
-### Story 19.6: E2E Runs in CI
+### Story 19.7: E2E Runs in CI
 
-**Sprint key:** `19-6-e2e-runs-in-ci`
+**Sprint key:** `19-7-e2e-runs-in-ci`
 **Beads:** `VSS-wenx` (TOOLS-007)
 **FRs:** FR228, FR229, FR230
 
@@ -5532,7 +5642,7 @@ So that **a change that breaks the page is caught before it is merged**.
 
 **Given** a pull request or a push to `main`
 **When** CI runs
-**Then** an `e2e` job builds the image, starts a container from it with an empty data directory and placeholder keys, waits for `/healthz`, runs the E2E tests that carry no tag, and fails the run when one fails
+**Then** an `e2e` job builds the image, starts a container from it with a data directory that holds only the seeded `serverconfig.json` fixture and with placeholder keys, waits for `/healthz`, runs the E2E tests that carry no tag, and fails the run when one fails
 
 *(Covers FR228)*
 
@@ -5551,6 +5661,18 @@ So that **a change that breaks the page is caught before it is merged**.
 **Given** the E2E specs
 **When** I read them
 **Then** every test that needs the live mod database is tagged `@moddb`, every test that needs an installed game server `@game-server`, every test that installs or removes a real mod `@install`, and each tag is explained in one place
+
+*(Covers FR229)*
+
+**Given** the fixture `serverconfig.json` in the repository
+**When** I read it
+**Then** it holds made-up values only, and the CI job copies it to `serverdata/serverconfig.json` before the container starts
+
+*(Covers FR228)*
+
+**Given** the settings specs (`settings-desktop-layout`, `settings-empty-values`, `settings-as-saved`, `monitor-password-redaction`)
+**When** they run against the seeded stack in CI
+**Then** each test that passes there carries no tag and runs in CI, and any test that still needs an installed or running game server keeps `@game-server` with its reason
 
 *(Covers FR229)*
 
@@ -5580,8 +5702,9 @@ So that **a change that breaks the page is caught before it is merged**.
 
 **Tasks:**
 
-- [ ] Remove the dead `localStorage` init scripts from the fifteen specs and move every spec to the `/config.js` helper (Epic 19 ADR-13 decision 6) (`VSS-wenx`)
-- [ ] Tag the specs and tests (`@moddb`, `@game-server`, `@install`) after running each against a stack with no game server; record which tests run in CI (ADR-13 decisions 2 and 3)
-- [ ] A `just` recipe for the CI invocation; `api/tests/e2e/` in the same run (ADR-13 decisions 3 and 8)
-- [ ] The `e2e` job in `.github/workflows/ci.yml`: cached image build, container start, health wait, Playwright install, report artifact; `just lint-workflows` (ADR-13 decisions 1 and 7)
+- [ ] Remove the dead `localStorage` init scripts from the fifteen specs and move every spec to the `/config.js` helper (Epic 19 ADR-14 decision 6) (`VSS-wenx`)
+- [ ] The `serverconfig.json` fixture under `web/e2e/fixtures/` and its copy into the data directory, in the CI job and in the `just` recipe (ADR-14 decision 10; Matt, 2026-11-17)
+- [ ] Tag the specs and tests (`@moddb`, `@game-server`, `@install`) after running each against the seeded stack with no game server; the settings specs lose their tag where they pass; record which tests run in CI (ADR-14 decisions 2, 3 and 10)
+- [ ] A `just` recipe for the CI invocation; `api/tests/e2e/` in the same run (ADR-14 decisions 3 and 8)
+- [ ] The `e2e` job in `.github/workflows/ci.yml`: cached image build, container start, health wait, Playwright install, report artifact; `just lint-workflows` (ADR-14 decisions 1 and 7)
 - [ ] Documentation: how to run the CI subset locally and what the tags mean

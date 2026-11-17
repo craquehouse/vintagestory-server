@@ -14,7 +14,7 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
-    description: 'Added FR205-FR230 for Epic 19 (API Security and Mod File Safety); revised the same day: follow-ups folded in, six stories'
+    description: 'Added FR205-FR233 for Epic 19 (API Security and Mod File Safety); revised twice the same day: follow-ups folded in, seven stories'
   - date: '2026-11-16'
     description: 'Added FR194-FR204 for Epic 18 (Mod Media and Fixes)'
   - date: '2026-11-15'
@@ -765,6 +765,12 @@ If trivial to implement:
 
 #### E2E in CI
 
-- FR228: CI builds the image, starts it without a game server and runs the E2E tests against it on every pull request and push to `main`, keeping the report of a failed run
-- FR229: E2E tests that need the live mod database, an installed game server or a real mod install are tagged and left out of CI; they still run locally
+- FR228: CI builds the image, starts it without a game server but with a seeded fixture `serverconfig.json`, and runs the E2E tests against it on every pull request and push to `main`, keeping the report of a failed run
+- FR229: E2E tests that need the live mod database, an installed game server or a real mod install are tagged and left out of CI; they still run locally. The settings specs run in CI against the seeded configuration
 - FR230: No E2E spec sets an API key in `localStorage`; every spec gets its key through one shared `/config.js` helper
+
+#### Decided on Review (Matt, 2026-11-17)
+
+- FR231: At start-up, after recovering its own working files, the manager reconciles the mod state with the mods directory once: a mod archive added by hand gets an entry and an entry whose file is gone is removed, each change is logged, and there is no endpoint or button for it
+- FR232: The start-up reconcile looks only at mod archives, skips with a warning an archive it cannot read or whose mod is already installed under another file, ignores working, `.tmp` and `.bak` files, and never stops the API from starting
+- FR233: With a key whose role is not Admin, the web file browser shows a short static note that some folders are only shown to Admin keys, without folder names or counts
