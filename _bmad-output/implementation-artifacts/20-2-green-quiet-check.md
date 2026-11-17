@@ -1,6 +1,6 @@
 # Story 20.2: A Green, Quiet `just check`
 
-Status: review
+Status: done
 
 <!-- Implements FR237-FR239, Epic 20 ADR-2 and ADR-3. Beads: VSS-1ar (TEST-003), VSS-hnl (TEST-004), VSS-37a (bug, verify and close), VSS-6wj (TEST-005), VSS-eh41 (UI-098, pulled in by Matt on 2026-11-17). Stacked on Story 20.1 (stories run in order 20.1 to 20.7). Line references were verified at 7f04ea2 (epic-20-planning; its api/ and web/ are identical to 3f1c6ea, the commit the ADRs cite) and must be re-checked at implementation time: Story 20.1 reformats every API test file, so the three fixture lines in Task 1 will move. Test and test-configuration changes, plus the deletion of two unused web source files; nothing an admin can see changes. No new dependencies. -->
 
@@ -423,8 +423,23 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 - Deleted: `web/src/lib/mod-compatibility.test.ts`
 - Modified: `_bmad-output/implementation-artifacts/20-2-green-quiet-check.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `800af7a..ef2d6ee`
+**Outcome:** Approve → low findings fixed
+
+**Summary:** All 12 ACs are met with the recorded deviations. 0 Pyright warnings, with annotations only. 0 skipped web tests, and no skip calls remain. The claimed game-version filter coverage exists, with assertions. The deleted code has no remaining uses (including E2E and dynamic imports). The new remove-dialog test is sensitive to each behaviour it pins. The dev's deviation was verified correct: the "Removing..." branch is reachable through a second dialog, so `ModTable.tsx` is unchanged. Stubbing is restored between tests and passes under `vmThreads` and `forks`; there is no `isolate`, no per-file pool and no new dependency. Reviewer ran `just lint`, `just typecheck`, `just test-api` (3334), and `just test-web` (3307) several times under both pools, plus `--sequence.shuffle` runs.
+
+### Action Items
+
+- [x] [Low] LOW-1 `BrowseTab.test.tsx` had a within-file order dependence under `--sequence.shuffle` in both pools. It predates this story: a `scrollIntoView` stub that was never restored, plus a `sessionStorage` entry leaking between tests. Fixed in 351eec8, per the maintainer's backlog-drawdown rule rather than as a bead: `web/tests/setup.ts` stubs `scrollIntoView` and `scrollTo` fresh before each test and clears `sessionStorage` after each, and `project-context.md` gains the rule. Shuffle runs after the fix: the file 12/12 (vmThreads) and 4/4 (forks); the whole suite 3/3 in each pool; the controller re-ran the whole suite shuffled twice, 3307/3307.
+- [x] [Low] LOW-2 the "Not changed" bullet and AC 9 counts were stale after `filterModsByFilters` was removed (fixed, fbc82c0).
+- Info: no vmThreads memory warnings in full runs.
+
 ## Change Log
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Prototype of Tasks 1, 2, 4 and 5 at 7f04ea2, discarded.
 - 2026-11-17: Implemented Tasks 1-6 and the gate (dev-story workflow); `filterModsByFilters` removed per the controller; `ModTable.tsx` left unchanged because "Removing..." is reachable (Completion Notes). Status review.
 - 2026-11-17: Review fixes: browser scroll stubs and a `sessionStorage` clear in `tests/setup.ts` (LOW-1); Dev Notes and AC 9 corrected to what shipped (LOW-2).
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; LOW-1 (shuffle-order flake) and LOW-2 fixed. Status done.
