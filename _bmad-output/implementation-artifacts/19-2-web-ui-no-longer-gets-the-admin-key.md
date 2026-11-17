@@ -1,6 +1,6 @@
 # Story 19.2: The Web UI No Longer Gets the Admin Key
 
-Status: review
+Status: done
 
 <!-- Implements FR210-FR212, Epic 19 ADR-5 (which changes Epic 15 ADR-5). Beads: VSS-9wv (API-079, size-m). BREAKING CHANGE. Stacked on Story 19.1 (stories run in order 19.1 to 19.7). Line references were verified at b6ae2f2 (epic-19-planning; its api/ and web/ are the code the ADRs cite at 048fea9) and must be re-checked at implementation time: Story 19.1 edits config.py, .env.example, both compose files and scripts/worktree-setup.sh first (it removes VS_GAME_VERSION, so later lines in those files move up). No new dependencies. -->
 
@@ -445,7 +445,22 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 - `README.md` (modified)
 - `_bmad-output/implementation-artifacts/19-2-web-ui-no-longer-gets-the-admin-key.md` (modified)
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `1f665f5..3e5701a`
+**Outcome:** Approve
+
+**Summary:** All 10 ACs met, each with a discriminating test. With `VS_API_KEY` unset or blank nothing serves or logs the Admin key (checked across `/config.js`, the warnings and start-up output, in every key state); whitespace-only values collapse to "not set" before any comparison; `/config.js` headers are unchanged; the factory keeps the running server's behaviour and request-auth overrides. `just changelog` lists exactly the intended Breaking Changes line, Task 3 under Features, and the refactor nowhere. Reviewer ran `just test-api` (3048 passed), `just test-web` (3325 passed, 4 skipped), `just lint`, `just typecheck`, `just changelog`; nothing under `dev/`. Docker-dependent records (Tasks 4.4, 5.3) not re-run by the reviewer.
+
+### Action Items
+
+- [x] [Low] L-1 `/config.js` JSON-encodes the key but does not escape `<`, so a key containing `</script>` appears literally; safe while the body is an external script (`web/index.html:15`), and the story lists it as not changed. Carried into Story 19.3 (which edits `register_frontend` and the page headers) as a small defence-in-depth item: escape `<`, `>` and `&` in the served JSON.
+- [x] [Low] L-2 `no-api-key.spec.ts` waits with the deprecated `networkidle`. Carried into Story 19.7, which moves the specs into CI.
+- Nits not changed: the E2E helper's body has no trailing newline; the `test_frontend_routes.py` client fixture reads ambient `VS_API_KEY` (harmless today); the dev compose comment does not cover a whitespace-only `VS_API_KEY`.
+
 ## Change Log
 
 - 2026-11-16: Story 19.2 created and validated (ready-for-dev).
 - 2026-11-16: Tasks 1-5 and 6.1-6.2 implemented; status review (6.3 manual check and 6.4 PR left for the maintainer).
+- 2026-11-17: Code review (GLM-5.3-Flash): approved, no high or medium findings; L-1 carried into Story 19.3, L-2 into Story 19.7. Status done.
