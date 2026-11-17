@@ -32,7 +32,8 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  *   (for the Game Settings header), which the seeded stack and a stack with a game server
  *   both have (the pages are shown as installed by `pretendServerInstalled`), rebuilt
  *   from this branch: `just test-e2e-ci`, or `just docker restart`, then
- *   `cd web && bunx playwright test e2e/layout-widths.spec.ts` with VS_API_KEY_ADMIN exported (the Scheduled Jobs tab exists only for an Admin key).
+ *   `cd web && bunx playwright test e2e/layout-widths.spec.ts` with VS_API_KEY_ADMIN
+ *   exported (the Scheduled Jobs tab exists only for an Admin key).
  */
 
 // API key from environment or default from docker-compose.dev.yaml

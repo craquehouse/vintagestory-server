@@ -19,4 +19,23 @@ assert_eq "fixture ServerDescription" "null" "$(yq -p json '.ServerDescription' 
 assert_eq "fixture Ip" "null" "$(yq -p json '.Ip' "$fixture" 2>/dev/null)"
 assert_eq "fixture Password is the made-up one" "e2e-fixture-password" "$(yq -p json '.Password' "$fixture" 2>/dev/null)"
 
+# The CI script and web/e2e/README.md name the same three tags (Story 19.7 AC 4, 7)
+e2e_script="$ROOT/scripts/e2e-ci.sh"
+e2e_readme="$ROOT/web/e2e/README.md"
+script_tags=$(grep -E '^TAGS=' "$e2e_script" 2>/dev/null)
+assert_eq "the script leaves out the three tags" "TAGS='@moddb|@game-server|@install'" "$script_tags"
+for tag in @moddb @game-server @install; do
+    if grep -qF -- "\`$tag\`" "$e2e_readme" 2>/dev/null; then pass; else fail "web/e2e/README.md explains $tag"; fi
+done
+
+# Placeholder keys only: constants in the script, never a VS_API_KEY* the caller set (mise
+# loads a developer's .env, which holds real keys)
+assert_eq "Admin key is the placeholder constant" 'ADMIN_KEY="e2e-admin-placeholder-key"' \
+    "$(grep -E '^ADMIN_KEY=' "$e2e_script" 2>/dev/null)"
+assert_eq "Monitor key is the placeholder constant" 'MONITOR_KEY="e2e-monitor-placeholder-key"' \
+    "$(grep -E '^MONITOR_KEY=' "$e2e_script" 2>/dev/null)"
+expanded=$(grep -nE '\$\{?VS_API_KEY' "$e2e_script" 2>/dev/null || true)
+assert_eq "the script expands no VS_API_KEY* variable" "" "$expanded"
+if [[ -f $e2e_script ]]; then pass; else fail "scripts/e2e-ci.sh exists"; fi
+
 finish
