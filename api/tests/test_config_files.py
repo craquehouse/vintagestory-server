@@ -733,6 +733,57 @@ class TestRoleDirectories:
             service.read_file("Playerdata/x.log", "admin")
 
 
+class TestReviewFixes:
+    """Story 19.1 review: a NUL byte, a too-long integer, a file that grows."""
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_nul_byte_is_an_invalid_path(self, service: ConfigFilesService, role: str) -> None:
+        """M1: a NUL byte in a path is ConfigPathInvalidError for the read and both listings."""
+        with pytest.raises(ConfigPathInvalidError):
+            service.read_file("foo\x00.json", role)
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_files("ModConfig\x00", role=role)
+        with pytest.raises(ConfigPathInvalidError):
+            service.list_directories("ModConfig\x00", role=role)
+
+    def test_integer_too_long_is_raw(
+        self, service: ConfigFilesService, mock_settings: MagicMock
+    ) -> None:
+        """M2: json.loads' plain ValueError gives the _raw form, no file content in the error."""
+        text = '{"n": ' + "1" * 5000 + "}"
+        (mock_settings.serverdata_dir / "bigint.json").write_text(text)
+
+        admin = service.read_file("bigint.json", "admin")["content"]
+        monitor = service.read_file("bigint.json", "monitor")["content"]
+
+        assert isinstance(admin, dict)
+        assert isinstance(monitor, dict)
+        assert admin["_raw"] == text
+        assert monitor["_raw"] == REDACTED
+        assert monitor["_parse_error"] == admin["_parse_error"]
+        assert isinstance(admin["_parse_error"], str)
+        assert "1" * 50 not in admin["_parse_error"]
+
+    @pytest.mark.parametrize("role", ROLES)
+    def test_file_that_grew_is_too_large(
+        self,
+        service: ConfigFilesService,
+        mock_settings: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        role: str,
+    ) -> None:
+        """L1: the size is checked again on the bytes read."""
+        (mock_settings.serverdata_dir / "grows.json").write_text("{}")
+
+        def grown(self: Path) -> bytes:
+            return b" " * (CONFIG_FILE_MAX_BYTES + 1)
+
+        monkeypatch.setattr(Path, "read_bytes", grown)
+
+        with pytest.raises(ConfigFileTooLargeError):
+            service.read_file("grows.json", role)
+
+
 class TestPathTraversalPrevention:
     """Security tests for path traversal prevention.
 

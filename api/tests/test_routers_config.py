@@ -1822,6 +1822,74 @@ class TestMonitorDirectories:
         assert response.headers["Cache-Control"] == "no-store"
 
 
+class TestConfigFilesReviewFixes:
+    """Story 19.1 review: inputs that used to give a plain 500 without no-store."""
+
+    def _get(self, client: TestClient, url: str, key: str):
+        return client.get(url, headers={"X-API-Key": key})
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    @pytest.mark.parametrize(
+        "url",
+        [
+            f"{FILES_URL}/foo%00.json",
+            f"{FILES_URL}?directory=ModConfig%00",
+            f"{DIRECTORIES_URL}?directory=ModConfig%00",
+        ],
+    )
+    def test_nul_byte_in_a_path_is_400(
+        self, config_files_client: TestClient, config_file: Path, key: str, url: str
+    ) -> None:
+        """M1: a NUL byte in a path is 400 CONFIG_PATH_INVALID with no-store, not a 500."""
+        response = self._get(config_files_client, url, key)
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_PATH_INVALID
+        assert response.headers["Cache-Control"] == "no-store"
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_integer_too_long_to_convert_is_raw(
+        self, config_files_client: TestClient, config_file: Path, key: str
+    ) -> None:
+        """M2: an integer past Python's conversion limit is the _raw form, not a 500."""
+        text = '{"n": ' + "1" * 5000 + "}"
+        path = config_file.parent / "ModConfig" / "bigint.json"
+        path.parent.mkdir()
+        path.write_text(text)
+
+        response = self._get(config_files_client, f"{FILES_URL}/ModConfig/bigint.json", key)
+
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+        content = response.json()["data"]["content"]
+        assert content["_raw"] == (text if key == TEST_ADMIN_KEY else "[redacted]")
+        assert content["_parse_error"]
+        assert "1" * 50 not in content["_parse_error"]
+        if key == TEST_MONITOR_KEY:
+            assert "1" * 50 not in response.text
+
+    @pytest.mark.parametrize("key", BOTH_KEYS)
+    def test_file_that_grew_past_the_limit_is_413(
+        self,
+        config_files_client: TestClient,
+        config_file: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        key: str,
+    ) -> None:
+        """L1: a file that grows past 2 MiB between stat and read is refused, not served."""
+
+        def grown(self: Path) -> bytes:
+            return b" " * (CONFIG_FILE_MAX_BYTES + 1)
+
+        monkeypatch.setattr(Path, "read_bytes", grown)
+
+        response = self._get(config_files_client, f"{FILES_URL}/serverconfig.json", key)
+
+        assert response.status_code == 413
+        assert response.json()["detail"]["code"] == ErrorCode.CONFIG_FILE_TOO_LARGE
+        assert response.headers["Cache-Control"] == "no-store"
+
+
 class TestOtherConfigPathsWithAPassword:
     """Story 17.5 (AC 7): no other config path gives a Monitor key the password."""
 

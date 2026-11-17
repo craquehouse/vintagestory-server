@@ -198,18 +198,19 @@ class ConfigFilesService:
             Safe path guaranteed to be within base_dir.
 
         Raises:
-            ConfigPathInvalidError: If the resulting path would escape base_dir.
+            ConfigPathInvalidError: If the resulting path would escape base_dir, or
+                cannot be resolved (a NUL byte, for example).
         """
         # Resolve the base to absolute
         base_resolved = base_dir.resolve()
 
-        # Create the target path and resolve it
-        target = (base_dir / filename).resolve()
-
-        # Verify the target is within the base directory
+        # Create the target path, resolve it and verify it is within the base directory.
+        # resolve() raises ValueError for a NUL byte and OSError for a path the system
+        # refuses; both are invalid paths (Story 19.1 review M1).
         try:
+            target = (base_dir / filename).resolve()
             target.relative_to(base_resolved)
-        except ValueError:
+        except ValueError, OSError:
             logger.warning(
                 "path_traversal_detected",
                 filename=filename,
@@ -411,6 +412,9 @@ class ConfigFilesService:
             if safe_path.stat().st_size > CONFIG_FILE_MAX_BYTES:
                 raise ConfigFileTooLargeError(filename)
             data = safe_path.read_bytes()
+            # The file may have grown since stat (Story 19.1 review L1)
+            if len(data) > CONFIG_FILE_MAX_BYTES:
+                raise ConfigFileTooLargeError(filename)
         except FileNotFoundError:
             raise ConfigFileNotFoundError(filename)
         except OSError as e:
@@ -431,6 +435,16 @@ class ConfigFilesService:
             logger.warning("config_file_json_invalid", filename=filename, error=str(e))
             # The text cannot be redacted structurally: only Admin receives it
             content = {"_raw": text if reveal_secrets else REDACTED, "_parse_error": str(e)}
+        except ValueError as e:
+            # Not a JSONDecodeError (caught above): Python's limit on converting long
+            # integers, for example. Its message is not shown, so no file content can
+            # reach the response (Story 19.1 review M2).
+            logger.warning("config_file_json_invalid", filename=filename, error=type(e).__name__)
+            content = {
+                "_raw": text if reveal_secrets else REDACTED,
+                "_parse_error": "A value in the file could not be converted (for example, "
+                "a number with too many digits)",
+            }
         else:
             if _nesting_depth_exceeds(content, CONFIG_FILE_MAX_DEPTH):
                 error = f"Nested more than {CONFIG_FILE_MAX_DEPTH} levels deep"
