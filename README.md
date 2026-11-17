@@ -30,7 +30,7 @@ Releases are published as `ghcr.io/craquehouse/vintagestory-server`, tagged with
    docker compose up -d
    ```
 
-5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version (the item is called **Version** once a server is installed). Game data, mods and manager state live in `./data`. Mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up the next time the manager container starts.
+5. Open `http://<host>:8080`, go to **Game Server → Installation** and install a VintageStory version (the item is called **Version** once a server is installed). Game data, mods and manager state live in `./data`. Mod archives (`.zip`, or `.zip.disabled` for a disabled mod) copied into or deleted from `data/serverdata/Mods` by hand are picked up the next time the manager container starts (a file replaced by hand under the same name keeps the listed version until it is reinstalled or removed and added again).
 
 ### Security
 

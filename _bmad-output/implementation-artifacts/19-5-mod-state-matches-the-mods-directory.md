@@ -82,6 +82,16 @@ so that **the Installed list shows what is really there**.
     **Then** every test that passed before still passes, and no test runs the start-up sync against `dev/`: `git status --short` shows nothing under `dev/` afterwards
     *(Regression guard; Story 17.4 and 18.2 learning)*
 
+15. **Given** a mod state entry whose file is not in the mods directory, but whose original is still kept aside as `<name>.vsm-bak` (Story 19.4's recovery logged `mod_recovery_failed` or `mod_backup_kept`), the backup name without `.vsm-bak` matching the entry's name ignoring case, as the recovery matches it, and the backup's `modinfo.json` naming the entry's mod or being unreadable
+    **When** the API starts
+    **Then** the entry stays unchanged, one `mod_state_sync_kept_aside` warning names the entry and the backup, and once a later start's recovery puts the original back the entry still has its `asset_id` and `installed_at`
+    *(Covers FR231; derived in code review MEDIUM-1: carve-out from AC 2)*
+
+16. **Given** a mods directory that exists and a sync that removes every entry (at least one)
+    **When** the API starts
+    **Then** the entries are removed (ADR-10), and one `mod_state_sync_removed_all` warning gives the count and the directory, so an admin can spot a volume that did not mount
+    *(Covers FR232; derived in code review LOW-2)*
+
 ## Tasks / Subtasks
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-19.5/task-N): ...; feat/fix only for changes an admin can see, subject written for admins. Red first. Only Task 3 changes what an admin sees. -->
@@ -161,6 +171,9 @@ Consequences of the listing rule, all intended:
 | `mod_state_sync_mods_directory_not_found` | warning | `path` | the directory does not exist |
 | `mod_state_sync_mods_directory_unreadable` | warning | `path`, `error` | listing it raised `OSError` |
 | `mod_state_sync_save_failed` | error | `error`, `path` | `save()` raised |
+| `mod_state_sync_kept_aside` | warning | `filename`, `slug`, `backup`, `reason` | an entry without its file kept because its original is `<name>.vsm-bak` (AC 15, review MEDIUM-1) |
+| `mod_state_sync_removed_all` | warning | `removed`, `path` | every entry (at least one) was removed (AC 16, review LOW-2) |
+| `mod_state_sync_modinfo_not_cached` | warning | `filename`, `slug`, `error` | the cached modinfo could not be written; the entry is still added |
 | `mod_state_synced` | info | `added`, `removed`, `skipped`, `total` | always, exactly once per call |
 | `mod_state_sync_failed` (in `sync_mod_state_at_startup`) | error | `error` | anything else |
 
@@ -260,6 +273,7 @@ Never start the game server with the check archive in place.
 
 ### Not changed (do not "fix" these here)
 
+- A mod file replaced by hand **under the same file name** keeps its entry's slug and version in the list: the sync reads only archives the state does not know (ADR-10, by design; review LOW-1). The README sentence says so; a reinstall, or removing the file for one start and adding it back, refreshes it.
 - `scan_mods_directory` still matches only `.zip` and `.zip.disabled`; a mod file of another form added by hand is not picked up (`VSS-v3be`).
 - A mod added by the sync has `asset_id` 0 and no update record until the next check; a mod renamed or replaced by hand gets a new entry, so its former `asset_id` and `installed_at` are not carried over (ADR-10 decision 2 gives the new entry's values). Looking hand-added mods up in the mod database is `VSS-v3be`.
 - The update store is not written by the sync. A removed mod's record, lookup error and alert record stay in `mod-updates.json` until the next check prunes them (`services/mod_updates.py:479`, `prune` `:170-174`); they are not shown, because the status is built from the installed mods only (`build_status_items`, `:217-241`).
@@ -369,10 +383,11 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - Story created 2026-11-17 (create-story, non-interactive) and validated against the create-story checklist. A throwaway prototype of Tasks 1 to 3 (the rewritten sync returning a summary, `sync_mod_state_at_startup`, the lifespan call) was run against the whole API suite (2858 passed, as without it), pyright (0 errors, 3 warnings) and ruff, and against a hand-built directory with every case of AC 1 to 6, 8 and 11; it showed the write into `dev/` that Task 3.3 prevents. It was then discarded.
 - Task 1: `ModSyncSummary(added, removed, skipped)` (frozen dataclass) above `ModStateManager`; `sync_state_with_disk()` returns it and runs as in Dev Notes "The sync": `is_dir()` guard, one `iterdir()` listing plus `scan_mods_directory()` inside `except OSError`, removals of entries whose own name is not in the listing (sorted), then additions over the sorted candidates, one `save()` in `except OSError`. It does not call `import_mod`: `_read_new_archive()` reads with `_extract_modinfo_from_zip` and validates with `ModMetadata.model_validate` inside `except Exception`; mod IDs are compared lower-cased (comment names `ModService._lock_key`), against the remaining entries and the ones added earlier in the run. An `OSError` from `_cache_modinfo` is a warning and the entry is still added. The new log events (Task 2's table) landed in this commit, because the rewrite replaced the old ones.
 - Task 2: tests for every event in Dev Notes "Logging"; exactly one `mod_state_synced` per call, also with zeros and in both AC 8 cases; the old `mod_state_added` / `mod_state_removed_deleted_file` are gone. Beyond the table: `mod_state_sync_modinfo_not_cached` (warning, `filename`, `slug`, `error`) for the cache-write failure the story asks to log without naming an event, and an `error_type` key on an `unreadable` skip that caught an exception and on `mod_state_sync_failed`.
-- Task 3 (deviation from 3.2's wording, same order): `sync_mod_state_at_startup()` in `services/mods.py` (never raises; `mod_state_sync_failed` at error level) is called by Story 19.4's `prepare_mod_files()` as its step 2, right after the recovery and before the cache's old-layout removal, not by a second call in the lifespan. Story 19.4 left that slot for it (its docstring, Dev Notes "Start-up order"). Effects: the order recovery, sync, auto-start, scheduler holds; a failure of the cache step cannot skip the sync; if the recovery itself raises (unplanned; it logs and continues on `OSError` per file), the sync does not run and `mod_files_startup_failed` is logged, so an entry whose file is still `.vsm-bak` is not removed. In that one case there is no `mod_state_synced` line (AC 9 otherwise holds). Task 3.3: Story 19.4's autouse guard already replaces `main.prepare_mod_files`, which now holds the sync, so no second fixture was added; its docstring says it covers the sync, and `TestStartUpOnly` pins that entering `TestClient(app)` never calls `sync_state_with_disk`. README: one sentence in Installation step 5.
+- Task 3 (deviation from 3.2's wording, same order): `sync_mod_state_at_startup()` in `services/mods.py` (never raises; `mod_state_sync_failed` at error level) is called by Story 19.4's `prepare_mod_files()` as its step 2, right after the recovery and before the cache's old-layout removal, not by a second call in the lifespan. Story 19.4 left that slot for it (its docstring, Dev Notes "Start-up order"). Effects: the order recovery, sync, auto-start, scheduler holds; a failure of the cache step cannot skip the sync; if the recovery itself raises (unplanned), the sync does not run and `mod_files_startup_failed` is logged; in that one case there is no `mod_state_synced` line (AC 9 otherwise holds). That whole-step case is not the usual one: the recovery logs `mod_recovery_failed` or `mod_backup_kept` per file and returns, and the first version of the sync then removed the entry of a mod whose original was still `.vsm-bak` (review MEDIUM-1, fixed: AC 15). Task 3.3: Story 19.4's autouse guard already replaces `main.prepare_mod_files`, which now holds the sync, so no second fixture was added; its docstring says it covers the sync, and `TestStartUpOnly` pins that entering `TestClient(app)` never calls `sync_state_with_disk`. README: one sentence in Installation step 5.
 - Task 3 tests: `tests/test_mod_state_sync_startup.py` (the real function on a singleton on `tmp_path`; failing sync and failing `get_mod_service`; AC 7 through the real `prepare_mod_files`; AC 10 no route with `sync`; AC 14 guard) and three tests in `tests/test_main.py` `TestLifespanAutoStart` (order recovery, sync, `start_server`, scheduler with one summary line before `auto_starting_game_server`; a raising sync still auto-starts; auto-start off still syncs once). `run_auto_start_lifespan` got an `auto_start` keyword (default on).
 - Task 4: `TestStartUpSyncThroughTheApi` drives the real lifespan with the real `prepare_mod_files` over `Kept.zip`/`Gone.zip` entries and hand-added `New.zip`/`Off.zip.disabled`, under respx with no routes (zero calls asserted): the list, 404 `MOD_NOT_INSTALLED` for the removed mod, `pending_restart` false, and update status (`unknown`/`not_checked` for both added mods, no item for the removed one, store bytes unchanged).
 - Results: `just check` green: API 3229 passed (3185 before, +44); web 3349 passed, 4 skipped (`VSS-hnl`); pyright 0 errors, 3 warnings (`VSS-1ar`); lint and script tests green. E2E: `installed-status.spec.ts` 4 passed on the rebuilt stack. No lint or type suppression and no `cast` in the diff. Only new and changed lines were formatted (`test_mod_state_sync_startup.py` is new and fully `ruff format`ted); `mods.py`, `test_main.py` and `test_mod_state.py` have older lines `ruff format` would change, left alone.
+- Code review (GLM-5.3-Flash, CHANGES REQUESTED) fixes: MEDIUM-1, the removal loop keeps an entry whose original is listed as `<name>.vsm-bak` (name without the suffix matched ignoring case, as `mod_file_recovery` matches it; a backup whose `modinfo.json` names another mod does not count, an unreadable one does) and logs `mod_state_sync_kept_aside`; the suffix is a local `KEPT_ASIDE_SUFFIX` in `mod_state.py` documented as `mod_file_recovery.KEPT_ASIDE_SUFFIX`'s value, pinned equal by a test. Tests through the real `prepare_mod_files()` for both `mod_recovery_failed` and `mod_backup_kept` keep the entry, and the next start (successful recovery) leaves it with its `asset_id` and `installed_at`; both failed on the code before the fix, as did the unit tests for the same-name, `.disabled` and other-case backups and the unreadable backup. LOW-2, `mod_state_sync_removed_all` warning (the removal still happens). LOW-3, a test that a raising recovery skips the sync (passes on the existing code; it pins the docstring). LOW-1, README half-sentence and a "Not changed" note. AC 15 and AC 16 added as derived ACs. After the fixes `just check` is green: API 3241 passed, web 3349 passed / 4 skipped, pyright 0 errors / 3 warnings; `dev/` untouched. The dev stack was not rebuilt again: its start-up sync had no entry without a file (`removed=0`), so the fix changes nothing there. Not changed (nits): `.lower()` for mod IDs, File List convention, bookkeeping commit type.
 - Not done here: Task 5.2 is the maintainer's manual check (unticked). Task 5.3's PR, its "API contract changes" description, the PR link on `VSS-uoxl` and closing `VSS-uoxl` were not done (the dev brief forbids push, PR and bead changes); story status and sprint status are `review`.
 
 ### File List
@@ -386,7 +401,20 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - api/tests/test_mod_state_sync_startup.py (new)
 - _bmad-output/implementation-artifacts/19-5-mod-state-matches-the-mods-directory.md (modified)
 
+## Senior Developer Review (AI)
+
+**Reviewer:** GLM-5.3-Flash. **Outcome:** Changes requested (one medium, three low, nits).
+
+### Action Items
+
+- [x] [Medium] MEDIUM-1 the sync removed the entry of a mod whose original recovery kept aside (`mod_recovery_failed`, `mod_backup_kept`); a later recovery brought it back as a new entry. Fixed: AC 15.
+- [x] [Low] LOW-1 same-name hand replacement keeps the old slug and version (by design): README and Dev Notes.
+- [x] [Low] LOW-2 an empty mods directory removes every entry: still done (ADR-10), now with a `mod_state_sync_removed_all` warning (AC 16).
+- [x] [Low] LOW-3 test that a raising recovery skips the sync.
+- Not changed (nits): `.lower()` vs `.casefold()` for mod IDs, File List convention, bookkeeping commit type.
+
 ## Change Log
 
 - 2026-11-17: Story 19.5 created and validated (ready-for-dev).
 - 2026-11-17: Tasks 1-4 and 5.1 implemented; status review. 5.2 (manual check) waits for the maintainer; 5.3's PR, bead link and `VSS-uoxl` closing are left to the maintainer.
+- 2026-11-17: Code review (GLM-5.3-Flash): changes requested; MEDIUM-1, LOW-1, LOW-2, LOW-3 fixed; status stays review.
