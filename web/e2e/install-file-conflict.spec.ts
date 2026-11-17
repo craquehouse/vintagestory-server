@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for an install refused because its file name is in use.
@@ -77,9 +78,7 @@ async function expectRefusalShown(page: Page, slug: string, posted: string[]) {
 
 test.describe('Install refused when the file name is in use (Story 18.2)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test('detail page shows the refusal and keeps the dialog open', async ({ page }) => {

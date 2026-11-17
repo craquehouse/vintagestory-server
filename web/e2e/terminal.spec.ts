@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the Terminal page.
@@ -25,11 +26,8 @@ const API_KEY = process.env.VS_API_KEY_ADMIN || 'changeme';
 
 test.describe('Terminal Page', () => {
   test.beforeEach(async ({ page }) => {
-    // Set up authentication - store API key in localStorage
-    // The API key must match VS_API_KEY_ADMIN from docker-compose.dev.yaml
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    // The page takes its key from /config.js (Story 19.2 helper)
+    await serveConfigKey(page, API_KEY);
   });
 
   test('renders the terminal page with header', async ({ page }) => {
@@ -104,9 +102,7 @@ test.describe('Terminal Page', () => {
 
 test.describe('Terminal WebSocket Connection', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test('attempts WebSocket connection on page load', async ({ page }) => {

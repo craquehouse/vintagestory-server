@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for recognizing an installed mod by any mod ID of its mod database entry.
@@ -86,9 +87,7 @@ async function versionOptionTestIds(page: Page): Promise<string[]> {
 
 test.describe('Installed mod recognized by any mod ID (Story 16.2)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   for (const modId of ['vsinstrumentsbase', 'vsinstruments']) {

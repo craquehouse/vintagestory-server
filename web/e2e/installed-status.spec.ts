@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for an installed mod's status wherever it is shown.
@@ -142,9 +143,7 @@ async function installedSlugs(request: APIRequestContext): Promise<string[]> {
 
 test.describe('Installed status is right everywhere (Story 17.4)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test('the Instruments card shows Installed for vsinstrumentsbase, like its detail page', async ({
@@ -216,9 +215,7 @@ test.describe('A new install shows its update status at once: real API (Story 17
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test.afterEach(async ({ request }) => {

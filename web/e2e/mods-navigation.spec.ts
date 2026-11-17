@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for navigating the Mods pages.
@@ -52,9 +53,7 @@ async function settle(page: Page) {
 
 test.describe('Mods navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

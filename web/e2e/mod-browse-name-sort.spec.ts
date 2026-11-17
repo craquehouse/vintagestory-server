@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Response } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the mod browser's Name (A-Z) sort.
@@ -102,9 +103,7 @@ async function expectCardsMatch(page: Page, mods: BrowseMod[]) {
 
 test.describe('Mod browser Name (A-Z) sort', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 

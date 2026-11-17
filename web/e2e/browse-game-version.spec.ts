@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Response } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game version indicator on mod browser cards.
@@ -98,9 +99,7 @@ function isBrowseResponse(response: Response): boolean {
 
 test.describe('Game version indicator on browse cards', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test('shows the badge, the muted text and nothing for true, false and null', async ({

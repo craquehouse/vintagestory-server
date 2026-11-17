@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for which release Install picks.
@@ -124,9 +125,7 @@ async function versionOptions(page: Page): Promise<Array<{ testId: string; text:
 
 test.describe('Install picks the right release (Story 17.2)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((apiKey) => {
-      localStorage.setItem('apiKey', apiKey);
-    }, API_KEY);
+    await serveConfigKey(page, API_KEY);
   });
 
   test('lookup reports the install mod ID and what a plain install picks', async ({

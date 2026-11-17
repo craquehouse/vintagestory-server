@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the game server password with a Monitor key.
@@ -10,7 +11,8 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
  * an Admin key the masked field with its show/hide button is unchanged.
  *
  * The page's key comes from `/config.js` (the web does not read localStorage), so each
- * test answers `/config.js` with `page.route` to choose the key the page uses.
+ * test answers `/config.js` with `serveConfigKey` (e2e/config-js.ts) to choose the key the
+ * page uses.
  *
  * Reads only: changes no setting, never starts or stops the game server, and never
  * prints the password (compared with `includes`, so a failure does not print it).
@@ -38,16 +40,6 @@ interface Setting {
   value: unknown;
   secret?: boolean;
   configured?: boolean;
-}
-
-/** Makes the page use `apiKey`, whatever key the stack hands the web UI. */
-async function usePageKey(page: Page, apiKey: string) {
-  await page.route('**/config.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey })};`,
-    })
-  );
 }
 
 async function getJson(request: APIRequestContext, path: string, apiKey: string) {
@@ -105,7 +97,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
   }) => {
     test.skip(!MONITOR_KEY, NO_MONITOR_KEY);
     const admin = await adminPassword(request);
-    await usePageKey(page, MONITOR_KEY);
+    await serveConfigKey(page, MONITOR_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await openSettings(page);
@@ -136,7 +128,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
     test(`UI (stubbed): a withheld password shows "${configured ? 'Set' : 'Not set'}" inside Server Info`, async ({
       page,
     }) => {
-      await usePageKey(page, ADMIN_KEY);
+      await serveConfigKey(page, ADMIN_KEY);
       await page.route(`**${GAME_API}`, async (route) => {
         if (route.request().method() !== 'GET') return route.fallback();
         const response = await route.fetch();
@@ -181,7 +173,7 @@ test.describe('Story 17.5: the server password with a Monitor key', () => {
   }
 
   test('UI: an Admin key keeps the masked password field', async ({ page }) => {
-    await usePageKey(page, ADMIN_KEY);
+    await serveConfigKey(page, ADMIN_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await openSettings(page);

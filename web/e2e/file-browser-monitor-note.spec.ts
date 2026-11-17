@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page, type Route } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for the file browser with a Monitor key.
@@ -11,8 +12,8 @@ import { test, expect, type APIRequestContext, type Page, type Route } from '@pl
  *   or while the role is loading.
  *
  * The page's key comes from `/config.js` (the web does not read localStorage), so each
- * UI test answers `/config.js` with `page.route` to choose the key the page uses. The
- * stubbed tests also answer `/api/v1alpha1/auth/me` with `page.route`.
+ * UI test answers `/config.js` with `serveConfigKey` (e2e/config-js.ts) to choose the key
+ * the page uses. The stubbed tests also answer `/api/v1alpha1/auth/me` with `page.route`.
  *
  * Reads only: changes nothing in the server data directory, never starts or stops the
  * game server, takes no screenshots, and asserts no instance data in its messages.
@@ -37,16 +38,6 @@ const NO_MONITOR_KEY = 'VS_API_KEY_MONITOR is not set for this stack';
 
 interface ErrorBody {
   detail: { code: string; message: string };
-}
-
-/** Makes the page use `apiKey`, whatever key the stack hands the web UI. */
-async function usePageKey(page: Page, apiKey: string) {
-  await page.route('**/config.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey })};`,
-    })
-  );
 }
 
 async function stubRole(page: Page, role: string) {
@@ -93,7 +84,7 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
     request,
   }) => {
     const adminDirectories = await directories(request, ADMIN_KEY);
-    await usePageKey(page, ADMIN_KEY);
+    await serveConfigKey(page, ADMIN_KEY);
     await stubRole(page, 'monitor');
 
     for (const viewport of [
@@ -119,7 +110,7 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
   });
 
   test('UI: no note for the Admin key', async ({ page }) => {
-    await usePageKey(page, ADMIN_KEY);
+    await serveConfigKey(page, ADMIN_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     const authMe = page.waitForResponse((response) => response.url().endsWith('/auth/me'));
@@ -129,7 +120,7 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
   });
 
   test('UI: no note while the role is loading', async ({ page }) => {
-    await usePageKey(page, ADMIN_KEY);
+    await serveConfigKey(page, ADMIN_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
     const held: Route[] = [];
     const hold = (route: Route) => {
@@ -195,7 +186,7 @@ test.describe('Story 19.1: the file browser with a Monitor key', () => {
     expect(filesResponse.status()).toBe(200);
     const filesBody: { data: { files: string[] } } = await filesResponse.json();
     const expectedFiles = filesBody.data.files;
-    await usePageKey(page, MONITOR_KEY);
+    await serveConfigKey(page, MONITOR_KEY);
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await openFileManager(page);

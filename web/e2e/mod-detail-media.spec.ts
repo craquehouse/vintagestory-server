@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { serveConfigKey } from './config-js';
 
 /**
  * E2E tests for a mod's screenshots, trailer link and description links on its detail page.
@@ -98,12 +99,7 @@ function lookupBody(variant: Variant) {
 
 /** Answer /config.js with the Admin key (Story 17.5) and refuse every write to the API. */
 async function readOnly(page: Page) {
-  await page.route('**/config.js', (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `window.__VSM_CONFIG__ = ${JSON.stringify({ apiKey: API_KEY })};`,
-    })
-  );
+  await serveConfigKey(page, API_KEY);
   await page.route('**/api/**', async (route) => {
     if (route.request().method() !== 'GET') {
       // Never let a write reach the server's data
