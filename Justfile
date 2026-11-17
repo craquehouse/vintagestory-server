@@ -164,9 +164,13 @@ lint-api *ARGS:
 lint-web:
     mise exec -C web -- bun run lint
 
-# Lint every bash script in scripts/ and scripts/tests/ (ShellCheck)
+# Lint every bash script in scripts/ and scripts/tests/ (ShellCheck), and the Python
+# scripts in scripts/ with the API's ruff and pyright and their configuration
 lint-scripts:
     mise exec -- shellcheck -x scripts/*.sh scripts/tests/*.sh
+    mise exec -C api -- uv run ruff check --config pyproject.toml ../scripts
+    mise exec -C api -- uv run ruff format --check --config pyproject.toml ../scripts
+    mise exec -C api -- uv run pyright ../scripts/moddb-replay.py
 
 # Lint GitHub Actions workflows (actionlint, which also runs ShellCheck on run: steps)
 lint-workflows:
