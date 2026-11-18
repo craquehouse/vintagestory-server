@@ -60,10 +60,11 @@ export function ConsolePage() {
       aria-label="Server Console"
     >
       {/* Page Header with title, controls, and status badge */}
-      <div className="flex items-center justify-between gap-4 mb-4 flex-shrink-0">
+      {/* Story 21.7: on phones the controls and the badge wrap under the title */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4 flex-shrink-0">
         <h1 className="text-2xl font-bold">Server Console</h1>
         {isInstalled && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <ServerControls serverState={serverState} />
             <ServerStatusBadge state={serverState} />
           </div>

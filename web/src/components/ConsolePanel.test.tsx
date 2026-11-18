@@ -974,6 +974,18 @@ describe('ConsolePanel', () => {
       expect(screen.getByTestId('console-font-size')).toBeInTheDocument();
     });
 
+    // Story 21.7 review: 44 by 44px below lg, 28px from lg (the E2E checks the real sizes)
+    it('makes the font size buttons 44px below lg and keeps them 28px from lg', () => {
+      const queryClient = createTestQueryClient();
+      render(<ConsolePanel />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      for (const id of ['console-font-decrease', 'console-font-increase']) {
+        expect(screen.getByTestId(id)).toHaveClass('h-7', 'w-7', 'max-lg:size-11');
+      }
+    });
+
     it('increases font size when clicking increase button', async () => {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();

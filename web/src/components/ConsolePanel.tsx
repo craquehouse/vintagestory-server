@@ -218,7 +218,8 @@ export function ConsolePanel({
     <Card className={cn('flex flex-col overflow-hidden', className)} data-testid="console-panel">
       {showHeader && (
         <CardHeader className="flex-shrink-0 border-b py-3">
-          <div className="flex items-center justify-between gap-2">
+          {/* Story 21.7: on phones the font size and connection status wrap under the title */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg">{title}</CardTitle>
               <DropdownMenu>
@@ -291,7 +292,7 @@ export function ConsolePanel({
                   disabled={preferences.consoleFontSize <= FONT_SIZE_MIN}
                   aria-label="Decrease font size"
                   data-testid="console-font-decrease"
-                  className="h-7 w-7"
+                  className="h-7 w-7 max-lg:size-11"
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
@@ -308,7 +309,7 @@ export function ConsolePanel({
                   disabled={preferences.consoleFontSize >= FONT_SIZE_MAX}
                   aria-label="Increase font size"
                   data-testid="console-font-increase"
-                  className="h-7 w-7"
+                  className="h-7 w-7 max-lg:size-11"
                 >
                   <Plus className="h-3 w-3" />
                 </Button>

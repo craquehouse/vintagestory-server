@@ -547,4 +547,125 @@ describe('VersionTable', () => {
       expect(channelHeader).toHaveAttribute('aria-sort', 'descending');
     });
   });
+
+  // Story 21.7 (AC 7): below sm (640px) Channel and Status are shown under the version
+  describe('channel and status under the version on phones (Story 21.7)', () => {
+    it('shows each row channel badge under the version, as the column shows it', () => {
+      render(<VersionTable versions={mockVersions} />);
+
+      for (const { version } of mockVersions) {
+        const inline = screen.getByTestId(`version-table-inline-channel-${version}`);
+        const column = screen.getByTestId(`version-table-channel-${version}`);
+        expect(inline).toHaveTextContent(column.textContent ?? '');
+        expect(inline.className).toBe(column.className);
+        expect(inline.parentElement).toHaveClass('sm:hidden');
+        expect(
+          within(screen.getByTestId(`version-table-row-${version}`))
+            .getByTestId(`version-table-version-${version}`)
+            .closest('td')
+        ).toContainElement(inline);
+      }
+      expect(screen.getByTestId('version-table-inline-channel-1.20.0')).toHaveTextContent('Stable');
+      expect(screen.getByTestId('version-table-inline-channel-1.20.1-rc.1')).toHaveTextContent(
+        'Unstable'
+      );
+    });
+
+    it('shows Latest and Installed under the version when they apply, and no dash', () => {
+      render(<VersionTable versions={mockVersions} installedVersion="1.19.8" />);
+
+      expect(screen.getByTestId('version-table-inline-latest-1.20.0')).toHaveTextContent('Latest');
+      expect(screen.queryByTestId('version-table-inline-installed-1.20.0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('version-table-inline-installed-1.19.8')).toHaveTextContent(
+        'Installed'
+      );
+      expect(screen.queryByTestId('version-table-inline-latest-1.19.8')).not.toBeInTheDocument();
+      // The same marks as the Status column
+      expect(screen.getByTestId('version-table-inline-latest-1.20.0').className).toBe(
+        screen.getByTestId('version-table-latest-1.20.0').className
+      );
+      expect(screen.getByTestId('version-table-inline-installed-1.19.8').className).toBe(
+        screen.getByTestId('version-table-installed-1.19.8').className
+      );
+
+      const inlineRow = screen.getByTestId('version-table-inline-channel-1.19.8').parentElement;
+      expect(inlineRow).not.toHaveTextContent('-');
+    });
+
+    it('shows neither mark for a row that is neither latest nor installed', () => {
+      render(<VersionTable versions={mockVersions} />);
+
+      expect(screen.queryByTestId('version-table-inline-latest-1.19.8')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('version-table-inline-installed-1.19.8')).not.toBeInTheDocument();
+      const inlineRow = screen.getByTestId('version-table-inline-channel-1.19.8').parentElement;
+      expect(inlineRow).toHaveTextContent(/^Stable$/);
+    });
+
+    it('hides the Channel and Status columns below sm, and not Version or Actions', () => {
+      render(<VersionTable versions={mockVersions} installedVersion="1.20.0" />);
+
+      for (const id of ['channel', 'status']) {
+        expect(screen.getByTestId(`version-table-header-${id}`)).toHaveClass(
+          'hidden',
+          'sm:table-cell'
+        );
+      }
+      expect(screen.getByTestId('version-table-channel-1.20.0').closest('td')).toHaveClass(
+        'hidden',
+        'sm:table-cell'
+      );
+      expect(screen.getByTestId('version-table-latest-1.20.0').closest('td')).toHaveClass(
+        'hidden',
+        'sm:table-cell'
+      );
+      for (const id of ['version', 'actions']) {
+        expect(screen.getByTestId(`version-table-header-${id}`)).not.toHaveClass('hidden');
+      }
+      expect(screen.getByTestId('version-table-version-1.20.0').closest('td')).not.toHaveClass(
+        'hidden'
+      );
+      expect(screen.getByTestId('version-table-select-1.20.0').closest('td')).not.toHaveClass(
+        'hidden'
+      );
+    });
+
+    it('hides the same two columns in the loading skeleton', () => {
+      render(<VersionTable versions={[]} isLoading />);
+
+      const headers = within(screen.getByTestId('version-table-loading')).getAllByRole(
+        'columnheader'
+      );
+      expect(headers.map((header) => header.textContent)).toEqual([
+        'Version',
+        'Channel',
+        'Size',
+        'Status',
+        'Actions',
+      ]);
+      const hidden = [false, true, true, true, false];
+      headers.forEach((header, index) => {
+        if (hidden[index]) expect(header).toHaveClass('hidden', 'sm:table-cell');
+        else expect(header).not.toHaveClass('hidden');
+      });
+      for (const row of screen.getAllByTestId('version-table-skeleton-row')) {
+        const cells = within(row).getAllByRole('cell');
+        cells.forEach((cell, index) => {
+          if (hidden[index]) expect(cell).toHaveClass('hidden', 'sm:table-cell');
+          else expect(cell).not.toHaveClass('hidden');
+        });
+      }
+    });
+
+    it('makes the Select button 44px tall below lg and keeps its action', async () => {
+      const user = userEvent.setup();
+      const onVersionSelect = vi.fn();
+      render(<VersionTable versions={mockVersions} onVersionSelect={onVersionSelect} />);
+
+      const button = screen.getByTestId('version-table-select-1.19.8');
+      expect(button).toHaveClass('max-lg:h-11');
+      expect(button).toHaveTextContent('Select');
+      await user.click(button);
+      expect(onVersionSelect).toHaveBeenCalledWith('1.19.8');
+    });
+  });
 });
