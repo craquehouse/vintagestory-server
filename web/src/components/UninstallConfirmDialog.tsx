@@ -9,6 +9,7 @@
  * - Shows preservation message (config, mods, worlds preserved)
  * - Shows server-running warning when server is running
  * - Destructive action styling for Remove button
+ * - Story 21.4: cannot be dismissed while the uninstall request runs
  */
 
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
@@ -63,7 +64,14 @@ export function UninstallConfirmDialog({
   const isServerRunning = serverState === 'running';
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        // Story 21.4: Escape does not close the dialog while the uninstall runs
+        if (!next && isPending) return;
+        onOpenChange(next);
+      }}
+    >
       <AlertDialogContent data-testid="uninstall-confirm-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle data-testid="dialog-title">Remove Server Installation</AlertDialogTitle>

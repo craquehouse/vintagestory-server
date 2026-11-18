@@ -13,6 +13,8 @@
  *   handlers and dialogs
  * - Story 18.4: below `lg`, a sort control above the cards writes the same preference as
  *   the headers; the Name column wraps so the table fits its container from 1024px
+ * - Story 21.4: the remove dialog stays open until the DELETE answers and cannot be
+ *   dismissed while it runs; on an error it offers Remove again
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -37,7 +39,6 @@ import {
 } from '@/components/ui/table';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -45,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { SideBadge } from '@/components/SideBadge';
 import {
   ModCompatibility,
@@ -231,21 +233,24 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     setModToRemove(mod);
   }, []);
 
+  // Story 21.4: the dialog stays open until the DELETE answers. On success it closes; on
+  // an error the hook restores the row and shows the toast, and the dialog offers Remove
+  // again.
   const handleRemoveConfirm = () => {
-    if (!modToRemove) return;
+    if (!modToRemove || isRemoving) return;
 
     removeModMutation(modToRemove.slug, {
       onSuccess: () => {
         onRemoved?.(modToRemove.slug);
         setModToRemove(null);
       },
-      onError: () => {
-        setModToRemove(null);
-      },
     });
   };
 
+  // Cancel, Escape and onOpenChange all come here; nothing closes the dialog while the
+  // DELETE runs
   const handleRemoveCancel = () => {
+    if (isRemoving) return;
     setModToRemove(null);
   };
 
@@ -368,11 +373,55 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     );
   }
 
+  // Story 21.4: rendered beside the empty state too, so removing the last mod (which
+  // empties the list at once) does not unmount the dialog while its DELETE runs
+  const removeDialog = (
+    <AlertDialog open={!!modToRemove} onOpenChange={(open) => !open && handleRemoveCancel()}>
+      <AlertDialogContent data-testid="remove-dialog">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove {modToRemove?.name || modToRemove?.slug}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove the mod from your server. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          {/* Radix's AlertDialogCancel, so the dialog focuses it when it opens */}
+          <AlertDialogCancel
+            onClick={handleRemoveCancel}
+            disabled={isRemoving}
+            data-testid="remove-dialog-cancel"
+          >
+            Cancel
+          </AlertDialogCancel>
+          {/* A plain button, not AlertDialogAction, which would close the dialog on click */}
+          <Button
+            variant="destructive"
+            onClick={handleRemoveConfirm}
+            disabled={isRemoving}
+            data-testid="remove-dialog-confirm"
+          >
+            {isRemoving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Removing...
+              </>
+            ) : (
+              'Remove'
+            )}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
   if (mods.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground" data-testid="mod-table-empty">
-        No mods installed yet
-      </div>
+      <>
+        <div className="text-center py-8 text-muted-foreground" data-testid="mod-table-empty">
+          No mods installed yet
+        </div>
+        {removeDialog}
+      </>
     );
   }
 
@@ -439,35 +488,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       />
 
       {/* Remove confirmation dialog */}
-      <AlertDialog open={!!modToRemove} onOpenChange={(open) => !open && handleRemoveCancel()}>
-        <AlertDialogContent data-testid="remove-dialog">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {modToRemove?.name || modToRemove?.slug}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove the mod from your server. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleRemoveCancel} data-testid="remove-dialog-cancel">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRemoveConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="remove-dialog-confirm"
-            >
-              {isRemoving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Removing...
-                </>
-              ) : (
-                'Remove'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {removeDialog}
     </>
   );
 }
