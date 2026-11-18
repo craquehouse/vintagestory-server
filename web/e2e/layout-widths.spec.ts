@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { pretendServerInstalled, serveConfigKey } from './config-js';
+import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './config-js';
 
 /**
  * E2E tests for page layouts at tablet and phone widths.
@@ -20,9 +20,14 @@ import { pretendServerInstalled, serveConfigKey } from './config-js';
  * - The Mods and Version page tab lists fit at 320 and 390px.
  * - Game Settings: from 1024px the title starts at the settings panel's left edge and the
  *   status badge ends at its right edge, inside the same centered 1280px width.
+ * Story 21.7 (FR281, FR283; VSS-3ry, VSS-f9y):
+ * - The Settings, Mods and Version tab buttons are at least 44px tall below 1024px, and as
+ *   before from 1024px (list 36px). At 320-430px the Settings list's two rows sit inside the
+ *   list and its panel starts below it.
  *
  * Reads only. The installed mods, their update status and the compatibility lookups are
- * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), and every
+ * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), as are the
+ * Version page's versions, its installed version and the Scheduled Jobs (Story 21.7); every
  * write to the API is refused, so no mod or setting changes; the game server is neither
  * started nor stopped; no screenshot is taken. The sidebar state is the `vs_ui_prefs`
  * cookie of a fresh browser context.
@@ -278,13 +283,25 @@ async function expectInsideViewport(page: Page, target: string | Locator, width:
   expect(box.x + box.width, `${name} right at ${width}px`).toBeLessThanOrEqual(width);
 }
 
+interface PageOptions {
+  /** Stub the installed mods with `fixture` */
+  mods?: boolean;
+  fixture?: FakeMod[];
+  /** Stub the Version page's versions (Story 21.7) */
+  versions?: boolean;
+  /** Stub the Scheduled Jobs (Story 21.7) */
+  jobs?: boolean;
+  /** Show this game version as installed (Story 21.7) */
+  installed?: string;
+}
+
 /** A page in a fresh context with the sidebar expanded or collapsed (vs_ui_prefs cookie). */
 async function openPage(
   page: Page,
   width: number,
   collapsed: boolean,
   url: string,
-  { mods = false, fixture = MODS }: { mods?: boolean; fixture?: FakeMod[] } = {}
+  { mods = false, fixture = MODS, versions = false, jobs = false, installed }: PageOptions = {}
 ) {
   await page.context().addCookies([
     {
@@ -296,6 +313,9 @@ async function openPage(
   await page.setViewportSize({ width, height: HEIGHT });
   await readOnly(page);
   if (mods) await fakeInstalledMods(page, fixture);
+  if (versions) await fakeVersions(page);
+  if (jobs) await fakeJobs(page);
+  if (installed) await installedVersion(page, installed);
   await page.goto(url);
 }
 
@@ -606,6 +626,211 @@ test.describe('Other tab lists on phones (Story 17.8, AC 4)', () => {
 
       expect(await documentOverflow(page)).toBe(0);
       await expectInsideViewport(page, 'channel-filter-tabs', width);
+    });
+  }
+});
+
+/** The Version page's four versions (Story 21.7); the vendor's list is empty in CI's first pass. */
+const VERSIONS = [
+  { version: '1.22.7', channel: 'stable', isLatest: true },
+  { version: '1.22.7-rc.12', channel: 'unstable', isLatest: false },
+  { version: '1.22.6', channel: 'stable', isLatest: false },
+  { version: '1.21.6-pre.1', channel: 'unstable', isLatest: false },
+];
+
+/** Serve the version list, filtered by `?channel=` (registered after readOnly, so it runs first). */
+async function fakeVersions(page: Page) {
+  await page.route(/\/api\/v1alpha1\/versions(\?.*)?$/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const channel = new URL(route.request().url()).searchParams.get('channel');
+    const versions = VERSIONS.filter((item) => !channel || item.channel === channel).map(
+      ({ version, channel: itemChannel, isLatest }) => ({
+        version,
+        filename: `vs_server_linux-x64_${version}.tar.gz`,
+        filesize: '40.2 MB',
+        md5: '0'.repeat(32),
+        cdn_url: `https://cdn.example.com/${itemChannel}/${version}`,
+        local_url: `/downloads/${itemChannel}/${version}`,
+        is_latest: isLatest,
+        channel: itemChannel,
+      })
+    );
+    await route.fulfill({
+      json: {
+        status: 'ok',
+        data: { versions, total: versions.length, cached: true, cached_at: null },
+      },
+    });
+  });
+}
+
+/** Three Scheduled Jobs (Story 21.7): a long job ID and a cron schedule must wrap in a card. */
+const JOBS = [
+  {
+    id: 'mod_cache_refresh',
+    next_run_time: '2026-11-17T12:00:00Z',
+    trigger_type: 'interval',
+    trigger_details: 'every 3600 seconds',
+  },
+  {
+    id: 'server_versions_check',
+    next_run_time: null,
+    trigger_type: 'cron',
+    trigger_details: "cron[hour='*/6', minute='0']",
+  },
+  {
+    id: 'mod_update_check',
+    next_run_time: '2026-11-17T18:00:00Z',
+    trigger_type: 'interval',
+    trigger_details: 'every 21600 seconds',
+  },
+];
+
+/** Serve the Scheduled Jobs (registered after readOnly, so it runs first). */
+async function fakeJobs(page: Page) {
+  await page.route(/\/api\/v1alpha1\/jobs(\?.*)?$/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ json: { status: 'ok', data: { jobs: JOBS } } });
+  });
+}
+
+/**
+ * Show `version` as the installed game version on every stack, so the latest row is also the
+ * installed row (registered after pretendServerInstalled, so it runs first).
+ */
+async function installedVersion(page: Page, version: string) {
+  await page.route('**/api/v1alpha1/server/status', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const response = await fetchOnNewConnection(route);
+    const body: { data?: Record<string, unknown> } = await response.json();
+    body.data = { ...body.data, state: 'installed', version };
+    await route.fulfill({ response, json: body });
+  });
+}
+
+/** Tab heights at every width below lg (Story 21.7, AC 1). */
+const TAB_WIDTHS = [
+  { width: 320, collapsed: false, label: 'sidebar expanded' },
+  { width: 390, collapsed: false, label: 'sidebar expanded' },
+  { width: 430, collapsed: false, label: 'sidebar expanded' },
+  { width: 768, collapsed: false, label: 'sidebar expanded' },
+  { width: 768, collapsed: true, label: 'sidebar collapsed' },
+  { width: 1023, collapsed: false, label: 'sidebar expanded' },
+  { width: 1023, collapsed: true, label: 'sidebar collapsed' },
+];
+
+interface TabList {
+  name: string;
+  url: string;
+  /** Selector of the tab list */
+  list: string;
+  /** Test ID that shows the page is ready */
+  ready: string;
+  triggers: string[];
+  options: PageOptions;
+}
+
+/** The three tab lists: where each is, what to wait for, and its triggers. */
+const TAB_LISTS: TabList[] = [
+  {
+    name: 'Settings',
+    url: '/config',
+    list: '[data-testid="settings-page"] [data-slot="tabs-list"]',
+    ready: 'scheduled-jobs-tab',
+    triggers: CONFIG_TABS.map((tab) => `${tab}-tab`),
+    options: {},
+  },
+  {
+    name: 'Mods',
+    url: INSTALLED,
+    list: '[data-testid="mods-page"] [data-slot="tabs-list"]',
+    ready: 'installed-tab',
+    triggers: ['installed-tab', 'browse-tab'],
+    options: { mods: true },
+  },
+  {
+    name: 'Version channel filter',
+    url: '/game-server/version',
+    list: '[data-testid="channel-filter-tabs"]',
+    ready: 'version-table',
+    triggers: ['channel-filter-all', 'channel-filter-stable', 'channel-filter-unstable'],
+    options: { versions: true },
+  },
+];
+
+/** Open a page with one of the three tab lists, its data stubbed. */
+async function openTabList(page: Page, width: number, collapsed: boolean, tabList: TabList) {
+  await openPage(page, width, collapsed, tabList.url, tabList.options);
+  await expect(page.getByTestId(tabList.ready)).toBeVisible({ timeout: 30_000 });
+}
+
+test.describe('Tab heights (Story 21.7, AC 1-2)', () => {
+  for (const tabList of TAB_LISTS) {
+    for (const { width, collapsed, label } of TAB_WIDTHS) {
+      test(`${tabList.name} tabs are at least 44px tall at ${width}px, ${label}`, async ({
+        page,
+      }) => {
+        await openTabList(page, width, collapsed, tabList);
+
+        for (const trigger of tabList.triggers) {
+          const box = await boxOf(page.getByTestId(trigger), trigger);
+          expect(box.height, `${trigger} height at ${width}px`).toBeGreaterThanOrEqual(44);
+          await expectInsideViewport(page, trigger, width);
+        }
+        expect(await documentOverflow(page)).toBe(0);
+      });
+    }
+
+    test(`${tabList.name} tabs are as before at 1024px`, async ({ page }) => {
+      await openTabList(page, 1024, false, tabList);
+
+      const list = await boxOf(page.locator(tabList.list), `${tabList.name} tab list`);
+      expect(list.height).toBe(36);
+      for (const trigger of tabList.triggers) {
+        const box = await boxOf(page.getByTestId(trigger), trigger);
+        expect(box.height, `${trigger} height at 1024px`).toBeLessThan(36);
+      }
+    });
+  }
+
+  // Below md the sidebar is a sheet, so its state does not matter
+  for (const width of [320, 390, 430]) {
+    test(`the Settings tabs wrap inside their list at ${width}px`, async ({ page }) => {
+      await openTabList(page, width, false, TAB_LISTS[0]);
+      const listLocator = page.locator(TAB_LISTS[0].list);
+      const activePanel = page.locator(
+        '[data-testid="settings-page"] [data-slot="tabs-content"][data-state="active"]'
+      );
+
+      const list = await boxOf(listLocator, 'Settings tab list');
+      expect(list.height, 'two rows').toBeGreaterThan(88);
+      for (const trigger of TAB_LISTS[0].triggers) {
+        const box = await boxOf(page.getByTestId(trigger), trigger);
+        expect(box.x, `${trigger} left`).toBeGreaterThanOrEqual(list.x);
+        expect(box.x + box.width, `${trigger} right`).toBeLessThanOrEqual(list.x + list.width);
+        expect(box.y, `${trigger} top`).toBeGreaterThanOrEqual(list.y);
+        expect(box.y + box.height, `${trigger} bottom`).toBeLessThanOrEqual(list.y + list.height);
+      }
+      const panel = await boxOf(activePanel, 'active panel');
+      expect(panel.y, 'panel below the list').toBeGreaterThanOrEqual(list.y + list.height);
+
+      await page.getByTestId('scheduled-jobs-tab').click();
+      await expect(page.getByTestId('scheduled-jobs-tab')).toHaveAttribute('aria-selected', 'true');
+      const lastPanel = await boxOf(activePanel, 'active panel after the last tab');
+      const listAfter = await boxOf(listLocator, 'Settings tab list');
+      expect(lastPanel.y, 'panel below the list').toBeGreaterThanOrEqual(
+        listAfter.y + listAfter.height
+      );
+      expect(await documentOverflow(page)).toBe(0);
     });
   }
 });
