@@ -217,6 +217,32 @@ describe('Dialog', () => {
       expect(screen.getByText('Close')).toBeInTheDocument();
     });
 
+    it('gives the close button a 44px box with the 16px icon centred in it (Story 21.5)', () => {
+      render(
+        <Dialog open={true}>
+          <DialogContent>
+            <DialogTitle>Title</DialogTitle>
+            <DialogDescription>Description</DialogDescription>
+          </DialogContent>
+        </Dialog>
+      );
+
+      const close = screen.getByRole('button', { name: 'Close' });
+      expect(close).toHaveAttribute('data-slot', 'dialog-close');
+      expect(close).toHaveClass(
+        'size-11',
+        'top-0.5',
+        'right-0.5',
+        'inline-flex',
+        'items-center',
+        'justify-center'
+      );
+      expect(close).not.toHaveClass('top-4');
+      expect(close).not.toHaveClass('right-4');
+      // The icon keeps its 16px size from [&_svg:not([class*='size-'])]:size-4
+      expect(close.querySelector('svg')?.getAttribute('class')).not.toMatch(/size-/);
+    });
+
     it('hides close button when showCloseButton is false', () => {
       render(
         <Dialog open={true}>
