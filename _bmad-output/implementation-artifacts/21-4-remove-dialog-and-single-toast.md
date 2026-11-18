@@ -1,6 +1,6 @@
 # Story 21.4: The Mod Remove Dialog Waits, and One Toast per Failure
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR271-FR274 and FR286, Epic 21 ADR-6, ADR-7 and ADR-16. Beads: VSS-oc28 (UI-096), VSS-q38r (UI-097, pulled in by Matt, 2026-11-17); maintainer decision 4 (the remove dialog). Stories run in order 21.1 to 21.8, each stacked on the previous. Line references were verified at 966204f (epic-21-planning; its web/ is the code the ADRs cite at 05436da) and must be re-checked at implementation time: Story 21.1 reformats about 231 web files with Prettier first (quotes, wrapping and line numbers move; `Layout.tsx` and `App.tsx` change from double to single quotes). Web only. No API change, no new dependency. -->
 
@@ -105,49 +105,49 @@ so that **I know whether the mod was removed, am not told the same error twice, 
 
 <!-- Six tasks, the project's limit (change proposal, section 3); do not add a seventh. Each functional task includes its tests in the same commit, red first. Commit per task: type(story-21.4/task-N): ...; `fix` only where the subject below says so, written for admins. After Story 21.1, run Prettier on every web file you change (the recipe and check Story 21.1 leaves in `just format-web` / `just lint-web`). -->
 
-- [ ] Task 1: The remove dialog waits for the removal; the server uninstall dialog ignores Escape while it runs + tests (AC: 1, 2, 3, 4, 5, 7, 8, 9)
-  - [ ] 1.1: `web/src/components/ModTable.tsx`: the confirm button (`AlertDialogAction`, `:453-466`) becomes `<Button variant="destructive">` from `@/components/ui/button` (new import; remove `AlertDialogAction` from the import at `:40`), with `onClick={handleRemoveConfirm}`, `disabled={isRemoving}`, the same `data-testid="remove-dialog-confirm"` and the same spinner and labels. The `className` with the hand-written destructive colours goes; the variant supplies them
-  - [ ] 1.2: **Keep `AlertDialogCancel`** (`:447-452`) and add `disabled={isRemoving}`. Do not replace it with a plain button as `UninstallConfirmDialog` has: Radix's alert dialog moves focus to its Cancel element when it opens and to nothing else (Dev Notes "The dialog")
-  - [ ] 1.3: `handleRemoveConfirm` (`:226-238`): return early when `isRemoving`; drop the `onError` that closes the dialog (`:234-236`); keep `onSuccess` (`onRemoved`, then close). `handleRemoveCancel` (`:240-242`) does nothing while `isRemoving`. `onOpenChange` (`:437`) already calls `handleRemoveCancel` for a close, so Escape is covered by the same guard
-  - [ ] 1.4: Render the dialog in the empty state too (AC 8): build the dialog element once (a `const removeDialog = (...)` before the early returns at `:353-370`) and render it in the main return and beside the `mod-table-empty` block (`:361-370`, wrapped in a fragment). Without this the dialog unmounts the moment the last mod is removed optimistically
-  - [ ] 1.5: `web/src/components/UninstallConfirmDialog.tsx:66`: `onOpenChange` no longer goes straight through: a close request while `isPending` is ignored, any other call is passed on. Nothing else in the file changes (its Cancel button stays as it is; see "Not changed")
-  - [ ] 1.6: Update the file header of `ModTable.tsx` (`:1-16`) with one line for this story. Tests (Dev Notes "Unit tests", Task 1 rows) and the three rewrites in "Existing tests that change", red first
-  - [ ] 1.7: Commit `fix(story-21.4/task-1): the remove mod dialog stays open until the mod is removed`
+- [x] Task 1: The remove dialog waits for the removal; the server uninstall dialog ignores Escape while it runs + tests (AC: 1, 2, 3, 4, 5, 7, 8, 9)
+  - [x] 1.1: `web/src/components/ModTable.tsx`: the confirm button (`AlertDialogAction`, `:453-466`) becomes `<Button variant="destructive">` from `@/components/ui/button` (new import; remove `AlertDialogAction` from the import at `:40`), with `onClick={handleRemoveConfirm}`, `disabled={isRemoving}`, the same `data-testid="remove-dialog-confirm"` and the same spinner and labels. The `className` with the hand-written destructive colours goes; the variant supplies them
+  - [x] 1.2: **Keep `AlertDialogCancel`** (`:447-452`) and add `disabled={isRemoving}`. Do not replace it with a plain button as `UninstallConfirmDialog` has: Radix's alert dialog moves focus to its Cancel element when it opens and to nothing else (Dev Notes "The dialog")
+  - [x] 1.3: `handleRemoveConfirm` (`:226-238`): return early when `isRemoving`; drop the `onError` that closes the dialog (`:234-236`); keep `onSuccess` (`onRemoved`, then close). `handleRemoveCancel` (`:240-242`) does nothing while `isRemoving`. `onOpenChange` (`:437`) already calls `handleRemoveCancel` for a close, so Escape is covered by the same guard
+  - [x] 1.4: Render the dialog in the empty state too (AC 8): build the dialog element once (a `const removeDialog = (...)` before the early returns at `:353-370`) and render it in the main return and beside the `mod-table-empty` block (`:361-370`, wrapped in a fragment). Without this the dialog unmounts the moment the last mod is removed optimistically
+  - [x] 1.5: `web/src/components/UninstallConfirmDialog.tsx:66`: `onOpenChange` no longer goes straight through: a close request while `isPending` is ignored, any other call is passed on. Nothing else in the file changes (its Cancel button stays as it is; see "Not changed")
+  - [x] 1.6: Update the file header of `ModTable.tsx` (`:1-16`) with one line for this story. Tests (Dev Notes "Unit tests", Task 1 rows) and the three rewrites in "Existing tests that change", red first
+  - [x] 1.7: Commit `fix(story-21.4/task-1): the remove mod dialog stays open until the mod is removed`
 
-- [ ] Task 2: The pending state belongs to the dialog's own mod + test (AC: 6)
-  - [ ] 2.1: `ModTable.tsx:130`: also take `variables` from `useRemoveMod()` (the slug being removed). `isRemoving` is true only when the mutation is pending **and** a dialog is open **and** `variables === modToRemove.slug`; the pattern of `isTogglingMod` (`:244-249`)
-  - [ ] 2.2: In `handleRemoveConfirm`, read the slug into a local before calling `mutate`, and in `onSuccess` close the dialog only if it is still this mod's: `setModToRemove((current) => (current?.slug === slug ? null : current))`
-  - [ ] 2.3: Test: the second mod's dialog while the first DELETE is held open (Dev Notes "Unit tests", Task 2 row). It fails against Task 1's code and passes after 2.1 and 2.2
-  - [ ] 2.4: Commit `refactor(story-21.4/task-2): the remove dialog's pending state belongs to its own mod` (no release note: after Task 1 an admin cannot reach the fault with a pointer or keyboard; see Dev Notes "The dialog")
+- [x] Task 2: The pending state belongs to the dialog's own mod + test (AC: 6)
+  - [x] 2.1: `ModTable.tsx:130`: also take `variables` from `useRemoveMod()` (the slug being removed). `isRemoving` is true only when the mutation is pending **and** a dialog is open **and** `variables === modToRemove.slug`; the pattern of `isTogglingMod` (`:244-249`)
+  - [x] 2.2: In `handleRemoveConfirm`, read the slug into a local before calling `mutate`, and in `onSuccess` close the dialog only if it is still this mod's: `setModToRemove((current) => (current?.slug === slug ? null : current))`
+  - [x] 2.3: Test: the second mod's dialog while the first DELETE is held open (Dev Notes "Unit tests", Task 2 row). It fails against Task 1's code and passes after 2.1 and 2.2
+  - [x] 2.4: Commit `refactor(story-21.4/task-2): the remove dialog's pending state belongs to its own mod` (no release note: after Task 1 an admin cannot reach the fault with a pointer or keyboard; see Dev Notes "The dialog")
 
-- [ ] Task 3: A failed mod install shows one toast + tests (AC: 10) (`VSS-oc28`)
-  - [ ] 3.1: First write the test (Dev Notes "Unit tests", Task 3 row) and see it fail with **two** calls of `toast.error`; record the failing output in the Dev Agent Record
-  - [ ] 3.2: `web/src/hooks/use-mods.ts` `useInstallMod` (`:88-98`): add `onError: () => {}` with the comment the two existing hooks carry (`:374-375`): the caller reports errors, so the global toast is skipped. Update the hook's doc comment (`:69-87`): "Errors are not toasted globally; pass `onError` to `mutate` to report them"
-  - [ ] 3.3: Check the hook's only caller still reports: `InstallConfirmDialog.tsx:117-122` ("Installation failed" with the message). No change there
-  - [ ] 3.4: Commit `fix(story-21.4/task-3): a failed mod install shows one error message, not two`
+- [x] Task 3: A failed mod install shows one toast + tests (AC: 10) (`VSS-oc28`)
+  - [x] 3.1: First write the test (Dev Notes "Unit tests", Task 3 row) and see it fail with **two** calls of `toast.error`; record the failing output in the Dev Agent Record
+  - [x] 3.2: `web/src/hooks/use-mods.ts` `useInstallMod` (`:88-98`): add `onError: () => {}` with the comment the two existing hooks carry (`:374-375`): the caller reports errors, so the global toast is skipped. Update the hook's doc comment (`:69-87`): "Errors are not toasted globally; pass `onError` to `mutate` to report them"
+  - [x] 3.3: Check the hook's only caller still reports: `InstallConfirmDialog.tsx:117-122` ("Installation failed" with the message). No change there
+  - [x] 3.4: Commit `fix(story-21.4/task-3): a failed mod install shows one error message, not two`
 
-- [ ] Task 4: The same for the server install, uninstall and restart and the webhook setting; the rule in `project-context.md` + tests (AC: 11, 12)
-  - [ ] 4.1: Tests first (Dev Notes "Unit tests", Task 4 rows), each red with two toasts
-  - [ ] 4.2: `web/src/hooks/use-server-status.ts`: `useRestartServer` (`:158-167`), `useInstallServer` (`:188-200`), `useUninstallServer` (`:283-295`); `web/src/hooks/use-api-settings.ts`: `useSetModUpdateWebhook` (`:144-153`). Each gets `onError: () => {}` with the same comment and a line in its doc comment
-  - [ ] 4.3: **`web/src/components/PendingRestartBanner.tsx:33-39` passes no `onError`.** Add one: `toast.error('Failed to restart server', { description: error.message })` (import `toast` from `sonner`), the title `ServerControls.tsx:90` uses. Without it, silencing `useRestartServer` leaves a failed restart from the banner with no message at all (Dev Notes "ADR against the code")
-  - [ ] 4.4: Re-check every caller at implementation time with `grep -rn "useRestartServer\|useInstallServer\|useUninstallServer\|useSetModUpdateWebhook\|useInstallMod" web/src --include=*.tsx | grep -v test`; the list verified at 966204f is in Dev Notes "The five hooks". A caller added by Stories 21.1 to 21.3 must report its error too
-  - [ ] 4.5: Commit `fix(story-21.4/task-4): a failed server install, removal or restart shows one error message, not two` (the webhook setting and the banner are in this commit; ADR-7 consequences)
-  - [ ] 4.6: `project-context.md`, section "Frontend (TypeScript)" (`:491-506`), after the query keys block: the rule (text in Dev Notes "The rule for project-context.md"). Commit `docs(story-21.4/task-4): add the mutation onError rule to project-context`
+- [x] Task 4: The same for the server install, uninstall and restart and the webhook setting; the rule in `project-context.md` + tests (AC: 11, 12)
+  - [x] 4.1: Tests first (Dev Notes "Unit tests", Task 4 rows), each red with two toasts
+  - [x] 4.2: `web/src/hooks/use-server-status.ts`: `useRestartServer` (`:158-167`), `useInstallServer` (`:188-200`), `useUninstallServer` (`:283-295`); `web/src/hooks/use-api-settings.ts`: `useSetModUpdateWebhook` (`:144-153`). Each gets `onError: () => {}` with the same comment and a line in its doc comment
+  - [x] 4.3: **`web/src/components/PendingRestartBanner.tsx:33-39` passes no `onError`.** Add one: `toast.error('Failed to restart server', { description: error.message })` (import `toast` from `sonner`), the title `ServerControls.tsx:90` uses. Without it, silencing `useRestartServer` leaves a failed restart from the banner with no message at all (Dev Notes "ADR against the code")
+  - [x] 4.4: Re-check every caller at implementation time with `grep -rn "useRestartServer\|useInstallServer\|useUninstallServer\|useSetModUpdateWebhook\|useInstallMod" web/src --include=*.tsx | grep -v test`; the list verified at 966204f is in Dev Notes "The five hooks". A caller added by Stories 21.1 to 21.3 must report its error too
+  - [x] 4.5: Commit `fix(story-21.4/task-4): a failed server install, removal or restart shows one error message, not two` (the webhook setting and the banner are in this commit; ADR-7 consequences)
+  - [x] 4.6: `project-context.md`, section "Frontend (TypeScript)" (`:491-506`), after the query keys block: the rule (text in Dev Notes "The rule for project-context.md"). Commit `docs(story-21.4/task-4): add the mutation onError rule to project-context`
 
-- [ ] Task 5: Mod data is fetched again when the server status reports another installed game version + tests (AC: 13, 14, 15, 16) (`VSS-q38r`)
-  - [ ] 5.1: `web/src/hooks/use-server-status.ts`: new exported hook `useRefreshModDataOnGameVersionChange()` after `useServerStateToasts` (`:230-263`); behaviour and a sketch in Dev Notes "The version watcher"
-  - [ ] 5.2: `web/src/components/layout/Layout.tsx:11-12`: call the hook once at the top of `Layout`. `Layout` is rendered once (`App.tsx:121`), and `Sidebar` (`layout/Sidebar.tsx:61`) already runs the status query on every page, so no request is added
-  - [ ] 5.3: Do not touch the `onSuccess` of `useInstallServer` or `useUninstallServer` for this (ADR-16 decision 4; AC 16). Do not change `BROWSE_STALE_TIME` (`use-browse-mods.ts:24`) or any other stale time
-  - [ ] 5.4: Tests (Dev Notes "Unit tests", Task 5 rows), red first
-  - [ ] 5.5: Commit `fix(story-21.4/task-5): browse cards update their game-version badges after the server version changes`
+- [x] Task 5: Mod data is fetched again when the server status reports another installed game version + tests (AC: 13, 14, 15, 16) (`VSS-q38r`)
+  - [x] 5.1: `web/src/hooks/use-server-status.ts`: new exported hook `useRefreshModDataOnGameVersionChange()` after `useServerStateToasts` (`:230-263`); behaviour and a sketch in Dev Notes "The version watcher"
+  - [x] 5.2: `web/src/components/layout/Layout.tsx:11-12`: call the hook once at the top of `Layout`. `Layout` is rendered once (`App.tsx:121`), and `Sidebar` (`layout/Sidebar.tsx:61`) already runs the status query on every page, so no request is added
+  - [x] 5.3: Do not touch the `onSuccess` of `useInstallServer` or `useUninstallServer` for this (ADR-16 decision 4; AC 16). Do not change `BROWSE_STALE_TIME` (`use-browse-mods.ts:24`) or any other stale time
+  - [x] 5.4: Tests (Dev Notes "Unit tests", Task 5 rows), red first
+  - [x] 5.5: Commit `fix(story-21.4/task-5): browse cards update their game-version badges after the server version changes`
 
 - [ ] Task 6: E2E specs with stubbed answers, the README counts, quality gate and review hand-off (AC: 17, 18, all)
-  - [ ] 6.1: New `web/e2e/mod-remove-dialog.spec.ts` and `web/e2e/browse-version-refresh.spec.ts` (Dev Notes "E2E"), untagged. Run them against the dev stack rebuilt from this branch (`just docker restart`, then `cd web && bunx playwright test e2e/mod-remove-dialog.spec.ts e2e/browse-version-refresh.spec.ts`) and in `just test-e2e-ci` (both passes green). Do not start or stop the game server; no screenshots
-  - [ ] 6.2: `web/e2e/README.md:10` and `:50`: add the number of new tests to the untagged count, the CI count and the total (at 966204f: 119 untagged, 146 of 150; five new tests give 124, 151 of 155). Read the counts the README has then, since Stories 21.1 to 21.3 may have changed them, and confirm with `cd web && bunx playwright test --list`. Commit `test(story-21.4/task-6): cover the remove dialog and the browse refresh end to end`
-  - [ ] 6.3: Record in the Dev Agent Record that `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/server/status` (state and version) on the dev stack returned the same before and after the E2E run
-  - [ ] 6.4: `just check` passes; `just test-web` reports no skipped test beyond the pre-existing ones (`VSS-hnl`); the diff adds no suppression and no `cast`; `git status --short` shows nothing under `dev/`
-  - [ ] 6.5: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
-  - [ ] 6.6: Story status `review`, `just sprint set 21-4-remove-dialog-and-single-toast review`, PR (base: Story 21.3's branch while its PR is open, otherwise `main`; Story 21.1 must be merged first), PR link on `VSS-oc28` and `VSS-q38r`. The PR description says "API contract changes: none" and lists the four release-note subjects. Commit `chore(story-21.4/task-6): validate and move story 21.4 to review`
+  - [x] 6.1: New `web/e2e/mod-remove-dialog.spec.ts` and `web/e2e/browse-version-refresh.spec.ts` (Dev Notes "E2E"), untagged. Run them against the dev stack rebuilt from this branch (`just docker restart`, then `cd web && bunx playwright test e2e/mod-remove-dialog.spec.ts e2e/browse-version-refresh.spec.ts`) and in `just test-e2e-ci` (both passes green). Do not start or stop the game server; no screenshots
+  - [x] 6.2: `web/e2e/README.md:10` and `:50`: add the number of new tests to the untagged count, the CI count and the total (at 966204f: 119 untagged, 146 of 150; five new tests give 124, 151 of 155). Read the counts the README has then, since Stories 21.1 to 21.3 may have changed them, and confirm with `cd web && bunx playwright test --list`. Commit `test(story-21.4/task-6): cover the remove dialog and the browse refresh end to end`
+  - [x] 6.3: Record in the Dev Agent Record that `GET /api/v1alpha1/mods` and `GET /api/v1alpha1/server/status` (state and version) on the dev stack returned the same before and after the E2E run
+  - [x] 6.4: `just check` passes; `just test-web` reports no skipped test beyond the pre-existing ones (`VSS-hnl`); the diff adds no suppression and no `cast`; `git status --short` shows nothing under `dev/`
+  - [ ] 6.5: (left for the maintainer) Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
+  - [ ] 6.6: (status and sprint status done; PR and the bead links left to the orchestrator, the dev brief forbids push and PR) Story status `review`, `just sprint set 21-4-remove-dialog-and-single-toast review`, PR (base: Story 21.3's branch while its PR is open, otherwise `main`; Story 21.1 must be merged first), PR link on `VSS-oc28` and `VSS-q38r`. The PR description says "API contract changes: none" and lists the four release-note subjects. Commit `chore(story-21.4/task-6): validate and move story 21.4 to review`
 
 ## Dev Notes
 
@@ -418,14 +418,66 @@ None. No route, request, response field, status code or error code changes. The 
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
+
+- Task 3.1, red before the fix (`just test-web src/hooks/use-mods.test.tsx -t "one error toast"`):
+
+  ```
+  FAIL  src/hooks/use-mods.test.tsx > useInstallMod > one error toast (Story 21.4) > shows only the caller's toast for a refused install
+  AssertionError: expected "vi.fn()" to be called 1 times, but got 2 times
+  ```
+- Task 4.1, red before the fix: the three `use-server-status` tests and the webhook test failed with `expected "vi.fn()" to be called 1 times, but got 2 times`; the banner test failed because the only toast was the default `'Error'`, not `'Failed to restart server'`.
+- Task 1, red before the fix: the seven new remove dialog tests, the card test, the rewritten Story 17.3 test and the uninstall Escape test failed; the install dialogs' two "ignores Escape and the close button" tests failed before their guard.
+- Task 5: the watcher tests were also run against a naive `previous !== current` comparison (no "not loaded" state); all seven failed, so the first-load tests do test the loaded/not-loaded distinction. The naive version was discarded.
+- Task 5 tests: TanStack Query notifies observers on a timer tick, so `poll()` waits one `setTimeout(0)` inside `act` after `refetchQueries`; without it an assertion could run before the hook saw the new status.
+- Browser check of `UninstallConfirmDialog` on the dev stack (read-only script; every non-GET API request refused): before the fix, the focused element on open was the page's `remove-server-button` behind the modal (nothing inside the dialog); after, `cancel-button`. Escape closed it in both (not pending).
 
 ### Completion Notes List
 
+- **Task 1 (AC 1-5, 7-9):** the remove dialog's confirm is a `Button variant="destructive"` (no hand-written colours); Cancel stays `AlertDialogCancel` with `disabled={isRemoving}` and keeps the focus on open (unit test). `handleRemoveConfirm` returns early while removing and passes no `onError`; `handleRemoveCancel` does nothing while removing, which covers Cancel, Escape and `onOpenChange`. The dialog element is built once (`removeDialog`) and rendered both in the main return and beside `mod-table-empty`. `UninstallConfirmDialog` ignores a close request while `isPending`.
+- **Task 1, backlog drawdown (maintainer note, own commit `cb38d1ea`):** `InstallConfirmDialog` and `InstallVersionDialog` ignore a close request (Escape, outside click, the X button) while their install request is pending; tests for pending and not pending. `InstallVersionDialog` still closes while the server installs after the request was accepted (test), since that is the progress view with a "Close" button. **`VersionChangeConfirmDialog` is not changed:** its request never runs while it is open (the first request has already ended with the 409 that opens it, and confirm closes it before the retry starts, through `useVersionChangeFlow.confirm`), so there is no pending state to guard. Making it wait for the retry like the remove dialog would be a behaviour change beyond the note; listed as a follow-up.
+- **Task 2 (AC 6):** `isRemoving` is true only when the mutation is pending, a dialog is open and `variables === modToRemove.slug`; the success handler closes only that mod's dialog (`setModToRemove((current) => (current?.slug === slug ? null : current))`).
+- **Task 3 (AC 10):** `useInstallMod` has `onError: () => {}` with the existing comment; its only caller, `InstallConfirmDialog`, shows "Installation failed".
+- **Task 4 (AC 11, 12):** `useRestartServer`, `useInstallServer`, `useUninstallServer` and `useSetModUpdateWebhook` silence the default the same way, each with a doc-comment line. Callers re-checked with the grep in 4.4 on this branch: the list in "The five hooks" is complete and unchanged; every caller reports its error. `PendingRestartBanner` now shows "Failed to restart server" with the message. The rule is in `project-context.md` under "Frontend (TypeScript)" with the story's wording.
+- **Task 5 (AC 13-16):** `useRefreshModDataOnGameVersionChange()` in `use-server-status.ts`, called once at the top of `Layout`. It remembers nothing until the status has data, remembers the first value (version or `null`) without invalidating, and invalidates `['mods']` once per change. The install and uninstall `onSuccess` handlers and every stale time are unchanged.
+- **Task 6 (AC 17, 18):** two untagged, stubbed specs (5 tests). `UninstallConfirmDialog` focus on open (maintainer note): confirmed in the browser that nothing in the dialog had the focus, so its Cancel is now `AlertDialogCancel` (focused on open, still disabled while pending, its click asks for a close through the guarded `onOpenChange`), with a unit test; own commit `cc75e340`. This overrides the story's "Not changed" entries for the uninstall dialog's buttons and for the install dialogs, as the maintainer's notes asked.
+- **Tests:** web unit 3,337 passed (0 skipped; `ModTable.test.tsx` 93, `UninstallConfirmDialog.test.tsx` 20); API 3,458 passed. The three tests listed under "Existing tests that change" were rewritten as planned (the two old remove dialog tests became the "waits for the removal" block; the Story 17.3 test now keeps the dialog open); no other existing test changed. `createAppLikeQueryClient` in `ModTable.test.tsx` moved to module scope for the new tests.
+- **E2E:** the two new specs passed against the dev stack rebuilt from this branch (5 passed; 15 of 15 with `--repeat-each=3`) and in `just test-e2e-ci` (first pass 124 passed, second pass 27 passed). `GET /api/v1alpha1/mods` (slug, version, enabled of each mod) and `GET /api/v1alpha1/server/status` (state, version) on the dev stack returned the same before and after the E2E runs. No game server was started or stopped (checked before each `just docker restart`); no screenshots.
+- **Gate:** `just check` passed (ruff, Pyright 0 errors 0 warnings, tsc, Prettier check, all tests, script tests). The diff adds no suppression and no `cast`/`as`; nothing under `dev/`.
+- **API contract changes:** none.
+- **Left for the maintainer:** 6.5 (manual check, headed run and real keyboard). 6.6's PR and bead links are not done here (the dev brief forbids push and PR).
+
 ### File List
+
+- `web/src/components/ModTable.tsx` (modified)
+- `web/src/components/ModTable.test.tsx` (modified)
+- `web/src/components/UninstallConfirmDialog.tsx` (modified)
+- `web/src/components/UninstallConfirmDialog.test.tsx` (modified)
+- `web/src/components/InstallConfirmDialog.tsx` (modified)
+- `web/src/components/InstallConfirmDialog.test.tsx` (modified)
+- `web/src/components/InstallVersionDialog.tsx` (modified)
+- `web/src/components/InstallVersionDialog.test.tsx` (modified)
+- `web/src/components/PendingRestartBanner.tsx` (modified)
+- `web/src/components/PendingRestartBanner.test.tsx` (modified)
+- `web/src/components/layout/Layout.tsx` (modified)
+- `web/src/components/layout/Layout.test.tsx` (modified)
+- `web/src/hooks/use-mods.ts` (modified)
+- `web/src/hooks/use-mods.test.tsx` (modified)
+- `web/src/hooks/use-server-status.ts` (modified)
+- `web/src/hooks/use-server-status.test.tsx` (modified)
+- `web/src/hooks/use-api-settings.ts` (modified)
+- `web/src/hooks/use-api-settings.test.tsx` (modified)
+- `web/e2e/mod-remove-dialog.spec.ts` (new)
+- `web/e2e/browse-version-refresh.spec.ts` (new)
+- `web/e2e/README.md` (modified)
+- `project-context.md` (modified)
+- `_bmad-output/implementation-artifacts/21-4-remove-dialog-and-single-toast.md` (this story)
 
 ## Change Log
 
 | Date | Change |
 |---|---|
 | 2026-11-17 | Story created and validated (ready-for-dev) |
+| 2026-11-17 | Implemented Tasks 1-6 (with the install dialogs' guard and the uninstall dialog's focus fix from the maintainer's notes); status review |
