@@ -11,7 +11,9 @@ import {
   useInstallServer,
   useUninstallServer,
   useServerStateToasts,
+  useRefreshModDataOnGameVersionChange,
 } from './use-server-status';
+import { queryKeys } from '../api/query-keys';
 import type { ServerState } from '../api/types';
 import { handleApiError } from '../api/error-handler';
 
@@ -1121,5 +1123,150 @@ describe('the callers report errors, once (Story 21.4)', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith('Failed to remove server', { description: message });
+  });
+});
+
+describe('useRefreshModDataOnGameVersionChange (Story 21.4)', () => {
+  const originalFetch = globalThis.fetch;
+  let status: { state: ServerState; version: string | null } | 'error';
+  let statusRequests: number;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+    status = { state: 'installed', version: '1.22.7' };
+    statusRequests = 0;
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (!url.endsWith('/server/status')) {
+        return Promise.reject(new Error(`Unexpected request: ${url}`));
+      }
+      statusRequests += 1;
+      const current = status;
+      if (current === 'error') {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve({ detail: { code: 'INTERNAL_ERROR', message: 'boom' } }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: 'ok',
+            data: { ...current, uptime_seconds: null, last_exit_code: null },
+          }),
+      });
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const browseKey = queryKeys.mods.browse({ page: 1 });
+
+  /** Seeds two mod queries with no observer, so invalidating them sends no request. */
+  async function renderWatcher() {
+    const queryClient = createTestQueryClient();
+    queryClient.setQueryData(queryKeys.mods.all, { status: 'ok', data: { mods: [] } });
+    queryClient.setQueryData(browseKey, { status: 'ok', data: { mods: [] } });
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    renderHook(() => useRefreshModDataOnGameVersionChange(), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() =>
+      expect(queryClient.getQueryState(queryKeys.server.status)?.status).toBe('success')
+    );
+    // Let the hook see the loaded status before the test looks
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    return { queryClient, invalidate };
+  }
+
+  /** Refetches the status, then lets TanStack Query notify its observers (a timer tick). */
+  async function poll(queryClient: QueryClient) {
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.server.status });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+
+  it('invalidates nothing on the first status load', async () => {
+    const { invalidate } = await renderWatcher();
+
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it('invalidates nothing on the first load with no server installed', async () => {
+    status = { state: 'not_installed', version: null };
+
+    const { invalidate } = await renderWatcher();
+
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it('invalidates nothing while the version stays the same', async () => {
+    const { queryClient, invalidate } = await renderWatcher();
+
+    await poll(queryClient);
+    await poll(queryClient);
+
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it('invalidates the mod queries once when the version changes', async () => {
+    const { queryClient, invalidate } = await renderWatcher();
+
+    status = { state: 'installed', version: '1.22.8' };
+    await poll(queryClient);
+
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['mods'] });
+    expect(queryClient.getQueryState(queryKeys.mods.all)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(browseKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.server.status)?.isInvalidated).toBe(false);
+  });
+
+  it('does not loop: the invalidation causes no other one and no status request', async () => {
+    const { queryClient, invalidate } = await renderWatcher();
+    status = { state: 'installed', version: '1.22.8' };
+    await poll(queryClient);
+    const requestsAfterChange = statusRequests;
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(statusRequests).toBe(requestsAfterChange);
+  });
+
+  it('invalidates when the server is uninstalled and when one is installed again', async () => {
+    const { queryClient, invalidate } = await renderWatcher();
+
+    status = { state: 'not_installed', version: null };
+    await poll(queryClient);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+
+    status = { state: 'installed', version: '1.22.8' };
+    await poll(queryClient);
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    expect(invalidate).toHaveBeenLastCalledWith({ queryKey: ['mods'] });
+  });
+
+  it('invalidates nothing when a poll fails', async () => {
+    const { queryClient, invalidate } = await renderWatcher();
+
+    status = 'error';
+    await poll(queryClient);
+    expect(queryClient.getQueryState(queryKeys.server.status)?.status).toBe('error');
+    status = { state: 'installed', version: '1.22.7' };
+    await poll(queryClient);
+
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

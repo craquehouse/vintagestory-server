@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { useRefreshModDataOnGameVersionChange } from '@/hooks/use-server-status';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +11,8 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { isCollapsed, isMobileOpen, setMobileOpen } = useSidebar();
+  // Story 21.4: mod data follows the installed game version
+  useRefreshModDataOnGameVersionChange();
 
   return (
     <div
