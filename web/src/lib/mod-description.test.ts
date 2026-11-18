@@ -316,6 +316,18 @@ describe('sanitizeModDescription', () => {
       expect(link.firstElementChild?.textContent).toBe('Diagram (opens in a new tab)');
     });
 
+    it('keeps one note when the link text already ends with it, on both passes', () => {
+      const once = sanitize(
+        '<svg><a href="https://example.com"><text>Read more (opens in a new tab)</text></a></svg>'
+      );
+      const first = svgLink(parse(once));
+      expect(titles(first)).toHaveLength(1);
+      expect(first.firstElementChild?.textContent).toBe('Read more (opens in a new tab)');
+      const second = svgLink(parse(sanitize(once)));
+      expect(titles(second)).toHaveLength(1);
+      expect(second.firstElementChild?.textContent).toBe('Read more (opens in a new tab)');
+    });
+
     it('names a link with no text by the note alone', () => {
       const link = svgLink(
         parse(

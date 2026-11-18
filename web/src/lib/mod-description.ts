@@ -62,7 +62,7 @@ function stripNote(text: string): string {
 
 /**
  * Give an SVG link one `<title>` naming it and the new tab (Story 21.6). The base text is
- * the author's first title without any note, else the text of the link's `text` elements.
+ * the author's first title, else the text of the link's `text` elements, without any note.
  * Every existing title is removed and the new one, built with `textContent`, goes first, so
  * a second pass gives the same single title and an author's title cannot stand in for the
  * note. The `href` copied from `xlink:href` has already passed DOMPurify's URI check.
@@ -76,7 +76,7 @@ function addSvgLinkTitle(link: Element) {
   const titles = Array.from(link.children).filter((child) => child.localName === 'title');
   let base = titles.length > 0 ? stripNote(titles[0].textContent ?? '') : '';
   if (!base) {
-    base = collapse(
+    base = stripNote(
       Array.from(link.querySelectorAll('text'))
         .map((text) => text.textContent ?? '')
         .join(' ')
