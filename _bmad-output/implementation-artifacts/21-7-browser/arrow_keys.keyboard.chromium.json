@@ -1,0 +1,1426 @@
+{
+  "browser": "chromium",
+  "sessions": [
+    {
+      "version": "159.0.8154.6",
+      "width": 1440,
+      "cpuSlowdown": 1,
+      "lastPageEnd": {
+        "focused": "scheduled-jobs-tab",
+        "selected": "scheduled-jobs-tab"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "keydowns": 0,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.4
+            },
+            {
+              "type": "fourthTab",
+              "t": 10.7
+            }
+          ]
+        },
+        {
+          "attempt": 2,
+          "keydowns": 3,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.2
+            },
+            {
+              "type": "fourthTab",
+              "t": 10.8
+            },
+            {
+              "type": "focusin",
+              "t": 461.7,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1427.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1429.7,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1648.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1649.1,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1848.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1901.9,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 3,
+          "keydowns": 3,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.4
+            },
+            {
+              "type": "fourthTab",
+              "t": 13.6
+            },
+            {
+              "type": "focusin",
+              "t": 406.2,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1016.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1028.4,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1172.2,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1223.9,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1328.2,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1380,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "focusin",
+              "t": 2439.7,
+              "target": "ui-preferences-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 4,
+          "keydowns": 10,
+          "staleKeydowns": 6,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.3
+            },
+            {
+              "type": "fourthTab",
+              "t": 12
+            },
+            {
+              "type": "keydown",
+              "t": 484.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 665.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 807.6,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 2199.6,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 2386.1,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 2531.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "keydown",
+              "t": 2685.9,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": null,
+              "active": null,
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            },
+            {
+              "type": "focusin",
+              "t": 3366.4,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4070.1,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4070.9,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4246.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4248.3,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4410.9,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4412.1,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 5,
+          "keydowns": 3,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.5
+            },
+            {
+              "type": "fourthTab",
+              "t": 11.1
+            },
+            {
+              "type": "focusin",
+              "t": 365.9,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1110.2,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1112.8,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1265.8,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1317.1,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 1435,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 1442.6,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "159.0.8154.6",
+      "width": 1440,
+      "cpuSlowdown": 1,
+      "lastPageEnd": {
+        "focused": "scheduled-jobs-tab",
+        "selected": "scheduled-jobs-tab"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "keydowns": 3,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.4
+            },
+            {
+              "type": "fourthTab",
+              "t": 13
+            },
+            {
+              "type": "focusin",
+              "t": 4517,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4974.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4975.7,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5157.1,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5157.8,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5323.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5324.3,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 2,
+          "keydowns": 4,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.4
+            },
+            {
+              "type": "fourthTab",
+              "t": 18.3
+            },
+            {
+              "type": "focusin",
+              "t": 2563.5,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 2911.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 2912.2,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3066.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3073.9,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3219.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3223.9,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 6364.4,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "sidebar-toggle",
+              "active": "sidebar-toggle",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": false
+            }
+          ]
+        },
+        {
+          "attempt": 3,
+          "keydowns": 3,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.2
+            },
+            {
+              "type": "fourthTab",
+              "t": 9.2
+            },
+            {
+              "type": "focusin",
+              "t": 3429,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3892.8,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3895.1,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4057.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4062.3,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4226.4,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4228.9,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 4,
+          "keydowns": 7,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.4
+            },
+            {
+              "type": "fourthTab",
+              "t": 14
+            },
+            {
+              "type": "focusin",
+              "t": 3089.9,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3449.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3450.4,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3624.6,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3625.9,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3790,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3790.6,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3951.4,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3956.2,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4618.2,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4619,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4784.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4785.3,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4965.6,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4966.3,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        },
+        {
+          "attempt": 5,
+          "keydowns": 13,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.2
+            },
+            {
+              "type": "fourthTab",
+              "t": 9
+            },
+            {
+              "type": "focusin",
+              "t": 2844.7,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3210.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3211.6,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3391.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3392.5,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3552.1,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3556.8,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 3733.2,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 3734.3,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4527.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4528.6,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4691.8,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4693,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 4852.4,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 4853.1,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5398.8,
+              "key": "ArrowLeft",
+              "repeat": false,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5401.4,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5510.8,
+              "key": "ArrowLeft",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5515.5,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5670.5,
+              "key": "ArrowLeft",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5673.1,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 5978.8,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 5980.7,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 6121.7,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 6123.6,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 6273.5,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 6281.6,
+              "target": "scheduled-jobs-tab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "159.0.8154.6",
+      "width": 1440,
+      "cpuSlowdown": 1,
+      "lastPageEnd": {
+        "focused": null,
+        "selected": "api-settings-tab"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "keydowns": 21,
+          "staleKeydowns": 0,
+          "listMounts": 1,
+          "final": null,
+          "events": [
+            {
+              "type": "listMount",
+              "t": 0,
+              "serial": 1,
+              "tabs": 3
+            },
+            {
+              "type": "listShown",
+              "t": 0.2
+            },
+            {
+              "type": "fourthTab",
+              "t": 9.8
+            },
+            {
+              "type": "focusin",
+              "t": 6586.1,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 7321.3,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 7322.6,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 7803.7,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 7805.8,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 7882.9,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 7887.6,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 7966.2,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 7971,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8058.1,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8062.9,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8133.1,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8137,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8216.2,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8221.1,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8300.1,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8304.7,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8383,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8388.1,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8466.3,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8471.4,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8549.5,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8554.4,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8632.9,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8637.8,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8716.3,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8721.1,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8799.5,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8804.5,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8887.8,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8896.1,
+              "target": "scheduled-jobs-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 8971.3,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "scheduled-jobs-tab",
+              "active": "scheduled-jobs-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 8979.4,
+              "target": "ui-preferences-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 9054.8,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "ui-preferences-tab",
+              "active": "ui-preferences-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 9062.8,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 9138.2,
+              "key": "ArrowRight",
+              "repeat": true,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 9146.1,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 14483.4,
+              "key": "ArrowLeft",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 14485.4,
+              "target": "api-settings-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 20215,
+              "key": "ArrowRight",
+              "repeat": false,
+              "target": "api-settings-tab",
+              "active": "api-settings-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 20216.9,
+              "target": "file-manager-tab"
+            },
+            {
+              "type": "keydown",
+              "t": 20693.8,
+              "key": "ArrowLeft",
+              "repeat": false,
+              "target": "file-manager-tab",
+              "active": "file-manager-tab",
+              "tabs": 4,
+              "list": 1,
+              "defaultPrevented": true
+            },
+            {
+              "type": "focusin",
+              "t": 20695.8,
+              "target": "api-settings-tab"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
