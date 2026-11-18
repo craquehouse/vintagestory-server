@@ -1,6 +1,6 @@
 # Story 21.5: Version Sort, Sort State for Screen Readers and Close Buttons
 
-Status: review
+Status: done
 
 <!-- Implements FR275-FR277, Epic 21 ADR-8 and ADR-9. Beads: VSS-qxxo (UI-099), VSS-whnb (UI-100), VSS-759m (UI-101), VSS-nuef (UI-095). Stacked on Story 21.4 (stories run in order 21.1 to 21.8, each on the previous one). Line references were verified at 966204f (epic-21-planning, before Story 21.1's Prettier reformat) and must be re-checked at implementation time: Story 21.1 reformats every web file and Story 21.4 edits ModTable.tsx and its test. Each place is also named by symbol so it can be found again. Web only; no API change. No new dependency. -->
 
@@ -347,8 +347,36 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 - web/e2e/README.md
 - _bmad-output/implementation-artifacts/21-5-version-sort-aria-sort-close-buttons.md
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `54742a03..3b0e845d`
+**Outcome:** Approve → follow-ups folded in
+
+**Summary:** All 12 ACs met.
+- **Red-first:** reproducing the old TanStack `alphanumeric` sort, the old private comparator and the old `!==`/`>` checks, 9 of 10 probes fail as expected (the tenth was a mistake in the probe).
+- **`compareVersions`:** a randomized property probe (560,013 checks: totality, antisymmetry, identity, transitivity, stable sort) found 0 failures, and every caller uses the shared function.
+- **`parseFilesize` and the Size sort:** units, case and decimals verified; unreadable sizes sort last.
+- **`aria-sort`:** only on sortable `th`s, and `none` when unsorted.
+- **Close buttons:** a 44px box with the icon unmoved, independent of width.
+- **Clean diff:** no added `as`, `!` or suppression; E2E README counts exact.
+
+Reviewer ran `just lint-web`, `just typecheck-web`, the suite shuffled (3426 passed) and `playwright test --list`.
+
+### Action Items
+
+- [x] [Low] F1 an equal-precedence target spelled differently (`v1.0.0`, `1.0.0+build`, `01.0.0` over `1.0.0`) was titled "Downgrade". Fixed in 4498ffa9 (`fix`): `compareVersionPrecedence` is exported, and `getActionType` treats equal precedence as reinstall (18 red tests first).
+- [x] [Info] F2 an unreadable installed version hides the update offer. Pinned by tests in both places and recorded as a decision (c4fe553a).
+- [x] Backlog drawdown:
+  - the inert `eslint-disable` comments in `TerminalView.tsx` and `InstallVersionDialog.test.tsx` are removed (the web has no ESLint) (92304d61);
+  - `ModTable.test.tsx` uses `vi.mocked` and real guards instead of casts and `!` (fa1a6c21);
+  - the three `as any` install-status mocks are replaced by typed union-member fakes (a047feee).
+- F3 (very large numeric identifiers fall to the tie-break) and F4 (title overlap measured on the install dialog only) are informational.
+- `ModCard.test.tsx`'s `createQueryResultMock` still ends in an `as` cast; it is folded into Story 21.6, which changes `ModCard`.
+
 ## Change Log
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Status `ready-for-dev`.
 - 2026-11-17: Implemented Tasks 1-5 and the quality gate, with the maintainer's 2026-11-17 additions (update offer by version precedence, Size sorted by size, the inert eslint-disable comment removed). Status `review`; 6.2 (manual check) waits for the maintainer.
 - 2026-11-17: Code review (APPROVE) follow-ups F1, F2 and the drawdown items folded in. Status stays `review`.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; F1 fixed, F2 pinned, test hygiene folded in. Status done.
