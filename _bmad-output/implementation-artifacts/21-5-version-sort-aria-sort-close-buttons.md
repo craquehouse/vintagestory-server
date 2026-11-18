@@ -1,6 +1,6 @@
 # Story 21.5: Version Sort, Sort State for Screen Readers and Close Buttons
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR275-FR277, Epic 21 ADR-8 and ADR-9. Beads: VSS-qxxo (UI-099), VSS-whnb (UI-100), VSS-759m (UI-101), VSS-nuef (UI-095). Stacked on Story 21.4 (stories run in order 21.1 to 21.8, each on the previous one). Line references were verified at 966204f (epic-21-planning, before Story 21.1's Prettier reformat) and must be re-checked at implementation time: Story 21.1 reformats every web file and Story 21.4 edits ModTable.tsx and its test. Each place is also named by symbol so it can be found again. Web only; no API change. No new dependency. -->
 
@@ -75,43 +75,43 @@ so that **a pre-release is not listed as newer than its release, a screen reader
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-21.5/task-N): ...; feat/fix only for changes an admin can see, subject written for admins (the release-note subjects below come from the change proposal, section 2). Red first. Run Prettier (Story 21.1's setup) on every web file this story changes, and only on those. -->
 
-- [ ] Task 1: One `compareVersions`; both tables and the "newer" mark use it + tests (AC: 1, 2, 3, 4, 5) (`VSS-qxxo`)
-  - [ ] 1.1: New `web/src/lib/version-compare.ts` exporting `compareVersions(a: string, b: string): number` (returns -1, 0 or 1) as in Dev Notes "The comparison" (ADR-8 decisions 2 to 4). A module doc comment names Semantic Versioning 2.0.0 precedence, the loose-input rules and Epic 21 ADR-8. No package added
-  - [ ] 1.2: New `web/src/lib/version-compare.test.ts`, table-driven (`it.each`), every row of Dev Notes "Unit tests: compareVersions"; red first (the module first exports a stub returning 0)
-  - [ ] 1.3: `ModTable.tsx`, the `version` accessor column (`columnHelper.accessor('version', ...)`, `:271-282`): add `sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version)` after `cell` (as the `name` column does at `:265-269`); import from `@/lib/version-compare`. The cards (`:408`) use the same sorted rows, so they follow with no change
-  - [ ] 1.4: `VersionTable.tsx`: delete the private `compareVersions` and its doc comment (`:70-101`); import the shared one. The Version column's `sortFn: 'alphanumeric'` (`:161`) becomes the same `sortFn` on `rowA.original.version`. The `isNewer` computation (`rowData`, `:309-319`, call at `:314`) keeps `compareVersions(version.version, installedVersion) > 0`, now the shared function. The Channel and Size columns keep `'alphanumeric'` (`:178`, `:190`; see "Not changed")
-  - [ ] 1.5: Table tests (Dev Notes "Unit tests: tables", Task 1 rows), red first: run them against the current code and see them fail before 1.3 and 1.4
-  - [ ] 1.6: Commit `fix(story-21.5/task-1): sort versions with pre-releases before their release` (ADR-8 Consequences; the function and its users in one commit, since the function alone changes nothing a user sees)
+- [x] Task 1: One `compareVersions`; both tables and the "newer" mark use it + tests (AC: 1, 2, 3, 4, 5) (`VSS-qxxo`)
+  - [x] 1.1: New `web/src/lib/version-compare.ts` exporting `compareVersions(a: string, b: string): number` (returns -1, 0 or 1) as in Dev Notes "The comparison" (ADR-8 decisions 2 to 4). A module doc comment names Semantic Versioning 2.0.0 precedence, the loose-input rules and Epic 21 ADR-8. No package added
+  - [x] 1.2: New `web/src/lib/version-compare.test.ts`, table-driven (`it.each`), every row of Dev Notes "Unit tests: compareVersions"; red first (the module first exports a stub returning 0)
+  - [x] 1.3: `ModTable.tsx`, the `version` accessor column (`columnHelper.accessor('version', ...)`, `:271-282`): add `sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version)` after `cell` (as the `name` column does at `:265-269`); import from `@/lib/version-compare`. The cards (`:408`) use the same sorted rows, so they follow with no change
+  - [x] 1.4: `VersionTable.tsx`: delete the private `compareVersions` and its doc comment (`:70-101`); import the shared one. The Version column's `sortFn: 'alphanumeric'` (`:161`) becomes the same `sortFn` on `rowA.original.version`. The `isNewer` computation (`rowData`, `:309-319`, call at `:314`) keeps `compareVersions(version.version, installedVersion) > 0`, now the shared function. The Channel and Size columns keep `'alphanumeric'` (`:178`, `:190`; see "Not changed")
+  - [x] 1.5: Table tests (Dev Notes "Unit tests: tables", Task 1 rows), red first: run them against the current code and see them fail before 1.3 and 1.4
+  - [x] 1.6: Commit `fix(story-21.5/task-1): sort versions with pre-releases before their release` (ADR-8 Consequences; the function and its users in one commit, since the function alone changes nothing a user sees)
 
-- [ ] Task 2: The server version dialog calls a newer version an upgrade + tests (AC: 5, 6) (backlog drawdown; no bead)
-  - [ ] 2.1: `InstallVersionDialog.tsx` `getActionType` (`:61-70`): replace the string comparison and its comment (`:67-69`) with `return compareVersions(targetVersion, installedVersion) > 0 ? 'upgrade' : 'downgrade';`. The `install` and `reinstall` branches (`:65-66`) stay first and unchanged (see "Not changed"). Update the function's doc comment (`:54-60`) to say it uses Semantic Versioning precedence
-  - [ ] 2.2: Tests (Dev Notes "Existing tests that change" and "Unit tests: tables", Task 2 rows), red first
-  - [ ] 2.3: Commit `fix(story-21.5/task-2): call a move to a newer server version an upgrade, not a downgrade` (a new release note, not in the proposal's list; see "ADR against the code")
+- [x] Task 2: The server version dialog calls a newer version an upgrade + tests (AC: 5, 6) (backlog drawdown; no bead)
+  - [x] 2.1: `InstallVersionDialog.tsx` `getActionType` (`:61-70`): replace the string comparison and its comment (`:67-69`) with `return compareVersions(targetVersion, installedVersion) > 0 ? 'upgrade' : 'downgrade';`. The `install` and `reinstall` branches (`:65-66`) stay first and unchanged (see "Not changed"). Update the function's doc comment (`:54-60`) to say it uses Semantic Versioning precedence
+  - [x] 2.2: Tests (Dev Notes "Existing tests that change" and "Unit tests: tables", Task 2 rows), red first
+  - [x] 2.3: Commit `fix(story-21.5/task-2): call a move to a newer server version an upgrade, not a downgrade` (a new release note, not in the proposal's list; see "ADR against the code")
 
-- [ ] Task 3: `aria-sort` on every sortable header, chevrons hidden + tests (AC: 7, 8, 9) (`VSS-whnb`)
-  - [ ] 3.1: New `web/src/lib/table-aria-sort.ts` exporting `ariaSort(canSort: boolean, sorted: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' | undefined` (`undefined` when `!canSort`), with `web/src/lib/table-aria-sort.test.ts` covering the four results. One helper keeps the two tables' mapping identical
-  - [ ] 3.2: `ModTable.tsx` header loop (`<TableHead key={header.id} ...>`, `:380`): add `aria-sort={ariaSort(header.column.getCanSort(), header.column.getIsSorted())}` on the `th` (ADR-9 decision 2: set where the `th` is rendered; `SortableHeader` stays a button inside the cell). `SortableHeader` (`:91-112`): `aria-hidden="true"` on both chevrons (`:107-108`); the empty spacer (`:109`) stays
-  - [ ] 3.3: `VersionTable.tsx` header loop (`:349-391`): replace the local mapping (`ariaSort`, `:354-359`) with the helper, so unsorted sortable columns get `none`. `SortIndicator` (`:122-129`): `aria-hidden="true"` on both chevrons. Keep `tabIndex`, `role`, `onClick`, `onKeyDown` as they are (see "Not changed")
-  - [ ] 3.4: Tests (Dev Notes "Unit tests: tables", Task 3 rows) through the accessibility tree (`getByRole('columnheader', { name })`), red first; update the one existing test listed in "Existing tests that change"
-  - [ ] 3.5: Commit `fix(story-21.5/task-3): announce the sort order of table columns to screen readers` (ADR-9 Consequences)
+- [x] Task 3: `aria-sort` on every sortable header, chevrons hidden + tests (AC: 7, 8, 9) (`VSS-whnb`)
+  - [x] 3.1: New `web/src/lib/table-aria-sort.ts` exporting `ariaSort(canSort: boolean, sorted: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' | undefined` (`undefined` when `!canSort`), with `web/src/lib/table-aria-sort.test.ts` covering the four results. One helper keeps the two tables' mapping identical
+  - [x] 3.2: `ModTable.tsx` header loop (`<TableHead key={header.id} ...>`, `:380`): add `aria-sort={ariaSort(header.column.getCanSort(), header.column.getIsSorted())}` on the `th` (ADR-9 decision 2: set where the `th` is rendered; `SortableHeader` stays a button inside the cell). `SortableHeader` (`:91-112`): `aria-hidden="true"` on both chevrons (`:107-108`); the empty spacer (`:109`) stays
+  - [x] 3.3: `VersionTable.tsx` header loop (`:349-391`): replace the local mapping (`ariaSort`, `:354-359`) with the helper, so unsorted sortable columns get `none`. `SortIndicator` (`:122-129`): `aria-hidden="true"` on both chevrons. Keep `tabIndex`, `role`, `onClick`, `onKeyDown` as they are (see "Not changed")
+  - [x] 3.4: Tests (Dev Notes "Unit tests: tables", Task 3 rows) through the accessibility tree (`getByRole('columnheader', { name })`), red first; update the one existing test listed in "Existing tests that change"
+  - [x] 3.5: Commit `fix(story-21.5/task-3): announce the sort order of table columns to screen readers` (ADR-9 Consequences)
 
-- [ ] Task 4: Column meta without casts in `VersionTable.tsx` + tests (AC: 10) (`VSS-759m`)
-  - [ ] 4.1: `:352` becomes `const meta = header.column.columnDef.meta;` and `:407` `const cellMeta = cell.column.columnDef.meta;` (or read `?.className` inline, as `ModTable.tsx:380` and `:393` do). The typed `ColumnMeta` in `web/src/lib/table-column-meta.d.ts` gives `className` (Story 18.4). A prototype at 966204f type-checked clean (`bunx tsc --noEmit`) with both casts removed
-  - [ ] 4.2: The existing test "Size column has hidden class for mobile" (`VersionTable.test.tsx:220-227`) pins the header class; add one assertion that a Size body cell (the `td` around `version-table-size-<v>`) has `hidden` and `sm:table-cell`. `rg "columnDef.meta as" web/src` finds nothing afterwards
-  - [ ] 4.3: Commit `refactor(story-21.5/task-4): read VersionTable column classes without type assertions` (ADR-9 decision 3)
+- [x] Task 4: Column meta without casts in `VersionTable.tsx` + tests (AC: 10) (`VSS-759m`)
+  - [x] 4.1: `:352` becomes `const meta = header.column.columnDef.meta;` and `:407` `const cellMeta = cell.column.columnDef.meta;` (or read `?.className` inline, as `ModTable.tsx:380` and `:393` do). The typed `ColumnMeta` in `web/src/lib/table-column-meta.d.ts` gives `className` (Story 18.4). A prototype at 966204f type-checked clean (`bunx tsc --noEmit`) with both casts removed
+  - [x] 4.2: The existing test "Size column has hidden class for mobile" (`VersionTable.test.tsx:220-227`) pins the header class; add one assertion that a Size body cell (the `td` around `version-table-size-<v>`) has `hidden` and `sm:table-cell`. `rg "columnDef.meta as" web/src` finds nothing afterwards
+  - [x] 4.3: Commit `refactor(story-21.5/task-4): read VersionTable column classes without type assertions` (ADR-9 decision 3)
 
-- [ ] Task 5: 44px close buttons on dialogs and the navigation sheet + tests, and the story's E2E (AC: 1, 2, 3, 6, 7, 8, 11) (`VSS-nuef`)
-  - [ ] 5.1: `web/src/components/ui/dialog.tsx` `DialogContent`'s close (`DialogPrimitive.Close`, `:72-78`, classes `:74`): replace `top-4 right-4` with `top-0.5 right-0.5 inline-flex size-11 items-center justify-center`; keep every other class (the icon stays `size-4`). Dev Notes "Close button geometry"
-  - [ ] 5.2: `web/src/components/ui/sheet.tsx` `SheetContent`'s close (`SheetPrimitive.Close`, `:73-76`): the same replacement, and add `data-slot="sheet-close"` (the dialog's has `data-slot="dialog-close"`) for the tests
-  - [ ] 5.3: Unit tests (Dev Notes "Unit tests: close buttons"); the real size is the E2E's job (jsdom has no layout, ADR-9 decision 5)
-  - [ ] 5.4: Commit `fix(story-21.5/task-5): make dialog close buttons easier to tap` (ADR-9 Consequences)
-  - [ ] 5.5: New `web/e2e/version-sort-and-close-buttons.spec.ts`, untagged (it needs no mod database and no game server), read-only (Dev Notes "E2E"); it covers this task and Tasks 1 to 3
-  - [ ] 5.6: `web/e2e/README.md`: raise the counts of untagged tests and of all tests (`:10`, `:50`) by the number of tests the new spec adds; take the base numbers from the README as it stands after Story 21.4 and confirm with `cd web && bunx playwright test --list`
-  - [ ] 5.7: Rebuild the stack from this branch (`just docker restart`, which does not start the game server), run `cd web && bunx playwright test e2e/version-sort-and-close-buttons.spec.ts` with `VS_API_KEY_ADMIN` exported, then `e2e/layout-widths.spec.ts`, `e2e/installed-mods-phone.spec.ts` and `e2e/mod-detail-media.spec.ts` (they use the table headers, the sort control and the screenshot dialog). Then `just test-e2e-ci e2e/version-sort-and-close-buttons.spec.ts` to prove it passes on the CI stack. Do not start or stop the game server; no screenshots
-  - [ ] 5.8: Commit `test(story-21.5/task-5): check version order, sort state and close button size in the browser`
+- [x] Task 5: 44px close buttons on dialogs and the navigation sheet + tests, and the story's E2E (AC: 1, 2, 3, 6, 7, 8, 11) (`VSS-nuef`)
+  - [x] 5.1: `web/src/components/ui/dialog.tsx` `DialogContent`'s close (`DialogPrimitive.Close`, `:72-78`, classes `:74`): replace `top-4 right-4` with `top-0.5 right-0.5 inline-flex size-11 items-center justify-center`; keep every other class (the icon stays `size-4`). Dev Notes "Close button geometry"
+  - [x] 5.2: `web/src/components/ui/sheet.tsx` `SheetContent`'s close (`SheetPrimitive.Close`, `:73-76`): the same replacement, and add `data-slot="sheet-close"` (the dialog's has `data-slot="dialog-close"`) for the tests
+  - [x] 5.3: Unit tests (Dev Notes "Unit tests: close buttons"); the real size is the E2E's job (jsdom has no layout, ADR-9 decision 5)
+  - [x] 5.4: Commit `fix(story-21.5/task-5): make dialog close buttons easier to tap` (ADR-9 Consequences)
+  - [x] 5.5: New `web/e2e/version-sort-and-close-buttons.spec.ts`, untagged (it needs no mod database and no game server), read-only (Dev Notes "E2E"); it covers this task and Tasks 1 to 3
+  - [x] 5.6: `web/e2e/README.md`: raise the counts of untagged tests and of all tests (`:10`, `:50`) by the number of tests the new spec adds; take the base numbers from the README as it stands after Story 21.4 and confirm with `cd web && bunx playwright test --list`
+  - [x] 5.7: Rebuild the stack from this branch (`just docker restart`, which does not start the game server), run `cd web && bunx playwright test e2e/version-sort-and-close-buttons.spec.ts` with `VS_API_KEY_ADMIN` exported, then `e2e/layout-widths.spec.ts`, `e2e/installed-mods-phone.spec.ts` and `e2e/mod-detail-media.spec.ts` (they use the table headers, the sort control and the screenshot dialog). Then `just test-e2e-ci e2e/version-sort-and-close-buttons.spec.ts` to prove it passes on the CI stack. Do not start or stop the game server; no screenshots
+  - [x] 5.8: Commit `test(story-21.5/task-5): check version order, sort state and close button size in the browser`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all, 12)
-  - [ ] 6.1: `just check` passes (lint including Prettier's check, typecheck including `web/e2e`, all tests); no skipped web test; the diff adds no suppression, no `cast` and no `as` assertion; `web/package.json` and `web/bun.lock` unchanged (`git diff --stat <base>.. -- web/package.json web/bun.lock` is empty)
+  - [x] 6.1: `just check` passes (lint including Prettier's check, typecheck including `web/e2e`, all tests); no skipped web test; the diff adds no suppression, no `cast` and no `as` assertion; `web/package.json` and `web/bun.lock` unchanged (`git diff --stat <base>.. -- web/package.json web/bun.lock` is empty)
   - [ ] 6.2: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md`): Dev Notes "Manual check"
   - [ ] 6.3: Story status `review`, `just sprint set 21-5-version-sort-aria-sort-close-buttons review`, PR (base: Story 21.4's branch while its PR is open, otherwise `main`); PR link on `VSS-qxxo`, `VSS-whnb`, `VSS-759m`, `VSS-nuef`. The PR description says "API contract changes: none" and lists the four release-note subjects (Tasks 1, 2, 3, 5). Commit `chore(story-21.5/task-6): move story 21.5 to review`
 
@@ -291,12 +291,56 @@ None. No route, field, status code or error code changes; the story changes only
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
+
 ### Debug Log References
+
+- Red runs before each change: `version-compare.test.ts` against a stub returning 0 (36 of 41 failed); ModTable version sort (5 failed), VersionTable order and newer mark (3 failed); Size sort (1 failed); `getActionType` and the Upgrade dialog (7 failed); QuickInstallButton (2 failed) and the Version page banner (2 failed); `ariaSort` against a stub (3 failed); the table `aria-sort` tests (6 failed); `dialog.test.tsx` and `sheet.test.tsx` close box (2 failed).
+- The antisymmetry property first failed on `toBe(-x)` for identical strings (`0` vs `-0` under `Object.is`); the test now checks that the two results sum to 0.
+- The chevron `aria-hidden` tests passed before the change: lucide-react already renders `aria-hidden="true"` (as "ADR against the code" says); the attribute is now explicit.
+- The Task 4 body cell assertion is a pin of unchanged behaviour (a refactor), so it passed before and after.
+- E2E on the dev stack rebuilt from this branch (`just docker restart`, no game server running, checked first): `version-sort-and-close-buttons.spec.ts` 7 passed; `layout-widths.spec.ts`, `installed-mods-phone.spec.ts`, `mod-detail-media.spec.ts` 63 passed; `just test-e2e-ci e2e/version-sort-and-close-buttons.spec.ts` 7 passed (first pass; the second pass has no matching test). `bunx playwright test --list`: 162 tests, 131 untagged, 27 `@moddb` CI tests.
+- `just check`: green; Pyright 0 errors, 0 warnings; API 3458 passed; web 3426 passed in 135 files, none skipped.
 
 ### Completion Notes List
 
+- `web/src/lib/version-compare.ts` holds the one `compareVersions` (Dev Notes "The comparison"): SemVer 2.0.0 precedence, a leading `v` ignored, missing core parts as 0, unreadable strings last by `Intl.Collator('en', { numeric: true })`, ties broken by the plain strings so only identical strings give 0. The installed mods `version` column, the Version page Version column, the "newer" mark, `getActionType`, `QuickInstallButton` and the Version page update banner use it; the private copy in `VersionTable.tsx` is gone. No package added (`web/package.json` and `web/bun.lock` unchanged).
+- Maintainer decision 2 (folded into Task 2, own commit `ebbaad9d`): `QuickInstallButton` renders only when nothing is installed or `compareVersions(latestStable, installed) > 0`, and the Version page's update banner shows only when `compareVersions(availableStableVersion, version) > 0`. An installed `1.22.0-rc.2` (or `1.21.10`) is no longer offered `1.21.9`/`1.21.6`; an installed `1.21.6-pre.1` is still offered `1.21.6`. Tests in `QuickInstallButton.test.tsx` and `VersionPage.test.tsx`.
+- Maintainer decision 3: the Version page's Size column sorts by size (Task 1, own commit `6f4806d5`): `parseFilesize` in `web/src/lib/numeric-utils.ts` reads `<number> <B|KB|MB|GB|TB>` (1 KB = 1024 B); sizes it cannot read sort after the others, in text order. The inert `eslint-disable-next-line react-hooks/exhaustive-deps` above `ModTable`'s `columns` `useMemo` is removed (Task 3, own commit `fdf0a769`; the web has no ESLint). This supersedes those two "Not changed" items.
+- `aria-sort` comes from `web/src/lib/table-aria-sort.ts` in both tables; `ModTable` sets it on the `th`, `VersionTable` replaced its local mapping, so unsorted sortable columns read `none`. Chevrons carry `aria-hidden="true"`. `VersionTable`'s `tabIndex`, `role`, `onClick` and `onKeyDown` are unchanged.
+- `VersionTable.tsx` reads `columnDef.meta` without a cast; `rg "columnDef.meta as" web/src` finds nothing.
+- Dialog and sheet close buttons are `top-0.5 right-0.5 inline-flex size-11 items-center justify-center`; the sheet's has `data-slot="sheet-close"`. The E2E measured the box at 44px or more, the icon 16px (within 1px) from the top and right edges, and no overlap with the install dialog title at 390 and 1440px, so `DialogHeader` got no padding.
+- The E2E spec is untagged and read-only: installed mods, updates, lookups and the version list are stubbed, the installed version is rewritten in the page's status response (`pretendVersionInstalled`), every write is refused, no confirm button is clicked, no screenshot is taken.
+- Task 6 follow-up commit `5a9e58dc` removes `as` and non-null assertions from the new table tests (AC 12).
+- Not done here, by the dev brief's rules: 6.2 (manual check, reserved for the maintainer, unticked) and 6.3's PR, PR links on the beads and the `chore` commit (no push, PR or bead change in this run; the story file and sprint status are committed as `docs(story-21.5): ...`).
+
 ### File List
+
+- web/src/lib/version-compare.ts (new)
+- web/src/lib/version-compare.test.ts (new)
+- web/src/lib/table-aria-sort.ts (new)
+- web/src/lib/table-aria-sort.test.ts (new)
+- web/src/lib/numeric-utils.ts
+- web/src/lib/numeric-utils.test.ts
+- web/src/components/ModTable.tsx
+- web/src/components/ModTable.test.tsx
+- web/src/components/VersionTable.tsx
+- web/src/components/VersionTable.test.tsx
+- web/src/components/InstallVersionDialog.tsx
+- web/src/components/InstallVersionDialog.test.tsx
+- web/src/components/QuickInstallButton.tsx
+- web/src/components/QuickInstallButton.test.tsx
+- web/src/features/game-server/VersionPage.tsx
+- web/src/features/game-server/VersionPage.test.tsx
+- web/src/components/ui/dialog.tsx
+- web/src/components/ui/dialog.test.tsx
+- web/src/components/ui/sheet.tsx
+- web/src/components/ui/sheet.test.tsx (new)
+- web/e2e/version-sort-and-close-buttons.spec.ts (new)
+- web/e2e/README.md
+- _bmad-output/implementation-artifacts/21-5-version-sort-aria-sort-close-buttons.md
 
 ## Change Log
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Status `ready-for-dev`.
+- 2026-11-17: Implemented Tasks 1-5 and the quality gate, with the maintainer's 2026-11-17 additions (update offer by version precedence, Size sorted by size, the inert eslint-disable comment removed). Status `review`; 6.2 (manual check) waits for the maintainer.
