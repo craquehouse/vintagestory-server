@@ -46,8 +46,9 @@
  * Watch trailer links are `NewTabLink`s, named "... (opens in a new tab)", and Homepage
  * and Source show a trailing external-link mark. Below `md` the header stacks: logo and
  * info wrap in one group and the install card goes under them at full width; its
- * controls are 44px tall below `lg`, and its Version label names the select. The description is typeset by the `.mod-description`
- * rules in `styles/index.css` from the theme tokens, not by `prose` classes.
+ * controls are 44px tall below `lg`, and its Version label names the select. The
+ * description is typeset by the `.mod-description` rules in `styles/index.css` from the
+ * theme tokens, not by `prose` classes.
  */
 
 import { useId, useState } from 'react';
