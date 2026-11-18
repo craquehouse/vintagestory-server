@@ -468,7 +468,7 @@ Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of
 - **Arrow keys (AC 3-5, `VSS-vt4`):** Tasks 3.1 and 3.2 done; the scripted evidence (Chromium only, gap-dependent, stale targets, no remount) points at Radix, so no source or test file changed for this bead. **Task 3.3 (real keyboard) is pending the maintainer**; 3.4 to 3.6 wait on it, AC 3 is not yet met and `VSS-vt4` must not be closed until the real keyboard runs are recorded and the decision rule is applied. Steps and commands are under "Arrow key reproduction" above.
 - **Manual check (Task 6.3):** left for the maintainer (Dev Notes "Manual check"); not ticked.
 - **Task 6.4:** story status set to `review` and `just sprint set ... review` run; no pull request opened (the dev brief did not authorise one). Task 6.5 is the controller's after merge.
-- `web/e2e/README.md` counts: 185 untagged (first pass) and 27 `@moddb` (second pass), 212 of 216 tests in CI, counted with `bunx playwright test --list`.
+- `web/e2e/README.md` counts: 185 untagged (first pass) and 27 `@moddb` (second pass), 212 of 216 tests in CI, counted with `bunx playwright test --list`; after the review follow-ups 186 untagged, 213 of 217.
 - API contract changes: none. No new dependency, no lint or type suppression, no skipped test, no `cast`/`as` on column meta.
 - Quality gate: `just check` green (API 3458 passed, Pyright 0 errors 0 warnings; web 3487 passed in 136 files, 0 skipped; script tests green). `just test-e2e-ci` green: first pass 185 passed (untagged, the new tests among them) and the API's 3 E2E tests, second pass 27 `@moddb` passed. Against the dev stack: `layout-widths.spec.ts` (all blocks, the new ones included), `settings-as-saved.spec.ts` and `version-sort-and-close-buttons.spec.ts` passed. `git status` shows nothing under `dev/`, `data/`, `web/playwright-report/` or `web/test-results/`.
 
@@ -486,11 +486,27 @@ Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of
 - `web/src/components/VersionTable.tsx` (modified)
 - `web/src/components/VersionTable.test.tsx` (modified)
 - `web/src/components/ConsolePanel.tsx` (modified)
+- `web/src/components/ConsolePanel.test.tsx` (modified, review)
 - `web/src/features/game-server/ConsolePage.tsx` (modified)
 - `web/e2e/layout-widths.spec.ts` (modified)
 - `web/e2e/README.md` (modified)
+
+## Senior Developer Review (AI)
+
+- **Date:** 2026-11-17
+- **Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan)
+- **Outcome:** Approve; follow-ups folded in on the same branch (backlog drawdown)
+
+**Summary:** The tab, Scheduled Jobs and Version table changes match the story and its ADRs, the measurements are recorded before and after, and the arrow key fault was handled by evidence rather than a workaround, with Task 3.3 correctly left to the maintainer. Two small follow-ups were folded in: the console's font size buttons, noticed during Task 5, and a cosmetic fix in the reproduction script.
+
+**Action Items:**
+
+- [x] F1 (info only): commit message types; no change needed.
+- [x] F2: `21-7-browser/arrow_keys.mjs` printed the keyboard log's location as `file.pathname`; it now prints `fileURLToPath(file)` (`35c4bba6`).
+- [x] F3: the console's font size buttons (`console-font-decrease`, `console-font-increase`) were 28px; they are now 44 by 44px below 1024px (`max-lg:size-11`) and 28px from 1024px. Red first: the "Console header on phones" E2E asserts at least 44px tall and wide at 320, 390 and 430px with no sideways scroll, a new E2E asserts 28 by 28px at 1024px, and a `ConsolePanel.test.tsx` test checks the classes (`df029c3d`). Gate rerun: `just check` green (API 3458, Pyright 0 errors 0 warnings, web 3488 in 136 files, 0 skipped); `just test-e2e-ci` green (186 untagged + 3 API, 27 `@moddb`); `layout-widths.spec.ts` 103 passed on the dev stack. `web/e2e/README.md` counts updated (186 untagged, 213 of 217).
 
 ## Change Log
 
 - 2026-11-17: Story 21.7 created and validated (ready-for-dev).
 - 2026-11-17: Implemented Tasks 1, 2, 4, 5 and 6.1, and Tasks 3.1-3.2 (scripted arrow key evidence); Task 3.3 (real keyboard) and the manual check pending the maintainer; status review.
+- 2026-11-17: Code review (GLM-5.3-Flash) approved; follow-ups F2 and F3 folded in (console font size buttons 44px below 1024px, script path print); status stays review.
