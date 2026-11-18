@@ -364,7 +364,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 ### Debug Log References
 
 - Task 1 red: the new tests failed at collection (`current_log_level`, `LOG_LEVELS` not defined). Task 3 red: 6 failures (ptb/canary values not redacted, the shared-host test). Task 4 red: 9 failures (Admin directory listing showed `away`; with the data directory missing, Monitor `Playerdata` and every `../x` gave `[]`).
-- `just check` at the end: API 3460 passed, pyright 0 errors 0 warnings; web 132 files / 3307 tests passed, 0 skipped, tsc 0 errors; script tests passed. `git status --short dev/` empty after the API run.
+- `just check` after the review round: API 3458 passed (3 removed tests, 1 new case), pyright 0 errors 0 warnings; web 3307 passed, 0 skipped.
+- `just check` at the end of implementation: API 3460 passed, pyright 0 errors 0 warnings; web 132 files / 3307 tests passed, 0 skipped, tsc 0 errors; script tests passed. `git status --short dev/` empty after the API run.
 
 ### Completion Notes List
 
@@ -376,6 +377,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - Task 4: `_role_may_open` checks containment before the Admin return; `list_files` lost its own containment clause; the two `serverdata_dir.exists()` shortcuts are gone and `_target_directory` checks existence after the path and role checks (root included, `serverdata_dir_not_found` kept for a missing root). Service and route docstrings updated.
 - Task 5: 5.2 left unticked: no manual check is required, and any check on the Docker stack (recreating the container) is the maintainer's. 5.3 left unticked: status and sprint status are `review`; the PR and the PR link on `VSS-wv0w` are for the orchestrator.
 - API contract changes as shipped: as listed in Dev Notes "API contract changes", including `/debug/enable` answering `changed: true` when only the level changes (`VS_DEBUG=true` with `VS_LOG_LEVEL` other than DEBUG).
+- Code review (APPROVE, one LOW, notes), folded in under the backlog-drawdown rule: L1 `reconfigure_logging_if_changed` and `_last_debug_state` removed with their three tests (no caller outside tests; the docstring described reading `VS_DEBUG` from the environment), which overrides "Not changed" for that function. N2: `TestDebugStateManagement` (fixture now autouse), `TestRuntimeDebugToggleBehavior`, the `request_context_app` fixture and `test_debug_api.py`'s remaining writes set the debug state through `monkeypatch` or `initialize_debug_state` on a fresh state; 8 `pyright: ignore` comments removed in the review round (23 over the story), none added. The touched files pass forward, reversed and shuffled (seeds 1-3), and the whole API suite reversed and shuffled, using a throwaway ordering plugin outside the repository. N1: `api_starting` is checked for `log_level` DEBUG in JSON (`VS_LOG_LEVEL=debug`) and in the console (`VS_DEBUG=on`).
 
 ### File List
 
@@ -391,6 +393,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `api/tests/test_debug_api.py`
 - `api/tests/test_main.py`
 - `api/tests/test_debug_gating.py`
+- `api/tests/test_request_context.py`
 - `api/tests/test_game_config.py`
 - `api/tests/test_config_files.py`
 - `api/tests/test_routers_config.py`
@@ -404,3 +407,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 
 - 2026-11-17: Story 21.3 created and validated (ready-for-dev).
 - 2026-11-17: Story 21.3 implemented (Tasks 1-4, quality gate); status review.
+- 2026-11-17: Code review findings L1, N1, N2 folded in; status stays review.
