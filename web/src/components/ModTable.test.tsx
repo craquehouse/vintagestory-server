@@ -2690,4 +2690,67 @@ describe('ModTable', () => {
       expect(rowSlugs()).toEqual(DESCENDING);
     });
   });
+
+  describe('aria-sort (Story 21.5)', () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockModsResponse) })
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function header(name: string) {
+      return screen.getByRole('columnheader', { name });
+    }
+
+    it('marks Name ascending by default, the other sortable columns none, the rest nothing', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+
+      expect(header('Name')).toHaveAttribute('aria-sort', 'ascending');
+      expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Status')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Available')).not.toHaveAttribute('aria-sort');
+      expect(header('Side')).not.toHaveAttribute('aria-sort');
+      expect(header('Compatibility')).not.toHaveAttribute('aria-sort');
+      const headers = screen.getAllByRole('columnheader');
+      expect(headers[headers.length - 1]).toHaveAccessibleName('Actions');
+      expect(headers[headers.length - 1]).not.toHaveAttribute('aria-sort');
+    });
+
+    it('moves aria-sort with the sort column and its direction', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(header('Version')).toHaveAttribute('aria-sort', 'ascending');
+      expect(header('Name')).toHaveAttribute('aria-sort', 'none');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(header('Version')).toHaveAttribute('aria-sort', 'descending');
+
+      // A column of booleans sorts descending first
+      fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+      expect(header('Status')).toHaveAttribute('aria-sort', 'descending');
+      expect(header('Name')).toHaveAttribute('aria-sort', 'none');
+      expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+    });
+
+    it('hides the sort chevrons from screen readers', async () => {
+      render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+      await screen.findByTestId('mod-table');
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+
+      const headerRow = screen.getAllByRole('row')[0];
+      const chevrons = headerRow.querySelectorAll('svg');
+      expect(chevrons.length).toBeGreaterThan(0);
+      for (const chevron of chevrons) {
+        expect(chevron).toHaveAttribute('aria-hidden', 'true');
+      }
+    });
+  });
 });

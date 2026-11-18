@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { compareVersions } from '@/lib/version-compare';
 import { parseFilesize } from '@/lib/numeric-utils';
+import { ariaSort } from '@/lib/table-aria-sort';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionTableProps {
@@ -104,9 +105,9 @@ const columnHelper = createColumnHelper<typeof features, VersionRowData>();
 function SortIndicator({ direction }: { direction: 'asc' | 'desc' | false }) {
   if (!direction) return null;
   return direction === 'asc' ? (
-    <ChevronUp className="h-4 w-4 ml-1" />
+    <ChevronUp className="h-4 w-4 ml-1" aria-hidden="true" />
   ) : (
-    <ChevronDown className="h-4 w-4 ml-1" />
+    <ChevronDown className="h-4 w-4 ml-1" aria-hidden="true" />
   );
 }
 
@@ -328,13 +329,6 @@ export function VersionTable({
               const sortDirection = header.column.getIsSorted();
               const meta = header.column.columnDef.meta as { className?: string } | undefined;
 
-              // Map sort direction to aria-sort value
-              const ariaSort = sortDirection
-                ? sortDirection === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : undefined;
-
               const handleKeyDown = canSort
                 ? (e: React.KeyboardEvent) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -352,7 +346,7 @@ export function VersionTable({
                   onKeyDown={handleKeyDown}
                   tabIndex={canSort ? 0 : undefined}
                   role={canSort ? 'columnheader' : undefined}
-                  aria-sort={ariaSort}
+                  aria-sort={ariaSort(canSort, sortDirection)}
                   data-testid={`version-table-header-${header.id}`}
                 >
                   <span className="inline-flex items-center">

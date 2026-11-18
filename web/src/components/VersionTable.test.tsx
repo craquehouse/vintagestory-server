@@ -448,16 +448,62 @@ describe('VersionTable', () => {
   });
 
   describe('accessibility', () => {
-    it('has aria-sort on sorted column', () => {
+    it('marks the sorted column and sets none on the other sortable columns', () => {
       render(<VersionTable versions={mockVersions} />);
 
       // Default sort is version descending
       const versionHeader = screen.getByTestId('version-table-header-version');
       expect(versionHeader).toHaveAttribute('aria-sort', 'descending');
 
-      // Other sortable columns should not have aria-sort initially
+      // Story 21.5: the other sortable columns read none
       const channelHeader = screen.getByTestId('version-table-header-channel');
-      expect(channelHeader).not.toHaveAttribute('aria-sort');
+      expect(channelHeader).toHaveAttribute('aria-sort', 'none');
+    });
+
+    describe('aria-sort through the accessibility tree (Story 21.5)', () => {
+      function header(name: string) {
+        return screen.getByRole('columnheader', { name });
+      }
+
+      it('marks Version descending by default, Channel and Size none, the rest nothing', () => {
+        render(<VersionTable versions={mockVersions} />);
+
+        expect(header('Version')).toHaveAttribute('aria-sort', 'descending');
+        expect(header('Channel')).toHaveAttribute('aria-sort', 'none');
+        expect(header('Size')).toHaveAttribute('aria-sort', 'none');
+        expect(header('Status')).not.toHaveAttribute('aria-sort');
+        expect(header('Actions')).not.toHaveAttribute('aria-sort');
+      });
+
+      it('moves aria-sort to Channel when Channel is sorted', async () => {
+        const user = userEvent.setup();
+        render(<VersionTable versions={mockVersions} />);
+
+        await user.click(header('Channel'));
+        expect(header('Channel')).toHaveAttribute('aria-sort', 'ascending');
+        expect(header('Version')).toHaveAttribute('aria-sort', 'none');
+      });
+
+      it('reads none on every sortable column when a click removes the sort', async () => {
+        const user = userEvent.setup();
+        render(<VersionTable versions={mockVersions} />);
+
+        await user.click(header('Version'));
+        for (const name of ['Version', 'Channel', 'Size']) {
+          expect(header(name)).toHaveAttribute('aria-sort', 'none');
+        }
+
+        await user.click(header('Version'));
+        expect(header('Version')).toHaveAttribute('aria-sort', 'ascending');
+      });
+
+      it('hides the sort chevrons from screen readers', () => {
+        render(<VersionTable versions={mockVersions} />);
+
+        const chevrons = header('Version').querySelectorAll('svg');
+        expect(chevrons).toHaveLength(1);
+        expect(chevrons[0]).toHaveAttribute('aria-hidden', 'true');
+      });
     });
 
     it('sortable headers are keyboard accessible', async () => {
