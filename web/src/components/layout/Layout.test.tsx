@@ -8,6 +8,7 @@ import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { type ReactNode } from 'react';
 import { mockUseGameSetting } from '@/test/mocks/use-game-config';
 import { queryKeys } from '@/api/query-keys';
+import { PAGE_CONTENT_WIDTH } from './content-width';
 import * as cookies from '@/lib/cookies';
 import { setViewportWidth } from '../../../tests/viewport';
 
@@ -45,14 +46,14 @@ function createTestQueryClient() {
   });
 }
 
-// Helper to render Layout with all providers
-function renderLayout(children: ReactNode) {
+// Helper to render Layout with all providers, at `route` (default `/`)
+function renderLayout(children: ReactNode, route = '/') {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <PreferencesProvider>
         <SidebarProvider>
-          <MemoryRouter>
+          <MemoryRouter initialEntries={[route]}>
             <Layout>{children}</Layout>
           </MemoryRouter>
         </SidebarProvider>
@@ -225,6 +226,41 @@ describe('Layout', () => {
     // But we verify the structure exists
     const sidebarDivs = document.querySelectorAll('aside');
     expect(sidebarDivs.length).toBeGreaterThan(0);
+  });
+
+  describe('page content width (Story 21.8)', () => {
+    const widthClasses = PAGE_CONTENT_WIDTH.split(' ');
+
+    it.each([
+      '/',
+      '/game-server/version',
+      '/game-server/settings',
+      '/game-server/mods/installed',
+      '/game-server/mods/browse',
+      '/game-server/mods/browse/some-mod',
+      '/config',
+      '/game-server/consolex',
+    ])('caps the page at %s inside the padding', (route) => {
+      renderLayout(<div data-testid="test-child">Test</div>, route);
+
+      const content = screen.getByTestId('page-content');
+      expect(content).toHaveClass(...widthClasses);
+      expect(content).toContainElement(screen.getByTestId('test-child'));
+      expect(content.parentElement).toHaveClass('p-4', 'md:p-6');
+    });
+
+    it.each(['/game-server/console', '/game-server/console/'])(
+      'leaves the console at %s full width',
+      (route) => {
+        renderLayout(<div data-testid="test-child">Test</div>, route);
+
+        const content = screen.getByTestId('page-content');
+        for (const name of widthClasses) {
+          expect(content).not.toHaveClass(name);
+        }
+        expect(content).toContainElement(screen.getByTestId('test-child'));
+      }
+    );
   });
 
   it('renders multiple children correctly', () => {
