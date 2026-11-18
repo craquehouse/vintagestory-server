@@ -9,13 +9,15 @@
  * - Shows preservation message (config, mods, worlds preserved)
  * - Shows server-running warning when server is running
  * - Destructive action styling for Remove button
- * - Story 21.4: cannot be dismissed while the uninstall request runs
+ * - Story 21.4: cannot be dismissed while the uninstall request runs; Cancel has the
+ *   focus when it opens
  */
 
 import { AlertTriangle, Info, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -105,14 +107,11 @@ export function UninstallConfirmDialog({
         )}
 
         <AlertDialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-            data-testid="cancel-button"
-          >
+          {/* Radix's AlertDialogCancel, so the dialog focuses it when it opens; its click
+              asks for a close through onOpenChange */}
+          <AlertDialogCancel disabled={isPending} data-testid="cancel-button">
             Cancel
-          </Button>
+          </AlertDialogCancel>
           <Button
             variant="destructive"
             onClick={onConfirm}
