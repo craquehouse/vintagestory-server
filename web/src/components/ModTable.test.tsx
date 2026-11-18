@@ -1603,7 +1603,7 @@ describe('ModTable', () => {
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
-          sidebarCollapsed: false,
+          sidebar: 'auto',
           gameServerNavExpanded: true,
           installedModsSort: { column: 'version', direction: 'desc' },
         })
@@ -1631,7 +1631,7 @@ describe('ModTable', () => {
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
-          sidebarCollapsed: false,
+          sidebar: 'auto',
           gameServerNavExpanded: true,
           installedModsSort: { column: 'enabled', direction: 'asc' },
         })
@@ -2147,7 +2147,7 @@ describe('ModTable', () => {
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
-          sidebarCollapsed: false,
+          sidebar: 'auto',
           gameServerNavExpanded: true,
           installedModsSort: { column: 'enabled', direction: 'desc' },
         })
@@ -2383,7 +2383,7 @@ describe('ModTable', () => {
           JSON.stringify({
             theme: 'system',
             consoleFontSize: 14,
-            sidebarCollapsed: false,
+            sidebar: 'auto',
             gameServerNavExpanded: true,
             installedModsSort: { column: 'enabled', direction: 'desc' },
           })
@@ -2638,7 +2638,7 @@ describe('ModTable', () => {
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
-          sidebarCollapsed: false,
+          sidebar: 'auto',
           gameServerNavExpanded: true,
           installedModsSort: { column: 'version', direction },
         })

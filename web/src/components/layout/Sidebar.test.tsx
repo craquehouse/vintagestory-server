@@ -6,6 +6,8 @@ import { Sidebar } from './Sidebar';
 import { APP_VERSION } from '@/lib/version';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import * as cookies from '@/lib/cookies';
+import { setViewportWidth } from '../../../tests/viewport';
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -35,6 +37,8 @@ vi.mock('@/hooks/use-mods', () => ({
   useModUpdates: () => ({ data: { data: mockUpdates } }),
 }));
 
+const mockedGetCookie = vi.mocked(cookies.getCookie);
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -63,6 +67,7 @@ describe('Sidebar', () => {
     // Reset server state to installed
     mockServerState.data.state = 'installed';
     mockUpdates.updateCount = 0;
+    mockedGetCookie.mockReturnValue(null);
   });
 
   describe('Navigation Structure', () => {
@@ -201,9 +206,7 @@ describe('Sidebar', () => {
     it('shows collapse button when expanded', () => {
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'));
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
       expect(collapseButton).toBeInTheDocument();
     });
 
@@ -211,15 +214,11 @@ describe('Sidebar', () => {
       const user = userEvent.setup();
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'))!;
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
 
       await user.click(collapseButton);
 
-      const collapsedButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left'));
+      const collapsedButton = screen.getByRole('button', { name: 'Expand sidebar' });
       expect(collapsedButton).toBeInTheDocument();
     });
 
@@ -227,9 +226,7 @@ describe('Sidebar', () => {
       const user = userEvent.setup();
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'))!;
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
 
       await user.click(collapseButton);
 
@@ -247,9 +244,7 @@ describe('Sidebar', () => {
       const user = userEvent.setup();
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'))!;
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
 
       await user.click(collapseButton);
 
@@ -258,6 +253,60 @@ describe('Sidebar', () => {
       expect(screen.queryByText('Game Server')).not.toBeInTheDocument();
       // Top-level Mods link label should be hidden
       expect(screen.queryByText('VSManager')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('In the phone sheet (Story 21.8)', () => {
+    function expectFullSidebarWithoutToggle() {
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Game Server')).toBeInTheDocument();
+      expect(screen.getByText('VSManager')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: /vintage story/i })).toHaveAttribute(
+        'src',
+        '/vintagestory-logo.webp'
+      );
+      expect(screen.getByText(`v${APP_VERSION}`)).toBeInTheDocument();
+      expect(screen.queryByTestId('sidebar-toggle')).not.toBeInTheDocument();
+    }
+
+    it('shows the full sidebar and no toggle with stored collapsed', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ sidebar: 'collapsed' }));
+
+      renderWithProviders(<Sidebar inSheet />);
+
+      expectFullSidebarWithoutToggle();
+    });
+
+    it('shows the full sidebar and no toggle with auto at 390px', () => {
+      setViewportWidth(390);
+
+      renderWithProviders(<Sidebar inSheet />);
+
+      expectFullSidebarWithoutToggle();
+    });
+
+    it('shows icons only outside the sheet with stored collapsed', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ sidebar: 'collapsed' }));
+
+      renderWithProviders(<Sidebar />);
+
+      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByRole('img', { name: /vs/i })).toHaveAttribute(
+        'src',
+        '/vintagestory-icon.webp'
+      );
+      expect(screen.getByTestId('sidebar-toggle')).toBeInTheDocument();
+    });
+
+    it('names the toggle in both states', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<Sidebar />);
+
+      await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+
+      expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBe(
+        screen.getByTestId('sidebar-toggle')
+      );
     });
   });
 
@@ -274,9 +323,7 @@ describe('Sidebar', () => {
       const user = userEvent.setup();
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'))!;
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
 
       await user.click(collapseButton);
 
@@ -308,9 +355,7 @@ describe('Sidebar', () => {
       const user = userEvent.setup();
       renderWithProviders(<Sidebar />);
 
-      const collapseButton = screen
-        .getAllByRole('button')
-        .find((btn) => btn.innerHTML.includes('panel-left-close'))!;
+      const collapseButton = screen.getByRole('button', { name: 'Collapse sidebar' });
 
       await user.click(collapseButton);
 

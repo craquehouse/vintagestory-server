@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UIPreferencesPanel } from './UIPreferencesPanel';
 import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import * as cookies from '@/lib/cookies';
+import type { SidebarPreference } from '@/lib/sidebar-preference';
+import { setViewportWidth } from '../../../tests/viewport';
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -65,10 +67,21 @@ describe('UIPreferencesPanel', () => {
       expect(screen.getByTestId('font-size-increase')).toBeInTheDocument();
     });
 
-    it('renders sidebar toggle', () => {
+    it('renders the three sidebar buttons in the group named Sidebar', () => {
       renderPanel();
 
-      expect(screen.getByTestId('sidebar-collapsed-toggle')).toBeInTheDocument();
+      const group = screen.getByRole('group', { name: 'Sidebar' });
+      const buttons = within(group).getAllByRole('button');
+      expect(buttons.map((button) => button.textContent)).toEqual([
+        'Automatic',
+        'Expanded',
+        'Collapsed',
+      ]);
+      expect(buttons.map((button) => button.dataset.testid)).toEqual([
+        'sidebar-auto',
+        'sidebar-expanded',
+        'sidebar-collapsed',
+      ]);
     });
 
     it('displays default font size of 14px', () => {
@@ -156,29 +169,70 @@ describe('UIPreferencesPanel', () => {
     });
   });
 
-  describe('sidebar toggle', () => {
-    it('shows "Expanded" when sidebar is not collapsed', () => {
+  describe('sidebar preference (Story 21.8)', () => {
+    /** The sidebar value of the last vs_ui_prefs cookie written. */
+    function storedSidebar(): unknown {
+      const call = mockedSetCookie.mock.calls.at(-1);
+      expect(call?.[0]).toBe('vs_ui_prefs');
+      return JSON.parse(call?.[1] ?? '{}').sidebar;
+    }
+
+    function expectPressed(pressed: SidebarPreference) {
+      for (const value of ['auto', 'expanded', 'collapsed']) {
+        expect(screen.getByTestId(`sidebar-${value}`)).toHaveAttribute(
+          'aria-pressed',
+          String(value === pressed)
+        );
+      }
+    }
+
+    it('presses Automatic by default', () => {
       renderPanel();
 
-      expect(screen.getByTestId('sidebar-collapsed-toggle')).toHaveTextContent('Expanded');
+      expectPressed('auto');
     });
 
-    it('shows "Collapsed" when sidebar is collapsed', () => {
+    it('presses Collapsed for the old sidebarCollapsed: true', () => {
       renderPanel(JSON.stringify({ sidebarCollapsed: true }));
 
-      expect(screen.getByTestId('sidebar-collapsed-toggle')).toHaveTextContent('Collapsed');
+      expectPressed('collapsed');
     });
 
-    it('toggles sidebar state when clicked', async () => {
+    it('presses Expanded for sidebar: expanded', () => {
+      renderPanel(JSON.stringify({ sidebar: 'expanded' }));
+
+      expectPressed('expanded');
+    });
+
+    it.each<SidebarPreference>(['expanded', 'collapsed', 'auto'])(
+      'stores %s when its button is clicked',
+      async (value) => {
+        const user = userEvent.setup();
+        renderPanel(JSON.stringify({ sidebar: value === 'auto' ? 'expanded' : 'auto' }));
+
+        await user.click(screen.getByTestId(`sidebar-${value}`));
+
+        expect(storedSidebar()).toBe(value);
+        expectPressed(value);
+      }
+    );
+
+    it('stores auto when Automatic is clicked after Collapsed', async () => {
       const user = userEvent.setup();
       renderPanel();
 
-      await user.click(screen.getByTestId('sidebar-collapsed-toggle'));
+      await user.click(screen.getByTestId('sidebar-collapsed'));
+      expect(storedSidebar()).toBe('collapsed');
+      await user.click(screen.getByTestId('sidebar-auto'));
 
-      expect(mockedSetCookie).toHaveBeenCalledWith(
-        'vs_ui_prefs',
-        expect.stringContaining('"sidebarCollapsed":true')
-      );
+      expect(storedSidebar()).toBe('auto');
+    });
+
+    it('shows the stored value, not the drawn one: Automatic at 900px', () => {
+      setViewportWidth(900);
+      renderPanel();
+
+      expectPressed('auto');
     });
   });
 
@@ -188,12 +242,12 @@ describe('UIPreferencesPanel', () => {
         JSON.stringify({
           theme: 'dark',
           consoleFontSize: 18,
-          sidebarCollapsed: true,
+          sidebar: 'collapsed',
         })
       );
 
       expect(screen.getByTestId('font-size-value')).toHaveTextContent('18px');
-      expect(screen.getByTestId('sidebar-collapsed-toggle')).toHaveTextContent('Collapsed');
+      expect(screen.getByTestId('sidebar-collapsed')).toHaveAttribute('aria-pressed', 'true');
     });
   });
 });

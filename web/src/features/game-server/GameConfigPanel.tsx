@@ -4,7 +4,8 @@
  * Displays game settings organized into groups with validation.
  * Handles loading, error states, and auto-save on blur.
  *
- * Layout (Story 16.6, Epic 16 ADR-3): the panel is at most 1280px wide and centered.
+ * Layout (Story 16.6, Epic 16 ADR-3): the panel is at most 1280px wide and centered
+ * (PAGE_CONTENT_WIDTH, shared with Layout since Story 21.8).
  * Below `xl` the groups stack in one column. From `xl` Server Info spans the panel with
  * its fields in two columns, followed by two independent column stacks (Player Settings
  * then Network on the left, World Settings on the right), so collapsing a group only
@@ -26,7 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useGameConfig, useUpdateGameSetting } from '@/hooks/use-game-config';
 import { validators, type SettingValue, type Validator } from '@/hooks/use-setting-field';
 import type { GameSetting, SettingType } from '@/api/types';
-import { SETTINGS_CONTENT_WIDTH } from './content-width';
+import { PAGE_CONTENT_WIDTH } from '@/components/layout/content-width';
 
 /**
  * Setting definition with display metadata.
@@ -194,7 +195,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
   if (isLoading) {
     return (
       <div className={className} data-testid="game-config-loading">
-        <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`}>
+        <div className={`${PAGE_CONTENT_WIDTH} space-y-4`}>
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -208,7 +209,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
     return (
       <div className={className} data-testid="game-config-error">
         <div
-          className={`${SETTINGS_CONTENT_WIDTH} flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4`}
+          className={`${PAGE_CONTENT_WIDTH} flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4`}
         >
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
@@ -296,7 +297,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
 
   return (
     <div className={className} data-testid="game-config-panel">
-      <div className={`${SETTINGS_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
+      <div className={`${PAGE_CONTENT_WIDTH} space-y-4`} data-testid="game-config-layout">
         {renderGroup(
           'Server Info',
           'Basic server identification',

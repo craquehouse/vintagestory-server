@@ -236,7 +236,7 @@ development_status:
   21-5-version-sort-aria-sort-close-buttons: done
   21-6-mod-detail-polish: done
   21-7-tabs-and-tables-on-phones: done
-  21-8-sidebar-default-and-content-width: backlog
+  21-8-sidebar-default-and-content-width: done
 # RETRO ACTION ITEMS
 # Action items from retrospectives are now tracked in beads with the RETRO label.
 # Run: bd list --label RETRO --status open

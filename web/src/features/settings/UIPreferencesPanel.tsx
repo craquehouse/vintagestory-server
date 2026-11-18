@@ -1,7 +1,8 @@
 /**
  * UIPreferencesPanel - User interface preferences settings.
  *
- * Manages theme selection, console font size, and sidebar defaults.
+ * Manages theme selection, console font size, and the sidebar preference (Story 21.8:
+ * Automatic, Expanded or Collapsed).
  * All preferences are persisted to cookies via PreferencesContext.
  *
  * Story: UI-017 - User preferences cookie persistence
@@ -17,6 +18,7 @@ import {
   FONT_SIZE_MIN,
   FONT_SIZE_MAX,
 } from '@/contexts/PreferencesContext';
+import { SIDEBAR_PREFERENCES, type SidebarPreference } from '@/lib/sidebar-preference';
 
 /**
  * Props for the UIPreferencesPanel component.
@@ -34,13 +36,19 @@ const themeOptions: { value: ThemePreference; label: string; icon: typeof Sun }[
   { value: 'dark', label: 'Dark', icon: Moon },
 ];
 
+const sidebarLabels: Record<SidebarPreference, string> = {
+  auto: 'Automatic',
+  expanded: 'Expanded',
+  collapsed: 'Collapsed',
+};
+
 /**
  * Panel for managing UI preferences.
  *
  * All changes are immediately persisted to cookies.
  */
 export function UIPreferencesPanel({ className }: UIPreferencesPanelProps) {
-  const { preferences, setThemePreference, setConsoleFontSize, setSidebarCollapsed } =
+  const { preferences, setThemePreference, setConsoleFontSize, setSidebarPreference } =
     usePreferences();
 
   return (
@@ -117,26 +125,33 @@ export function UIPreferencesPanel({ className }: UIPreferencesPanelProps) {
 
         {/* Layout Settings */}
         <SettingGroup title="Layout" description="Configure the default layout behavior">
-          {/* Sidebar Default */}
+          {/* Sidebar preference (Story 21.8): shows the stored value, not what is drawn */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-foreground">
-                  Start with Sidebar Collapsed
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Begin sessions with the sidebar in compact mode
-                </p>
-              </div>
-              <Button
-                variant={preferences.sidebarCollapsed ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSidebarCollapsed(!preferences.sidebarCollapsed)}
-                data-testid="sidebar-collapsed-toggle"
-              >
-                {preferences.sidebarCollapsed ? 'Collapsed' : 'Expanded'}
-              </Button>
+            <label id="sidebar-preference-label" className="text-sm font-medium text-foreground">
+              Sidebar
+            </label>
+            <div
+              role="group"
+              aria-labelledby="sidebar-preference-label"
+              className="flex flex-wrap gap-2"
+            >
+              {SIDEBAR_PREFERENCES.map((value) => (
+                <Button
+                  key={value}
+                  variant={preferences.sidebar === value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSidebarPreference(value)}
+                  aria-pressed={preferences.sidebar === value}
+                  data-testid={`sidebar-${value}`}
+                >
+                  {sidebarLabels[value]}
+                </Button>
+              ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Automatic collapses the sidebar on screens narrower than 1024px. Expanded and
+              Collapsed apply at every width.
+            </p>
           </div>
         </SettingGroup>
       </div>

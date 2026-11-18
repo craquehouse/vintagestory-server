@@ -7,7 +7,7 @@ Playwright tests against a running Docker stack (the API serving the built web U
 - `just test-e2e-ci` runs the set CI runs on every pull request, in two passes, and removes
   everything it started afterwards, also after a failure. It never touches the dev stack,
   `./data` or `dev/`, and starts no game server.
-  - First pass: the tests with no tag (186) and the API's E2E tests, against a throwaway
+  - First pass: the tests with no tag (210) and the API's E2E tests, against a throwaway
     container (`vintagestory-manager-e2e` on `127.0.0.1:18080`) from the image, seeded with
     `fixtures/serverconfig.json`, the empty directory `Logs/Archive`, placeholder keys and
     no game server. It exports `E2E_CONTAINER` for the one spec that creates a directory in
@@ -47,7 +47,7 @@ test that carries `@moddb-live`, `@install` or `@game-server`:
 | `@install` | to install or remove a real mod (always with `@moddb`; local only) | the real-API block of `mod-install-release.spec.ts` |
 
 `@moddb-live` replaces `@moddb` on a test; the first pass's pattern `@moddb` leaves it out as
-well. Of the 217 tests, CI runs 213: 186 untagged and 27 `@moddb`. The four that stay
+well. Of the 241 tests, CI runs 237: 210 untagged and 27 `@moddb`. The four that stay
 local-only are the live test of `browse-game-version.spec.ts` (`@moddb-live`: on recorded
 answers and a stack with no game server its game version is null, so it would check
 nothing) and the three `@install` tests in `installed-status.spec.ts` and

@@ -8,6 +8,9 @@ import { PreferencesProvider } from '@/contexts/PreferencesContext';
 import { type ReactNode } from 'react';
 import { mockUseGameSetting } from '@/test/mocks/use-game-config';
 import { queryKeys } from '@/api/query-keys';
+import { PAGE_CONTENT_WIDTH } from './content-width';
+import * as cookies from '@/lib/cookies';
+import { setViewportWidth } from '../../../tests/viewport';
 
 // Mock useGameSetting hook for Header component
 vi.mock('@/hooks/use-game-config', () => ({
@@ -30,6 +33,8 @@ vi.mock('next-themes', () => ({
   }),
 }));
 
+const mockedGetCookie = vi.mocked(cookies.getCookie);
+
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
   return new QueryClient({
@@ -41,14 +46,14 @@ function createTestQueryClient() {
   });
 }
 
-// Helper to render Layout with all providers
-function renderLayout(children: ReactNode) {
+// Helper to render Layout with all providers, at `route` (default `/`)
+function renderLayout(children: ReactNode, route = '/') {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
       <PreferencesProvider>
         <SidebarProvider>
-          <MemoryRouter>
+          <MemoryRouter initialEntries={[route]}>
             <Layout>{children}</Layout>
           </MemoryRouter>
         </SidebarProvider>
@@ -63,6 +68,7 @@ describe('Layout', () => {
   beforeEach(() => {
     // Default: no server name configured (returns fallback)
     mockUseGameSetting.mockReturnValue(undefined);
+    mockedGetCookie.mockReturnValue(null);
     // Mock fetch for the PendingRestartBanner's useMods query
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -92,6 +98,36 @@ describe('Layout', () => {
     const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
     expect(layoutDiv).toBeInTheDocument();
     expect(layoutDiv?.getAttribute('style')).toContain('160px');
+  });
+
+  it('sets --sidebar-width to 64px at 900px with no cookie (Story 21.8)', () => {
+    setViewportWidth(900);
+    renderLayout(<div>Test</div>);
+
+    const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
+    expect(layoutDiv?.getAttribute('style')).toContain('64px');
+  });
+
+  it('sets --sidebar-width to 160px at 1024px with no cookie (Story 21.8)', () => {
+    setViewportWidth(1024);
+    renderLayout(<div>Test</div>);
+
+    const layoutDiv = document.querySelector('[style*="--sidebar-width"]');
+    expect(layoutDiv?.getAttribute('style')).toContain('160px');
+  });
+
+  it('shows the full sidebar in the sheet with stored collapsed (Story 21.8)', async () => {
+    mockedGetCookie.mockReturnValue(JSON.stringify({ sidebar: 'collapsed' }));
+    const user = userEvent.setup();
+    renderLayout(<div>Test</div>);
+    // The fixed sidebar is collapsed: no labels yet
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: /open menu/i }));
+
+    // The label can only come from the sheet
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getAllByTestId('sidebar-toggle')).toHaveLength(1);
   });
 
   it('sets --sidebar-width to 64px when collapsed', async () => {
@@ -181,12 +217,7 @@ describe('Layout', () => {
   });
 
   it('shows desktop sidebar on tablet and larger', () => {
-    // Mock window.innerWidth to be tablet size
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 768,
-    });
+    setViewportWidth(768);
 
     renderLayout(<div>Test</div>);
 
@@ -195,6 +226,41 @@ describe('Layout', () => {
     // But we verify the structure exists
     const sidebarDivs = document.querySelectorAll('aside');
     expect(sidebarDivs.length).toBeGreaterThan(0);
+  });
+
+  describe('page content width (Story 21.8)', () => {
+    const widthClasses = PAGE_CONTENT_WIDTH.split(' ');
+
+    it.each([
+      '/',
+      '/game-server/version',
+      '/game-server/settings',
+      '/game-server/mods/installed',
+      '/game-server/mods/browse',
+      '/game-server/mods/browse/some-mod',
+      '/config',
+      '/game-server/consolex',
+    ])('caps the page at %s inside the padding', (route) => {
+      renderLayout(<div data-testid="test-child">Test</div>, route);
+
+      const content = screen.getByTestId('page-content');
+      expect(content).toHaveClass(...widthClasses);
+      expect(content).toContainElement(screen.getByTestId('test-child'));
+      expect(content.parentElement).toHaveClass('p-4', 'md:p-6');
+    });
+
+    it.each(['/game-server/console', '/game-server/console/'])(
+      'leaves the console at %s full width',
+      (route) => {
+        renderLayout(<div data-testid="test-child">Test</div>, route);
+
+        const content = screen.getByTestId('page-content');
+        for (const name of widthClasses) {
+          expect(content).not.toHaveClass(name);
+        }
+        expect(content).toContainElement(screen.getByTestId('test-child'));
+      }
+    );
   });
 
   it('renders multiple children correctly', () => {

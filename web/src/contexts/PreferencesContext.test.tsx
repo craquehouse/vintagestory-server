@@ -8,6 +8,7 @@ import {
   FONT_SIZE_DEFAULT,
 } from './PreferencesContext';
 import * as cookies from '@/lib/cookies';
+import type { SidebarPreference } from '@/lib/sidebar-preference';
 
 // Mock cookies module
 vi.mock('@/lib/cookies', () => ({
@@ -50,7 +51,7 @@ describe('PreferencesContext', () => {
       expect(result.current.preferences).toEqual({
         theme: 'system',
         consoleFontSize: FONT_SIZE_DEFAULT,
-        sidebarCollapsed: false,
+        sidebar: 'auto',
         gameServerNavExpanded: true,
         installedModsSort: { column: 'name', direction: 'asc' },
       });
@@ -72,7 +73,7 @@ describe('PreferencesContext', () => {
       expect(result.current.preferences).toEqual({
         theme: 'dark',
         consoleFontSize: 16,
-        sidebarCollapsed: true,
+        sidebar: 'collapsed', // Story 21.8: the old key, migrated
         gameServerNavExpanded: false,
         installedModsSort: { column: 'version', direction: 'desc' },
       });
@@ -91,7 +92,7 @@ describe('PreferencesContext', () => {
       expect(result.current.preferences).toEqual({
         theme: 'system', // Default for invalid
         consoleFontSize: FONT_SIZE_DEFAULT, // Default for out of range
-        sidebarCollapsed: false, // Default for missing
+        sidebar: 'auto', // Default for missing
         gameServerNavExpanded: true, // Default for missing
         installedModsSort: { column: 'name', direction: 'asc' }, // Default for missing
       });
@@ -105,7 +106,7 @@ describe('PreferencesContext', () => {
       expect(result.current.preferences).toEqual({
         theme: 'system',
         consoleFontSize: FONT_SIZE_DEFAULT,
-        sidebarCollapsed: false,
+        sidebar: 'auto',
         gameServerNavExpanded: true,
         installedModsSort: { column: 'name', direction: 'asc' },
       });
@@ -210,29 +211,86 @@ describe('PreferencesContext', () => {
     });
   });
 
-  describe('setSidebarCollapsed', () => {
-    it('updates sidebar collapsed state', () => {
-      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+  describe('the sidebar preference (Story 21.8)', () => {
+    /** The JSON of the last vs_ui_prefs cookie written, parsed. */
+    function lastWrittenPrefs(): Record<string, unknown> {
+      const call = mockedSetCookie.mock.calls.at(-1);
+      expect(call?.[0]).toBe('vs_ui_prefs');
+      return JSON.parse(call?.[1] ?? '{}');
+    }
 
-      act(() => {
-        result.current.setSidebarCollapsed(true);
-      });
+    it('writes "sidebar":"auto" and no sidebarCollapsed on the first render with no cookie', () => {
+      renderHook(() => usePreferences(), { wrapper: Wrapper });
 
-      expect(result.current.preferences.sidebarCollapsed).toBe(true);
+      const first = mockedSetCookie.mock.calls[0];
+      expect(first?.[0]).toBe('vs_ui_prefs');
+      const written = JSON.parse(first?.[1] ?? '{}');
+      expect(written.sidebar).toBe('auto');
+      expect(written).not.toHaveProperty('sidebarCollapsed');
     });
 
-    it('persists sidebar state to cookie', () => {
+    it('migrates the old sidebarCollapsed: true to collapsed and drops the old key', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ sidebarCollapsed: true }));
+
       const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
 
-      act(() => {
-        result.current.setSidebarCollapsed(true);
-      });
-
-      expect(mockedSetCookie).toHaveBeenCalledWith(
-        'vs_ui_prefs',
-        expect.stringContaining('"sidebarCollapsed":true')
-      );
+      expect(result.current.preferences.sidebar).toBe('collapsed');
+      const written = lastWrittenPrefs();
+      expect(written.sidebar).toBe('collapsed');
+      expect(written).not.toHaveProperty('sidebarCollapsed');
     });
+
+    it('migrates the old sidebarCollapsed: false to auto', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ sidebarCollapsed: false }));
+
+      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+      expect(result.current.preferences.sidebar).toBe('auto');
+      expect(lastWrittenPrefs()).not.toHaveProperty('sidebarCollapsed');
+    });
+
+    it.each([['not valid json {{{'], ['null'], ['5'], ['"x"'], ['[]']])(
+      'uses the defaults for the cookie %s without throwing',
+      (cookie) => {
+        mockedGetCookie.mockReturnValue(cookie);
+
+        const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+        expect(result.current.preferences).toEqual({
+          theme: 'system',
+          consoleFontSize: FONT_SIZE_DEFAULT,
+          sidebar: 'auto',
+          gameServerNavExpanded: true,
+          installedModsSort: { column: 'name', direction: 'asc' },
+        });
+      }
+    );
+
+    it('reads an unknown sidebar value as auto and keeps the other preferences', () => {
+      mockedGetCookie.mockReturnValue(JSON.stringify({ sidebar: 'bogus', theme: 'dark' }));
+
+      const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+      expect(result.current.preferences.sidebar).toBe('auto');
+      expect(result.current.preferences.theme).toBe('dark');
+    });
+
+    it.each<SidebarPreference>(['expanded', 'collapsed', 'auto'])(
+      'setSidebarPreference(%s) updates the state and the cookie',
+      (value) => {
+        mockedGetCookie.mockReturnValue(
+          JSON.stringify({ sidebar: value === 'auto' ? 'collapsed' : 'auto' })
+        );
+        const { result } = renderHook(() => usePreferences(), { wrapper: Wrapper });
+
+        act(() => {
+          result.current.setSidebarPreference(value);
+        });
+
+        expect(result.current.preferences.sidebar).toBe(value);
+        expect(lastWrittenPrefs().sidebar).toBe(value);
+      }
+    );
   });
 
   describe('setGameServerNavExpanded', () => {

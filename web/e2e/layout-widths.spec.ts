@@ -12,7 +12,10 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - From 1024px the table fits its container with a long name, in both sidebar states: the
  *   Name column wraps (and the Update button may drop under the offered version), so the
  *   long-named mod's toggle and remove button are on screen. Where the table has room
- *   (AC 6), names and Available cells stay on one line.
+ *   (AC 6), short names and Available cells stay on one line. Since Story 21.8 the table is
+ *   never wider than 1280px, so the 63-character test name wraps at every width (it needs
+ *   about 1327px) and its Update button drops under the offered version, as at 1440px with
+ *   the sidebar expanded before; its controls stay on screen.
  * - Below `lg` the cards have a sort control that shares the `installedModsSort` preference
  *   with the table headers.
  * - Settings (`/config`): at 320-430px the four tabs wrap inside the content, so the page
@@ -20,6 +23,18 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - The Mods and Version page tab lists fit at 320 and 390px.
  * - Game Settings: from 1024px the title starts at the settings panel's left edge and the
  *   status badge ends at its right edge, inside the same centered 1280px width.
+ * Story 21.8 (FR284; VSS-w85):
+ * - With no `vs_ui_prefs` cookie the sidebar is collapsed (64px) at 768 and 900px and expanded
+ *   (160px) from 1024px, follows resizes across 1024px, and the cookie says `auto`. The toggle
+ *   stores the opposite of what is shown, which then holds at every width and after a reload;
+ *   an old `sidebarCollapsed` cookie is migrated; UI Preferences sets Automatic, Expanded or
+ *   Collapsed; the phone menu always shows the full sidebar with no toggle.
+ * Story 21.8 (FR285; VSS-alx):
+ * - At 1280, 1440, 1920 and 2560px in both sidebar states the page content is
+ *   min(1280, width - sidebar - 48)px wide and centered right of the sidebar, on the
+ *   Dashboard, Version, Game Settings, both Mods tabs and Settings; the header still spans
+ *   from the sidebar to the window's right edge. The mod browser has four 308px columns at
+ *   1920px; the Console keeps the full width; the mod detail page stays 896px, centered.
  * Story 21.7 (FR281, FR283; VSS-3ry, VSS-f9y):
  * - The Settings, Mods and Version tab buttons are at least 44px tall below 1024px, and as
  *   before from 1024px (list 36px). At 320-430px the Settings list's two rows sit inside the
@@ -37,7 +52,8 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * Version page's versions, its installed version and the Scheduled Jobs (Story 21.7); every
  * write to the API is refused, so no mod or setting changes; the game server is neither
  * started nor stopped; no screenshot is taken. The sidebar state is the `vs_ui_prefs`
- * cookie of a fresh browser context.
+ * cookie of a fresh browser context: `{ sidebar: 'expanded' }` or `{ sidebar: 'collapsed' }`
+ * (Story 21.8; with no choice the sidebar is collapsed below 1024px).
  *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json
@@ -300,20 +316,29 @@ interface PageOptions {
   jobs?: boolean;
   /** Show this game version as installed (Story 21.7) */
   installed?: string;
+  /** Stub the mod browser with eight mods (Story 21.8) */
+  browse?: boolean;
 }
 
-/** A page in a fresh context with the sidebar expanded or collapsed (vs_ui_prefs cookie). */
+/** A page in a fresh context with the sidebar chosen expanded or collapsed (vs_ui_prefs cookie). */
 async function openPage(
   page: Page,
   width: number,
   collapsed: boolean,
   url: string,
-  { mods = false, fixture = MODS, versions = false, jobs = false, installed }: PageOptions = {}
+  {
+    mods = false,
+    fixture = MODS,
+    versions = false,
+    jobs = false,
+    installed,
+    browse = false,
+  }: PageOptions = {}
 ) {
   await page.context().addCookies([
     {
       name: 'vs_ui_prefs',
-      value: encodeURIComponent(JSON.stringify({ sidebarCollapsed: collapsed })),
+      value: encodeURIComponent(JSON.stringify({ sidebar: collapsed ? 'collapsed' : 'expanded' })),
       url: BASE_URL,
     },
   ]);
@@ -323,6 +348,7 @@ async function openPage(
   if (versions) await fakeVersions(page);
   if (jobs) await fakeJobs(page);
   if (installed) await installedVersion(page, installed);
+  if (browse) await fakeBrowse(page);
   await page.goto(url);
 }
 
@@ -471,20 +497,27 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
     }
   }
 
-  // AC 6: at 1440px with the sidebar expanded the long name may wrap (measured), so only
-  // 1440 collapsed and 1920 in both states keep it on one line
+  // AC 6, narrowed by Story 21.8: the table is at most 1280px wide, so the long name wraps
+  // where it used to fit on one line (1440px collapsed, 1920px) and, as at 1440px expanded
+  // (1232px) before the cap, its Update button drops under the offered version; its
+  // controls stay on screen
   for (const { width, collapsed, label } of [
     { width: 1440, collapsed: true, label: 'sidebar collapsed' },
     { width: 1920, collapsed: false, label: 'sidebar expanded' },
     { width: 1920, collapsed: true, label: 'sidebar collapsed' },
   ]) {
-    test(`the long name and the Available cell on one line at ${width}px, ${label}`, async ({
+    test(`the long name wraps inside the 1280px table at ${width}px, ${label}`, async ({
       page,
     }) => {
       await openTable(page, width, collapsed, MODS);
 
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
-      await expectOneLine(page, MODS, `${width}px, ${label}`);
+      await expectInsideViewport(page, 'mod-toggle-longnamemod', width);
+      await expectInsideViewport(page, 'mod-remove-longnamemod', width);
+      expect(await heightOf(page, 'mod-link-longnamemod')).toBeGreaterThan(
+        await heightOf(page, 'mod-link-offmod')
+      );
+      await expectInsideViewport(page, 'mod-update-button-longnamemod', width);
     });
   }
 });
@@ -1003,4 +1036,347 @@ test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () =
       });
     }
   }
+});
+
+/** The fixed sidebar's width now. */
+async function sidebarWidth(page: Page): Promise<number> {
+  return (await boxOf(page.getByTestId('desktop-sidebar'), 'desktop-sidebar')).width;
+}
+
+/** Wait for the fixed sidebar's 300ms width animation to end at `width`. */
+async function expectSidebarWidth(page: Page, width: number) {
+  await expect.poll(() => sidebarWidth(page)).toBe(width);
+}
+
+/** The context's vs_ui_prefs cookie, parsed. */
+async function prefsCookie(page: Page): Promise<unknown> {
+  const cookie = (await page.context().cookies(BASE_URL)).find(
+    (item) => item.name === 'vs_ui_prefs'
+  );
+  if (!cookie) throw new Error('No vs_ui_prefs cookie');
+  return JSON.parse(decodeURIComponent(cookie.value));
+}
+
+/** The cookie says `sidebar` and has no `sidebarCollapsed` key. */
+async function expectStoredSidebar(page: Page, sidebar: string) {
+  await expect.poll(() => prefsCookie(page)).toMatchObject({ sidebar });
+  expect(await prefsCookie(page)).not.toHaveProperty('sidebarCollapsed');
+}
+
+/** Add a vs_ui_prefs cookie to the fresh context. */
+async function addPrefsCookie(page: Page, prefs: Record<string, unknown>) {
+  await page
+    .context()
+    .addCookies([
+      { name: 'vs_ui_prefs', value: encodeURIComponent(JSON.stringify(prefs)), url: BASE_URL },
+    ]);
+}
+
+/** Open the Dashboard at `width` with whatever cookie the context has (none unless added). */
+async function openFresh(page: Page, width: number, url = '/') {
+  await page.setViewportSize({ width, height: HEIGHT });
+  await readOnly(page);
+  await page.goto(url);
+  await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+}
+
+test.describe('Sidebar default and choice (Story 21.8)', () => {
+  // These tests end quickly; drop status requests still in flight when one ends
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  // S1: no animation on the first load, so the width is read as soon as the sidebar shows
+  for (const { width, expected } of [
+    { width: 768, expected: 64 },
+    { width: 900, expected: 64 },
+    { width: 1024, expected: 160 },
+    { width: 1440, expected: 160 },
+  ]) {
+    test(`a fresh browser shows the sidebar ${expected}px wide at ${width}px (AC 1)`, async ({
+      page,
+    }) => {
+      await openFresh(page, width);
+
+      expect(await sidebarWidth(page)).toBe(expected);
+      await expectStoredSidebar(page, 'auto');
+    });
+  }
+
+  test('with no choice the sidebar follows the width across 1024px (AC 2)', async ({ page }) => {
+    await openFresh(page, 900);
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.setViewportSize({ width: 1100, height: HEIGHT });
+    await expectSidebarWidth(page, 160);
+    await page.setViewportSize({ width: 900, height: HEIGHT });
+    await expectSidebarWidth(page, 64);
+
+    await expectStoredSidebar(page, 'auto');
+  });
+
+  test('a choice made with the toggle holds at every width and after a reload (AC 3)', async ({
+    page,
+  }) => {
+    await openFresh(page, 900);
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.getByRole('button', { name: 'Expand sidebar' }).click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'expanded');
+    await page.reload();
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+    expect(await sidebarWidth(page)).toBe(160);
+
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    await expectSidebarWidth(page, 64);
+    await expectStoredSidebar(page, 'collapsed');
+    await page.setViewportSize({ width: 1440, height: HEIGHT });
+    await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
+    expect(await sidebarWidth(page)).toBe(64);
+    await page.reload();
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+    expect(await sidebarWidth(page)).toBe(64);
+  });
+
+  test('an old cookie with sidebarCollapsed: true stays collapsed (AC 4)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebarCollapsed: true });
+    await openFresh(page, 1440);
+
+    expect(await sidebarWidth(page)).toBe(64);
+    await expectStoredSidebar(page, 'collapsed');
+  });
+
+  test('an old cookie with sidebarCollapsed: false follows the width (AC 5)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebarCollapsed: false });
+    await openFresh(page, 900);
+
+    expect(await sidebarWidth(page)).toBe(64);
+    await page.setViewportSize({ width: 1440, height: HEIGHT });
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'auto');
+  });
+
+  test('UI Preferences sets Automatic, Expanded or Collapsed (AC 7)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebar: 'collapsed' });
+    await openFresh(page, 1440, '/config');
+    await expect(page.getByTestId('ui-preferences-panel')).toBeVisible({ timeout: 30_000 });
+
+    await expect(page.getByTestId('sidebar-collapsed')).toHaveAttribute('aria-pressed', 'true');
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.getByTestId('sidebar-auto').click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'auto');
+    await expect(page.getByTestId('sidebar-auto')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.setViewportSize({ width: 900, height: HEIGHT });
+    await expectSidebarWidth(page, 64);
+
+    await page.getByTestId('sidebar-expanded').click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'expanded');
+  });
+
+  for (const { cookie, label } of [
+    { cookie: { sidebar: 'collapsed' }, label: 'stored collapsed' },
+    { cookie: null, label: 'no cookie' },
+  ]) {
+    test(`the phone menu shows the full sidebar with no toggle, ${label} (AC 8)`, async ({
+      page,
+    }) => {
+      if (cookie) await addPrefsCookie(page, cookie);
+      await page.setViewportSize({ width: 390, height: HEIGHT });
+      await readOnly(page);
+      await page.goto('/');
+
+      await page.getByRole('button', { name: 'Open menu' }).click({ timeout: 30_000 });
+      const sheet = page.getByRole('dialog', { name: 'Navigation menu' });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByRole('link', { name: 'Dashboard' })).toContainText('Dashboard');
+      await expect(sheet.getByRole('link', { name: 'VSManager' })).toContainText('VSManager');
+      // The sheet is 256px wide; the sidebar fills it but for the sheet's 1px border
+      await expect.poll(async () => (await boxOf(sheet, 'sheet')).width).toBe(256);
+      const aside = await boxOf(sheet.locator('aside'), 'sheet sidebar');
+      expect(aside.width).toBeGreaterThanOrEqual(255);
+      await expect(sheet.getByTestId('sidebar-toggle')).toHaveCount(0);
+    });
+  }
+});
+
+/** Eight made-up mods for the browser (Story 21.8): no logo, so no image is requested. */
+const BROWSE_MODS = Array.from({ length: 8 }, (_, index) => ({
+  slug: `widthmod${index + 1}`,
+  mod_ids: [`widthmod${index + 1}`],
+  urlalias: `widthmod${index + 1}`,
+  asset_id: 0,
+  name: `Width Mod ${index + 1}`,
+  author: 'E2E',
+  summary: 'A stubbed browse item',
+  downloads: 1,
+  follows: 1,
+  trending_points: 1,
+  side: 'both',
+  mod_type: 'mod',
+  logo_url: null,
+  tags: [],
+  last_released: '2026-11-01 00:00:00',
+  has_release_for_game_version: true,
+}));
+
+/** Serve the mod browser, its game versions and tags (registered after readOnly, so it runs first). */
+async function fakeBrowse(page: Page) {
+  await page.route(/\/api\/v1alpha1\/mods\/(browse|gameversions|tags)(\?.*)?$/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/gameversions')) {
+      await route.fulfill({ json: { status: 'ok', data: { versions: ['1.22.7'] } } });
+      return;
+    }
+    if (path.endsWith('/tags')) {
+      await route.fulfill({ json: { status: 'ok', data: { tags: [] } } });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        status: 'ok',
+        data: {
+          mods: BROWSE_MODS,
+          pagination: {
+            page: 1,
+            page_size: 20,
+            total_items: BROWSE_MODS.length,
+            total_pages: 1,
+            has_next: false,
+            has_prev: false,
+          },
+          game_version: '1.22.7',
+        },
+      },
+    });
+  });
+}
+
+/** The capped content's width: at most 1280px, else the area right of the sidebar less 48px. */
+function cappedWidth(width: number, sidebar: number): number {
+  return Math.min(1280, width - sidebar - 48);
+}
+
+/** page-content is `expected` wide and centered between the sidebar and the window's edge. */
+async function expectCentered(page: Page, width: number, sidebar: number, expected: number) {
+  const box = await boxOf(page.getByTestId('page-content'), 'page-content');
+  expect(Math.abs(box.width - expected), `page-content width ${box.width}`).toBeLessThanOrEqual(1);
+  const left = box.x - sidebar;
+  const right = width - (box.x + box.width);
+  expect(Math.abs(left - right), `space left ${left}, right ${right}`).toBeLessThanOrEqual(1);
+  expect(await documentOverflow(page)).toBe(0);
+}
+
+/** The capped pages and the element that shows each is ready. */
+const CAPPED_PAGES = [
+  { url: '/', ready: 'dashboard-stats-grid' },
+  { url: '/game-server/version', ready: 'version-page' },
+  { url: '/game-server/settings', ready: 'game-config-layout' },
+  { url: INSTALLED, ready: 'mod-table' },
+  { url: '/game-server/mods/browse', ready: 'mod-browse-grid' },
+  { url: '/config', ready: 'ui-preferences-panel' },
+];
+
+test.describe('Content width on wide screens (Story 21.8)', () => {
+  // Drop status requests still in flight when a test ends
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  for (const { collapsed, label } of SIDEBAR) {
+    const sidebar = collapsed ? 64 : 160;
+
+    for (const width of [1280, 1440, 1920, 2560]) {
+      test(`pages are at most 1280px wide and centered at ${width}px, ${label} (AC 9, 13)`, async ({
+        page,
+      }) => {
+        const expected = cappedWidth(width, sidebar);
+        for (const [index, { url, ready }] of CAPPED_PAGES.entries()) {
+          await test.step(url, async () => {
+            if (index === 0) {
+              await openPage(page, width, collapsed, url, { mods: true, browse: true });
+            } else {
+              await page.goto(url);
+            }
+            await expect(page.getByTestId(ready)).toBeVisible({ timeout: 30_000 });
+            expect(await sidebarWidth(page)).toBe(sidebar);
+
+            await expectCentered(page, width, sidebar, expected);
+            const header = await boxOf(page.locator('header'), 'header');
+            expect(
+              Math.abs(header.x - sidebar),
+              'header starts at the sidebar'
+            ).toBeLessThanOrEqual(1);
+            expect(
+              Math.abs(header.x + header.width - width),
+              'header ends at the window edge'
+            ).toBeLessThanOrEqual(1);
+          });
+        }
+      });
+    }
+
+    test(`the mod browser has four 308px columns at 1920px, ${label} (AC 10)`, async ({ page }) => {
+      await openPage(page, 1920, collapsed, '/game-server/mods/browse', { browse: true });
+      await expect(page.getByTestId('mod-card-widthmod5')).toBeVisible({ timeout: 30_000 });
+
+      const grid = await boxOf(page.getByTestId('mod-browse-grid'), 'mod-browse-grid');
+      expect(Math.abs(grid.width - 1280), `grid width ${grid.width}`).toBeLessThanOrEqual(1);
+      const cards = [];
+      for (let n = 1; n <= 5; n++) {
+        cards.push(await boxOf(page.getByTestId(`mod-card-widthmod${n}`), `card ${n}`));
+      }
+      for (const [index, card] of cards.entries()) {
+        expect(
+          Math.abs(card.width - 308),
+          `card ${index + 1} width ${card.width}`
+        ).toBeLessThanOrEqual(1);
+      }
+      for (const card of cards.slice(1, 4)) {
+        expect(Math.abs(card.y - cards[0].y), 'first four cards in one row').toBeLessThanOrEqual(1);
+      }
+      expect(cards[4].y, 'fifth card on the next row').toBeGreaterThan(cards[0].y);
+    });
+
+    test(`the console uses the full width at 1920px, ${label} (AC 11)`, async ({ page }) => {
+      await openPage(page, 1920, collapsed, '/game-server/console');
+      const panel = page.getByTestId('console-panel');
+      await expect(panel).toBeVisible({ timeout: 30_000 });
+
+      const expected = 1920 - sidebar - 48;
+      const panelBox = await boxOf(panel, 'console-panel');
+      const content = await boxOf(page.getByTestId('page-content'), 'page-content');
+      expect(
+        Math.abs(panelBox.width - expected),
+        `console width ${panelBox.width}`
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(content.width - expected),
+        `content width ${content.width}`
+      ).toBeLessThanOrEqual(1);
+      expect(await documentOverflow(page)).toBe(0);
+    });
+  }
+
+  test('the mod detail page stays 896px wide and centered at 1920px (AC 13)', async ({ page }) => {
+    await openPage(page, 1920, false, '/game-server/mods/browse/longnamemod', { mods: true });
+    const detail = page.getByTestId('mod-detail-page');
+    await expect(page.getByTestId('mod-detail-header')).toBeVisible({ timeout: 30_000 });
+
+    const box = await boxOf(detail, 'mod-detail-page');
+    const content = await boxOf(page.getByTestId('page-content'), 'page-content');
+    expect(Math.abs(box.width - 896), `detail width ${box.width}`).toBeLessThanOrEqual(1);
+    const left = box.x - content.x;
+    const right = content.x + content.width - (box.x + box.width);
+    expect(Math.abs(left - right), `space left ${left}, right ${right}`).toBeLessThanOrEqual(1);
+    expect(await documentOverflow(page)).toBe(0);
+  });
 });
