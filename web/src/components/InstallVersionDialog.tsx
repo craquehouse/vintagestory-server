@@ -207,6 +207,9 @@ export function InstallVersionDialog({
 
   // Reset downgrade confirmation when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
+    // Story 21.4: Escape, an outside click and the close button do nothing while the
+    // install request runs (once it is accepted, the dialog shows progress and can close)
+    if (!newOpen && installMutation.isPending) return;
     if (!newOpen) {
       setDowngradeConfirmed(false);
     }
