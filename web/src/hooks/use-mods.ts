@@ -78,7 +78,12 @@ export function useMods() {
  *
  *   return (
  *     <button
- *       onClick={() => install({ slug })}
+ *       onClick={() =>
+ *         install(
+ *           { slug },
+ *           { onError: (error) => toast.error('Installation failed', { description: error.message }) }
+ *         )
+ *       }
  *       disabled={isPending}
  *     >
  *       {isPending ? 'Installing...' : 'Install'}
