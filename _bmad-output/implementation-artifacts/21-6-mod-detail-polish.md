@@ -1,6 +1,6 @@
 # Story 21.6: Mod Detail Page Polish
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR278, FR279, FR280; Epic 21 ADR-10 and ADR-11. Beads: VSS-woae (UI-094), VSS-pzj8 (UI-092), VSS-4vbj (UI-093). Stories run in order 21.1 to 21.8, each stacked on the previous; this one comes after 21.5 (which changes the shared dialog close button the screenshot dialog uses). Line references were verified at 966204f (epic-21-planning), BEFORE Story 21.1's Prettier reformat and Story 21.5's VersionTable changes: they will have moved. Re-find every location by its content at implementation time. Web only; no API change; no new dependency. -->
 
@@ -70,50 +70,50 @@ so that **I can read and install from a phone, and a screen reader tells me befo
 
 <!-- Each functional task includes its tests in the same commit, red first. Commit per task: type(story-21.6/task-N): ...; fix only for what a user would notice, subject written for users (Dev Notes "Commits and release notes"). Run Prettier (Story 21.1's pinned version and config) on every web file you change; never on the whole tree. -->
 
-- [ ] Task 1: Every new-tab link says so, SVG links in descriptions included + tests (AC: 1, 2, 3, 10) (`VSS-woae`)
-  - [ ] 1.1: New `web/src/lib/new-tab.ts` exporting `OPENS_IN_NEW_TAB = '(opens in a new tab)'` with the doc comment now at `mod-description.ts:25-28`. `mod-description.ts` imports it and re-exports it (`export { OPENS_IN_NEW_TAB } from './new-tab'` or import + `export`), so `ModDetailPage.tsx:86` and the existing tests keep working. Reason: the sidebar is in the main bundle, and importing `mod-description.ts` there would pull DOMPurify into it and run `DOMPurify(window)` (`:43`) at app start (Dev Notes "Links")
-  - [ ] 1.2: New `web/src/components/NewTabLink.tsx`: props `Omit<ComponentProps<'a'>, 'target' | 'rel' | 'aria-label'>`; renders `<a {...props} target="_blank" rel="noopener noreferrer">{children}{' '}<span className="sr-only">{OPENS_IN_NEW_TAB}</span></a>` (the trailer link's shape, `ModDetailPage.tsx:737-738`; `aria-label` is left out of the props because it would replace the note). Short doc comment citing Story 21.6 / ADR-10
-  - [ ] 1.3: `ModDetailPage.tsx:693-740`: ModDB Page, Homepage, Source and Watch trailer use `NewTabLink` (keep their `className` and `data-testid`; drop the trailer link's own span and `{' '}`). Icons get `aria-hidden="true"` explicitly. Homepage and Source get a trailing `<ExternalLink className="h-3 w-3" aria-hidden="true" data-testid="mod-detail-homepage-new-tab-mark" />` (resp. `...-source-new-tab-mark`) after their text. Add a Story 21.6 paragraph to the file comment (`:1-44`): new-tab links, the stacked header, the description styles
-  - [ ] 1.4: `InstalledModParts.tsx:41-50` (`ModNameLink`): `NewTabLink`; the `ExternalLink` icon gets `aria-hidden="true"`
-  - [ ] 1.5: `layout/Sidebar.tsx:208-216`: `NewTabLink` with the `aria-label="GitHub"` replaced by `<span className="sr-only">GitHub</span>` after the icon, so the name is `GitHub (opens in a new tab)` (an `aria-label` would hide the note; Dev Notes "Links")
-  - [ ] 1.6: `VersionCard.tsx:80`, `VersionTable.tsx:154`, `ModCard.tsx:187`: keep the `aria-label` (ADR-10 decision 2) but build its end from the constant: `` `View changelog for version ${version} ${OPENS_IN_NEW_TAB}` ``, `` `Open ${mod.name} on ModDB ${OPENS_IN_NEW_TAB}` ``, importing from `@/lib/new-tab`. Their icons get `aria-hidden="true"`
-  - [ ] 1.7: `mod-description.ts` hook (`:47-82`), SVG branch after the HTML branch (`:71-80`), exact rules in Dev Notes "SVG links": copy a sanitized `xlink:href` to `href` when `href` is missing; build the title text; remove every direct `title` child; insert one `title` (created with `createElementNS(SVG_NAMESPACE, 'title')` and `textContent`) as the first child. Update the module comment (`:7-11`): SVG links get a `<title>` note instead of no note
-  - [ ] 1.8: Unit tests (Dev Notes "Unit tests", Task 1 rows) and the changes in "Existing tests that change", red first
-  - [ ] 1.9: Browser confirmation of ADR-10 decision 5, recorded in the Dev Agent Record: in Chromium, the accessibility snapshot (`locator.ariaSnapshot()` or the Playwright MCP snapshot) of a description with an `href` SVG link and an `xlink:href`-only SVG link shows both as `link "<text> (opens in a new tab)"`. The `aria-label` fallback is not needed if this holds; if it does not, use the fallback (ADR-10 decision 5) and record which was used. Task 5's E2E keeps this check
-  - [ ] 1.10: Commit `fix(story-21.6/task-1): say which links open in a new tab`
-  - [ ] 1.11: Backlog drawdown: `web/src/components/ModCard.test.tsx`'s `createQueryResultMock` ends in an `as ReturnType<...>` cast; replace it with typed union-member fakes, as Story 21.5 did for `useInstallStatus` in `InstallVersionDialog.test.tsx` (a047feee). Own commit `test(story-21.6/task-1): type the query result fakes in the mod card tests`
+- [x] Task 1: Every new-tab link says so, SVG links in descriptions included + tests (AC: 1, 2, 3, 10) (`VSS-woae`)
+  - [x] 1.1: New `web/src/lib/new-tab.ts` exporting `OPENS_IN_NEW_TAB = '(opens in a new tab)'` with the doc comment now at `mod-description.ts:25-28`. `mod-description.ts` imports it and re-exports it (`export { OPENS_IN_NEW_TAB } from './new-tab'` or import + `export`), so `ModDetailPage.tsx:86` and the existing tests keep working. Reason: the sidebar is in the main bundle, and importing `mod-description.ts` there would pull DOMPurify into it and run `DOMPurify(window)` (`:43`) at app start (Dev Notes "Links")
+  - [x] 1.2: New `web/src/components/NewTabLink.tsx`: props `Omit<ComponentProps<'a'>, 'target' | 'rel' | 'aria-label'>`; renders `<a {...props} target="_blank" rel="noopener noreferrer">{children}{' '}<span className="sr-only">{OPENS_IN_NEW_TAB}</span></a>` (the trailer link's shape, `ModDetailPage.tsx:737-738`; `aria-label` is left out of the props because it would replace the note). Short doc comment citing Story 21.6 / ADR-10
+  - [x] 1.3: `ModDetailPage.tsx:693-740`: ModDB Page, Homepage, Source and Watch trailer use `NewTabLink` (keep their `className` and `data-testid`; drop the trailer link's own span and `{' '}`). Icons get `aria-hidden="true"` explicitly. Homepage and Source get a trailing `<ExternalLink className="h-3 w-3" aria-hidden="true" data-testid="mod-detail-homepage-new-tab-mark" />` (resp. `...-source-new-tab-mark`) after their text. Add a Story 21.6 paragraph to the file comment (`:1-44`): new-tab links, the stacked header, the description styles
+  - [x] 1.4: `InstalledModParts.tsx:41-50` (`ModNameLink`): `NewTabLink`; the `ExternalLink` icon gets `aria-hidden="true"`
+  - [x] 1.5: `layout/Sidebar.tsx:208-216`: `NewTabLink` with the `aria-label="GitHub"` replaced by `<span className="sr-only">GitHub</span>` after the icon, so the name is `GitHub (opens in a new tab)` (an `aria-label` would hide the note; Dev Notes "Links")
+  - [x] 1.6: `VersionCard.tsx:80`, `VersionTable.tsx:154`, `ModCard.tsx:187`: keep the `aria-label` (ADR-10 decision 2) but build its end from the constant: `` `View changelog for version ${version} ${OPENS_IN_NEW_TAB}` ``, `` `Open ${mod.name} on ModDB ${OPENS_IN_NEW_TAB}` ``, importing from `@/lib/new-tab`. Their icons get `aria-hidden="true"`
+  - [x] 1.7: `mod-description.ts` hook (`:47-82`), SVG branch after the HTML branch (`:71-80`), exact rules in Dev Notes "SVG links": copy a sanitized `xlink:href` to `href` when `href` is missing; build the title text; remove every direct `title` child; insert one `title` (created with `createElementNS(SVG_NAMESPACE, 'title')` and `textContent`) as the first child. Update the module comment (`:7-11`): SVG links get a `<title>` note instead of no note
+  - [x] 1.8: Unit tests (Dev Notes "Unit tests", Task 1 rows) and the changes in "Existing tests that change", red first
+  - [x] 1.9: Browser confirmation of ADR-10 decision 5, recorded in the Dev Agent Record: in Chromium, the accessibility snapshot (`locator.ariaSnapshot()` or the Playwright MCP snapshot) of a description with an `href` SVG link and an `xlink:href`-only SVG link shows both as `link "<text> (opens in a new tab)"`. The `aria-label` fallback is not needed if this holds; if it does not, use the fallback (ADR-10 decision 5) and record which was used. Task 5's E2E keeps this check
+  - [x] 1.10: Commit `fix(story-21.6/task-1): say which links open in a new tab`
+  - [x] 1.11: Backlog drawdown: `web/src/components/ModCard.test.tsx`'s `createQueryResultMock` ends in an `as ReturnType<...>` cast; replace it with typed union-member fakes, as Story 21.5 did for `useInstallStatus` in `InstallVersionDialog.test.tsx` (a047feee). Own commit `test(story-21.6/task-1): type the query result fakes in the mod card tests`
 
-- [ ] Task 2: The mod detail header stacks on phones and the page fits from 320px + tests (AC: 4, 5, 10) (`VSS-pzj8`)
-  - [ ] 2.1: Before changing anything, measure the page on the dev stack (Task 5's stub) at 320, 390, 430 and 768px and record `scrollWidth` and the install card's left/right in the Dev Agent Record (drafting numbers in Dev Notes "Header")
-  - [ ] 2.2: Header (`ModDetailPage.tsx:612-767`) as in Dev Notes "Header": outer `flex flex-col gap-4 md:flex-row md:gap-6`; logo and info in a new wrapping group (`data-testid="mod-detail-summary"`); info `min-w-0 grow basis-48`; title row, stats row and tags wrap; install card `w-full md:w-64 md:shrink-0` in both sections (`:229`, `:404`)
-  - [ ] 2.3: Install and version controls: the `SelectTrigger`s (`:238`, `:423`) get `w-full max-lg:min-h-11`; the buttons (`:258-266`, `:362`, `:369-381`, `:385-398`) get `max-lg:min-h-11` (the pattern of `InstalledModsSortControl.tsx:57` and `InstalledTab.tsx:98`; `min-h` is needed because the trigger's `data-[size=default]:h-9` outranks a plain `h-*`)
-  - [ ] 2.4: Breadcrumb row (`:579-609`): the row and the `nav` wrap (`flex-wrap`, `gap-2`, `min-w-0`); the name span (`:605`) gets `min-w-0 break-words`. Metadata slug (`:836`): `break-all`
-  - [ ] 2.5: Skeleton (`:112-147`): the header part follows the same layout (`data-testid="mod-detail-loading-header"`, same outer classes, the lines `w-full max-w-64` etc.), so nothing in it is wider than 288px below `md`
-  - [ ] 2.6: Unit tests (Dev Notes "Unit tests", Task 2 rows), red first
-  - [ ] 2.6a: Backlog drawdown: the `Back to Browse` button (`size="sm"`, 32px) gets `max-lg:min-h-11` like the other controls, with a class assertion
-  - [ ] 2.7: Commit `fix(story-21.6/task-2): fit the mod detail page on phone screens`
+- [x] Task 2: The mod detail header stacks on phones and the page fits from 320px + tests (AC: 4, 5, 10) (`VSS-pzj8`)
+  - [x] 2.1: Before changing anything, measure the page on the dev stack (Task 5's stub) at 320, 390, 430 and 768px and record `scrollWidth` and the install card's left/right in the Dev Agent Record (drafting numbers in Dev Notes "Header")
+  - [x] 2.2: Header (`ModDetailPage.tsx:612-767`) as in Dev Notes "Header": outer `flex flex-col gap-4 md:flex-row md:gap-6`; logo and info in a new wrapping group (`data-testid="mod-detail-summary"`); info `min-w-0 grow basis-48`; title row, stats row and tags wrap; install card `w-full md:w-64 md:shrink-0` in both sections (`:229`, `:404`)
+  - [x] 2.3: Install and version controls: the `SelectTrigger`s (`:238`, `:423`) get `w-full max-lg:min-h-11`; the buttons (`:258-266`, `:362`, `:369-381`, `:385-398`) get `max-lg:min-h-11` (the pattern of `InstalledModsSortControl.tsx:57` and `InstalledTab.tsx:98`; `min-h` is needed because the trigger's `data-[size=default]:h-9` outranks a plain `h-*`)
+  - [x] 2.4: Breadcrumb row (`:579-609`): the row and the `nav` wrap (`flex-wrap`, `gap-2`, `min-w-0`); the name span (`:605`) gets `min-w-0 break-words`. Metadata slug (`:836`): `break-all`
+  - [x] 2.5: Skeleton (`:112-147`): the header part follows the same layout (`data-testid="mod-detail-loading-header"`, same outer classes, the lines `w-full max-w-64` etc.), so nothing in it is wider than 288px below `md`
+  - [x] 2.6: Unit tests (Dev Notes "Unit tests", Task 2 rows), red first
+  - [x] 2.6a: Backlog drawdown: the `Back to Browse` button (`size="sm"`, 32px) gets `max-lg:min-h-11` like the other controls, with a class assertion
+  - [x] 2.7: Commit `fix(story-21.6/task-2): fit the mod detail page on phone screens`
 
-- [ ] Task 3: Descriptions are typeset by `.mod-description` rules + tests (AC: 6, 7, 8, 9, 10) (`VSS-4vbj`)
-  - [ ] 3.1: `web/src/styles/index.css`, in `@layer components` next to the two `.mod-description` rules (`:246-264`): the rules in Dev Notes "Description styles", every selector wrapped in `:where()` after `.mod-description` so its specificity stays (0,1,0), every colour a theme token (`var(--primary)`, `var(--border)`, `var(--muted)`, `var(--muted-foreground)`), and the wide-content rules. Keep the 18.1 icon rule and the 19.3 image note rule unchanged
-  - [ ] 3.2: `ModDetailPage.tsx:784`: the container's class is `mod-description` only (remove `prose prose-sm prose-invert max-w-none`)
-  - [ ] 3.3: Unit tests (Dev Notes "Unit tests", Task 3 rows), red first; the computed styles are checked in Task 5's E2E (jsdom does not load the stylesheet)
-  - [ ] 3.4: Commit `fix(story-21.6/task-3): show headings, lists and links in mod descriptions`
+- [x] Task 3: Descriptions are typeset by `.mod-description` rules + tests (AC: 6, 7, 8, 9, 10) (`VSS-4vbj`)
+  - [x] 3.1: `web/src/styles/index.css`, in `@layer components` next to the two `.mod-description` rules (`:246-264`): the rules in Dev Notes "Description styles", every selector wrapped in `:where()` after `.mod-description` so its specificity stays (0,1,0), every colour a theme token (`var(--primary)`, `var(--border)`, `var(--muted)`, `var(--muted-foreground)`), and the wide-content rules. Keep the 18.1 icon rule and the 19.3 image note rule unchanged
+  - [x] 3.2: `ModDetailPage.tsx:784`: the container's class is `mod-description` only (remove `prose prose-sm prose-invert max-w-none`)
+  - [x] 3.3: Unit tests (Dev Notes "Unit tests", Task 3 rows), red first; the computed styles are checked in Task 5's E2E (jsdom does not load the stylesheet)
+  - [x] 3.4: Commit `fix(story-21.6/task-3): show headings, lists and links in mod descriptions`
 
-- [ ] Task 4: The install card's "Version" label names its select + tests (AC: 11) (backlog drawdown, maintainer rule)
-  - [ ] 4.1: `ModDetailPage.tsx` install card (`InstallSection`, `InstalledVersionSection`): the "Version" `<label>` gets `htmlFor` and the `SelectTrigger` the matching `id` (one id per section, from `useId`), so the select's accessible name is "Version" and no longer its value
-  - [ ] 4.2: Unit tests, red first: `getByRole('combobox', { name: 'Version' })` in both sections
-  - [ ] 4.3: Commit `fix(story-21.6/task-4): name the version select on the mod detail page for screen readers`
+- [x] Task 4: The install card's "Version" label names its select + tests (AC: 11) (backlog drawdown, maintainer rule)
+  - [x] 4.1: `ModDetailPage.tsx` install card (`InstallSection`, `InstalledVersionSection`): the "Version" `<label>` gets `htmlFor` and the `SelectTrigger` the matching `id` (one id per section, from `useId`), so the select's accessible name is "Version" and no longer its value
+  - [x] 4.2: Unit tests, red first: `getByRole('combobox', { name: 'Version' })` in both sections
+  - [x] 4.3: Commit `fix(story-21.6/task-4): name the version select on the mod detail page for screen readers`
 
-- [ ] Task 5: E2E on a stubbed mod detail answer against the Docker dev stack + tests (AC: 1, 3, 4, 5, 6, 7, 9)
-  - [ ] 5.1: New untagged `web/e2e/mod-detail-layout.spec.ts` as in Dev Notes "E2E"; type-checked by `web/e2e/tsconfig.json` (`just typecheck-web`)
-  - [ ] 5.2: Rebuild the stack from this branch (`just docker restart`), export `VS_API_KEY_ADMIN`, run `cd web && bunx playwright test e2e/mod-detail-layout.spec.ts`, and re-run `e2e/mod-detail-media.spec.ts`, `e2e/content-security-policy.spec.ts` and `e2e/layout-widths.spec.ts` (the installed mod name links' heights). Record the before (Task 2.1) and after widths in the Dev Agent Record. Do not start or stop the game server; no screenshots
-  - [ ] 5.3: `web/e2e/README.md`: update the test counts (`:10` "119", `:50` "Of the 150 tests, CI runs 146: 119 untagged") from `bunx playwright test --list` after this spec is added (Stories 21.5 and 21.7 change them too; count, do not add)
-  - [ ] 5.4: Commit `test(story-21.6/task-5): check the mod detail page on phones, its links, its version label and its description styles`
+- [x] Task 5: E2E on a stubbed mod detail answer against the Docker dev stack + tests (AC: 1, 3, 4, 5, 6, 7, 9)
+  - [x] 5.1: New untagged `web/e2e/mod-detail-layout.spec.ts` as in Dev Notes "E2E"; type-checked by `web/e2e/tsconfig.json` (`just typecheck-web`)
+  - [x] 5.2: Rebuild the stack from this branch (`just docker restart`), export `VS_API_KEY_ADMIN`, run `cd web && bunx playwright test e2e/mod-detail-layout.spec.ts`, and re-run `e2e/mod-detail-media.spec.ts`, `e2e/content-security-policy.spec.ts` and `e2e/layout-widths.spec.ts` (the installed mod name links' heights). Record the before (Task 2.1) and after widths in the Dev Agent Record. Do not start or stop the game server; no screenshots
+  - [x] 5.3: `web/e2e/README.md`: update the test counts (`:10` "119", `:50` "Of the 150 tests, CI runs 146: 119 untagged") from `bunx playwright test --list` after this spec is added (Stories 21.5 and 21.7 change them too; count, do not add)
+  - [x] 5.4: Commit `test(story-21.6/task-5): check the mod detail page on phones, its links, its version label and its description styles`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes (Story 21.1's format check included); the diff adds no lint or type suppression, no `as` cast and no dependency (`git diff main -- web/package.json web/bun.lock` empty); 0 skipped unit tests beyond the 4 known (`VSS-hnl`); `git status --short` shows nothing under `dev/`
+  - [x] 6.1: `just check` passes (Story 21.1's format check included); the diff adds no lint or type suppression, no `as` cast and no dependency (`git diff main -- web/package.json web/bun.lock` empty); 0 skipped unit tests beyond the 4 known (`VSS-hnl`); `git status --short` shows nothing under `dev/`
   - [ ] 6.2: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md:160-161`): open a real mod with a rich description (for example one with headings and lists) at 390px and at desktop width in both themes; check the description reads well and the header looks right; with VoiceOver or the browser's accessibility tree, check the four header links and one description link. Do not install or change anything; no screenshots
-  - [ ] 6.3: Story status `review`, `just sprint set 21-6-mod-detail-polish review`, PR (base: Story 21.5's branch while its PR is open, otherwise `main`), PR link on `VSS-woae`, `VSS-pzj8` and `VSS-4vbj`. Commit `chore(story-21.6/task-6): validate and move story 21.6 to review`
+  - [x] 6.3: Story status `review`, `just sprint set 21-6-mod-detail-polish review` (done; the PR and the PR link on the beads are left to the orchestrator: the dev brief forbids push and PR) (base: Story 21.5's branch while its PR is open, otherwise `main`), PR link on `VSS-woae`, `VSS-pzj8` and `VSS-4vbj`. Commit `chore(story-21.6/task-6): validate and move story 21.6 to review`
 
 ## Dev Notes
 
@@ -309,14 +309,54 @@ None. No route, field, status code or error code changes; the web reads the same
 
 ### Agent Model Used
 
+Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
+
 ### Debug Log References
+
+- Task 2.1 (before, dev stack rebuilt from 07714951, the Task 5 stub with its wide description): `scrollWidth` 2825 at 320, 390 and 430px and 2993 at 768px; install card at x 542-731 (768px: 710-899); version select 36px tall. The drafting numbers (731/899 without the wide description) match the card position.
+- After (dev stack rebuilt from 6d477c38, same stub): `scrollWidth` 320/390/430/768 at those widths; install card at x 16-304, 16-374, 16-414 (full content width under the logo and info) and 488-744 at 768px (one row); version select, Install and Back to Browse 44px tall at 320-768px.
+- Task 1.9 (ADR-10 decision 5), Chromium via Playwright: `locator.ariaSnapshot()` of the description's `href` SVG gives `img` > `link "Diagram (opens in a new tab)"` with `/url: https://example.com/diagram`, and `getByRole('link', { name: 'Diagram (opens in a new tab)', exact: true })` finds both SVG links, the `xlink:href`-only one with the copied `href`. The title is enough; the `aria-label` fallback is not used.
+- E2E: `e2e/mod-detail-layout.spec.ts` 6/6 passed against the dev stack; `mod-detail-media`, `content-security-policy` and `layout-widths` 65/65 passed; `install-file-conflict`, `mod-detail-bad-data`, `installed-mod-any-modid`, `mod-database-urls`, `mod-browse-state` and `mods-navigation` 21/21 passed. `installed-status` and `mod-install-release` (real installs, `@install`) were not run.
+- `just check` green: API 3458 passed, web 3473 passed (136 files), 0 skipped, Pyright 0 errors 0 warnings, lint and format checks clean, script tests all passed.
 
 ### Completion Notes List
 
 - Story created 2026-11-17 from Epic 21 (Story 21.6), ADR-10, ADR-11, FR278-FR280, the change proposal, the three beads and the code at 966204f. Prototypes, all discarded: the Task 1 links (2 unit tests fail, listed), the SVG title in the hook (DOMPurify keeps it; jsdom gives SVG links no role), Chromium accessibility snapshots of SVG links (`xlink:href`-only links are not exposed), and the Task 2 layout applied to the live page on the dev stack (fits at 320-768px).
+- Backlog drawdown (maintainer rule), folded in at implementation within six tasks: AC 11 and Task 4 (the install card's Version label linked to its select with `useId`, a `fix` with its own release note); Task 1.11 (`ModCard.test.tsx` typed union-member fakes, its own `test` commit); Task 2.6a (Back to Browse `max-lg:min-h-11`, in Task 2's commit; the "Not changed" line updated). The E2E became Task 5 and the gate Task 6.
+- Task 1: `OPENS_IN_NEW_TAB` moved to `web/src/lib/new-tab.ts`, re-exported from `mod-description.ts`. `NewTabLink` renders `{children} <span className="sr-only">(opens in a new tab)</span>` with `target`/`rel` fixed and no `aria-label` prop. The four header links, `ModNameLink` and the sidebar GitHub link use it (GitHub's name comes from a hidden "GitHub" span); the three icon-only links keep their `aria-label`, now ending with the constant, and their icons are `aria-hidden`. The sanitizer's SVG branch copies a kept `xlink:href` to `href`, takes the first author title (every trailing note stripped) or the joined, collapsed text of the link's `text` elements, removes every direct `title` child and inserts one `title` (`createElementNS`, `textContent`) first. No `(opens in new tab)` remains under `web/src`.
+- Task 1.11: removing the `as ReturnType<...>` cast showed that the six success fakes lacked `latestSupportedGameVersion`, `urlalias`, `assetId`, `screenshots` and `trailerUrl`; they now have them (null/empty, `assetId` of the card's mod). Four helpers: idle (disabled pending), loading, success, error (`isLoadingError`).
+- Task 2: as Dev Notes "Header"; the info column also has `break-words`, the title row `gap-2` with a `min-w-0` text block. The skeleton's header follows the same layout.
+- Task 3: the `.mod-description :where(...)` rules as in Dev Notes, plus `overflow-wrap: normal` on `pre` and `table` (the container's `anywhere` would otherwise wrap their content instead of letting it scroll) and a small margin on nested lists. The container's class is `mod-description` only. No Safari check was made of the `display: block` table (accepted trade-off, Dev Notes).
+- Existing tests changed as listed in Dev Notes, plus: `InstalledModParts.test.tsx` asserts the full names; `ModDetailPage.test.tsx` gains `vi.unstubAllGlobals()` in `afterEach` and a `stubDetail` helper for the new tests (the old tests keep assigning `globalThis.fetch`).
+- E2E `README.md` recounted with `bunx playwright test --list`: 168 tests, CI 164 (137 untagged, 27 `@moddb`), four local-only.
+- Deviation from Task 6.3: no PR and no PR link on the beads (the dev brief forbids push and PR); the closing commit is `docs(story-21.6): ...` as the brief asks, not `chore(.../task-6)`.
+- Task 6.2 (manual check on a real mod) is left unticked for the maintainer.
 
 ### File List
+
+- `web/src/lib/new-tab.ts` (new)
+- `web/src/components/NewTabLink.tsx` (new)
+- `web/src/components/NewTabLink.test.tsx` (new)
+- `web/e2e/mod-detail-layout.spec.ts` (new)
+- `web/src/lib/mod-description.ts`
+- `web/src/lib/mod-description.test.ts`
+- `web/src/features/mods/ModDetailPage.tsx`
+- `web/src/features/mods/ModDetailPage.test.tsx`
+- `web/src/components/InstalledModParts.tsx`
+- `web/src/components/InstalledModParts.test.tsx`
+- `web/src/components/layout/Sidebar.tsx`
+- `web/src/components/layout/Sidebar.test.tsx`
+- `web/src/components/ModCard.tsx`
+- `web/src/components/ModCard.test.tsx`
+- `web/src/components/VersionCard.tsx`
+- `web/src/components/VersionCard.test.tsx`
+- `web/src/components/VersionTable.tsx`
+- `web/src/components/VersionTable.test.tsx`
+- `web/src/styles/index.css`
+- `web/e2e/README.md`
+- `_bmad-output/implementation-artifacts/21-6-mod-detail-polish.md`
 
 ## Change Log
 
 - 2026-11-17: Story created and validated (ready-for-dev).
+- 2026-11-17: Backlog drawdown folded in (AC 11, Tasks 1.11, 2.6a and 4); implemented; moved to review.
