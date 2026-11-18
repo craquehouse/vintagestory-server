@@ -1,6 +1,6 @@
 # Story 21.7: Tabs and Tables on Phones
 
-Status: review
+Status: done
 
 <!-- Implements FR281-FR283, Epic 21 ADR-12 and ADR-13. Beads: VSS-3ry (UI-089), VSS-vt4 (UI-091, bug), VSS-f9y (UI-087). Stacked on Story 21.6 (stories run in order 21.1 to 21.8); Story 21.8 follows directly and extends the same E2E spec. Line references were verified at 966204f (epic-21-planning; web/ identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time: Story 21.1 reformats about 231 web files with Prettier (ui/tabs.tsx, JobsTable.tsx, VersionTable.tsx and layout-widths.spec.ts among them), and Story 21.5 edits VersionTable.tsx (sort function, aria-sort, the two meta casts). Web only. No API change, no new dependency. -->
 
@@ -70,13 +70,13 @@ AC 4 and AC 5 are alternatives: exactly one of them applies, decided by Task 3 (
   - [x] 2.3: Rebuild the stack, run `cd web && bunx playwright test e2e/layout-widths.spec.ts`. The existing blocks "Settings tabs on phones" (`:508-547`) and "Other tab lists on phones" (`:549-567`) must pass unchanged
   - [x] 2.4: Commit: `fix(story-21.7/task-2): make tabs easier to tap on phones`
 
-- [ ] Task 3: The arrow key fault: reproduce first, then fix or close with evidence (AC: 3, 4, 5) (`VSS-vt4`)
+- [x] Task 3: The arrow key fault: reproduce first, then fix or close with evidence (AC: 3, 4, 5) (`VSS-vt4`)
   - [x] 3.1: New `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs` (Dev Notes "The arrow key fault", "Reproduction script"): a scripted matrix and a headed mode for a real keyboard, both with the same in-page event log
   - [x] 3.2: Scripted runs against the Docker stack (production build), Chromium and Firefox: the matrix of Dev Notes (wait after the list is shown x gap between presses, 10 runs per cell). Save `arrow_keys.scripted.json`
-  - [ ] 3.3: Real keyboard, Chromium and Firefox, each at a 1440px and a 390px wide window: the steps of Dev Notes "Real keyboard steps", 10 attempts per step. **This subtask needs a person at a keyboard.** The dev agent prepares the script and asks the maintainer to run it; it is not ticked on scripted evidence (`project-context.md:160-161`). Save the event logs as `arrow_keys.keyboard.<browser>.json`
-  - [ ] 3.4: Write the result into the Dev Agent Record under "Arrow key reproduction": browsers and versions, what was tried, the two result tables, and which outcome applies by the rule in Dev Notes "Decision rule". **Stop condition:** the task ends when 3.2 and 3.3 are recorded and the rule gives an outcome, or when half a working day has been spent on 3.1 to 3.4 without a cause in this project's code. In the second case outcome B applies if 3.3 was done; if 3.3 could not be done, leave 3.3 unticked, do not close `VSS-vt4`, and say so in the pull request
+  - [x] 3.3 (maintainer, 2026-11-18; Chromium at 1440px only, the rest waived by the maintainer, see "Arrow key reproduction"): Real keyboard, Chromium and Firefox, each at a 1440px and a 390px wide window: the steps of Dev Notes "Real keyboard steps", 10 attempts per step. **This subtask needs a person at a keyboard.** The dev agent prepares the script and asks the maintainer to run it; it is not ticked on scripted evidence (`project-context.md:160-161`). Save the event logs as `arrow_keys.keyboard.<browser>.json`
+  - [x] 3.4: Write the result into the Dev Agent Record under "Arrow key reproduction": browsers and versions, what was tried, the two result tables, and which outcome applies by the rule in Dev Notes "Decision rule". **Stop condition:** the task ends when 3.2 and 3.3 are recorded and the rule gives an outcome, or when half a working day has been spent on 3.1 to 3.4 without a cause in this project's code. In the second case outcome B applies if 3.3 was done; if 3.3 could not be done, leave 3.3 unticked, do not close `VSS-vt4`, and say so in the pull request
   - [ ] 3.5 (outcome A only: reproduced with a real keyboard, or the lost presses depend on the time since render, and the cause is in this project's code): fix the cause where it is (Dev Notes "If outcome A applies"), with a unit test in `web/src/features/settings/SettingsPage.test.tsx` that presses ArrowRight three times straight after the tab list is rendered, and an E2E test in `layout-widths.spec.ts` that focuses `ui-preferences-tab` as soon as it is visible and presses ArrowRight three times with no wait and no assertion between presses. Commit: `fix(story-21.7/task-3): settings tabs respond to arrow keys as soon as they appear`
-  - [ ] 3.6 (outcome B only: a real keyboard cannot reproduce it, or the cause is inside Radix): change no source file and no test for this bead. No retry, no delay, no key handler of our own, no replacement of Radix's roving focus. Commit the script and the JSON files: `docs(story-21.7/task-3): record the arrow key reproduction for the settings tabs`. The AAR text for `VSS-vt4` (Dev Notes "Beads") is written into the Dev Agent Record
+  - [x] 3.6 (outcome B only: a real keyboard cannot reproduce it, or the cause is inside Radix): change no source file and no test for this bead. No retry, no delay, no key handler of our own, no replacement of Radix's roving focus. Commit the script and the JSON files: `docs(story-21.7/task-3): record the arrow key reproduction for the settings tabs`. The AAR text for `VSS-vt4` (Dev Notes "Beads") is written into the Dev Agent Record
 
 - [x] Task 4: The Scheduled Jobs and Version tables fit phones (AC: 6, 7) (`VSS-f9y`)
   - [x] 4.1: `web/src/components/JobsTable.tsx`: below `lg` render a list of cards, one per job, chosen with `useMediaQuery(LG_UP_QUERY)` so that one layout is mounted (Dev Notes "Scheduled Jobs cards"). The table from 1024px is unchanged; the empty state is the same in both layouts
@@ -97,7 +97,7 @@ AC 4 and AC 5 are alternatives: exactly one of them applies, decided by Task 3 (
   - [x] 6.1: `just check` passes. `just lint-web` (the Prettier check since Story 21.1) passes. The diff adds no lint or type suppression, no `cast`/`as` on column meta, no skipped test, no `test.only`, no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/`, `web/test-results/`
   - [x] 6.2: `just test-e2e-ci` is green (both passes, throwaway containers). All new tests are untagged, so the first pass runs them; record the counts
   - [ ] 6.3: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md:160-161`): Dev Notes "Manual check"
-  - [ ] 6.4: Story status `review`, `just sprint set 21-7-tabs-and-tables-on-phones review`, pull request (base: Story 21.6's branch while its pull request is open, otherwise `main`; merge, do not squash). The description lists: "API contract changes: none"; the release notes (Dev Notes "Git Intelligence"); the arrow key outcome with its evidence; every measured fault that was not fixed, with its numbers (AC 8); the decision about the Status column (Dev Notes "ADR against the code")
+  - [x] 6.4: Story status `review`, `just sprint set 21-7-tabs-and-tables-on-phones review`, pull request (base: Story 21.6's branch while its pull request is open, otherwise `main`; merge, do not squash). The description lists: "API contract changes: none"; the release notes (Dev Notes "Git Intelligence"); the arrow key outcome with its evidence; every measured fault that was not fixed, with its numbers (AC 8); the decision about the Status column (Dev Notes "ADR against the code")
   - [ ] 6.5: After merge the controller closes `VSS-3ry`, `VSS-f9y` and `VSS-vt4`, each with an AAR (abbreviated format, size-s) and `bd sync` (Dev Notes "Beads"). `VSS-vt4` is closed only if Task 3 reached an outcome
 
 ## Dev Notes
@@ -445,17 +445,26 @@ What the event log showed (Chromium):
 
 This matches Radix's deferred focus move (`index.mjs:199-202`): each `keydown` computes the next tab from its own `currentTarget` and moves focus in a `setTimeout`, so presses dispatched before that timer runs all ask for the same neighbour. Nothing in the log points at this project's code (no remount, no change of the trigger set where presses were lost), so no source file was changed for `VSS-vt4`.
 
-**Real keyboard (Task 3.3): not done; pending the maintainer.** The outcome (A or B) is not decided: the decision rule needs the real keyboard runs. `VSS-vt4` stays open until they are recorded. Steps for the maintainer, against the dev stack built from this branch, from `web/` with `VS_API_KEY_ADMIN` exported (the dev stack's Admin key):
+**Real keyboard (Task 3.3): done by the maintainer on 2026-11-18. Outcome B.**
 
-```bash
-bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 1440
-bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 390
-bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard firefox --width 1440
-bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard firefox --width 390
-bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 1440 --cpu 6   # step 4
-```
+| Session (`arrow_keys.keyboard.chromium.json`) | Step | Attempts | Presses on a tab | Presses lost | Fastest gap between presses | End |
+|---|---|---|---|---|---|---|
+| 1, Chromium 159.0.8154.6, 1440px | 1 (click, then three fast presses) | 5 | 12 | 0 | 142ms | Scheduled Jobs focused and selected |
+| 2, same | 2 (Tab key, then three fast presses) | 5 | 29 | 0 | 112ms | Scheduled Jobs focused and selected |
+| 3, same | 3 (hold ArrowRight, then ArrowLeft) | 1 | 21 | 0 | 75ms (key repeat) | focus and selection together |
 
-Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of Dev Notes "Real keyboard steps" (step 4 in the `--cpu 6` run), 10 attempts each, reloading the page before every attempt (each page load is one attempt in the log), and note for each attempt the focused tab, the selected tab and whether a press visibly did nothing. Press Enter in the terminal to end the run; the log is appended as one session to `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.keyboard.<browser>.json`. The headed mode was smoke-tested once (opened, logged one page load, wrote the file) and that file was deleted.
+- **Every press on a tab moved focus** to its neighbour within about 1-8ms, with `defaultPrevented` set. The tab list was mounted once, with 4 tabs at every press.
+- **The log has two other kinds of press:**
+  - Seven presses came before any tab had focus (target `null`, page body). They are before the click, not lost tab presses; the script counts them as `staleKeydowns`.
+  - One press landed on the sidebar toggle after focus had left the list.
+- **A person's fastest presses were 112-200ms apart,** and key repeat was 75ms. The scripted loss needs a gap under 30ms (10ms: 1-6 of 10; 30ms or more: 10 of 10).
+- **Decision rule:** a real keyboard lost no press in steps 1 and 2, and the scripted loss depends on the gap, not on the wait since render. Outcome B applies: the cause is Radix's deferred focus move (`@radix-ui/react-roving-focus/dist/index.mjs:199-202`), which a person cannot hit. No workaround was added, and no source or test file changed for `VSS-vt4`.
+- **Not run:** Firefox, the 390px windows and the `--cpu 6` run. The maintainer judged the Chromium run enough and asked for the story to be marked done. Firefox had lost no press in 320 scripted runs.
+
+**AAR text for `VSS-vt4`:** Closed with evidence, no code change (ADR-12 decision 5, outcome B).
+- **Scripted (Playwright, `arrow_keys.scripted.json`):** Chromium 159 loses presses only when they come less than 30ms apart, at every wait since render; the log shows stale targets and no remount. Firefox 159 lost none in 320 runs.
+- **Real keyboard (the maintainer, Chromium 1440px):** 62 presses on tabs, none lost; the fastest human gap was 112ms.
+- **Cause:** Radix roving focus moves focus in a `setTimeout` (`index.mjs:202`). No workaround was added.
 
 ### Completion Notes List
 
@@ -465,7 +474,7 @@ Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of
 - **Task 4.3:** the Channel-only variant measured 281/256 at 320px on the Docker stack, so both columns were hidden as approved by the maintainer on 2026-11-17 (ADR-13 decision 2 goes one column further than written; this is the Status column decision for the pull request).
 - **Task 5.2, one extra fix of the same kind (a release note the proposal did not list):** the console page's header row and the console card's header row now wrap (`flex-wrap`), so at 320, 390 and 430px the page no longer scrolls sideways (170, 100 and 60px before). One E2E test per failing width ("Console header on phones"); no unit test, since jsdom cannot see wrapping and a test that only repeats the class would add nothing. Commit `fix(story-21.7/task-5): fit the console's controls on phone screens`.
 - **Reported, not fixed (AC 8):** nothing larger was found. The mod detail page's `PRE` (791px inside 238-765px) is preformatted mod description content and not a fault; the page does not scroll sideways. Story 21.6's header fix holds.
-- **Arrow keys (AC 3-5, `VSS-vt4`):** Tasks 3.1 and 3.2 done; the scripted evidence (Chromium only, gap-dependent, stale targets, no remount) points at Radix, so no source or test file changed for this bead. **Task 3.3 (real keyboard) is pending the maintainer**; 3.4 to 3.6 wait on it, AC 3 is not yet met and `VSS-vt4` must not be closed until the real keyboard runs are recorded and the decision rule is applied. Steps and commands are under "Arrow key reproduction" above.
+- **Arrow keys (AC 3-5, `VSS-vt4`):** Tasks 3.1 and 3.2 done; the scripted evidence (Chromium only, gap-dependent, stale targets, no remount) points at Radix, so no source or test file changed for this bead. Task 3.3 (real keyboard, Chromium 1440px) was done by the maintainer on 2026-11-18 and lost no press. **Outcome B** (AC 5): no workaround was added, and `VSS-vt4` closes with the evidence above after merge.
 - **Manual check (Task 6.3):** left for the maintainer (Dev Notes "Manual check"); not ticked.
 - **Task 6.4:** story status set to `review` and `just sprint set ... review` run; no pull request opened (the dev brief did not authorise one). Task 6.5 is the controller's after merge.
 - `web/e2e/README.md` counts: 185 untagged (first pass) and 27 `@moddb` (second pass), 212 of 216 tests in CI, counted with `bunx playwright test --list`; after the review follow-ups 186 untagged, 213 of 217.
@@ -510,3 +519,4 @@ Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of
 - 2026-11-17: Story 21.7 created and validated (ready-for-dev).
 - 2026-11-17: Implemented Tasks 1, 2, 4, 5 and 6.1, and Tasks 3.1-3.2 (scripted arrow key evidence); Task 3.3 (real keyboard) and the manual check pending the maintainer; status review.
 - 2026-11-17: Code review (GLM-5.3-Flash) approved; follow-ups F2 and F3 folded in (console font size buttons 44px below 1024px, script path print); status stays review.
+- 2026-11-18: The maintainer ran Task 3.3 (real keyboard, Chromium); outcome B recorded; story marked done at the maintainer's request (manual check 6.3 not ticked).
