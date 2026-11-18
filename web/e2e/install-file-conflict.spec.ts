@@ -83,38 +83,39 @@ test.describe(
   'Install refused when the file name is in use (Story 18.2)',
   { tag: '@moddb' },
   () => {
-  test.beforeEach(async ({ page }) => {
-    await serveConfigKey(page, API_KEY);
-    await serveModImagePlaceholders(page);
-    await pretendServerInstalled(page);
-  });
+    test.beforeEach(async ({ page }) => {
+      await serveConfigKey(page, API_KEY);
+      await serveModImagePlaceholders(page);
+      await pretendServerInstalled(page);
+    });
 
-  test('detail page shows the refusal and keeps the dialog open', async ({ page }) => {
-    test.setTimeout(120_000);
-    await fakeNoInstalledMods(page);
-    const posted = await stubConflict(page);
+    test('detail page shows the refusal and keeps the dialog open', async ({ page }) => {
+      test.setTimeout(120_000);
+      await fakeNoInstalledMods(page);
+      const posted = await stubConflict(page);
 
-    await page.goto('/game-server/mods/browse/carryon');
-    const install = page.getByTestId('mod-detail-install-button');
-    await expect(install).toBeVisible({ timeout: 60_000 });
-    await install.click();
-    await page.getByTestId('install-dialog-confirm').click();
+      await page.goto('/game-server/mods/browse/carryon');
+      const install = page.getByTestId('mod-detail-install-button');
+      await expect(install).toBeVisible({ timeout: 60_000 });
+      await install.click();
+      await page.getByTestId('install-dialog-confirm').click();
 
-    await expectRefusalShown(page, 'carryon', posted);
-  });
+      await expectRefusalShown(page, 'carryon', posted);
+    });
 
-  test('browse card shows the refusal and keeps the dialog open', async ({ page }) => {
-    test.setTimeout(120_000);
-    await fakeNoInstalledMods(page);
-    const posted = await stubConflict(page);
+    test('browse card shows the refusal and keeps the dialog open', async ({ page }) => {
+      test.setTimeout(120_000);
+      await fakeNoInstalledMods(page);
+      const posted = await stubConflict(page);
 
-    await page.goto('/game-server/mods/browse?q=carry&sort=downloads');
-    const slug = await firstCardSlug(page);
-    const install = page.getByTestId(`mod-card-install-${slug}`);
-    await expect(install).toBeVisible({ timeout: 60_000 });
-    await install.click();
-    await page.getByTestId('install-dialog-confirm').click();
+      await page.goto('/game-server/mods/browse?q=carry&sort=downloads');
+      const slug = await firstCardSlug(page);
+      const install = page.getByTestId(`mod-card-install-${slug}`);
+      await expect(install).toBeVisible({ timeout: 60_000 });
+      await install.click();
+      await page.getByTestId('install-dialog-confirm').click();
 
-    await expectRefusalShown(page, slug, posted);
-  });
-});
+      await expectRefusalShown(page, slug, posted);
+    });
+  }
+);

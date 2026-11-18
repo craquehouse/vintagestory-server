@@ -92,12 +92,8 @@ export function FileViewer({
       <div className={className} data-testid="file-viewer-error">
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
-          <p className="mt-2 font-medium text-destructive">
-            Failed to load file
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {error}
-          </p>
+          <p className="mt-2 font-medium text-destructive">Failed to load file</p>
+          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
     );
@@ -109,9 +105,7 @@ export function FileViewer({
       <div className={className} data-testid="file-viewer-empty">
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <FileText className="h-12 w-12 text-muted-foreground/50" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            Select a file to view its contents
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">Select a file to view its contents</p>
         </div>
       </div>
     );
@@ -124,9 +118,7 @@ export function FileViewer({
   // Safely serialize content - handles non-serializable data gracefully
   let renderedContent: ReactNode;
   try {
-    renderedContent = isJson
-      ? highlightJson(content)
-      : JSON.stringify(content, null, 2);
+    renderedContent = isJson ? highlightJson(content) : JSON.stringify(content, null, 2);
   } catch {
     // Fallback for non-serializable content (circular refs, functions, etc.)
     renderedContent = String(content);
@@ -135,18 +127,13 @@ export function FileViewer({
   return (
     <div className={cn('flex flex-col', className)} data-testid="file-viewer">
       <div className="border-b px-4 py-2 bg-muted/30 flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          {filename}
-        </span>
+        <span className="text-sm font-medium text-muted-foreground">{filename}</span>
         {onWordWrapChange && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onWordWrapChange(!wordWrap)}
-            className={cn(
-              'h-7 w-7 p-0',
-              wordWrap && 'bg-accent text-accent-foreground'
-            )}
+            className={cn('h-7 w-7 p-0', wordWrap && 'bg-accent text-accent-foreground')}
             title={wordWrap ? 'Disable word wrap' : 'Enable word wrap'}
             data-testid="file-viewer-wrap-toggle"
           >
@@ -158,9 +145,7 @@ export function FileViewer({
         <pre
           className={cn(
             'font-mono text-sm',
-            wordWrap
-              ? 'whitespace-pre-wrap break-words'
-              : 'whitespace-pre overflow-x-auto'
+            wordWrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre overflow-x-auto'
           )}
           data-testid="file-viewer-content"
         >

@@ -63,10 +63,7 @@ export function FilterControls({
 }: FilterControlsProps) {
   // VSS-1u2: Reorder versions to show installed version first
   const orderedVersions = installedVersion
-    ? [
-        installedVersion,
-        ...gameVersions.filter((v) => v !== installedVersion),
-      ]
+    ? [installedVersion, ...gameVersions.filter((v) => v !== installedVersion)]
     : gameVersions;
   const handleSideChange = (side: BrowseModSide) => {
     onChange({ ...filters, side });
@@ -132,10 +129,7 @@ export function FilterControls({
             <DropdownMenuLabel>Mod Side</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {SIDE_OPTIONS.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => handleSideChange(option.value)}
-              >
+              <DropdownMenuItem key={option.value} onClick={() => handleSideChange(option.value)}>
                 {option.label}
               </DropdownMenuItem>
             ))}
@@ -159,9 +153,7 @@ export function FilterControls({
             <DropdownMenuLabel>Filter by Tags</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {tagsError ? (
-              <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                Failed to load tags
-              </div>
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">Failed to load tags</div>
             ) : availableTags.length > 0 ? (
               <div className="max-h-[300px] overflow-y-auto">
                 {availableTags.map((tag) => (
@@ -175,9 +167,7 @@ export function FilterControls({
                 ))}
               </div>
             ) : (
-              <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                No tags available
-              </div>
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">No tags available</div>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -242,10 +232,7 @@ export function FilterControls({
             <DropdownMenuLabel>Mod Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {MOD_TYPE_OPTIONS.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                onClick={() => handleTypeChange(option.value)}
-              >
+              <DropdownMenuItem key={option.value} onClick={() => handleTypeChange(option.value)}>
                 {option.label}
               </DropdownMenuItem>
             ))}

@@ -76,9 +76,7 @@ export function InstalledModsSortControl({ value, onChange }: InstalledModsSortC
         variant="outline"
         size="sm"
         className="min-h-11"
-        onClick={() =>
-          onChange({ column: value.column, direction: isAscending ? 'desc' : 'asc' })
-        }
+        onClick={() => onChange({ column: value.column, direction: isAscending ? 'desc' : 'asc' })}
         data-testid="installed-mods-sort-direction"
       >
         {isAscending ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

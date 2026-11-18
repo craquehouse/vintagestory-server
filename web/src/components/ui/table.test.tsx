@@ -96,10 +96,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-header')).toHaveAttribute(
-        'data-slot',
-        'table-header'
-      );
+      expect(screen.getByTestId('table-header')).toHaveAttribute('data-slot', 'table-header');
     });
 
     it('renders as thead element', () => {
@@ -113,9 +110,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-header')).toBeInstanceOf(
-        HTMLTableSectionElement
-      );
+      expect(screen.getByTestId('table-header')).toBeInstanceOf(HTMLTableSectionElement);
       expect(screen.getByTestId('table-header').tagName).toBe('THEAD');
     });
 
@@ -130,9 +125,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-header').className).toContain(
-        'custom-header'
-      );
+      expect(screen.getByTestId('table-header').className).toContain('custom-header');
     });
   });
 
@@ -148,10 +141,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-body')).toHaveAttribute(
-        'data-slot',
-        'table-body'
-      );
+      expect(screen.getByTestId('table-body')).toHaveAttribute('data-slot', 'table-body');
     });
 
     it('renders as tbody element', () => {
@@ -165,9 +155,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-body')).toBeInstanceOf(
-        HTMLTableSectionElement
-      );
+      expect(screen.getByTestId('table-body')).toBeInstanceOf(HTMLTableSectionElement);
       expect(screen.getByTestId('table-body').tagName).toBe('TBODY');
     });
 
@@ -198,10 +186,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-footer')).toHaveAttribute(
-        'data-slot',
-        'table-footer'
-      );
+      expect(screen.getByTestId('table-footer')).toHaveAttribute('data-slot', 'table-footer');
     });
 
     it('renders as tfoot element', () => {
@@ -215,9 +200,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-footer')).toBeInstanceOf(
-        HTMLTableSectionElement
-      );
+      expect(screen.getByTestId('table-footer')).toBeInstanceOf(HTMLTableSectionElement);
       expect(screen.getByTestId('table-footer').tagName).toBe('TFOOT');
     });
 
@@ -232,9 +215,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-footer').className).toContain(
-        'custom-footer'
-      );
+      expect(screen.getByTestId('table-footer').className).toContain('custom-footer');
     });
 
     it('has default styling classes', () => {
@@ -281,10 +262,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-row')).toHaveAttribute(
-        'data-slot',
-        'table-row'
-      );
+      expect(screen.getByTestId('table-row')).toHaveAttribute('data-slot', 'table-row');
     });
 
     it('renders as tr element', () => {
@@ -344,10 +322,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-head')).toHaveAttribute(
-        'data-slot',
-        'table-head'
-      );
+      expect(screen.getByTestId('table-head')).toHaveAttribute('data-slot', 'table-head');
     });
 
     it('renders as th element', () => {
@@ -361,9 +336,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-head')).toBeInstanceOf(
-        HTMLTableCellElement
-      );
+      expect(screen.getByTestId('table-head')).toBeInstanceOf(HTMLTableCellElement);
       expect(screen.getByTestId('table-head').tagName).toBe('TH');
     });
 
@@ -413,10 +386,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-cell')).toHaveAttribute(
-        'data-slot',
-        'table-cell'
-      );
+      expect(screen.getByTestId('table-cell')).toHaveAttribute('data-slot', 'table-cell');
     });
 
     it('renders as td element', () => {
@@ -430,9 +400,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-cell')).toBeInstanceOf(
-        HTMLTableCellElement
-      );
+      expect(screen.getByTestId('table-cell')).toBeInstanceOf(HTMLTableCellElement);
       expect(screen.getByTestId('table-cell').tagName).toBe('TD');
     });
 
@@ -474,9 +442,7 @@ describe('Table', () => {
     it('renders caption with correct data-slot', () => {
       render(
         <Table>
-          <TableCaption data-testid="table-caption">
-            Table description
-          </TableCaption>
+          <TableCaption data-testid="table-caption">Table description</TableCaption>
           <TableBody>
             <tr>
               <td>Cell</td>
@@ -485,18 +451,13 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-caption')).toHaveAttribute(
-        'data-slot',
-        'table-caption'
-      );
+      expect(screen.getByTestId('table-caption')).toHaveAttribute('data-slot', 'table-caption');
     });
 
     it('renders as caption element', () => {
       render(
         <Table>
-          <TableCaption data-testid="table-caption">
-            Table description
-          </TableCaption>
+          <TableCaption data-testid="table-caption">Table description</TableCaption>
           <TableBody>
             <tr>
               <td>Cell</td>
@@ -505,9 +466,7 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-caption')).toBeInstanceOf(
-        HTMLTableCaptionElement
-      );
+      expect(screen.getByTestId('table-caption')).toBeInstanceOf(HTMLTableCaptionElement);
     });
 
     it('applies custom className', () => {
@@ -524,17 +483,13 @@ describe('Table', () => {
         </Table>
       );
 
-      expect(screen.getByTestId('table-caption').className).toContain(
-        'custom-caption'
-      );
+      expect(screen.getByTestId('table-caption').className).toContain('custom-caption');
     });
 
     it('has default styling classes', () => {
       render(
         <Table>
-          <TableCaption data-testid="table-caption">
-            Table description
-          </TableCaption>
+          <TableCaption data-testid="table-caption">Table description</TableCaption>
           <TableBody>
             <tr>
               <td>Cell</td>
@@ -552,9 +507,7 @@ describe('Table', () => {
     it('renders caption content', () => {
       render(
         <Table>
-          <TableCaption data-testid="table-caption">
-            List of all users in the system
-          </TableCaption>
+          <TableCaption data-testid="table-caption">List of all users in the system</TableCaption>
           <TableBody>
             <tr>
               <td>Cell</td>

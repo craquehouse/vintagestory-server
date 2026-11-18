@@ -203,10 +203,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
         return (
           <div className="flex flex-wrap gap-2">
             {isLatest && (
-              <Badge
-                variant="secondary"
-                data-testid={`version-table-latest-${version}`}
-              >
+              <Badge variant="secondary" data-testid={`version-table-latest-${version}`}>
                 Latest
               </Badge>
             )}
@@ -219,9 +216,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
                 <span>Installed</span>
               </div>
             )}
-            {!isLatest && !isInstalled && (
-              <span className="text-muted-foreground">-</span>
-            )}
+            {!isLatest && !isInstalled && <span className="text-muted-foreground">-</span>}
           </div>
         );
       },
@@ -265,11 +260,21 @@ function VersionTableSkeleton() {
       <TableBody>
         {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
           <TableRow key={index} data-testid="version-table-skeleton-row">
-            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-            <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
-            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-            <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+            <TableCell>
+              <Skeleton className="h-5 w-20" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-5 w-16" />
+            </TableCell>
+            <TableCell className="hidden sm:table-cell">
+              <Skeleton className="h-5 w-16" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-5 w-16" />
+            </TableCell>
+            <TableCell>
+              <Skeleton className="h-8 w-16" />
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -295,24 +300,17 @@ export function VersionTable({
   onVersionSelect,
 }: VersionTableProps) {
   // Default sort: version descending (newest first)
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'version', desc: true },
-  ]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'version', desc: true }]);
 
   // Memoize columns to prevent unnecessary re-renders
-  const columns = useMemo(
-    () => createColumns(onVersionSelect),
-    [onVersionSelect]
-  );
+  const columns = useMemo(() => createColumns(onVersionSelect), [onVersionSelect]);
 
   // Compute isNewer and isInstalled for each row with proper version comparison
   const rowData = useMemo<VersionRowData[]>(
     () =>
       versions.map((version) => ({
         ...version,
-        isNewer: installedVersion
-          ? compareVersions(version.version, installedVersion) > 0
-          : false,
+        isNewer: installedVersion ? compareVersions(version.version, installedVersion) > 0 : false,
         isInstalled: installedVersion === version.version,
       })),
     [versions, installedVersion]
@@ -332,10 +330,7 @@ export function VersionTable({
 
   if (versions.length === 0) {
     return (
-      <div
-        className="text-center py-8 text-muted-foreground"
-        data-testid="version-table-empty"
-      >
+      <div className="text-center py-8 text-muted-foreground" data-testid="version-table-empty">
         No versions found for this channel.
       </div>
     );
@@ -370,10 +365,7 @@ export function VersionTable({
               return (
                 <TableHead
                   key={header.id}
-                  className={cn(
-                    canSort && 'cursor-pointer select-none',
-                    meta?.className
-                  )}
+                  className={cn(canSort && 'cursor-pointer select-none', meta?.className)}
                   onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                   onKeyDown={handleKeyDown}
                   tabIndex={canSort ? 0 : undefined}

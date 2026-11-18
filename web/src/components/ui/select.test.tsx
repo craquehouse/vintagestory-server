@@ -47,10 +47,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'data-slot',
-        'select-trigger'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('data-slot', 'select-trigger');
     });
 
     it('renders as button element', () => {
@@ -62,9 +59,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toBeInstanceOf(
-        HTMLButtonElement
-      );
+      expect(screen.getByTestId('select-trigger')).toBeInstanceOf(HTMLButtonElement);
     });
 
     it('has default size attribute', () => {
@@ -76,10 +71,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'data-size',
-        'default'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('data-size', 'default');
     });
 
     it('applies small size when specified', () => {
@@ -91,10 +83,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'data-size',
-        'sm'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('data-size', 'sm');
     });
 
     it('has correct button type', () => {
@@ -106,10 +95,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'type',
-        'button'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('type', 'button');
     });
 
     it('has aria-expanded attribute', () => {
@@ -121,9 +107,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'aria-expanded'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('aria-expanded');
     });
   });
 
@@ -137,20 +121,14 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-value')).toHaveAttribute(
-        'data-slot',
-        'select-value'
-      );
+      expect(screen.getByTestId('select-value')).toHaveAttribute('data-slot', 'select-value');
     });
 
     it('accepts placeholder prop', () => {
       render(
         <Select>
           <SelectTrigger>
-            <SelectValue
-              data-testid="select-value"
-              placeholder="Select an option"
-            />
+            <SelectValue data-testid="select-value" placeholder="Select an option" />
           </SelectTrigger>
         </Select>
       );
@@ -172,10 +150,7 @@ describe('Select', () => {
       );
 
       expect(screen.getByTestId('select-group')).toBeInTheDocument();
-      expect(screen.getByTestId('select-group')).toHaveAttribute(
-        'data-slot',
-        'select-group'
-      );
+      expect(screen.getByTestId('select-group')).toHaveAttribute('data-slot', 'select-group');
     });
 
     it('renders children content', () => {
@@ -191,9 +166,7 @@ describe('Select', () => {
       );
 
       expect(screen.getByTestId('select-group')).toBeInTheDocument();
-      expect(screen.getByTestId('group-child')).toHaveTextContent(
-        'Group content'
-      );
+      expect(screen.getByTestId('group-child')).toHaveTextContent('Group content');
     });
   });
 
@@ -211,10 +184,7 @@ describe('Select', () => {
       );
 
       expect(screen.getByTestId('select-label')).toBeInTheDocument();
-      expect(screen.getByTestId('select-label')).toHaveAttribute(
-        'data-slot',
-        'select-label'
-      );
+      expect(screen.getByTestId('select-label')).toHaveAttribute('data-slot', 'select-label');
     });
 
     it('renders children content', () => {
@@ -231,9 +201,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-label')).toHaveTextContent(
-        'Label Content'
-      );
+      expect(screen.getByTestId('select-label')).toHaveTextContent('Label Content');
     });
 
     it('has correct styling classes', () => {
@@ -269,9 +237,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-label').className).toContain(
-        'custom-label'
-      );
+      expect(screen.getByTestId('select-label').className).toContain('custom-label');
     });
   });
 
@@ -316,16 +282,11 @@ describe('Select', () => {
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
-          <SelectSeparator
-            data-testid="select-separator"
-            className="custom-separator"
-          />
+          <SelectSeparator data-testid="select-separator" className="custom-separator" />
         </Select>
       );
 
-      expect(screen.getByTestId('select-separator').className).toContain(
-        'custom-separator'
-      );
+      expect(screen.getByTestId('select-separator').className).toContain('custom-separator');
     });
   });
 
@@ -377,9 +338,7 @@ describe('Select', () => {
         </Select>
       );
 
-      expect(screen.getByTestId('select-trigger')).toHaveAttribute(
-        'aria-expanded'
-      );
+      expect(screen.getByTestId('select-trigger')).toHaveAttribute('aria-expanded');
     });
   });
 

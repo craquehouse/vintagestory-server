@@ -32,8 +32,7 @@ import type { ApiResponse, LogFilesData } from '@/api/types';
 export function useLogFiles() {
   return useQuery({
     queryKey: queryKeys.console.logs,
-    queryFn: () =>
-      apiClient<ApiResponse<LogFilesData>>('/api/v1alpha1/console/logs'),
+    queryFn: () => apiClient<ApiResponse<LogFilesData>>('/api/v1alpha1/console/logs'),
     // Refresh every 30 seconds to pick up new log files
     refetchInterval: 30000,
     // Keep showing stale data while refreshing

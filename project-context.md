@@ -494,6 +494,7 @@ reportMissingTypeStubs = "none"  # Suppress stub warnings for internal packages
 **Components:** PascalCase (`ModCard`)
 **Hooks:** camelCase with `use` prefix (`useServerStatus`)
 **Booleans:** always `is` prefix (`isLoading`, `isConnected`)
+**Formatting:** Prettier, pinned in `web/package.json` with `web/.prettierrc.json` (an exact pin on purpose: a formatter's output changes between versions); run `just format-web` on the files you change; `just lint-web` and CI check it
 
 **Query keys:**
 ```typescript
@@ -562,6 +563,7 @@ just test-web                            # Run all web tests
 just check                               # Full validation (lint + typecheck + test)
 just lint                                # Run all linters
 just lint-api --fix                      # Lint API (ruff check + format check), auto-fix lint
+just lint-web                            # Check the web's format (Prettier)
 just typecheck                           # Run all type checks
 
 # Development
@@ -570,7 +572,8 @@ just dev-api --port 8001                 # Dev server on custom port
 just dev-web                             # Start web dev server
 just install                             # Install all dependencies
 just format-api                          # Format the API (ruff format); just lint-api checks it
-just format                              # Format all code
+just format-web                          # Format the web (Prettier, pinned); just lint-web checks it
+just format                              # Format the API and the web (ruff format, Prettier)
 
 # Docker (preferred for manual verification)
 just docker restart                      # Start fresh Docker stack

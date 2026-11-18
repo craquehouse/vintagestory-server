@@ -533,10 +533,7 @@ describe('ModCard', () => {
     it('shows Install button when mod is not installed', () => {
       const installedMods: { slug: string }[] = [];
 
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
-      );
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       const installButton = screen.getByTestId('mod-card-install-carrycapacity');
       expect(installButton).toBeInTheDocument();
@@ -546,10 +543,7 @@ describe('ModCard', () => {
     it('shows Installed indicator when mod is already installed', () => {
       const installedMods = [{ slug: 'carrycapacity' }];
 
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
-      );
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       const indicator = screen.getByTestId('mod-card-installed-carrycapacity');
       expect(indicator).toBeInTheDocument();
@@ -562,41 +556,40 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod data (simulating successful fetch)
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        data: {
-          status: 'ok',
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
           data: {
-            slug: 'carrycapacity',
-            name: 'Carry Capacity',
-            author: 'copygirl',
-            description: 'Test description',
-            latestVersion: '1.5.0',
-            installModId: 'carrycapacity',
-            downloads: 50000,
-            follows: 500,
-            side: 'Both',
-            compatibility: {
-              status: 'not_verified',
-              gameVersion: '1.21.6',
-              modVersion: '1.5.0',
-              message: '',
+            status: 'ok',
+            data: {
+              slug: 'carrycapacity',
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: 'Test description',
+              latestVersion: '1.5.0',
+              installModId: 'carrycapacity',
+              downloads: 50000,
+              follows: 500,
+              side: 'Both',
+              compatibility: {
+                status: 'not_verified',
+                gameVersion: '1.21.6',
+                modVersion: '1.5.0',
+                message: '',
+              },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
             },
-            logoUrl: null,
-            releases: [],
-            tags: [],
-            homepageUrl: null,
-            sourceUrl: null,
-            created: null,
-            lastReleased: null,
           },
-        },
-        isSuccess: true,
-      }));
-
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
+          isSuccess: true,
+        })
       );
+
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
 
@@ -611,41 +604,42 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod data
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        data: {
-          status: 'ok',
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
           data: {
-            slug: 'carrycapacity',
-            name: 'Carry Capacity',
-            author: 'copygirl',
-            description: 'Test description',
-            latestVersion: '1.5.0',
-            installModId: 'carrycapacity',
-            downloads: 50000,
-            follows: 500,
-            side: 'Both',
-            compatibility: {
-              status: 'not_verified',
-              gameVersion: '1.21.6',
-              modVersion: '1.5.0',
-              message: '',
+            status: 'ok',
+            data: {
+              slug: 'carrycapacity',
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: 'Test description',
+              latestVersion: '1.5.0',
+              installModId: 'carrycapacity',
+              downloads: 50000,
+              follows: 500,
+              side: 'Both',
+              compatibility: {
+                status: 'not_verified',
+                gameVersion: '1.21.6',
+                modVersion: '1.5.0',
+                message: '',
+              },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
             },
-            logoUrl: null,
-            releases: [],
-            tags: [],
-            homepageUrl: null,
-            sourceUrl: null,
-            created: null,
-            lastReleased: null,
           },
-        },
-        isSuccess: true,
-      }));
-
-      render(
-        <ModCard mod={mockMod} onClick={handleClick} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
+          isSuccess: true,
+        })
       );
+
+      render(<ModCard mod={mockMod} onClick={handleClick} installedMods={installedMods} />, {
+        wrapper: createWrapper(),
+      });
 
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
 
@@ -657,14 +651,13 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return loading state
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        isLoading: true,
-      }));
-
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
+          isLoading: true,
+        })
       );
+
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       const installButton = screen.getByTestId('mod-card-install-carrycapacity');
 
@@ -678,41 +671,40 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return compatible mod
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        data: {
-          status: 'ok',
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
           data: {
-            slug: 'carrycapacity',
-            name: 'Carry Capacity',
-            author: 'copygirl',
-            description: 'Test description',
-            latestVersion: '1.5.0',
-            installModId: 'carrycapacity',
-            downloads: 50000,
-            follows: 500,
-            side: 'Both',
-            compatibility: {
-              status: 'compatible',
-              gameVersion: '1.21.6',
-              modVersion: '1.5.0',
-              message: '',
+            status: 'ok',
+            data: {
+              slug: 'carrycapacity',
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: 'Test description',
+              latestVersion: '1.5.0',
+              installModId: 'carrycapacity',
+              downloads: 50000,
+              follows: 500,
+              side: 'Both',
+              compatibility: {
+                status: 'compatible',
+                gameVersion: '1.21.6',
+                modVersion: '1.5.0',
+                message: '',
+              },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
             },
-            logoUrl: null,
-            releases: [],
-            tags: [],
-            homepageUrl: null,
-            sourceUrl: null,
-            created: null,
-            lastReleased: null,
           },
-        },
-        isSuccess: true,
-      }));
-
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
+          isSuccess: true,
+        })
       );
+
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
 
@@ -727,15 +719,14 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return error state
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        isError: true,
-        error: new Error('Network error'),
-      }));
-
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
+          isError: true,
+          error: new Error('Network error'),
+        })
       );
+
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
       await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
 
@@ -750,68 +741,24 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return mod with specific version
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-        data: {
-          status: 'ok',
-          data: {
-            slug: 'carrycapacity',
-            name: 'Carry Capacity',
-            author: 'copygirl',
-            description: 'Test description',
-            latestVersion: '2.3.4',
-            installModId: 'carrycapacity',
-            downloads: 50000,
-            follows: 500,
-            side: 'Both',
-            compatibility: {
-              status: 'not_verified',
-              gameVersion: '1.21.6',
-              modVersion: '2.3.4',
-              message: '',
-            },
-            logoUrl: null,
-            releases: [],
-            tags: [],
-            homepageUrl: null,
-            sourceUrl: null,
-            created: null,
-            lastReleased: null,
-          },
-        },
-        isSuccess: true,
-      }));
-
-      render(
-        <ModCard mod={mockMod} installedMods={installedMods} />,
-        { wrapper: createWrapper() }
-      );
-
-      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
-
-      // Dialog should show fetched version
-      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: 2.3.4');
-    });
-
-    describe('Story 17.2: the install request follows the lookup', () => {
-      it('installs the install mod ID at the lookup latest version', async () => {
-        const user = userEvent.setup();
-        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(
+        createQueryResultMock({
           data: {
             status: 'ok',
             data: {
               slug: 'carrycapacity',
               name: 'Carry Capacity',
               author: 'copygirl',
-              description: null,
-              latestVersion: '1.4.0',
-              installModId: 'carrycapacityplus',
-              downloads: 1,
-              follows: 0,
+              description: 'Test description',
+              latestVersion: '2.3.4',
+              installModId: 'carrycapacity',
+              downloads: 50000,
+              follows: 500,
               side: 'Both',
               compatibility: {
-                status: 'compatible',
+                status: 'not_verified',
                 gameVersion: '1.21.6',
-                modVersion: '1.4.0',
+                modVersion: '2.3.4',
                 message: '',
               },
               logoUrl: null,
@@ -824,7 +771,52 @@ describe('ModCard', () => {
             },
           },
           isSuccess: true,
-        }));
+        })
+      );
+
+      render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
+
+      await user.click(screen.getByTestId('mod-card-install-carrycapacity'));
+
+      // Dialog should show fetched version
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: 2.3.4');
+    });
+
+    describe('Story 17.2: the install request follows the lookup', () => {
+      it('installs the install mod ID at the lookup latest version', async () => {
+        const user = userEvent.setup();
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(
+          createQueryResultMock({
+            data: {
+              status: 'ok',
+              data: {
+                slug: 'carrycapacity',
+                name: 'Carry Capacity',
+                author: 'copygirl',
+                description: null,
+                latestVersion: '1.4.0',
+                installModId: 'carrycapacityplus',
+                downloads: 1,
+                follows: 0,
+                side: 'Both',
+                compatibility: {
+                  status: 'compatible',
+                  gameVersion: '1.21.6',
+                  modVersion: '1.4.0',
+                  message: '',
+                },
+                logoUrl: null,
+                releases: [],
+                tags: [],
+                homepageUrl: null,
+                sourceUrl: null,
+                created: null,
+                lastReleased: null,
+              },
+            },
+            isSuccess: true,
+          })
+        );
 
         render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),
@@ -843,36 +835,38 @@ describe('ModCard', () => {
 
       it('sends the card slug when the lookup has an empty install mod ID', async () => {
         const user = userEvent.setup();
-        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-          data: {
-            status: 'ok',
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(
+          createQueryResultMock({
             data: {
-              slug: 'carrycapacity',
-              name: 'Carry Capacity',
-              author: 'copygirl',
-              description: null,
-              latestVersion: null,
-              installModId: '',
-              downloads: 1,
-              follows: 0,
-              side: 'Both',
-              compatibility: {
-                status: 'not_verified',
-                gameVersion: '1.21.6',
-                modVersion: 'unknown',
-                message: '',
+              status: 'ok',
+              data: {
+                slug: 'carrycapacity',
+                name: 'Carry Capacity',
+                author: 'copygirl',
+                description: null,
+                latestVersion: null,
+                installModId: '',
+                downloads: 1,
+                follows: 0,
+                side: 'Both',
+                compatibility: {
+                  status: 'not_verified',
+                  gameVersion: '1.21.6',
+                  modVersion: 'unknown',
+                  message: '',
+                },
+                logoUrl: null,
+                releases: [],
+                tags: [],
+                homepageUrl: null,
+                sourceUrl: null,
+                created: null,
+                lastReleased: null,
               },
-              logoUrl: null,
-              releases: [],
-              tags: [],
-              homepageUrl: null,
-              sourceUrl: null,
-              created: null,
-              lastReleased: null,
             },
-          },
-          isSuccess: true,
-        }));
+            isSuccess: true,
+          })
+        );
 
         render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),
@@ -888,10 +882,12 @@ describe('ModCard', () => {
 
       it('sends the card slug and no version when the details fail', async () => {
         const user = userEvent.setup();
-        vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({
-          isError: true,
-          error: new Error('Network error'),
-        }));
+        vi.mocked(useModDetail.useModDetail).mockReturnValue(
+          createQueryResultMock({
+            isError: true,
+            error: new Error('Network error'),
+          })
+        );
 
         render(<ModCard mod={mockMod} installedMods={[]} />, {
           wrapper: createWrapper(),

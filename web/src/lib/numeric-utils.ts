@@ -24,12 +24,7 @@
  * isValidNumeric(undefined)// false
  */
 export function isValidNumeric(value: number | null | undefined): value is number {
-  return (
-    value !== null &&
-    value !== undefined &&
-    Number.isFinite(value) &&
-    value >= 0
-  );
+  return value !== null && value !== undefined && Number.isFinite(value) && value >= 0;
 }
 
 /**

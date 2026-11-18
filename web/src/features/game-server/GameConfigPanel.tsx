@@ -176,9 +176,10 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
       const result = await updateMutation.mutateAsync(params);
       // Show success toast
       toast.success(`${params.key} updated`, {
-        description: result.data.method === 'console_command'
-          ? 'Applied via console command'
-          : 'Saved to config file',
+        description:
+          result.data.method === 'console_command'
+            ? 'Applied via console command'
+            : 'Saved to config file',
       });
       return result;
     } catch (err) {
@@ -305,11 +306,7 @@ export function GameConfigPanel({ className }: GameConfigPanelProps) {
         )}
         <div className="grid gap-4 xl:grid-cols-2 xl:items-start" data-testid="game-config-columns">
           <div className="space-y-4" data-testid="game-config-column-left">
-            {renderGroup(
-              'Player Settings',
-              'Player-related configuration',
-              PLAYER_SETTINGS
-            )}
+            {renderGroup('Player Settings', 'Player-related configuration', PLAYER_SETTINGS)}
             {renderGroup(
               'Network',
               'Connection and visibility',

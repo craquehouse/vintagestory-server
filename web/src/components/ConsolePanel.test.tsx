@@ -68,7 +68,8 @@ type ServerStatusMock = {
 };
 
 type LogFilesMock = {
-  data: { data: { files: Array<{ name: string; sizeBytes: number; modifiedAt: string }> } } | undefined;
+  data:
+    { data: { files: Array<{ name: string; sizeBytes: number; modifiedAt: string }> } } | undefined;
   isLoading: boolean;
   error: null;
 };
@@ -362,7 +363,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -389,7 +392,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -422,7 +427,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -509,7 +516,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -589,7 +598,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -860,7 +871,9 @@ describe('ConsolePanel', () => {
       mockConfig.logFiles = {
         data: {
           data: {
-            files: [{ name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' }],
+            files: [
+              { name: 'server-main.txt', sizeBytes: 1024, modifiedAt: '2026-01-17T10:30:00Z' },
+            ],
           },
         },
         isLoading: false,
@@ -1105,5 +1118,4 @@ describe('ConsolePanel', () => {
       expect(screen.getByText('Disconnected')).toBeInTheDocument();
     });
   });
-
 });

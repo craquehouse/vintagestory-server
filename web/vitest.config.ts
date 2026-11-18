@@ -30,7 +30,11 @@ export default defineConfig({
       }
       // Recharts ResponsiveContainer can't measure dimensions in JSDOM since
       // getBoundingClientRect returns 0. Visual testing via Playwright instead.
-      if (log.includes('width') && log.includes('height') && log.includes('chart should be greater than 0')) {
+      if (
+        log.includes('width') &&
+        log.includes('height') &&
+        log.includes('chart should be greater than 0')
+      ) {
         return false;
       }
       return true;

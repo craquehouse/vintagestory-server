@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
-import { useSidebar } from "@/contexts/SidebarContext";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import type { ReactNode } from 'react';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
       className="min-h-screen bg-background"
       style={
         {
-          "--sidebar-width": isCollapsed ? "64px" : "160px",
+          '--sidebar-width': isCollapsed ? '64px' : '160px',
         } as React.CSSProperties
       }
     >
@@ -34,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Desktop sidebar */}
       <div
         className="fixed inset-y-0 left-0 z-30 hidden transition-all duration-300 md:block"
-        style={{ width: "var(--sidebar-width)" }}
+        style={{ width: 'var(--sidebar-width)' }}
       >
         <Sidebar />
       </div>
@@ -43,9 +43,7 @@ export function Layout({ children }: LayoutProps) {
       <Header />
 
       {/* Main content */}
-      <main
-        className="pt-12 transition-all duration-300 md:ml-[var(--sidebar-width)]"
-      >
+      <main className="pt-12 transition-all duration-300 md:ml-[var(--sidebar-width)]">
         <div className="p-4 md:p-6">{children}</div>
       </main>
     </div>

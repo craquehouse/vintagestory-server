@@ -56,7 +56,11 @@ describe('InstalledModParts (Story 16.5)', () => {
   describe('ModCompatibility', () => {
     it('shows the badge with the message as tooltip and the latest supported version', () => {
       render(
-        <ModCompatibility slug="playercorpse" status="incompatible" compatibility={compatibility()} />
+        <ModCompatibility
+          slug="playercorpse"
+          status="incompatible"
+          compatibility={compatibility()}
+        />
       );
       const badge = screen.getByTestId('compatibility-badge');
       expect(badge).toHaveAttribute('data-status', 'incompatible');
@@ -64,7 +68,9 @@ describe('InstalledModParts (Story 16.5)', () => {
       expect(screen.getByTestId('mod-latest-supported-playercorpse')).toHaveTextContent(
         'Supports up to 1.21.1'
       );
-      expect(screen.queryByTestId('mod-compatibility-message-playercorpse')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mod-compatibility-message-playercorpse')
+      ).not.toBeInTheDocument();
     });
 
     it.each(['incompatible', 'not_verified'] as const)(
@@ -94,14 +100,21 @@ describe('InstalledModParts (Story 16.5)', () => {
         />
       );
       expect(screen.queryByTestId('mod-latest-supported-playercorpse')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('mod-compatibility-message-playercorpse')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mod-compatibility-message-playercorpse')
+      ).not.toBeInTheDocument();
     });
 
     it('shows only the badge while compatibility details are unknown', () => {
       render(<ModCompatibility slug="playercorpse" status="not_verified" showMessage />);
-      expect(screen.getByTestId('compatibility-badge')).toHaveAttribute('data-status', 'not_verified');
+      expect(screen.getByTestId('compatibility-badge')).toHaveAttribute(
+        'data-status',
+        'not_verified'
+      );
       expect(screen.queryByTestId('mod-latest-supported-playercorpse')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('mod-compatibility-message-playercorpse')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('mod-compatibility-message-playercorpse')
+      ).not.toBeInTheDocument();
     });
   });
 

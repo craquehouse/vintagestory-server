@@ -51,10 +51,7 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-trigger')).toHaveAttribute(
-        'data-slot',
-        'dialog-trigger'
-      );
+      expect(screen.getByTestId('dialog-trigger')).toHaveAttribute('data-slot', 'dialog-trigger');
     });
 
     it('renders as button element', () => {
@@ -97,10 +94,7 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-close')).toHaveAttribute(
-        'data-slot',
-        'dialog-close'
-      );
+      expect(screen.getByTestId('dialog-close')).toHaveAttribute('data-slot', 'dialog-close');
     });
 
     it('renders as button element', () => {
@@ -281,10 +275,7 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-header')).toHaveAttribute(
-        'data-slot',
-        'dialog-header'
-      );
+      expect(screen.getByTestId('dialog-header')).toHaveAttribute('data-slot', 'dialog-header');
     });
 
     it('renders children content', () => {
@@ -339,10 +330,7 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-footer')).toHaveAttribute(
-        'data-slot',
-        'dialog-footer'
-      );
+      expect(screen.getByTestId('dialog-footer')).toHaveAttribute('data-slot', 'dialog-footer');
     });
 
     it('renders children content', () => {
@@ -398,10 +386,7 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-title')).toHaveAttribute(
-        'data-slot',
-        'dialog-title'
-      );
+      expect(screen.getByTestId('dialog-title')).toHaveAttribute('data-slot', 'dialog-title');
     });
 
     it('renders title text', () => {
@@ -447,9 +432,7 @@ describe('Dialog', () => {
       render(
         <Dialog>
           <DialogTrigger>Open</DialogTrigger>
-          <DialogDescription data-testid="dialog-description">
-            Description text
-          </DialogDescription>
+          <DialogDescription data-testid="dialog-description">Description text</DialogDescription>
         </Dialog>
       );
 
@@ -469,18 +452,14 @@ describe('Dialog', () => {
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-description')).toHaveTextContent(
-        'This is a description'
-      );
+      expect(screen.getByTestId('dialog-description')).toHaveTextContent('This is a description');
     });
 
     it('has text styling classes', () => {
       render(
         <Dialog>
           <DialogTrigger>Open</DialogTrigger>
-          <DialogDescription data-testid="dialog-description">
-            Description
-          </DialogDescription>
+          <DialogDescription data-testid="dialog-description">Description</DialogDescription>
         </Dialog>
       );
 
@@ -493,18 +472,13 @@ describe('Dialog', () => {
       render(
         <Dialog>
           <DialogTrigger>Open</DialogTrigger>
-          <DialogDescription
-            data-testid="dialog-description"
-            className="custom-description"
-          >
+          <DialogDescription data-testid="dialog-description" className="custom-description">
             Description
           </DialogDescription>
         </Dialog>
       );
 
-      expect(screen.getByTestId('dialog-description').className).toContain(
-        'custom-description'
-      );
+      expect(screen.getByTestId('dialog-description').className).toContain('custom-description');
     });
   });
 
@@ -516,9 +490,7 @@ describe('Dialog', () => {
           <DialogContent data-testid="content">
             <DialogHeader data-testid="header">
               <DialogTitle data-testid="title">Test Dialog</DialogTitle>
-              <DialogDescription data-testid="description">
-                Test description
-              </DialogDescription>
+              <DialogDescription data-testid="description">Test description</DialogDescription>
             </DialogHeader>
             <div data-testid="body">Dialog body content</div>
             <DialogFooter data-testid="footer">

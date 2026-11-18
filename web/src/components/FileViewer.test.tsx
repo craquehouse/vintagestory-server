@@ -15,25 +15,13 @@ describe('FileViewer', () => {
 
   describe('loading state', () => {
     it('shows loading skeletons when isLoading is true', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={null}
-          isLoading={true}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={null} isLoading={true} />);
 
       expect(screen.getByTestId('file-viewer-loading')).toBeInTheDocument();
     });
 
     it('does not render content when loading', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-          isLoading={true}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} isLoading={true} />);
 
       expect(screen.queryByTestId('file-viewer')).not.toBeInTheDocument();
       expect(screen.queryByTestId('file-viewer-content')).not.toBeInTheDocument();
@@ -56,26 +44,14 @@ describe('FileViewer', () => {
     });
 
     it('shows error icon', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={null}
-          error="Some error"
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={null} error="Some error" />);
 
       const errorContainer = screen.getByTestId('file-viewer-error');
       expect(errorContainer.querySelector('svg')).toBeInTheDocument();
     });
 
     it('does not render content when error occurs', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-          error="Some error"
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} error="Some error" />);
 
       expect(screen.queryByTestId('file-viewer')).not.toBeInTheDocument();
       expect(screen.queryByTestId('file-viewer-content')).not.toBeInTheDocument();
@@ -84,24 +60,14 @@ describe('FileViewer', () => {
 
   describe('no file selected state (AC: 4)', () => {
     it('shows prompt when no file is selected', () => {
-      render(
-        <FileViewer
-          filename={null}
-          content={null}
-        />
-      );
+      render(<FileViewer filename={null} content={null} />);
 
       expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
       expect(screen.getByText('Select a file to view its contents')).toBeInTheDocument();
     });
 
     it('shows file icon in empty state', () => {
-      render(
-        <FileViewer
-          filename={null}
-          content={null}
-        />
-      );
+      render(<FileViewer filename={null} content={null} />);
 
       const emptyContainer = screen.getByTestId('file-viewer-empty');
       expect(emptyContainer.querySelector('svg')).toBeInTheDocument();
@@ -110,12 +76,7 @@ describe('FileViewer', () => {
 
   describe('content display (AC: 2, 3)', () => {
     it('displays formatted JSON content', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       expect(screen.getByTestId('file-viewer')).toBeInTheDocument();
       const contentElement = screen.getByTestId('file-viewer-content');
@@ -140,47 +101,27 @@ describe('FileViewer', () => {
     });
 
     it('displays filename in header', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       expect(screen.getByText('serverconfig.json')).toBeInTheDocument();
     });
 
     it('uses monospace font for content', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement).toHaveClass('font-mono');
     });
 
     it('preserves whitespace in content', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement).toHaveClass('whitespace-pre');
     });
 
     it('renders content in a pre tag for formatting', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.tagName).toBe('PRE');
@@ -199,12 +140,7 @@ describe('FileViewer', () => {
         },
       };
 
-      render(
-        <FileViewer
-          filename="config.json"
-          content={nestedContent}
-        />
-      );
+      render(<FileViewer filename="config.json" content={nestedContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       const expectedJson = JSON.stringify(nestedContent, null, 2);
@@ -217,12 +153,7 @@ describe('FileViewer', () => {
         AdminIds: [12345, 67890],
       };
 
-      render(
-        <FileViewer
-          filename="mods.json"
-          content={arrayContent}
-        />
-      );
+      render(<FileViewer filename="mods.json" content={arrayContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toContain('"Mods"');
@@ -230,60 +161,35 @@ describe('FileViewer', () => {
     });
 
     it('handles empty object', () => {
-      render(
-        <FileViewer
-          filename="empty.json"
-          content={{}}
-        />
-      );
+      render(<FileViewer filename="empty.json" content={{}} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toBe('{}');
     });
 
     it('handles null content when filename is provided', () => {
-      render(
-        <FileViewer
-          filename="config.json"
-          content={null}
-        />
-      );
+      render(<FileViewer filename="config.json" content={null} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toBe('null');
     });
 
     it('handles primitive values', () => {
-      render(
-        <FileViewer
-          filename="value.json"
-          content="simple string"
-        />
-      );
+      render(<FileViewer filename="value.json" content="simple string" />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toBe('"simple string"');
     });
 
     it('handles boolean values', () => {
-      render(
-        <FileViewer
-          filename="bool.json"
-          content={true}
-        />
-      );
+      render(<FileViewer filename="bool.json" content={true} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toBe('true');
     });
 
     it('handles numeric values', () => {
-      render(
-        <FileViewer
-          filename="number.json"
-          content={42}
-        />
-      );
+      render(<FileViewer filename="number.json" content={42} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement.textContent).toBe('42');
@@ -293,11 +199,7 @@ describe('FileViewer', () => {
   describe('styling', () => {
     it('applies custom className', () => {
       render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-          className="custom-class"
-        />
+        <FileViewer filename="serverconfig.json" content={mockContent} className="custom-class" />
       );
 
       expect(screen.getByTestId('file-viewer')).toHaveClass('custom-class');
@@ -330,13 +232,7 @@ describe('FileViewer', () => {
     });
 
     it('applies custom className to empty state', () => {
-      render(
-        <FileViewer
-          filename={null}
-          content={null}
-          className="custom-class"
-        />
-      );
+      render(<FileViewer filename={null} content={null} className="custom-class" />);
 
       expect(screen.getByTestId('file-viewer-empty')).toHaveClass('custom-class');
     });
@@ -345,12 +241,7 @@ describe('FileViewer', () => {
   describe('state priority', () => {
     it('prioritizes loading over error', () => {
       render(
-        <FileViewer
-          filename="config.json"
-          content={null}
-          isLoading={true}
-          error="Some error"
-        />
+        <FileViewer filename="config.json" content={null} isLoading={true} error="Some error" />
       );
 
       expect(screen.getByTestId('file-viewer-loading')).toBeInTheDocument();
@@ -358,13 +249,7 @@ describe('FileViewer', () => {
     });
 
     it('prioritizes error over no filename', () => {
-      render(
-        <FileViewer
-          filename={null}
-          content={null}
-          error="Some error"
-        />
-      );
+      render(<FileViewer filename={null} content={null} error="Some error" />);
 
       expect(screen.getByTestId('file-viewer-error')).toBeInTheDocument();
       expect(screen.queryByTestId('file-viewer-empty')).not.toBeInTheDocument();
@@ -373,12 +258,7 @@ describe('FileViewer', () => {
 
   describe('word wrap (UI-022)', () => {
     it('does not show toggle button when onWordWrapChange is not provided', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       expect(screen.queryByTestId('file-viewer-wrap-toggle')).not.toBeInTheDocument();
     });
@@ -397,12 +277,7 @@ describe('FileViewer', () => {
     });
 
     it('applies whitespace-pre class when wordWrap is false (default)', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement).toHaveClass('whitespace-pre');
@@ -410,13 +285,7 @@ describe('FileViewer', () => {
     });
 
     it('applies whitespace-pre-wrap and break-words classes when wordWrap is true', () => {
-      render(
-        <FileViewer
-          filename="serverconfig.json"
-          content={mockContent}
-          wordWrap={true}
-        />
-      );
+      render(<FileViewer filename="serverconfig.json" content={mockContent} wordWrap={true} />);
 
       const contentElement = screen.getByTestId('file-viewer-content');
       expect(contentElement).toHaveClass('whitespace-pre-wrap');
@@ -506,12 +375,7 @@ describe('FileViewer', () => {
   describe('JSON syntax highlighting (Story 9.6)', () => {
     describe('AC 1: syntax colorization applied to .json files', () => {
       it('applies syntax highlighting to .json file content', () => {
-        render(
-          <FileViewer
-            filename="serverconfig.json"
-            content={mockContent}
-          />
-        );
+        render(<FileViewer filename="serverconfig.json" content={mockContent} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         // Should have JSON key spans with the correct class
@@ -519,12 +383,7 @@ describe('FileViewer', () => {
       });
 
       it('applies highlighting for various JSON file extensions', () => {
-        render(
-          <FileViewer
-            filename="CONFIG.JSON"
-            content={{ key: 'value' }}
-          />
-        );
+        render(<FileViewer filename="CONFIG.JSON" content={{ key: 'value' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.querySelector('.json-key')).toBeInTheDocument();
@@ -533,12 +392,7 @@ describe('FileViewer', () => {
 
     describe('AC 2: distinct colors for different token types', () => {
       it('highlights keys with json-key class', () => {
-        render(
-          <FileViewer
-            filename="config.json"
-            content={{ myKey: 'value' }}
-          />
-        );
+        render(<FileViewer filename="config.json" content={{ myKey: 'value' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const keyElement = contentElement.querySelector('.json-key');
@@ -548,12 +402,7 @@ describe('FileViewer', () => {
       });
 
       it('highlights string values with json-string class', () => {
-        render(
-          <FileViewer
-            filename="config.json"
-            content={{ name: 'testValue' }}
-          />
-        );
+        render(<FileViewer filename="config.json" content={{ name: 'testValue' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const stringElement = contentElement.querySelector('.json-string');
@@ -563,12 +412,7 @@ describe('FileViewer', () => {
       });
 
       it('highlights numbers with json-number class', () => {
-        render(
-          <FileViewer
-            filename="config.json"
-            content={{ port: 42420 }}
-          />
-        );
+        render(<FileViewer filename="config.json" content={{ port: 42420 }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const numberElement = contentElement.querySelector('.json-number');
@@ -578,12 +422,7 @@ describe('FileViewer', () => {
       });
 
       it('highlights booleans with json-boolean class', () => {
-        render(
-          <FileViewer
-            filename="config.json"
-            content={{ enabled: true }}
-          />
-        );
+        render(<FileViewer filename="config.json" content={{ enabled: true }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const booleanElement = contentElement.querySelector('.json-boolean');
@@ -593,12 +432,7 @@ describe('FileViewer', () => {
       });
 
       it('highlights null with json-null class', () => {
-        render(
-          <FileViewer
-            filename="config.json"
-            content={{ password: null }}
-          />
-        );
+        render(<FileViewer filename="config.json" content={{ password: null }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const nullElement = contentElement.querySelector('.json-null');
@@ -615,12 +449,7 @@ describe('FileViewer', () => {
           password: null,
         };
 
-        render(
-          <FileViewer
-            filename="config.json"
-            content={complexContent}
-          />
-        );
+        render(<FileViewer filename="config.json" content={complexContent} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
 
@@ -635,12 +464,7 @@ describe('FileViewer', () => {
 
     describe('AC 3: no colorization for non-JSON files', () => {
       it('does not apply syntax highlighting to .txt files', () => {
-        render(
-          <FileViewer
-            filename="readme.txt"
-            content={{ key: 'value' }}
-          />
-        );
+        render(<FileViewer filename="readme.txt" content={{ key: 'value' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
 
@@ -650,24 +474,14 @@ describe('FileViewer', () => {
       });
 
       it('does not apply syntax highlighting to .xml files', () => {
-        render(
-          <FileViewer
-            filename="config.xml"
-            content={{ setting: 'value' }}
-          />
-        );
+        render(<FileViewer filename="config.xml" content={{ setting: 'value' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.querySelector('.json-key')).not.toBeInTheDocument();
       });
 
       it('does not apply syntax highlighting to files without extension', () => {
-        render(
-          <FileViewer
-            filename="Makefile"
-            content={{ target: 'all' }}
-          />
-        );
+        render(<FileViewer filename="Makefile" content={{ target: 'all' }} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.querySelector('.json-key')).not.toBeInTheDocument();
@@ -675,12 +489,7 @@ describe('FileViewer', () => {
 
       it('renders plain JSON text for non-JSON files', () => {
         const content = { key: 'value' };
-        render(
-          <FileViewer
-            filename="config.dat"
-            content={content}
-          />
-        );
+        render(<FileViewer filename="config.dat" content={content} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const expectedText = JSON.stringify(content, null, 2);
@@ -690,36 +499,21 @@ describe('FileViewer', () => {
 
     describe('AC 4: graceful handling of edge cases', () => {
       it('handles empty object gracefully', () => {
-        render(
-          <FileViewer
-            filename="empty.json"
-            content={{}}
-          />
-        );
+        render(<FileViewer filename="empty.json" content={{}} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.textContent).toBe('{}');
       });
 
       it('handles empty array gracefully', () => {
-        render(
-          <FileViewer
-            filename="list.json"
-            content={[]}
-          />
-        );
+        render(<FileViewer filename="list.json" content={[]} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.textContent).toBe('[]');
       });
 
       it('handles null content gracefully', () => {
-        render(
-          <FileViewer
-            filename="null.json"
-            content={null}
-          />
-        );
+        render(<FileViewer filename="null.json" content={null} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         expect(contentElement.textContent).toBe('null');
@@ -737,12 +531,7 @@ describe('FileViewer', () => {
           },
         };
 
-        render(
-          <FileViewer
-            filename="nested.json"
-            content={nestedContent}
-          />
-        );
+        render(<FileViewer filename="nested.json" content={nestedContent} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
 
@@ -756,12 +545,7 @@ describe('FileViewer', () => {
           items: ['string', 42, true, null],
         };
 
-        render(
-          <FileViewer
-            filename="mixed.json"
-            content={arrayContent}
-          />
-        );
+        render(<FileViewer filename="mixed.json" content={arrayContent} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
 
@@ -777,12 +561,7 @@ describe('FileViewer', () => {
           count: 42,
         };
 
-        render(
-          <FileViewer
-            filename="test.json"
-            content={content}
-          />
-        );
+        render(<FileViewer filename="test.json" content={content} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         const expectedText = JSON.stringify(content, null, 2);
@@ -796,12 +575,7 @@ describe('FileViewer', () => {
         const circular: Record<string, unknown> = { name: 'test' };
         circular.self = circular;
 
-        render(
-          <FileViewer
-            filename="config.dat"
-            content={circular}
-          />
-        );
+        render(<FileViewer filename="config.dat" content={circular} />);
 
         const contentElement = screen.getByTestId('file-viewer-content');
         // Should render something without crashing (falls back to String())

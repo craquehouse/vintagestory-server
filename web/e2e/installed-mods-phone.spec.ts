@@ -112,7 +112,10 @@ async function fakeInstalledMods(page: Page) {
       const mod = MODS.find((item) => item.slug === slug);
       const compatibility = COMPATIBILITY[slug];
       if (!mod || !compatibility) {
-        await route.fulfill({ status: 404, json: { detail: { code: 'MOD_NOT_FOUND', message: slug } } });
+        await route.fulfill({
+          status: 404,
+          json: { detail: { code: 'MOD_NOT_FOUND', message: slug } },
+        });
         return;
       }
       await route.fulfill({
@@ -166,7 +169,10 @@ async function fakeInstalledMods(page: Page) {
 
     if (request.method() !== 'GET') {
       // Never let a write reach the server's data
-      await route.fulfill({ status: 500, json: { detail: { code: 'E2E_BLOCKED', message: path } } });
+      await route.fulfill({
+        status: 500,
+        json: { detail: { code: 'E2E_BLOCKED', message: path } },
+      });
       return;
     }
 
@@ -219,7 +225,9 @@ test.describe('Installed mods on phones (Story 16.5)', () => {
     await expect(card).toContainText('v1.0.0-rc.12');
     await expect(page.getByTestId('mod-update-longnamemod')).toContainText('v1.0.0-rc.13');
     await expect(page.getByTestId('mod-update-oldmod')).toHaveText('Up to date');
-    await expect(page.getByTestId('mod-latest-supported-oldmod')).toHaveText('Supports up to 1.21.1');
+    await expect(page.getByTestId('mod-latest-supported-oldmod')).toHaveText(
+      'Supports up to 1.21.1'
+    );
     await expect(page.getByTestId('mod-compatibility-message-oldmod')).toHaveText(
       'Last supported game version: 1.21.1.'
     );
@@ -231,7 +239,9 @@ test.describe('Installed mods on phones (Story 16.5)', () => {
   test('gives every Installed mods control a 44x44px touch target', async ({ page }) => {
     await page.setViewportSize(PHONE);
     await page.goto(INSTALLED);
-    await expect(page.getByTestId('mod-update-button-longnamemod')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('mod-update-button-longnamemod')).toBeVisible({
+      timeout: 30_000,
+    });
 
     // The Update button keeps its 44px floor while it shows only a spinner
     const updateMinWidth = await page
@@ -280,7 +290,9 @@ test.describe('Installed mods on phones (Story 16.5)', () => {
     await enable;
   });
 
-  test('keeps the table at desktop width and switches when the window narrows', async ({ page }) => {
+  test('keeps the table at desktop width and switches when the window narrows', async ({
+    page,
+  }) => {
     await page.setViewportSize(DESKTOP);
     await page.goto(INSTALLED);
 

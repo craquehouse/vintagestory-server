@@ -6,12 +6,7 @@
  */
 
 import { apiClient } from './client';
-import type {
-  ApiResponse,
-  ServerStatus,
-  InstallStatus,
-  ActionMessage,
-} from './types';
+import type { ApiResponse, ServerStatus, InstallStatus, ActionMessage } from './types';
 
 const API_PREFIX = '/api/v1alpha1/server';
 
@@ -20,9 +15,7 @@ const API_PREFIX = '/api/v1alpha1/server';
  *
  * Accessible to both Admin and Monitor roles.
  */
-export async function fetchServerStatus(): Promise<
-  ApiResponse<ServerStatus>
-> {
+export async function fetchServerStatus(): Promise<ApiResponse<ServerStatus>> {
   return apiClient<ApiResponse<ServerStatus>>(`${API_PREFIX}/status`);
 }
 
@@ -93,9 +86,7 @@ export async function installServer(
  *
  * Requires Admin role.
  */
-export async function fetchInstallStatus(): Promise<
-  ApiResponse<InstallStatus>
-> {
+export async function fetchInstallStatus(): Promise<ApiResponse<InstallStatus>> {
   return apiClient<ApiResponse<InstallStatus>>(`${API_PREFIX}/install/status`);
 }
 

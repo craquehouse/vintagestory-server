@@ -180,7 +180,12 @@ describe('useBrowseScrollRestoration', () => {
 
   it('leaves the page at the top when the opened card is no longer in the results', () => {
     saveOpenedMod({ search: '', slug: 'carryon' });
-    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['other'], isReady: true });
+    renderRestoration({
+      currentSearch: '',
+      isReturn: true,
+      renderedSlugs: ['other'],
+      isReady: true,
+    });
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
   });
@@ -198,7 +203,12 @@ describe('useBrowseScrollRestoration', () => {
 
   it('does nothing on a mount without a saved entry (refresh or first load)', () => {
     addCard('carryon');
-    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['carryon'], isReady: true });
+    renderRestoration({
+      currentSearch: '',
+      isReturn: true,
+      renderedSlugs: ['carryon'],
+      isReady: true,
+    });
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(window.scrollTo).not.toHaveBeenCalled();
   });
@@ -230,7 +240,12 @@ describe('useBrowseScrollRestoration', () => {
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
     saveOpenedMod({ search: '', slug: 'carryon' });
     addCard('carryon');
-    renderRestoration({ currentSearch: '', isReturn: true, renderedSlugs: ['carryon'], isReady: true });
+    renderRestoration({
+      currentSearch: '',
+      isReturn: true,
+      renderedSlugs: ['carryon'],
+      isReady: true,
+    });
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
     expect(setTimeoutSpy).not.toHaveBeenCalled();
   });

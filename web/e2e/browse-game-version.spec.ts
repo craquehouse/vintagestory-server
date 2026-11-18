@@ -104,9 +104,7 @@ test.describe('Game version indicator on browse cards', () => {
     await pretendServerInstalled(page);
   });
 
-  test('shows the badge, the muted text and nothing for true, false and null', async ({
-    page,
-  }) => {
+  test('shows the badge, the muted text and nothing for true, false and null', async ({ page }) => {
     await stubBrowse(page, '1.22.7');
     await openBrowse(page);
 
@@ -137,9 +135,7 @@ test.describe('Game version indicator on browse cards', () => {
       await stubBrowse(page, '1.22.7');
       await openBrowse(page);
 
-      const isDark = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark')
-      );
+      const isDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
       expect(isDark).toBe(colorScheme === 'dark');
 
       for (const slug of ['e2e-has', 'e2e-none']) {
@@ -167,42 +163,46 @@ test.describe('Game version indicator on browse cards', () => {
 
   // @moddb-live: compares the cards with a live browse response; on recorded answers (and a
   // stack with no game server) game_version is null, so it would check nothing
-  test('live: the cards agree with the browse response', { tag: '@moddb-live' }, async ({ page }) => {
-    const browse = page.waitForResponse(
-      (r) =>
-        isBrowseResponse(r) &&
-        r.status() === 200 &&
-        new URL(r.url()).searchParams.get('search') === 'carry on',
-      { timeout: 60_000 }
-    );
-    await page.goto(`${BROWSE}?q=carry+on&sort=downloads`);
-    const body: LiveBrowseBody = await (await browse).json();
-    const gameVersion = body.data.game_version;
-    const mods = body.data.mods;
-    expect(mods.length).toBeGreaterThan(0);
-    await expect(page.getByTestId(`mod-card-${mods[0].slug}`)).toBeVisible({ timeout: 30_000 });
+  test(
+    'live: the cards agree with the browse response',
+    { tag: '@moddb-live' },
+    async ({ page }) => {
+      const browse = page.waitForResponse(
+        (r) =>
+          isBrowseResponse(r) &&
+          r.status() === 200 &&
+          new URL(r.url()).searchParams.get('search') === 'carry on',
+        { timeout: 60_000 }
+      );
+      await page.goto(`${BROWSE}?q=carry+on&sort=downloads`);
+      const body: LiveBrowseBody = await (await browse).json();
+      const gameVersion = body.data.game_version;
+      const mods = body.data.mods;
+      expect(mods.length).toBeGreaterThan(0);
+      await expect(page.getByTestId(`mod-card-${mods[0].slug}`)).toBeVisible({ timeout: 30_000 });
 
-    test.info().annotations.push({
-      type: 'game_version',
-      description:
-        gameVersion === null
-          ? 'null (no server installed, version without a tag, or mod database unavailable): no indicators expected'
-          : `${gameVersion}: indicators checked against the response`,
-    });
+      test.info().annotations.push({
+        type: 'game_version',
+        description:
+          gameVersion === null
+            ? 'null (no server installed, version without a tag, or mod database unavailable): no indicators expected'
+            : `${gameVersion}: indicators checked against the response`,
+      });
 
-    if (gameVersion === null) {
-      await expect(page.locator('[data-testid^="mod-card-game-version-"]')).toHaveCount(0);
-      return;
-    }
-    for (const mod of mods) {
-      const indicator = page.getByTestId(`mod-card-game-version-${mod.slug}`);
-      if (mod.has_release_for_game_version === true) {
-        await expect(indicator).toHaveText(`Has a release for ${gameVersion}`);
-      } else if (mod.has_release_for_game_version === false) {
-        await expect(indicator).toHaveText(`No release for ${gameVersion}`);
-      } else {
-        await expect(indicator).toHaveCount(0);
+      if (gameVersion === null) {
+        await expect(page.locator('[data-testid^="mod-card-game-version-"]')).toHaveCount(0);
+        return;
+      }
+      for (const mod of mods) {
+        const indicator = page.getByTestId(`mod-card-game-version-${mod.slug}`);
+        if (mod.has_release_for_game_version === true) {
+          await expect(indicator).toHaveText(`Has a release for ${gameVersion}`);
+        } else if (mod.has_release_for_game_version === false) {
+          await expect(indicator).toHaveText(`No release for ${gameVersion}`);
+        } else {
+          await expect(indicator).toHaveCount(0);
+        }
       }
     }
-  });
+  );
 });

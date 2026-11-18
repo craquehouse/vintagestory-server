@@ -124,25 +124,20 @@ export function useEnableMod() {
       await queryClient.cancelQueries({ queryKey: queryKeys.mods.all });
 
       // Snapshot the previous value
-      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(
-        queryKeys.mods.all
-      );
+      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all);
 
       // Optimistically update to the new value
       if (previous) {
-        queryClient.setQueryData<ApiResponse<ModsListData>>(
-          queryKeys.mods.all,
-          {
-            ...previous,
-            data: {
-              ...previous.data,
-              pendingRestart: true,
-              mods: previous.data.mods.map((mod) =>
-                mod.slug === slug ? { ...mod, enabled: true } : mod
-              ),
-            },
-          }
-        );
+        queryClient.setQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all, {
+          ...previous,
+          data: {
+            ...previous.data,
+            pendingRestart: true,
+            mods: previous.data.mods.map((mod) =>
+              mod.slug === slug ? { ...mod, enabled: true } : mod
+            ),
+          },
+        });
       }
 
       return { previous };
@@ -175,24 +170,19 @@ export function useDisableMod() {
     onMutate: async (slug) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.mods.all });
 
-      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(
-        queryKeys.mods.all
-      );
+      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all);
 
       if (previous) {
-        queryClient.setQueryData<ApiResponse<ModsListData>>(
-          queryKeys.mods.all,
-          {
-            ...previous,
-            data: {
-              ...previous.data,
-              pendingRestart: true,
-              mods: previous.data.mods.map((mod) =>
-                mod.slug === slug ? { ...mod, enabled: false } : mod
-              ),
-            },
-          }
-        );
+        queryClient.setQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all, {
+          ...previous,
+          data: {
+            ...previous.data,
+            pendingRestart: true,
+            mods: previous.data.mods.map((mod) =>
+              mod.slug === slug ? { ...mod, enabled: false } : mod
+            ),
+          },
+        });
       }
 
       return { previous };
@@ -223,22 +213,17 @@ export function useRemoveMod() {
     onMutate: async (slug) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.mods.all });
 
-      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(
-        queryKeys.mods.all
-      );
+      const previous = queryClient.getQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all);
 
       if (previous) {
-        queryClient.setQueryData<ApiResponse<ModsListData>>(
-          queryKeys.mods.all,
-          {
-            ...previous,
-            data: {
-              ...previous.data,
-              pendingRestart: true,
-              mods: previous.data.mods.filter((mod) => mod.slug !== slug),
-            },
-          }
-        );
+        queryClient.setQueryData<ApiResponse<ModsListData>>(queryKeys.mods.all, {
+          ...previous,
+          data: {
+            ...previous.data,
+            pendingRestart: true,
+            mods: previous.data.mods.filter((mod) => mod.slug !== slug),
+          },
+        });
       }
 
       return { previous };

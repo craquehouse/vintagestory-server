@@ -62,18 +62,14 @@ describe('DiskSpaceCard', () => {
       expect(screen.getByTestId('disk-card')).toBeInTheDocument();
       expect(screen.getByTestId('disk-card-title')).toHaveTextContent('Disk Space');
       expect(screen.getByTestId('disk-card-value')).toHaveTextContent('N/A');
-      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent(
-        'Disk data unavailable'
-      );
+      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent('Disk data unavailable');
     });
 
     it('renders N/A when diskSpace is undefined', () => {
       render(<DiskSpaceCard diskSpace={undefined} isLoading={false} />);
 
       expect(screen.getByTestId('disk-card-value')).toHaveTextContent('N/A');
-      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent(
-        'Disk data unavailable'
-      );
+      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent('Disk data unavailable');
     });
   });
 
@@ -133,9 +129,7 @@ describe('DiskSpaceCard', () => {
 
       render(<DiskSpaceCard diskSpace={diskSpace} />);
 
-      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent(
-        'Free of 100.0 GB'
-      );
+      expect(screen.getByTestId('disk-card-subtitle')).toHaveTextContent('Free of 100.0 GB');
     });
 
     it('formats usagePercent to 0 decimal places (integer)', () => {
@@ -261,16 +255,12 @@ describe('DiskSpaceCard', () => {
       };
 
       // Loading state
-      const { unmount: unmount1 } = render(
-        <DiskSpaceCard diskSpace={null} isLoading={true} />
-      );
+      const { unmount: unmount1 } = render(<DiskSpaceCard diskSpace={null} isLoading={true} />);
       expect(screen.getByTestId('disk-card-title')).toHaveTextContent('Disk Space');
       unmount1();
 
       // No data state
-      const { unmount: unmount2 } = render(
-        <DiskSpaceCard diskSpace={null} isLoading={false} />
-      );
+      const { unmount: unmount2 } = render(<DiskSpaceCard diskSpace={null} isLoading={false} />);
       expect(screen.getByTestId('disk-card-title')).toHaveTextContent('Disk Space');
       unmount2();
 

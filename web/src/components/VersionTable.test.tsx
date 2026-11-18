@@ -96,12 +96,7 @@ describe('VersionTable', () => {
   });
 
   it('shows Installed indicator for installed version', () => {
-    render(
-      <VersionTable
-        versions={mockVersions}
-        installedVersion="1.19.8"
-      />
-    );
+    render(<VersionTable versions={mockVersions} installedVersion="1.19.8" />);
 
     // The installed version row should show the "Installed" indicator
     expect(screen.getByTestId('version-table-installed-1.19.8')).toBeInTheDocument();
@@ -126,12 +121,7 @@ describe('VersionTable', () => {
     const user = userEvent.setup();
     const handleSelect = vi.fn();
 
-    render(
-      <VersionTable
-        versions={mockVersions}
-        onVersionSelect={handleSelect}
-      />
-    );
+    render(<VersionTable versions={mockVersions} onVersionSelect={handleSelect} />);
 
     const selectButton = screen.getByTestId('version-table-select-1.20.0');
     await user.click(selectButton);
@@ -228,12 +218,7 @@ describe('VersionTable', () => {
 
   describe('newer version highlighting', () => {
     it('highlights versions newer than installed', () => {
-      render(
-        <VersionTable
-          versions={mockVersions}
-          installedVersion="1.19.8"
-        />
-      );
+      render(<VersionTable versions={mockVersions} installedVersion="1.19.8" />);
 
       // 1.20.0 and 1.20.1-rc.1 are newer than 1.19.8
       const newerRow = screen.getByTestId('version-table-row-1.20.0');
@@ -244,12 +229,7 @@ describe('VersionTable', () => {
     });
 
     it('does not highlight installed version', () => {
-      render(
-        <VersionTable
-          versions={mockVersions}
-          installedVersion="1.20.0"
-        />
-      );
+      render(<VersionTable versions={mockVersions} installedVersion="1.20.0" />);
 
       // Installed version should not be highlighted
       const installedRow = screen.getByTestId('version-table-row-1.20.0');
@@ -257,12 +237,7 @@ describe('VersionTable', () => {
     });
 
     it('does not highlight older versions', () => {
-      render(
-        <VersionTable
-          versions={mockVersions}
-          installedVersion="1.20.0"
-        />
-      );
+      render(<VersionTable versions={mockVersions} installedVersion="1.20.0" />);
 
       // 1.19.8 is older, should not be highlighted
       const olderRow = screen.getByTestId('version-table-row-1.19.8');
@@ -270,12 +245,7 @@ describe('VersionTable', () => {
     });
 
     it('does not highlight any versions when not installed', () => {
-      render(
-        <VersionTable
-          versions={mockVersions}
-          installedVersion={null}
-        />
-      );
+      render(<VersionTable versions={mockVersions} installedVersion={null} />);
 
       // None should have highlight styling
       const row1 = screen.getByTestId('version-table-row-1.20.0');
@@ -289,12 +259,7 @@ describe('VersionTable', () => {
   });
 
   it('handles null installedVersion gracefully', () => {
-    render(
-      <VersionTable
-        versions={mockVersions}
-        installedVersion={null}
-      />
-    );
+    render(<VersionTable versions={mockVersions} installedVersion={null} />);
 
     // No installed indicators should be shown
     expect(screen.queryByTestId('version-table-installed-1.20.0')).not.toBeInTheDocument();
@@ -335,12 +300,7 @@ describe('VersionTable', () => {
         },
       ];
 
-      render(
-        <VersionTable
-          versions={versionsWithTrickyNumbers}
-          installedVersion="1.9.0"
-        />
-      );
+      render(<VersionTable versions={versionsWithTrickyNumbers} installedVersion="1.9.0" />);
 
       // 1.10.0 is newer than 1.9.0 (semantic comparison)
       // String comparison would incorrectly say 1.9.0 > 1.10.0
@@ -376,12 +336,7 @@ describe('VersionTable', () => {
         },
       ];
 
-      render(
-        <VersionTable
-          versions={versionsWithPrerelease}
-          installedVersion="1.20.0-rc.1"
-        />
-      );
+      render(<VersionTable versions={versionsWithPrerelease} installedVersion="1.20.0-rc.1" />);
 
       // 1.20.0 is newer than 1.20.0-rc.1 (release > prerelease)
       const newerRow = screen.getByTestId('version-table-row-1.20.0');

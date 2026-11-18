@@ -24,11 +24,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      children
-    );
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
   };
 }
 
@@ -164,11 +160,9 @@ describe('useModTags', () => {
   it('tracks loading state correctly', async () => {
     // Create a promise we can control
     let resolvePromise: (value: ApiResponse<ModTagsData>) => void;
-    const pendingPromise = new Promise<ApiResponse<ModTagsData>>(
-      (resolve) => {
-        resolvePromise = resolve;
-      }
-    );
+    const pendingPromise = new Promise<ApiResponse<ModTagsData>>((resolve) => {
+      resolvePromise = resolve;
+    });
     vi.mocked(fetchModTags).mockReturnValue(pendingPromise);
 
     const { result } = renderHook(() => useModTags(), {
@@ -396,12 +390,7 @@ describe('useModTags', () => {
     });
 
     // We receive whatever the API sends
-    expect(result.current.data?.data?.tags).toEqual([
-      'farming',
-      'tools',
-      'farming',
-      'utility',
-    ]);
+    expect(result.current.data?.data?.tags).toEqual(['farming', 'tools', 'farming', 'utility']);
   });
 
   it('handles timeout errors', async () => {
@@ -474,12 +463,7 @@ describe('useModTags', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.data?.data?.tags).toEqual([
-      '农业',
-      '工具',
-      'mágica',
-      '装饰',
-    ]);
+    expect(result.current.data?.data?.tags).toEqual(['农业', '工具', 'mágica', '装饰']);
   });
 
   it('maintains data after error on subsequent fetch', async () => {

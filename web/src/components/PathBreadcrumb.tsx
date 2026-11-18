@@ -74,7 +74,10 @@ export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathB
           const isRoot = index === 0;
           const isCurrent = index === lastIndex;
           return (
-            <li key={isRoot ? 'root' : `segment-${index}`} className="flex min-w-0 max-w-full items-center gap-1">
+            <li
+              key={isRoot ? 'root' : `segment-${index}`}
+              className="flex min-w-0 max-w-full items-center gap-1"
+            >
               {!isRoot && <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />}
               {isCurrent ? (
                 <span
@@ -93,7 +96,9 @@ export function PathBreadcrumb({ path, rootLabel, onNavigate, className }: PathB
                   title={name}
                   className={segmentButtonClass}
                   onClick={() => navigate(isRoot ? null : segments.slice(0, index).join('/'))}
-                  data-testid={isRoot ? 'path-breadcrumb-root' : `path-breadcrumb-segment-${index - 1}`}
+                  data-testid={
+                    isRoot ? 'path-breadcrumb-root' : `path-breadcrumb-segment-${index - 1}`
+                  }
                 >
                   {name}
                 </button>

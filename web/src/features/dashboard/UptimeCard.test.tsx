@@ -173,9 +173,7 @@ describe('UptimeCard', () => {
       it('handles NaN as invalid', () => {
         render(<UptimeCard uptimeSeconds={NaN} isRunning={true} />);
         expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Uptime unavailable'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Uptime unavailable');
       });
 
       it('handles Infinity as invalid', () => {
@@ -200,66 +198,48 @@ describe('UptimeCard', () => {
 
     it('shows "Running for minutes" for < 3600 seconds', () => {
       render(<UptimeCard uptimeSeconds={1800} isRunning={true} />);
-      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-        'Running for minutes'
-      );
+      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for minutes');
     });
 
     it('shows "Running for hours" for < 86400 seconds', () => {
       render(<UptimeCard uptimeSeconds={43200} isRunning={true} />);
-      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-        'Running for hours'
-      );
+      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for hours');
     });
 
     it('shows "Running for days" for >= 86400 seconds', () => {
       render(<UptimeCard uptimeSeconds={172800} isRunning={true} />);
-      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-        'Running for days'
-      );
+      expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for days');
     });
 
     describe('boundary conditions', () => {
       it('shows "Just started" at 59 seconds', () => {
         render(<UptimeCard uptimeSeconds={59} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Just started'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Just started');
       });
 
       it('shows "Running for minutes" at 60 seconds', () => {
         render(<UptimeCard uptimeSeconds={60} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for minutes'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for minutes');
       });
 
       it('shows "Running for minutes" at 3599 seconds', () => {
         render(<UptimeCard uptimeSeconds={3599} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for minutes'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for minutes');
       });
 
       it('shows "Running for hours" at 3600 seconds', () => {
         render(<UptimeCard uptimeSeconds={3600} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for hours'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for hours');
       });
 
       it('shows "Running for hours" at 86399 seconds', () => {
         render(<UptimeCard uptimeSeconds={86399} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for hours'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for hours');
       });
 
       it('shows "Running for days" at 86400 seconds', () => {
         render(<UptimeCard uptimeSeconds={86400} isRunning={true} />);
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for days'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for days');
       });
     });
   });
@@ -304,18 +284,14 @@ describe('UptimeCard', () => {
         render(<UptimeCard uptimeSeconds={null} isRunning={true} />);
 
         expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Uptime unavailable'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Uptime unavailable');
       });
 
       it('shows N/A when uptimeSeconds is undefined and server is running', () => {
         render(<UptimeCard uptimeSeconds={undefined} isRunning={true} />);
 
         expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('N/A');
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Uptime unavailable'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Uptime unavailable');
       });
     });
 
@@ -324,9 +300,7 @@ describe('UptimeCard', () => {
         render(<UptimeCard uptimeSeconds={7200} isRunning={true} />);
 
         expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('2h');
-        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-          'Running for hours'
-        );
+        expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Running for hours');
       });
 
       it('handles zero uptime when server is running', () => {
@@ -353,16 +327,12 @@ describe('UptimeCard', () => {
       unmount1();
 
       // Stopped
-      const { unmount: unmount2 } = render(
-        <UptimeCard uptimeSeconds={null} isRunning={false} />
-      );
+      const { unmount: unmount2 } = render(<UptimeCard uptimeSeconds={null} isRunning={false} />);
       expect(screen.getByTestId('uptime-card-title')).toHaveTextContent('Uptime');
       unmount2();
 
       // No data
-      const { unmount: unmount3 } = render(
-        <UptimeCard uptimeSeconds={null} isRunning={true} />
-      );
+      const { unmount: unmount3 } = render(<UptimeCard uptimeSeconds={null} isRunning={true} />);
       expect(screen.getByTestId('uptime-card-title')).toHaveTextContent('Uptime');
       unmount3();
 

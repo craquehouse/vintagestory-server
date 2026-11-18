@@ -51,11 +51,7 @@ const statusConfig = {
  * <CompatibilityBadge status="not_verified" message="No version match found" />
  * <CompatibilityBadge status="incompatible" message="Requires server 1.20+" />
  */
-export function CompatibilityBadge({
-  status,
-  message,
-  className,
-}: CompatibilityBadgeProps) {
+export function CompatibilityBadge({ status, message, className }: CompatibilityBadgeProps) {
   const config = statusConfig[status];
   const Icon = config.icon;
 

@@ -8,11 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  TimeRangeSelector,
-  TIME_RANGES,
-  DEFAULT_TIME_RANGE,
-} from './TimeRangeSelector';
+import { TimeRangeSelector, TIME_RANGES, DEFAULT_TIME_RANGE } from './TimeRangeSelector';
 
 describe('TimeRangeSelector', () => {
   describe('rendering', () => {
@@ -36,13 +32,7 @@ describe('TimeRangeSelector', () => {
     });
 
     it('renders with custom className', () => {
-      render(
-        <TimeRangeSelector
-          value={60}
-          onChange={vi.fn()}
-          className="custom-class"
-        />
-      );
+      render(<TimeRangeSelector value={60} onChange={vi.fn()} className="custom-class" />);
 
       const selector = screen.getByTestId('time-range-selector');
       expect(selector).toHaveClass('custom-class');
@@ -155,24 +145,12 @@ describe('TimeRangeSelector', () => {
       render(<TimeRangeSelector value={60} onChange={vi.fn()} />);
 
       // 1h should be pressed
-      expect(screen.getByTestId('time-range-60')).toHaveAttribute(
-        'aria-pressed',
-        'true'
-      );
+      expect(screen.getByTestId('time-range-60')).toHaveAttribute('aria-pressed', 'true');
 
       // Others should not be pressed
-      expect(screen.getByTestId('time-range-15')).toHaveAttribute(
-        'aria-pressed',
-        'false'
-      );
-      expect(screen.getByTestId('time-range-360')).toHaveAttribute(
-        'aria-pressed',
-        'false'
-      );
-      expect(screen.getByTestId('time-range-1440')).toHaveAttribute(
-        'aria-pressed',
-        'false'
-      );
+      expect(screen.getByTestId('time-range-15')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('time-range-360')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByTestId('time-range-1440')).toHaveAttribute('aria-pressed', 'false');
     });
   });
 

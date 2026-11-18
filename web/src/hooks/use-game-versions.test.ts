@@ -24,11 +24,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      children
-    );
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
   };
 }
 
@@ -165,11 +161,9 @@ describe('useGameVersions', () => {
   it('tracks loading state correctly', async () => {
     // Create a promise we can control
     let resolvePromise: (value: ApiResponse<GameVersionsData>) => void;
-    const pendingPromise = new Promise<ApiResponse<GameVersionsData>>(
-      (resolve) => {
-        resolvePromise = resolve;
-      }
-    );
+    const pendingPromise = new Promise<ApiResponse<GameVersionsData>>((resolve) => {
+      resolvePromise = resolve;
+    });
     vi.mocked(fetchGameVersions).mockReturnValue(pendingPromise);
 
     const { result } = renderHook(() => useGameVersions(), {

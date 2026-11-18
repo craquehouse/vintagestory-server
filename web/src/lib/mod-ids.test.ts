@@ -48,9 +48,9 @@ describe('findInstalledModForEntry', () => {
 
   it('finds an installed mod with a middle mod ID', () => {
     const mods = installed('vsinstruments');
-    expect(findInstalledModForEntry(mods, { slug: 'vsinstrumentsbase', releases: instrumentsReleases })).toBe(
-      mods[0]
-    );
+    expect(
+      findInstalledModForEntry(mods, { slug: 'vsinstrumentsbase', releases: instrumentsReleases })
+    ).toBe(mods[0]);
   });
 
   it('prefers the installed mod whose ID is the URL slug', () => {

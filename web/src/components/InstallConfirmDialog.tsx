@@ -129,9 +129,7 @@ export function InstallConfirmDialog({
       <DialogContent data-testid="install-confirm-dialog">
         <DialogHeader>
           <DialogTitle>Install Mod</DialogTitle>
-          <DialogDescription>
-            Confirm installation of this mod to your server.
-          </DialogDescription>
+          <DialogDescription>Confirm installation of this mod to your server.</DialogDescription>
         </DialogHeader>
 
         {/* Mod info section */}
@@ -160,27 +158,18 @@ export function InstallConfirmDialog({
               {mod.name}
             </h3>
             {mod.author && (
-              <p
-                className="text-sm text-muted-foreground"
-                data-testid="install-dialog-mod-author"
-              >
+              <p className="text-sm text-muted-foreground" data-testid="install-dialog-mod-author">
                 by {mod.author}
               </p>
             )}
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="install-dialog-mod-version"
-            >
+            <p className="text-sm text-muted-foreground" data-testid="install-dialog-mod-version">
               Version: {mod.version ?? 'Latest'}
             </p>
           </div>
         </div>
 
         {/* Compatibility badge */}
-        <CompatibilityBadge
-          status={compatibility.status}
-          message={compatibility.message}
-        />
+        <CompatibilityBadge status={compatibility.status} message={compatibility.message} />
 
         {/* Warning message for not_verified/incompatible */}
         {warningMessage && (

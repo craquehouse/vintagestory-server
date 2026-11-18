@@ -78,7 +78,9 @@ describe('JobsTable', () => {
       // 3600 seconds = 1 hour
       expect(screen.getByTestId('job-schedule-mod_cache_refresh')).toHaveTextContent('every 1h');
       // 86400 seconds = 24 hours
-      expect(screen.getByTestId('job-schedule-server_versions_check')).toHaveTextContent('every 24h');
+      expect(screen.getByTestId('job-schedule-server_versions_check')).toHaveTextContent(
+        'every 24h'
+      );
     });
 
     it('formats minutes correctly', () => {

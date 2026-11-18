@@ -11,12 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { LineChart, Line, XAxis, YAxis } from 'recharts';
 
 const mockData = [
   { timestamp: '10:00', value: 100 },
@@ -34,11 +29,7 @@ function TestChart() {
       <LineChart width={300} height={200} data={mockData}>
         <XAxis dataKey="timestamp" />
         <YAxis />
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke="#8884d8"
-        />
+        <Line type="monotone" dataKey="value" stroke="#8884d8" />
       </LineChart>
     </div>
   );
@@ -96,18 +87,8 @@ describe('Recharts Setup Verification', () => {
           <LineChart width={300} height={200} data={multiLineData}>
             <XAxis dataKey="time" />
             <YAxis />
-            <Line
-              type="monotone"
-              dataKey="api"
-              stroke="#89b4fa"
-              name="API"
-            />
-            <Line
-              type="monotone"
-              dataKey="game"
-              stroke="#a6e3a1"
-              name="Game"
-            />
+            <Line type="monotone" dataKey="api" stroke="#89b4fa" name="API" />
+            <Line type="monotone" dataKey="game" stroke="#a6e3a1" name="Game" />
           </LineChart>
         </div>
       );

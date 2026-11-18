@@ -13,7 +13,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter, MemoryRouter, Routes, Route, Navigate, useLocation, type InitialEntry } from 'react-router';
+import {
+  BrowserRouter,
+  MemoryRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  type InitialEntry,
+} from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
@@ -315,13 +323,16 @@ describe('ModsPage routing', () => {
 
   describe('Story 16.1: Browse tab returns to the browse state', () => {
     const lastSearch = '?q=farming&version=1.20.0';
-    const openedSearch = '?q=food&side=server&tags=qol&type=mod&version=1.21.2&sort=downloads&page=2';
+    const openedSearch =
+      '?q=food&side=server&tags=qol&type=mod&version=1.21.2&sort=downloads&page=2';
 
     beforeEach(() => {
       window.sessionStorage.removeItem(BROWSE_LAST_SEARCH_KEY);
     });
 
-    async function clickBrowseTab(initialEntry: Parameters<typeof createTestRouterWithRedirects>[0][number]) {
+    async function clickBrowseTab(
+      initialEntry: Parameters<typeof createTestRouterWithRedirects>[0][number]
+    ) {
       const user = userEvent.setup();
       const queryClient = createTestQueryClient();
       const Router = createTestRouterWithRedirects([initialEntry], queryClient);
@@ -379,7 +390,10 @@ describe('ModsPage routing', () => {
       }
       window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, lastSearch);
       const queryClient = createTestQueryClient();
-      const Router = createTestRouterWithRedirects([`/game-server/mods/browse${lastSearch}`], queryClient);
+      const Router = createTestRouterWithRedirects(
+        [`/game-server/mods/browse${lastSearch}`],
+        queryClient
+      );
       render(
         <Router>
           <KeyProbe />
@@ -466,7 +480,9 @@ describe('ModsPage routing', () => {
       await waitFor(() => {
         expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('probe-path')).toHaveTextContent(/^\/game-server\/mods\/installed$/);
+      expect(screen.getByTestId('probe-path')).toHaveTextContent(
+        /^\/game-server\/mods\/installed$/
+      );
       expect(screen.getByTestId('installed-tab')).toHaveAttribute('data-state', 'active');
     });
 
@@ -481,39 +497,53 @@ describe('ModsPage routing', () => {
       await waitFor(() => {
         expect(screen.getByTestId('installed-tab-content')).toBeInTheDocument();
       });
-      expect(screen.getByTestId('probe-path')).toHaveTextContent(/^\/game-server\/mods\/installed$/);
+      expect(screen.getByTestId('probe-path')).toHaveTextContent(
+        /^\/game-server\/mods\/installed$/
+      );
     });
 
     it.each([
-      ['a click', async (user: ReturnType<typeof userEvent.setup>) => {
-        await user.click(screen.getByTestId('browse-tab'));
-      }],
-      ['Space', async (user: ReturnType<typeof userEvent.setup>) => {
-        act(() => screen.getByTestId('browse-tab').focus());
-        await user.keyboard(' ');
-      }],
-      ['Enter', async (user: ReturnType<typeof userEvent.setup>) => {
-        act(() => screen.getByTestId('browse-tab').focus());
-        await user.keyboard('{Enter}');
-      }],
-    ])('opens the state the mod was opened from with %s on the active Browse tab, adding one history entry', async (_name, activate) => {
-      const user = userEvent.setup();
-      window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, '?q=farming');
-      const { keys, KeyProbe } = createKeyProbe();
-      renderAt({ pathname: detailPath, state: { browseSearch: '?q=food' } }, <KeyProbe />);
-      await screen.findByTestId('browse-tab');
-      expect(keys).toHaveLength(1);
+      [
+        'a click',
+        async (user: ReturnType<typeof userEvent.setup>) => {
+          await user.click(screen.getByTestId('browse-tab'));
+        },
+      ],
+      [
+        'Space',
+        async (user: ReturnType<typeof userEvent.setup>) => {
+          act(() => screen.getByTestId('browse-tab').focus());
+          await user.keyboard(' ');
+        },
+      ],
+      [
+        'Enter',
+        async (user: ReturnType<typeof userEvent.setup>) => {
+          act(() => screen.getByTestId('browse-tab').focus());
+          await user.keyboard('{Enter}');
+        },
+      ],
+    ])(
+      'opens the state the mod was opened from with %s on the active Browse tab, adding one history entry',
+      async (_name, activate) => {
+        const user = userEvent.setup();
+        window.sessionStorage.setItem(BROWSE_LAST_SEARCH_KEY, '?q=farming');
+        const { keys, KeyProbe } = createKeyProbe();
+        renderAt({ pathname: detailPath, state: { browseSearch: '?q=food' } }, <KeyProbe />);
+        await screen.findByTestId('browse-tab');
+        expect(keys).toHaveLength(1);
 
-      await activate(user);
+        await activate(user);
 
-      await waitFor(() => {
-        expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
-      });
-      expect(screen.getByTestId('probe-path')).toHaveTextContent(/^\/game-server\/mods\/browse$/);
-      expect(screen.getByTestId('probe-search')).toHaveTextContent(/^\?q=food$/);
-      expect(screen.getByTestId('probe-from-detail')).toHaveTextContent('true');
-      expect(keys).toHaveLength(2);
-    });
+        await waitFor(() => {
+          expect(screen.getByTestId('browse-tab-content')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('probe-path')).toHaveTextContent(/^\/game-server\/mods\/browse$/);
+        expect(screen.getByTestId('probe-search')).toHaveTextContent(/^\?q=food$/);
+        expect(screen.getByTestId('probe-from-detail')).toHaveTextContent('true');
+        expect(keys).toHaveLength(2);
+      }
+    );
   });
 
   // Story 17.7 review M1: Radix's mousedown focuses the trigger (onFocus reports the
@@ -557,23 +587,41 @@ describe('ModsPage routing', () => {
     }
 
     it.each([
-      ['the browse list', '/game-server/mods/browse', 'installed-tab', '/game-server/mods/installed'],
-      ['the Installed list', '/game-server/mods/installed', 'browse-tab', '/game-server/mods/browse'],
-      ['a mod detail page', '/game-server/mods/browse/testmod', 'installed-tab', '/game-server/mods/installed'],
-    ])('a mouse click on the inactive tab on %s adds one history entry', async (_name, start, tab, target) => {
-      const user = userEvent.setup();
-      const addedEntries = renderInBrowserRouter(start);
-      await screen.findByTestId(tab);
-      expect(addedEntries()).toBe(0);
+      [
+        'the browse list',
+        '/game-server/mods/browse',
+        'installed-tab',
+        '/game-server/mods/installed',
+      ],
+      [
+        'the Installed list',
+        '/game-server/mods/installed',
+        'browse-tab',
+        '/game-server/mods/browse',
+      ],
+      [
+        'a mod detail page',
+        '/game-server/mods/browse/testmod',
+        'installed-tab',
+        '/game-server/mods/installed',
+      ],
+    ])(
+      'a mouse click on the inactive tab on %s adds one history entry',
+      async (_name, start, tab, target) => {
+        const user = userEvent.setup();
+        const addedEntries = renderInBrowserRouter(start);
+        await screen.findByTestId(tab);
+        expect(addedEntries()).toBe(0);
 
-      await user.click(screen.getByTestId(tab));
+        await user.click(screen.getByTestId(tab));
 
-      await waitFor(() => {
-        expect(screen.getByTestId('probe-path')).toHaveTextContent(new RegExp(`^${target}$`));
-      });
-      await settle();
-      expect(addedEntries()).toBe(1);
-    });
+        await waitFor(() => {
+          expect(screen.getByTestId('probe-path')).toHaveTextContent(new RegExp(`^${target}$`));
+        });
+        await settle();
+        expect(addedEntries()).toBe(1);
+      }
+    );
 
     it('clicking back and forth adds one entry per click', async () => {
       const user = userEvent.setup();
@@ -671,9 +719,7 @@ describe('ModsPage routing', () => {
 
       expect(screen.getByTestId('mods-page')).toBeInTheDocument();
       expect(screen.getByText('Mods')).toBeInTheDocument();
-      expect(
-        screen.getByText('Manage installed mods or discover new ones')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Manage installed mods or discover new ones')).toBeInTheDocument();
     });
 
     it('renders both tab triggers', async () => {

@@ -34,12 +34,7 @@ interface BrowsePage {
 
 /** The API's name sort key (`_name_sort_key` in services/mod_api.py), close enough for ordering checks. */
 function nameKey(name: string): string {
-  return name
-    .trim()
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/ß/g, 'ss');
+  return name.trim().normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/ß/g, 'ss');
 }
 
 /** Compare by code point, as Python does (not by UTF-16 code unit). */
@@ -111,7 +106,9 @@ test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
     await page.setViewportSize({ width: 1440, height: 900 });
   });
 
-  test('choosing Name (A-Z) shows the first page alphabetically with page controls', async ({ page }) => {
+  test('choosing Name (A-Z) shows the first page alphabetically with page controls', async ({
+    page,
+  }) => {
     const requests = recordBrowseRequests(page);
     await page.goto(BROWSE);
     await expect(page.getByTestId('browse-results-count')).toBeVisible({ timeout: 30000 });
@@ -150,7 +147,9 @@ test.describe('Mod browser Name (A-Z) sort', { tag: '@moddb' }, () => {
     expectAlphabetical([...page1.mods, ...page2.mods].map((mod) => mod.name));
 
     const later = Math.max(3, Math.floor(page1.totalPages / 2));
-    const laterPage = await loadBrowsePage(page, () => page.goto(`${BROWSE}?sort=name&page=${later}`));
+    const laterPage = await loadBrowsePage(page, () =>
+      page.goto(`${BROWSE}?sort=name&page=${later}`)
+    );
     expect(laterPage.url.searchParams.get('page')).toBe(String(later));
     await expectCardsMatch(page, laterPage.mods);
     expectAlphabetical(laterPage.mods.map((mod) => mod.name));

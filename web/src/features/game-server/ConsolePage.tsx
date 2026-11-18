@@ -34,10 +34,7 @@ export function ConsolePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div
-        className="p-4 lg:p-6 h-full flex flex-col"
-        data-testid="console-page-loading"
-      >
+      <div className="p-4 lg:p-6 h-full flex flex-col" data-testid="console-page-loading">
         <h1 className="text-2xl font-bold">Server Console</h1>
         <p className="text-muted-foreground mt-4">Loading server status...</p>
       </div>
@@ -47,10 +44,7 @@ export function ConsolePage() {
   // Error state
   if (error) {
     return (
-      <div
-        className="p-4 lg:p-6 h-full flex flex-col"
-        data-testid="console-page-error"
-      >
+      <div className="p-4 lg:p-6 h-full flex flex-col" data-testid="console-page-error">
         <h1 className="text-2xl font-bold">Server Console</h1>
         <p className="text-destructive mt-4">Error: {error.message}</p>
       </div>

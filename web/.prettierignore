@@ -1,0 +1,14 @@
+# Recorded mod database answers and the seeded config, written by scripts
+# (just record-moddb); reformatting them would fight the recorder
+e2e/fixtures/
+
+# Prose and the page shell: not code style
+*.md
+*.html
+
+# Static files, and build, coverage and Playwright output
+public/
+dist/
+coverage/
+playwright-report*/
+test-results*/

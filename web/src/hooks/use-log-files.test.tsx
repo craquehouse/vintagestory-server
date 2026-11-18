@@ -29,9 +29,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -441,9 +439,7 @@ describe('useLogFiles', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(result.current.data?.data.files[0].name).toBe(
-        'server-log-2026-01-17_10-30-00.txt'
-      );
+      expect(result.current.data?.data.files[0].name).toBe('server-log-2026-01-17_10-30-00.txt');
     });
   });
 });

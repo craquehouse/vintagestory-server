@@ -114,25 +114,28 @@ export function DurationInput({
     setParseError(null);
   }, [value]);
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setInputText(newText);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newText = e.target.value;
+      setInputText(newText);
 
-    // Try to parse as user types for immediate feedback
-    if (newText.trim()) {
-      const result = parseDuration(newText);
-      if (result.success) {
-        setParseError(null);
-        // Update the value immediately for responsive feel
-        onChange(result.seconds);
-        lastParsedSeconds.current = result.seconds;
+      // Try to parse as user types for immediate feedback
+      if (newText.trim()) {
+        const result = parseDuration(newText);
+        if (result.success) {
+          setParseError(null);
+          // Update the value immediately for responsive feel
+          onChange(result.seconds);
+          lastParsedSeconds.current = result.seconds;
+        } else {
+          setParseError(result.error ?? 'Invalid duration');
+        }
       } else {
-        setParseError(result.error ?? 'Invalid duration');
+        setParseError(null);
       }
-    } else {
-      setParseError(null);
-    }
-  }, [onChange]);
+    },
+    [onChange]
+  );
 
   const handleBlur = useCallback(() => {
     setIsEditing(false);
@@ -151,20 +154,23 @@ export function DurationInput({
     onBlur?.();
   }, [inputText, onChange, onBlur]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      // Parse and apply on Enter
-      if (inputText.trim()) {
-        const result = parseDuration(inputText);
-        if (result.success) {
-          onChange(result.seconds);
-          lastParsedSeconds.current = result.seconds;
-          setParseError(null);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        // Parse and apply on Enter
+        if (inputText.trim()) {
+          const result = parseDuration(inputText);
+          if (result.success) {
+            onChange(result.seconds);
+            lastParsedSeconds.current = result.seconds;
+            setParseError(null);
+          }
         }
       }
-    }
-    onKeyDown?.(e);
-  }, [inputText, onChange, onKeyDown]);
+      onKeyDown?.(e);
+    },
+    [inputText, onChange, onKeyDown]
+  );
 
   return (
     <Input
@@ -179,10 +185,7 @@ export function DurationInput({
       placeholder={placeholder}
       aria-describedby={ariaDescribedBy}
       aria-invalid={ariaInvalid || !!parseError}
-      className={cn(
-        parseError && 'border-destructive focus-visible:ring-destructive',
-        className
-      )}
+      className={cn(parseError && 'border-destructive focus-visible:ring-destructive', className)}
     />
   );
 }

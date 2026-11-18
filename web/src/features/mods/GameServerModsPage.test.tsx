@@ -100,8 +100,8 @@ function GameServerModsPage() {
               <ServerOff className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium">Server Not Installed</p>
               <p className="text-muted-foreground mb-4">
-                Install a VintageStory server to manage mods.
-                Compatibility checking requires a server version to compare against.
+                Install a VintageStory server to manage mods. Compatibility checking requires a
+                server version to compare against.
               </p>
               <Link to="/game-server/version">
                 <Button variant="default">Go to Installation</Button>
@@ -117,9 +117,7 @@ function GameServerModsPage() {
 }
 
 // Wrapper component with providers
-function renderWithProviders(
-  initialEntries: string[] = ['/game-server/mods']
-) {
+function renderWithProviders(initialEntries: string[] = ['/game-server/mods']) {
   const queryClient = createTestQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
@@ -131,7 +129,10 @@ function renderWithProviders(
               <Route path="installed" element={<InstalledTab />} />
               <Route path="browse" element={<BrowseTab />} />
             </Route>
-            <Route path="/game-server/version" element={<div data-testid="version-page">Version Page</div>} />
+            <Route
+              path="/game-server/version"
+              element={<div data-testid="version-page">Version Page</div>}
+            />
           </Routes>
         </MemoryRouter>
       </PreferencesProvider>
@@ -190,7 +191,9 @@ describe('GameServerModsPage empty state (Story 11.4 AC4)', () => {
 
       renderWithProviders();
 
-      expect(screen.getByText(/compatibility checking requires a server version/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/compatibility checking requires a server version/i)
+      ).toBeInTheDocument();
     });
 
     it('shows link to Installation page', () => {

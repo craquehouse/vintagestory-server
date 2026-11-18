@@ -43,9 +43,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -276,9 +274,7 @@ describe('VersionPage', () => {
         expect(screen.getByTestId('version-page')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('version-page-title')).toHaveTextContent(
-        'Server Installation'
-      );
+      expect(screen.getByTestId('version-page-title')).toHaveTextContent('Server Installation');
     });
 
     it('shows version browser instead of ServerInstallCard when not installed', async () => {
@@ -307,7 +303,9 @@ describe('VersionPage', () => {
 
       // Should NOT show ServerInstallCard anymore
       expect(screen.queryByText('Install Server')).not.toBeInTheDocument();
-      expect(screen.queryByPlaceholderText('e.g., stable, unstable, 1.21.6')).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText('e.g., stable, unstable, 1.21.6')
+      ).not.toBeInTheDocument();
 
       // Should show version browser components
       await waitFor(() => {
@@ -449,9 +447,7 @@ describe('VersionPage', () => {
         expect(screen.getByTestId('version-page')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('version-page-title')).toHaveTextContent(
-        'Server Version'
-      );
+      expect(screen.getByTestId('version-page-title')).toHaveTextContent('Server Version');
     });
 
     it('shows installed version prominently', async () => {
@@ -561,9 +557,7 @@ describe('VersionPage', () => {
         expect(screen.getByTestId('version-page')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('version-page-title')).toHaveTextContent(
-        'Server Installation'
-      );
+      expect(screen.getByTestId('version-page-title')).toHaveTextContent('Server Installation');
     });
   });
 
@@ -604,9 +598,7 @@ describe('VersionPage', () => {
       });
 
       // mockRunningStatus has version 1.21.6 and availableStableVersion 1.21.6 (same)
-      expect(
-        screen.queryByTestId('update-available-banner')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId('update-available-banner')).not.toBeInTheDocument();
     });
   });
 
@@ -1293,10 +1285,11 @@ describe('VersionPage', () => {
         if (options?.method === 'DELETE') {
           return {
             ok: true,
-            json: () => Promise.resolve({
-              status: 'ok',
-              data: { state: 'not_installed' },
-            }),
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { state: 'not_installed' },
+              }),
           };
         }
         // Handle GET requests for server status
@@ -1360,10 +1353,11 @@ describe('VersionPage', () => {
         if (options?.method === 'DELETE') {
           return {
             ok: true,
-            json: () => Promise.resolve({
-              status: 'ok',
-              data: { state: 'not_installed' },
-            }),
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: { state: 'not_installed' },
+              }),
           };
         }
         // Handle GET requests for server status
@@ -1429,9 +1423,10 @@ describe('VersionPage', () => {
             ok: false,
             status: 500,
             statusText: 'Internal Server Error',
-            json: () => Promise.resolve({
-              detail: { code: 'INTERNAL_ERROR', message: 'Failed to remove server' },
-            }),
+            json: () =>
+              Promise.resolve({
+                detail: { code: 'INTERNAL_ERROR', message: 'Failed to remove server' },
+              }),
           };
         }
         // Handle GET requests for server status

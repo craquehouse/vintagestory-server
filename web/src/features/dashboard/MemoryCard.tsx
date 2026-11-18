@@ -25,12 +25,7 @@ export function MemoryCard() {
   // Loading state
   if (isLoading) {
     return (
-      <StatCard
-        icon={MemoryStick}
-        title="Memory Usage"
-        value="Loading..."
-        testId="memory-card"
-      />
+      <StatCard icon={MemoryStick} title="Memory Usage" value="Loading..." testId="memory-card" />
     );
   }
 
@@ -83,9 +78,7 @@ export function MemoryCard() {
     >
       <div className="mt-2 space-y-1 text-sm text-muted-foreground">
         <div data-testid="memory-card-api">API: {formatMemoryAdaptive(apiMemory)}</div>
-        <div data-testid="memory-card-game">
-          Game: {formatMemoryAdaptive(gameMemory)}
-        </div>
+        <div data-testid="memory-card-game">Game: {formatMemoryAdaptive(gameMemory)}</div>
       </div>
     </StatCard>
   );

@@ -139,13 +139,10 @@ describe('api/config', () => {
 
       await updateGameSetting('ServerName', 'New Server Name');
 
-      expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/game/settings/ServerName',
-        {
-          method: 'POST',
-          body: { value: 'New Server Name' },
-        }
-      );
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/game/settings/ServerName', {
+        method: 'POST',
+        body: { value: 'New Server Name' },
+      });
     });
 
     it('encodes special characters in setting key', async () => {
@@ -242,9 +239,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Update failed'));
 
-      await expect(updateGameSetting('ServerName', 'Test')).rejects.toThrow(
-        'Update failed'
-      );
+      await expect(updateGameSetting('ServerName', 'Test')).rejects.toThrow('Update failed');
     });
   });
 
@@ -377,9 +372,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Unauthorized'));
 
-      await expect(updateApiSetting('test', 'value')).rejects.toThrow(
-        'Unauthorized'
-      );
+      await expect(updateApiSetting('test', 'value')).rejects.toThrow('Unauthorized');
     });
   });
 
@@ -412,9 +405,7 @@ describe('api/config', () => {
 
       await fetchConfigDirectories('Mods');
 
-      expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/directories?directory=Mods'
-      );
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/directories?directory=Mods');
     });
 
     it('encodes special characters in directory parameter', async () => {
@@ -450,9 +441,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Directory not found'));
 
-      await expect(fetchConfigDirectories('invalid')).rejects.toThrow(
-        'Directory not found'
-      );
+      await expect(fetchConfigDirectories('invalid')).rejects.toThrow('Directory not found');
     });
   });
 
@@ -485,9 +474,7 @@ describe('api/config', () => {
 
       await fetchConfigFiles('ModConfig');
 
-      expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/files?directory=ModConfig'
-      );
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files?directory=ModConfig');
     });
 
     it('encodes special characters in directory parameter', async () => {
@@ -523,9 +510,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('Access denied'));
 
-      await expect(fetchConfigFiles('restricted')).rejects.toThrow(
-        'Access denied'
-      );
+      await expect(fetchConfigFiles('restricted')).rejects.toThrow('Access denied');
     });
   });
 
@@ -543,9 +528,7 @@ describe('api/config', () => {
 
       const result = await fetchConfigFileContent('serverconfig.json');
 
-      expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/files/serverconfig.json'
-      );
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/serverconfig.json');
       expect(result.data.content).toEqual({
         ServerName: 'My Server',
         Port: 42420,
@@ -577,9 +560,7 @@ describe('api/config', () => {
 
       await fetchConfigFileContent('path/to/file.json');
 
-      expect(apiClient).toHaveBeenCalledWith(
-        '/api/v1alpha1/config/files/path%2Fto%2Ffile.json'
-      );
+      expect(apiClient).toHaveBeenCalledWith('/api/v1alpha1/config/files/path%2Fto%2Ffile.json');
     });
 
     it('returns parsed JSON content', async () => {
@@ -609,9 +590,7 @@ describe('api/config', () => {
     it('propagates errors from apiClient', async () => {
       vi.mocked(apiClient).mockRejectedValue(new Error('File not found'));
 
-      await expect(
-        fetchConfigFileContent('nonexistent.json')
-      ).rejects.toThrow('File not found');
+      await expect(fetchConfigFileContent('nonexistent.json')).rejects.toThrow('File not found');
     });
   });
 
@@ -646,4 +625,3 @@ describe('updateApiSetting secret keys (Story 14.6)', () => {
     expect(apiClient).not.toHaveBeenCalled();
   });
 });
-

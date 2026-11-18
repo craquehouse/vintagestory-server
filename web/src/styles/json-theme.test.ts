@@ -15,19 +15,19 @@ import { catppuccinMocha, catppuccinLatte } from '@/lib/terminal-themes';
  * These values must match what's defined in index.css.
  */
 const EXPECTED_MOCHA_COLORS = {
-  key: '#89b4fa',     // blue
-  string: '#a6e3a1',  // green
-  number: '#f9e2af',  // yellow
+  key: '#89b4fa', // blue
+  string: '#a6e3a1', // green
+  number: '#f9e2af', // yellow
   boolean: '#cba6f7', // magenta
-  null: '#f38ba8',    // red
+  null: '#f38ba8', // red
 };
 
 const EXPECTED_LATTE_COLORS = {
-  key: '#1e66f5',     // blue
-  string: '#40a02b',  // green
-  number: '#df8e1d',  // yellow
+  key: '#1e66f5', // blue
+  string: '#40a02b', // green
+  number: '#df8e1d', // yellow
   boolean: '#8839ef', // magenta
-  null: '#d20f39',    // red
+  null: '#d20f39', // red
 };
 
 describe('JSON syntax highlighting theme colors', () => {

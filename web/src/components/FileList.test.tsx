@@ -9,12 +9,7 @@ describe('FileList', () => {
   describe('loading state', () => {
     it('shows loading skeletons when isLoading is true', () => {
       render(
-        <FileList
-          files={[]}
-          selectedFile={null}
-          isLoading={true}
-          onSelectFile={mockOnSelectFile}
-        />
+        <FileList files={[]} selectedFile={null} isLoading={true} onSelectFile={mockOnSelectFile} />
       );
 
       expect(screen.getByTestId('file-list-loading')).toBeInTheDocument();
@@ -37,26 +32,14 @@ describe('FileList', () => {
 
   describe('empty state (AC: 5)', () => {
     it('shows empty state when no files are available', () => {
-      render(
-        <FileList
-          files={[]}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={[]} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       expect(screen.getByTestId('file-list-empty')).toBeInTheDocument();
       expect(screen.getByText('No configuration files found')).toBeInTheDocument();
     });
 
     it('shows folder icon in empty state', () => {
-      render(
-        <FileList
-          files={[]}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={[]} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       // Lucide icons are rendered as SVG elements
       const emptyContainer = screen.getByTestId('file-list-empty');
@@ -66,13 +49,7 @@ describe('FileList', () => {
 
   describe('file list rendering (AC: 1)', () => {
     it('renders all files in the list', () => {
-      render(
-        <FileList
-          files={mockFiles}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={mockFiles} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       expect(screen.getByTestId('file-list')).toBeInTheDocument();
       expect(screen.getByTestId('file-item-serverconfig.json')).toBeInTheDocument();
@@ -81,13 +58,7 @@ describe('FileList', () => {
     });
 
     it('displays file names as text', () => {
-      render(
-        <FileList
-          files={mockFiles}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={mockFiles} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       expect(screen.getByText('serverconfig.json')).toBeInTheDocument();
       expect(screen.getByText('worldconfig.json')).toBeInTheDocument();
@@ -95,13 +66,7 @@ describe('FileList', () => {
     });
 
     it('renders file items as buttons', () => {
-      render(
-        <FileList
-          files={mockFiles}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={mockFiles} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       const button = screen.getByTestId('file-item-serverconfig.json');
       expect(button.tagName).toBe('BUTTON');
@@ -131,13 +96,7 @@ describe('FileList', () => {
   describe('file selection', () => {
     it('calls onSelectFile when a file is clicked', () => {
       const onSelectFile = vi.fn();
-      render(
-        <FileList
-          files={mockFiles}
-          selectedFile={null}
-          onSelectFile={onSelectFile}
-        />
-      );
+      render(<FileList files={mockFiles} selectedFile={null} onSelectFile={onSelectFile} />);
 
       fireEvent.click(screen.getByTestId('file-item-serverconfig.json'));
 
@@ -146,13 +105,7 @@ describe('FileList', () => {
 
     it('calls onSelectFile with correct filename for each file', () => {
       const onSelectFile = vi.fn();
-      render(
-        <FileList
-          files={mockFiles}
-          selectedFile={null}
-          onSelectFile={onSelectFile}
-        />
-      );
+      render(<FileList files={mockFiles} selectedFile={null} onSelectFile={onSelectFile} />);
 
       fireEvent.click(screen.getByTestId('file-item-worldconfig.json'));
       expect(onSelectFile).toHaveBeenCalledWith('worldconfig.json');
@@ -259,11 +212,7 @@ describe('FileList', () => {
   describe('edge cases', () => {
     it('handles single file', () => {
       render(
-        <FileList
-          files={['only-file.json']}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
+        <FileList files={['only-file.json']} selectedFile={null} onSelectFile={mockOnSelectFile} />
       );
 
       expect(screen.getByTestId('file-list')).toBeInTheDocument();
@@ -272,13 +221,7 @@ describe('FileList', () => {
 
     it('handles file names with special characters', () => {
       const specialFiles = ['server-config.json', 'world_config.json', 'config (backup).json'];
-      render(
-        <FileList
-          files={specialFiles}
-          selectedFile={null}
-          onSelectFile={mockOnSelectFile}
-        />
-      );
+      render(<FileList files={specialFiles} selectedFile={null} onSelectFile={mockOnSelectFile} />);
 
       expect(screen.getByText('server-config.json')).toBeInTheDocument();
       expect(screen.getByText('world_config.json')).toBeInTheDocument();

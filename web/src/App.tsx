@@ -1,38 +1,38 @@
-import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { PreferencesProvider } from "@/contexts/PreferencesContext";
-import { SidebarProvider } from "@/contexts/SidebarContext";
-import { Layout } from "@/components/layout/Layout";
-import { Toaster } from "@/components/ui/sonner";
-import { EmptyServerState } from "@/components/EmptyServerState";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useServerStatus } from "@/hooks/use-server-status";
-import { isServerInstalled } from "@/lib/server-utils";
-import { getApiKey } from "@/api/client";
-import { NoApiKeyScreen } from "@/components/NoApiKeyScreen";
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { PreferencesProvider } from '@/contexts/PreferencesContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { Layout } from '@/components/layout/Layout';
+import { Toaster } from '@/components/ui/sonner';
+import { EmptyServerState } from '@/components/EmptyServerState';
+import { PageErrorBoundary } from '@/components/PageErrorBoundary';
+import { useServerStatus } from '@/hooks/use-server-status';
+import { isServerInstalled } from '@/lib/server-utils';
+import { getApiKey } from '@/api/client';
+import { NoApiKeyScreen } from '@/components/NoApiKeyScreen';
 
 // Each page loads on demand, so a first visit doesn't download every page's dependencies.
 // The mods views share one chunk so switching between their tabs doesn't show a fallback.
-const loadMods = () => import("@/features/mods");
+const loadMods = () => import('@/features/mods');
 const ModsPage = lazy(() => loadMods().then((m) => ({ default: m.ModsPage })));
 const InstalledTab = lazy(() => loadMods().then((m) => ({ default: m.InstalledTab })));
 const BrowseTab = lazy(() => loadMods().then((m) => ({ default: m.BrowseTab })));
 const ModDetailPage = lazy(() => loadMods().then((m) => ({ default: m.ModDetailPage })));
 const Dashboard = lazy(() =>
-  import("@/features/dashboard/Dashboard").then((m) => ({ default: m.Dashboard })),
+  import('@/features/dashboard/Dashboard').then((m) => ({ default: m.Dashboard }))
 );
 const VersionPage = lazy(() =>
-  import("@/features/game-server/VersionPage").then((m) => ({ default: m.VersionPage })),
+  import('@/features/game-server/VersionPage').then((m) => ({ default: m.VersionPage }))
 );
 const GameServerSettingsPage = lazy(() =>
-  import("@/features/game-server/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+  import('@/features/game-server/SettingsPage').then((m) => ({ default: m.SettingsPage }))
 );
 const ConsolePage = lazy(() =>
-  import("@/features/game-server/ConsolePage").then((m) => ({ default: m.ConsolePage })),
+  import('@/features/game-server/ConsolePage').then((m) => ({ default: m.ConsolePage }))
 );
 const SettingsPage = lazy(() =>
-  import("@/features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
+  import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
 );
 
 function PageLoading() {
@@ -54,7 +54,6 @@ function GameServerLayout() {
     </div>
   );
 }
-
 
 /**
  * Redirect component for legacy /mods routes.
@@ -117,36 +116,36 @@ function App() {
     <ThemeProvider>
       <PreferencesProvider>
         <SidebarProvider>
-        <BrowserRouter>
-          <Layout>
-            <PageErrorBoundary>
-            <Suspense fallback={<PageLoading />}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              {/* Game Server nested routes - Story 11.6: Default to /version (Installation page) */}
-              <Route path="/game-server" element={<GameServerLayout />}>
-                <Route index element={<Navigate to="version" replace />} />
-                <Route path="version" element={<VersionPage />} />
-                <Route path="settings" element={<GameServerSettingsPage />} />
-                {/* Mods routes - moved from top-level /mods (Story 11.4) */}
-                {/* GameServerModsPage checks server status and shows empty state if not installed */}
-                <Route path="mods" element={<GameServerModsPage />}>
-                  <Route index element={<Navigate to="installed" replace />} />
-                  <Route path="installed" element={<InstalledTab />} />
-                  <Route path="browse" element={<BrowseTab />} />
-                  <Route path="browse/:slug" element={<ModDetailPage />} />
-                </Route>
-                <Route path="console" element={<ConsolePage />} />
-              </Route>
-              <Route path="/config" element={<SettingsPage />} />
-              {/* Story 11.4: Redirect legacy /mods/* routes to /game-server/mods/* */}
-              <Route path="/mods/*" element={<ModsRedirect />} />
-            </Routes>
-            </Suspense>
-            </PageErrorBoundary>
-          </Layout>
-        </BrowserRouter>
-        <Toaster />
+          <BrowserRouter>
+            <Layout>
+              <PageErrorBoundary>
+                <Suspense fallback={<PageLoading />}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    {/* Game Server nested routes - Story 11.6: Default to /version (Installation page) */}
+                    <Route path="/game-server" element={<GameServerLayout />}>
+                      <Route index element={<Navigate to="version" replace />} />
+                      <Route path="version" element={<VersionPage />} />
+                      <Route path="settings" element={<GameServerSettingsPage />} />
+                      {/* Mods routes - moved from top-level /mods (Story 11.4) */}
+                      {/* GameServerModsPage checks server status and shows empty state if not installed */}
+                      <Route path="mods" element={<GameServerModsPage />}>
+                        <Route index element={<Navigate to="installed" replace />} />
+                        <Route path="installed" element={<InstalledTab />} />
+                        <Route path="browse" element={<BrowseTab />} />
+                        <Route path="browse/:slug" element={<ModDetailPage />} />
+                      </Route>
+                      <Route path="console" element={<ConsolePage />} />
+                    </Route>
+                    <Route path="/config" element={<SettingsPage />} />
+                    {/* Story 11.4: Redirect legacy /mods/* routes to /game-server/mods/* */}
+                    <Route path="/mods/*" element={<ModsRedirect />} />
+                  </Routes>
+                </Suspense>
+              </PageErrorBoundary>
+            </Layout>
+          </BrowserRouter>
+          <Toaster />
         </SidebarProvider>
       </PreferencesProvider>
     </ThemeProvider>

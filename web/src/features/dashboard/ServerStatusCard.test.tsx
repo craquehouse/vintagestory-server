@@ -39,9 +39,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with providers
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -49,10 +47,9 @@ describe('ServerStatusCard', () => {
   describe('loading state', () => {
     it('renders loading state when isLoading is true', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" isLoading={true} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
       expect(screen.getByText('Server Status')).toBeInTheDocument();
@@ -65,10 +62,9 @@ describe('ServerStatusCard', () => {
 
     it('has Server icon in loading state', () => {
       const queryClient = createTestQueryClient();
-      const { container } = render(
-        <ServerStatusCard state="running" isLoading={true} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { container } = render(<ServerStatusCard state="running" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       const icon = container.querySelector('svg');
       expect(icon).toBeInTheDocument();
@@ -87,38 +83,33 @@ describe('ServerStatusCard', () => {
       'error',
     ];
 
-    it.each(serverStates)(
-      'renders with server state: %s',
-      (state) => {
-        const queryClient = createTestQueryClient();
-        render(
-          <ServerStatusCard state={state} version="1.19.8" />,
-          { wrapper: createWrapper(queryClient) }
-        );
+    it.each(serverStates)('renders with server state: %s', (state) => {
+      const queryClient = createTestQueryClient();
+      render(<ServerStatusCard state={state} version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
-        expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
-        expect(screen.getByText('Server Status')).toBeInTheDocument();
+      expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
+      expect(screen.getByText('Server Status')).toBeInTheDocument();
 
-        // Should render badge with correct state
-        const badge = screen.getByTestId('server-status-badge');
-        expect(badge).toBeInTheDocument();
-        expect(badge).toHaveAttribute('data-state', state);
+      // Should render badge with correct state
+      const badge = screen.getByTestId('server-status-badge');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveAttribute('data-state', state);
 
-        // Should render controls with correct state
-        const controls = screen.getByTestId('server-controls');
-        expect(controls).toBeInTheDocument();
-        expect(controls).toHaveAttribute('data-state', state);
-      }
-    );
+      // Should render controls with correct state
+      const controls = screen.getByTestId('server-controls');
+      expect(controls).toBeInTheDocument();
+      expect(controls).toHaveAttribute('data-state', state);
+    });
   });
 
   describe('version display', () => {
     it('displays version when provided', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       const versionElement = screen.getByTestId('server-status-card-version');
       expect(versionElement).toBeInTheDocument();
@@ -127,20 +118,18 @@ describe('ServerStatusCard', () => {
 
     it('does not display version when null', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version={null} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version={null} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.queryByTestId('server-status-card-version')).not.toBeInTheDocument();
     });
 
     it('does not display version when undefined', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version={undefined} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version={undefined} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.queryByTestId('server-status-card-version')).not.toBeInTheDocument();
     });
@@ -150,10 +139,9 @@ describe('ServerStatusCard', () => {
 
       versions.forEach((version) => {
         const queryClient = createTestQueryClient();
-        const { unmount } = render(
-          <ServerStatusCard state="running" version={version} />,
-          { wrapper: createWrapper(queryClient) }
-        );
+        const { unmount } = render(<ServerStatusCard state="running" version={version} />, {
+          wrapper: createWrapper(queryClient),
+        });
 
         expect(screen.getByTestId('server-status-card-version')).toHaveTextContent(
           `Version ${version}`
@@ -167,10 +155,9 @@ describe('ServerStatusCard', () => {
   describe('integration with ServerStatusBadge', () => {
     it('passes correct state to ServerStatusBadge', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       const badge = screen.getByTestId('server-status-badge');
       expect(badge).toHaveAttribute('data-state', 'running');
@@ -178,10 +165,9 @@ describe('ServerStatusCard', () => {
 
     it('does not render ServerStatusBadge in loading state', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" isLoading={true} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.queryByTestId('server-status-badge')).not.toBeInTheDocument();
     });
@@ -190,10 +176,9 @@ describe('ServerStatusCard', () => {
   describe('integration with ServerControls', () => {
     it('passes correct state to ServerControls', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="installed" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="installed" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       const controls = screen.getByTestId('server-controls');
       expect(controls).toHaveAttribute('data-state', 'installed');
@@ -201,34 +186,33 @@ describe('ServerStatusCard', () => {
 
     it('does not render ServerControls in loading state', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" isLoading={true} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.queryByTestId('server-controls')).not.toBeInTheDocument();
     });
 
     it('renders ServerControls in dedicated container', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       const controlsContainer = screen.getByTestId('server-status-card-controls');
       expect(controlsContainer).toBeInTheDocument();
-      expect(controlsContainer.querySelector('[data-testid="server-controls"]')).toBeInTheDocument();
+      expect(
+        controlsContainer.querySelector('[data-testid="server-controls"]')
+      ).toBeInTheDocument();
     });
   });
 
   describe('component structure', () => {
     it('has consistent card structure with header and content', () => {
       const queryClient = createTestQueryClient();
-      const { container } = render(
-        <ServerStatusCard state="running" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { container } = render(<ServerStatusCard state="running" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       // Check for Card component structure
       expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
@@ -244,18 +228,16 @@ describe('ServerStatusCard', () => {
       const queryClient = createTestQueryClient();
 
       // Test loading state
-      const { unmount: unmount1 } = render(
-        <ServerStatusCard state="running" isLoading={true} />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { unmount: unmount1 } = render(<ServerStatusCard state="running" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
       expect(screen.getByTestId('server-status-card')).toHaveClass('min-h-[140px]');
       unmount1();
 
       // Test normal state
-      const { unmount: unmount2 } = render(
-        <ServerStatusCard state="running" version="1.19.8" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      const { unmount: unmount2 } = render(<ServerStatusCard state="running" version="1.19.8" />, {
+        wrapper: createWrapper(queryClient),
+      });
       expect(screen.getByTestId('server-status-card')).toHaveClass('min-h-[140px]');
       unmount2();
     });
@@ -272,14 +254,9 @@ describe('ServerStatusCard', () => {
   describe('edge cases', () => {
     it('handles all props together', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard
-          state="running"
-          version="1.19.8"
-          isLoading={false}
-        />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="1.19.8" isLoading={false} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       expect(screen.getByTestId('server-status-card')).toBeInTheDocument();
       expect(screen.getByTestId('server-status-badge')).toBeInTheDocument();
@@ -289,14 +266,9 @@ describe('ServerStatusCard', () => {
 
     it('prioritizes isLoading over state', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard
-          state="running"
-          version="1.19.8"
-          isLoading={true}
-        />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="1.19.8" isLoading={true} />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       // Should show loading state, not running state
       expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -306,10 +278,9 @@ describe('ServerStatusCard', () => {
 
     it('handles empty string version', () => {
       const queryClient = createTestQueryClient();
-      render(
-        <ServerStatusCard state="running" version="" />,
-        { wrapper: createWrapper(queryClient) }
-      );
+      render(<ServerStatusCard state="running" version="" />, {
+        wrapper: createWrapper(queryClient),
+      });
 
       // Empty string is falsy, should not render version
       expect(screen.queryByTestId('server-status-card-version')).not.toBeInTheDocument();

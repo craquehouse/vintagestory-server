@@ -30,9 +30,7 @@ vi.mock('@/hooks/use-server-status', () => ({
 
 // Mock GameConfigPanel to isolate SettingsPage tests
 vi.mock('./GameConfigPanel', () => ({
-  GameConfigPanel: () => (
-    <div data-testid="game-config-panel">GameConfigPanel Mock</div>
-  ),
+  GameConfigPanel: () => <div data-testid="game-config-panel">GameConfigPanel Mock</div>,
 }));
 
 /** A complete status response for `state`. */

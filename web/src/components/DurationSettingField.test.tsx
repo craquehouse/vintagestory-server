@@ -46,12 +46,7 @@ describe('DurationSettingField', () => {
     });
 
     it('renders description when provided', () => {
-      render(
-        <DurationSettingField
-          {...defaultProps}
-          description="How often to refresh"
-        />
-      );
+      render(<DurationSettingField {...defaultProps} description="How often to refresh" />);
 
       expect(screen.getByText('How often to refresh')).toBeInTheDocument();
     });
@@ -72,9 +67,7 @@ describe('DurationSettingField', () => {
     });
 
     it('applies custom className', () => {
-      render(
-        <DurationSettingField {...defaultProps} className="custom-class" />
-      );
+      render(<DurationSettingField {...defaultProps} className="custom-class" />);
 
       const container = screen.getByText('Test Setting').closest('.space-y-1');
       expect(container).toHaveClass('custom-class');
@@ -179,9 +172,7 @@ describe('DurationSettingField', () => {
   describe('validation', () => {
     it('shows error when value is below minimum', async () => {
       const user = userEvent.setup();
-      render(
-        <DurationSettingField {...defaultProps} min={3600} />
-      );
+      render(<DurationSettingField {...defaultProps} min={3600} />);
 
       const input = screen.getByRole('textbox');
       await user.clear(input);
@@ -192,9 +183,7 @@ describe('DurationSettingField', () => {
 
     it('shows error when value is above maximum', async () => {
       const user = userEvent.setup();
-      render(
-        <DurationSettingField {...defaultProps} max={3600} />
-      );
+      render(<DurationSettingField {...defaultProps} max={3600} />);
 
       const input = screen.getByRole('textbox');
       await user.clear(input);
@@ -206,11 +195,7 @@ describe('DurationSettingField', () => {
     it('uses custom min message with placeholder', async () => {
       const user = userEvent.setup();
       render(
-        <DurationSettingField
-          {...defaultProps}
-          min={3600}
-          minMessage="Minimum duration is {min}"
-        />
+        <DurationSettingField {...defaultProps} min={3600} minMessage="Minimum duration is {min}" />
       );
 
       const input = screen.getByRole('textbox');
@@ -223,11 +208,7 @@ describe('DurationSettingField', () => {
     it('uses custom max message with placeholder', async () => {
       const user = userEvent.setup();
       render(
-        <DurationSettingField
-          {...defaultProps}
-          max={3600}
-          maxMessage="Maximum duration is {max}"
-        />
+        <DurationSettingField {...defaultProps} max={3600} maxMessage="Maximum duration is {max}" />
       );
 
       const input = screen.getByRole('textbox');
@@ -239,9 +220,7 @@ describe('DurationSettingField', () => {
 
     it('does not show error for valid value within range', async () => {
       const user = userEvent.setup();
-      render(
-        <DurationSettingField {...defaultProps} min={1800} max={7200} />
-      );
+      render(<DurationSettingField {...defaultProps} min={1800} max={7200} />);
 
       const input = screen.getByRole('textbox');
       await user.clear(input);
@@ -316,9 +295,7 @@ describe('DurationSettingField', () => {
     it('does not save when validation fails', async () => {
       const onSave = vi.fn().mockResolvedValue(undefined);
       const user = userEvent.setup();
-      render(
-        <DurationSettingField {...defaultProps} onSave={onSave} min={3600} />
-      );
+      render(<DurationSettingField {...defaultProps} onSave={onSave} min={3600} />);
 
       const input = screen.getByRole('textbox');
       await user.clear(input);
@@ -367,25 +344,13 @@ describe('DurationSettingField', () => {
     });
 
     it('shows env badge with custom envVar', () => {
-      render(
-        <DurationSettingField
-          {...defaultProps}
-          envManaged
-          envVar="CUSTOM_VAR"
-        />
-      );
+      render(<DurationSettingField {...defaultProps} envManaged envVar="CUSTOM_VAR" />);
 
       expect(screen.getByText('Env: CUSTOM_VAR')).toBeInTheDocument();
     });
 
     it('shows env badge with generated envVar name', () => {
-      render(
-        <DurationSettingField
-          {...defaultProps}
-          envManaged
-          settingKey="my_setting"
-        />
-      );
+      render(<DurationSettingField {...defaultProps} envManaged settingKey="my_setting" />);
 
       expect(screen.getByText('Env: VS_CFG_MY_SETTING')).toBeInTheDocument();
     });
@@ -518,9 +483,7 @@ describe('DurationSettingField', () => {
     });
 
     it('sets aria-describedby to description when no error', () => {
-      render(
-        <DurationSettingField {...defaultProps} description="Help text" />
-      );
+      render(<DurationSettingField {...defaultProps} description="Help text" />);
 
       const input = screen.getByRole('textbox');
       expect(input).toHaveAttribute('aria-describedby', 'test_setting-desc');
@@ -559,9 +522,7 @@ describe('DurationSettingField', () => {
 
     it('hides description when error is shown', async () => {
       const user = userEvent.setup();
-      render(
-        <DurationSettingField {...defaultProps} description="Help text" />
-      );
+      render(<DurationSettingField {...defaultProps} description="Help text" />);
 
       expect(screen.getByText('Help text')).toBeInTheDocument();
 
@@ -576,9 +537,7 @@ describe('DurationSettingField', () => {
   describe('external value updates', () => {
     it('does not update inputText when value changes externally while editing', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(
-        <DurationSettingField {...defaultProps} value={3600} />
-      );
+      const { rerender } = render(<DurationSettingField {...defaultProps} value={3600} />);
 
       // Start editing
       const input = screen.getByRole('textbox');

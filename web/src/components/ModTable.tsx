@@ -55,7 +55,10 @@ import {
 } from '@/components/InstalledModParts';
 import { ModUpdateCell } from '@/components/ModUpdateCell';
 import { InstalledModCard } from '@/components/InstalledModCard';
-import { InstalledModsSortControl, SORT_COLUMN_LABELS } from '@/components/InstalledModsSortControl';
+import {
+  InstalledModsSortControl,
+  SORT_COLUMN_LABELS,
+} from '@/components/InstalledModsSortControl';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { useMediaQuery, LG_UP_QUERY } from '@/hooks/use-media-query';
@@ -158,9 +161,8 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   // VSS-g54: Update preferences when sorting changes
   const onSortingChange = useCallback(
     (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
-      const newSorting = typeof updaterOrValue === 'function'
-        ? updaterOrValue(sorting)
-        : updaterOrValue;
+      const newSorting =
+        typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue;
 
       if (newSorting.length > 0) {
         const { id, desc } = newSorting[0];
@@ -190,34 +192,40 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     }));
   }, [mods, compatibilityMap, compatibilityDetails, sideMap, updateMap]);
 
-  const handleToggle = useCallback((mod: ModInfo) => {
-    if (mod.enabled) {
-      disableMod(mod.slug, {
-        onSuccess: () => {
-          onToggled?.(mod.slug, false);
-        },
-      });
-    } else {
-      enableMod(mod.slug, {
-        onSuccess: () => {
-          onToggled?.(mod.slug, true);
-        },
-      });
-    }
-  }, [disableMod, enableMod, onToggled]);
+  const handleToggle = useCallback(
+    (mod: ModInfo) => {
+      if (mod.enabled) {
+        disableMod(mod.slug, {
+          onSuccess: () => {
+            onToggled?.(mod.slug, false);
+          },
+        });
+      } else {
+        enableMod(mod.slug, {
+          onSuccess: () => {
+            onToggled?.(mod.slug, true);
+          },
+        });
+      }
+    },
+    [disableMod, enableMod, onToggled]
+  );
 
   // Story 14.3: apply the offered update through the confirmation flow
-  const handleUpdate = useCallback((mod: ModTableRow) => {
-    const offered = mod.updateStatus?.offeredVersion;
-    if (!offered) return;
-    startVersionChange({
-      slug: mod.slug,
-      name: mod.name || mod.slug,
-      version: offered,
-      installedVersion: mod.version,
-      kind: 'update',
-    });
-  }, [startVersionChange]);
+  const handleUpdate = useCallback(
+    (mod: ModTableRow) => {
+      const offered = mod.updateStatus?.offeredVersion;
+      if (!offered) return;
+      startVersionChange({
+        slug: mod.slug,
+        name: mod.name || mod.slug,
+        version: offered,
+        installedVersion: mod.version,
+        kind: 'update',
+      });
+    },
+    [startVersionChange]
+  );
 
   const handleRemoveClick = useCallback((mod: ModInfo) => {
     setModToRemove(mod);
@@ -241,104 +249,106 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     setModToRemove(null);
   };
 
-  const isTogglingMod = useCallback((slug: string) => {
-    return (
-      (isEnabling && enablingSlug === slug) ||
-      (isDisabling && disablingSlug === slug)
-    );
-  }, [isEnabling, enablingSlug, isDisabling, disablingSlug]);
+  const isTogglingMod = useCallback(
+    (slug: string) => {
+      return (isEnabling && enablingSlug === slug) || (isDisabling && disablingSlug === slug);
+    },
+    [isEnabling, enablingSlug, isDisabling, disablingSlug]
+  );
 
   // Define columns with TanStack Table
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = useMemo(() => columnHelper.columns([
-    columnHelper.accessor('name', {
-      header: ({ column }) => (
-        <SortableHeader
-          label={SORT_COLUMN_LABELS.name}
-          sorted={column.getIsSorted()}
-          onClick={() => column.toggleSorting()}
-        />
-      ),
-      cell: ({ row }) => <ModNameLink mod={row.original} />,
-      // Story 18.4: long names (and slugs without spaces) wrap so the table fits at 1024px
-      meta: { className: 'min-w-32 whitespace-normal wrap-anywhere' },
-      sortFn: (rowA, rowB) => {
-        const a = (rowA.original.name || rowA.original.slug).toLowerCase();
-        const b = (rowB.original.name || rowB.original.slug).toLowerCase();
-        return a.localeCompare(b);
-      },
-    }),
-    columnHelper.accessor('version', {
-      header: ({ column }) => (
-        <SortableHeader
-          label={SORT_COLUMN_LABELS.version}
-          sorted={column.getIsSorted()}
-          onClick={() => column.toggleSorting()}
-        />
-      ),
-      cell: ({ getValue }) => (
-        <span className="text-muted-foreground">v{getValue()}</span>
-      ),
-    }),
-    columnHelper.display({
-      id: 'available',
-      header: 'Available',
-      cell: ({ row }) => (
-        <ModUpdateCell
-          status={row.original.updateStatus}
-          gameVersion={gameVersion}
-          onUpdate={() => handleUpdate(row.original)}
-          isUpdating={isChangingVersion(row.original.slug)}
-        />
-      ),
-    }),
-    columnHelper.accessor('side', {
-      header: 'Side',
-      cell: ({ getValue }) => <SideBadge side={getValue()} />,
-      enableSorting: false,
-    }),
-    columnHelper.accessor('compatibilityStatus', {
-      header: 'Compatibility',
-      cell: ({ row, getValue }) => (
-        <ModCompatibility
-          slug={row.original.slug}
-          status={getValue()}
-          compatibility={row.original.compatibility}
-        />
-      ),
-      enableSorting: false,
-    }),
-    columnHelper.accessor('enabled', {
-      header: ({ column }) => (
-        <SortableHeader
-          label={SORT_COLUMN_LABELS.enabled}
-          sorted={column.getIsSorted()}
-          onClick={() => column.toggleSorting()}
-        />
-      ),
-      cell: ({ row }) => (
-        <ModEnableToggle
-          mod={row.original}
-          isToggling={isTogglingMod(row.original.slug)}
-          onToggle={() => handleToggle(row.original)}
-        />
-      ),
-      // Sort enabled mods first when ascending
-      sortFn: (rowA, rowB) => {
-        const a = rowA.original.enabled ? 1 : 0;
-        const b = rowB.original.enabled ? 1 : 0;
-        return a - b;
-      },
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: () => <span className="sr-only">Actions</span>,
-      cell: ({ row }) => (
-        <ModRemoveButton mod={row.original} onRemove={() => handleRemoveClick(row.original)} />
-      ),
-      meta: { className: 'w-[80px]' },
-    }),
-  ]), [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, isChangingVersion]);
+  const columns = useMemo(
+    () =>
+      columnHelper.columns([
+        columnHelper.accessor('name', {
+          header: ({ column }) => (
+            <SortableHeader
+              label={SORT_COLUMN_LABELS.name}
+              sorted={column.getIsSorted()}
+              onClick={() => column.toggleSorting()}
+            />
+          ),
+          cell: ({ row }) => <ModNameLink mod={row.original} />,
+          // Story 18.4: long names (and slugs without spaces) wrap so the table fits at 1024px
+          meta: { className: 'min-w-32 whitespace-normal wrap-anywhere' },
+          sortFn: (rowA, rowB) => {
+            const a = (rowA.original.name || rowA.original.slug).toLowerCase();
+            const b = (rowB.original.name || rowB.original.slug).toLowerCase();
+            return a.localeCompare(b);
+          },
+        }),
+        columnHelper.accessor('version', {
+          header: ({ column }) => (
+            <SortableHeader
+              label={SORT_COLUMN_LABELS.version}
+              sorted={column.getIsSorted()}
+              onClick={() => column.toggleSorting()}
+            />
+          ),
+          cell: ({ getValue }) => <span className="text-muted-foreground">v{getValue()}</span>,
+        }),
+        columnHelper.display({
+          id: 'available',
+          header: 'Available',
+          cell: ({ row }) => (
+            <ModUpdateCell
+              status={row.original.updateStatus}
+              gameVersion={gameVersion}
+              onUpdate={() => handleUpdate(row.original)}
+              isUpdating={isChangingVersion(row.original.slug)}
+            />
+          ),
+        }),
+        columnHelper.accessor('side', {
+          header: 'Side',
+          cell: ({ getValue }) => <SideBadge side={getValue()} />,
+          enableSorting: false,
+        }),
+        columnHelper.accessor('compatibilityStatus', {
+          header: 'Compatibility',
+          cell: ({ row, getValue }) => (
+            <ModCompatibility
+              slug={row.original.slug}
+              status={getValue()}
+              compatibility={row.original.compatibility}
+            />
+          ),
+          enableSorting: false,
+        }),
+        columnHelper.accessor('enabled', {
+          header: ({ column }) => (
+            <SortableHeader
+              label={SORT_COLUMN_LABELS.enabled}
+              sorted={column.getIsSorted()}
+              onClick={() => column.toggleSorting()}
+            />
+          ),
+          cell: ({ row }) => (
+            <ModEnableToggle
+              mod={row.original}
+              isToggling={isTogglingMod(row.original.slug)}
+              onToggle={() => handleToggle(row.original)}
+            />
+          ),
+          // Sort enabled mods first when ascending
+          sortFn: (rowA, rowB) => {
+            const a = rowA.original.enabled ? 1 : 0;
+            const b = rowB.original.enabled ? 1 : 0;
+            return a - b;
+          },
+        }),
+        columnHelper.display({
+          id: 'actions',
+          header: () => <span className="sr-only">Actions</span>,
+          cell: ({ row }) => (
+            <ModRemoveButton mod={row.original} onRemove={() => handleRemoveClick(row.original)} />
+          ),
+          meta: { className: 'w-[80px]' },
+        }),
+      ]),
+    [handleToggle, handleRemoveClick, isTogglingMod, gameVersion, handleUpdate, isChangingVersion]
+  );
 
   const table = useTable({
     features,
@@ -360,10 +370,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
 
   if (mods.length === 0) {
     return (
-      <div
-        className="text-center py-8 text-muted-foreground"
-        data-testid="mod-table-empty"
-      >
+      <div className="text-center py-8 text-muted-foreground" data-testid="mod-table-empty">
         No mods installed yet
       </div>
     );
@@ -432,10 +439,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
       />
 
       {/* Remove confirmation dialog */}
-      <AlertDialog
-        open={!!modToRemove}
-        onOpenChange={(open) => !open && handleRemoveCancel()}
-      >
+      <AlertDialog open={!!modToRemove} onOpenChange={(open) => !open && handleRemoveCancel()}>
         <AlertDialogContent data-testid="remove-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {modToRemove?.name || modToRemove?.slug}?</AlertDialogTitle>
@@ -444,10 +448,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={handleRemoveCancel}
-              data-testid="remove-dialog-cancel"
-            >
+            <AlertDialogCancel onClick={handleRemoveCancel} data-testid="remove-dialog-cancel">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

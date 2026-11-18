@@ -80,7 +80,14 @@ describe('EmptyServerState', () => {
       );
 
       const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass('flex', 'flex-col', 'items-center', 'justify-center', 'h-64', 'text-center');
+      expect(wrapper).toHaveClass(
+        'flex',
+        'flex-col',
+        'items-center',
+        'justify-center',
+        'h-64',
+        'text-center'
+      );
     });
 
     it('renders with empty string message', () => {
@@ -157,7 +164,9 @@ describe('EmptyServerState', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByRole('button', { name: 'View Installation Progress' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'View Installation Progress' })
+      ).toBeInTheDocument();
     });
 
     it('applies correct CSS classes for installing state', () => {
@@ -172,7 +181,14 @@ describe('EmptyServerState', () => {
       );
 
       const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass('flex', 'flex-col', 'items-center', 'justify-center', 'h-64', 'text-center');
+      expect(wrapper).toHaveClass(
+        'flex',
+        'flex-col',
+        'items-center',
+        'justify-center',
+        'h-64',
+        'text-center'
+      );
     });
 
     it('renders with empty string message', () => {
@@ -422,7 +438,8 @@ describe('EmptyServerState', () => {
 
   describe('edge cases', () => {
     it('handles very long message text without breaking layout', () => {
-      const longMessage = 'This is a very long message that goes on and on and on to test how the component handles extremely long text content that might wrap to multiple lines and could potentially affect the layout of the component';
+      const longMessage =
+        'This is a very long message that goes on and on and on to test how the component handles extremely long text content that might wrap to multiple lines and could potentially affect the layout of the component';
 
       render(
         <MemoryRouter>
@@ -467,9 +484,11 @@ describe('EmptyServerState', () => {
       );
 
       // React preserves line breaks in text content
-      expect(screen.getByText((_content, element) => {
-        return element?.textContent === multilineMessage;
-      })).toBeInTheDocument();
+      expect(
+        screen.getByText((_content, element) => {
+          return element?.textContent === multilineMessage;
+        })
+      ).toBeInTheDocument();
     });
   });
 

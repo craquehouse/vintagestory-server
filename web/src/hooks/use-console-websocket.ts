@@ -18,11 +18,7 @@ function debugLog(message: string, data?: Record<string, unknown>): void {
  * Connection states for the console WebSocket.
  */
 export type ConnectionState =
-  | 'connecting'
-  | 'connected'
-  | 'disconnected'
-  | 'forbidden'
-  | 'token_error';
+  'connecting' | 'connected' | 'disconnected' | 'forbidden' | 'token_error';
 
 /**
  * WebSocket close codes from the backend.
@@ -81,10 +77,7 @@ export interface UseConsoleWebSocketResult {
  * @param token - WebSocket authentication token from requestWebSocketToken()
  * @param historyLines - Number of history lines to request on connect
  */
-export function buildConsoleWebSocketUrl(
-  token: string,
-  historyLines: number = 100
-): string {
+export function buildConsoleWebSocketUrl(token: string, historyLines: number = 100): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
 
@@ -129,8 +122,7 @@ export function useConsoleWebSocket(
     onClose,
   } = options;
 
-  const [connectionState, setConnectionState] =
-    useState<ConnectionState>('connecting');
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
   const [retryCount, setRetryCount] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -234,10 +226,7 @@ export function useConsoleWebSocket(
       const currentRetry = retryCountRef.current;
       if (shouldReconnectRef.current && currentRetry < maxRetries) {
         // Calculate delay with exponential backoff and jitter
-        const delay = Math.min(
-          baseDelayMs * Math.pow(2, currentRetry),
-          maxDelayMs
-        );
+        const delay = Math.min(baseDelayMs * Math.pow(2, currentRetry), maxDelayMs);
         const jitter = Math.random() * 1000;
         const totalDelay = delay + jitter;
 
@@ -265,10 +254,7 @@ export function useConsoleWebSocket(
 
   // Send a command to the server
   const sendCommand = useCallback((command: string) => {
-    if (
-      wsRef.current &&
-      wsRef.current.readyState === WebSocket.OPEN
-    ) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'command', content: command }));
     }
   }, []);

@@ -47,10 +47,7 @@ export function UIPreferencesPanel({ className }: UIPreferencesPanelProps) {
     <div className={className} data-testid="ui-preferences-panel">
       <div className="space-y-4">
         {/* Theme Settings */}
-        <SettingGroup
-          title="Appearance"
-          description="Customize the look and feel of the interface"
-        >
+        <SettingGroup title="Appearance" description="Customize the look and feel of the interface">
           {/* Theme Selector */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Theme</label>
@@ -76,10 +73,7 @@ export function UIPreferencesPanel({ className }: UIPreferencesPanelProps) {
         </SettingGroup>
 
         {/* Console Settings */}
-        <SettingGroup
-          title="Console"
-          description="Customize the game server console appearance"
-        >
+        <SettingGroup title="Console" description="Customize the game server console appearance">
           {/* Font Size Control */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Font Size</label>
@@ -122,10 +116,7 @@ export function UIPreferencesPanel({ className }: UIPreferencesPanelProps) {
         </SettingGroup>
 
         {/* Layout Settings */}
-        <SettingGroup
-          title="Layout"
-          description="Configure the default layout behavior"
-        >
+        <SettingGroup title="Layout" description="Configure the default layout behavior">
           {/* Sidebar Default */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">

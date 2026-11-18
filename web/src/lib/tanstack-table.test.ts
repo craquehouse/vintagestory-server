@@ -212,10 +212,7 @@ describe('TanStack Table Integration', () => {
       const firstHeader = headerGroups[0].headers[0];
 
       // flexRender should return the header value
-      const rendered = flexRender(
-        firstHeader.column.columnDef.header,
-        firstHeader.getContext()
-      );
+      const rendered = flexRender(firstHeader.column.columnDef.header, firstHeader.getContext());
       expect(rendered).toBe('Mod Name');
     });
   });

@@ -39,11 +39,7 @@ export function ChannelFilter({ value, onChange }: ChannelFilterProps) {
   };
 
   return (
-    <Tabs
-      value={tabValue}
-      onValueChange={handleValueChange}
-      data-testid="channel-filter"
-    >
+    <Tabs value={tabValue} onValueChange={handleValueChange} data-testid="channel-filter">
       <TabsList data-testid="channel-filter-tabs">
         <TabsTrigger value="all" data-testid="channel-filter-all">
           All

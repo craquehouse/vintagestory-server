@@ -29,9 +29,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -200,11 +198,7 @@ describe('QuickInstallButton', () => {
     it('does not render when versions are loading', () => {
       const queryClient = createTestQueryClient();
       render(
-        <QuickInstallButton
-          versions={[]}
-          installedVersion={null}
-          isLoadingVersions={true}
-        />,
+        <QuickInstallButton versions={[]} installedVersion={null} isLoadingVersions={true} />,
         { wrapper: createWrapper(queryClient) }
       );
 
@@ -214,11 +208,7 @@ describe('QuickInstallButton', () => {
     it('does not render when no versions available', () => {
       const queryClient = createTestQueryClient();
       render(
-        <QuickInstallButton
-          versions={[]}
-          installedVersion={null}
-          isLoadingVersions={false}
-        />,
+        <QuickInstallButton versions={[]} installedVersion={null} isLoadingVersions={false} />,
         { wrapper: createWrapper(queryClient) }
       );
 

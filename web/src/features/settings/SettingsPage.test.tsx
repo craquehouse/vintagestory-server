@@ -112,10 +112,7 @@ describe('SettingsPage', () => {
         wrapper: createWrapper(queryClient),
       });
 
-      expect(screen.getByTestId('settings-page')).toHaveAttribute(
-        'aria-label',
-        'Settings page'
-      );
+      expect(screen.getByTestId('settings-page')).toHaveAttribute('aria-label', 'Settings page');
     });
 
     it('renders tabs component', async () => {
@@ -238,8 +235,7 @@ describe('SettingsPage', () => {
       await waitFor(() => {
         // Should show API settings content (loading or loaded)
         expect(
-          screen.queryByTestId('api-settings-loading') ||
-            screen.queryByTestId('api-settings-panel')
+          screen.queryByTestId('api-settings-loading') || screen.queryByTestId('api-settings-panel')
         ).toBeInTheDocument();
       });
     });
@@ -312,9 +308,7 @@ describe('SettingsPage', () => {
         expect(screen.getByTestId('file-viewer-empty')).toBeInTheDocument();
       });
 
-      expect(
-        screen.getByText('Select a file to view its contents')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Select a file to view its contents')).toBeInTheDocument();
     });
   });
 

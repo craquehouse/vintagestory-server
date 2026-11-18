@@ -36,9 +36,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -174,14 +172,15 @@ describe('ApiSettingsPanel', () => {
         }
         return {
           ok: true,
-          json: () => Promise.resolve({
-            status: 'ok',
-            data: {
-              settings: {
-                // All settings are undefined
+          json: () =>
+            Promise.resolve({
+              status: 'ok',
+              data: {
+                settings: {
+                  // All settings are undefined
+                },
               },
-            },
-          }),
+            }),
         };
       });
 
@@ -638,10 +637,10 @@ describe('ApiSettingsPanel', () => {
       fireEvent.blur(input);
 
       // Wait a bit to ensure no additional calls
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made any POST calls
-      expect(mockFetch.mock.calls.filter(call => call[1]?.method === 'POST')).toHaveLength(0);
+      expect(mockFetch.mock.calls.filter((call) => call[1]?.method === 'POST')).toHaveLength(0);
     });
   });
 
@@ -1347,12 +1346,13 @@ describe('ApiSettingsPanel', () => {
         if (url.includes('/debug')) {
           return {
             ok: true,
-            json: () => Promise.resolve({
-              status: 'ok',
-              data: {
-                // debugEnabled is missing
-              },
-            }),
+            json: () =>
+              Promise.resolve({
+                status: 'ok',
+                data: {
+                  // debugEnabled is missing
+                },
+              }),
           };
         }
         return {
@@ -1420,9 +1420,7 @@ describe('ApiSettingsPanel', () => {
         expect(screen.getByTestId('api-settings-panel')).toBeInTheDocument();
       });
 
-      expect(
-        screen.getByText('How often to refresh the installed mods list')
-      ).toBeInTheDocument();
+      expect(screen.getByText('How often to refresh the installed mods list')).toBeInTheDocument();
       expect(
         screen.getByText('How often to check for new game server versions')
       ).toBeInTheDocument();

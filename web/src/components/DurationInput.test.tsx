@@ -28,12 +28,7 @@ describe('DurationInput', () => {
     });
 
     it('renders with custom placeholder', () => {
-      render(
-        <DurationInput
-          {...defaultProps}
-          placeholder="Enter duration like 5m"
-        />
-      );
+      render(<DurationInput {...defaultProps} placeholder="Enter duration like 5m" />);
 
       const input = screen.getByPlaceholderText('Enter duration like 5m');
       expect(input).toBeInTheDocument();
@@ -128,9 +123,7 @@ describe('DurationInput', () => {
 
     it('does not update display when value changes externally while editing', () => {
       const onChange = vi.fn();
-      const { rerender } = render(
-        <DurationInput value={3600} onChange={onChange} />
-      );
+      const { rerender } = render(<DurationInput value={3600} onChange={onChange} />);
 
       const input = screen.getByRole('textbox');
       fireEvent.focus(input);
@@ -168,9 +161,7 @@ describe('DurationInput', () => {
 
     it('parses various valid duration formats', () => {
       const onChange = vi.fn();
-      const { rerender } = render(
-        <DurationInput value={0} onChange={onChange} />
-      );
+      const { rerender } = render(<DurationInput value={0} onChange={onChange} />);
 
       const input = screen.getByRole('textbox');
 
@@ -414,9 +405,7 @@ describe('DurationInput', () => {
       fireEvent.focus(input);
       fireEvent.keyDown(input, { key: 'Escape' });
 
-      expect(onKeyDown).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'Escape' })
-      );
+      expect(onKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: 'Escape' }));
     });
   });
 
@@ -429,12 +418,7 @@ describe('DurationInput', () => {
     });
 
     it('sets aria-describedby when provided', () => {
-      render(
-        <DurationInput
-          {...defaultProps}
-          aria-describedby="duration-help-text"
-        />
-      );
+      render(<DurationInput {...defaultProps} aria-describedby="duration-help-text" />);
 
       const input = screen.getByRole('textbox');
       expect(input).toHaveAttribute('aria-describedby', 'duration-help-text');
@@ -648,9 +632,7 @@ describe('DurationInput', () => {
     it('simulates form submission flow with Enter key', () => {
       const onChange = vi.fn();
       const onKeyDown = vi.fn();
-      render(
-        <DurationInput value={0} onChange={onChange} onKeyDown={onKeyDown} />
-      );
+      render(<DurationInput value={0} onChange={onChange} onKeyDown={onKeyDown} />);
 
       const input = screen.getByRole('textbox');
       fireEvent.focus(input);
@@ -660,9 +642,7 @@ describe('DurationInput', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(onChange).toHaveBeenCalledWith(7200);
-      expect(onKeyDown).toHaveBeenCalledWith(
-        expect.objectContaining({ key: 'Enter' })
-      );
+      expect(onKeyDown).toHaveBeenCalledWith(expect.objectContaining({ key: 'Enter' }));
     });
   });
 });

@@ -153,10 +153,7 @@ export function parseDuration(input: string): ParseDurationResult {
  * formatDuration(86400)   // "1d"
  * formatDuration(90000)   // "1d 1h"
  */
-export function formatDuration(
-  seconds: number,
-  options: { verbose?: boolean } = {}
-): string {
+export function formatDuration(seconds: number, options: { verbose?: boolean } = {}): string {
   const { verbose = false } = options;
 
   if (!Number.isFinite(seconds) || seconds < 0) {

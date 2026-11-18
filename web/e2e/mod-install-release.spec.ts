@@ -133,9 +133,7 @@ test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' },
     await pretendServerInstalled(page);
   });
 
-  test('lookup reports the install mod ID and what a plain install picks', async ({
-    request,
-  }) => {
+  test('lookup reports the install mod ID and what a plain install picks', async ({ request }) => {
     for (const slug of ['carryon', 'instruments']) {
       const body = await probeLookup(request, slug);
       expect(body.data.install_mod_id).toBe(slug);
@@ -157,10 +155,9 @@ test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' },
 
     await page.goto('/game-server/mods/browse/carryon');
     // The trigger shows the selected item's text, "(Latest)" label included
-    await expect(page.getByTestId('mod-detail-version-select')).toHaveText(
-      `v${latest} (Latest)`,
-      { timeout: 60_000 }
-    );
+    await expect(page.getByTestId('mod-detail-version-select')).toHaveText(`v${latest} (Latest)`, {
+      timeout: 60_000,
+    });
 
     const options = await versionOptions(page);
     const carryonVersions = versionsOf(body.data.releases, 'carryon');
@@ -208,9 +205,7 @@ test.describe('Install picks the right release (Story 17.2)', { tag: '@moddb' },
     await expect(install).toBeVisible({ timeout: 60_000 });
     await install.click();
 
-    await expect(page.getByTestId('install-dialog-mod-version')).toHaveText(
-      `Version: ${latest}`
-    );
+    await expect(page.getByTestId('install-dialog-mod-version')).toHaveText(`Version: ${latest}`);
     await page.getByTestId('install-dialog-confirm').click();
     await expect.poll(() => posted).toEqual([{ slug: 'carryon', version: latest }]);
   });
@@ -221,96 +216,97 @@ test.describe(
   'Install picks the right release: real API (Story 17.2)',
   { tag: ['@moddb', '@install'] },
   () => {
-  test.describe.configure({ mode: 'serial' });
+    test.describe.configure({ mode: 'serial' });
 
-  let before: string[] = [];
-  // Cleanup deletes only what is missing from this snapshot, so it must never run
-  // without one: it could otherwise remove a mod that was installed before the run.
-  let hasSnapshot = false;
+    let before: string[] = [];
+    // Cleanup deletes only what is missing from this snapshot, so it must never run
+    // without one: it could otherwise remove a mod that was installed before the run.
+    let hasSnapshot = false;
 
-  test.beforeAll(async ({ playwright, baseURL }) => {
-    const request = await playwright.request.newContext({ baseURL });
-    try {
-      before = await installedSlugs(request);
-      hasSnapshot = true;
-    } finally {
-      await request.dispose();
-    }
-  });
-
-  test.afterEach(async ({ request }) => {
-    if (!hasSnapshot) {
-      throw new Error('No snapshot of the installed mods; refusing to clean up');
-    }
-    for (const slug of await installedSlugs(request)) {
-      if (TOUCHED.includes(slug) && !before.includes(slug)) {
-        const removed = await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
-        expect(removed.ok(), `cleanup DELETE /mods/${slug}`).toBe(true);
+    test.beforeAll(async ({ playwright, baseURL }) => {
+      const request = await playwright.request.newContext({ baseURL });
+      try {
+        before = await installedSlugs(request);
+        hasSnapshot = true;
+      } finally {
+        await request.dispose();
       }
-    }
-  });
-
-  test('a version of another mod ID, and a release without a file, are refused', async ({
-    request,
-  }) => {
-    const already = ['instruments', 'vsinstrumentsbase', 'canjewelry'].filter((slug) =>
-      before.includes(slug)
-    );
-    test.skip(already.length > 0, `Already installed on this stack: ${already.join(', ')}`);
-
-    const instruments = await probeLookup(request, 'instruments');
-    const own = versionsOf(instruments.data.releases, 'instruments');
-    const otherOnly = versionsOf(instruments.data.releases, 'vsinstrumentsbase').find(
-      (version) => !own.includes(version)
-    );
-    expect(otherOnly).toBeDefined();
-    const notFound = await request.post('/api/v1alpha1/mods', {
-      headers: HEADERS,
-      data: { slug: 'instruments', version: otherOnly },
     });
-    expect(notFound.status()).toBe(404);
-    expect(((await notFound.json()) as { detail: { code: string } }).detail.code).toBe(
-      'MOD_VERSION_NOT_FOUND'
-    );
 
-    const canjewelry = await probeLookup(request, 'canjewelry');
-    const own2 = canjewelry.data.releases.filter((r) => r.modidstr === 'canjewelry');
-    const noFile = versionsOf(own2, 'canjewelry').find((version) =>
-      own2.filter((r) => r.version === version).every((r) => !hasFile(r))
-    );
-    test.skip(noFile === undefined, 'canjewelry no longer lists a release without a file');
-    const refused = await request.post('/api/v1alpha1/mods', {
-      headers: HEADERS,
-      data: { slug: 'canjewelry', version: noFile },
+    test.afterEach(async ({ request }) => {
+      if (!hasSnapshot) {
+        throw new Error('No snapshot of the installed mods; refusing to clean up');
+      }
+      for (const slug of await installedSlugs(request)) {
+        if (TOUCHED.includes(slug) && !before.includes(slug)) {
+          const removed = await request.delete(`/api/v1alpha1/mods/${slug}`, { headers: HEADERS });
+          expect(removed.ok(), `cleanup DELETE /mods/${slug}`).toBe(true);
+        }
+      }
     });
-    expect(refused.status()).toBe(422);
-    expect(((await refused.json()) as { detail: { code: string } }).detail.code).toBe(
-      'MOD_RELEASE_NOT_DOWNLOADABLE'
-    );
 
-    const after = await installedSlugs(request);
-    // Only this spec's mods: another spec running in parallel may install its own
-    expect(after.filter((slug) => TOUCHED.includes(slug) && !before.includes(slug))).toEqual([]);
-  });
+    test('a version of another mod ID, and a release without a file, are refused', async ({
+      request,
+    }) => {
+      const already = ['instruments', 'vsinstrumentsbase', 'canjewelry'].filter((slug) =>
+        before.includes(slug)
+      );
+      test.skip(already.length > 0, `Already installed on this stack: ${already.join(', ')}`);
 
-  test('a plain install of carryon installs its newest stable release', async ({ request }) => {
-    test.setTimeout(120_000);
-    test.skip(before.includes('carryon'), 'carryon is already installed on this stack');
+      const instruments = await probeLookup(request, 'instruments');
+      const own = versionsOf(instruments.data.releases, 'instruments');
+      const otherOnly = versionsOf(instruments.data.releases, 'vsinstrumentsbase').find(
+        (version) => !own.includes(version)
+      );
+      expect(otherOnly).toBeDefined();
+      const notFound = await request.post('/api/v1alpha1/mods', {
+        headers: HEADERS,
+        data: { slug: 'instruments', version: otherOnly },
+      });
+      expect(notFound.status()).toBe(404);
+      expect(((await notFound.json()) as { detail: { code: string } }).detail.code).toBe(
+        'MOD_VERSION_NOT_FOUND'
+      );
 
-    const body = await probeLookup(request, 'carryon');
-    const latest = expectedDefault(body.data.releases, 'carryon');
-    const response = await request.post('/api/v1alpha1/mods', {
-      headers: HEADERS,
-      data: { slug: 'carryon' },
-      timeout: 60_000,
+      const canjewelry = await probeLookup(request, 'canjewelry');
+      const own2 = canjewelry.data.releases.filter((r) => r.modidstr === 'canjewelry');
+      const noFile = versionsOf(own2, 'canjewelry').find((version) =>
+        own2.filter((r) => r.version === version).every((r) => !hasFile(r))
+      );
+      test.skip(noFile === undefined, 'canjewelry no longer lists a release without a file');
+      const refused = await request.post('/api/v1alpha1/mods', {
+        headers: HEADERS,
+        data: { slug: 'canjewelry', version: noFile },
+      });
+      expect(refused.status()).toBe(422);
+      expect(((await refused.json()) as { detail: { code: string } }).detail.code).toBe(
+        'MOD_RELEASE_NOT_DOWNLOADABLE'
+      );
+
+      const after = await installedSlugs(request);
+      // Only this spec's mods: another spec running in parallel may install its own
+      expect(after.filter((slug) => TOUCHED.includes(slug) && !before.includes(slug))).toEqual([]);
     });
-    expect(response.status()).toBe(200);
-    const installed = (await response.json()) as { data: { slug: string; version: string } };
-    expect(installed.data.slug).toBe('carryon');
-    expect(installed.data.version).toBe(latest);
-    expect(await installedSlugs(request)).toContain('carryon');
 
-    const removed = await request.delete('/api/v1alpha1/mods/carryon', { headers: HEADERS });
-    expect(removed.ok()).toBe(true);
-  });
-});
+    test('a plain install of carryon installs its newest stable release', async ({ request }) => {
+      test.setTimeout(120_000);
+      test.skip(before.includes('carryon'), 'carryon is already installed on this stack');
+
+      const body = await probeLookup(request, 'carryon');
+      const latest = expectedDefault(body.data.releases, 'carryon');
+      const response = await request.post('/api/v1alpha1/mods', {
+        headers: HEADERS,
+        data: { slug: 'carryon' },
+        timeout: 60_000,
+      });
+      expect(response.status()).toBe(200);
+      const installed = (await response.json()) as { data: { slug: string; version: string } };
+      expect(installed.data.slug).toBe('carryon');
+      expect(installed.data.version).toBe(latest);
+      expect(await installedSlugs(request)).toContain('carryon');
+
+      const removed = await request.delete('/api/v1alpha1/mods/carryon', { headers: HEADERS });
+      expect(removed.ok()).toBe(true);
+    });
+  }
+);

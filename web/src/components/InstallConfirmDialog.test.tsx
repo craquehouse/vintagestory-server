@@ -109,7 +109,9 @@ describe('InstallConfirmDialog', () => {
       );
 
       expect(screen.getByText('Install Mod')).toBeInTheDocument();
-      expect(screen.getByText('Confirm installation of this mod to your server.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Confirm installation of this mod to your server.')
+      ).toBeInTheDocument();
     });
 
     it('renders placeholder when no logo provided', () => {
@@ -346,9 +348,7 @@ describe('InstallConfirmDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
-        'Version: Latest'
-      );
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: Latest');
       await user.click(screen.getByTestId('install-dialog-confirm'));
 
       expect(mockMutate).toHaveBeenCalledWith(
@@ -370,9 +370,7 @@ describe('InstallConfirmDialog', () => {
         { wrapper: createWrapper() }
       );
 
-      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent(
-        'Version: Latest'
-      );
+      expect(screen.getByTestId('install-dialog-mod-version')).toHaveTextContent('Version: Latest');
       await user.click(screen.getByTestId('install-dialog-confirm'));
 
       expect(mockMutate).toHaveBeenCalledWith(

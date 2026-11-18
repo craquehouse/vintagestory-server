@@ -31,9 +31,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -664,7 +662,10 @@ describe('GameConfigPanel', () => {
   });
 
   describe('Story 17.6: booleans with no value', () => {
-    const withSettings = (extra: Record<string, unknown>[], password?: Record<string, unknown>) => ({
+    const withSettings = (
+      extra: Record<string, unknown>[],
+      password?: Record<string, unknown>
+    ) => ({
       ...mockGameConfig,
       data: {
         ...mockGameConfig.data,
@@ -778,7 +779,9 @@ describe('GameConfigPanel', () => {
     it('limits the panel to 1280px and centers it', async () => {
       await renderFull();
 
-      expect(screen.getByTestId('game-config-layout')).toHaveClass(...SETTINGS_CONTENT_WIDTH.split(' '));
+      expect(screen.getByTestId('game-config-layout')).toHaveClass(
+        ...SETTINGS_CONTENT_WIDTH.split(' ')
+      );
     });
 
     it('puts Server Info above the columns with its fields in two columns from xl', async () => {

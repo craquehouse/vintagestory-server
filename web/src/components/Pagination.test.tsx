@@ -12,38 +12,20 @@ import { Pagination } from './Pagination';
 describe('Pagination', () => {
   describe('rendering', () => {
     it('renders current page and total pages', () => {
-      render(
-        <Pagination
-          currentPage={3}
-          totalPages={10}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={3} totalPages={10} onPageChange={() => {}} />);
 
       expect(screen.getByText(/Page 3 of 10/)).toBeInTheDocument();
     });
 
     it('renders previous and next buttons', () => {
-      render(
-        <Pagination
-          currentPage={3}
-          totalPages={10}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={3} totalPages={10} onPageChange={() => {}} />);
 
       expect(screen.getByRole('button', { name: /previous/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument();
     });
 
     it('renders page number buttons', () => {
-      render(
-        <Pagination
-          currentPage={1}
-          totalPages={5}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={1} totalPages={5} onPageChange={() => {}} />);
 
       // Should show page numbers 1-5
       expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
@@ -54,13 +36,7 @@ describe('Pagination', () => {
     });
 
     it('highlights current page button', () => {
-      render(
-        <Pagination
-          currentPage={3}
-          totalPages={5}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={3} totalPages={5} onPageChange={() => {}} />);
 
       const currentPageButton = screen.getByRole('button', { name: '3' });
       // Current page should have different styling (data-variant="default" for primary)
@@ -74,37 +50,19 @@ describe('Pagination', () => {
 
   describe('disabled states', () => {
     it('disables previous button on first page', () => {
-      render(
-        <Pagination
-          currentPage={1}
-          totalPages={10}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />);
 
       expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
     });
 
     it('disables next button on last page', () => {
-      render(
-        <Pagination
-          currentPage={10}
-          totalPages={10}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={10} totalPages={10} onPageChange={() => {}} />);
 
       expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
     });
 
     it('enables both buttons when in middle of pages', () => {
-      render(
-        <Pagination
-          currentPage={5}
-          totalPages={10}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={5} totalPages={10} onPageChange={() => {}} />);
 
       expect(screen.getByRole('button', { name: /previous/i })).not.toBeDisabled();
       expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
@@ -114,11 +72,7 @@ describe('Pagination', () => {
   describe('single page', () => {
     it('does not render pagination for single page', () => {
       const { container } = render(
-        <Pagination
-          currentPage={1}
-          totalPages={1}
-          onPageChange={() => {}}
-        />
+        <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
       );
 
       // Should render nothing when there's only one page
@@ -131,13 +85,7 @@ describe('Pagination', () => {
       const user = userEvent.setup();
       const onPageChange = vi.fn();
 
-      render(
-        <Pagination
-          currentPage={5}
-          totalPages={10}
-          onPageChange={onPageChange}
-        />
-      );
+      render(<Pagination currentPage={5} totalPages={10} onPageChange={onPageChange} />);
 
       await user.click(screen.getByRole('button', { name: /previous/i }));
 
@@ -148,13 +96,7 @@ describe('Pagination', () => {
       const user = userEvent.setup();
       const onPageChange = vi.fn();
 
-      render(
-        <Pagination
-          currentPage={5}
-          totalPages={10}
-          onPageChange={onPageChange}
-        />
-      );
+      render(<Pagination currentPage={5} totalPages={10} onPageChange={onPageChange} />);
 
       await user.click(screen.getByRole('button', { name: /next/i }));
 
@@ -165,13 +107,7 @@ describe('Pagination', () => {
       const user = userEvent.setup();
       const onPageChange = vi.fn();
 
-      render(
-        <Pagination
-          currentPage={1}
-          totalPages={5}
-          onPageChange={onPageChange}
-        />
-      );
+      render(<Pagination currentPage={1} totalPages={5} onPageChange={onPageChange} />);
 
       await user.click(screen.getByRole('button', { name: '3' }));
 
@@ -182,13 +118,7 @@ describe('Pagination', () => {
       const user = userEvent.setup();
       const onPageChange = vi.fn();
 
-      render(
-        <Pagination
-          currentPage={3}
-          totalPages={5}
-          onPageChange={onPageChange}
-        />
-      );
+      render(<Pagination currentPage={3} totalPages={5} onPageChange={onPageChange} />);
 
       await user.click(screen.getByRole('button', { name: '3' }));
 
@@ -198,26 +128,14 @@ describe('Pagination', () => {
 
   describe('ellipsis for many pages', () => {
     it('shows ellipsis when there are many pages', () => {
-      render(
-        <Pagination
-          currentPage={10}
-          totalPages={20}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={10} totalPages={20} onPageChange={() => {}} />);
 
       // Should show ellipsis (typically represented as "...")
       expect(screen.getAllByText('…').length).toBeGreaterThan(0);
     });
 
     it('shows first and last page numbers with ellipsis', () => {
-      render(
-        <Pagination
-          currentPage={10}
-          totalPages={20}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={10} totalPages={20} onPageChange={() => {}} />);
 
       // First page should always be visible
       expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
@@ -230,13 +148,7 @@ describe('Pagination', () => {
     });
 
     it('shows pages around current page', () => {
-      render(
-        <Pagination
-          currentPage={10}
-          totalPages={20}
-          onPageChange={() => {}}
-        />
-      );
+      render(<Pagination currentPage={10} totalPages={20} onPageChange={() => {}} />);
 
       // Should show pages around current (9, 10, 11)
       expect(screen.getByRole('button', { name: '9' })).toBeInTheDocument();
@@ -248,12 +160,7 @@ describe('Pagination', () => {
   describe('loading state', () => {
     it('shows loading state when isLoading is true', () => {
       render(
-        <Pagination
-          currentPage={1}
-          totalPages={10}
-          onPageChange={() => {}}
-          isLoading={true}
-        />
+        <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} isLoading={true} />
       );
 
       // Buttons should be disabled during loading
@@ -262,12 +169,7 @@ describe('Pagination', () => {
 
     it('disables all page buttons during loading', () => {
       render(
-        <Pagination
-          currentPage={5}
-          totalPages={10}
-          onPageChange={() => {}}
-          isLoading={true}
-        />
+        <Pagination currentPage={5} totalPages={10} onPageChange={() => {}} isLoading={true} />
       );
 
       // All numbered buttons should be disabled (page 4 is adjacent to current page 5)
@@ -279,12 +181,7 @@ describe('Pagination', () => {
   describe('total items display', () => {
     it('shows total items when provided', () => {
       render(
-        <Pagination
-          currentPage={1}
-          totalPages={10}
-          totalItems={541}
-          onPageChange={() => {}}
-        />
+        <Pagination currentPage={1} totalPages={10} totalItems={541} onPageChange={() => {}} />
       );
 
       expect(screen.getByText(/541/)).toBeInTheDocument();

@@ -55,9 +55,7 @@ test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () 
     await pretendServerInstalled(page);
   });
 
-  test('a mod with releases that have no file opens and lists those releases', async ({
-    page,
-  }) => {
+  test('a mod with releases that have no file opens and lists those releases', async ({ page }) => {
     const lookup = page.waitForResponse((response) =>
       response.url().includes('/mods/lookup/canjewelry')
     );
@@ -85,9 +83,7 @@ test.describe('Mod detail pages cannot fail on bad data', { tag: '@moddb' }, () 
     const slug = await firstCardSlug(page);
     expect(slug).not.toBe('');
 
-    const failingLookup = new RegExp(
-      `/api/v1alpha1/mods/lookup/${escapeRegExp(slug)}(\\?.*)?$`
-    );
+    const failingLookup = new RegExp(`/api/v1alpha1/mods/lookup/${escapeRegExp(slug)}(\\?.*)?$`);
     await page.route(failingLookup, (route) =>
       route.fulfill({
         status: 500,

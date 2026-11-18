@@ -47,7 +47,11 @@ function MockGameServerLayout() {
  * Test router that mirrors App.tsx route structure for /game-server.
  * Story 11.6: Tests the default redirect from /game-server to /game-server/version
  */
-function createTestRouter(initialEntries: string[], queryClient: QueryClient, defaultRedirect: string = 'version') {
+function createTestRouter(
+  initialEntries: string[],
+  queryClient: QueryClient,
+  defaultRedirect: string = 'version'
+) {
   return function TestRouter({ children }: { children?: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>

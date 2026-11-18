@@ -1,21 +1,21 @@
-import { renderHook, act } from "@testing-library/react";
-import { SidebarProvider, useSidebar } from "./SidebarContext";
-import { PreferencesProvider } from "./PreferencesContext";
-import * as cookies from "@/lib/cookies";
+import { renderHook, act } from '@testing-library/react';
+import { SidebarProvider, useSidebar } from './SidebarContext';
+import { PreferencesProvider } from './PreferencesContext';
+import * as cookies from '@/lib/cookies';
 
 // Mock cookies module
-vi.mock("@/lib/cookies", () => ({
+vi.mock('@/lib/cookies', () => ({
   getCookie: vi.fn(),
   setCookie: vi.fn(),
 }));
 
 // Mock next-themes to avoid matchMedia issues
-vi.mock("next-themes", () => ({
+vi.mock('next-themes', () => ({
   useTheme: () => ({
-    theme: "system",
+    theme: 'system',
     setTheme: vi.fn(),
-    systemTheme: "dark",
-    resolvedTheme: "dark",
+    systemTheme: 'dark',
+    resolvedTheme: 'dark',
   }),
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -38,23 +38,21 @@ function createWrapperWithPrefs(prefsJson: string | null) {
   return Wrapper;
 }
 
-describe("SidebarContext", () => {
+describe('SidebarContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedGetCookie.mockReturnValue(null);
   });
 
-  it("initializes isCollapsed from preferences when sidebarCollapsed is true", () => {
-    const wrapper = createWrapperWithPrefs(
-      JSON.stringify({ sidebarCollapsed: true })
-    );
+  it('initializes isCollapsed from preferences when sidebarCollapsed is true', () => {
+    const wrapper = createWrapperWithPrefs(JSON.stringify({ sidebarCollapsed: true }));
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
 
     expect(result.current.isCollapsed).toBe(true);
   });
 
-  it("initializes isCollapsed to false when no preferences exist", () => {
+  it('initializes isCollapsed to false when no preferences exist', () => {
     const wrapper = createWrapperWithPrefs(null);
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
@@ -62,23 +60,21 @@ describe("SidebarContext", () => {
     expect(result.current.isCollapsed).toBe(false);
   });
 
-  it("initializes isCollapsed to false when sidebarCollapsed is false in preferences", () => {
-    const wrapper = createWrapperWithPrefs(
-      JSON.stringify({ sidebarCollapsed: false })
-    );
+  it('initializes isCollapsed to false when sidebarCollapsed is false in preferences', () => {
+    const wrapper = createWrapperWithPrefs(JSON.stringify({ sidebarCollapsed: false }));
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
 
     expect(result.current.isCollapsed).toBe(false);
   });
 
-  it("initializes isMobileOpen to false by default", () => {
+  it('initializes isMobileOpen to false by default', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     expect(result.current.isMobileOpen).toBe(false);
   });
 
-  it("persists isCollapsed to cookie when changed to true", () => {
+  it('persists isCollapsed to cookie when changed to true', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     act(() => {
@@ -87,15 +83,13 @@ describe("SidebarContext", () => {
 
     expect(result.current.isCollapsed).toBe(true);
     expect(mockedSetCookie).toHaveBeenCalledWith(
-      "vs_ui_prefs",
+      'vs_ui_prefs',
       expect.stringContaining('"sidebarCollapsed":true')
     );
   });
 
-  it("persists isCollapsed to cookie when changed to false", () => {
-    const wrapper = createWrapperWithPrefs(
-      JSON.stringify({ sidebarCollapsed: true })
-    );
+  it('persists isCollapsed to cookie when changed to false', () => {
+    const wrapper = createWrapperWithPrefs(JSON.stringify({ sidebarCollapsed: true }));
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
 
@@ -105,12 +99,12 @@ describe("SidebarContext", () => {
 
     expect(result.current.isCollapsed).toBe(false);
     expect(mockedSetCookie).toHaveBeenCalledWith(
-      "vs_ui_prefs",
+      'vs_ui_prefs',
       expect.stringContaining('"sidebarCollapsed":false')
     );
   });
 
-  it("toggleCollapse flips state from false to true", () => {
+  it('toggleCollapse flips state from false to true', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     expect(result.current.isCollapsed).toBe(false);
@@ -122,10 +116,8 @@ describe("SidebarContext", () => {
     expect(result.current.isCollapsed).toBe(true);
   });
 
-  it("toggleCollapse flips state from true to false", () => {
-    const wrapper = createWrapperWithPrefs(
-      JSON.stringify({ sidebarCollapsed: true })
-    );
+  it('toggleCollapse flips state from true to false', () => {
+    const wrapper = createWrapperWithPrefs(JSON.stringify({ sidebarCollapsed: true }));
 
     const { result } = renderHook(() => useSidebar(), { wrapper });
 
@@ -138,7 +130,7 @@ describe("SidebarContext", () => {
     expect(result.current.isCollapsed).toBe(false);
   });
 
-  it("setMobileOpen updates mobile state to true", () => {
+  it('setMobileOpen updates mobile state to true', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     expect(result.current.isMobileOpen).toBe(false);
@@ -150,7 +142,7 @@ describe("SidebarContext", () => {
     expect(result.current.isMobileOpen).toBe(true);
   });
 
-  it("setMobileOpen updates mobile state to false", () => {
+  it('setMobileOpen updates mobile state to false', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     act(() => {
@@ -166,7 +158,7 @@ describe("SidebarContext", () => {
     expect(result.current.isMobileOpen).toBe(false);
   });
 
-  it("does not persist isMobileOpen to cookie", () => {
+  it('does not persist isMobileOpen to cookie', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     // Clear any initial cookie writes
@@ -180,18 +172,18 @@ describe("SidebarContext", () => {
     expect(mockedSetCookie).not.toHaveBeenCalled();
   });
 
-  it("throws error when useSidebar is used outside SidebarProvider", () => {
+  it('throws error when useSidebar is used outside SidebarProvider', () => {
     // Suppress console.error for this test
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() => {
       renderHook(() => useSidebar());
-    }).toThrow("useSidebar must be used within a SidebarProvider");
+    }).toThrow('useSidebar must be used within a SidebarProvider');
 
     consoleError.mockRestore();
   });
 
-  it("persists isCollapsed on every state change", () => {
+  it('persists isCollapsed on every state change', () => {
     const { result } = renderHook(() => useSidebar(), { wrapper: Wrapper });
 
     // First toggle
@@ -199,7 +191,7 @@ describe("SidebarContext", () => {
       result.current.toggleCollapse();
     });
     expect(mockedSetCookie).toHaveBeenLastCalledWith(
-      "vs_ui_prefs",
+      'vs_ui_prefs',
       expect.stringContaining('"sidebarCollapsed":true')
     );
 
@@ -208,7 +200,7 @@ describe("SidebarContext", () => {
       result.current.toggleCollapse();
     });
     expect(mockedSetCookie).toHaveBeenLastCalledWith(
-      "vs_ui_prefs",
+      'vs_ui_prefs',
       expect.stringContaining('"sidebarCollapsed":false')
     );
 
@@ -217,7 +209,7 @@ describe("SidebarContext", () => {
       result.current.toggleCollapse();
     });
     expect(mockedSetCookie).toHaveBeenLastCalledWith(
-      "vs_ui_prefs",
+      'vs_ui_prefs',
       expect.stringContaining('"sidebarCollapsed":true')
     );
   });

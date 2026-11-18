@@ -143,8 +143,8 @@ export function QuickInstallButton({
             </AlertDialogTitle>
             <AlertDialogDescription>
               The server is currently running and will be stopped to install version{' '}
-              <span className="font-semibold">{targetVersion}</span>. Any connected
-              players will be disconnected.
+              <span className="font-semibold">{targetVersion}</span>. Any connected players will be
+              disconnected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

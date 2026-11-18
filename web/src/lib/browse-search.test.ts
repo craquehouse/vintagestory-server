@@ -111,7 +111,9 @@ describe('buildBrowseSearch', () => {
       filters: { gameVersion: '1.22.7', modType: 'mod', tags: ['A', 'B'], side: 'client' },
       page: 2,
     });
-    expect(search).toBe('?q=food&sort=trending&side=client&tags=A%2CB&type=mod&version=1.22.7&page=2');
+    expect(search).toBe(
+      '?q=food&sort=trending&side=client&tags=A%2CB&type=mod&version=1.22.7&page=2'
+    );
   });
 
   it('trims the search text and omits it when blank', () => {

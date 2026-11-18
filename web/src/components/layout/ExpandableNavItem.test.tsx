@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
-import { Home, Settings, Terminal, Package } from "lucide-react";
-import { ExpandableNavItem, type SubNavItem } from "./ExpandableNavItem";
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
+import { Home, Settings, Terminal, Package } from 'lucide-react';
+import { ExpandableNavItem, type SubNavItem } from './ExpandableNavItem';
 
 // Mock ResizeObserver for Radix UI components
 class ResizeObserverMock {
@@ -17,8 +17,8 @@ beforeAll(() => {
 });
 
 // Mock lucide-react icons to include test identifiers
-vi.mock("lucide-react", async (importOriginal) => {
-  const original = await importOriginal<typeof import("lucide-react")>();
+vi.mock('lucide-react', async (importOriginal) => {
+  const original = await importOriginal<typeof import('lucide-react')>();
   return {
     ...original,
     ChevronDown: (props: React.SVGProps<SVGSVGElement>) => (
@@ -31,17 +31,17 @@ vi.mock("lucide-react", async (importOriginal) => {
 });
 
 const mockSubItems: SubNavItem[] = [
-  { to: "/parent/version", icon: Home, label: "Version" },
-  { to: "/parent/settings", icon: Settings, label: "Settings" },
-  { to: "/parent/mods", icon: Package, label: "Mods" },
-  { to: "/parent/console", icon: Terminal, label: "Console" },
+  { to: '/parent/version', icon: Home, label: 'Version' },
+  { to: '/parent/settings', icon: Settings, label: 'Settings' },
+  { to: '/parent/mods', icon: Package, label: 'Mods' },
+  { to: '/parent/console', icon: Terminal, label: 'Console' },
 ];
 
 const defaultProps = {
   icon: Home,
-  label: "Parent Item",
+  label: 'Parent Item',
   subItems: mockSubItems,
-  routePrefix: "/parent",
+  routePrefix: '/parent',
 };
 
 interface RenderOptions {
@@ -53,7 +53,7 @@ interface RenderOptions {
 
 const renderWithRouter = (options: RenderOptions = {}) => {
   const {
-    initialRoute = "/",
+    initialRoute = '/',
     isExpanded = false,
     onExpandedChange = vi.fn(),
     isCollapsed = false,
@@ -74,128 +74,125 @@ const renderWithRouter = (options: RenderOptions = {}) => {
   };
 };
 
-describe("ExpandableNavItem", () => {
+describe('ExpandableNavItem', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("Expanded Sidebar Mode", () => {
-    it("renders parent item with label and icon", () => {
+  describe('Expanded Sidebar Mode', () => {
+    it('renders parent item with label and icon', () => {
       renderWithRouter();
 
-      expect(screen.getByText("Parent Item")).toBeInTheDocument();
-      expect(screen.getByTestId("expandable-nav-toggle")).toBeInTheDocument();
+      expect(screen.getByText('Parent Item')).toBeInTheDocument();
+      expect(screen.getByTestId('expandable-nav-toggle')).toBeInTheDocument();
     });
 
-    it("shows chevron-right when collapsed", () => {
+    it('shows chevron-right when collapsed', () => {
       renderWithRouter({ isExpanded: false });
 
-      expect(screen.getByTestId("chevron-right")).toBeInTheDocument();
-      expect(screen.queryByTestId("chevron-down")).not.toBeInTheDocument();
+      expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
+      expect(screen.queryByTestId('chevron-down')).not.toBeInTheDocument();
     });
 
-    it("shows chevron-down when expanded", () => {
+    it('shows chevron-down when expanded', () => {
       renderWithRouter({ isExpanded: true });
 
-      expect(screen.getByTestId("chevron-down")).toBeInTheDocument();
-      expect(screen.queryByTestId("chevron-right")).not.toBeInTheDocument();
+      expect(screen.getByTestId('chevron-down')).toBeInTheDocument();
+      expect(screen.queryByTestId('chevron-right')).not.toBeInTheDocument();
     });
 
-    it("hides sub-items when collapsed", () => {
+    it('hides sub-items when collapsed', () => {
       renderWithRouter({ isExpanded: false });
 
-      const container = screen.getByTestId("sub-items-container");
-      expect(container).toHaveClass("max-h-0", "opacity-0");
+      const container = screen.getByTestId('sub-items-container');
+      expect(container).toHaveClass('max-h-0', 'opacity-0');
     });
 
-    it("shows sub-items when expanded", () => {
+    it('shows sub-items when expanded', () => {
       renderWithRouter({ isExpanded: true });
 
-      const container = screen.getByTestId("sub-items-container");
-      expect(container).toHaveClass("max-h-40", "opacity-100");
+      const container = screen.getByTestId('sub-items-container');
+      expect(container).toHaveClass('max-h-40', 'opacity-100');
 
       // All sub-items should be visible
-      expect(screen.getByRole("link", { name: /version/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /settings/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /mods/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /console/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /version/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /mods/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /console/i })).toBeInTheDocument();
     });
 
-    it("toggles expanded state when parent clicked", async () => {
+    it('toggles expanded state when parent clicked', async () => {
       const user = userEvent.setup();
       const onExpandedChange = vi.fn();
       renderWithRouter({ isExpanded: false, onExpandedChange });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
       await user.click(toggle);
 
       expect(onExpandedChange).toHaveBeenCalledWith(true);
     });
 
-    it("toggles collapsed state when parent clicked while expanded", async () => {
+    it('toggles collapsed state when parent clicked while expanded', async () => {
       const user = userEvent.setup();
       const onExpandedChange = vi.fn();
       renderWithRouter({ isExpanded: true, onExpandedChange });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
       await user.click(toggle);
 
       expect(onExpandedChange).toHaveBeenCalledWith(false);
     });
 
-    it("sets aria-expanded attribute correctly when collapsed", () => {
+    it('sets aria-expanded attribute correctly when collapsed', () => {
       renderWithRouter({ isExpanded: false });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
-      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it("sets aria-expanded attribute correctly when expanded", () => {
+    it('sets aria-expanded attribute correctly when expanded', () => {
       renderWithRouter({ isExpanded: true });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
-      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
     });
 
-    it("renders sub-items with correct links", () => {
+    it('renders sub-items with correct links', () => {
       renderWithRouter({ isExpanded: true });
 
-      expect(screen.getByRole("link", { name: /version/i })).toHaveAttribute(
-        "href",
-        "/parent/version"
+      expect(screen.getByRole('link', { name: /version/i })).toHaveAttribute(
+        'href',
+        '/parent/version'
       );
-      expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute(
-        "href",
-        "/parent/settings"
+      expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute(
+        'href',
+        '/parent/settings'
       );
-      expect(screen.getByRole("link", { name: /mods/i })).toHaveAttribute(
-        "href",
-        "/parent/mods"
-      );
-      expect(screen.getByRole("link", { name: /console/i })).toHaveAttribute(
-        "href",
-        "/parent/console"
+      expect(screen.getByRole('link', { name: /mods/i })).toHaveAttribute('href', '/parent/mods');
+      expect(screen.getByRole('link', { name: /console/i })).toHaveAttribute(
+        'href',
+        '/parent/console'
       );
     });
 
-    it("applies transition classes for animation", () => {
+    it('applies transition classes for animation', () => {
       renderWithRouter({ isExpanded: false });
 
-      const container = screen.getByTestId("sub-items-container");
+      const container = screen.getByTestId('sub-items-container');
       expect(container).toHaveClass(
-        "overflow-hidden",
-        "transition-all",
-        "duration-200",
-        "ease-in-out"
+        'overflow-hidden',
+        'transition-all',
+        'duration-200',
+        'ease-in-out'
       );
     });
   });
 
-  describe("Auto-expand on route match", () => {
-    it("auto-expands when navigating to a matching route", async () => {
+  describe('Auto-expand on route match', () => {
+    it('auto-expands when navigating to a matching route', async () => {
       const onExpandedChange = vi.fn();
       renderWithRouter({
-        initialRoute: "/parent/settings",
+        initialRoute: '/parent/settings',
         isExpanded: false,
         onExpandedChange,
       });
@@ -205,10 +202,10 @@ describe("ExpandableNavItem", () => {
       });
     });
 
-    it("does not auto-expand when on non-matching route", () => {
+    it('does not auto-expand when on non-matching route', () => {
       const onExpandedChange = vi.fn();
       renderWithRouter({
-        initialRoute: "/other/page",
+        initialRoute: '/other/page',
         isExpanded: false,
         onExpandedChange,
       });
@@ -216,10 +213,10 @@ describe("ExpandableNavItem", () => {
       expect(onExpandedChange).not.toHaveBeenCalled();
     });
 
-    it("does not trigger callback when already expanded on matching route", () => {
+    it('does not trigger callback when already expanded on matching route', () => {
       const onExpandedChange = vi.fn();
       renderWithRouter({
-        initialRoute: "/parent/settings",
+        initialRoute: '/parent/settings',
         isExpanded: true,
         onExpandedChange,
       });
@@ -228,53 +225,53 @@ describe("ExpandableNavItem", () => {
     });
   });
 
-  describe("Active state highlighting", () => {
-    it("highlights parent when a sub-item is active", () => {
+  describe('Active state highlighting', () => {
+    it('highlights parent when a sub-item is active', () => {
       renderWithRouter({
-        initialRoute: "/parent/settings",
+        initialRoute: '/parent/settings',
         isExpanded: true,
       });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
-      expect(toggle).toHaveClass("bg-sidebar-accent/50");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
+      expect(toggle).toHaveClass('bg-sidebar-accent/50');
     });
 
-    it("does not highlight parent when no sub-item is active", () => {
+    it('does not highlight parent when no sub-item is active', () => {
       renderWithRouter({
-        initialRoute: "/other/page",
+        initialRoute: '/other/page',
         isExpanded: true,
       });
 
-      const toggle = screen.getByTestId("expandable-nav-toggle");
-      expect(toggle).not.toHaveClass("bg-sidebar-accent/50");
+      const toggle = screen.getByTestId('expandable-nav-toggle');
+      expect(toggle).not.toHaveClass('bg-sidebar-accent/50');
     });
   });
 
-  describe("Collapsed Sidebar Mode", () => {
-    it("renders only icon button when collapsed", () => {
+  describe('Collapsed Sidebar Mode', () => {
+    it('renders only icon button when collapsed', () => {
       renderWithRouter({ isCollapsed: true });
 
       // Should not show the expanded nav toggle
-      expect(screen.queryByTestId("expandable-nav-toggle")).not.toBeInTheDocument();
+      expect(screen.queryByTestId('expandable-nav-toggle')).not.toBeInTheDocument();
       // Should show collapsed nav trigger instead
-      expect(screen.getByTestId("collapsed-nav-trigger")).toBeInTheDocument();
+      expect(screen.getByTestId('collapsed-nav-trigger')).toBeInTheDocument();
       // Should not show expanded mode sub-items container
-      expect(screen.queryByTestId("sub-items-container")).not.toBeInTheDocument();
+      expect(screen.queryByTestId('sub-items-container')).not.toBeInTheDocument();
       // Should show collapsed mode sub-items container
-      expect(screen.getByTestId("collapsed-sub-items-container")).toBeInTheDocument();
+      expect(screen.getByTestId('collapsed-sub-items-container')).toBeInTheDocument();
     });
 
-    it("applies active styling when on sub-route in collapsed mode", () => {
+    it('applies active styling when on sub-route in collapsed mode', () => {
       renderWithRouter({
         isCollapsed: true,
-        initialRoute: "/parent/settings",
+        initialRoute: '/parent/settings',
       });
 
-      const button = screen.getByTestId("collapsed-nav-trigger");
-      expect(button).toHaveClass("bg-sidebar-accent/50");
+      const button = screen.getByTestId('collapsed-nav-trigger');
+      expect(button).toHaveClass('bg-sidebar-accent/50');
     });
 
-    it("toggles expansion when clicked in collapsed mode", async () => {
+    it('toggles expansion when clicked in collapsed mode', async () => {
       const user = userEvent.setup();
       const onExpandedChange = vi.fn();
       renderWithRouter({
@@ -283,85 +280,81 @@ describe("ExpandableNavItem", () => {
         onExpandedChange,
       });
 
-      const button = screen.getByTestId("collapsed-nav-trigger");
+      const button = screen.getByTestId('collapsed-nav-trigger');
       await user.click(button);
 
       expect(onExpandedChange).toHaveBeenCalledWith(true);
     });
 
-    it("shows sub-item icons when expanded in collapsed mode", () => {
+    it('shows sub-item icons when expanded in collapsed mode', () => {
       renderWithRouter({ isCollapsed: true, isExpanded: true });
 
-      const container = screen.getByTestId("collapsed-sub-items-container");
-      expect(container).toHaveClass("max-h-40", "opacity-100");
+      const container = screen.getByTestId('collapsed-sub-items-container');
+      expect(container).toHaveClass('max-h-40', 'opacity-100');
 
       // Sub-items should be links
-      const links = screen.getAllByRole("link");
+      const links = screen.getAllByRole('link');
       expect(links).toHaveLength(4);
     });
 
-    it("hides sub-items when collapsed in collapsed mode", () => {
+    it('hides sub-items when collapsed in collapsed mode', () => {
       renderWithRouter({ isCollapsed: true, isExpanded: false });
 
-      const container = screen.getByTestId("collapsed-sub-items-container");
-      expect(container).toHaveClass("max-h-0", "opacity-0");
+      const container = screen.getByTestId('collapsed-sub-items-container');
+      expect(container).toHaveClass('max-h-0', 'opacity-0');
     });
 
-    it("sets aria-expanded correctly in collapsed mode", () => {
+    it('sets aria-expanded correctly in collapsed mode', () => {
       renderWithRouter({ isCollapsed: true, isExpanded: true });
 
-      const trigger = screen.getByTestId("collapsed-nav-trigger");
-      expect(trigger).toHaveAttribute("aria-expanded", "true");
+      const trigger = screen.getByTestId('collapsed-nav-trigger');
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
     });
   });
 
-  describe("State sync with props", () => {
-    it("syncs internal state when isExpanded prop changes", () => {
+  describe('State sync with props', () => {
+    it('syncs internal state when isExpanded prop changes', () => {
       const { rerender } = render(
         <MemoryRouter>
-          <ExpandableNavItem
-            {...defaultProps}
-            isExpanded={false}
-            onExpandedChange={vi.fn()}
-          />
+          <ExpandableNavItem {...defaultProps} isExpanded={false} onExpandedChange={vi.fn()} />
         </MemoryRouter>
       );
 
       // Initially collapsed
-      expect(screen.getByTestId("chevron-right")).toBeInTheDocument();
+      expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
 
       // Rerender with expanded=true
       rerender(
         <MemoryRouter>
-          <ExpandableNavItem
-            {...defaultProps}
-            isExpanded={true}
-            onExpandedChange={vi.fn()}
-          />
+          <ExpandableNavItem {...defaultProps} isExpanded={true} onExpandedChange={vi.fn()} />
         </MemoryRouter>
       );
 
       // Should now show expanded state
-      expect(screen.getByTestId("chevron-down")).toBeInTheDocument();
+      expect(screen.getByTestId('chevron-down')).toBeInTheDocument();
     });
   });
 });
 
-describe("ExpandableNavItem badges (Story 14.5)", () => {
+describe('ExpandableNavItem badges (Story 14.5)', () => {
   const badged: SubNavItem[] = [
-    { to: "/parent/version", icon: Home, label: "Version" },
+    { to: '/parent/version', icon: Home, label: 'Version' },
     {
-      to: "/parent/mods",
+      to: '/parent/mods',
       icon: Package,
-      label: "Mods",
+      label: 'Mods',
       badge: 3,
-      badgeLabel: "3 mod updates available",
+      badgeLabel: '3 mod updates available',
     },
   ];
 
-  function renderBadged(options: { isExpanded: boolean; isCollapsed?: boolean; items?: SubNavItem[] }) {
+  function renderBadged(options: {
+    isExpanded: boolean;
+    isCollapsed?: boolean;
+    items?: SubNavItem[];
+  }) {
     return render(
-      <MemoryRouter initialEntries={["/"]}>
+      <MemoryRouter initialEntries={['/']}>
         <ExpandableNavItem
           {...defaultProps}
           subItems={options.items ?? badged}
@@ -373,51 +366,50 @@ describe("ExpandableNavItem badges (Story 14.5)", () => {
     );
   }
 
-  it("shows the count on the sub-item with a screen reader label", () => {
+  it('shows the count on the sub-item with a screen reader label', () => {
     renderBadged({ isExpanded: true });
 
-    expect(screen.getByTestId("nav-badge-Mods")).toHaveTextContent("3");
-    expect(screen.getByRole("link", { name: /Mods.*3 mod updates available/ })).toHaveAttribute(
-      "href",
-      "/parent/mods"
+    expect(screen.getByTestId('nav-badge-Mods')).toHaveTextContent('3');
+    expect(screen.getByRole('link', { name: /Mods.*3 mod updates available/ })).toHaveAttribute(
+      'href',
+      '/parent/mods'
     );
-    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-parent-badge')).not.toBeInTheDocument();
   });
 
-  it("marks the parent while the group is closed, label first", async () => {
+  it('marks the parent while the group is closed, label first', async () => {
     renderBadged({ isExpanded: false });
 
-    expect(screen.getByTestId("nav-parent-badge")).toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    expect(screen.getByTestId('nav-parent-badge')).toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Parent Item, 3 mod updates available' });
     await userEvent.hover(toggle);
-    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Parent Item (3)')).length).toBeGreaterThan(0);
   });
 
-  it("shows no badge when the count is 0", () => {
+  it('shows no badge when the count is 0', () => {
     renderBadged({
       isExpanded: false,
-      items: [{ to: "/parent/mods", icon: Package, label: "Mods", badge: 0 }],
+      items: [{ to: '/parent/mods', icon: Package, label: 'Mods', badge: 0 }],
     });
 
-    expect(screen.queryByTestId("nav-parent-badge")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("nav-badge-Mods")).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-parent-badge')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-badge-Mods')).not.toBeInTheDocument();
   });
 
-  it("names the item and its updates in the collapsed sidebar", async () => {
+  it('names the item and its updates in the collapsed sidebar', async () => {
     renderBadged({ isExpanded: true, isCollapsed: true });
 
-    const link = screen.getByRole("link", { name: "Mods, 3 mod updates available" });
-    expect(link).toHaveAttribute("href", "/parent/mods");
+    const link = screen.getByRole('link', { name: 'Mods, 3 mod updates available' });
+    expect(link).toHaveAttribute('href', '/parent/mods');
     await userEvent.hover(link);
-    expect((await screen.findAllByText("Mods (3)")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Mods (3)')).length).toBeGreaterThan(0);
   });
 
-  it("names the parent and its updates in the collapsed sidebar while closed", async () => {
+  it('names the parent and its updates in the collapsed sidebar while closed', async () => {
     renderBadged({ isExpanded: false, isCollapsed: true });
 
-    const trigger = screen.getByRole("button", { name: "Parent Item, 3 mod updates available" });
+    const trigger = screen.getByRole('button', { name: 'Parent Item, 3 mod updates available' });
     await userEvent.hover(trigger);
-    expect((await screen.findAllByText("Parent Item (3)")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Parent Item (3)')).length).toBeGreaterThan(0);
   });
 });
-

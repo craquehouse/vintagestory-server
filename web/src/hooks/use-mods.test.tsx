@@ -39,9 +39,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -127,9 +125,7 @@ describe('useMods', () => {
 
       // Verify camelCase transformation
       expect(result.current.data?.data.pendingRestart).toBe(false);
-      expect(result.current.data?.data.mods[0].installedAt).toBe(
-        '2025-01-01T00:00:00Z'
-      );
+      expect(result.current.data?.data.mods[0].installedAt).toBe('2025-01-01T00:00:00Z');
     });
 
     it('provides loading state while fetching', async () => {
@@ -370,8 +366,7 @@ describe('useInstallMod', () => {
           // First fetch returns empty, subsequent fetches return the installed mod
           return {
             ok: true,
-            json: () =>
-              Promise.resolve(fetchCount === 1 ? emptyModsResponse : updatedModsResponse),
+            json: () => Promise.resolve(fetchCount === 1 ? emptyModsResponse : updatedModsResponse),
           };
         }
         // Install endpoint
@@ -1168,12 +1163,9 @@ describe('useModsCompatibility', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(
-        () => useModsCompatibility(installed('mod1', 'mod2')),
-        {
-          wrapper: createWrapper(queryClient),
-        }
-      );
+      const { result } = renderHook(() => useModsCompatibility(installed('mod1', 'mod2')), {
+        wrapper: createWrapper(queryClient),
+      });
 
       await waitFor(() => expect(result.current.isAllFetched).toBe(true));
 
@@ -1223,19 +1215,14 @@ describe('useModsCompatibility', () => {
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
-      const { result } = renderHook(
-        () => useModsCompatibility(installed('goodmod', 'badmod')),
-        {
-          wrapper: createWrapper(queryClient),
-        }
-      );
+      const { result } = renderHook(() => useModsCompatibility(installed('goodmod', 'badmod')), {
+        wrapper: createWrapper(queryClient),
+      });
 
       // Wait for all queries to finish (either success or error after retries)
       await waitFor(
         () => {
-          const allDone = result.current.queries.every(
-            (q) => q.isSuccess || q.isError
-          );
+          const allDone = result.current.queries.every((q) => q.isSuccess || q.isError);
           expect(allDone).toBe(true);
         },
         { timeout: 5000 }
@@ -1316,24 +1303,18 @@ describe('useModsCompatibility', () => {
       const queryClient = createTestQueryClient();
 
       // First render
-      const { result: result1 } = renderHook(
-        () => useModsCompatibility(installed('cachedmod')),
-        {
-          wrapper: createWrapper(queryClient),
-        }
-      );
+      const { result: result1 } = renderHook(() => useModsCompatibility(installed('cachedmod')), {
+        wrapper: createWrapper(queryClient),
+      });
 
       await waitFor(() => expect(result1.current.isAllFetched).toBe(true));
 
       const fetchCountAfterFirst = mockFetch.mock.calls.length;
 
       // Second render with same slugs
-      const { result: result2 } = renderHook(
-        () => useModsCompatibility(installed('cachedmod')),
-        {
-          wrapper: createWrapper(queryClient),
-        }
-      );
+      const { result: result2 } = renderHook(() => useModsCompatibility(installed('cachedmod')), {
+        wrapper: createWrapper(queryClient),
+      });
 
       await waitFor(() => expect(result2.current.isAllFetched).toBe(true));
 
@@ -1492,9 +1473,7 @@ describe('mod update hooks', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mockFetch.mock.calls[0][0]).toBe(
-      'http://localhost:8080/api/v1alpha1/mods/updates'
-    );
+    expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8080/api/v1alpha1/mods/updates');
     expect(result.current.data?.data.gameVersion).toBe('1.22.7');
     expect(queryClient.getQueryData(['mods', '@updates'])).toBeDefined();
   });

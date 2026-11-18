@@ -55,9 +55,7 @@ describe('SortControl', () => {
   it('handles switching between different sort options', async () => {
     const user = userEvent.setup();
 
-    const { rerender } = render(
-      <SortControl value="recent" onChange={mockOnChange} />
-    );
+    const { rerender } = render(<SortControl value="recent" onChange={mockOnChange} />);
 
     // Select downloads
     const sortButton = screen.getByRole('button');
@@ -81,9 +79,7 @@ describe('SortControl', () => {
     ];
 
     for (const { value, label } of sortOptions) {
-      const { unmount } = render(
-        <SortControl value={value} onChange={mockOnChange} />
-      );
+      const { unmount } = render(<SortControl value={value} onChange={mockOnChange} />);
 
       const sortButton = screen.getByRole('button');
       expect(sortButton).toHaveTextContent(label);

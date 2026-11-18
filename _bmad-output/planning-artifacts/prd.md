@@ -14,6 +14,8 @@ documentCounts:
 lastUpdated: '2026-11-17'
 updates:
   - date: '2026-11-17'
+    description: 'Added FR260-FR285 for Epic 21 (Maintainer Decisions and Web Polish); revised the same day: FR286 added for the pulled-in VSS-q38r'
+  - date: '2026-11-17'
     description: 'Added FR234-FR259 for Epic 20 (Tooling and Test Health); revised the same day: FR252 changed and FR258-FR259 added for the mod database address setting'
   - date: '2026-11-17'
     description: 'Added FR205-FR233 for Epic 19 (API Security and Mod File Safety); revised twice the same day: follow-ups folded in, seven stories'
@@ -825,3 +827,59 @@ If trivial to implement:
 
 - FR258: `VS_MOD_DB_URL` sets the base address the API uses for mod database requests and mod downloads; it defaults to `https://mods.vintagestory.at`, and the image host allow-list, the link rules and the links the web UI builds do not follow it
 - FR259: The address is validated at start-up: it must be an `https` URL with a host and nothing else, `http` is accepted only when `VS_DEBUG=true`, anything else stops start-up with an error that names the setting, and an address other than the default is logged as a warning
+
+### Epic 21: Maintainer Decisions and Web Polish
+
+#### Web Formatting (Matt, 2026-11-17)
+
+- FR260: Every TypeScript, CSS and JSON file of the web that Prettier covers is in Prettier's form under the committed configuration; the reformat is one commit that holds nothing else
+- FR261: Prettier is a dev dependency of the web pinned to an exact version, with a committed configuration and ignore file; `just format-web` uses it, and recorded test fixtures, Markdown and HTML are not covered
+- FR262: `just lint-web`, and through it CI's `web` job and `just check`, fails when a covered web file is not formatted
+- FR263: The web reformat commit is listed in `.git-blame-ignore-revs`, so `git blame` skips it on GitHub and in a set-up worktree
+
+#### Renovate (Matt, 2026-11-17)
+
+- FR264: A uv update keeps the organisation preset's one-day hold on its `.mise.toml` half, and `RELEASING.md` says that its pull request opens with the Dockerfile half only, fails the uv version test for about a day, and must not be merged until it holds both halves
+- FR265: A digest refresh of a Dockerfile image under an unchanged tag is committed as `chore(container)` and adds no release note; a version change of an image keeps the preset's `fix` or `feat` type
+
+#### Log Level (Matt, 2026-11-17)
+
+- FR266: `VS_LOG_LEVEL` (`DEBUG`, `INFO`, `WARNING` or `ERROR`, in any letter case) sets the API's log level at start-up; unset or blank, the level is DEBUG with `VS_DEBUG=true` and INFO otherwise, as before; it changes nothing else that `VS_DEBUG` controls
+- FR267: Any other value of `VS_LOG_LEVEL` stops start-up with an error that names the setting; turning debug logging on at run time still sets DEBUG and turning it off returns to the configured level; the setting is documented in the README and `.env.example`
+
+#### Config File Viewer
+
+- FR268: Discord webhook URLs on `ptb.discord.com` and `canary.discord.com` are redacted for roles other than Admin like those on `discord.com` and `discordapp.com`, from one list of hosts
+- FR269: A config directory listing never shows an entry that resolves outside the server data directory, for any role
+- FR270: A role other than Admin asking for a directory it may not list gets 403 whether or not the server data directory exists
+
+#### Mod Removal and Error Messages
+
+- FR271: After the administrator confirms, the mod remove dialog stays open and shows that the removal is running, cannot be dismissed while it runs, and closes when the removal has succeeded (Matt, 2026-11-17)
+- FR272: When a removal fails, one error message is shown and the dialog stays open so the administrator can try again or cancel
+- FR273: The running state of the remove dialog belongs to the mod being removed; another mod's dialog never shows it (Matt, 2026-11-17)
+- FR274: A failed action in the web UI shows exactly one error message: a mod install, a server install, uninstall or restart, and a change of the mod update webhook
+
+#### Tables and Dialogs
+
+- FR275: Versions are sorted by Semantic Versioning precedence (a pre-release before its release, numeric parts as numbers) in the installed mods list and on the Version page, by one comparison function and without a new dependency
+- FR276: Sortable column headers expose their sort state to assistive technology (`aria-sort`: ascending, descending or none) in the installed mods table and the Version table
+- FR277: The close button of every dialog and of the phone navigation sheet is at least 44 by 44px
+
+#### Mod Detail Page
+
+- FR278: Every link in the web UI that opens a new tab says so to assistive technology in the same words, including SVG links inside mod descriptions
+- FR279: The mod detail page does not scroll sideways from 320px up: its header stacks below 768px and wide description content stays inside its card
+- FR280: Mod descriptions are typeset (headings, paragraphs, lists, links, quotes, code and tables) with the theme's colours in both themes, without a new dependency
+
+#### Tabs, Tables and Layout
+
+- FR281: Tab buttons are at least 44px tall below 1024px in every tab list
+- FR282: Arrow keys move focus and selection in the Settings tab list as soon as a tab can receive focus, or the cause of the reported delay is recorded with evidence when it cannot be reproduced with a real keyboard or lies outside the project's code
+- FR283: The Scheduled Jobs and Version tables do not scroll inside themselves from 320 to 1023px in either sidebar state, and every page of the web UI has recorded measurements at those widths
+- FR284: With no sidebar choice stored, the sidebar is collapsed from 768 to 1023px and expanded from 1024px; an explicit choice applies at every width and is kept; the choice can be set back to automatic
+- FR285: Page content is at most 1280px wide and centered; the console pages use the full width
+
+#### Pulled In (Matt, 2026-11-17)
+
+- FR286: When the installed game version changes, the mod data in the web UI that depends on it (the browse cards' release badges, compatibility and update status) is fetched again without a reload, triggered by the version the server status reports

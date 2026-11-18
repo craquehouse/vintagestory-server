@@ -25,9 +25,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering hooks with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -198,12 +196,7 @@ describe('useModDetail', () => {
       expect(latestRelease?.filename).toBe('smithingplus_1.8.3.zip');
       expect(latestRelease?.fileId).toBe(59176);
       expect(latestRelease?.downloads).toBe(49726);
-      expect(latestRelease?.gameVersions).toEqual([
-        '1.21.0',
-        '1.21.1',
-        '1.21.2',
-        '1.21.3',
-      ]);
+      expect(latestRelease?.gameVersions).toEqual(['1.21.0', '1.21.1', '1.21.2', '1.21.3']);
       expect(latestRelease?.changelog).toBe('<ul><li>Bug fixes</li></ul>');
 
       // Check second release
@@ -243,11 +236,7 @@ describe('useModDetail', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(result.current.data?.data.tags).toEqual([
-        'Crafting',
-        'QoL',
-        'Utility',
-      ]);
+      expect(result.current.data?.data.tags).toEqual(['Crafting', 'QoL', 'Utility']);
     });
 
     it('returns external URLs', async () => {

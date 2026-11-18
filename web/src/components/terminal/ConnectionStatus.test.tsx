@@ -43,10 +43,7 @@ describe('ConnectionStatus', () => {
         render(<ConnectionStatus state={state} />);
 
         expect(screen.getByText(expectedLabel)).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveAttribute(
-          'aria-label',
-          expectedAriaLabel
-        );
+        expect(screen.getByRole('status')).toHaveAttribute('aria-label', expectedAriaLabel);
       }
     );
   });
@@ -130,9 +127,7 @@ describe('ConnectionStatus', () => {
 
   describe('className prop', () => {
     it('accepts and applies custom className', () => {
-      render(
-        <ConnectionStatus state="connected" className="custom-class mt-4" />
-      );
+      render(<ConnectionStatus state="connected" className="custom-class mt-4" />);
 
       const statusContainer = screen.getByRole('status');
       expect(statusContainer).toHaveClass('custom-class');

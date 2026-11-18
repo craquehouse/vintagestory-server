@@ -82,9 +82,7 @@ export async function installMod(
  *
  * Requires Admin role.
  */
-export async function enableMod(
-  slug: string
-): Promise<ApiResponse<ModEnableDisableData>> {
+export async function enableMod(slug: string): Promise<ApiResponse<ModEnableDisableData>> {
   return apiClient<ApiResponse<ModEnableDisableData>>(
     `${API_PREFIX}/${encodeURIComponent(slug)}/enable`,
     { method: 'POST' }
@@ -99,9 +97,7 @@ export async function enableMod(
  *
  * Requires Admin role.
  */
-export async function disableMod(
-  slug: string
-): Promise<ApiResponse<ModEnableDisableData>> {
+export async function disableMod(slug: string): Promise<ApiResponse<ModEnableDisableData>> {
   return apiClient<ApiResponse<ModEnableDisableData>>(
     `${API_PREFIX}/${encodeURIComponent(slug)}/disable`,
     { method: 'POST' }
@@ -116,13 +112,10 @@ export async function disableMod(
  *
  * Requires Admin role.
  */
-export async function removeMod(
-  slug: string
-): Promise<ApiResponse<ModRemoveData>> {
-  return apiClient<ApiResponse<ModRemoveData>>(
-    `${API_PREFIX}/${encodeURIComponent(slug)}`,
-    { method: 'DELETE' }
-  );
+export async function removeMod(slug: string): Promise<ApiResponse<ModRemoveData>> {
+  return apiClient<ApiResponse<ModRemoveData>>(`${API_PREFIX}/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+  });
 }
 
 /**
@@ -137,9 +130,7 @@ export async function removeMod(
  *
  * Accessible to both Admin and Monitor roles.
  */
-export async function fetchGameVersions(): Promise<
-  ApiResponse<GameVersionsData>
-> {
+export async function fetchGameVersions(): Promise<ApiResponse<GameVersionsData>> {
   return apiClient<ApiResponse<GameVersionsData>>(`${API_PREFIX}/gameversions`);
 }
 

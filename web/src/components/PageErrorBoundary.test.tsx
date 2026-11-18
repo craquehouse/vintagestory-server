@@ -18,7 +18,7 @@ function renderAt(path: string, onReload = vi.fn()) {
           <Route path="/working" element={<p>Working page</p>} />
         </Routes>
       </PageErrorBoundary>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
   return onReload;
 }

@@ -38,12 +38,7 @@ const GRID_CLASSES = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-col
  * Skeleton card component for loading state.
  */
 function VersionCardSkeleton() {
-  return (
-    <Card
-      className="h-[120px] animate-pulse bg-muted"
-      data-testid="version-card-skeleton"
-    />
-  );
+  return <Card className="h-[120px] animate-pulse bg-muted" data-testid="version-card-skeleton" />;
 }
 
 /**
@@ -65,10 +60,7 @@ export function VersionGrid({
 }: VersionGridProps) {
   if (isLoading) {
     return (
-      <div
-        className={GRID_CLASSES}
-        data-testid="version-grid-loading"
-      >
+      <div className={GRID_CLASSES} data-testid="version-grid-loading">
         {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
           <VersionCardSkeleton key={index} />
         ))}
@@ -78,20 +70,14 @@ export function VersionGrid({
 
   if (versions.length === 0) {
     return (
-      <div
-        className="text-center py-8 text-muted-foreground"
-        data-testid="version-grid-empty"
-      >
+      <div className="text-center py-8 text-muted-foreground" data-testid="version-grid-empty">
         No versions found for this channel.
       </div>
     );
   }
 
   return (
-    <div
-      className={GRID_CLASSES}
-      data-testid="version-grid"
-    >
+    <div className={GRID_CLASSES} data-testid="version-grid">
       {versions.map((version) => (
         <VersionCard
           key={version.version}

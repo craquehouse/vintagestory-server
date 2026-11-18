@@ -7,25 +7,18 @@
  * Story: UI-017 - User preferences cookie persistence
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from "react";
-import { useTheme } from "next-themes";
-import { getCookie, setCookie } from "@/lib/cookies";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useTheme } from 'next-themes';
+import { getCookie, setCookie } from '@/lib/cookies';
 
 /** Theme preference options */
-export type ThemePreference = "light" | "dark" | "system";
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 /** Sort direction for table columns */
-export type SortDirection = "asc" | "desc";
+export type SortDirection = 'asc' | 'desc';
 
 /** Sortable columns in the installed mods table */
-export type InstalledModsSortColumn = "name" | "version" | "enabled";
+export type InstalledModsSortColumn = 'name' | 'version' | 'enabled';
 
 /** Sort preference for installed mods table */
 export interface InstalledModsSort {
@@ -44,15 +37,15 @@ export interface UserPreferences {
 
 /** Default preferences for new users */
 const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: "system",
+  theme: 'system',
   consoleFontSize: 14,
   sidebarCollapsed: false,
   gameServerNavExpanded: true,
-  installedModsSort: { column: "name", direction: "asc" },
+  installedModsSort: { column: 'name', direction: 'asc' },
 };
 
 /** Cookie name for preferences storage */
-const PREFS_COOKIE_NAME = "vs_ui_prefs";
+const PREFS_COOKIE_NAME = 'vs_ui_prefs';
 
 /** Console font size constraints */
 export const FONT_SIZE_MIN = 10;
@@ -69,9 +62,7 @@ interface PreferencesContextType {
   setInstalledModsSort: (sort: InstalledModsSort) => void;
 }
 
-const PreferencesContext = createContext<PreferencesContextType | undefined>(
-  undefined
-);
+const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
 
 interface PreferencesProviderProps {
   children: ReactNode;
@@ -94,11 +85,11 @@ function loadPreferences(): UserPreferences {
         ? parsed.consoleFontSize
         : DEFAULT_PREFERENCES.consoleFontSize,
       sidebarCollapsed:
-        typeof parsed.sidebarCollapsed === "boolean"
+        typeof parsed.sidebarCollapsed === 'boolean'
           ? parsed.sidebarCollapsed
           : DEFAULT_PREFERENCES.sidebarCollapsed,
       gameServerNavExpanded:
-        typeof parsed.gameServerNavExpanded === "boolean"
+        typeof parsed.gameServerNavExpanded === 'boolean'
           ? parsed.gameServerNavExpanded
           : DEFAULT_PREFERENCES.gameServerNavExpanded,
       installedModsSort: isValidInstalledModsSort(parsed.installedModsSort)
@@ -114,7 +105,7 @@ function loadPreferences(): UserPreferences {
  * Validate theme preference value.
  */
 function isValidTheme(theme: unknown): theme is ThemePreference {
-  return theme === "light" || theme === "dark" || theme === "system";
+  return theme === 'light' || theme === 'dark' || theme === 'system';
 }
 
 /**
@@ -122,7 +113,7 @@ function isValidTheme(theme: unknown): theme is ThemePreference {
  */
 function isValidFontSize(size: unknown): size is number {
   return (
-    typeof size === "number" &&
+    typeof size === 'number' &&
     size >= FONT_SIZE_MIN &&
     size <= FONT_SIZE_MAX &&
     Number.isInteger(size)
@@ -137,16 +128,16 @@ function clampFontSize(size: number): number {
 }
 
 /** Valid sort columns */
-const VALID_SORT_COLUMNS: InstalledModsSortColumn[] = ["name", "version", "enabled"];
+const VALID_SORT_COLUMNS: InstalledModsSortColumn[] = ['name', 'version', 'enabled'];
 
 /** Valid sort directions */
-const VALID_SORT_DIRECTIONS: SortDirection[] = ["asc", "desc"];
+const VALID_SORT_DIRECTIONS: SortDirection[] = ['asc', 'desc'];
 
 /**
  * Validate installed mods sort preference value.
  */
 function isValidInstalledModsSort(sort: unknown): sort is InstalledModsSort {
-  if (typeof sort !== "object" || sort === null) {
+  if (typeof sort !== 'object' || sort === null) {
     return false;
   }
   const s = sort as Record<string, unknown>;
@@ -220,7 +211,7 @@ export function PreferencesProvider({ children }: PreferencesProviderProps) {
 export function usePreferences(): PreferencesContextType {
   const context = useContext(PreferencesContext);
   if (context === undefined) {
-    throw new Error("usePreferences must be used within a PreferencesProvider");
+    throw new Error('usePreferences must be used within a PreferencesProvider');
   }
   return context;
 }

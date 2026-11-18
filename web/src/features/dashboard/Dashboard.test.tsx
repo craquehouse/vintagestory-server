@@ -130,9 +130,9 @@ describe('Dashboard', () => {
 
   describe('not installed state (AC: 1, 2)', () => {
     it('shows empty state card when server is not installed', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'not_installed' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'not_installed' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -147,9 +147,9 @@ describe('Dashboard', () => {
     });
 
     it('shows link to Installation page in empty state', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'not_installed' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'not_installed' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -166,9 +166,9 @@ describe('Dashboard', () => {
     });
 
     it('does not show server controls in empty state', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'not_installed' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'not_installed' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -187,9 +187,9 @@ describe('Dashboard', () => {
 
   describe('installing state (AC: 1, 2)', () => {
     it('shows installing state with spinner and progress link', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'installing' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'installing' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -209,9 +209,9 @@ describe('Dashboard', () => {
     });
 
     it('does not show server controls during installation', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'installing' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'installing' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -230,9 +230,11 @@ describe('Dashboard', () => {
 
   describe('stopped state (AC: 3)', () => {
     it('shows ServerStatusBadge with Stopped status', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+        );
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -245,9 +247,11 @@ describe('Dashboard', () => {
     });
 
     it('displays server version when stopped', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+        );
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -259,9 +263,11 @@ describe('Dashboard', () => {
     });
 
     it('enables Start button and disables Stop/Restart when stopped', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(
+          mockServerStatus(createServerStatus({ state: 'installed', version: '1.21.3' }))
+        );
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -279,11 +285,13 @@ describe('Dashboard', () => {
   describe('running state (AC: 4)', () => {
     it('shows ServerStatusBadge with Running status', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'running',
-          version: '1.21.3',
-          uptimeSeconds: 3600,
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3600,
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -297,11 +305,13 @@ describe('Dashboard', () => {
 
     it('displays server version when running', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'running',
-          version: '1.21.3',
-          uptimeSeconds: 3660, // 1 hour, 1 minute
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3660, // 1 hour, 1 minute
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -315,11 +325,13 @@ describe('Dashboard', () => {
 
     it('enables Stop/Restart buttons and disables Start when running', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'running',
-          version: '1.21.3',
-          uptimeSeconds: 3600,
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3600,
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -338,11 +350,13 @@ describe('Dashboard', () => {
   describe('auto-refresh (AC: 6)', () => {
     it('polls server status using TanStack Query', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'running',
-          version: '1.21.3',
-          uptimeSeconds: 3600,
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3600,
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -392,18 +406,20 @@ describe('Dashboard', () => {
   describe('stat cards grid (Story 12.4)', () => {
     it('renders stats grid with 4 cards when server is installed (AC: 1)', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'running',
-          version: '1.21.3',
-          uptimeSeconds: 3600,
-          diskSpace: {
-            totalGb: 100,
-            usedGb: 55,
-            availableGb: 45,
-            usagePercent: 55,
-            warning: false,
-          },
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'running',
+            version: '1.21.3',
+            uptimeSeconds: 3600,
+            diskSpace: {
+              totalGb: 100,
+              usedGb: 55,
+              availableGb: 45,
+              usagePercent: 55,
+              warning: false,
+            },
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -423,10 +439,12 @@ describe('Dashboard', () => {
 
     it('shows responsive grid layout (AC: 5)', async () => {
       const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({
-          state: 'installed',
-          version: '1.21.3',
-        }))
+        mockServerStatus(
+          createServerStatus({
+            state: 'installed',
+            version: '1.21.3',
+          })
+        )
       );
       globalThis.fetch = mockFetch;
 
@@ -444,9 +462,9 @@ describe('Dashboard', () => {
     });
 
     it('does not show stats grid when server not installed', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'not_installed' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'not_installed' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -638,9 +656,9 @@ describe('Dashboard', () => {
     });
 
     it('does not show chart when server not installed', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(
-        mockServerStatus(createServerStatus({ state: 'not_installed' }))
-      );
+      const mockFetch = vi
+        .fn()
+        .mockResolvedValue(mockServerStatus(createServerStatus({ state: 'not_installed' })));
       globalThis.fetch = mockFetch;
 
       const queryClient = createTestQueryClient();
@@ -678,4 +696,3 @@ describe('Dashboard', () => {
     });
   });
 });
-

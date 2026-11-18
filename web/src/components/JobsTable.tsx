@@ -9,12 +9,7 @@
  * Story 8.3: Job Configuration UI
  */
 
-import {
-  createColumnHelper,
-  flexRender,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
+import { createColumnHelper, flexRender, tableFeatures, useTable } from '@tanstack/react-table';
 import { Clock } from 'lucide-react';
 import {
   Table,
@@ -98,11 +93,7 @@ const columns = columnHelper.columns([
   columnHelper.accessor('triggerType', {
     header: 'Status',
     cell: (info) => (
-      <Badge
-        variant="outline"
-        className="gap-1"
-        data-testid={`job-status-${info.row.original.id}`}
-      >
+      <Badge variant="outline" className="gap-1" data-testid={`job-status-${info.row.original.id}`}>
         <Clock className="h-3 w-3" />
         {info.getValue()}
       </Badge>
@@ -125,10 +116,7 @@ export function JobsTable({ jobs }: JobsTableProps) {
 
   if (jobs.length === 0) {
     return (
-      <div
-        className="text-center py-8 text-muted-foreground"
-        data-testid="jobs-table-empty"
-      >
+      <div className="text-center py-8 text-muted-foreground" data-testid="jobs-table-empty">
         <div className="text-lg font-medium mb-2">No scheduled jobs</div>
         <div className="text-sm">
           Jobs are registered when the server starts.

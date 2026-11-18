@@ -41,9 +41,7 @@ test.describe('Console page', () => {
     await page.goto(CONSOLE);
 
     // Verify the terminal container with proper ARIA label
-    await expect(
-      page.getByRole('application', { name: 'Server console terminal' })
-    ).toBeVisible();
+    await expect(page.getByRole('application', { name: 'Server console terminal' })).toBeVisible();
   });
 
   test('shows connection status indicator', async ({ page }) => {
@@ -71,10 +69,7 @@ test.describe('Console page', () => {
     // Start at dashboard
     await page.goto('/');
 
-    await page
-      .getByRole('navigation')
-      .getByRole('link', { name: 'Console', exact: true })
-      .click();
+    await page.getByRole('navigation').getByRole('link', { name: 'Console', exact: true }).click();
 
     await expect(page).toHaveURL(CONSOLE);
     await expect(page.getByRole('heading', { level: 1, name: 'Server Console' })).toBeVisible();

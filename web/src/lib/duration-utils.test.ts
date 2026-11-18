@@ -5,11 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  parseDuration,
-  formatDuration,
-  formatDurationSimple,
-} from './duration-utils';
+import { parseDuration, formatDuration, formatDurationSimple } from './duration-utils';
 
 describe('parseDuration', () => {
   describe('plain numbers (seconds)', () => {
@@ -399,11 +395,11 @@ describe('formatDurationSimple', () => {
 
   describe('compound values', () => {
     it.each([
-      [90, '1m 30s'],      // 90s has no exact unit, falls through to formatDuration
-      [5400, '90m'],       // 90 minutes exactly - uses minute form
-      [90000, '25h'],      // 25 hours exactly - uses hour form
-      [93600, '26h'],      // 26 hours exactly - uses hour form
-      [93660, '1561m'],    // 1561 minutes exactly - uses minute form
+      [90, '1m 30s'], // 90s has no exact unit, falls through to formatDuration
+      [5400, '90m'], // 90 minutes exactly - uses minute form
+      [90000, '25h'], // 25 hours exactly - uses hour form
+      [93600, '26h'], // 26 hours exactly - uses hour form
+      [93660, '1561m'], // 1561 minutes exactly - uses minute form
       [93661, '1d 2h 1m 1s'], // True compound - no exact unit match
     ])('formats %d seconds as "%s"', (seconds, expected) => {
       expect(formatDurationSimple(seconds)).toBe(expected);
@@ -453,22 +449,18 @@ describe('formatDurationSimple', () => {
 });
 
 describe('round-trip consistency', () => {
-  it.each([
-    '30s',
-    '5m',
-    '1h',
-    '4h',
-    '1d',
-    '1h30m',
-  ])('parses and formats "%s" back to equivalent', (input) => {
-    const parsed = parseDuration(input);
-    expect(parsed.success).toBe(true);
-    const formatted = formatDurationSimple(parsed.seconds);
-    // Re-parse the formatted output should give same seconds
-    const reparsed = parseDuration(formatted);
-    expect(reparsed.success).toBe(true);
-    expect(reparsed.seconds).toBe(parsed.seconds);
-  });
+  it.each(['30s', '5m', '1h', '4h', '1d', '1h30m'])(
+    'parses and formats "%s" back to equivalent',
+    (input) => {
+      const parsed = parseDuration(input);
+      expect(parsed.success).toBe(true);
+      const formatted = formatDurationSimple(parsed.seconds);
+      // Re-parse the formatted output should give same seconds
+      const reparsed = parseDuration(formatted);
+      expect(reparsed.success).toBe(true);
+      expect(reparsed.seconds).toBe(parsed.seconds);
+    }
+  );
 });
 
 describe('additional edge cases', () => {

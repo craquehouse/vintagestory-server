@@ -74,7 +74,9 @@ export function ModUpdateWebhookSetting({ configured }: ModUpdateWebhookSettingP
           type="url"
           autoComplete="off"
           spellCheck={false}
-          placeholder={configured ? 'Enter a new URL to replace it' : 'https://discord.com/api/webhooks/…'}
+          placeholder={
+            configured ? 'Enter a new URL to replace it' : 'https://discord.com/api/webhooks/…'
+          }
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
@@ -109,8 +111,8 @@ export function ModUpdateWebhookSetting({ configured }: ModUpdateWebhookSettingP
         </p>
       )}
       <p id="mod_update_webhook_url-desc" className="text-xs text-muted-foreground">
-        Sends one message when a mod update becomes available. Discord webhooks are supported.
-        The URL is stored on the server and never shown again.
+        Sends one message when a mod update becomes available. Discord webhooks are supported. The
+        URL is stored on the server and never shown again.
       </p>
     </div>
   );

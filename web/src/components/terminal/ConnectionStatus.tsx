@@ -21,10 +21,7 @@ interface StatusConfig {
 /**
  * Get configuration for a connection state, considering server state.
  */
-function getStatusConfig(
-  state: ConnectionState,
-  serverState?: ServerState
-): StatusConfig {
+function getStatusConfig(state: ConnectionState, serverState?: ServerState): StatusConfig {
   switch (state) {
     case 'connecting':
       return {
@@ -90,11 +87,7 @@ function getStatusConfig(
  * <ConnectionStatus state={connectionState} serverState={serverStatus?.state} />
  * ```
  */
-export function ConnectionStatus({
-  state,
-  serverState,
-  className,
-}: ConnectionStatusProps) {
+export function ConnectionStatus({ state, serverState, className }: ConnectionStatusProps) {
   const config = getStatusConfig(state, serverState);
 
   return (
@@ -112,9 +105,7 @@ export function ConnectionStatus({
         )}
         aria-hidden="true"
       />
-      <span className={cn('text-xs font-medium', config.textClass)}>
-        {config.label}
-      </span>
+      <span className={cn('text-xs font-medium', config.textClass)}>{config.label}</span>
     </div>
   );
 }

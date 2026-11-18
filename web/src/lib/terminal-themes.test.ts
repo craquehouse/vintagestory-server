@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  catppuccinMocha,
-  catppuccinLatte,
-  getTerminalTheme,
-} from './terminal-themes';
+import { catppuccinMocha, catppuccinLatte, getTerminalTheme } from './terminal-themes';
 
 describe('terminal-themes', () => {
   describe('catppuccinMocha (dark theme)', () => {

@@ -77,7 +77,9 @@ describe('DiskSpaceWarningBanner', () => {
 
     it('displays complete warning message format', () => {
       render(<DiskSpaceWarningBanner diskSpace={lowDiskSpace} />);
-      expect(screen.getByText(/Low disk space: 5\.0 GB available \(95% used\)/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Low disk space: 5\.0 GB available \(95% used\)/)
+      ).toBeInTheDocument();
     });
   });
 

@@ -65,10 +65,7 @@ describe('Card', () => {
       render(<CardHeader data-testid="card-header">Header</CardHeader>);
 
       expect(screen.getByTestId('card-header')).toBeInTheDocument();
-      expect(screen.getByTestId('card-header')).toHaveAttribute(
-        'data-slot',
-        'card-header'
-      );
+      expect(screen.getByTestId('card-header')).toHaveAttribute('data-slot', 'card-header');
     });
 
     it('renders as div element', () => {
@@ -102,9 +99,7 @@ describe('Card', () => {
         </CardHeader>
       );
 
-      expect(screen.getByTestId('card-header').className).toContain(
-        'custom-header'
-      );
+      expect(screen.getByTestId('card-header').className).toContain('custom-header');
     });
   });
 
@@ -113,10 +108,7 @@ describe('Card', () => {
       render(<CardTitle data-testid="card-title">Title</CardTitle>);
 
       expect(screen.getByTestId('card-title')).toBeInTheDocument();
-      expect(screen.getByTestId('card-title')).toHaveAttribute(
-        'data-slot',
-        'card-title'
-      );
+      expect(screen.getByTestId('card-title')).toHaveAttribute('data-slot', 'card-title');
     });
 
     it('renders as div element', () => {
@@ -146,19 +138,13 @@ describe('Card', () => {
         </CardTitle>
       );
 
-      expect(screen.getByTestId('card-title').className).toContain(
-        'custom-title'
-      );
+      expect(screen.getByTestId('card-title').className).toContain('custom-title');
     });
   });
 
   describe('CardDescription', () => {
     it('renders description with correct data-slot', () => {
-      render(
-        <CardDescription data-testid="card-description">
-          Description
-        </CardDescription>
-      );
+      render(<CardDescription data-testid="card-description">Description</CardDescription>);
 
       expect(screen.getByTestId('card-description')).toBeInTheDocument();
       expect(screen.getByTestId('card-description')).toHaveAttribute(
@@ -168,35 +154,21 @@ describe('Card', () => {
     });
 
     it('renders as div element', () => {
-      render(
-        <CardDescription data-testid="card-description">
-          Description
-        </CardDescription>
-      );
+      render(<CardDescription data-testid="card-description">Description</CardDescription>);
 
-      expect(screen.getByTestId('card-description')).toBeInstanceOf(
-        HTMLDivElement
-      );
+      expect(screen.getByTestId('card-description')).toBeInstanceOf(HTMLDivElement);
     });
 
     it('renders children content', () => {
       render(
-        <CardDescription data-testid="card-description">
-          Card description text
-        </CardDescription>
+        <CardDescription data-testid="card-description">Card description text</CardDescription>
       );
 
-      expect(screen.getByTestId('card-description')).toHaveTextContent(
-        'Card description text'
-      );
+      expect(screen.getByTestId('card-description')).toHaveTextContent('Card description text');
     });
 
     it('has correct styling classes', () => {
-      render(
-        <CardDescription data-testid="card-description">
-          Description
-        </CardDescription>
-      );
+      render(<CardDescription data-testid="card-description">Description</CardDescription>);
 
       const description = screen.getByTestId('card-description');
       expect(description.className).toContain('text-muted-foreground');
@@ -205,17 +177,12 @@ describe('Card', () => {
 
     it('applies custom className', () => {
       render(
-        <CardDescription
-          data-testid="card-description"
-          className="custom-description"
-        >
+        <CardDescription data-testid="card-description" className="custom-description">
           Description
         </CardDescription>
       );
 
-      expect(screen.getByTestId('card-description').className).toContain(
-        'custom-description'
-      );
+      expect(screen.getByTestId('card-description').className).toContain('custom-description');
     });
   });
 
@@ -224,10 +191,7 @@ describe('Card', () => {
       render(<CardAction data-testid="card-action">Action</CardAction>);
 
       expect(screen.getByTestId('card-action')).toBeInTheDocument();
-      expect(screen.getByTestId('card-action')).toHaveAttribute(
-        'data-slot',
-        'card-action'
-      );
+      expect(screen.getByTestId('card-action')).toHaveAttribute('data-slot', 'card-action');
     });
 
     it('renders as div element', () => {
@@ -264,9 +228,7 @@ describe('Card', () => {
         </CardAction>
       );
 
-      expect(screen.getByTestId('card-action').className).toContain(
-        'custom-action'
-      );
+      expect(screen.getByTestId('card-action').className).toContain('custom-action');
     });
   });
 
@@ -275,10 +237,7 @@ describe('Card', () => {
       render(<CardContent data-testid="card-content">Content</CardContent>);
 
       expect(screen.getByTestId('card-content')).toBeInTheDocument();
-      expect(screen.getByTestId('card-content')).toHaveAttribute(
-        'data-slot',
-        'card-content'
-      );
+      expect(screen.getByTestId('card-content')).toHaveAttribute('data-slot', 'card-content');
     });
 
     it('renders as div element', () => {
@@ -288,15 +247,9 @@ describe('Card', () => {
     });
 
     it('renders children content', () => {
-      render(
-        <CardContent data-testid="card-content">
-          Card content text
-        </CardContent>
-      );
+      render(<CardContent data-testid="card-content">Card content text</CardContent>);
 
-      expect(screen.getByTestId('card-content')).toHaveTextContent(
-        'Card content text'
-      );
+      expect(screen.getByTestId('card-content')).toHaveTextContent('Card content text');
     });
 
     it('has correct styling classes', () => {
@@ -313,9 +266,7 @@ describe('Card', () => {
         </CardContent>
       );
 
-      expect(screen.getByTestId('card-content').className).toContain(
-        'custom-content'
-      );
+      expect(screen.getByTestId('card-content').className).toContain('custom-content');
     });
   });
 
@@ -324,10 +275,7 @@ describe('Card', () => {
       render(<CardFooter data-testid="card-footer">Footer</CardFooter>);
 
       expect(screen.getByTestId('card-footer')).toBeInTheDocument();
-      expect(screen.getByTestId('card-footer')).toHaveAttribute(
-        'data-slot',
-        'card-footer'
-      );
+      expect(screen.getByTestId('card-footer')).toHaveAttribute('data-slot', 'card-footer');
     });
 
     it('renders as div element', () => {
@@ -364,9 +312,7 @@ describe('Card', () => {
         </CardFooter>
       );
 
-      expect(screen.getByTestId('card-footer').className).toContain(
-        'custom-footer'
-      );
+      expect(screen.getByTestId('card-footer').className).toContain('custom-footer');
     });
   });
 
@@ -432,9 +378,7 @@ describe('Card', () => {
           <Card data-testid="card">
             <CardHeader data-testid="header">
               <CardTitle data-testid="title">Card Title</CardTitle>
-              <CardDescription data-testid="description">
-                Card description
-              </CardDescription>
+              <CardDescription data-testid="description">Card description</CardDescription>
               <CardAction data-testid="action">
                 <button>Action</button>
               </CardAction>
@@ -465,9 +409,7 @@ describe('Card', () => {
       );
 
       expect(screen.getByTestId('action-button')).toBeInTheDocument();
-      expect(screen.getByTestId('action-button')).toBeInstanceOf(
-        HTMLButtonElement
-      );
+      expect(screen.getByTestId('action-button')).toBeInstanceOf(HTMLButtonElement);
     });
 
     it('CardFooter can contain multiple action buttons', () => {
@@ -491,9 +433,7 @@ describe('Card', () => {
         <Card data-testid="card">
           <CardHeader data-testid="header">
             <CardTitle data-testid="title">Title</CardTitle>
-            <CardDescription data-testid="description">
-              Description
-            </CardDescription>
+            <CardDescription data-testid="description">Description</CardDescription>
             <CardAction data-testid="action">Action</CardAction>
           </CardHeader>
           <CardContent data-testid="content">Content</CardContent>
@@ -502,30 +442,12 @@ describe('Card', () => {
       );
 
       expect(screen.getByTestId('card')).toHaveAttribute('data-slot', 'card');
-      expect(screen.getByTestId('header')).toHaveAttribute(
-        'data-slot',
-        'card-header'
-      );
-      expect(screen.getByTestId('title')).toHaveAttribute(
-        'data-slot',
-        'card-title'
-      );
-      expect(screen.getByTestId('description')).toHaveAttribute(
-        'data-slot',
-        'card-description'
-      );
-      expect(screen.getByTestId('action')).toHaveAttribute(
-        'data-slot',
-        'card-action'
-      );
-      expect(screen.getByTestId('content')).toHaveAttribute(
-        'data-slot',
-        'card-content'
-      );
-      expect(screen.getByTestId('footer')).toHaveAttribute(
-        'data-slot',
-        'card-footer'
-      );
+      expect(screen.getByTestId('header')).toHaveAttribute('data-slot', 'card-header');
+      expect(screen.getByTestId('title')).toHaveAttribute('data-slot', 'card-title');
+      expect(screen.getByTestId('description')).toHaveAttribute('data-slot', 'card-description');
+      expect(screen.getByTestId('action')).toHaveAttribute('data-slot', 'card-action');
+      expect(screen.getByTestId('content')).toHaveAttribute('data-slot', 'card-content');
+      expect(screen.getByTestId('footer')).toHaveAttribute('data-slot', 'card-footer');
     });
   });
 });

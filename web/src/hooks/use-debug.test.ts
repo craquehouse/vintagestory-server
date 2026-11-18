@@ -29,11 +29,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      children
-    );
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
   };
 }
 
@@ -163,11 +159,9 @@ describe('useToggleDebug', () => {
   it('tracks pending state during mutation', async () => {
     // Create a promise we can control
     let resolvePromise: (value: ApiResponse<DebugToggleData>) => void;
-    const pendingPromise = new Promise<ApiResponse<DebugToggleData>>(
-      (resolve) => {
-        resolvePromise = resolve;
-      }
-    );
+    const pendingPromise = new Promise<ApiResponse<DebugToggleData>>((resolve) => {
+      resolvePromise = resolve;
+    });
     vi.mocked(enableDebug).mockReturnValue(pendingPromise);
 
     const { result } = renderHook(() => useToggleDebug(), {

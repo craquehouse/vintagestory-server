@@ -47,11 +47,7 @@ export function PendingRestartBanner({ onRestart }: PendingRestartBannerProps) {
       className="flex items-center gap-2 rounded-md bg-primary/20 px-3 py-1.5 text-sm"
       data-testid="pending-restart-banner"
     >
-      <RefreshCw
-        className="h-4 w-4 text-primary"
-        aria-hidden="true"
-        data-testid="restart-icon"
-      />
+      <RefreshCw className="h-4 w-4 text-primary" aria-hidden="true" data-testid="restart-icon" />
       <span className="text-primary">Restart required</span>
       <Button
         variant="ghost"

@@ -1,2 +1,5 @@
 # chore(story-20.1/task-1): format the API with ruff format (Epic 20 ADR-1)
 da33a55e3d82aa09301a9bd52a7403d4ee730a07
+
+# chore(story-21.1/task-2): format the web with prettier (Epic 21 ADR-1)
+d9c995d6510ca70716fdc2a3de454254f890df8e

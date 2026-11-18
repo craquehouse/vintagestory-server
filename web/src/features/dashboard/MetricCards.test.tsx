@@ -27,9 +27,7 @@ function createTestQueryClient() {
 // Wrapper component for rendering components with QueryClientProvider
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -276,9 +274,7 @@ describe('UptimeCard', () => {
     render(<UptimeCard uptimeSeconds={null} isRunning={false} />);
 
     expect(screen.getByTestId('uptime-card-value')).toHaveTextContent('Stopped');
-    expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent(
-      'Server is not running'
-    );
+    expect(screen.getByTestId('uptime-card-subtitle')).toHaveTextContent('Server is not running');
   });
 
   it('formats seconds correctly', () => {
@@ -359,9 +355,7 @@ describe('ServerStatusCard', () => {
       wrapper: createWrapper(queryClient),
     });
 
-    expect(screen.getByTestId('server-status-card-version')).toHaveTextContent(
-      'Version 1.21.6'
-    );
+    expect(screen.getByTestId('server-status-card-version')).toHaveTextContent('Version 1.21.6');
   });
 
   it('includes server controls (AC: 3)', () => {

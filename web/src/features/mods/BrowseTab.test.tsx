@@ -582,9 +582,7 @@ describe('BrowseTab', () => {
         expect(screen.getByTestId('browse-tab-error')).toBeInTheDocument();
       });
 
-      expect(screen.getByTestId('browse-error-message')).toHaveTextContent(
-        'Failed to load mods:'
-      );
+      expect(screen.getByTestId('browse-error-message')).toHaveTextContent('Failed to load mods:');
     });
 
     it('displays retry button on error', async () => {
@@ -677,7 +675,10 @@ describe('BrowseTab', () => {
 
     it('does not show results count while loading', () => {
       globalThis.fetch = vi.fn().mockImplementation(
-        () => new Promise(() => { /* never resolves */ })
+        () =>
+          new Promise(() => {
+            /* never resolves */
+          })
       );
 
       const queryClient = createTestQueryClient();
@@ -937,7 +938,10 @@ describe('BrowseTab', () => {
       mockFetchPage(1);
       const queryClient = createTestQueryClient();
       render(<BrowseTab />, {
-        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?sort=bogus&side=nowhere&type=x&page=abc`),
+        wrapper: createWrapper(
+          queryClient,
+          `${BROWSE_PATH}?sort=bogus&side=nowhere&type=x&page=abc`
+        ),
       });
 
       await waitFor(() => {
@@ -987,7 +991,10 @@ describe('BrowseTab', () => {
       mockFetchPage(3);
       const queryClient = createTestQueryClient();
       render(<BrowseTab />, {
-        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?q=food&side=server&version=1.21.2&page=3`),
+        wrapper: createWrapper(
+          queryClient,
+          `${BROWSE_PATH}?q=food&side=server&version=1.21.2&page=3`
+        ),
       });
 
       await waitFor(() => {
@@ -1069,8 +1076,23 @@ describe('BrowseTab', () => {
       mockFetchPage(1);
       const queryClient = createTestQueryClient();
       const router = createMemoryRouter(
-        [{ path: BROWSE_PATH, element: <><BrowseTab /><LocationProbe /></> }],
-        { initialEntries: [`${BROWSE_PATH}?q=food&version=1.21.2`, `${BROWSE_PATH}?q=carry&version=1.21.3`] }
+        [
+          {
+            path: BROWSE_PATH,
+            element: (
+              <>
+                <BrowseTab />
+                <LocationProbe />
+              </>
+            ),
+          },
+        ],
+        {
+          initialEntries: [
+            `${BROWSE_PATH}?q=food&version=1.21.2`,
+            `${BROWSE_PATH}?q=carry&version=1.21.3`,
+          ],
+        }
       );
       render(
         <QueryClientProvider client={queryClient}>
@@ -1124,7 +1146,9 @@ describe('BrowseTab', () => {
       });
 
       await waitFor(() => {
-        expect(window.sessionStorage.getItem(BROWSE_LAST_SEARCH_KEY)).toBe('?q=carry&version=1.21.2');
+        expect(window.sessionStorage.getItem(BROWSE_LAST_SEARCH_KEY)).toBe(
+          '?q=carry&version=1.21.2'
+        );
       });
     });
   });
@@ -1149,7 +1173,8 @@ describe('BrowseTab', () => {
 
       expect(mockNavigate).toHaveBeenCalledWith('/game-server/mods/browse/carrycapacity', {
         state: {
-          browseSearch: '?q=carry&sort=downloads&side=both&tags=utility&type=mod&version=1.21.2&page=2',
+          browseSearch:
+            '?q=carry&sort=downloads&side=both&tags=utility&type=mod&version=1.21.2&page=2',
         },
       });
     });
@@ -1439,14 +1464,15 @@ describe('BrowseTab', () => {
       );
       mockFetchOk();
       const queryClient = createTestQueryClient();
-      const router = createMemoryRouter(
-        [{ path: BROWSE_PATH, element: <BrowseTab /> }],
-        {
-          initialEntries: [
-            { pathname: BROWSE_PATH, search: '?version=1.21.2&page=2', state: { fromModDetail: true } },
-          ],
-        }
-      );
+      const router = createMemoryRouter([{ path: BROWSE_PATH, element: <BrowseTab /> }], {
+        initialEntries: [
+          {
+            pathname: BROWSE_PATH,
+            search: '?version=1.21.2&page=2',
+            state: { fromModDetail: true },
+          },
+        ],
+      });
       render(
         <QueryClientProvider client={queryClient}>
           <RouterProvider router={router} />
@@ -1456,7 +1482,9 @@ describe('BrowseTab', () => {
       await waitFor(() => {
         expect(scrollIntoView).toHaveBeenCalledTimes(1);
       });
-      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByTestId('mod-card-primitivesurvival'));
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getByTestId('mod-card-primitivesurvival')
+      );
       expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
       expect(savedEntry()).toBeNull();
     });
@@ -1527,7 +1555,9 @@ describe('BrowseTab', () => {
       );
       mockFetchOk();
       const queryClient = createTestQueryClient();
-      render(<BrowseTab />, { wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.3`) });
+      render(<BrowseTab />, {
+        wrapper: createWrapper(queryClient, `${BROWSE_PATH}?version=1.21.3`),
+      });
 
       expect(await screen.findByTestId('mod-card-carrycapacity')).toBeInTheDocument();
       expect(scrollIntoView).not.toHaveBeenCalled();
@@ -1548,7 +1578,6 @@ describe('BrowseTab', () => {
 
     // Story 16.1: The page is part of the browse URL, which every way back restores
     it('restores the page from the browse URL on return', async () => {
-
       const page3Response = {
         status: 'ok' as const,
         data: {
@@ -1593,7 +1622,17 @@ describe('BrowseTab', () => {
       const mockFetch = mockClampingBrowseApi(100);
       const queryClient = createTestQueryClient();
       const router = createMemoryRouter(
-        [{ path: BROWSE_PATH, element: <><BrowseTab /><LocationProbe /></> }],
+        [
+          {
+            path: BROWSE_PATH,
+            element: (
+              <>
+                <BrowseTab />
+                <LocationProbe />
+              </>
+            ),
+          },
+        ],
         {
           initialEntries: [
             { pathname: BROWSE_PATH, search: '?page=9', state: { fromModDetail: true } },
@@ -1616,7 +1655,9 @@ describe('BrowseTab', () => {
         vi.advanceTimersByTime(1000);
       });
       expect(scrollIntoView).toHaveBeenCalledTimes(1);
-      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByTestId('mod-card-primitivesurvival'));
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getByTestId('mod-card-primitivesurvival')
+      );
       expect(browseFetchCount(mockFetch)).toBe(1);
     });
   });
@@ -1799,8 +1840,7 @@ describe('BrowseTab', () => {
   describe('Story 17.4: a card shows Installed for any of its mod IDs', () => {
     it('shows Installed on the Instruments card when vsinstrumentsbase is installed', async () => {
       // The real useMods, so the installed list comes from GET /mods
-      const actual =
-        await vi.importActual<typeof import('@/hooks/use-mods')>('@/hooks/use-mods');
+      const actual = await vi.importActual<typeof import('@/hooks/use-mods')>('@/hooks/use-mods');
       vi.mocked(useMods).mockImplementation(actual.useMods);
       const instrumentsResponse: ApiResponse<ModBrowseData> = {
         ...mockBrowseResponse,
@@ -1841,7 +1881,9 @@ describe('BrowseTab', () => {
           ok: true,
           json: () =>
             Promise.resolve(
-              new URL(url).pathname === '/api/v1alpha1/mods' ? installedResponse : instrumentsResponse
+              new URL(url).pathname === '/api/v1alpha1/mods'
+                ? installedResponse
+                : instrumentsResponse
             ),
         })
       );
@@ -2004,7 +2046,12 @@ describe('BrowseTab', () => {
         mods: [
           { ...first, hasReleaseForGameVersion: gameVersion ? true : null },
           { ...second, hasReleaseForGameVersion: gameVersion ? false : null },
-          { ...first, slug: 'unknownflag', modIds: ['unknownflag'], hasReleaseForGameVersion: null },
+          {
+            ...first,
+            slug: 'unknownflag',
+            modIds: ['unknownflag'],
+            hasReleaseForGameVersion: null,
+          },
         ],
         gameVersion,
       },

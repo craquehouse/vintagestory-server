@@ -13,12 +13,7 @@ describe('StatCard', () => {
   describe('rendering (AC: 1)', () => {
     it('renders with icon, title, and value', () => {
       render(
-        <StatCard
-          icon={MemoryStick}
-          title="Memory Usage"
-          value="128.5 MB"
-          testId="memory-card"
-        />
+        <StatCard icon={MemoryStick} title="Memory Usage" value="128.5 MB" testId="memory-card" />
       );
 
       expect(screen.getByText('Memory Usage')).toBeInTheDocument();
@@ -26,14 +21,7 @@ describe('StatCard', () => {
     });
 
     it('renders the icon', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Running" testId="status-card" />);
 
       // Icon should be present (aria-hidden)
       const icon = document.querySelector('svg[aria-hidden="true"]');
@@ -55,22 +43,13 @@ describe('StatCard', () => {
     });
 
     it('does not render subtitle when not provided', () => {
-      render(
-        <StatCard icon={Clock} title="Uptime" value="5d 12h" testId="uptime-card" />
-      );
+      render(<StatCard icon={Clock} title="Uptime" value="5d 12h" testId="uptime-card" />);
 
       expect(screen.queryByTestId('uptime-card-subtitle')).not.toBeInTheDocument();
     });
 
     it('renders with numeric value', () => {
-      render(
-        <StatCard
-          icon={MemoryStick}
-          title="Memory"
-          value={512}
-          testId="memory-numeric"
-        />
-      );
+      render(<StatCard icon={MemoryStick} title="Memory" value={512} testId="memory-numeric" />);
 
       expect(screen.getByText('512')).toBeInTheDocument();
     });
@@ -78,27 +57,13 @@ describe('StatCard', () => {
 
   describe('test IDs', () => {
     it('applies testId to card element', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server"
-          value="Online"
-          testId="server-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server" value="Online" testId="server-card" />);
 
       expect(screen.getByTestId('server-card')).toBeInTheDocument();
     });
 
     it('applies testId to value element', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server"
-          value="Online"
-          testId="server-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server" value="Online" testId="server-card" />);
 
       expect(screen.getByTestId('server-card-value')).toHaveTextContent('Online');
     });
@@ -114,46 +79,25 @@ describe('StatCard', () => {
         />
       );
 
-      expect(screen.getByTestId('server-card-subtitle')).toHaveTextContent(
-        'Healthy'
-      );
+      expect(screen.getByTestId('server-card-subtitle')).toHaveTextContent('Healthy');
     });
 
     it('does not apply id to title when testId is not provided', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Online"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Online" />);
 
       const title = screen.getByText('Server Status');
       expect(title).not.toHaveAttribute('id');
     });
 
     it('does not apply data-testid to value when testId is not provided', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server"
-          value="Online"
-        />
-      );
+      render(<StatCard icon={Server} title="Server" value="Online" />);
 
       const value = screen.getByText('Online');
       expect(value).not.toHaveAttribute('data-testid');
     });
 
     it('does not apply data-testid to subtitle when testId is not provided', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server"
-          value="Online"
-          subtitle="Healthy"
-        />
-      );
+      render(<StatCard icon={Server} title="Server" value="Online" subtitle="Healthy" />);
 
       const subtitle = screen.getByText('Healthy');
       expect(subtitle).not.toHaveAttribute('data-testid');
@@ -189,14 +133,7 @@ describe('StatCard', () => {
     });
 
     it('has minimum height for consistent grid layout', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server"
-          value="Online"
-          testId="server-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server" value="Online" testId="server-card" />);
 
       const card = screen.getByTestId('server-card');
       expect(card.className).toContain('min-h-');
@@ -205,48 +142,25 @@ describe('StatCard', () => {
 
   describe('different icons', () => {
     it('works with MemoryStick icon', () => {
-      render(
-        <StatCard
-          icon={MemoryStick}
-          title="Memory"
-          value="128 MB"
-          testId="memory-card"
-        />
-      );
+      render(<StatCard icon={MemoryStick} title="Memory" value="128 MB" testId="memory-card" />);
 
       expect(screen.getByTestId('memory-card')).toBeInTheDocument();
     });
 
     it('works with HardDrive icon', () => {
-      render(
-        <StatCard
-          icon={HardDrive}
-          title="Disk"
-          value="100 GB"
-          testId="disk-card"
-        />
-      );
+      render(<StatCard icon={HardDrive} title="Disk" value="100 GB" testId="disk-card" />);
 
       expect(screen.getByTestId('disk-card')).toBeInTheDocument();
     });
 
     it('works with Clock icon', () => {
-      render(
-        <StatCard icon={Clock} title="Uptime" value="5 days" testId="uptime-card" />
-      );
+      render(<StatCard icon={Clock} title="Uptime" value="5 days" testId="uptime-card" />);
 
       expect(screen.getByTestId('uptime-card')).toBeInTheDocument();
     });
 
     it('works with Server icon', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Status" value="Running" testId="status-card" />);
 
       expect(screen.getByTestId('status-card')).toBeInTheDocument();
     });
@@ -254,42 +168,21 @@ describe('StatCard', () => {
 
   describe('accessibility', () => {
     it('has role="region" for semantic grouping', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Running" testId="status-card" />);
 
       const card = screen.getByTestId('status-card');
       expect(card).toHaveAttribute('role', 'region');
     });
 
     it('has aria-label set to title for screen readers', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Running" testId="status-card" />);
 
       const card = screen.getByTestId('status-card');
       expect(card).toHaveAttribute('aria-label', 'Server Status');
     });
 
     it('has aria-hidden on decorative icon', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Running" testId="status-card" />);
 
       const icon = document.querySelector('svg[aria-hidden="true"]');
       expect(icon).toBeInTheDocument();
@@ -297,12 +190,7 @@ describe('StatCard', () => {
 
     it('has aria-live="polite" on value for live updates', () => {
       render(
-        <StatCard
-          icon={MemoryStick}
-          title="Memory Usage"
-          value="128.5 MB"
-          testId="memory-card"
-        />
+        <StatCard icon={MemoryStick} title="Memory Usage" value="128.5 MB" testId="memory-card" />
       );
 
       const value = screen.getByTestId('memory-card-value');
@@ -310,14 +198,7 @@ describe('StatCard', () => {
     });
 
     it('title element has id for programmatic association', () => {
-      render(
-        <StatCard
-          icon={Server}
-          title="Server Status"
-          value="Running"
-          testId="status-card"
-        />
-      );
+      render(<StatCard icon={Server} title="Server Status" value="Running" testId="status-card" />);
 
       const title = document.getElementById('status-card-title');
       expect(title).toBeInTheDocument();

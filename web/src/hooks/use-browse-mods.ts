@@ -86,10 +86,7 @@ export interface UseBrowseModsOptions {
  *   );
  * }
  */
-export function useBrowseMods(
-  params: BrowseParams = {},
-  options: UseBrowseModsOptions = {}
-) {
+export function useBrowseMods(params: BrowseParams = {}, options: UseBrowseModsOptions = {}) {
   // Story 16.1: The page is controlled by the caller (BrowseTab keeps it in the URL).
   // Resetting the page when search/filters/sort change is also the caller's job.
   const currentPage = params.page ?? 1;
@@ -205,10 +202,7 @@ export function useBrowseMods(
  * @param search - Search term (empty or undefined returns all mods)
  * @returns Filtered array of mods
  */
-export function filterModsBySearch(
-  mods: ModBrowseItem[],
-  search?: string
-): ModBrowseItem[] {
+export function filterModsBySearch(mods: ModBrowseItem[], search?: string): ModBrowseItem[] {
   if (!search?.trim()) {
     return mods;
   }

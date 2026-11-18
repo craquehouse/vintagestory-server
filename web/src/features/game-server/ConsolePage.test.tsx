@@ -45,7 +45,9 @@ vi.mock('@/hooks/use-server-status', () => ({
 // Mock ConsolePanel to isolate ConsolePage tests
 vi.mock('@/components/ConsolePanel', () => ({
   ConsolePanel: ({ className }: { className?: string }) => (
-    <div data-testid="console-panel" className={className}>ConsolePanel Mock</div>
+    <div data-testid="console-panel" className={className}>
+      ConsolePanel Mock
+    </div>
   ),
 }));
 
@@ -74,9 +76,15 @@ describe('ConsolePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mutation mocks to default state
-    vi.mocked(serverStatusHook.useStartServer).mockReturnValue(createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useStartServer>);
-    vi.mocked(serverStatusHook.useStopServer).mockReturnValue(createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useStopServer>);
-    vi.mocked(serverStatusHook.useRestartServer).mockReturnValue(createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useRestartServer>);
+    vi.mocked(serverStatusHook.useStartServer).mockReturnValue(
+      createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useStartServer>
+    );
+    vi.mocked(serverStatusHook.useStopServer).mockReturnValue(
+      createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useStopServer>
+    );
+    vi.mocked(serverStatusHook.useRestartServer).mockReturnValue(
+      createMockMutation() as unknown as ReturnType<typeof serverStatusHook.useRestartServer>
+    );
   });
 
   describe('page header', () => {
@@ -119,7 +127,9 @@ describe('ConsolePage', () => {
     });
 
     it('does not render ServerControls when server is not installed', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('not_installed', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('not_installed', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -129,7 +139,9 @@ describe('ConsolePage', () => {
     });
 
     it('does not render ServerControls when server is installing', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('installing', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('installing', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -177,7 +189,9 @@ describe('ConsolePage', () => {
 
     it('disables Start button when start mutation is pending', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('installed'));
-      vi.mocked(serverStatusHook.useStartServer).mockReturnValue(createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useStartServer>);
+      vi.mocked(serverStatusHook.useStartServer).mockReturnValue(
+        createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useStartServer>
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -186,7 +200,9 @@ describe('ConsolePage', () => {
 
     it('disables Stop button when stop mutation is pending', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('running'));
-      vi.mocked(serverStatusHook.useStopServer).mockReturnValue(createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useStopServer>);
+      vi.mocked(serverStatusHook.useStopServer).mockReturnValue(
+        createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useStopServer>
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -195,7 +211,9 @@ describe('ConsolePage', () => {
 
     it('disables Restart button when restart mutation is pending', () => {
       vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('running'));
-      vi.mocked(serverStatusHook.useRestartServer).mockReturnValue(createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useRestartServer>);
+      vi.mocked(serverStatusHook.useRestartServer).mockReturnValue(
+        createMockMutation(true) as unknown as ReturnType<typeof serverStatusHook.useRestartServer>
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -346,7 +364,9 @@ describe('ConsolePage', () => {
 
   describe('not installed state (AC: 2)', () => {
     it('renders empty state when server is not installed', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('not_installed', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('not_installed', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -355,7 +375,9 @@ describe('ConsolePage', () => {
     });
 
     it('shows link to Installation page when server is not installed', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('not_installed', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('not_installed', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -365,7 +387,9 @@ describe('ConsolePage', () => {
     });
 
     it('does not render ConsolePanel when server is not installed', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('not_installed', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('not_installed', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -375,7 +399,9 @@ describe('ConsolePage', () => {
 
   describe('installing state', () => {
     it('shows installation in progress message when server is installing', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('installing', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('installing', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -384,7 +410,9 @@ describe('ConsolePage', () => {
     });
 
     it('does not render ConsolePanel when server is installing', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('installing', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('installing', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 
@@ -392,7 +420,9 @@ describe('ConsolePage', () => {
     });
 
     it('shows "View Installation Progress" link when server is installing', () => {
-      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(mockServerStatus('installing', null));
+      vi.mocked(serverStatusHook.useServerStatus).mockReturnValue(
+        mockServerStatus('installing', null)
+      );
 
       renderWithProviders(<ConsolePage />);
 

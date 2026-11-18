@@ -120,9 +120,7 @@ export function buildLogWebSocketUrl(
  * }
  * ```
  */
-export function useLogStream(
-  options: UseLogStreamOptions
-): UseLogStreamResult {
+export function useLogStream(options: UseLogStreamOptions): UseLogStreamResult {
   const {
     filename,
     enabled = true,
@@ -135,8 +133,7 @@ export function useLogStream(
     onClose,
   } = options;
 
-  const [connectionState, setConnectionState] =
-    useState<LogConnectionState>('disconnected');
+  const [connectionState, setConnectionState] = useState<LogConnectionState>('disconnected');
   const [retryCount, setRetryCount] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -258,10 +255,7 @@ export function useLogStream(
 
       const currentRetry = retryCountRef.current;
       if (shouldReconnectRef.current && currentRetry < maxRetries) {
-        const delay = Math.min(
-          baseDelayMs * Math.pow(2, currentRetry),
-          maxDelayMs
-        );
+        const delay = Math.min(baseDelayMs * Math.pow(2, currentRetry), maxDelayMs);
         const jitter = Math.random() * 1000;
         const totalDelay = delay + jitter;
 
@@ -285,15 +279,7 @@ export function useLogStream(
     ws.onerror = (event) => {
       debugLog('WebSocket error', { event: String(event) });
     };
-  }, [
-    filename,
-    enabled,
-    historyLines,
-    maxRetries,
-    baseDelayMs,
-    maxDelayMs,
-    updateState,
-  ]);
+  }, [filename, enabled, historyLines, maxRetries, baseDelayMs, maxDelayMs, updateState]);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
