@@ -1,6 +1,6 @@
 # Story 21.6: Mod Detail Page Polish
 
-Status: review
+Status: done
 
 <!-- Implements FR278, FR279, FR280; Epic 21 ADR-10 and ADR-11. Beads: VSS-woae (UI-094), VSS-pzj8 (UI-092), VSS-4vbj (UI-093). Stories run in order 21.1 to 21.8, each stacked on the previous; this one comes after 21.5 (which changes the shared dialog close button the screenshot dialog uses). Line references were verified at 966204f (epic-21-planning), BEFORE Story 21.1's Prettier reformat and Story 21.5's VersionTable changes: they will have moved. Re-find every location by its content at implementation time. Web only; no API change; no new dependency. -->
 
@@ -356,7 +356,30 @@ Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
 - `web/e2e/README.md`
 - `_bmad-output/implementation-artifacts/21-6-mod-detail-polish.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `07714951..08129a32`
+**Outcome:** Approve → follow-up folded in
+
+**Summary:** All 11 ACs met, with tests that fail on the base.
+- **Sanitizer security:** checked in DOMPurify 3.4.17. Invalid URIs are removed before `afterSanitizeAttributes` runs, and `xlink:href` goes through the URI check. Thirteen hostile probes all stayed safe: `javascript:` in every spelling, `data:`, `vbscript:`, `file:`, markup in titles, nested titles, and a bad `href` next to a good `xlink:href`. The title is built only with `createElementNS` and `textContent`. The Story 19.3 image branch and the CSP are untouched.
+- **Link component:** every new-tab link uses it, and its props omit `aria-label`. `new-tab.ts` imports nothing, so DOMPurify stays in the lazy mod detail chunk.
+- **Layout, styles and label:** the classes match the Dev Notes. Every description rule is `:where(...)` at (0,1,0), so authors' inline styles win. The `useId` label is linked in both sections.
+- **Tests and counts:** the `ModCard` fakes are typed without casts. The E2E README counts (168/164/137/27) were verified with `--list`.
+
+Reviewer ran `just lint-web`, `just typecheck-web`, the full web suite (3473 passed) and `playwright test --list`.
+
+### Action Items
+
+- [x] [Low] F1: an SVG link with no title whose text already ends with "(opens in a new tab)" got a doubled note on the first pass, and the second pass gave different text (AC 3). Fixed in 36c6906e: the text fallback is passed through `stripNote`, and a red-first test covers both passes.
+- Informational, no action:
+  - `stripNote` also collapses internal whitespace in titles.
+  - The closing commit is `docs`, not `chore`.
+  - `display: block` tables lose their table semantics in Safari; this trade-off was already recorded.
+
 ## Change Log
 
 - 2026-11-17: Story created and validated (ready-for-dev).
 - 2026-11-17: Backlog drawdown folded in (AC 11, Tasks 1.11, 2.6a and 4); implemented; moved to review.
+- 2026-11-17: Code review (Approve); F1 fixed; done.
