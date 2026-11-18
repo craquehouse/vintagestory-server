@@ -504,6 +504,8 @@ const queryKeys = {
 };
 ```
 
+**Mutation errors (TanStack Query v5):** the query client's default `onError` shows a toast for every failed mutation (`web/src/api/query-client.ts`). An `onError` declared in a hook's `useMutation` options **replaces** that default; an `onError` passed to `mutate(...)` runs **in addition** to whichever of the two applies. So each mutation hook does one of two things, never both and never neither: it reports the error itself (its `onError` calls `handleApiError`, as the hooks that roll back an optimistic update do), or it silences the default with `onError: () => {}` and a comment, and then **every** caller passes an `onError` to `mutate` that shows a toast. A hook with no `onError` whose callers show a toast shows two.
+
 ---
 
 ## Anti-Patterns to Avoid
