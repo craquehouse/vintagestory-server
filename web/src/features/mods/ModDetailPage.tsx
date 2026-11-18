@@ -121,12 +121,18 @@ function ModDetailSkeleton() {
   return (
     <div className="space-y-6" data-testid="mod-detail-loading">
       {/* Header skeleton */}
-      <div className="flex gap-6">
-        <Skeleton className="h-32 w-32 rounded-lg" />
-        <div className="flex-1 space-y-3">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-48" />
+      {/* Story 21.6: the same stacking as the loaded header, nothing wider than the screen */}
+      <div
+        className="flex flex-col gap-4 md:flex-row md:gap-6"
+        data-testid="mod-detail-loading-header"
+      >
+        <div className="flex min-w-0 flex-wrap gap-4 md:flex-1 md:flex-nowrap md:gap-6">
+          <Skeleton className="h-32 w-32 shrink-0 rounded-lg" />
+          <div className="min-w-0 grow basis-48 space-y-3">
+            <Skeleton className="h-8 w-full max-w-64" />
+            <Skeleton className="h-4 w-full max-w-32" />
+            <Skeleton className="h-4 w-full max-w-48" />
+          </div>
         </div>
       </div>
       {/* Description skeleton */}
@@ -162,7 +168,7 @@ function BackToBrowseButton({ onClick }: { onClick: () => void }) {
     <Button
       variant="ghost"
       size="sm"
-      className="gap-1"
+      className="gap-1 max-lg:min-h-11"
       onClick={onClick}
       data-testid="mod-detail-back"
     >
@@ -234,13 +240,16 @@ function InstallSection({
 
   return (
     <>
-      <Card className="w-64" data-testid="mod-detail-install-section">
+      <Card className="w-full md:w-64 md:shrink-0" data-testid="mod-detail-install-section">
         <CardContent className="pt-4 space-y-3">
           {/* Version selector */}
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Version</label>
             <Select value={selectedVersion ?? ''} onValueChange={setSelectedVersion}>
-              <SelectTrigger data-testid="mod-detail-version-select">
+              <SelectTrigger
+                className="w-full max-lg:min-h-11"
+                data-testid="mod-detail-version-select"
+              >
                 <SelectValue placeholder="Select version" />
               </SelectTrigger>
               <SelectContent>
@@ -261,7 +270,7 @@ function InstallSection({
           </div>
 
           <Button
-            className="w-full gap-2"
+            className="w-full gap-2 max-lg:min-h-11"
             onClick={() => setIsDialogOpen(true)}
             disabled={selectedVersion === null}
             data-testid="mod-detail-install-button"
@@ -363,7 +372,11 @@ function InstalledVersionSection({
   let action;
   if (selectedVersion === installedVersion) {
     action = (
-      <Button className="w-full gap-2" disabled data-testid="mod-detail-current-button">
+      <Button
+        className="w-full gap-2 max-lg:min-h-11"
+        disabled
+        data-testid="mod-detail-current-button"
+      >
         <Check className="h-4 w-4" />
         Installed
       </Button>
@@ -371,7 +384,7 @@ function InstalledVersionSection({
   } else if (selectedVersion === offeredVersion) {
     action = (
       <Button
-        className="w-full gap-2"
+        className="w-full gap-2 max-lg:min-h-11"
         onClick={handleChange}
         disabled={isChanging}
         data-testid="mod-detail-update-button"
@@ -388,7 +401,7 @@ function InstalledVersionSection({
     action = (
       <Button
         variant="outline"
-        className="w-full gap-2"
+        className="w-full gap-2 max-lg:min-h-11"
         onClick={handleChange}
         disabled={isChanging}
         data-testid="mod-detail-switch-button"
@@ -405,7 +418,7 @@ function InstalledVersionSection({
 
   return (
     <>
-      <Card className="w-64" data-testid="mod-detail-install-section">
+      <Card className="w-full md:w-64 md:shrink-0" data-testid="mod-detail-install-section">
         <CardContent className="pt-4 space-y-3">
           <div
             className="flex items-center gap-2 text-sm"
@@ -424,7 +437,10 @@ function InstalledVersionSection({
               <div className="space-y-2">
                 <label className="text-sm text-muted-foreground">Version</label>
                 <Select value={selectedVersion} onValueChange={setPicked}>
-                  <SelectTrigger data-testid="mod-detail-version-select">
+                  <SelectTrigger
+                    className="w-full max-lg:min-h-11"
+                    data-testid="mod-detail-version-select"
+                  >
                     <SelectValue placeholder="Select version" />
                   </SelectTrigger>
                   <SelectContent>
@@ -576,12 +592,12 @@ export function ModDetailPage() {
   return (
     <div className="container mx-auto py-6 max-w-4xl space-y-6" data-testid="mod-detail-page">
       {/* Navigation: Back button and Breadcrumbs */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <BackToBrowseButton onClick={handleBack} />
 
         {/* Breadcrumb navigation */}
         <nav
-          className="flex items-center gap-1 text-sm text-muted-foreground"
+          className="flex min-w-0 flex-wrap items-center gap-1 text-sm text-muted-foreground"
           aria-label="Breadcrumb"
           data-testid="mod-detail-breadcrumb"
         >
@@ -602,143 +618,153 @@ export function ModDetailPage() {
             Browse
           </Link>
           <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium" data-testid="mod-detail-breadcrumb-name">
+          <span
+            className="min-w-0 break-words text-foreground font-medium"
+            data-testid="mod-detail-breadcrumb-name"
+          >
             {mod.name}
           </span>
         </nav>
       </div>
 
-      {/* Header section */}
-      <div className="flex gap-6" data-testid="mod-detail-header">
-        {/* Logo */}
-        <div className="flex-shrink-0">
-          <div
-            className="h-32 w-32 rounded-lg bg-muted flex items-center justify-center overflow-hidden"
-            data-testid="mod-detail-logo"
-          >
-            {mod.logoUrl ? (
-              <img
-                src={mod.logoUrl}
-                referrerPolicy="no-referrer"
-                alt={`${mod.name} logo`}
-                className="h-full w-full object-cover"
+      {/* Header section. Story 21.6: below md the install card goes under the logo and
+          info at full width; the info goes under the logo when the two do not fit side by
+          side (basis-48). From md up the three are one row, as before. */}
+      <div className="flex flex-col gap-4 md:flex-row md:gap-6" data-testid="mod-detail-header">
+        <div
+          className="flex min-w-0 flex-wrap gap-4 md:flex-1 md:flex-nowrap md:gap-6"
+          data-testid="mod-detail-summary"
+        >
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <div
+              className="h-32 w-32 rounded-lg bg-muted flex items-center justify-center overflow-hidden"
+              data-testid="mod-detail-logo"
+            >
+              {mod.logoUrl ? (
+                <img
+                  src={mod.logoUrl}
+                  referrerPolicy="no-referrer"
+                  alt={`${mod.name} logo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Package className="h-16 w-16 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="min-w-0 grow basis-48 space-y-2 break-words">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold break-words" data-testid="mod-detail-name">
+                  {mod.name}
+                </h1>
+                <p className="text-muted-foreground" data-testid="mod-detail-author">
+                  by {mod.author}
+                </p>
+              </div>
+              <CompatibilityBadge
+                status={mod.compatibility.status}
+                message={mod.compatibility.message}
               />
-            ) : (
-              <Package className="h-16 w-16 text-muted-foreground" />
-            )}
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 space-y-2">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold" data-testid="mod-detail-name">
-                {mod.name}
-              </h1>
-              <p className="text-muted-foreground" data-testid="mod-detail-author">
-                by {mod.author}
-              </p>
             </div>
-            <CompatibilityBadge
-              status={mod.compatibility.status}
-              message={mod.compatibility.message}
-            />
-          </div>
 
-          {/* Story 16.3: the message names the most recent supported game version;
+            {/* Story 16.3: the message names the most recent supported game version;
               shown as text because touch screens never show the badge tooltip */}
-          {mod.compatibility.status !== 'compatible' && mod.compatibility.message && (
-            <p
-              className="text-sm text-muted-foreground"
-              data-testid="mod-detail-compatibility-message"
-            >
-              {mod.compatibility.message}
-            </p>
-          )}
+            {mod.compatibility.status !== 'compatible' && mod.compatibility.message && (
+              <p
+                className="text-sm text-muted-foreground"
+                data-testid="mod-detail-compatibility-message"
+              >
+                {mod.compatibility.message}
+              </p>
+            )}
 
-          {/* Stats row */}
-          <div
-            className="flex items-center gap-4 text-sm text-muted-foreground"
-            data-testid="mod-detail-stats"
-          >
-            <span className="flex items-center gap-1" title="Downloads">
-              <Download className="h-4 w-4" />
-              {formatNumber(mod.downloads)}
-            </span>
-            <span className="flex items-center gap-1" title="Followers">
-              <Users className="h-4 w-4" />
-              {formatNumber(mod.follows)}
-            </span>
-            <SideBadge side={mod.side} />
-            {/* Story 16.3: the release the compatibility badge describes (the installed
+            {/* Stats row */}
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
+              data-testid="mod-detail-stats"
+            >
+              <span className="flex items-center gap-1" title="Downloads">
+                <Download className="h-4 w-4" />
+                {formatNumber(mod.downloads)}
+              </span>
+              <span className="flex items-center gap-1" title="Followers">
+                <Users className="h-4 w-4" />
+                {formatNumber(mod.follows)}
+              </span>
+              <SideBadge side={mod.side} />
+              {/* Story 16.3: the release the compatibility badge describes (the installed
                 mod ID's newest release), which can differ from the entry's newest */}
-            <span>Version: {mod.compatibility.modVersion ?? mod.latestVersion}</span>
-          </div>
-
-          {/* Tags */}
-          {mod.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5" data-testid="mod-detail-tags">
-              {mod.tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  <Tag className="h-3 w-3 mr-1" />
-                  {tag}
-                </Badge>
-              ))}
+              <span>Version: {mod.compatibility.modVersion ?? mod.latestVersion}</span>
             </div>
-          )}
 
-          {/* External links */}
-          <div className="flex flex-wrap items-center gap-3 gap-y-1 pt-1">
-            <NewTabLink
-              href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-              data-testid="mod-detail-moddb-link"
-            >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              ModDB Page
-            </NewTabLink>
-            {mod.homepageUrl && (
-              <NewTabLink
-                href={mod.homepageUrl}
-                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                data-testid="mod-detail-homepage-link"
-              >
-                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-                Homepage
-                <ExternalLink
-                  className="h-3 w-3"
-                  aria-hidden="true"
-                  data-testid="mod-detail-homepage-new-tab-mark"
-                />
-              </NewTabLink>
+            {/* Tags */}
+            {mod.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" data-testid="mod-detail-tags">
+                {mod.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    <Tag className="h-3 w-3 mr-1" />
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
-            {mod.sourceUrl && (
+
+            {/* External links */}
+            <div className="flex flex-wrap items-center gap-3 gap-y-1 pt-1">
               <NewTabLink
-                href={mod.sourceUrl}
+                href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
                 className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                data-testid="mod-detail-source-link"
-              >
-                <Code className="h-3.5 w-3.5" aria-hidden="true" />
-                Source
-                <ExternalLink
-                  className="h-3 w-3"
-                  aria-hidden="true"
-                  data-testid="mod-detail-source-new-tab-mark"
-                />
-              </NewTabLink>
-            )}
-            {/* Story 18.1: a link, never an embed; the API built the URL from the video ID */}
-            {mod.trailerUrl && (
-              <NewTabLink
-                href={mod.trailerUrl}
-                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                data-testid="mod-detail-trailer-link"
+                data-testid="mod-detail-moddb-link"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Watch trailer
+                ModDB Page
               </NewTabLink>
-            )}
+              {mod.homepageUrl && (
+                <NewTabLink
+                  href={mod.homepageUrl}
+                  className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  data-testid="mod-detail-homepage-link"
+                >
+                  <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                  Homepage
+                  <ExternalLink
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                    data-testid="mod-detail-homepage-new-tab-mark"
+                  />
+                </NewTabLink>
+              )}
+              {mod.sourceUrl && (
+                <NewTabLink
+                  href={mod.sourceUrl}
+                  className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  data-testid="mod-detail-source-link"
+                >
+                  <Code className="h-3.5 w-3.5" aria-hidden="true" />
+                  Source
+                  <ExternalLink
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                    data-testid="mod-detail-source-new-tab-mark"
+                  />
+                </NewTabLink>
+              )}
+              {/* Story 18.1: a link, never an embed; the API built the URL from the video ID */}
+              {mod.trailerUrl && (
+                <NewTabLink
+                  href={mod.trailerUrl}
+                  className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                  data-testid="mod-detail-trailer-link"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                  Watch trailer
+                </NewTabLink>
+              )}
+            </div>
           </div>
         </div>
 
@@ -830,7 +856,7 @@ export function ModDetailPage() {
             <dt className="text-muted-foreground">Last Updated</dt>
             <dd data-testid="mod-detail-last-released">{formatDate(mod.lastReleased)}</dd>
             <dt className="text-muted-foreground">Slug</dt>
-            <dd className="font-mono text-xs" data-testid="mod-detail-slug">
+            <dd className="font-mono text-xs break-all" data-testid="mod-detail-slug">
               {mod.slug}
             </dd>
           </dl>

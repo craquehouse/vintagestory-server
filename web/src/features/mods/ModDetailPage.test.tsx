@@ -185,6 +185,23 @@ describe('ModDetailPage', () => {
 
       expect(screen.getByTestId('mod-detail-loading')).toBeInTheDocument();
     });
+
+    it('stacks the header skeleton below md (Story 21.6)', () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(
+          () =>
+            new Promise(() => {
+              /* never resolves */
+            })
+        )
+      );
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const header = screen.getByTestId('mod-detail-loading-header');
+      expect(header).toHaveClass('flex-col', 'md:flex-row');
+    });
   });
 
   describe('error state', () => {
@@ -225,6 +242,45 @@ describe('ModDetailPage', () => {
   });
 
   describe('header section (Subtask 2.2)', () => {
+    it('stacks the header below md and keeps one row from md up (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const header = await screen.findByTestId('mod-detail-header');
+      expect(header).toHaveClass('flex', 'flex-col', 'md:flex-row');
+      const summary = screen.getByTestId('mod-detail-summary');
+      expect(summary).toHaveClass('flex-wrap', 'md:flex-nowrap', 'min-w-0');
+      expect(summary).toContainElement(screen.getByTestId('mod-detail-logo'));
+      expect(summary).toContainElement(screen.getByTestId('mod-detail-name'));
+      expect(screen.getByTestId('mod-detail-stats')).toHaveClass('flex-wrap');
+
+      const install = screen.getByTestId('mod-detail-install-section');
+      expect(header).toContainElement(install);
+      expect(summary).not.toContainElement(install);
+      expect(install).toHaveClass('w-full', 'md:w-64', 'md:shrink-0');
+      expect(screen.getByTestId('mod-detail-version-select')).toHaveClass(
+        'w-full',
+        'max-lg:min-h-11'
+      );
+      expect(screen.getByTestId('mod-detail-install-button')).toHaveClass('max-lg:min-h-11');
+    });
+
+    it('wraps the breadcrumb and gives Back to Browse a 44px target below lg (Story 21.6)', async () => {
+      stubDetail();
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const breadcrumb = await screen.findByTestId('mod-detail-breadcrumb');
+      expect(breadcrumb).toHaveClass('flex-wrap', 'min-w-0');
+      expect(screen.getByTestId('mod-detail-breadcrumb-name')).toHaveClass(
+        'min-w-0',
+        'break-words'
+      );
+      expect(screen.getByTestId('mod-detail-back')).toHaveClass('max-lg:min-h-11');
+      expect(screen.getByTestId('mod-detail-slug')).toHaveClass('break-all');
+    });
+
     it('renders mod name and author', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -1081,6 +1137,53 @@ describe('ModDetailPage', () => {
           .filter(([, options]) => options?.method === 'PUT')
           .map(([, options]) => JSON.parse(options.body));
       }
+
+      it('fits the version section like the install section (Story 21.6)', async () => {
+        const user = userEvent.setup();
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('update_available', '1.8.3'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        expect(await screen.findByTestId('mod-detail-update-button')).toHaveClass(
+          'max-lg:min-h-11'
+        );
+        expect(screen.getByTestId('mod-detail-install-section')).toHaveClass(
+          'w-full',
+          'md:w-64',
+          'md:shrink-0'
+        );
+        expect(screen.getByTestId('mod-detail-version-select')).toHaveClass(
+          'w-full',
+          'max-lg:min-h-11'
+        );
+
+        await user.click(screen.getByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: /v1\.8\.2/ }));
+        expect(screen.getByTestId('mod-detail-current-button')).toHaveClass('max-lg:min-h-11');
+      });
+
+      it('gives the Switch button a 44px target below lg (Story 21.6)', async () => {
+        const user = userEvent.setup();
+        vi.stubGlobal(
+          'fetch',
+          mockInstalled({
+            mods: installedAt('1.8.2'),
+            updates: updateStatus('up_to_date'),
+          })
+        );
+
+        renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+        await user.click(await screen.findByTestId('mod-detail-version-select'));
+        await user.click(await screen.findByRole('option', { name: /v1\.8\.3/ }));
+        expect(screen.getByTestId('mod-detail-switch-button')).toHaveClass('max-lg:min-h-11');
+      });
 
       it('shows the installed version', async () => {
         globalThis.fetch = mockInstalled({
