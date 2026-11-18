@@ -1,6 +1,6 @@
 # Story 21.3: A Working `VS_LOG_LEVEL` and Config Viewer Edge Cases
 
-Status: review
+Status: done
 
 <!-- Implements FR266-FR270, Epic 21 ADR-4 and ADR-5. Beads: VSS-wv0w (API-096); maintainer decision 3 (VS_LOG_LEVEL, Matt, 2026-11-17). Stories run in order 21.1 to 21.8, each stacked on the previous; this story touches no file under web/ and needs no other story's code (epics.md, Epic 21 "Order"). Line references were verified at 966204f (epic-21-planning; its api/ is identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time. API change and documentation only; no web source change, no E2E spec. No new dependencies. -->
 
@@ -403,8 +403,30 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
 - `_bmad-output/planning-artifacts/architecture/project-structure-boundaries.md`
 - `_bmad-output/implementation-artifacts/21-3-log-level-and-config-viewer.md`
 
+## Senior Developer Review (AI)
+
+**Date:** 2026-11-17
+**Reviewer:** GLM-5.3-Flash via OpenCode (Z.ai coding plan), delegated read-only review of `f6aea5b..36f0063`
+**Outcome:** Approve → follow-ups folded in
+
+**Summary:** All 13 ACs met, matching ADR-4, ADR-5 and the story's "ADR against the code". Red check: with the old source and the new tests, the new tests fail (collection errors for Task 1; 6, 5 and 4 failures for the viewer, Discord and router tests). The reviewer probed:
+- 16 invalid `VS_LOG_LEVEL` values (message exact, value never echoed);
+- the toggle round trips;
+- Discord host variants;
+- link, traversal and role combinations.
+
+It also confirmed the conftest isolates a developer's `VS_LOG_LEVEL` (suites pass with `verbose` and `warning` set). Exactly one `feat(api)` and two `fix(api)` commits, with subjects matching the proposal. Reviewer ran `just lint-api`, `just typecheck-api` (0/0) and `just test-api` (3460) in three orders.
+
+### Action Items
+
+- [x] [Low] L1 `reconfigure_logging_if_changed` had no caller, and its docstring described the environment read ADR-4 bans. Removed with its state variable and three tests (b52801f).
+- [x] [Note] N2 tests still wrote module debug state directly with ignore comments. Moved to `monkeypatch` or `initialize_debug_state` in `test_config.py`, `test_runtime_debug_toggle.py`, `test_request_context.py` and `test_debug_api.py` (12bd479); 8 more ignore comments removed (23 over the story, none added). The five touched files and the whole suite pass forward, reversed and shuffled.
+- [x] [Note] N1 `api_starting` is now asserted to report `DEBUG` at the DEBUG level, in JSON and console output (98e48e1).
+- Notes, not changed: when `ModConfig` itself is a link outside the data directory it is hidden (consistent with ADR-5); the debug state is serialized on the event loop (no lock needed today); constant placement and a docs commit without a body.
+
 ## Change Log
 
 - 2026-11-17: Story 21.3 created and validated (ready-for-dev).
 - 2026-11-17: Story 21.3 implemented (Tasks 1-4, quality gate); status review.
 - 2026-11-17: Code review findings L1, N1, N2 folded in; status stays review.
+- 2026-11-17: Code review (GLM-5.3-Flash): approved; L1, N1 and N2 folded in. Status done.
