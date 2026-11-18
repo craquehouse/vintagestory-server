@@ -1,0 +1,2734 @@
+{
+  "widths": [
+    {
+      "width": 1024,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              184,
+              1000,
+              816
+            ],
+            "chartCard": [
+              184,
+              1000,
+              816
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              184,
+              1000,
+              816
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              208,
+              976,
+              768
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              184,
+              1000,
+              816
+            ]
+          },
+          "longNameHeight": 100,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              184,
+              1000,
+              816
+            ],
+            "firstCard": [
+              184,
+              445,
+              261
+            ],
+            "fifthCard": [
+              461,
+              723,
+              261
+            ]
+          },
+          "cardTops": [
+            304,
+            785,
+            785
+          ]
+        },
+        "modDetail": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              184,
+              1000,
+              816
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              184,
+              1000,
+              816
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            184,
+            1000,
+            816
+          ],
+          "pageContent": [
+            184,
+            1000,
+            816
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1024,
+            864
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1000,
+                816
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1000,
+                816
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1000,
+                816
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1000,
+                816
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1280,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              184,
+              1256,
+              1072
+            ],
+            "chartCard": [
+              184,
+              1256,
+              1072
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              184,
+              1256,
+              1072
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              208,
+              1232,
+              1024
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              184,
+              1256,
+              1072
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              184,
+              1256,
+              1072
+            ],
+            "firstCard": [
+              184,
+              440,
+              256
+            ],
+            "fifthCard": [
+              184,
+              440,
+              256
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            782
+          ]
+        },
+        "modDetail": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              272,
+              1168,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              184,
+              1256,
+              1072
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            184,
+            1256,
+            1072
+          ],
+          "pageContent": [
+            184,
+            1256,
+            1072
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1280,
+            1120
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1256,
+                1072
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1256,
+                1072
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1256,
+                1072
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1256,
+                1072
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1440,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              184,
+              1416,
+              1232
+            ],
+            "chartCard": [
+              184,
+              1416,
+              1232
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              184,
+              1416,
+              1232
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              208,
+              1392,
+              1184
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              184,
+              1416,
+              1232
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              184,
+              1416,
+              1232
+            ],
+            "firstCard": [
+              184,
+              480,
+              296
+            ],
+            "fifthCard": [
+              184,
+              480,
+              296
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            804
+          ]
+        },
+        "modDetail": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              352,
+              1248,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              184,
+              1416,
+              1232
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            184,
+            1416,
+            1232
+          ],
+          "pageContent": [
+            184,
+            1416,
+            1232
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1440,
+            1280
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1416,
+                1232
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1416,
+                1232
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1416,
+                1232
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                184,
+                1416,
+                1232
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1920,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              400,
+              1680,
+              1280
+            ],
+            "chartCard": [
+              400,
+              1680,
+              1280
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              400,
+              1680,
+              1280
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              424,
+              1656,
+              1232
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              400,
+              1680,
+              1280
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              400,
+              1680,
+              1280
+            ],
+            "firstCard": [
+              400,
+              708,
+              308
+            ],
+            "fifthCard": [
+              400,
+              708,
+              308
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            811
+          ]
+        },
+        "modDetail": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              592,
+              1488,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            184,
+            1896,
+            1712
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              184,
+              1896,
+              1712
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            184,
+            1896,
+            1712
+          ],
+          "pageContent": [
+            400,
+            1680,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            1920,
+            1760
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                400,
+                1680,
+                1280
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                400,
+                1680,
+                1280
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                400,
+                1680,
+                1280
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                400,
+                1680,
+                1280
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 2560,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              720,
+              2000,
+              1280
+            ],
+            "chartCard": [
+              720,
+              2000,
+              1280
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              720,
+              2000,
+              1280
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              744,
+              1976,
+              1232
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              720,
+              2000,
+              1280
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              720,
+              2000,
+              1280
+            ],
+            "firstCard": [
+              720,
+              1028,
+              308
+            ],
+            "fifthCard": [
+              720,
+              1028,
+              308
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            811
+          ]
+        },
+        "modDetail": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              912,
+              1808,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            184,
+            2536,
+            2352
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              184,
+              2536,
+              2352
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            184,
+            2536,
+            2352
+          ],
+          "pageContent": [
+            720,
+            2000,
+            1280
+          ],
+          "sidebar": 160,
+          "header": [
+            160,
+            2560,
+            2400
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                720,
+                2000,
+                1280
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                720,
+                2000,
+                1280
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                720,
+                2000,
+                1280
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                720,
+                2000,
+                1280
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1024,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              88,
+              1000,
+              912
+            ],
+            "chartCard": [
+              88,
+              1000,
+              912
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              88,
+              1000,
+              912
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              112,
+              976,
+              864
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              88,
+              1000,
+              912
+            ]
+          },
+          "longNameHeight": 60,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              88,
+              1000,
+              912
+            ],
+            "firstCard": [
+              88,
+              381,
+              293
+            ],
+            "fifthCard": [
+              397,
+              691,
+              293
+            ]
+          },
+          "cardTops": [
+            304,
+            803,
+            803
+          ]
+        },
+        "modDetail": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              96,
+              992,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              88,
+              1000,
+              912
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            88,
+            1000,
+            912
+          ],
+          "pageContent": [
+            88,
+            1000,
+            912
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1024,
+            960
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1000,
+                912
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1000,
+                912
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1000,
+                912
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1000,
+                912
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1280,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              88,
+              1256,
+              1168
+            ],
+            "chartCard": [
+              88,
+              1256,
+              1168
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              88,
+              1256,
+              1168
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              112,
+              1232,
+              1120
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              88,
+              1256,
+              1168
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              88,
+              1256,
+              1168
+            ],
+            "firstCard": [
+              88,
+              368,
+              280
+            ],
+            "fifthCard": [
+              88,
+              368,
+              280
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            795
+          ]
+        },
+        "modDetail": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              224,
+              1120,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              88,
+              1256,
+              1168
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            88,
+            1256,
+            1168
+          ],
+          "pageContent": [
+            88,
+            1256,
+            1168
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1280,
+            1216
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1256,
+                1168
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1256,
+                1168
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1256,
+                1168
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                88,
+                1256,
+                1168
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1440,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              112,
+              1392,
+              1280
+            ],
+            "chartCard": [
+              112,
+              1392,
+              1280
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              112,
+              1392,
+              1280
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              136,
+              1368,
+              1232
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              112,
+              1392,
+              1280
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              112,
+              1392,
+              1280
+            ],
+            "firstCard": [
+              112,
+              420,
+              308
+            ],
+            "fifthCard": [
+              112,
+              420,
+              308
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            811
+          ]
+        },
+        "modDetail": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              304,
+              1200,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            88,
+            1416,
+            1328
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              88,
+              1416,
+              1328
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            88,
+            1416,
+            1328
+          ],
+          "pageContent": [
+            112,
+            1392,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1440,
+            1376
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                112,
+                1392,
+                1280
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                112,
+                1392,
+                1280
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                112,
+                1392,
+                1280
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                112,
+                1392,
+                1280
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1920,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              352,
+              1632,
+              1280
+            ],
+            "chartCard": [
+              352,
+              1632,
+              1280
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              352,
+              1632,
+              1280
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              376,
+              1608,
+              1232
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              352,
+              1632,
+              1280
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              352,
+              1632,
+              1280
+            ],
+            "firstCard": [
+              352,
+              660,
+              308
+            ],
+            "fifthCard": [
+              352,
+              660,
+              308
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            811
+          ]
+        },
+        "modDetail": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              544,
+              1440,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            88,
+            1896,
+            1808
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              88,
+              1896,
+              1808
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            88,
+            1896,
+            1808
+          ],
+          "pageContent": [
+            352,
+            1632,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            1920,
+            1856
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                352,
+                1632,
+                1280
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                352,
+                1632,
+                1280
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                352,
+                1632,
+                1280
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                352,
+                1632,
+                1280
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 2560,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "statsGrid": [
+              672,
+              1952,
+              1280
+            ],
+            "chartCard": [
+              672,
+              1952,
+              1280
+            ]
+          }
+        },
+        "version": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "versionPage": [
+              672,
+              1952,
+              1280
+            ]
+          }
+        },
+        "gameSettings": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "gameConfigLayout": [
+              696,
+              1928,
+              1232
+            ]
+          }
+        },
+        "modsInstalled": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modTable": [
+              672,
+              1952,
+              1280
+            ]
+          },
+          "longNameHeight": 40,
+          "oneLineNameHeight": 20
+        },
+        "modsBrowse": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "grid": [
+              672,
+              1952,
+              1280
+            ],
+            "firstCard": [
+              672,
+              980,
+              308
+            ],
+            "fifthCard": [
+              672,
+              980,
+              308
+            ]
+          },
+          "cardTops": [
+            304,
+            304,
+            811
+          ]
+        },
+        "modDetail": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "modDetailPage": [
+              864,
+              1760,
+              896
+            ]
+          }
+        },
+        "console": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            88,
+            2536,
+            2448
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "elements": {
+            "consolePanel": [
+              88,
+              2536,
+              2448
+            ]
+          }
+        },
+        "settings": {
+          "content": [
+            88,
+            2536,
+            2448
+          ],
+          "pageContent": [
+            672,
+            1952,
+            1280
+          ],
+          "sidebar": 64,
+          "header": [
+            64,
+            2560,
+            2496
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                672,
+                1952,
+                1280
+              ]
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                672,
+                1952,
+                1280
+              ]
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                672,
+                1952,
+                1280
+              ]
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "panel": [
+                672,
+                1952,
+                1280
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

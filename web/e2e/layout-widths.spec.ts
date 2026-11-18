@@ -12,7 +12,10 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - From 1024px the table fits its container with a long name, in both sidebar states: the
  *   Name column wraps (and the Update button may drop under the offered version), so the
  *   long-named mod's toggle and remove button are on screen. Where the table has room
- *   (AC 6), names and Available cells stay on one line.
+ *   (AC 6), short names and Available cells stay on one line. Since Story 21.8 the table is
+ *   never wider than 1280px, so the 63-character test name wraps at every width (it needs
+ *   about 1327px) and its Update button drops under the offered version, as at 1440px with
+ *   the sidebar expanded before; its controls stay on screen.
  * - Below `lg` the cards have a sort control that shares the `installedModsSort` preference
  *   with the table headers.
  * - Settings (`/config`): at 320-430px the four tabs wrap inside the content, so the page
@@ -26,6 +29,12 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  *   stores the opposite of what is shown, which then holds at every width and after a reload;
  *   an old `sidebarCollapsed` cookie is migrated; UI Preferences sets Automatic, Expanded or
  *   Collapsed; the phone menu always shows the full sidebar with no toggle.
+ * Story 21.8 (FR285; VSS-alx):
+ * - At 1280, 1440, 1920 and 2560px in both sidebar states the page content is
+ *   min(1280, width - sidebar - 48)px wide and centered right of the sidebar, on the
+ *   Dashboard, Version, Game Settings, both Mods tabs and Settings; the header still spans
+ *   from the sidebar to the window's right edge. The mod browser has four 308px columns at
+ *   1920px; the Console keeps the full width; the mod detail page stays 896px, centered.
  * Story 21.7 (FR281, FR283; VSS-3ry, VSS-f9y):
  * - The Settings, Mods and Version tab buttons are at least 44px tall below 1024px, and as
  *   before from 1024px (list 36px). At 320-430px the Settings list's two rows sit inside the
@@ -307,6 +316,8 @@ interface PageOptions {
   jobs?: boolean;
   /** Show this game version as installed (Story 21.7) */
   installed?: string;
+  /** Stub the mod browser with eight mods (Story 21.8) */
+  browse?: boolean;
 }
 
 /** A page in a fresh context with the sidebar chosen expanded or collapsed (vs_ui_prefs cookie). */
@@ -315,7 +326,14 @@ async function openPage(
   width: number,
   collapsed: boolean,
   url: string,
-  { mods = false, fixture = MODS, versions = false, jobs = false, installed }: PageOptions = {}
+  {
+    mods = false,
+    fixture = MODS,
+    versions = false,
+    jobs = false,
+    installed,
+    browse = false,
+  }: PageOptions = {}
 ) {
   await page.context().addCookies([
     {
@@ -330,6 +348,7 @@ async function openPage(
   if (versions) await fakeVersions(page);
   if (jobs) await fakeJobs(page);
   if (installed) await installedVersion(page, installed);
+  if (browse) await fakeBrowse(page);
   await page.goto(url);
 }
 
@@ -478,20 +497,27 @@ test.describe('Installed mods table fits from 1024px (Story 18.4, AC 5-6)', () =
     }
   }
 
-  // AC 6: at 1440px with the sidebar expanded the long name may wrap (measured), so only
-  // 1440 collapsed and 1920 in both states keep it on one line
+  // AC 6, narrowed by Story 21.8: the table is at most 1280px wide, so the long name wraps
+  // where it used to fit on one line (1440px collapsed, 1920px) and, as at 1440px expanded
+  // (1232px) before the cap, its Update button drops under the offered version; its
+  // controls stay on screen
   for (const { width, collapsed, label } of [
     { width: 1440, collapsed: true, label: 'sidebar collapsed' },
     { width: 1920, collapsed: false, label: 'sidebar expanded' },
     { width: 1920, collapsed: true, label: 'sidebar collapsed' },
   ]) {
-    test(`the long name and the Available cell on one line at ${width}px, ${label}`, async ({
+    test(`the long name wraps inside the 1280px table at ${width}px, ${label}`, async ({
       page,
     }) => {
       await openTable(page, width, collapsed, MODS);
 
       expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
-      await expectOneLine(page, MODS, `${width}px, ${label}`);
+      await expectInsideViewport(page, 'mod-toggle-longnamemod', width);
+      await expectInsideViewport(page, 'mod-remove-longnamemod', width);
+      expect(await heightOf(page, 'mod-link-longnamemod')).toBeGreaterThan(
+        await heightOf(page, 'mod-link-offmod')
+      );
+      await expectInsideViewport(page, 'mod-update-button-longnamemod', width);
     });
   }
 });
@@ -1176,4 +1202,181 @@ test.describe('Sidebar default and choice (Story 21.8)', () => {
       await expect(sheet.getByTestId('sidebar-toggle')).toHaveCount(0);
     });
   }
+});
+
+/** Eight made-up mods for the browser (Story 21.8): no logo, so no image is requested. */
+const BROWSE_MODS = Array.from({ length: 8 }, (_, index) => ({
+  slug: `widthmod${index + 1}`,
+  mod_ids: [`widthmod${index + 1}`],
+  urlalias: `widthmod${index + 1}`,
+  asset_id: 0,
+  name: `Width Mod ${index + 1}`,
+  author: 'E2E',
+  summary: 'A stubbed browse item',
+  downloads: 1,
+  follows: 1,
+  trending_points: 1,
+  side: 'both',
+  mod_type: 'mod',
+  logo_url: null,
+  tags: [],
+  last_released: '2026-11-01 00:00:00',
+  has_release_for_game_version: true,
+}));
+
+/** Serve the mod browser, its game versions and tags (registered after readOnly, so it runs first). */
+async function fakeBrowse(page: Page) {
+  await page.route(/\/api\/v1alpha1\/mods\/(browse|gameversions|tags)(\?.*)?$/, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/gameversions')) {
+      await route.fulfill({ json: { status: 'ok', data: { versions: ['1.22.7'] } } });
+      return;
+    }
+    if (path.endsWith('/tags')) {
+      await route.fulfill({ json: { status: 'ok', data: { tags: [] } } });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        status: 'ok',
+        data: {
+          mods: BROWSE_MODS,
+          pagination: {
+            page: 1,
+            page_size: 20,
+            total_items: BROWSE_MODS.length,
+            total_pages: 1,
+            has_next: false,
+            has_prev: false,
+          },
+          game_version: '1.22.7',
+        },
+      },
+    });
+  });
+}
+
+/** The capped content's width: at most 1280px, else the area right of the sidebar less 48px. */
+function cappedWidth(width: number, sidebar: number): number {
+  return Math.min(1280, width - sidebar - 48);
+}
+
+/** page-content is `expected` wide and centered between the sidebar and the window's edge. */
+async function expectCentered(page: Page, width: number, sidebar: number, expected: number) {
+  const box = await boxOf(page.getByTestId('page-content'), 'page-content');
+  expect(Math.abs(box.width - expected), `page-content width ${box.width}`).toBeLessThanOrEqual(1);
+  const left = box.x - sidebar;
+  const right = width - (box.x + box.width);
+  expect(Math.abs(left - right), `space left ${left}, right ${right}`).toBeLessThanOrEqual(1);
+  expect(await documentOverflow(page)).toBe(0);
+}
+
+/** The capped pages and the element that shows each is ready. */
+const CAPPED_PAGES = [
+  { url: '/', ready: 'dashboard-stats-grid' },
+  { url: '/game-server/version', ready: 'version-page' },
+  { url: '/game-server/settings', ready: 'game-config-layout' },
+  { url: INSTALLED, ready: 'mod-table' },
+  { url: '/game-server/mods/browse', ready: 'mod-browse-grid' },
+  { url: '/config', ready: 'ui-preferences-panel' },
+];
+
+test.describe('Content width on wide screens (Story 21.8)', () => {
+  // Drop status requests still in flight when a test ends
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  for (const { collapsed, label } of SIDEBAR) {
+    const sidebar = collapsed ? 64 : 160;
+
+    for (const width of [1280, 1440, 1920, 2560]) {
+      test(`pages are at most 1280px wide and centered at ${width}px, ${label} (AC 9, 13)`, async ({
+        page,
+      }) => {
+        const expected = cappedWidth(width, sidebar);
+        for (const [index, { url, ready }] of CAPPED_PAGES.entries()) {
+          await test.step(url, async () => {
+            if (index === 0) {
+              await openPage(page, width, collapsed, url, { mods: true, browse: true });
+            } else {
+              await page.goto(url);
+            }
+            await expect(page.getByTestId(ready)).toBeVisible({ timeout: 30_000 });
+            expect(await sidebarWidth(page)).toBe(sidebar);
+
+            await expectCentered(page, width, sidebar, expected);
+            const header = await boxOf(page.locator('header'), 'header');
+            expect(
+              Math.abs(header.x - sidebar),
+              'header starts at the sidebar'
+            ).toBeLessThanOrEqual(1);
+            expect(
+              Math.abs(header.x + header.width - width),
+              'header ends at the window edge'
+            ).toBeLessThanOrEqual(1);
+          });
+        }
+      });
+    }
+
+    test(`the mod browser has four 308px columns at 1920px, ${label} (AC 10)`, async ({ page }) => {
+      await openPage(page, 1920, collapsed, '/game-server/mods/browse', { browse: true });
+      await expect(page.getByTestId('mod-card-widthmod5')).toBeVisible({ timeout: 30_000 });
+
+      const grid = await boxOf(page.getByTestId('mod-browse-grid'), 'mod-browse-grid');
+      expect(Math.abs(grid.width - 1280), `grid width ${grid.width}`).toBeLessThanOrEqual(1);
+      const cards = [];
+      for (let n = 1; n <= 5; n++) {
+        cards.push(await boxOf(page.getByTestId(`mod-card-widthmod${n}`), `card ${n}`));
+      }
+      for (const [index, card] of cards.entries()) {
+        expect(
+          Math.abs(card.width - 308),
+          `card ${index + 1} width ${card.width}`
+        ).toBeLessThanOrEqual(1);
+      }
+      for (const card of cards.slice(1, 4)) {
+        expect(Math.abs(card.y - cards[0].y), 'first four cards in one row').toBeLessThanOrEqual(1);
+      }
+      expect(cards[4].y, 'fifth card on the next row').toBeGreaterThan(cards[0].y);
+    });
+
+    test(`the console uses the full width at 1920px, ${label} (AC 11)`, async ({ page }) => {
+      await openPage(page, 1920, collapsed, '/game-server/console');
+      const panel = page.getByTestId('console-panel');
+      await expect(panel).toBeVisible({ timeout: 30_000 });
+
+      const expected = 1920 - sidebar - 48;
+      const panelBox = await boxOf(panel, 'console-panel');
+      const content = await boxOf(page.getByTestId('page-content'), 'page-content');
+      expect(
+        Math.abs(panelBox.width - expected),
+        `console width ${panelBox.width}`
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(content.width - expected),
+        `content width ${content.width}`
+      ).toBeLessThanOrEqual(1);
+      expect(await documentOverflow(page)).toBe(0);
+    });
+  }
+
+  test('the mod detail page stays 896px wide and centered at 1920px (AC 13)', async ({ page }) => {
+    await openPage(page, 1920, false, '/game-server/mods/browse/longnamemod', { mods: true });
+    const detail = page.getByTestId('mod-detail-page');
+    await expect(page.getByTestId('mod-detail-header')).toBeVisible({ timeout: 30_000 });
+
+    const box = await boxOf(detail, 'mod-detail-page');
+    const content = await boxOf(page.getByTestId('page-content'), 'page-content');
+    expect(Math.abs(box.width - 896), `detail width ${box.width}`).toBeLessThanOrEqual(1);
+    const left = box.x - content.x;
+    const right = content.x + content.width - (box.x + box.width);
+    expect(Math.abs(left - right), `space left ${left}, right ${right}`).toBeLessThanOrEqual(1);
+    expect(await documentOverflow(page)).toBe(0);
+  });
 });

@@ -85,41 +85,41 @@ so that **content has room at tablet widths and stays readable on large monitors
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-21.8/task-N): ... ; feat/fix only for changes users would notice, subject written for users. Red first. Exactly two release notes: Task 2 and Task 4. -->
 
-- [ ] Task 1: The sidebar preference rules in one module + tests (AC: 4, 5, 6)
-  - [ ] 1.1: New `web/src/lib/sidebar-preference.ts` (Dev Notes "The preference module"): the type `SidebarPreference`, `SIDEBAR_PREFERENCES`, `isSidebarPreference`, `readSidebarPreference` (the migration) and `isSidebarCollapsed` (the width rule). Pure functions, no React, no cookie access. Nothing imports it yet
-  - [ ] 1.2: New `web/src/lib/sidebar-preference.test.ts` (Dev Notes "Web tests", Task 1 rows), written first and seen failing
-  - [ ] 1.3: Commit `refactor(story-21.8/task-1): add the sidebar preference rules`
+- [x] Task 1: The sidebar preference rules in one module + tests (AC: 4, 5, 6)
+  - [x] 1.1: New `web/src/lib/sidebar-preference.ts` (Dev Notes "The preference module"): the type `SidebarPreference`, `SIDEBAR_PREFERENCES`, `isSidebarPreference`, `readSidebarPreference` (the migration) and `isSidebarCollapsed` (the width rule). Pure functions, no React, no cookie access. Nothing imports it yet
+  - [x] 1.2: New `web/src/lib/sidebar-preference.test.ts` (Dev Notes "Web tests", Task 1 rows), written first and seen failing
+  - [x] 1.3: Commit `refactor(story-21.8/task-1): add the sidebar preference rules`
 
-- [ ] Task 2: The sidebar follows the width until the user chooses + tests (AC: 1, 2, 3, 4, 5, 6, 7, 8, 14)
-  - [ ] 2.1: `web/src/contexts/PreferencesContext.tsx`: `UserPreferences.sidebarCollapsed: boolean` (`:40`) becomes `sidebar: SidebarPreference`; the default (`:49`) becomes `'auto'`; `setSidebarCollapsed` (`:67`, `:187-189`, `:205`) becomes `setSidebarPreference(sidebar: SidebarPreference)`. `loadPreferences` (`:83-111`) reads the cookie as `unknown`, returns the defaults when it is not a plain object, and sets `sidebar: readSidebarPreference(parsed)` (Dev Notes "Reading the cookie"). The write effect (`:169-171`) is unchanged: it serializes `preferences`, which no longer has `sidebarCollapsed`, so the old key disappears on the first render
-  - [ ] 2.2: `web/src/contexts/SidebarContext.tsx` (`:30-50`): `isCollapsed = isSidebarCollapsed(preferences.sidebar, useMediaQuery(LG_UP_QUERY))`; `toggleCollapse` calls `setSidebarPreference(isCollapsed ? 'expanded' : 'collapsed')`. The context's shape (`isCollapsed`, `isMobileOpen`, `toggleCollapse`, `setMobileOpen`) does not change, so `Layout`, `Header` and `Sidebar` keep their calls. Update the header comment (`:1-6`)
-  - [ ] 2.3: `web/src/components/layout/Sidebar.tsx`: new optional prop `inSheet?: boolean` (default `false`) on `SidebarProps` (`:54-56`). Inside, `const isCollapsed = !inSheet && collapsed` (rename the value destructured at `:59`), so every existing use of `isCollapsed` (`:90-119`, `:137-154`, `:169`, `:184-198`, `:205`, `:217`) shows the full sidebar in the sheet; the collapse toggle (`:181-199`) is not rendered when `inSheet`. Give the toggle `aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}` and `data-testid="sidebar-toggle"`; its visible text "Collapse" stays
-  - [ ] 2.4: `web/src/components/layout/Layout.tsx`: the sheet renders `<Sidebar inSheet />` (`:30`); the desktop sidebar container (`:35-38`) gets `data-testid="desktop-sidebar"` (for the E2E width checks). Nothing else here in this task
-  - [ ] 2.5: `web/src/features/settings/UIPreferencesPanel.tsx` (`:124-150`): replace the "Start with Sidebar Collapsed" button with the three-way control (Dev Notes "The UI Preferences control"); update the header comment (`:4`). The test ID `sidebar-collapsed-toggle` is removed (no E2E uses it)
-  - [ ] 2.6: Tests (Dev Notes "Web tests", Task 2 rows) and the Task 2 entries of "Existing tests that change", red first
-  - [ ] 2.7: `just test-web`, `just typecheck-web`, `just lint-web`; format the changed web files with the Prettier that Story 21.1 pinned. Commit `feat(story-21.8/task-2): collapse the sidebar by default on tablet-sized screens`. The body says: with no choice made the sidebar is collapsed from 768 to 1023px; the sidebar's toggle or Settings > UI Preferences > Sidebar (Automatic, Expanded, Collapsed) sets a choice that applies at every width; a sidebar collapsed before the update stays collapsed; the phone menu always shows the full sidebar
+- [x] Task 2: The sidebar follows the width until the user chooses + tests (AC: 1, 2, 3, 4, 5, 6, 7, 8, 14)
+  - [x] 2.1: `web/src/contexts/PreferencesContext.tsx`: `UserPreferences.sidebarCollapsed: boolean` (`:40`) becomes `sidebar: SidebarPreference`; the default (`:49`) becomes `'auto'`; `setSidebarCollapsed` (`:67`, `:187-189`, `:205`) becomes `setSidebarPreference(sidebar: SidebarPreference)`. `loadPreferences` (`:83-111`) reads the cookie as `unknown`, returns the defaults when it is not a plain object, and sets `sidebar: readSidebarPreference(parsed)` (Dev Notes "Reading the cookie"). The write effect (`:169-171`) is unchanged: it serializes `preferences`, which no longer has `sidebarCollapsed`, so the old key disappears on the first render
+  - [x] 2.2: `web/src/contexts/SidebarContext.tsx` (`:30-50`): `isCollapsed = isSidebarCollapsed(preferences.sidebar, useMediaQuery(LG_UP_QUERY))`; `toggleCollapse` calls `setSidebarPreference(isCollapsed ? 'expanded' : 'collapsed')`. The context's shape (`isCollapsed`, `isMobileOpen`, `toggleCollapse`, `setMobileOpen`) does not change, so `Layout`, `Header` and `Sidebar` keep their calls. Update the header comment (`:1-6`)
+  - [x] 2.3: `web/src/components/layout/Sidebar.tsx`: new optional prop `inSheet?: boolean` (default `false`) on `SidebarProps` (`:54-56`). Inside, `const isCollapsed = !inSheet && collapsed` (rename the value destructured at `:59`), so every existing use of `isCollapsed` (`:90-119`, `:137-154`, `:169`, `:184-198`, `:205`, `:217`) shows the full sidebar in the sheet; the collapse toggle (`:181-199`) is not rendered when `inSheet`. Give the toggle `aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}` and `data-testid="sidebar-toggle"`; its visible text "Collapse" stays
+  - [x] 2.4: `web/src/components/layout/Layout.tsx`: the sheet renders `<Sidebar inSheet />` (`:30`); the desktop sidebar container (`:35-38`) gets `data-testid="desktop-sidebar"` (for the E2E width checks). Nothing else here in this task
+  - [x] 2.5: `web/src/features/settings/UIPreferencesPanel.tsx` (`:124-150`): replace the "Start with Sidebar Collapsed" button with the three-way control (Dev Notes "The UI Preferences control"); update the header comment (`:4`). The test ID `sidebar-collapsed-toggle` is removed (no E2E uses it)
+  - [x] 2.6: Tests (Dev Notes "Web tests", Task 2 rows) and the Task 2 entries of "Existing tests that change", red first
+  - [x] 2.7: `just test-web`, `just typecheck-web`, `just lint-web`; format the changed web files with the Prettier that Story 21.1 pinned. Commit `feat(story-21.8/task-2): collapse the sidebar by default on tablet-sized screens`. The body says: with no choice made the sidebar is collapsed from 768 to 1023px; the sidebar's toggle or Settings > UI Preferences > Sidebar (Automatic, Expanded, Collapsed) sets a choice that applies at every width; a sidebar collapsed before the update stays collapsed; the phone menu always shows the full sidebar
 
-- [ ] Task 3: Sidebar E2E and the "before" content widths + tests (AC: 1, 2, 3, 4, 5, 7, 8)
-  - [ ] 3.1: `web/e2e/layout-widths.spec.ts` `openPage` (`:263-282`): write `{ sidebar: collapsed ? 'collapsed' : 'expanded' }` instead of `{ sidebarCollapsed: collapsed }`, and fix the comment at `:27-28`. Without this every "sidebar expanded" test from 768 to 1023px would run with a collapsed sidebar and still pass (Dev Notes "Existing tests that change"). Do the same in every helper Story 21.7 added that writes the cookie: after this task `grep -rn sidebarCollapsed web/e2e` finds the old key only in this story's migration test (S4)
-  - [ ] 3.2: New describe "Sidebar default and choice (Story 21.8)" in the same spec (Dev Notes "E2E", tests S1 to S6). Untagged, read-only (`readOnly`), no cookie unless the test says so
-  - [ ] 3.3: New `_bmad-output/implementation-artifacts/21-8-browser/content_widths.mjs` (Dev Notes "Measurement method") and its first run into `content_widths.before.json`, on the stack rebuilt from the branch at this point (sidebar done, cap not yet). Numbers only, no screenshot
-  - [ ] 3.4: Rebuild the stack (`just docker restart`) and run `cd web && bunx playwright test e2e/layout-widths.spec.ts` with `VS_API_KEY_ADMIN` exported; then `just test-e2e-ci`. Commit the spec, the script and the "before" file: `test(story-21.8/task-3): check the sidebar default and choice at tablet and desktop widths`
+- [x] Task 3: Sidebar E2E and the "before" content widths + tests (AC: 1, 2, 3, 4, 5, 7, 8)
+  - [x] 3.1: `web/e2e/layout-widths.spec.ts` `openPage` (`:263-282`): write `{ sidebar: collapsed ? 'collapsed' : 'expanded' }` instead of `{ sidebarCollapsed: collapsed }`, and fix the comment at `:27-28`. Without this every "sidebar expanded" test from 768 to 1023px would run with a collapsed sidebar and still pass (Dev Notes "Existing tests that change"). Do the same in every helper Story 21.7 added that writes the cookie: after this task `grep -rn sidebarCollapsed web/e2e` finds the old key only in this story's migration test (S4)
+  - [x] 3.2: New describe "Sidebar default and choice (Story 21.8)" in the same spec (Dev Notes "E2E", tests S1 to S6). Untagged, read-only (`readOnly`), no cookie unless the test says so
+  - [x] 3.3: New `_bmad-output/implementation-artifacts/21-8-browser/content_widths.mjs` (Dev Notes "Measurement method") and its first run into `content_widths.before.json`, on the stack rebuilt from the branch at this point (sidebar done, cap not yet). Numbers only, no screenshot
+  - [x] 3.4: Rebuild the stack (`just docker restart`) and run `cd web && bunx playwright test e2e/layout-widths.spec.ts` with `VS_API_KEY_ADMIN` exported; then `just test-e2e-ci`. Commit the spec, the script and the "before" file: `test(story-21.8/task-3): check the sidebar default and choice at tablet and desktop widths`
 
-- [ ] Task 4: Page content is at most 1280px wide and centered, except the console + tests (AC: 9, 10, 11, 12, 13, 14)
-  - [ ] 4.1: New `web/src/components/layout/content-width.ts` (Dev Notes "The content width"): `PAGE_CONTENT_WIDTH = 'mx-auto max-w-[1280px]'` and `FULL_WIDTH_ROUTES = ['/game-server/console']`. Delete `web/src/features/game-server/content-width.ts` and move its test to `web/src/components/layout/content-width.test.ts`
-  - [ ] 4.2: `web/src/components/layout/Layout.tsx` (`:46-50`): inside the padding `div` wrap `children` in `<div className={fullWidth ? undefined : PAGE_CONTENT_WIDTH} data-testid="page-content">`, where `fullWidth` is true when `useLocation().pathname` matches an entry of `FULL_WIDTH_ROUTES` (`matchPath` from `react-router`). The padding `div` keeps `p-4 md:p-6` and stays the first `div` in `main`
-  - [ ] 4.3: Game Settings on the shared constant: `features/game-server/SettingsPage.tsx` (`:22`, `:46`, `:61`, `:75`) and `GameConfigPanel.tsx` (`:29`, `:196`, `:210`, `:298`) import `PAGE_CONTENT_WIDTH` from `@/components/layout/content-width`; their wrappers stay (Dev Notes "Decision: Game Settings keeps its wrappers"). Update the comments at `SettingsPage.tsx:11` and `GameConfigPanel.tsx:7`
-  - [ ] 4.4: Tests (Dev Notes "Web tests", Task 4 rows) and the Task 4 entries of "Existing tests that change", red first
-  - [ ] 4.6 (maintainer decision, 2026-11-17): delete the unreachable `features/game-server/GameServerPage.tsx`, its test and its export from `features/game-server/index.ts`; remove any helper, fixture or CSS used only by it (check with `grep -rn`). `FULL_WIDTH_ROUTES` stays `['/game-server/console']` and its doc comment no longer mentions `GameServerPage`. Commit separately before 4.5's commit: `refactor(story-21.8/task-4): remove the unused game server page`
-  - [ ] 4.5: `grep -rn "max-w-\[1280px\]" web/src | grep -v "\.test\."` shows one line. `just test-web`, `just typecheck-web`, `just lint-web`, Prettier on the changed files. Commit `feat(story-21.8/task-4): limit page width to 1280px on wide screens`. The body says: pages are centered with a maximum width of 1280px; the Console page keeps the full width; the mod browser keeps four columns
+- [x] Task 4: Page content is at most 1280px wide and centered, except the console + tests (AC: 9, 10, 11, 12, 13, 14)
+  - [x] 4.1: New `web/src/components/layout/content-width.ts` (Dev Notes "The content width"): `PAGE_CONTENT_WIDTH = 'mx-auto max-w-[1280px]'` and `FULL_WIDTH_ROUTES = ['/game-server/console']`. Delete `web/src/features/game-server/content-width.ts` and move its test to `web/src/components/layout/content-width.test.ts`
+  - [x] 4.2: `web/src/components/layout/Layout.tsx` (`:46-50`): inside the padding `div` wrap `children` in `<div className={fullWidth ? undefined : PAGE_CONTENT_WIDTH} data-testid="page-content">`, where `fullWidth` is true when `useLocation().pathname` matches an entry of `FULL_WIDTH_ROUTES` (`matchPath` from `react-router`). The padding `div` keeps `p-4 md:p-6` and stays the first `div` in `main`
+  - [x] 4.3: Game Settings on the shared constant: `features/game-server/SettingsPage.tsx` (`:22`, `:46`, `:61`, `:75`) and `GameConfigPanel.tsx` (`:29`, `:196`, `:210`, `:298`) import `PAGE_CONTENT_WIDTH` from `@/components/layout/content-width`; their wrappers stay (Dev Notes "Decision: Game Settings keeps its wrappers"). Update the comments at `SettingsPage.tsx:11` and `GameConfigPanel.tsx:7`
+  - [x] 4.4: Tests (Dev Notes "Web tests", Task 4 rows) and the Task 4 entries of "Existing tests that change", red first
+  - [x] 4.6 (maintainer decision, 2026-11-17): delete the unreachable `features/game-server/GameServerPage.tsx`, its test and its export from `features/game-server/index.ts`; remove any helper, fixture or CSS used only by it (check with `grep -rn`). `FULL_WIDTH_ROUTES` stays `['/game-server/console']` and its doc comment no longer mentions `GameServerPage`. Commit separately before 4.5's commit: `refactor(story-21.8/task-4): remove the unused game server page`
+  - [x] 4.5: `grep -rn "max-w-\[1280px\]" web/src | grep -v "\.test\."` shows one line. `just test-web`, `just typecheck-web`, `just lint-web`, Prettier on the changed files. Commit `feat(story-21.8/task-4): limit page width to 1280px on wide screens`. The body says: pages are centered with a maximum width of 1280px; the Console page keeps the full width; the mod browser keeps four columns
 
 - [ ] Task 5: Wide-screen checks, E2E for the cap and the UX notes + tests (AC: 9, 10, 11, 13)
-  - [ ] 5.1: Rebuild the stack and run `content_widths.mjs` into `content_widths.after.json`. Compare with Dev Notes "Expected numbers"; a difference of more than 1px is a finding to explain before going on
-  - [ ] 5.2: `web/e2e/layout-widths.spec.ts`: new describe "Content width on wide screens (Story 21.8)" (Dev Notes "E2E", tests W1 to W4), and the three long-name tests at `:414-427` rewritten (Dev Notes "Existing tests that change", the Story 18.4 entry). Update the spec's header comment (`:4-37`) with this story's lines
-  - [ ] 5.3: `web/e2e/README.md`: recount the tests (`cd web && bunx playwright test --list | tail -1`, and with `--grep-invert "@moddb|@moddb-live|@install|@game-server"`) and update every count the README states (at 966204f: 150 tests, 146 in CI, 119 untagged; Story 21.7 will have changed them)
-  - [ ] 5.4: Run the whole changed spec and `e2e/settings-desktop-layout.spec.ts`, `e2e/installed-mods-phone.spec.ts`, `e2e/terminal.spec.ts`, `e2e/content-security-policy.spec.ts` on the rebuilt stack, then `just test-e2e-ci`
+  - [x] 5.1: Rebuild the stack and run `content_widths.mjs` into `content_widths.after.json`. Compare with Dev Notes "Expected numbers"; a difference of more than 1px is a finding to explain before going on
+  - [x] 5.2: `web/e2e/layout-widths.spec.ts`: new describe "Content width on wide screens (Story 21.8)" (Dev Notes "E2E", tests W1 to W4), and the three long-name tests at `:414-427` rewritten (Dev Notes "Existing tests that change", the Story 18.4 entry). Update the spec's header comment (`:4-37`) with this story's lines
+  - [x] 5.3: `web/e2e/README.md`: recount the tests (`cd web && bunx playwright test --list | tail -1`, and with `--grep-invert "@moddb|@moddb-live|@install|@game-server"`) and update every count the README states (at 966204f: 150 tests, 146 in CI, 119 untagged; Story 21.7 will have changed them)
+  - [x] 5.4: Run the whole changed spec and `e2e/settings-desktop-layout.spec.ts`, `e2e/installed-mods-phone.spec.ts`, `e2e/terminal.spec.ts`, `e2e/content-security-policy.spec.ts` on the rebuilt stack, then `just test-e2e-ci`
   - [ ] 5.5: Browser check on the stack (manual, ticked only after the user confirms it; no screenshot kept): at 1920px and 2560px in both sidebar states look at the Dashboard (the chart fills its card), the Version page, both Mods tabs, a mod detail page, Game Settings and each Settings tab for clipped or lopsided content; the Console at 1920px; at 900px a fresh profile shows the collapsed sidebar. Do not start or stop the game server and change no setting other than the sidebar preference
-  - [ ] 5.6: Fill "UX notes: what the spec asked and what was built" in the Dev Agent Record from the template in Dev Notes, with the measured numbers. Commit the spec, the README, the "after" file and the story notes: `test(story-21.8/task-5): check page widths at 1440, 1920 and 2560px`
+  - [x] 5.6: Fill "UX notes: what the spec asked and what was built" in the Dev Agent Record from the template in Dev Notes, with the measured numbers. Commit the spec, the README, the "after" file and the story notes: `test(story-21.8/task-5): check page widths at 1440, 1920 and 2560px`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
   - [ ] 6.1: `just check` passes (lint with the Prettier check of Story 21.1, typecheck with the E2E project, all tests; 0 skipped web tests added). `git status --short` shows nothing under `dev/`. The diff has no `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, no new `as` assertion and no `nosemgrep`
@@ -436,6 +436,38 @@ The dev adds the measured rows (1440, 1920, 2560px, both states) under the table
 ### Completion Notes List
 
 ### UX notes: what the spec asked and what was built
+
+| UX spec (`ux-design-specification.md`) | Built |
+|---|---|
+| Desktop, 1024px+: "Full sidebar navigation (240px)" (`:1203`) | Expanded by default from 1024px; 160px wide (unchanged, set before this story) |
+| Tablet, 768-1023px: "Collapsible sidebar (default collapsed to icons)" (`:1211`) | Collapsed (64px) with no choice stored; a choice wins at every width (ADR-14) |
+| Tablet: "Full-width console" (`:1214`) | The Console page uses the full content width at every width (ADR-15 decision 4) |
+| Mobile: "Hamburger menu replacing sidebar" (`:1218`) | Unchanged; the sheet now always shows the full sidebar |
+| "Max content width: 1280px", "Centered with auto margins on ultra-wide" (`:1256-1258`) | Every page but the console; padding outside the 1280px; measured numbers from `content_widths.after.json` below |
+
+Measured (`21-8-browser/content_widths.before.json` and `.after.json`, dev stack rebuilt from the branch, height 900px). The page content box as left to right, width; identical on the Dashboard, Version, Game Settings, both Mods tabs, the mod detail page's container and every Settings tab; the document scrolls sideways by 0px on every page in both files, and no element under `main` scrolls sideways.
+
+| Viewport | Sidebar | Before | After | Console panel (before = after) |
+|---|---|---|---|---|
+| 1024 | expanded | 184 to 1000, 816 | unchanged | 816 |
+| 1024 | collapsed | 88 to 1000, 912 | unchanged | 912 |
+| 1280 | expanded | 184 to 1256, 1072 | unchanged | 1072 |
+| 1280 | collapsed | 88 to 1256, 1168 | unchanged | 1168 |
+| 1440 | expanded | 184 to 1416, 1232 | unchanged | 1232 |
+| 1440 | collapsed | 88 to 1416, 1328 | 112 to 1392, 1280 | 1328 |
+| 1920 | expanded | 184 to 1896, 1712 | 400 to 1680, 1280 | 1712 |
+| 1920 | collapsed | 88 to 1896, 1808 | 352 to 1632, 1280 | 1808 |
+| 2560 | expanded | 184 to 2536, 2352 | 720 to 2000, 1280 | 2352 |
+| 2560 | collapsed | 88 to 2536, 2448 | 672 to 1952, 1280 | 2448 |
+
+Every row matches Dev Notes "Expected numbers" exactly (0px difference). Other measured values:
+
+- Header bar: from the sidebar's right edge to the window's right edge at every width, before and after (for example 160 to 1920 at 1920px expanded).
+- Mod browser (eight stubbed mods): from 1440px collapsed upwards four columns of 308px (before: 320, 416, 440, 576 and 600px at 1440 collapsed, 1920 expanded, 1920 collapsed, 2560 expanded and 2560 collapsed); the fifth card is on the second row. Below the cap unchanged.
+- Dashboard: the stat grid and the chart card are as wide as the content (1280px from 1488px expanded / 1392px collapsed; before up to 2448px).
+- Mod detail page: 896px, at the same position on screen before and after at every width (for example 592 to 1488 at 1920px expanded).
+- Installed mods table: as wide as the content. The 63-character test name is two lines at every width from 1440px collapsed upwards after the cap (40px against 20px before at 1440 collapsed, 1920 and 2560); short names stay on one line.
+- Game Settings: `game-config-layout` is 1232px wide where the content is 1280px (before 1280px at 1920 and 2560px), because the Settings page keeps its own `p-4 lg:p-6` inside the capped content; see Completion Notes.
 
 ### File List
 
