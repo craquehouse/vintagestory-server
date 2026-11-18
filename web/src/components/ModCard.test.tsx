@@ -34,50 +34,139 @@ vi.mock('@/hooks/use-mods', async () => {
   };
 });
 
-// Helper to create a complete UseQueryResult mock
-function createQueryResultMock<T>(overrides: {
-  data?: T;
-  isLoading?: boolean;
-  isError?: boolean;
-  error?: Error | null;
-  isSuccess?: boolean;
-}) {
-  const isLoading = overrides.isLoading ?? false;
-  const isError = overrides.isError ?? false;
-  const isSuccess = overrides.isSuccess ?? false;
+// Story 21.6 (backlog drawdown): typed mod detail results, as Story 21.5 typed the
+// install status. UseQueryResult is a union keyed on `status`, so each helper builds
+// one member of it with its literal flags.
+type ModDetailResult = ReturnType<typeof useModDetail.useModDetail>;
+type ModDetailData = NonNullable<ModDetailResult['data']>;
+
+/** The query before it fetches: no slug yet, so disabled. */
+function idleModDetail(): ModDetailResult {
   return {
-    data: overrides.data,
-    isLoading,
-    isError,
-    error: overrides.error ?? null,
-    isSuccess,
-    refetch: vi.fn(),
-    isFetching: isLoading,
-    isRefetching: false,
-    isPending: isLoading && !overrides.data,
-    isLoadingError: isError && isLoading,
+    data: undefined,
+    error: null,
+    isError: false,
+    isPending: true,
+    isLoading: false,
+    isLoadingError: false,
     isRefetchError: false,
+    isSuccess: false,
     isPlaceholderData: false,
-    isFetched: isSuccess || isError,
-    isFetchedAfterMount: isSuccess || isError,
-    isInitialLoading: isLoading && !overrides.data,
-    isStale: false,
-    dataUpdatedAt: Date.now(),
-    errorUpdatedAt: isError ? Date.now() : 0,
-    failureCount: isError ? 1 : 0,
-    failureReason: overrides.error ?? null,
-    fetchStatus: isLoading ? 'fetching' : 'idle',
-    status: isSuccess ? 'success' : isError ? 'error' : isLoading ? 'pending' : 'pending',
-    errorUpdateCount: isError ? 1 : 0,
-    promise: Promise.resolve(overrides.data),
+    status: 'pending',
+    fetchStatus: 'idle',
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: false,
+    isFetchedAfterMount: false,
+    isFetching: false,
+    isInitialLoading: false,
     isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: false,
+    refetch: vi.fn(),
+  };
+}
+
+/** The query waiting for its first answer. */
+function loadingModDetail(): ModDetailResult {
+  return {
+    data: undefined,
+    error: null,
+    isError: false,
+    isPending: true,
+    isLoading: true,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: false,
+    isPlaceholderData: false,
+    status: 'pending',
+    fetchStatus: 'fetching',
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: false,
+    isFetchedAfterMount: false,
+    isFetching: true,
+    isInitialLoading: true,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
     isEnabled: true,
-  } as ReturnType<typeof useModDetail.useModDetail>;
+    refetch: vi.fn(),
+  };
+}
+
+/** The query with an answer. */
+function successModDetail(data: ModDetailData): ModDetailResult {
+  return {
+    data,
+    error: null,
+    isError: false,
+    isPending: false,
+    isLoading: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: true,
+    isPlaceholderData: false,
+    status: 'success',
+    fetchStatus: 'idle',
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
+}
+
+/** The query whose first fetch failed. */
+function errorModDetail(error: Error): ModDetailResult {
+  return {
+    data: undefined,
+    error,
+    isError: true,
+    isPending: false,
+    isLoading: false,
+    isLoadingError: true,
+    isRefetchError: false,
+    isSuccess: false,
+    isPlaceholderData: false,
+    status: 'error',
+    fetchStatus: 'idle',
+    dataUpdatedAt: 0,
+    errorUpdatedAt: Date.now(),
+    failureCount: 1,
+    failureReason: error,
+    errorUpdateCount: 1,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
 }
 
 // Mock useModDetail hook - return default mock for all tests
 vi.mock('@/hooks/use-mod-detail', () => ({
-  useModDetail: vi.fn(() => createQueryResultMock({})),
+  useModDetail: vi.fn(() => idleModDetail()),
 }));
 
 // Helper to create a QueryClient wrapper
@@ -478,7 +567,7 @@ describe('ModCard', () => {
         isPaused: false,
       });
       // Default mock for useModDetail - not loading, no data
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(createQueryResultMock({}));
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(idleModDetail());
     });
 
     it('does not show install button when installedMods is not provided', () => {
@@ -560,35 +649,37 @@ describe('ModCard', () => {
 
       // Mock useModDetail to return mod data (simulating successful fetch)
       vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
+        successModDetail({
+          status: 'ok',
           data: {
-            status: 'ok',
-            data: {
-              slug: 'carrycapacity',
-              name: 'Carry Capacity',
-              author: 'copygirl',
-              description: 'Test description',
-              latestVersion: '1.5.0',
-              installModId: 'carrycapacity',
-              downloads: 50000,
-              follows: 500,
-              side: 'Both',
-              compatibility: {
-                status: 'not_verified',
-                gameVersion: '1.21.6',
-                modVersion: '1.5.0',
-                message: '',
-              },
-              logoUrl: null,
-              releases: [],
-              tags: [],
-              homepageUrl: null,
-              sourceUrl: null,
-              created: null,
-              lastReleased: null,
+            slug: 'carrycapacity',
+            urlalias: null,
+            assetId: 12345,
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
+            downloads: 50000,
+            follows: 500,
+            side: 'Both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: '',
+              latestSupportedGameVersion: null,
             },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+            lastReleased: null,
+            screenshots: [],
+            trailerUrl: null,
           },
-          isSuccess: true,
         })
       );
 
@@ -608,35 +699,37 @@ describe('ModCard', () => {
 
       // Mock useModDetail to return mod data
       vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
+        successModDetail({
+          status: 'ok',
           data: {
-            status: 'ok',
-            data: {
-              slug: 'carrycapacity',
-              name: 'Carry Capacity',
-              author: 'copygirl',
-              description: 'Test description',
-              latestVersion: '1.5.0',
-              installModId: 'carrycapacity',
-              downloads: 50000,
-              follows: 500,
-              side: 'Both',
-              compatibility: {
-                status: 'not_verified',
-                gameVersion: '1.21.6',
-                modVersion: '1.5.0',
-                message: '',
-              },
-              logoUrl: null,
-              releases: [],
-              tags: [],
-              homepageUrl: null,
-              sourceUrl: null,
-              created: null,
-              lastReleased: null,
+            slug: 'carrycapacity',
+            urlalias: null,
+            assetId: 12345,
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
+            downloads: 50000,
+            follows: 500,
+            side: 'Both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: '',
+              latestSupportedGameVersion: null,
             },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+            lastReleased: null,
+            screenshots: [],
+            trailerUrl: null,
           },
-          isSuccess: true,
         })
       );
 
@@ -654,11 +747,7 @@ describe('ModCard', () => {
       const installedMods: { slug: string }[] = [];
 
       // Mock useModDetail to return loading state
-      vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
-          isLoading: true,
-        })
-      );
+      vi.mocked(useModDetail.useModDetail).mockReturnValue(loadingModDetail());
 
       render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
 
@@ -675,35 +764,37 @@ describe('ModCard', () => {
 
       // Mock useModDetail to return compatible mod
       vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
+        successModDetail({
+          status: 'ok',
           data: {
-            status: 'ok',
-            data: {
-              slug: 'carrycapacity',
-              name: 'Carry Capacity',
-              author: 'copygirl',
-              description: 'Test description',
-              latestVersion: '1.5.0',
-              installModId: 'carrycapacity',
-              downloads: 50000,
-              follows: 500,
-              side: 'Both',
-              compatibility: {
-                status: 'compatible',
-                gameVersion: '1.21.6',
-                modVersion: '1.5.0',
-                message: '',
-              },
-              logoUrl: null,
-              releases: [],
-              tags: [],
-              homepageUrl: null,
-              sourceUrl: null,
-              created: null,
-              lastReleased: null,
+            slug: 'carrycapacity',
+            urlalias: null,
+            assetId: 12345,
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '1.5.0',
+            installModId: 'carrycapacity',
+            downloads: 50000,
+            follows: 500,
+            side: 'Both',
+            compatibility: {
+              status: 'compatible',
+              gameVersion: '1.21.6',
+              modVersion: '1.5.0',
+              message: '',
+              latestSupportedGameVersion: null,
             },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+            lastReleased: null,
+            screenshots: [],
+            trailerUrl: null,
           },
-          isSuccess: true,
         })
       );
 
@@ -723,10 +814,7 @@ describe('ModCard', () => {
 
       // Mock useModDetail to return error state
       vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
-          isError: true,
-          error: new Error('Network error'),
-        })
+        errorModDetail(new Error('Network error'))
       );
 
       render(<ModCard mod={mockMod} installedMods={installedMods} />, { wrapper: createWrapper() });
@@ -745,35 +833,37 @@ describe('ModCard', () => {
 
       // Mock useModDetail to return mod with specific version
       vi.mocked(useModDetail.useModDetail).mockReturnValue(
-        createQueryResultMock({
+        successModDetail({
+          status: 'ok',
           data: {
-            status: 'ok',
-            data: {
-              slug: 'carrycapacity',
-              name: 'Carry Capacity',
-              author: 'copygirl',
-              description: 'Test description',
-              latestVersion: '2.3.4',
-              installModId: 'carrycapacity',
-              downloads: 50000,
-              follows: 500,
-              side: 'Both',
-              compatibility: {
-                status: 'not_verified',
-                gameVersion: '1.21.6',
-                modVersion: '2.3.4',
-                message: '',
-              },
-              logoUrl: null,
-              releases: [],
-              tags: [],
-              homepageUrl: null,
-              sourceUrl: null,
-              created: null,
-              lastReleased: null,
+            slug: 'carrycapacity',
+            urlalias: null,
+            assetId: 12345,
+            name: 'Carry Capacity',
+            author: 'copygirl',
+            description: 'Test description',
+            latestVersion: '2.3.4',
+            installModId: 'carrycapacity',
+            downloads: 50000,
+            follows: 500,
+            side: 'Both',
+            compatibility: {
+              status: 'not_verified',
+              gameVersion: '1.21.6',
+              modVersion: '2.3.4',
+              message: '',
+              latestSupportedGameVersion: null,
             },
+            logoUrl: null,
+            releases: [],
+            tags: [],
+            homepageUrl: null,
+            sourceUrl: null,
+            created: null,
+            lastReleased: null,
+            screenshots: [],
+            trailerUrl: null,
           },
-          isSuccess: true,
         })
       );
 
@@ -789,35 +879,37 @@ describe('ModCard', () => {
       it('installs the install mod ID at the lookup latest version', async () => {
         const user = userEvent.setup();
         vi.mocked(useModDetail.useModDetail).mockReturnValue(
-          createQueryResultMock({
+          successModDetail({
+            status: 'ok',
             data: {
-              status: 'ok',
-              data: {
-                slug: 'carrycapacity',
-                name: 'Carry Capacity',
-                author: 'copygirl',
-                description: null,
-                latestVersion: '1.4.0',
-                installModId: 'carrycapacityplus',
-                downloads: 1,
-                follows: 0,
-                side: 'Both',
-                compatibility: {
-                  status: 'compatible',
-                  gameVersion: '1.21.6',
-                  modVersion: '1.4.0',
-                  message: '',
-                },
-                logoUrl: null,
-                releases: [],
-                tags: [],
-                homepageUrl: null,
-                sourceUrl: null,
-                created: null,
-                lastReleased: null,
+              slug: 'carrycapacity',
+              urlalias: null,
+              assetId: 12345,
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: null,
+              latestVersion: '1.4.0',
+              installModId: 'carrycapacityplus',
+              downloads: 1,
+              follows: 0,
+              side: 'Both',
+              compatibility: {
+                status: 'compatible',
+                gameVersion: '1.21.6',
+                modVersion: '1.4.0',
+                message: '',
+                latestSupportedGameVersion: null,
               },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
+              screenshots: [],
+              trailerUrl: null,
             },
-            isSuccess: true,
           })
         );
 
@@ -839,35 +931,37 @@ describe('ModCard', () => {
       it('sends the card slug when the lookup has an empty install mod ID', async () => {
         const user = userEvent.setup();
         vi.mocked(useModDetail.useModDetail).mockReturnValue(
-          createQueryResultMock({
+          successModDetail({
+            status: 'ok',
             data: {
-              status: 'ok',
-              data: {
-                slug: 'carrycapacity',
-                name: 'Carry Capacity',
-                author: 'copygirl',
-                description: null,
-                latestVersion: null,
-                installModId: '',
-                downloads: 1,
-                follows: 0,
-                side: 'Both',
-                compatibility: {
-                  status: 'not_verified',
-                  gameVersion: '1.21.6',
-                  modVersion: 'unknown',
-                  message: '',
-                },
-                logoUrl: null,
-                releases: [],
-                tags: [],
-                homepageUrl: null,
-                sourceUrl: null,
-                created: null,
-                lastReleased: null,
+              slug: 'carrycapacity',
+              urlalias: null,
+              assetId: 12345,
+              name: 'Carry Capacity',
+              author: 'copygirl',
+              description: null,
+              latestVersion: null,
+              installModId: '',
+              downloads: 1,
+              follows: 0,
+              side: 'Both',
+              compatibility: {
+                status: 'not_verified',
+                gameVersion: '1.21.6',
+                modVersion: 'unknown',
+                message: '',
+                latestSupportedGameVersion: null,
               },
+              logoUrl: null,
+              releases: [],
+              tags: [],
+              homepageUrl: null,
+              sourceUrl: null,
+              created: null,
+              lastReleased: null,
+              screenshots: [],
+              trailerUrl: null,
             },
-            isSuccess: true,
           })
         );
 
@@ -886,10 +980,7 @@ describe('ModCard', () => {
       it('sends the card slug and no version when the details fail', async () => {
         const user = userEvent.setup();
         vi.mocked(useModDetail.useModDetail).mockReturnValue(
-          createQueryResultMock({
-            isError: true,
-            error: new Error('Network error'),
-          })
+          errorModDetail(new Error('Network error'))
         );
 
         render(<ModCard mod={mockMod} installedMods={[]} />, {
