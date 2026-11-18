@@ -20,6 +20,12 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - The Mods and Version page tab lists fit at 320 and 390px.
  * - Game Settings: from 1024px the title starts at the settings panel's left edge and the
  *   status badge ends at its right edge, inside the same centered 1280px width.
+ * Story 21.8 (FR284; VSS-w85):
+ * - With no `vs_ui_prefs` cookie the sidebar is collapsed (64px) at 768 and 900px and expanded
+ *   (160px) from 1024px, follows resizes across 1024px, and the cookie says `auto`. The toggle
+ *   stores the opposite of what is shown, which then holds at every width and after a reload;
+ *   an old `sidebarCollapsed` cookie is migrated; UI Preferences sets Automatic, Expanded or
+ *   Collapsed; the phone menu always shows the full sidebar with no toggle.
  * Story 21.7 (FR281, FR283; VSS-3ry, VSS-f9y):
  * - The Settings, Mods and Version tab buttons are at least 44px tall below 1024px, and as
  *   before from 1024px (list 36px). At 320-430px the Settings list's two rows sit inside the
@@ -37,7 +43,8 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * Version page's versions, its installed version and the Scheduled Jobs (Story 21.7); every
  * write to the API is refused, so no mod or setting changes; the game server is neither
  * started nor stopped; no screenshot is taken. The sidebar state is the `vs_ui_prefs`
- * cookie of a fresh browser context.
+ * cookie of a fresh browser context: `{ sidebar: 'expanded' }` or `{ sidebar: 'collapsed' }`
+ * (Story 21.8; with no choice the sidebar is collapsed below 1024px).
  *
  * Requirements:
  * - Docker stack on E2E_BASE_URL (default http://localhost:8080) with a serverconfig.json
@@ -302,7 +309,7 @@ interface PageOptions {
   installed?: string;
 }
 
-/** A page in a fresh context with the sidebar expanded or collapsed (vs_ui_prefs cookie). */
+/** A page in a fresh context with the sidebar chosen expanded or collapsed (vs_ui_prefs cookie). */
 async function openPage(
   page: Page,
   width: number,
@@ -313,7 +320,7 @@ async function openPage(
   await page.context().addCookies([
     {
       name: 'vs_ui_prefs',
-      value: encodeURIComponent(JSON.stringify({ sidebarCollapsed: collapsed })),
+      value: encodeURIComponent(JSON.stringify({ sidebar: collapsed ? 'collapsed' : 'expanded' })),
       url: BASE_URL,
     },
   ]);
@@ -1002,5 +1009,171 @@ test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () =
         expect(await documentOverflow(page)).toBe(0);
       });
     }
+  }
+});
+
+/** The fixed sidebar's width now. */
+async function sidebarWidth(page: Page): Promise<number> {
+  return (await boxOf(page.getByTestId('desktop-sidebar'), 'desktop-sidebar')).width;
+}
+
+/** Wait for the fixed sidebar's 300ms width animation to end at `width`. */
+async function expectSidebarWidth(page: Page, width: number) {
+  await expect.poll(() => sidebarWidth(page)).toBe(width);
+}
+
+/** The context's vs_ui_prefs cookie, parsed. */
+async function prefsCookie(page: Page): Promise<unknown> {
+  const cookie = (await page.context().cookies(BASE_URL)).find(
+    (item) => item.name === 'vs_ui_prefs'
+  );
+  if (!cookie) throw new Error('No vs_ui_prefs cookie');
+  return JSON.parse(decodeURIComponent(cookie.value));
+}
+
+/** The cookie says `sidebar` and has no `sidebarCollapsed` key. */
+async function expectStoredSidebar(page: Page, sidebar: string) {
+  await expect.poll(() => prefsCookie(page)).toMatchObject({ sidebar });
+  expect(await prefsCookie(page)).not.toHaveProperty('sidebarCollapsed');
+}
+
+/** Add a vs_ui_prefs cookie to the fresh context. */
+async function addPrefsCookie(page: Page, prefs: Record<string, unknown>) {
+  await page
+    .context()
+    .addCookies([
+      { name: 'vs_ui_prefs', value: encodeURIComponent(JSON.stringify(prefs)), url: BASE_URL },
+    ]);
+}
+
+/** Open the Dashboard at `width` with whatever cookie the context has (none unless added). */
+async function openFresh(page: Page, width: number, url = '/') {
+  await page.setViewportSize({ width, height: HEIGHT });
+  await readOnly(page);
+  await page.goto(url);
+  await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+}
+
+test.describe('Sidebar default and choice (Story 21.8)', () => {
+  // These tests end quickly; drop status requests still in flight when one ends
+  test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  // S1: no animation on the first load, so the width is read as soon as the sidebar shows
+  for (const { width, expected } of [
+    { width: 768, expected: 64 },
+    { width: 900, expected: 64 },
+    { width: 1024, expected: 160 },
+    { width: 1440, expected: 160 },
+  ]) {
+    test(`a fresh browser shows the sidebar ${expected}px wide at ${width}px (AC 1)`, async ({
+      page,
+    }) => {
+      await openFresh(page, width);
+
+      expect(await sidebarWidth(page)).toBe(expected);
+      await expectStoredSidebar(page, 'auto');
+    });
+  }
+
+  test('with no choice the sidebar follows the width across 1024px (AC 2)', async ({ page }) => {
+    await openFresh(page, 900);
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.setViewportSize({ width: 1100, height: HEIGHT });
+    await expectSidebarWidth(page, 160);
+    await page.setViewportSize({ width: 900, height: HEIGHT });
+    await expectSidebarWidth(page, 64);
+
+    await expectStoredSidebar(page, 'auto');
+  });
+
+  test('a choice made with the toggle holds at every width and after a reload (AC 3)', async ({
+    page,
+  }) => {
+    await openFresh(page, 900);
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.getByRole('button', { name: 'Expand sidebar' }).click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'expanded');
+    await page.reload();
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+    expect(await sidebarWidth(page)).toBe(160);
+
+    await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+    await expectSidebarWidth(page, 64);
+    await expectStoredSidebar(page, 'collapsed');
+    await page.setViewportSize({ width: 1440, height: HEIGHT });
+    await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
+    expect(await sidebarWidth(page)).toBe(64);
+    await page.reload();
+    await expect(page.getByTestId('desktop-sidebar')).toBeVisible({ timeout: 30_000 });
+    expect(await sidebarWidth(page)).toBe(64);
+  });
+
+  test('an old cookie with sidebarCollapsed: true stays collapsed (AC 4)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebarCollapsed: true });
+    await openFresh(page, 1440);
+
+    expect(await sidebarWidth(page)).toBe(64);
+    await expectStoredSidebar(page, 'collapsed');
+  });
+
+  test('an old cookie with sidebarCollapsed: false follows the width (AC 5)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebarCollapsed: false });
+    await openFresh(page, 900);
+
+    expect(await sidebarWidth(page)).toBe(64);
+    await page.setViewportSize({ width: 1440, height: HEIGHT });
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'auto');
+  });
+
+  test('UI Preferences sets Automatic, Expanded or Collapsed (AC 7)', async ({ page }) => {
+    await addPrefsCookie(page, { sidebar: 'collapsed' });
+    await openFresh(page, 1440, '/config');
+    await expect(page.getByTestId('ui-preferences-panel')).toBeVisible({ timeout: 30_000 });
+
+    await expect(page.getByTestId('sidebar-collapsed')).toHaveAttribute('aria-pressed', 'true');
+    expect(await sidebarWidth(page)).toBe(64);
+
+    await page.getByTestId('sidebar-auto').click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'auto');
+    await expect(page.getByTestId('sidebar-auto')).toHaveAttribute('aria-pressed', 'true');
+
+    await page.setViewportSize({ width: 900, height: HEIGHT });
+    await expectSidebarWidth(page, 64);
+
+    await page.getByTestId('sidebar-expanded').click();
+    await expectSidebarWidth(page, 160);
+    await expectStoredSidebar(page, 'expanded');
+  });
+
+  for (const { cookie, label } of [
+    { cookie: { sidebar: 'collapsed' }, label: 'stored collapsed' },
+    { cookie: null, label: 'no cookie' },
+  ]) {
+    test(`the phone menu shows the full sidebar with no toggle, ${label} (AC 8)`, async ({
+      page,
+    }) => {
+      if (cookie) await addPrefsCookie(page, cookie);
+      await page.setViewportSize({ width: 390, height: HEIGHT });
+      await readOnly(page);
+      await page.goto('/');
+
+      await page.getByRole('button', { name: 'Open menu' }).click({ timeout: 30_000 });
+      const sheet = page.getByRole('dialog', { name: 'Navigation menu' });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByRole('link', { name: 'Dashboard' })).toContainText('Dashboard');
+      await expect(sheet.getByRole('link', { name: 'VSManager' })).toContainText('VSManager');
+      // The sheet is 256px wide; the sidebar fills it but for the sheet's 1px border
+      await expect.poll(async () => (await boxOf(sheet, 'sheet')).width).toBe(256);
+      const aside = await boxOf(sheet.locator('aside'), 'sheet sidebar');
+      expect(aside.width).toBeGreaterThanOrEqual(255);
+      await expect(sheet.getByTestId('sidebar-toggle')).toHaveCount(0);
+    });
   }
 });
