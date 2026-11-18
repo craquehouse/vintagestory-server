@@ -17,6 +17,7 @@ from vintagestory_api import __version__
 from vintagestory_api.config import (
     DEFAULT_MOD_DB_URL,
     Settings,
+    current_log_level,
     initialize_debug_state,
     is_debug_enabled,
 )
@@ -155,9 +156,9 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
         """Application lifespan handler for startup and shutdown."""
         global scheduler_service
 
-        # Initialize debug state from VS_DEBUG env var (FR48)
+        # Apply VS_DEBUG and VS_LOG_LEVEL from the settings (FR48, Epic 21 ADR-4)
         # This must be called before any logging to ensure correct log levels
-        initialize_debug_state()
+        initialize_debug_state(settings.debug, settings.log_level)
 
         # Ensure data directories exist
         settings.ensure_data_directories()
@@ -167,7 +168,7 @@ def lifespan_for(settings: Settings) -> Callable[[FastAPI], AbstractAsyncContext
         logger.info(
             "api_starting",
             debug_mode=debug_enabled,
-            log_level="DEBUG" if debug_enabled else "INFO",
+            log_level=current_log_level(),
             data_dir=str(settings.data_dir),
         )
 

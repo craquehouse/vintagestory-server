@@ -50,7 +50,9 @@ def extract_request_ids(logs: str) -> list[str]:
 
 
 @pytest.fixture
-def request_context_app(captured_logs: StringIO) -> tuple[TestClient, StringIO]:
+def request_context_app(
+    captured_logs: StringIO, monkeypatch: pytest.MonkeyPatch
+) -> tuple[TestClient, StringIO]:
     """Create a test FastAPI app with request context middleware.
 
     Uses the captured_logs fixture from conftest.py to ensure log capture
@@ -63,8 +65,10 @@ def request_context_app(captured_logs: StringIO) -> tuple[TestClient, StringIO]:
         Tuple of (TestClient, log output buffer)
     """
     # Set debug state to True and mark as initialized to match test configuration
-    config_module._debug_enabled = True  # pyright: ignore[reportPrivateUsage]
-    config_module._debug_initialized = True  # pyright: ignore[reportPrivateUsage]
+    # (monkeypatch restores the module's state after the test)
+    monkeypatch.setattr(config_module, "_debug_enabled", True)
+    monkeypatch.setattr(config_module, "_debug_initialized", True)
+    monkeypatch.setattr(config_module, "_current_log_level", "DEBUG")
 
     app = FastAPI()
     app.add_middleware(RequestContextMiddleware)

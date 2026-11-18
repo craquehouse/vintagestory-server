@@ -10,14 +10,16 @@ import structlog
 from pydantic import ValidationError
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
+import vintagestory_api.config as config_module
 from vintagestory_api.config import (
     DEFAULT_MOD_DB_URL,
+    LOG_LEVELS,
     Settings,
     configure_logging,
+    current_log_level,
     get_current_debug_setting,
     initialize_debug_state,
     is_debug_enabled,
-    reconfigure_logging_if_changed,
     set_debug_enabled,
 )
 
@@ -463,6 +465,57 @@ class TestCspMode:
         assert self.MESSAGE in str(excinfo.value)
 
 
+class TestLogLevel:
+    """VS_LOG_LEVEL sets the API's log level (Epic 21 ADR-4)."""
+
+    MESSAGE = "VS_LOG_LEVEL must be one of: DEBUG, INFO, WARNING, ERROR."
+
+    def test_the_four_levels(self) -> None:
+        assert LOG_LEVELS == ("DEBUG", "INFO", "WARNING", "ERROR")
+
+    def test_unset_is_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("VS_LOG_LEVEL", raising=False)
+
+        assert Settings().log_level is None
+
+    @pytest.mark.parametrize("value", ["", "   "])
+    def test_blank_value_means_unset(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+        monkeypatch.setenv("VS_LOG_LEVEL", value)
+
+        assert Settings().log_level is None
+
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [("debug", "DEBUG"), ("Info", "INFO"), ("WARNING", "WARNING"), (" eRRoR ", "ERROR")],
+    )
+    def test_case_and_surrounding_spaces_are_ignored(
+        self, monkeypatch: pytest.MonkeyPatch, value: str, expected: str
+    ) -> None:
+        monkeypatch.setenv("VS_LOG_LEVEL", value)
+
+        assert Settings().log_level == expected
+
+    @pytest.mark.parametrize("value", ["verbose", "warn", "trace", "CRITICAL", "10"])
+    def test_any_other_value_names_the_variable_and_the_valid_values(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
+        monkeypatch.setenv("VS_LOG_LEVEL", value)
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert self.MESSAGE in str(excinfo.value)
+
+    def test_the_value_is_not_in_the_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VS_LOG_LEVEL", "secret-looking-level")
+
+        with pytest.raises(ValidationError) as excinfo:
+            Settings()
+
+        assert self.MESSAGE in str(excinfo.value)
+        assert "secret-looking-level" not in str(excinfo.value)
+
+
 class TestModDbUrl:
     """VS_MOD_DB_URL: the mod database's base address (Epic 20 ADR-9)."""
 
@@ -803,78 +856,55 @@ class TestConfigureLoggingContextVars:
 class TestDebugStateManagement:
     """Tests for debug state initialization and toggling."""
 
-    def test_initialize_debug_state_from_env_true(self) -> None:
-        """initialize_debug_state reads VS_DEBUG=true from environment."""
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            # Import the module to reset state
-            import vintagestory_api.config as config_module
+    @pytest.fixture(autouse=True)
+    def fresh_debug_state(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Start from a process that has not initialised its debug state yet.
 
-            config_module._debug_initialized = False
-            config_module._debug_enabled = False
+        monkeypatch restores the module's state after each test.
+        """
+        monkeypatch.setattr(config_module, "_debug_enabled", False)
+        monkeypatch.setattr(config_module, "_debug_initialized", False)
+        monkeypatch.setattr(config_module, "_configured_log_level", None)
+        monkeypatch.setattr(config_module, "_current_log_level", "INFO")
 
-            initialize_debug_state()
+    @pytest.mark.parametrize("value", ["true", "1", "yes", "on"])
+    def test_initialize_debug_state_from_settings_true(
+        self, monkeypatch: pytest.MonkeyPatch, value: str
+    ) -> None:
+        """VS_DEBUG is parsed once, by the settings; every true spelling turns debug on."""
+        monkeypatch.setenv("VS_DEBUG", value)
+        settings = Settings()
 
-            assert is_debug_enabled() is True
+        initialize_debug_state(settings.debug, settings.log_level)
 
-    def test_initialize_debug_state_from_env_false(self) -> None:
-        """initialize_debug_state reads VS_DEBUG=false from environment."""
-        with patch.dict(os.environ, {"VS_DEBUG": "false"}):
-            import vintagestory_api.config as config_module
+        assert is_debug_enabled() is True
+        assert current_log_level() == "DEBUG"
 
-            config_module._debug_initialized = False
-            config_module._debug_enabled = False
+    def test_initialize_debug_state_from_settings_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """VS_DEBUG=false leaves debug off at INFO."""
+        monkeypatch.setenv("VS_DEBUG", "false")
+        settings = Settings()
 
-            initialize_debug_state()
+        initialize_debug_state(settings.debug, settings.log_level)
 
-            assert is_debug_enabled() is False
-
-    def test_initialize_debug_state_from_env_1(self) -> None:
-        """initialize_debug_state reads VS_DEBUG=1 as true."""
-        with patch.dict(os.environ, {"VS_DEBUG": "1"}):
-            import vintagestory_api.config as config_module
-
-            config_module._debug_initialized = False
-            config_module._debug_enabled = False
-
-            initialize_debug_state()
-
-            assert is_debug_enabled() is True
-
-    def test_initialize_debug_state_from_env_yes(self) -> None:
-        """initialize_debug_state reads VS_DEBUG=yes as true."""
-        with patch.dict(os.environ, {"VS_DEBUG": "yes"}):
-            import vintagestory_api.config as config_module
-
-            config_module._debug_initialized = False
-            config_module._debug_enabled = False
-
-            initialize_debug_state()
-
-            assert is_debug_enabled() is True
+        assert is_debug_enabled() is False
+        assert current_log_level() == "INFO"
 
     def test_initialize_debug_state_idempotent(self) -> None:
-        """initialize_debug_state only runs once."""
-        with patch.dict(os.environ, {"VS_DEBUG": "true"}):
-            import vintagestory_api.config as config_module
+        """initialize_debug_state only runs once; the first call wins."""
+        initialize_debug_state(True, None)
+        first_state = is_debug_enabled()
 
-            config_module._debug_initialized = False
-            config_module._debug_enabled = False
+        initialize_debug_state(False, "ERROR")
 
-            initialize_debug_state()
-            first_state = is_debug_enabled()
-
-            # Change environment but call again
-            os.environ["VS_DEBUG"] = "false"
-            initialize_debug_state()
-
-            # Should still be true (first initialization wins)
-            assert is_debug_enabled() == first_state
+        assert is_debug_enabled() == first_state
+        assert current_log_level() == "DEBUG"
 
     def test_set_debug_enabled_toggle_on(self) -> None:
         """set_debug_enabled toggles debug mode on."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = False
+        initialize_debug_state(False, None)
 
         result = set_debug_enabled(True)
 
@@ -883,9 +913,7 @@ class TestDebugStateManagement:
 
     def test_set_debug_enabled_toggle_off(self) -> None:
         """set_debug_enabled toggles debug mode off."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = True
+        initialize_debug_state(True, None)
 
         result = set_debug_enabled(False)
 
@@ -894,24 +922,20 @@ class TestDebugStateManagement:
 
     def test_set_debug_enabled_no_change(self) -> None:
         """set_debug_enabled returns False when state doesn't change."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = True
+        initialize_debug_state(True, None)
 
         result = set_debug_enabled(True)
 
         assert result is False  # State unchanged
         assert is_debug_enabled() is True
 
-    def test_get_current_debug_setting(self) -> None:
+    def test_get_current_debug_setting(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """get_current_debug_setting returns current debug state (deprecated)."""
-        import vintagestory_api.config as config_module
-
-        config_module._debug_enabled = True
+        monkeypatch.setattr(config_module, "_debug_enabled", True)
 
         assert get_current_debug_setting() is True
 
-        config_module._debug_enabled = False
+        monkeypatch.setattr(config_module, "_debug_enabled", False)
         assert get_current_debug_setting() is False
 
 
@@ -932,44 +956,3 @@ class TestConfigureLoggingWithLogLevel:
         # If debug=True, should fall back to DEBUG level
         # If debug=False, should fall back to INFO level
         configure_logging(debug=False, log_level="NOT_A_LEVEL")
-
-
-class TestReconfigureLoggingIfChanged:
-    """Tests for reconfigure_logging_if_changed function."""
-
-    def test_reconfigure_logging_if_changed_first_call(self) -> None:
-        """reconfigure_logging_if_changed returns True on first call."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = None
-        config_module._debug_enabled = False
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is True
-        # First call initializes _last_debug_state
-        assert config_module._last_debug_state is False
-
-    def test_reconfigure_logging_if_changed_state_changed(self) -> None:
-        """reconfigure_logging_if_changed returns True when state changes."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = False
-        config_module._debug_enabled = True
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is True
-        # State should be updated
-        assert config_module._last_debug_state is True
-
-    def test_reconfigure_logging_if_changed_no_change(self) -> None:
-        """reconfigure_logging_if_changed returns False when state unchanged."""
-        import vintagestory_api.config as config_module
-
-        config_module._last_debug_state = True
-        config_module._debug_enabled = True
-
-        result = reconfigure_logging_if_changed()
-
-        assert result is False

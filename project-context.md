@@ -395,13 +395,11 @@ async def create_data(role: str = Depends(require_admin)):
 
 ### Configuration
 
-Logging is configured via environment variables:
-- `VS_DEBUG=true` - Enable debug mode (colorful console output)
-- `VS_LOG_LEVEL` - Override log level (DEBUG, INFO, WARNING, ERROR)
-
-Default behavior:
-- **Dev mode** (`VS_DEBUG=true`): DEBUG level, colorful ConsoleRenderer
-- **Prod mode** (`VS_DEBUG=false`): INFO level, JSON output for machine parsing
+Logging is configured via environment variables (Epic 21 ADR-4):
+- `VS_DEBUG=true`: debug mode: console renderer, DEBUG unless `VS_LOG_LEVEL` says otherwise, `/docs` and the test routes. Parsed once, by `Settings.debug` (pydantic's bool: `true/1/yes/on` and so on).
+- `VS_LOG_LEVEL`: `DEBUG`, `INFO`, `WARNING` or `ERROR`, any case; validated in `Settings` (an invalid value stops start-up). Sets structlog's level at start-up only; uvicorn's lines do not follow it.
+- Default: DEBUG with `VS_DEBUG=true`, INFO otherwise; JSON outside debug mode.
+- The run-time switch (`POST /debug/enable`, `/disable`) sets DEBUG and returns to the configured level (`current_log_level()` reports it). Initialise logging only through `initialize_debug_state(settings.debug, settings.log_level)`; never read `VS_DEBUG` from `os.environ`.
 
 ### Standards
 

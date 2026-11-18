@@ -23,6 +23,7 @@ from vintagestory_api.config import Settings
 from vintagestory_api.middleware.auth import UserRole
 from vintagestory_api.models.server import ServerState
 from vintagestory_api.services.config_init import ENV_VAR_MAP, parse_env_value
+from vintagestory_api.services.mod_update_alerts import DISCORD_HOSTS
 
 if TYPE_CHECKING:
     from vintagestory_api.services.pending_restart import PendingRestartState
@@ -235,8 +236,6 @@ SECRET_KEY_FRAGMENTS: tuple[str, ...] = (
 )
 """A key that contains one of these, after normalising, is a secret (Epic 19 ADR-2)."""
 
-_DISCORD_WEBHOOK_HOSTS = frozenset({"discord.com", "discordapp.com"})
-
 
 def _normalise_key(key: str) -> str:
     """casefold() and remove "_", "-", "." and spaces."""
@@ -277,8 +276,9 @@ def is_secret_key(key: str) -> bool:
 def is_secret_value(value: str) -> bool:
     """Whether a string is a URL with user info or a Discord webhook URL (Epic 19 ADR-2 decision 4).
 
-    User info counts with or without a password. A Discord webhook URL is one on
-    discord.com or discordapp.com whose path starts with /api/webhooks/.
+    User info counts with or without a password. A Discord webhook URL is one on a
+    host in mod_update_alerts.DISCORD_HOSTS (discord.com, discordapp.com,
+    ptb.discord.com, canary.discord.com) whose path starts with /api/webhooks/.
     """
     try:
         parts = urlsplit(value)
@@ -291,7 +291,7 @@ def is_secret_value(value: str) -> bool:
         return False
     return (
         hostname is not None
-        and hostname.lower() in _DISCORD_WEBHOOK_HOSTS
+        and hostname.lower() in DISCORD_HOSTS
         and parts.path.startswith("/api/webhooks/")
     )
 

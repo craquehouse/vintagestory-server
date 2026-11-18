@@ -35,6 +35,7 @@ from vintagestory_api.services.game_config import (
     is_secret_value,
     redact_secrets,
 )
+from vintagestory_api.services.mod_update_alerts import DISCORD_HOSTS, is_discord_webhook
 
 # Story 17.5: a made-up password for the redaction tests; never a real value.
 SECRET = "pw-Zq9-monitor-must-not-see"
@@ -305,6 +306,9 @@ class TestSecretHelpers:
             "https://user@host/",
             "https://discord.com/api/webhooks/1/abc",
             "https://DiscordApp.com/api/webhooks/1/abc",
+            "https://ptb.discord.com/api/webhooks/1/abc",
+            "https://canary.discord.com/api/webhooks/1/abc",
+            "https://PTB.Discord.com/api/webhooks/1/abc",
         ],
     )
     def test_secret_values(self, value: str) -> None:
@@ -316,6 +320,8 @@ class TestSecretHelpers:
         [
             "https://example.com/api/webhooks/1",
             "https://discord.com/channels/1",
+            "https://ptb.discord.com/channels/1",
+            "https://canary.discord.com/api/other",
             "not a url",
             "",
             "http://[",
@@ -325,6 +331,14 @@ class TestSecretHelpers:
     def test_other_values_are_not_secret(self, value: str) -> None:
         """Story 19.1 AC 7: other URLs and strings are not secrets."""
         assert is_secret_value(value) is False
+
+    @pytest.mark.parametrize("host", sorted(DISCORD_HOSTS))
+    def test_redaction_and_the_webhook_sender_share_the_discord_hosts(self, host: str) -> None:
+        """Story 21.3 AC 10: one set of Discord hosts (Epic 21 ADR-5 decision 1)."""
+        url = f"https://{host}/api/webhooks/1/x"
+
+        assert is_secret_value(url) is True
+        assert is_discord_webhook(url) is True
 
     @pytest.mark.parametrize(
         ("value", "expected"),

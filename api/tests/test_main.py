@@ -8,6 +8,7 @@ Coverage targets:
 """
 
 import inspect
+import json
 import re
 import runpy
 from collections.abc import Mapping
@@ -21,10 +22,16 @@ from fastapi import FastAPI
 from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
+import vintagestory_api.config as config_module
 from vintagestory_api import __version__
 from vintagestory_api import jobs as jobs_module
 from vintagestory_api import main as main_module
-from vintagestory_api.config import DEFAULT_MOD_DB_URL, Settings
+from vintagestory_api.config import (
+    DEFAULT_MOD_DB_URL,
+    Settings,
+    current_log_level,
+    is_debug_enabled,
+)
 from vintagestory_api.main import (
     CORSLoggingMiddleware,
     app,
@@ -803,3 +810,89 @@ class TestLogModDbUrl:
 
         assert "api_starting" in out
         assert "mod_db_url_overridden" not in out
+
+
+class TestLifespanLogLevel:
+    """The lifespan applies VS_DEBUG and VS_LOG_LEVEL from the settings (Epic 21 ADR-4)."""
+
+    ADMIN_KEY = "lifespan-admin-key"
+
+    @pytest.fixture(autouse=True)
+    def fresh_debug_state(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A process that has not initialised its debug state; restored after the test."""
+        monkeypatch.setattr(config_module, "_debug_enabled", False)
+        monkeypatch.setattr(config_module, "_debug_initialized", False)
+        monkeypatch.setattr(config_module, "_configured_log_level", None)
+        monkeypatch.setattr(config_module, "_current_log_level", "INFO")
+
+    def start(self, settings: Settings, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> str:
+        app = create_app(settings, static_dir=tmp_path / "missing")
+        capsys.readouterr()
+        with TestClient(app):
+            return capsys.readouterr().out
+
+    @pytest.mark.parametrize(("log_level", "expected"), [("info", "INFO"), ("debug", "DEBUG")])
+    def test_api_starting_is_json_with_the_level_set(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str], log_level: str, expected: str
+    ) -> None:
+        settings = Settings(
+            api_key_admin=self.ADMIN_KEY,
+            data_dir=tmp_path / "data",
+            debug=False,
+            log_level=log_level,
+        )
+
+        out = self.start(settings, tmp_path, capsys)
+
+        starting = [
+            json.loads(line) for line in out.splitlines() if '"event": "api_starting"' in line
+        ]
+        assert len(starting) == 1
+        assert starting[0]["log_level"] == expected
+        assert starting[0]["debug_mode"] is False
+
+    def test_warning_filters_out_api_starting(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        settings = Settings(
+            api_key_admin=self.ADMIN_KEY,
+            data_dir=tmp_path / "data",
+            debug=False,
+            log_level="warning",
+        )
+
+        out = self.start(settings, tmp_path, capsys)
+
+        assert "api_starting" not in out
+        assert current_log_level() == "WARNING"
+
+    def test_debug_mode_with_info_uses_the_console_renderer(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        settings = Settings(
+            api_key_admin=self.ADMIN_KEY, data_dir=tmp_path / "data", debug=True, log_level="INFO"
+        )
+
+        out = self.start(settings, tmp_path, capsys)
+
+        lines = [line for line in out.splitlines() if "api_starting" in line]
+        assert len(lines) == 1
+        with pytest.raises(json.JSONDecodeError):
+            json.loads(lines[0])
+        assert "log_level=INFO" in re.sub(r"\x1b\[[0-9;]*m", "", lines[0])
+        assert is_debug_enabled() is True
+        assert current_log_level() == "INFO"
+
+    def test_vs_debug_on_turns_debug_logging_on(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("VS_DEBUG", "on")
+        settings = Settings(api_key_admin=self.ADMIN_KEY, data_dir=tmp_path / "data")
+
+        out = self.start(settings, tmp_path, capsys)
+
+        lines = [line for line in out.splitlines() if "api_starting" in line]
+        assert len(lines) == 1
+        assert "log_level=DEBUG" in re.sub(r"\x1b\[[0-9;]*m", "", lines[0])
+        assert is_debug_enabled() is True
+        assert current_log_level() == "DEBUG"

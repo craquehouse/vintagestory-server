@@ -223,15 +223,17 @@ class ConfigFilesService:
     def _role_may_open(self, resolved: Path, role: str | None, *, file_request: bool) -> bool:
         """Whether `role` may list (file_request=False) or read (True) the resolved path.
 
-        Admin: always. Any other role: the root itself, a file directly in the root (for a read),
-        or anything whose first path part relative to the server data directory is in
-        MONITOR_CONFIG_DIRECTORIES, compared with casefold() (Epic 19 ADR-3 decision 3).
+        Nothing outside the server data directory, for any role (Epic 21 ADR-5 decision 2).
+        Inside it, Admin: always. Any other role: the root itself, a file directly in the
+        root (for a read), or anything whose first path part relative to the server data
+        directory is in MONITOR_CONFIG_DIRECTORIES, compared with casefold() (Epic 19 ADR-3
+        decision 3).
         """
-        if role == UserRole.ADMIN:
-            return True
         base_resolved = self.settings.serverdata_dir.resolve()
         if not resolved.is_relative_to(base_resolved):
             return False
+        if role == UserRole.ADMIN:
+            return True
         parts = resolved.relative_to(base_resolved).parts
         if not parts:
             return True
@@ -242,18 +244,25 @@ class ConfigFilesService:
     def _target_directory(self, directory: str | None, role: str | None) -> Path | None:
         """The resolved directory to list, or None when it does not exist.
 
+        The path and role checks run before the existence check, so their answers do
+        not depend on whether the server data directory exists (Epic 21 ADR-5 decision 3).
+
         Raises:
             ConfigPathInvalidError: If directory contains path traversal.
             ConfigDirectoryForbiddenError: If the role may not list it (existing or not).
         """
         serverdata_dir = self.settings.serverdata_dir
         if not directory:
-            return serverdata_dir.resolve()
-        target_dir = self._safe_path(serverdata_dir, directory)
-        if not self._role_may_open(target_dir, role, file_request=False):
-            raise ConfigDirectoryForbiddenError(directory)
+            target_dir = serverdata_dir.resolve()
+        else:
+            target_dir = self._safe_path(serverdata_dir, directory)
+            if not self._role_may_open(target_dir, role, file_request=False):
+                raise ConfigDirectoryForbiddenError(directory)
         if not target_dir.is_dir():
-            logger.debug("config_subdir_not_found", directory=directory)
+            if directory:
+                logger.debug("config_subdir_not_found", directory=directory)
+            else:
+                logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
             return None
         return target_dir
 
@@ -268,21 +277,16 @@ class ConfigFilesService:
 
         Returns:
             List of subdirectory names (not full paths) found in the target directory
-            that the role may list, decided on each one's resolved path. For Admin,
+            that the role may list, decided on each one's resolved path; an entry
+            resolving outside the server data directory is never listed. For Admin,
             includes hidden directories - filtering is left to the frontend.
-            Empty list if directory doesn't exist.
+            Empty list only for a directory the role may list that does not exist.
 
         Raises:
             ConfigPathInvalidError: If directory contains path traversal.
             ConfigDirectoryForbiddenError: If the role may not list the directory,
-                whether or not it exists.
+                whether or not it or the server data directory exists.
         """
-        serverdata_dir = self.settings.serverdata_dir
-
-        if not serverdata_dir.exists():
-            logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
-            return []
-
         target_dir = self._target_directory(directory, role)
         if target_dir is None:
             return []
@@ -313,34 +317,27 @@ class ConfigFilesService:
                   included, only the root and MONITOR_CONFIG_DIRECTORIES (Story 19.1).
 
         Returns:
-            List of JSON filenames (not full paths) found in the target directory.
-            Empty list if directory doesn't exist or contains no JSON files.
+            List of JSON filenames (not full paths) found in the target directory; a
+            file resolving outside the server data directory is never listed. Empty
+            list for a directory the role may list that does not exist or contains no
+            JSON files.
 
         Raises:
             ConfigPathInvalidError: If directory contains path traversal.
             ConfigDirectoryForbiddenError: If the role may not list the directory,
-                whether or not it exists.
+                whether or not it or the server data directory exists.
         """
-        serverdata_dir = self.settings.serverdata_dir
-
-        if not serverdata_dir.exists():
-            logger.debug("serverdata_dir_not_found", path=str(serverdata_dir))
-            return []
-
         target_dir = self._target_directory(directory, role)
         if target_dir is None:
             return []
 
         # The files the viewer can read (not recursive): the viewer's file rule,
         # resolving inside the server data directory, in a directory the role may read
-        # (Story 19.1, Epic 19 ADR-1 and ADR-3)
-        base_resolved = serverdata_dir.resolve()
+        # (Story 19.1, Epic 19 ADR-1 and ADR-3; containment in _role_may_open, Epic 21 ADR-5)
         json_files = sorted(
             f.name
             for f in target_dir.iterdir()
-            if _is_viewable_file(f)
-            and f.resolve().is_relative_to(base_resolved)
-            and self._role_may_open(f.resolve(), role, file_request=True)
+            if _is_viewable_file(f) and self._role_may_open(f.resolve(), role, file_request=True)
         )
 
         logger.debug("config_files_listed", count=len(json_files), directory=directory)

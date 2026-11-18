@@ -17,8 +17,10 @@ from vintagestory_api.middleware.auth import get_settings
 ADMIN_KEY = "gating-admin-KEY-1"
 
 
-def make_app(tmp_path: Path, *, debug: bool) -> FastAPI:
-    settings = Settings(api_key_admin=ADMIN_KEY, debug=debug, data_dir=tmp_path / "data")
+def make_app(tmp_path: Path, *, debug: bool, log_level: str | None = None) -> FastAPI:
+    settings = Settings(
+        api_key_admin=ADMIN_KEY, debug=debug, log_level=log_level, data_dir=tmp_path / "data"
+    )
     app = create_app(settings, static_dir=tmp_path / "no-frontend")
     # Request authentication reads the cached settings dependency
     app.dependency_overrides[get_settings] = lambda: settings
@@ -53,3 +55,19 @@ def test_auth_endpoints_still_work_with_debug_off(tmp_path: Path) -> None:
     assert client.get("/healthz").status_code == 200
     assert client.get("/api/v1alpha1/auth/me", headers={"X-API-Key": ADMIN_KEY}).status_code == 200
     assert client.get("/api/v1alpha1/auth/me").status_code == 401
+
+
+class TestLogLevelDoesNotGateRoutes:
+    """VS_LOG_LEVEL sets only the log level; VS_DEBUG still gates /docs and the test routes."""
+
+    def test_debug_level_without_debug_mode_serves_neither(self, tmp_path: Path) -> None:
+        client = TestClient(make_app(tmp_path, debug=False, log_level="DEBUG"))
+
+        assert client.get("/docs").status_code == 404
+        assert client.get("/api/v1alpha1/test/read").status_code == 404
+
+    def test_debug_mode_at_info_serves_both(self, tmp_path: Path) -> None:
+        client = TestClient(make_app(tmp_path, debug=True, log_level="INFO"))
+
+        assert client.get("/docs").status_code == 200
+        assert client.get("/api/v1alpha1/test/read").status_code == 401

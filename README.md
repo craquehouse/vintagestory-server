@@ -80,6 +80,7 @@ Set these in `.env` (see [`.env.example`](.env.example) for all of them). The ga
 | `VS_API_KEY_MONITOR` | No | Read-only API key |
 | `VS_API_KEY` | For the web UI | Key the web UI uses. Unset: the web UI shows a set-up message. Set it to the Monitor key (read-only) or the Admin key (full access); any other value logs a warning at start-up and the UI cannot sign in |
 | `VS_DEBUG` | No | Verbose, human-readable logs; also serves the API documentation at `/docs` and the RBAC test routes, so it is for development (`false`) |
+| `VS_LOG_LEVEL` | No | Level of the API's log lines: `DEBUG`, `INFO`, `WARNING` or `ERROR`, any letter case. Unset: `DEBUG` with `VS_DEBUG=true`, `INFO` otherwise. It changes only the level, nothing else that `VS_DEBUG` does. Turning debug logging on in the web UI gives `DEBUG`; turning it off returns to this level. uvicorn's own lines are not affected. Any other value stops start-up |
 | `VS_CSP_MODE` | No | How the web UI's Content-Security-Policy is sent: `enforce`, `report-only` or `off` (`enforce`). Any other value stops start-up |
 | `VS_MOD_DB_URL` | No | Base address of the mod database (`https://mods.vintagestory.at`). Set it only to use a mirror of the same database; mods are downloaded from this address. Must be an `https` URL with a host and nothing else; `http` is accepted only with `VS_DEBUG=true`. Any other value stops start-up |
 | `VS_CORS_ORIGINS` | No | Allowed browser origins for a separately hosted UI |
