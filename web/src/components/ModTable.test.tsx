@@ -1264,6 +1264,31 @@ describe('ModTable', () => {
         expect(onRemoved).not.toHaveBeenCalled();
       });
 
+      it("never shows another mod's removal in a dialog, nor closes it when that removal ends", async () => {
+        const api = mockHeldRemoval();
+        const onRemoved = renderTable();
+        await openAndConfirm('smithingplus');
+        await expectRemoving();
+
+        // A pointer cannot reach the row behind the modal; jsdom applies no pointer-events
+        fireEvent.click(screen.getByTestId('mod-remove-carrycapacity'));
+
+        expect(screen.getByText('Remove Carry Capacity?')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
+        expect(screen.getByTestId('remove-dialog-confirm')).toBeEnabled();
+        expect(screen.getByTestId('remove-dialog-cancel')).toBeEnabled();
+
+        await api.succeed();
+
+        await waitFor(() => {
+          expect(onRemoved).toHaveBeenCalledTimes(1);
+        });
+        expect(onRemoved).toHaveBeenCalledWith('smithingplus');
+        expect(screen.getByTestId('remove-dialog')).toBeInTheDocument();
+        expect(screen.getByText('Remove Carry Capacity?')).toBeInTheDocument();
+        expect(screen.getByTestId('remove-dialog-confirm')).toHaveTextContent(/^Remove$/);
+      });
+
       it('gives Cancel the focus when the dialog opens', async () => {
         mockHeldRemoval();
         renderTable();

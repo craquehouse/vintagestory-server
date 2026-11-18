@@ -132,7 +132,11 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
   const { data: modsData, isLoading } = useMods();
   const { mutate: enableMod, isPending: isEnabling, variables: enablingSlug } = useEnableMod();
   const { mutate: disableMod, isPending: isDisabling, variables: disablingSlug } = useDisableMod();
-  const { mutate: removeModMutation, isPending: isRemoving } = useRemoveMod();
+  const {
+    mutate: removeModMutation,
+    isPending: isRemovePending,
+    variables: removingSlug,
+  } = useRemoveMod();
   const { preferences, setInstalledModsSort } = usePreferences();
   const versionChange = useVersionChangeFlow();
   // Story 16.5, Story 17.8: the table at lg and up, cards below; only one layout is mounted
@@ -233,16 +237,21 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
     setModToRemove(mod);
   }, []);
 
+  // Story 21.4: "Removing..." belongs to the dialog of the mod whose DELETE runs
+  const isRemoving = isRemovePending && modToRemove !== null && removingSlug === modToRemove.slug;
+
   // Story 21.4: the dialog stays open until the DELETE answers. On success it closes; on
   // an error the hook restores the row and shows the toast, and the dialog offers Remove
   // again.
   const handleRemoveConfirm = () => {
     if (!modToRemove || isRemoving) return;
 
-    removeModMutation(modToRemove.slug, {
+    const slug = modToRemove.slug;
+    removeModMutation(slug, {
       onSuccess: () => {
-        onRemoved?.(modToRemove.slug);
-        setModToRemove(null);
+        onRemoved?.(slug);
+        // Close only this mod's dialog, never one opened for another mod meanwhile
+        setModToRemove((current) => (current?.slug === slug ? null : current));
       },
     });
   };
