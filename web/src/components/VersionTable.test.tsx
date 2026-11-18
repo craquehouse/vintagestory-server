@@ -303,6 +303,10 @@ describe('VersionTable', () => {
       const sizeHeader = screen.getByTestId('version-table-header-filesize');
       expect(sizeHeader).toHaveClass('hidden');
       expect(sizeHeader).toHaveClass('sm:table-cell');
+
+      // Story 21.5: the body cells read the same column meta
+      const sizeCell = screen.getByTestId('version-table-size-1.20.0').closest('td');
+      expect(sizeCell).toHaveClass('hidden', 'sm:table-cell');
     });
   });
 

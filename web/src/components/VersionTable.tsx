@@ -327,7 +327,7 @@ export function VersionTable({
             {headerGroup.headers.map((header) => {
               const canSort = header.column.getCanSort();
               const sortDirection = header.column.getIsSorted();
-              const meta = header.column.columnDef.meta as { className?: string } | undefined;
+              const meta = header.column.columnDef.meta;
 
               const handleKeyDown = canSort
                 ? (e: React.KeyboardEvent) => {
@@ -372,7 +372,7 @@ export function VersionTable({
               data-testid={`version-table-row-${row.original.version}`}
             >
               {row.getAllCells().map((cell) => {
-                const cellMeta = cell.column.columnDef.meta as { className?: string } | undefined;
+                const cellMeta = cell.column.columnDef.meta;
                 return (
                   <TableCell key={cell.id} className={cellMeta?.className}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
