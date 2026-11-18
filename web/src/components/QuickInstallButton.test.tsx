@@ -216,6 +216,14 @@ describe('QuickInstallButton', () => {
       }
     );
 
+    // Story 21.5 review (F2), a decision: an installed version that cannot be read as a
+    // version sorts above every readable one, so no update is offered over it
+    it.each(['unknown', '', 'beta'])('does not offer an update over unreadable %j', (installed) => {
+      renderInstalled(installed);
+
+      expect(screen.queryByTestId('quick-install-button')).not.toBeInTheDocument();
+    });
+
     it('offers 1.21.6 over its pre-release 1.21.6-pre.1', () => {
       renderInstalled('1.21.6-pre.1');
 

@@ -612,6 +612,11 @@ describe('VersionPage', () => {
         { installed: '1.21.6-pre.1', stable: '1.21.6', offered: true },
         { installed: '1.22.0-rc.2', stable: '1.21.9', offered: false },
         { installed: '1.21.10', stable: '1.21.9', offered: false },
+        // Story 21.5 review (F2), a decision: an installed version that cannot be read as a
+        // version sorts above every readable one, so no update is offered over it
+        { installed: 'unknown', stable: '1.21.9', offered: false },
+        { installed: 'beta', stable: '1.21.9', offered: false },
+        { installed: '', stable: '1.21.9', offered: false },
       ])(
         'with $installed installed and $stable stable, offers an update: $offered',
         async ({ installed, stable, offered }) => {
