@@ -181,7 +181,10 @@ describe('ModCard', () => {
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       expect(link).toHaveAttribute('title', 'Open on ModDB');
-      expect(link).toHaveAttribute('aria-label', 'Open Carry Capacity on ModDB (opens in new tab)');
+      expect(link).toHaveAttribute(
+        'aria-label',
+        'Open Carry Capacity on ModDB (opens in a new tab)'
+      );
       // Link should NOT contain the mod name text (it's just the icon)
       expect(link).not.toHaveTextContent('Carry Capacity');
     });

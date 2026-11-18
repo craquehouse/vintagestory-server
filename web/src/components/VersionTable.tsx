@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { compareVersions } from '@/lib/version-compare';
 import { parseFilesize } from '@/lib/numeric-utils';
 import { ariaSort } from '@/lib/table-aria-sort';
+import { OPENS_IN_NEW_TAB } from '@/lib/new-tab';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionTableProps {
@@ -134,9 +135,9 @@ function createColumns(onVersionSelect?: (version: string) => void) {
               onClick={(e) => e.stopPropagation()}
               data-testid={`version-table-changelog-${version}`}
               title="View changelog"
-              aria-label={`View changelog for version ${version} (opens in new tab)`}
+              aria-label={`View changelog for version ${version} ${OPENS_IN_NEW_TAB}`}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </span>
         );

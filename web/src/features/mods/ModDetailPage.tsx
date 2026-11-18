@@ -41,6 +41,13 @@
  * mod's screenshots (`ModScreenshotGallery`), and a "Watch trailer" link joins the
  * external links when the API sent a `trailerUrl`. Description links that open in a
  * new tab show an icon (the `mod-description` class) and a screen reader note.
+ *
+ * Story 21.6 (Epic 21 ADR-10, ADR-11): the header's ModDB Page, Homepage, Source and
+ * Watch trailer links are `NewTabLink`s, named "... (opens in a new tab)", and Homepage
+ * and Source show a trailing external-link mark. Below `md` the header stacks: logo and
+ * info wrap in one group and the install card goes under them at full width; its
+ * controls are 44px tall below `lg`. The description is typeset by the `.mod-description`
+ * rules in `styles/index.css` from the theme tokens, not by `prose` classes.
  */
 
 import { useState } from 'react';
@@ -78,12 +85,13 @@ import { SideBadge } from '@/components/SideBadge';
 import { InstallConfirmDialog } from '@/components/InstallConfirmDialog';
 import { VersionChangeConfirmDialog } from '@/components/VersionChangeConfirmDialog';
 import { ModScreenshotGallery } from '@/components/ModScreenshotGallery';
+import { NewTabLink } from '@/components/NewTabLink';
 import { useModDetail } from '@/hooks/use-mod-detail';
 import { useMods, useModUpdates } from '@/hooks/use-mods';
 import { useVersionChangeFlow } from '@/hooks/use-version-change-flow';
 import { formatNumber } from '@/lib/utils';
 import { findInstalledModForEntry, versionChoices } from '@/lib/mod-ids';
-import { OPENS_IN_NEW_TAB, sanitizeModDescription } from '@/lib/mod-description';
+import { sanitizeModDescription } from '@/lib/mod-description';
 import { BROWSE_PATH, MOD_DETAIL_RETURN_STATE, readBrowseSearchState } from '@/lib/browse-search';
 import type { ModRelease, CompatibilityStatus } from '@/api/types';
 
@@ -682,52 +690,54 @@ export function ModDetailPage() {
 
           {/* External links */}
           <div className="flex flex-wrap items-center gap-3 gap-y-1 pt-1">
-            <a
+            <NewTabLink
               href={`https://mods.vintagestory.at/show/mod/${mod.assetId}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               data-testid="mod-detail-moddb-link"
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               ModDB Page
-            </a>
+            </NewTabLink>
             {mod.homepageUrl && (
-              <a
+              <NewTabLink
                 href={mod.homepageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 data-testid="mod-detail-homepage-link"
               >
-                <Globe className="h-3.5 w-3.5" />
+                <Globe className="h-3.5 w-3.5" aria-hidden="true" />
                 Homepage
-              </a>
+                <ExternalLink
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                  data-testid="mod-detail-homepage-new-tab-mark"
+                />
+              </NewTabLink>
             )}
             {mod.sourceUrl && (
-              <a
+              <NewTabLink
                 href={mod.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 data-testid="mod-detail-source-link"
               >
-                <Code className="h-3.5 w-3.5" />
+                <Code className="h-3.5 w-3.5" aria-hidden="true" />
                 Source
-              </a>
+                <ExternalLink
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                  data-testid="mod-detail-source-new-tab-mark"
+                />
+              </NewTabLink>
             )}
             {/* Story 18.1: a link, never an embed; the API built the URL from the video ID */}
             {mod.trailerUrl && (
-              <a
+              <NewTabLink
                 href={mod.trailerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 data-testid="mod-detail-trailer-link"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                Watch trailer <span className="sr-only">{OPENS_IN_NEW_TAB}</span>
-              </a>
+                Watch trailer
+              </NewTabLink>
             )}
           </div>
         </div>

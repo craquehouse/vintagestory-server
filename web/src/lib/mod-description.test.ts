@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import DOMPurify from 'dompurify';
 import { IMAGE_NOT_SHOWN, OPENS_IN_NEW_TAB, sanitizeModDescription } from './mod-description';
+import { OPENS_IN_NEW_TAB as NEW_TAB_NOTE } from './new-tab';
 
 /** Parse sanitized markup so assertions inspect elements, not substrings. */
 function parse(html: string | null): HTMLElement {
@@ -198,16 +199,8 @@ describe('sanitizeModDescription', () => {
       expect(el.textContent).toBe('Top and bad');
     });
 
-    it('adds no note to an SVG link, which keeps target and rel', () => {
-      const el = parse(
-        sanitize(
-          '<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>'
-        )
-      );
-      const link = el.querySelector('svg a');
-      expect(link?.getAttribute('target')).toBe('_blank');
-      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
-      expect(el.querySelectorAll('[data-new-tab-note]')).toHaveLength(0);
+    it('takes the same text as OPENS_IN_NEW_TAB in new-tab.ts', () => {
+      expect(OPENS_IN_NEW_TAB).toBe(NEW_TAB_NOTE);
     });
 
     it('adds no second note when sanitized output is sanitized again', () => {
@@ -229,6 +222,123 @@ describe('sanitizeModDescription', () => {
       expect(first.textContent).toBe('Docs (opens in a new tab)');
       expect(second.querySelectorAll('[data-new-tab-note]')).toHaveLength(1);
       expect(second.textContent).toBe('Wiki (opens in a new tab)');
+    });
+  });
+
+  describe('SVG link note (Story 21.6, VSS-woae)', () => {
+    const svgLink = (el: HTMLElement) => {
+      const link = el.querySelector('svg a');
+      if (!link) throw new Error('no SVG link');
+      return link;
+    };
+    const titles = (link: Element) =>
+      Array.from(link.children).filter((child) => child.localName === 'title');
+
+    it('gives an SVG link one title, first, naming its text and the new tab', () => {
+      const link = svgLink(
+        parse(sanitize('<svg><a href="https://example.com/lib"><text>Lib</text></a></svg>'))
+      );
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+      expect(titles(link)).toHaveLength(1);
+      expect(link.firstElementChild?.localName).toBe('title');
+      expect(link.firstElementChild?.namespaceURI).toBe('http://www.w3.org/2000/svg');
+      expect(link.firstElementChild?.textContent).toBe('Lib (opens in a new tab)');
+    });
+
+    it('copies an xlink:href to href so the browser exposes the link', () => {
+      const link = svgLink(
+        parse(
+          sanitize(
+            '<svg><a xlink:href="https://mods.vintagestory.at/carryonlib"><text>Lib</text></a></svg>'
+          )
+        )
+      );
+      expect(link.getAttribute('href')).toBe('https://mods.vintagestory.at/carryonlib');
+      expect(link.getAttribute('xlink:href')).toBe('https://mods.vintagestory.at/carryonlib');
+      expect(link.getAttribute('target')).toBe('_blank');
+      expect(link.firstElementChild?.textContent).toBe('Lib (opens in a new tab)');
+    });
+
+    it('joins the text of several text elements with collapsed spaces', () => {
+      const link = svgLink(
+        parse(
+          sanitize(
+            '<svg><a href="https://example.com"><text>Carry   On</text><text> Lib </text></a></svg>'
+          )
+        )
+      );
+      expect(link.firstElementChild?.textContent).toBe('Carry On Lib (opens in a new tab)');
+    });
+
+    it("adds the note to the author's own title", () => {
+      const link = svgLink(
+        parse(
+          sanitize(
+            '<svg><a href="https://example.com"><title> Diagram </title><text>Lib</text></a></svg>'
+          )
+        )
+      );
+      expect(titles(link)).toHaveLength(1);
+      expect(link.firstElementChild?.textContent).toBe('Diagram (opens in a new tab)');
+    });
+
+    it('keeps one note when the author title already ends with it, and one title of two', () => {
+      const link = svgLink(
+        parse(
+          sanitize(
+            '<svg><a href="https://example.com"><text>Lib</text>' +
+              '<title>Safe (opens in a new tab) (opens in a new tab)</title><title>x</title></a></svg>'
+          )
+        )
+      );
+      expect(titles(link)).toHaveLength(1);
+      expect(link.firstElementChild?.textContent).toBe('Safe (opens in a new tab)');
+    });
+
+    it('uses the link text when the author title is only the note', () => {
+      const link = svgLink(
+        parse(
+          sanitize(
+            '<svg><a href="https://example.com"><title>(opens in a new tab)</title><text>Lib</text></a></svg>'
+          )
+        )
+      );
+      expect(link.firstElementChild?.textContent).toBe('Lib (opens in a new tab)');
+    });
+
+    it('keeps one title with the same text when sanitized again', () => {
+      const once = sanitize(
+        '<svg><a xlink:href="https://example.com"><title>Diagram</title><text>Lib</text></a></svg>'
+      );
+      const link = svgLink(parse(sanitize(once)));
+      expect(titles(link)).toHaveLength(1);
+      expect(link.firstElementChild?.textContent).toBe('Diagram (opens in a new tab)');
+    });
+
+    it('names a link with no text by the note alone', () => {
+      const link = svgLink(
+        parse(
+          sanitize('<svg><a href="https://example.com"><rect width="10" height="10"/></a></svg>')
+        )
+      );
+      expect(titles(link)).toHaveLength(1);
+      expect(link.firstElementChild?.textContent).toBe(OPENS_IN_NEW_TAB);
+    });
+
+    it('puts no HTML note span inside an SVG', () => {
+      const el = parse(sanitize('<svg><a href="https://example.com"><text>Lib</text></a></svg>'));
+      expect(el.querySelectorAll('[data-new-tab-note]')).toHaveLength(0);
+    });
+
+    it('gives a javascript: xlink:href no href and no title', () => {
+      const el = parse(
+        sanitize('<svg><a xlink:href="javascript:alert(1)"><text>Lib</text></a></svg>')
+      );
+      const link = el.querySelector('svg a');
+      expect(link?.hasAttribute('href')).toBe(false);
+      expect(link?.hasAttribute('xlink:href')).toBe(false);
+      expect(link?.querySelector('title')).toBeNull();
     });
   });
 

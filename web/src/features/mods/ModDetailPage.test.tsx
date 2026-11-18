@@ -153,7 +153,23 @@ describe('ModDetailPage', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
+
+  /** Story 21.6: new tests stub fetch with vi.stubGlobal (project-context, Story 20.2). */
+  function stubDetail(overrides: Record<string, unknown> = {}) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ...mockModDetailResponse,
+            data: { ...mockModDetailResponse.data, ...overrides },
+          }),
+      })
+    );
+  }
 
   describe('loading state', () => {
     it('shows loading skeleton while fetching', () => {
@@ -729,6 +745,46 @@ describe('ModDetailPage', () => {
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       expect(screen.getByRole('link', { name: 'Watch trailer (opens in a new tab)' })).toBe(link);
       expect(document.querySelector('iframe')).toBeNull();
+    });
+
+    it('names every header link as opening in a new tab (Story 21.6)', async () => {
+      stubDetail({ trailer_url: 'https://www.youtube-nocookie.com/embed/mJHZH_sThDM' });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      await screen.findByTestId('mod-detail-moddb-link');
+      for (const [name, testId] of [
+        ['ModDB Page', 'mod-detail-moddb-link'],
+        ['Homepage', 'mod-detail-homepage-link'],
+        ['Source', 'mod-detail-source-link'],
+        ['Watch trailer', 'mod-detail-trailer-link'],
+      ]) {
+        const link = screen.getByRole('link', { name: `${name} (opens in a new tab)` });
+        expect(link).toBe(screen.getByTestId(testId));
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      }
+      expect(screen.getByTestId('mod-detail-homepage-link')).toContainElement(
+        screen.getByTestId('mod-detail-homepage-new-tab-mark')
+      );
+      expect(screen.getByTestId('mod-detail-source-link')).toContainElement(
+        screen.getByTestId('mod-detail-source-new-tab-mark')
+      );
+    });
+
+    it('gives an SVG link in the description its new-tab title (Story 21.6)', async () => {
+      stubDetail({
+        description:
+          '<svg><a xlink:href="https://example.com/diagram"><text>Diagram</text></a></svg>',
+      });
+
+      renderWithProviders(<ModDetailPage />, { route: '/game-server/mods/browse/smithingplus' });
+
+      const description = await screen.findByTestId('mod-detail-description');
+      const link = description.querySelector('svg a');
+      expect(link).toHaveAttribute('href', 'https://example.com/diagram');
+      expect(link?.firstElementChild?.localName).toBe('title');
+      expect(link?.firstElementChild).toHaveTextContent('Diagram (opens in a new tab)');
     });
 
     it('renders no trailer link when trailer_url is null (Story 18.1)', async () => {
