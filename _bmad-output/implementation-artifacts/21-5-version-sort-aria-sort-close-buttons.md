@@ -175,6 +175,10 @@ New tests use `vi.stubGlobal('fetch', ...)` with `vi.unstubAllGlobals()` in thei
 | 3 | `VersionTable.test.tsx`, `describe('accessibility')` | Default: Version `descending`, Channel and Size `none`, Status and Actions no attribute. Click Channel: Channel `ascending`, Version `none`. Click Version from the default once: every sortable column `none`; again: Version `ascending`. Chevron `svg` `aria-hidden="true"`. Headers found with `getByRole('columnheader', { name: 'Version' })` (the explicit `role="columnheader"` on sortable `th` keeps them in the tree) |
 | 3 | `web/src/lib/table-aria-sort.test.ts` | `(true, 'asc')` → `ascending`, `(true, 'desc')` → `descending`, `(true, false)` → `none`, `(false, false)` → `undefined` |
 
+### Unreadable installed versions (code review F2, a decision)
+
+`compareVersions` puts a string it cannot read as a version (`unknown`, `beta`, an empty string) after every readable one. So with such an installed version, `QuickInstallButton` and the Version page's update banner offer no update: the latest stable never compares as newer. This is deliberate (the manager cannot tell whether a version it cannot read is older), and `QuickInstallButton.test.tsx` and `VersionPage.test.tsx` pin it. The same rule makes "same version" a question of precedence, not spelling: `getActionType` calls `v1.0.0`, `1.0.0+build`, `01.0.0` or `1.0` over `1.0.0` a reinstall (`compareVersionPrecedence`, code review F1).
+
 ### Version table sort cycle
 
 TanStack 9.3.1 `column_getNextSortingOrder` (`node_modules/@tanstack/table-core/dist/features/row-sorting/rowSortingFeature.utils.js:231-237`): the first direction is `asc` for string values and `desc` otherwise (`column_getAutoSortDir`, `:121-129`); when the current direction is not the first and sorting removal is enabled, the next click removes the sort. `VersionTable` does not set `enableSortingRemoval` (`:321-327`), so from its default (Version descending) one click on Version removes the sort (rows in API order, every sortable column `none`), the next gives ascending. `ModTable` sets `enableSortingRemoval: false` (`:350`), so it only flips. This story keeps both behaviours; the tests above follow them.
@@ -213,7 +217,7 @@ Style of `web/e2e/layout-widths.spec.ts` (header comment with the story, FRs and
 
 ### Manual check (Task 6.2)
 
-On the Docker stack built from this branch, read-only (stub in the browser's dev tools or run the spec headed, `bunx playwright test e2e/version-sort-and-close-buttons.spec.ts --headed`): with VoiceOver or another screen reader, the installed mods and Version table headers announce "sorted ascending/descending" and the chevrons are not read; the close button of the install dialog and of the navigation sheet is easy to tap on a phone (or 390px in device mode), its icon has not moved, and its focus ring looks right. Do not install, change or remove anything; do not start or stop the game server; no screenshots. The maintainer ticks 8.2.
+On the Docker stack built from this branch, read-only (stub in the browser's dev tools or run the spec headed, `bunx playwright test e2e/version-sort-and-close-buttons.spec.ts --headed`): with VoiceOver or another screen reader, the installed mods and Version table headers announce "sorted ascending/descending" and the chevrons are not read; the close button of the install dialog and of the navigation sheet is easy to tap on a phone (or 390px in device mode), its icon has not moved, and its focus ring looks right. Do not install, change or remove anything; do not start or stop the game server; no screenshots. The maintainer ticks 6.2.
 
 ### Not changed (do not "fix" these here)
 
@@ -314,6 +318,8 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 - Task 6 follow-up commit `5a9e58dc` removes `as` and non-null assertions from the new table tests (AC 12).
 - Not done here, by the dev brief's rules: 6.2 (manual check, reserved for the maintainer, unticked) and 6.3's PR, PR links on the beads and the `chore` commit (no push, PR or bead change in this run; the story file and sprint status are committed as `docs(story-21.5): ...`).
 
+- Code review (GLM-5.3-Flash, APPROVE) follow-ups folded in on the maintainer's backlog-drawdown rule: F1 `version-compare.ts` exports `compareVersionPrecedence` (0 for equal precedence; `compareVersions` is it plus the plain-string tie-break), and `getActionType` treats equal precedence as `reinstall` (`fix`, since the dialog title and the downgrade warning are what an admin sees). F2 pins that an unreadable installed version (`unknown`, `''`, `beta`) gets no update offer (Dev Notes "Unreadable installed versions"). The inert `eslint-disable` comments in `TerminalView.tsx` and `InstallVersionDialog.test.tsx` are removed (the web has no ESLint, so none was flagging a line; the `as any` they sat above in `InstallVersionDialog.test.tsx` is unchanged and older than this story). The older `ModTable.test.tsx` casts and non-null assertions are replaced with `vi.mocked(getCookie)`, `getByRole` lookups and explicit guards. F3 and F4 were informational; no change.
+
 ### File List
 
 - web/src/lib/version-compare.ts (new)
@@ -336,6 +342,7 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 - web/src/components/ui/dialog.test.tsx
 - web/src/components/ui/sheet.tsx
 - web/src/components/ui/sheet.test.tsx (new)
+- web/src/components/terminal/TerminalView.tsx
 - web/e2e/version-sort-and-close-buttons.spec.ts (new)
 - web/e2e/README.md
 - _bmad-output/implementation-artifacts/21-5-version-sort-aria-sort-close-buttons.md
@@ -344,3 +351,4 @@ Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story workflow, non-interactive.
 
 - 2026-11-17: Story created and validated (create-story workflow, non-interactive). Status `ready-for-dev`.
 - 2026-11-17: Implemented Tasks 1-5 and the quality gate, with the maintainer's 2026-11-17 additions (update offer by version precedence, Size sorted by size, the inert eslint-disable comment removed). Status `review`; 6.2 (manual check) waits for the maintainer.
+- 2026-11-17: Code review (APPROVE) follow-ups F1, F2 and the drawdown items folded in. Status stays `review`.
