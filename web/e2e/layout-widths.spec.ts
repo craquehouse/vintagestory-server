@@ -24,6 +24,11 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - The Settings, Mods and Version tab buttons are at least 44px tall below 1024px, and as
  *   before from 1024px (list 36px). At 320-430px the Settings list's two rows sit inside the
  *   list and its panel starts below it.
+ * - Scheduled Jobs: from 320 to 1023px, in both sidebar states, each job is a card with its
+ *   four values labelled and nothing scrolls sideways; from 1024px the table is unchanged.
+ * - Version: at 320-430px the table fits without scrolling; Channel and Status are hidden and
+ *   the channel, "Latest" and "Installed" show under the version; "Select" is 44px tall below
+ *   1024px and 32px from 1024px.
  *
  * Reads only. The installed mods, their update status and the compatibility lookups are
  * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), as are the
@@ -833,6 +838,105 @@ test.describe('Tab heights (Story 21.7, AC 1-2)', () => {
       expect(await documentOverflow(page)).toBe(0);
     });
   }
+});
+
+/** Every width below lg in both sidebar states (Story 21.7, AC 6). */
+const BELOW_LG = [320, 390, 430, 768, 1023];
+
+test.describe('Scheduled Jobs below lg (Story 21.7, AC 6)', () => {
+  for (const { collapsed, label } of SIDEBAR) {
+    for (const width of BELOW_LG) {
+      test(`each job is a card at ${width}px, ${label}`, async ({ page }) => {
+        await openPage(page, width, collapsed, '/config', { jobs: true });
+        await page.getByTestId('scheduled-jobs-tab').click({ timeout: 30_000 });
+
+        await expect(page.getByTestId('job-cards')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByTestId('jobs-table')).toHaveCount(0);
+        const cards = page.getByTestId(/^job-card-/);
+        await expect(cards).toHaveCount(JOBS.length);
+        for (const job of JOBS) {
+          const card = page.getByTestId(`job-card-${job.id}`);
+          for (const label of ['Job Name', 'Schedule', 'Next Run', 'Status']) {
+            await expect(card.getByText(label, { exact: true })).toBeVisible();
+          }
+          const cardBox = await boxOf(card, `job-card-${job.id}`);
+          for (const prefix of ['job-name', 'job-schedule', 'job-next-run', 'job-status']) {
+            const value = await boxOf(card.getByTestId(`${prefix}-${job.id}`), prefix);
+            expect(value.x, `${prefix}-${job.id} left`).toBeGreaterThanOrEqual(cardBox.x);
+            expect(value.x + value.width, `${prefix}-${job.id} right`).toBeLessThanOrEqual(
+              cardBox.x + cardBox.width
+            );
+          }
+        }
+        await expect(page.getByTestId('job-next-run-server_versions_check')).toHaveText('Never');
+        expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      });
+    }
+
+    test(`the table at 1024px, ${label}`, async ({ page }) => {
+      await openPage(page, 1024, collapsed, '/config', { jobs: true });
+      await page.getByTestId('scheduled-jobs-tab').click({ timeout: 30_000 });
+
+      const table = page.getByTestId('jobs-table');
+      await expect(table).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('job-cards')).toHaveCount(0);
+      for (const header of ['Job Name', 'Schedule', 'Next Run', 'Status']) {
+        await expect(table.getByRole('columnheader', { name: header })).toBeVisible();
+      }
+    });
+  }
+});
+
+/** Open the Version page with the four versions, 1.22.7 installed. */
+async function openVersions(page: Page, width: number, collapsed: boolean) {
+  await openPage(page, width, collapsed, '/game-server/version', {
+    versions: true,
+    installed: '1.22.7',
+  });
+  await expect(page.getByTestId('version-table')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('version-table-installed-1.22.7')).toHaveCount(1);
+}
+
+test.describe('Version table on phones (Story 21.7, AC 7)', () => {
+  // Below md the sidebar is a sheet, so its state does not matter
+  for (const width of [320, 390, 430]) {
+    test(`the table fits and shows each row's channel at ${width}px`, async ({ page }) => {
+      await openVersions(page, width, false);
+
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      await expect(page.getByTestId('version-table-header-channel')).toBeHidden();
+      await expect(page.getByTestId('version-table-header-status')).toBeHidden();
+      for (const { version, channel } of VERSIONS) {
+        await expect(page.getByTestId(`version-table-inline-channel-${version}`)).toHaveText(
+          channel === 'stable' ? 'Stable' : 'Unstable'
+        );
+        const select = page.getByTestId(`version-table-select-${version}`);
+        expect((await boxOf(select, version)).height).toBeGreaterThanOrEqual(44);
+        await expectInsideViewport(page, select, width);
+      }
+      await expect(page.getByTestId('version-table-inline-latest-1.22.7')).toBeVisible();
+      await expect(page.getByTestId('version-table-inline-installed-1.22.7')).toBeVisible();
+    });
+  }
+
+  for (const { collapsed, label } of SIDEBAR) {
+    test(`the Channel column is back at 768px, ${label}`, async ({ page }) => {
+      await openVersions(page, 768, collapsed);
+
+      await expect(page.getByTestId('version-table-header-channel')).toBeVisible();
+      await expect(page.getByTestId('version-table-inline-channel-1.22.7')).toBeHidden();
+      expect(await horizontalOverflow(page)).toEqual({ document: 0, scrolling: [] });
+      const select = page.getByTestId('version-table-select-1.22.7');
+      expect((await boxOf(select, 'Select')).height).toBeGreaterThanOrEqual(44);
+    });
+  }
+
+  test('the Select button is 32px tall at 1024px', async ({ page }) => {
+    await openVersions(page, 1024, false);
+
+    const select = page.getByTestId('version-table-select-1.22.7');
+    expect((await boxOf(select, 'Select')).height).toBe(32);
+  });
 });
 
 test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () => {

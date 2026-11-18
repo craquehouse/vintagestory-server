@@ -3,7 +3,8 @@
  *
  * Features:
  * - Sortable columns (Version, Channel, Size)
- * - Responsive column hiding (Size hidden on mobile)
+ * - Responsive column hiding (Size hidden on mobile; below sm Channel and Status are hidden
+ *   and shown under the version, Story 21.7)
  * - Status badges (Latest, Installed)
  * - Row highlighting for newer versions
  * - Loading skeleton and empty states
@@ -100,6 +101,35 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, VersionRowData>();
 
+/** A channel badge; the Channel column and the inline row below sm both use it (Story 21.7). */
+function ChannelBadge({ channel, testId }: { channel: VersionChannel; testId: string }) {
+  const styles = channelStyles[channel];
+  return (
+    <Badge variant="outline" className={styles.className} data-testid={testId}>
+      {styles.label}
+    </Badge>
+  );
+}
+
+/** The "Latest" mark, in the Status column and in the inline row below sm. */
+function LatestMark({ testId }: { testId: string }) {
+  return (
+    <Badge variant="secondary" data-testid={testId}>
+      Latest
+    </Badge>
+  );
+}
+
+/** The "Installed" mark, in the Status column and in the inline row below sm. */
+function InstalledMark({ testId }: { testId: string }) {
+  return (
+    <div className="flex items-center gap-1 text-sm text-success" data-testid={testId}>
+      <Check className="h-4 w-4" />
+      <span>Installed</span>
+    </div>
+  );
+}
+
 /**
  * Sort indicator component for sortable column headers.
  */
@@ -121,45 +151,53 @@ function createColumns(onVersionSelect?: (version: string) => void) {
       header: 'Version',
       cell: (info) => {
         const version = info.getValue();
+        const { channel, isLatest, isInstalled } = info.row.original;
         return (
-          <span
-            className="inline-flex items-center gap-1.5 font-medium"
-            data-testid={`version-table-version-${version}`}
-          >
-            {version}
-            <a
-              href={`https://wiki.vintagestory.at/${version}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
-              onClick={(e) => e.stopPropagation()}
-              data-testid={`version-table-changelog-${version}`}
-              title="View changelog"
-              aria-label={`View changelog for version ${version} ${OPENS_IN_NEW_TAB}`}
+          <div className="flex flex-col items-start gap-1">
+            <span
+              className="inline-flex items-center gap-1.5 font-medium"
+              data-testid={`version-table-version-${version}`}
             >
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-          </span>
+              {version}
+              <a
+                href={`https://wiki.vintagestory.at/${version}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`version-table-changelog-${version}`}
+                title="View changelog"
+                aria-label={`View changelog for version ${version} ${OPENS_IN_NEW_TAB}`}
+              >
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+            </span>
+            {/* Story 21.7: below sm the Channel and Status columns are hidden; shown here instead */}
+            <div className="flex flex-wrap items-center gap-1 sm:hidden">
+              <ChannelBadge channel={channel} testId={`version-table-inline-channel-${version}`} />
+              {isLatest && <LatestMark testId={`version-table-inline-latest-${version}`} />}
+              {isInstalled && (
+                <InstalledMark testId={`version-table-inline-installed-${version}`} />
+              )}
+            </div>
+          </div>
         );
       },
       sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version),
     }),
     columnHelper.accessor('channel', {
       header: 'Channel',
-      cell: (info) => {
-        const channel = info.getValue();
-        const styles = channelStyles[channel];
-        return (
-          <Badge
-            variant="outline"
-            className={styles.className}
-            data-testid={`version-table-channel-${info.row.original.version}`}
-          >
-            {styles.label}
-          </Badge>
-        );
-      },
+      cell: (info) => (
+        <ChannelBadge
+          channel={info.getValue()}
+          testId={`version-table-channel-${info.row.original.version}`}
+        />
+      ),
       sortFn: 'alphanumeric',
+      // Story 21.7: below sm the channel is shown under the version
+      meta: {
+        className: 'hidden sm:table-cell',
+      },
     }),
     columnHelper.accessor('filesize', {
       header: 'Size',
@@ -186,23 +224,15 @@ function createColumns(onVersionSelect?: (version: string) => void) {
 
         return (
           <div className="flex flex-wrap gap-2">
-            {isLatest && (
-              <Badge variant="secondary" data-testid={`version-table-latest-${version}`}>
-                Latest
-              </Badge>
-            )}
-            {isInstalled && (
-              <div
-                className="flex items-center gap-1 text-sm text-success"
-                data-testid={`version-table-installed-${version}`}
-              >
-                <Check className="h-4 w-4" />
-                <span>Installed</span>
-              </div>
-            )}
+            {isLatest && <LatestMark testId={`version-table-latest-${version}`} />}
+            {isInstalled && <InstalledMark testId={`version-table-installed-${version}`} />}
             {!isLatest && !isInstalled && <span className="text-muted-foreground">-</span>}
           </div>
         );
+      },
+      // Story 21.7: below sm "Latest" and "Installed" are shown under the version
+      meta: {
+        className: 'hidden sm:table-cell',
       },
     }),
     columnHelper.display({
@@ -214,6 +244,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           <Button
             variant="outline"
             size="sm"
+            className="max-lg:h-11"
             onClick={() => onVersionSelect?.(version)}
             disabled={!onVersionSelect}
             data-testid={`version-table-select-${version}`}
@@ -235,9 +266,9 @@ function VersionTableSkeleton() {
       <TableHeader>
         <TableRow>
           <TableHead>Version</TableHead>
-          <TableHead>Channel</TableHead>
+          <TableHead className="hidden sm:table-cell">Channel</TableHead>
           <TableHead className="hidden sm:table-cell">Size</TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead className="hidden sm:table-cell">Status</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -247,13 +278,13 @@ function VersionTableSkeleton() {
             <TableCell>
               <Skeleton className="h-5 w-20" />
             </TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
               <Skeleton className="h-5 w-16" />
             </TableCell>
             <TableCell className="hidden sm:table-cell">
               <Skeleton className="h-5 w-16" />
             </TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
               <Skeleton className="h-5 w-16" />
             </TableCell>
             <TableCell>

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { JobsTable } from './JobsTable';
 import type { JobInfo } from '@/hooks/use-jobs';
+import { setViewportWidth } from '../../tests/viewport';
 
 // Mock jobs data (camelCase as transformed by API client)
 const mockJobs: JobInfo[] = [
@@ -193,6 +194,117 @@ describe('JobsTable', () => {
       expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getAllByRole('columnheader')).toHaveLength(4);
       expect(screen.getAllByRole('row')).toHaveLength(3); // 1 header + 2 data rows
+    });
+  });
+
+  // Story 21.7 (AC 6): below lg (1024px) each job is a card; tests/setup.ts resets the width
+  describe('cards below lg (Story 21.7)', () => {
+    const FIELDS = ['Job Name', 'Schedule', 'Next Run', 'Status'];
+    const VALUE_IDS = ['job-name', 'job-schedule', 'job-next-run', 'job-status'];
+
+    /** The four values' texts for a job, by test ID. */
+    function valueTexts(id: string): string[] {
+      return VALUE_IDS.map((prefix) => screen.getByTestId(`${prefix}-${id}`).textContent ?? '');
+    }
+
+    it('shows a card per job at 390px, and no table', () => {
+      setViewportWidth(390);
+      render(<JobsTable jobs={mockJobs} />);
+
+      const cards = screen.getByTestId('job-cards');
+      expect(cards.tagName).toBe('UL');
+      expect(cards).toHaveAttribute('aria-label', 'Scheduled jobs');
+      expect(screen.queryByTestId('jobs-table')).not.toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      expect(screen.queryByTestId(/^job-row-/)).not.toBeInTheDocument();
+      expect(within(cards).getAllByRole('listitem')).toHaveLength(2);
+      expect(screen.getByTestId('job-card-mod_cache_refresh')).toBeInTheDocument();
+      expect(screen.getByTestId('job-card-server_versions_check')).toBeInTheDocument();
+    });
+
+    it('labels the four values of each card', () => {
+      setViewportWidth(390);
+      render(<JobsTable jobs={mockJobs} />);
+
+      for (const job of mockJobs) {
+        const card = screen.getByTestId(`job-card-${job.id}`);
+        const terms = card.querySelectorAll('dt');
+        expect([...terms].map((term) => term.textContent)).toEqual(FIELDS);
+        expect(card.querySelectorAll('dd')).toHaveLength(4);
+        for (const prefix of VALUE_IDS) {
+          const value = within(card).getByTestId(`${prefix}-${job.id}`);
+          expect(value.closest('dd')).not.toBeNull();
+        }
+      }
+    });
+
+    it('shows the same four texts as the table', () => {
+      const { unmount } = render(<JobsTable jobs={mockJobs} />);
+      expect(screen.getByTestId('jobs-table')).toBeInTheDocument();
+      const inTable = mockJobs.map((job) => valueTexts(job.id));
+      unmount();
+
+      setViewportWidth(390);
+      render(<JobsTable jobs={mockJobs} />);
+      expect(screen.getByTestId('job-cards')).toBeInTheDocument();
+      expect(mockJobs.map((job) => valueTexts(job.id))).toEqual(inTable);
+    });
+
+    it('shows cards at 1023px and the table at 1024px', () => {
+      setViewportWidth(1023);
+      const { unmount } = render(<JobsTable jobs={mockJobs} />);
+      expect(screen.getByTestId('job-cards')).toBeInTheDocument();
+      expect(screen.queryByTestId('jobs-table')).not.toBeInTheDocument();
+      unmount();
+
+      setViewportWidth(1024);
+      render(<JobsTable jobs={mockJobs} />);
+      expect(screen.getByTestId('jobs-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('job-cards')).not.toBeInTheDocument();
+    });
+
+    it('swaps the layout when the width changes, never showing both', () => {
+      render(<JobsTable jobs={mockJobs} />);
+      expect(screen.getByTestId('jobs-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('job-cards')).not.toBeInTheDocument();
+
+      act(() => setViewportWidth(390));
+      expect(screen.getByTestId('job-cards')).toBeInTheDocument();
+      expect(screen.queryByTestId('jobs-table')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('job-name-mod_cache_refresh')).toHaveLength(1);
+
+      act(() => setViewportWidth(1280));
+      expect(screen.getByTestId('jobs-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('job-cards')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('job-name-mod_cache_refresh')).toHaveLength(1);
+    });
+
+    it('shows the same empty state at 390px', () => {
+      setViewportWidth(390);
+      render(<JobsTable jobs={[]} />);
+
+      expect(screen.getByTestId('jobs-table-empty')).toBeInTheDocument();
+      expect(screen.getByText('No scheduled jobs')).toBeInTheDocument();
+      expect(screen.queryByTestId('job-cards')).not.toBeInTheDocument();
+    });
+
+    it('shows "Never" in a card for a null next run time', () => {
+      setViewportWidth(390);
+      render(
+        <JobsTable
+          jobs={[
+            {
+              id: 'paused_job',
+              nextRunTime: null,
+              triggerType: 'interval',
+              triggerDetails: 'every 3600 seconds',
+            },
+          ]}
+        />
+      );
+
+      const card = screen.getByTestId('job-card-paused_job');
+      expect(within(card).getByTestId('job-next-run-paused_job')).toHaveTextContent('Never');
     });
   });
 });
