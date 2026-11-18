@@ -1,6 +1,6 @@
 # Story 21.7: Tabs and Tables on Phones
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR281-FR283, Epic 21 ADR-12 and ADR-13. Beads: VSS-3ry (UI-089), VSS-vt4 (UI-091, bug), VSS-f9y (UI-087). Stacked on Story 21.6 (stories run in order 21.1 to 21.8); Story 21.8 follows directly and extends the same E2E spec. Line references were verified at 966204f (epic-21-planning; web/ identical to 05436da, the commit the ADRs cite) and must be re-checked at implementation time: Story 21.1 reformats about 231 web files with Prettier (ui/tabs.tsx, JobsTable.tsx, VersionTable.tsx and layout-widths.spec.ts among them), and Story 21.5 edits VersionTable.tsx (sort function, aria-sort, the two meta casts). Web only. No API change, no new dependency. -->
 
@@ -58,44 +58,44 @@ AC 4 and AC 5 are alternatives: exactly one of them applies, decided by Task 3 (
 
 <!-- Each functional task includes its tests in the same commit. Commit per task: type(story-21.7/task-N): ...; fix only for a change a user can see, subject written for users (it becomes the release note). Red first where a unit test can fail first. Run Prettier on the web files you change (Story 21.1). -->
 
-- [ ] Task 1: Measure every page before any change (AC: 8)
-  - [ ] 1.1: New `_bmad-output/implementation-artifacts/21-7-browser/page_widths.mjs` (Dev Notes "Measurement method"), modelled on `17-8-browser/layout_widths.mjs`. Reads only: every non-GET API request is refused, no screenshot, the output holds numbers, test IDs and `data-slot` names only. Do not edit `17-8-browser/` or `18-4-browser/`: they are those stories' records
-  - [ ] 1.2: Rebuild the stack from this branch (`just docker restart`), then `cd web && bun ../_bmad-output/implementation-artifacts/21-7-browser/page_widths.mjs > ../_bmad-output/implementation-artifacts/21-7-browser/page_widths.before.json` with `VS_API_KEY_ADMIN` exported. Do not start or stop the game server. Check that the output holds no key, server name or password
-  - [ ] 1.3: Record in the Dev Agent Record one table: per page, width and sidebar state, the document overflow and every scrolling element with `scrollWidth/clientWidth`. Classify each scrolling element with the rule in Dev Notes "What counts as a fault". Compare the Scheduled Jobs and Version rows with Dev Notes "Planning measurements"
-  - [ ] 1.4: Commit the script and `page_widths.before.json`: `docs(story-21.7/task-1): measure every page at phone and tablet widths`
+- [x] Task 1: Measure every page before any change (AC: 8)
+  - [x] 1.1: New `_bmad-output/implementation-artifacts/21-7-browser/page_widths.mjs` (Dev Notes "Measurement method"), modelled on `17-8-browser/layout_widths.mjs`. Reads only: every non-GET API request is refused, no screenshot, the output holds numbers, test IDs and `data-slot` names only. Do not edit `17-8-browser/` or `18-4-browser/`: they are those stories' records
+  - [x] 1.2: Rebuild the stack from this branch (`just docker restart`), then `cd web && bun ../_bmad-output/implementation-artifacts/21-7-browser/page_widths.mjs > ../_bmad-output/implementation-artifacts/21-7-browser/page_widths.before.json` with `VS_API_KEY_ADMIN` exported. Do not start or stop the game server. Check that the output holds no key, server name or password
+  - [x] 1.3: Record in the Dev Agent Record one table: per page, width and sidebar state, the document overflow and every scrolling element with `scrollWidth/clientWidth`. Classify each scrolling element with the rule in Dev Notes "What counts as a fault". Compare the Scheduled Jobs and Version rows with Dev Notes "Planning measurements"
+  - [x] 1.4: Commit the script and `page_widths.before.json`: `docs(story-21.7/task-1): measure every page at phone and tablet widths`
 
-- [ ] Task 2: Tab triggers are 44px tall below `lg` (AC: 1, 2) (`VSS-3ry`)
-  - [ ] 2.1: `web/src/components/ui/tabs.tsx`: `TabsList` (`:27`) keeps `h-9` and gains `max-lg:h-auto`; `TabsTrigger` (`:43`) gains `max-lg:min-h-11`. Nothing else in the file changes, and no tab list's caller changes (Dev Notes "Tabs")
-  - [ ] 2.2: `web/e2e/layout-widths.spec.ts`: new block "Tab heights (Story 21.7, AC 1-2)" (Dev Notes "E2E"): the three tab lists at 320, 390, 430, 768 and 1023px have triggers at least 44px tall; at 1024px the list is 36px and its triggers are under 36px; at 320, 390 and 430px the Settings list's two rows are inside the list and the panel starts below it
-  - [ ] 2.3: Rebuild the stack, run `cd web && bunx playwright test e2e/layout-widths.spec.ts`. The existing blocks "Settings tabs on phones" (`:508-547`) and "Other tab lists on phones" (`:549-567`) must pass unchanged
-  - [ ] 2.4: Commit: `fix(story-21.7/task-2): make tabs easier to tap on phones`
+- [x] Task 2: Tab triggers are 44px tall below `lg` (AC: 1, 2) (`VSS-3ry`)
+  - [x] 2.1: `web/src/components/ui/tabs.tsx`: `TabsList` (`:27`) keeps `h-9` and gains `max-lg:h-auto`; `TabsTrigger` (`:43`) gains `max-lg:min-h-11`. Nothing else in the file changes, and no tab list's caller changes (Dev Notes "Tabs")
+  - [x] 2.2: `web/e2e/layout-widths.spec.ts`: new block "Tab heights (Story 21.7, AC 1-2)" (Dev Notes "E2E"): the three tab lists at 320, 390, 430, 768 and 1023px have triggers at least 44px tall; at 1024px the list is 36px and its triggers are under 36px; at 320, 390 and 430px the Settings list's two rows are inside the list and the panel starts below it
+  - [x] 2.3: Rebuild the stack, run `cd web && bunx playwright test e2e/layout-widths.spec.ts`. The existing blocks "Settings tabs on phones" (`:508-547`) and "Other tab lists on phones" (`:549-567`) must pass unchanged
+  - [x] 2.4: Commit: `fix(story-21.7/task-2): make tabs easier to tap on phones`
 
 - [ ] Task 3: The arrow key fault: reproduce first, then fix or close with evidence (AC: 3, 4, 5) (`VSS-vt4`)
-  - [ ] 3.1: New `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs` (Dev Notes "The arrow key fault", "Reproduction script"): a scripted matrix and a headed mode for a real keyboard, both with the same in-page event log
-  - [ ] 3.2: Scripted runs against the Docker stack (production build), Chromium and Firefox: the matrix of Dev Notes (wait after the list is shown x gap between presses, 10 runs per cell). Save `arrow_keys.scripted.json`
+  - [x] 3.1: New `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs` (Dev Notes "The arrow key fault", "Reproduction script"): a scripted matrix and a headed mode for a real keyboard, both with the same in-page event log
+  - [x] 3.2: Scripted runs against the Docker stack (production build), Chromium and Firefox: the matrix of Dev Notes (wait after the list is shown x gap between presses, 10 runs per cell). Save `arrow_keys.scripted.json`
   - [ ] 3.3: Real keyboard, Chromium and Firefox, each at a 1440px and a 390px wide window: the steps of Dev Notes "Real keyboard steps", 10 attempts per step. **This subtask needs a person at a keyboard.** The dev agent prepares the script and asks the maintainer to run it; it is not ticked on scripted evidence (`project-context.md:160-161`). Save the event logs as `arrow_keys.keyboard.<browser>.json`
   - [ ] 3.4: Write the result into the Dev Agent Record under "Arrow key reproduction": browsers and versions, what was tried, the two result tables, and which outcome applies by the rule in Dev Notes "Decision rule". **Stop condition:** the task ends when 3.2 and 3.3 are recorded and the rule gives an outcome, or when half a working day has been spent on 3.1 to 3.4 without a cause in this project's code. In the second case outcome B applies if 3.3 was done; if 3.3 could not be done, leave 3.3 unticked, do not close `VSS-vt4`, and say so in the pull request
   - [ ] 3.5 (outcome A only: reproduced with a real keyboard, or the lost presses depend on the time since render, and the cause is in this project's code): fix the cause where it is (Dev Notes "If outcome A applies"), with a unit test in `web/src/features/settings/SettingsPage.test.tsx` that presses ArrowRight three times straight after the tab list is rendered, and an E2E test in `layout-widths.spec.ts` that focuses `ui-preferences-tab` as soon as it is visible and presses ArrowRight three times with no wait and no assertion between presses. Commit: `fix(story-21.7/task-3): settings tabs respond to arrow keys as soon as they appear`
   - [ ] 3.6 (outcome B only: a real keyboard cannot reproduce it, or the cause is inside Radix): change no source file and no test for this bead. No retry, no delay, no key handler of our own, no replacement of Radix's roving focus. Commit the script and the JSON files: `docs(story-21.7/task-3): record the arrow key reproduction for the settings tabs`. The AAR text for `VSS-vt4` (Dev Notes "Beads") is written into the Dev Agent Record
 
-- [ ] Task 4: The Scheduled Jobs and Version tables fit phones (AC: 6, 7) (`VSS-f9y`)
-  - [ ] 4.1: `web/src/components/JobsTable.tsx`: below `lg` render a list of cards, one per job, chosen with `useMediaQuery(LG_UP_QUERY)` so that one layout is mounted (Dev Notes "Scheduled Jobs cards"). The table from 1024px is unchanged; the empty state is the same in both layouts
-  - [ ] 4.2: `web/src/components/JobsTable.test.tsx`: tests for both layouts (Dev Notes "Web unit tests"), red first
-  - [ ] 4.3: First re-measure the Version table on the Docker stack with only the Channel column hidden below `sm` (ADR-13 decision 2 as written), at 320px with the fixture of Dev Notes "E2E", and record `scrollWidth/clientWidth` in the Dev Agent Record. Planning measured 281/256, and 260/256 with ADR-13's icon button fallback added (Dev Notes "ADR against the code"). If your measurement also exceeds the container, continue with 4.4 as written. If it fits (for example because Story 21.5 changed the cells), stop at the Channel column and say so in the Completion Notes
-  - [ ] 4.4: `web/src/components/VersionTable.tsx`: below `sm` the Channel and Status columns are hidden and their content is shown under the version number; the "Select" button is 44px tall below `lg`; the loading skeleton hides the same two columns (Dev Notes "Version table")
-  - [ ] 4.5: `web/src/components/VersionTable.test.tsx`: tests for the inline channel and status and the classes (Dev Notes "Web unit tests"), red first
-  - [ ] 4.6: `web/e2e/layout-widths.spec.ts`: new blocks "Scheduled Jobs below lg (Story 21.7, AC 6)" and "Version table on phones (Story 21.7, AC 7)" (Dev Notes "E2E"). Rebuild the stack and run the spec; also run `e2e/settings-as-saved.spec.ts` (it reads `job-schedule-*` and `job-next-run-*` on the Scheduled Jobs tab and changes a real setting which it restores itself; do not edit it)
-  - [ ] 4.7: Commit: `fix(story-21.7/task-4): fit the scheduled jobs and version tables on phone screens`
+- [x] Task 4: The Scheduled Jobs and Version tables fit phones (AC: 6, 7) (`VSS-f9y`)
+  - [x] 4.1: `web/src/components/JobsTable.tsx`: below `lg` render a list of cards, one per job, chosen with `useMediaQuery(LG_UP_QUERY)` so that one layout is mounted (Dev Notes "Scheduled Jobs cards"). The table from 1024px is unchanged; the empty state is the same in both layouts
+  - [x] 4.2: `web/src/components/JobsTable.test.tsx`: tests for both layouts (Dev Notes "Web unit tests"), red first
+  - [x] 4.3: First re-measure the Version table on the Docker stack with only the Channel column hidden below `sm` (ADR-13 decision 2 as written), at 320px with the fixture of Dev Notes "E2E", and record `scrollWidth/clientWidth` in the Dev Agent Record. Planning measured 281/256, and 260/256 with ADR-13's icon button fallback added (Dev Notes "ADR against the code"). If your measurement also exceeds the container, continue with 4.4 as written. If it fits (for example because Story 21.5 changed the cells), stop at the Channel column and say so in the Completion Notes
+  - [x] 4.4: `web/src/components/VersionTable.tsx`: below `sm` the Channel and Status columns are hidden and their content is shown under the version number; the "Select" button is 44px tall below `lg`; the loading skeleton hides the same two columns (Dev Notes "Version table")
+  - [x] 4.5: `web/src/components/VersionTable.test.tsx`: tests for the inline channel and status and the classes (Dev Notes "Web unit tests"), red first
+  - [x] 4.6: `web/e2e/layout-widths.spec.ts`: new blocks "Scheduled Jobs below lg (Story 21.7, AC 6)" and "Version table on phones (Story 21.7, AC 7)" (Dev Notes "E2E"). Rebuild the stack and run the spec; also run `e2e/settings-as-saved.spec.ts` (it reads `job-schedule-*` and `job-next-run-*` on the Scheduled Jobs tab and changes a real setting which it restores itself; do not edit it)
+  - [x] 4.7: Commit: `fix(story-21.7/task-4): fit the scheduled jobs and version tables on phone screens`
 
-- [ ] Task 5: Measure again, fix what is of the same kind, report the rest (AC: 8)
-  - [ ] 5.1: Rebuild the stack and run `page_widths.mjs` into `21-7-browser/page_widths.after.json`. Record a before/after table in the Dev Agent Record. The Scheduled Jobs and Version rows must show no scrolling element from 320 to 1023px in both sidebar states (ADR-13 decision 3)
-  - [ ] 5.2: For every other fault in the table (Dev Notes "What counts as a fault"): if the fix is of the same kind (a table, or a row of controls that does not wrap), fix it here with a unit test where a unit test can see it and one test in `layout-widths.spec.ts` at the width that failed; each such fix is its own commit `fix(story-21.7/task-5): fit <what> on phone screens`, written for users, and is listed in the pull request as a release note the proposal did not list. Anything larger (a page layout, a chart, a third-party widget, the mod browser's filters as a whole) is not fixed and not filed: it goes into the Completion Notes and the pull request with page, width, sidebar state and numbers
-  - [ ] 5.3: `web/e2e/README.md` (`:10`, `:50`): update the test counts from `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"` and `--list`; the numbers there (119 untagged, 146 of 150) are older than this epic, so count, do not add
-  - [ ] 5.4: Commit `page_widths.after.json` and the README: `docs(story-21.7/task-5): record page widths after the phone layout changes`
+- [x] Task 5: Measure again, fix what is of the same kind, report the rest (AC: 8)
+  - [x] 5.1: Rebuild the stack and run `page_widths.mjs` into `21-7-browser/page_widths.after.json`. Record a before/after table in the Dev Agent Record. The Scheduled Jobs and Version rows must show no scrolling element from 320 to 1023px in both sidebar states (ADR-13 decision 3)
+  - [x] 5.2: For every other fault in the table (Dev Notes "What counts as a fault"): if the fix is of the same kind (a table, or a row of controls that does not wrap), fix it here with a unit test where a unit test can see it and one test in `layout-widths.spec.ts` at the width that failed; each such fix is its own commit `fix(story-21.7/task-5): fit <what> on phone screens`, written for users, and is listed in the pull request as a release note the proposal did not list. Anything larger (a page layout, a chart, a third-party widget, the mod browser's filters as a whole) is not fixed and not filed: it goes into the Completion Notes and the pull request with page, width, sidebar state and numbers
+  - [x] 5.3: `web/e2e/README.md` (`:10`, `:50`): update the test counts from `cd web && bunx playwright test --list --grep-invert "@moddb|@game-server|@install"` and `--list`; the numbers there (119 untagged, 146 of 150) are older than this epic, so count, do not add
+  - [x] 5.4: Commit `page_widths.after.json` and the README: `docs(story-21.7/task-5): record page widths after the phone layout changes`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes. `just lint-web` (the Prettier check since Story 21.1) passes. The diff adds no lint or type suppression, no `cast`/`as` on column meta, no skipped test, no `test.only`, no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/`, `web/test-results/`
-  - [ ] 6.2: `just test-e2e-ci` is green (both passes, throwaway containers). All new tests are untagged, so the first pass runs them; record the counts
+  - [x] 6.1: `just check` passes. `just lint-web` (the Prettier check since Story 21.1) passes. The diff adds no lint or type suppression, no `cast`/`as` on column meta, no skipped test, no `test.only`, no dependency. `git status --short` shows nothing under `dev/`, `data/`, `web/playwright-report/`, `web/test-results/`
+  - [x] 6.2: `just test-e2e-ci` is green (both passes, throwaway containers). All new tests are untagged, so the first pass runs them; record the counts
   - [ ] 6.3: Manual check on the Docker stack (needs the maintainer's confirmation before it is ticked, `project-context.md:160-161`): Dev Notes "Manual check"
   - [ ] 6.4: Story status `review`, `just sprint set 21-7-tabs-and-tables-on-phones review`, pull request (base: Story 21.6's branch while its pull request is open, otherwise `main`; merge, do not squash). The description lists: "API contract changes: none"; the release notes (Dev Notes "Git Intelligence"); the arrow key outcome with its evidence; every measured fault that was not fixed, with its numbers (AC 8); the decision about the Status column (Dev Notes "ADR against the code")
   - [ ] 6.5: After merge the controller closes `VSS-3ry`, `VSS-f9y` and `VSS-vt4`, each with an AAR (abbreviated format, size-s) and `bd sync` (Dev Notes "Beads"). `VSS-vt4` is closed only if Task 3 reached an outcome
@@ -375,12 +375,122 @@ Closed by the controller after merge, each with an abbreviated AAR (size-s) befo
 
 ### Agent Model Used
 
+Claude Opus 5.5 (`claude-opus-5-5`), BMAD dev-story workflow, non-interactive.
+
 ### Debug Log References
+
+- Line numbers re-checked after Stories 21.1-21.6: `ui/tabs.tsx` `TabsList` classes are at `:21` and `TabsTrigger` at `:34` (Prettier); the Radix deferred focus move is `web/node_modules/@radix-ui/react-roving-focus/dist/index.mjs:202` (`setTimeout(() => focusFirst(candidateNodes))`, the `currentIndex` from `event.currentTarget` at `:199`), `@radix-ui/react-roving-focus` and `@radix-ui/react-tabs` 1.2.1.
+- Every measurement and E2E run was against the Docker dev stack rebuilt from this branch with `just docker restart` (production build), with no game server running (checked before each rebuild) and the Admin key read from the container's environment into `VS_API_KEY_ADMIN` without printing it. Nothing was written: every non-GET API request was refused.
+- Planning numbers and Docker numbers differ for Scheduled Jobs: the table needs 626px, not 523px (the stubbed cron string and the locale date of the next run are wider than in Story 17.8's live data).
+
+#### Task 1.3 / 5.1: page widths before and after (`21-7-browser/page_widths.before.json`, `page_widths.after.json`)
+
+Widths 320, 390, 430, 768 and 1023px, height 900, both sidebar states. Below 768px the sidebar is a sheet and the two states gave the same numbers on every page (as expected). Values are `documentOverflowX` and the scrolling elements (`scrollWidth/clientWidth`); "none" is `0` and no scrolling element.
+
+| Page | 320 (either) | 390 (either) | 430 (either) | 768 expanded | 768 collapsed | 1023 expanded | 1023 collapsed | Class |
+|---|---|---|---|---|---|---|---|---|
+| Dashboard | none / none | none / none | none / none | none / none | none / none | none / none | none / none | |
+| Version (before -> after) | table-container 362/256 -> 256/256 | 362/326 -> 326/326 | 366/366 both | 528/528 both | 624/624 both | 783/783 both | 879/879 both | fault, fixed (Task 4) |
+| Game Settings | none | none | none | none | none | none | none | |
+| Mods, installed | none | none | none | none | none | none | none | |
+| Mods, browse | none | none | none | none | none | none | none | |
+| Mod detail (carryon) | PRE 791/238 | PRE 791/308 | PRE 791/348 | PRE 791/510 | PRE 791/606 | PRE 791/765 | none | not a fault |
+| Console (before -> after) | document 170 -> 0 | document 100 -> 0 | document 60 -> 0 | none | none | none | none | fault, fixed (Task 5.2) |
+| Settings: UI Preferences, API Settings, File Manager | none | none | none | none | none | none | none | |
+| Settings: Scheduled Jobs (before -> after) | table-container 626/238 -> cards, none | 626/308 -> cards, none | 626/348 -> cards, none | 626/510 -> cards, none | 626/606 -> cards, none | 765/765 table -> cards, none | 861/861 table -> cards, none | fault, fixed (Task 4) |
+
+- **Mod detail `PRE`: not a fault.** It is a `pre` inside the mod's own description (`mod-detail-description` in `mod-detail-description-card`), preformatted content whose job is to scroll; the page itself does not scroll sideways at any width (`documentOverflowX` 0).
+- **Console: a fault of the same kind, fixed.** Probe of the elements past the right edge at 320px: the page header row (title, the three server buttons and the status badge, `flex items-center gap-4`, 364px wide) and the console card's header row (source selector, font size buttons and connection status, 389px) did not wrap. The terminal itself was not wider than the page.
+- Scheduled Jobs and Version against "Planning measurements": the Version table at 320/390/430px gives 256/256, 326/326, 366/366 after the change, as planned; the jobs are cards from 320 to 1023px with no scrolling element in both sidebar states (ADR-13 decision 3 holds).
+- Tab heights after: every trigger of the three lists 44px below 1024px; list 50px (one row) and the Settings list 94px at 320-430px (two rows; 66px before). From 1024px unchanged (E2E: list 36px, triggers under 36px).
+- Only one console page has a route (`/game-server/console`); `GameServerPage.tsx` is still rendered by no route, so it was not measured (Dev Notes "ADR against the code").
+
+#### Task 4.3: the Version table with only Channel hidden
+
+Measured on the Docker stack built at `ff59801c` (before Task 4), fixture of Dev Notes "E2E" with 1.22.7 installed, the Channel column hidden below `sm` by an injected style equivalent to `hidden sm:table-cell` on its cells:
+
+| Width | Variant | `scrollWidth/clientWidth` | Visible columns |
+|---|---|---|---|
+| 320 | today | 362/256 | Version 112, Channel 81, Status 88, Actions 81 |
+| 320 | Channel hidden | **281/256** | Version 112, Status 88, Actions 81 |
+| 390 | today | 362/326 | as at 320 |
+| 390 | Channel hidden | 326/326 | Version 112, Status 134, Actions 81 |
+
+281/256 exceeds the container at 320px (planning: 281/256), so Task 4.4 went ahead as written: Channel and Status hidden below `sm`, as the maintainer approved on 2026-11-17. After: 256/256 at 320px.
+
+#### Arrow key reproduction (Task 3)
+
+Scripted matrix (Task 3.2, `21-7-browser/arrow_keys.scripted.json`): Docker stack (production build), 1440x900, 10 fresh contexts per cell. Playwright 1.65.1; Chromium 159.0.8154.6 (headless shell), Firefox 159.0. "Ended on" counts are focused tab = selected tab in every run (selection always followed focus).
+
+Chromium, runs ending on the third tab to the right (Scheduled Jobs) out of 10:
+
+| Focus point | Wait after it | gap 0ms | gap 10ms | gap 30ms | gap 100ms |
+|---|---|---|---|---|---|
+| `ui-preferences-tab` visible | 0ms | 0 (10 on API Settings) | 4 | 10 | 10 |
+| | 100ms | 0 | 4 | 10 | 10 |
+| | 400ms | 0 | 2 | 10 | 10 |
+| | 1500ms | 0 | 6 | 10 | 10 |
+| `scheduled-jobs-tab` visible | 0ms | 0 | 1 | 10 | 10 |
+| | 100ms | 0 | 3 | 10 | 10 |
+| | 400ms | 0 | 3 | 10 | 10 |
+| | 1500ms | 0 | 2 | 10 | 10 |
+
+Firefox: 10 of 10 in all 32 cells (320 runs, no press lost).
+
+What the event log showed (Chromium):
+
+- The loss depends on the gap between presses, not on the wait since the list was shown: 0 of 10 with no gap at 0ms and at 1500ms alike; every run with a 30ms or 100ms gap moved three tabs.
+- Every lost press is a stale target: for example (first failing run, times from the list being shown) the three `keydown`s at 33.1, 36.5 and 37.8ms all have `ui-preferences-tab` as target and as focused element, all `defaultPrevented`, and the only `focusin` follows at 55.8ms on `api-settings-tab`. Over the gap-0 cells, 20 stale `keydown`s per 10 runs (two per run).
+- The tab list was mounted once per run (no remount, no focus to nothing); the trigger count was 4 at every press of every failing run. In 3 passing runs (focus at first-trigger-visible, no wait, gaps 30 and 100ms) the fourth trigger appeared during the presses, and those runs still moved three tabs. The fourth trigger appeared about 8ms after the first.
+
+This matches Radix's deferred focus move (`index.mjs:199-202`): each `keydown` computes the next tab from its own `currentTarget` and moves focus in a `setTimeout`, so presses dispatched before that timer runs all ask for the same neighbour. Nothing in the log points at this project's code (no remount, no change of the trigger set where presses were lost), so no source file was changed for `VSS-vt4`.
+
+**Real keyboard (Task 3.3): not done; pending the maintainer.** The outcome (A or B) is not decided: the decision rule needs the real keyboard runs. `VSS-vt4` stays open until they are recorded. Steps for the maintainer, against the dev stack built from this branch, from `web/` with `VS_API_KEY_ADMIN` exported (the dev stack's Admin key):
+
+```bash
+bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 1440
+bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 390
+bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard firefox --width 1440
+bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard firefox --width 390
+bun ../_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs --keyboard chromium --width 1440 --cpu 6   # step 4
+```
+
+Each run opens `/config` in a headed browser with the event log. Do steps 1-3 of Dev Notes "Real keyboard steps" (step 4 in the `--cpu 6` run), 10 attempts each, reloading the page before every attempt (each page load is one attempt in the log), and note for each attempt the focused tab, the selected tab and whether a press visibly did nothing. Press Enter in the terminal to end the run; the log is appended as one session to `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.keyboard.<browser>.json`. The headed mode was smoke-tested once (opened, logged one page load, wrote the file) and that file was deleted.
 
 ### Completion Notes List
 
+- **Tabs (AC 1-2, `VSS-3ry`):** `TabsList` gains `max-lg:h-auto` and `TabsTrigger` `max-lg:min-h-11`; no caller changed. Below 1024px every trigger of the Settings, Mods and Version lists is 44px tall (E2E at 320, 390, 430, 768 and 1023px, both sidebar states at 768 and 1023); from 1024px the list is 36px and triggers under 36px, as before. At 320-430px the Settings list's two rows are inside the list (94px) and the panel starts below it, also after selecting the last tab. The existing blocks "Settings tabs on phones" and "Other tab lists on phones" pass unchanged. No unit test for heights (jsdom has no layout).
+- **Scheduled Jobs (AC 6, `VSS-f9y`):** below 1024px `JobsTable` mounts a `<ul aria-label="Scheduled jobs" data-testid="job-cards">` with one card per job, a `dl` of the four labelled values; the table from 1024px is unchanged and the empty state is the same in both layouts. The four fields (label and renderer) are defined once in `FIELDS`, and both the table's columns (display columns) and the cards are built from it, so no label or formatter can differ and no column `header` is read through a cast. The value test IDs are the same in both layouts; `jobs-table` and `job-row-*` exist only in the table. `settings-as-saved.spec.ts` passes unchanged.
+- **Version table (AC 7, `VSS-f9y`):** below 640px the Channel and Status columns are hidden (`meta.className`, as Size) and the channel badge, "Latest" and "Installed" are shown under the version (`version-table-inline-channel|latest|installed-{v}`), rendered by the same `ChannelBadge`, `LatestMark` and `InstalledMark` components as the columns; no "-" in the inline row. "Select" is 44px below 1024px (`max-lg:h-11`), 32px from 1024px; its text stays. The loading skeleton hides the same two columns. Below 640px the table cannot be sorted by channel (header hidden); the channel filter covers that.
+- **Task 4.3:** the Channel-only variant measured 281/256 at 320px on the Docker stack, so both columns were hidden as approved by the maintainer on 2026-11-17 (ADR-13 decision 2 goes one column further than written; this is the Status column decision for the pull request).
+- **Task 5.2, one extra fix of the same kind (a release note the proposal did not list):** the console page's header row and the console card's header row now wrap (`flex-wrap`), so at 320, 390 and 430px the page no longer scrolls sideways (170, 100 and 60px before). One E2E test per failing width ("Console header on phones"); no unit test, since jsdom cannot see wrapping and a test that only repeats the class would add nothing. Commit `fix(story-21.7/task-5): fit the console's controls on phone screens`.
+- **Reported, not fixed (AC 8):** nothing larger was found. The mod detail page's `PRE` (791px inside 238-765px) is preformatted mod description content and not a fault; the page does not scroll sideways. Story 21.6's header fix holds.
+- **Arrow keys (AC 3-5, `VSS-vt4`):** Tasks 3.1 and 3.2 done; the scripted evidence (Chromium only, gap-dependent, stale targets, no remount) points at Radix, so no source or test file changed for this bead. **Task 3.3 (real keyboard) is pending the maintainer**; 3.4 to 3.6 wait on it, AC 3 is not yet met and `VSS-vt4` must not be closed until the real keyboard runs are recorded and the decision rule is applied. Steps and commands are under "Arrow key reproduction" above.
+- **Manual check (Task 6.3):** left for the maintainer (Dev Notes "Manual check"); not ticked.
+- **Task 6.4:** story status set to `review` and `just sprint set ... review` run; no pull request opened (the dev brief did not authorise one). Task 6.5 is the controller's after merge.
+- `web/e2e/README.md` counts: 185 untagged (first pass) and 27 `@moddb` (second pass), 212 of 216 tests in CI, counted with `bunx playwright test --list`.
+- API contract changes: none. No new dependency, no lint or type suppression, no skipped test, no `cast`/`as` on column meta.
+- Quality gate: `just check` green (API 3458 passed, Pyright 0 errors 0 warnings; web 3487 passed in 136 files, 0 skipped; script tests green). `just test-e2e-ci` green: first pass 185 passed (untagged, the new tests among them) and the API's 3 E2E tests, second pass 27 `@moddb` passed. Against the dev stack: `layout-widths.spec.ts` (all blocks, the new ones included), `settings-as-saved.spec.ts` and `version-sort-and-close-buttons.spec.ts` passed. `git status` shows nothing under `dev/`, `data/`, `web/playwright-report/` or `web/test-results/`.
+
 ### File List
+
+- `_bmad-output/implementation-artifacts/21-7-browser/page_widths.mjs` (new)
+- `_bmad-output/implementation-artifacts/21-7-browser/page_widths.before.json` (new)
+- `_bmad-output/implementation-artifacts/21-7-browser/page_widths.after.json` (new)
+- `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.mjs` (new)
+- `_bmad-output/implementation-artifacts/21-7-browser/arrow_keys.scripted.json` (new)
+- `_bmad-output/implementation-artifacts/21-7-tabs-and-tables-on-phones.md` (modified)
+- `web/src/components/ui/tabs.tsx` (modified)
+- `web/src/components/JobsTable.tsx` (modified)
+- `web/src/components/JobsTable.test.tsx` (modified)
+- `web/src/components/VersionTable.tsx` (modified)
+- `web/src/components/VersionTable.test.tsx` (modified)
+- `web/src/components/ConsolePanel.tsx` (modified)
+- `web/src/features/game-server/ConsolePage.tsx` (modified)
+- `web/e2e/layout-widths.spec.ts` (modified)
+- `web/e2e/README.md` (modified)
 
 ## Change Log
 
 - 2026-11-17: Story 21.7 created and validated (ready-for-dev).
+- 2026-11-17: Implemented Tasks 1, 2, 4, 5 and 6.1, and Tasks 3.1-3.2 (scripted arrow key evidence); Task 3.3 (real keyboard) and the manual check pending the maintainer; status review.
