@@ -13,6 +13,7 @@ import {
   useServerStateToasts,
 } from './use-server-status';
 import type { ServerState } from '../api/types';
+import { handleApiError } from '../api/error-handler';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -1039,5 +1040,86 @@ describe('useServerStateToasts', () => {
       rerender({ state: 'stopping' as ServerState });
       expect(toast.success).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('the callers report errors, once (Story 21.4)', () => {
+  const originalFetch = globalThis.fetch;
+  const message = 'Another server operation is in progress.';
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      json: () => Promise.resolve({ detail: { code: 'SERVER_BUSY', message } }),
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  // Built like the app's query client: its default mutation onError shows a toast
+  function createAppLikeQueryClient() {
+    return new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false, onError: (error) => handleApiError(error) },
+      },
+    });
+  }
+
+  function reportWith(title: string) {
+    return {
+      onError: (error: Error) => {
+        toast.error(title, { description: error.message });
+      },
+    };
+  }
+
+  it('useRestartServer: a refused restart shows only the caller toast', async () => {
+    const { result } = renderHook(() => useRestartServer(), {
+      wrapper: createWrapper(createAppLikeQueryClient()),
+    });
+
+    await act(async () => {
+      result.current.mutate(undefined, reportWith('Failed to restart server'));
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Failed to restart server', { description: message });
+  });
+
+  it('useInstallServer: a refused install shows only the caller toast', async () => {
+    const { result } = renderHook(() => useInstallServer(), {
+      wrapper: createWrapper(createAppLikeQueryClient()),
+    });
+
+    await act(async () => {
+      result.current.mutate({ version: '1.21.6' }, reportWith('Installation failed'));
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Installation failed', { description: message });
+  });
+
+  it('useUninstallServer: a refused uninstall shows only the caller toast', async () => {
+    const { result } = renderHook(() => useUninstallServer(), {
+      wrapper: createWrapper(createAppLikeQueryClient()),
+    });
+
+    await act(async () => {
+      result.current.mutate(undefined, reportWith('Failed to remove server'));
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Failed to remove server', { description: message });
   });
 });

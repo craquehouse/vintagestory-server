@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
+
+// Story 21.4: the failed-restart test counts error toasts
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+}));
+
+import { toast } from 'sonner';
 import { PendingRestartBanner } from './PendingRestartBanner';
+import { handleApiError } from '@/api/error-handler';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -455,6 +463,47 @@ describe('PendingRestartBanner', () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
+      expect(onRestart).not.toHaveBeenCalled();
+    });
+
+    it('shows one toast when the restart is refused (Story 21.4)', async () => {
+      const message = 'Server is not running.';
+      globalThis.fetch = vi.fn().mockImplementation((url: string, options?: RequestInit) => {
+        if (options?.method === 'POST' && url.includes('/restart')) {
+          return Promise.resolve({
+            ok: false,
+            status: 409,
+            statusText: 'Conflict',
+            json: () => Promise.resolve({ detail: { code: 'SERVER_NOT_RUNNING', message } }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockModsWithPendingRestart),
+        });
+      });
+      // Built like the app's query client: its default mutation onError shows a toast
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false, onError: (error) => handleApiError(error) },
+        },
+      });
+      const onRestart = vi.fn();
+      render(<PendingRestartBanner onRestart={onRestart} />, {
+        wrapper: createWrapper(queryClient),
+      });
+
+      fireEvent.click(await screen.findByTestId('restart-button'));
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled();
+        expect(screen.getByTestId('restart-button')).toBeEnabled();
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.error).toHaveBeenCalledWith('Failed to restart server', {
+        description: message,
+      });
       expect(onRestart).not.toHaveBeenCalled();
     });
 

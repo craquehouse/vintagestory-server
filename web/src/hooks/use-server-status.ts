@@ -153,7 +153,8 @@ export function useStopServer() {
 /**
  * Hook to restart the server.
  *
- * Automatically invalidates server status on success.
+ * Automatically invalidates server status on success. Errors are not toasted
+ * globally; pass `onError` to `mutate` to report them (Story 21.4).
  */
 export function useRestartServer() {
   const queryClient = useQueryClient();
@@ -163,6 +164,8 @@ export function useRestartServer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.server.status });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }
 
@@ -171,6 +174,7 @@ export function useRestartServer() {
  *
  * Story 13.4: Per ADR-4, invalidates both server status and versions queries
  * on success to ensure UI updates reflect the new installed version.
+ * Errors are not toasted globally; pass `onError` to `mutate` to report them (Story 21.4).
  *
  * @param options.onSuccess - Callback when installation starts successfully
  *
@@ -196,6 +200,8 @@ export function useInstallServer() {
       // Story 13.4: Also invalidate versions list to update "Installed" badges
       queryClient.invalidateQueries({ queryKey: ['versions'] });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }
 
@@ -267,7 +273,8 @@ export function useServerStateToasts(currentState: ServerState | undefined) {
  *
  * Story 13.7: Removes server binaries while preserving config/mods/worlds.
  * Per ADR-4, invalidates both server status and versions queries on success
- * to ensure UI updates reflect the uninstalled state.
+ * to ensure UI updates reflect the uninstalled state. Errors are not toasted globally;
+ * pass `onError` to `mutate` to report them (Story 21.4).
  *
  * @example
  * function RemoveButton() {
@@ -291,5 +298,7 @@ export function useUninstallServer() {
       // Story 13.7: Also invalidate versions list to update "Installed" badges
       queryClient.invalidateQueries({ queryKey: ['versions'] });
     },
+    // The caller reports errors; skip the global toast so they are not shown twice.
+    onError: () => {},
   });
 }

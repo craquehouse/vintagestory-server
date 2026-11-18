@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
-import { useApiSettings, useUpdateApiSetting } from './use-api-settings';
+
+// Story 21.4: the webhook test counts error toasts
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+}));
+
+import { toast } from 'sonner';
+import { useApiSettings, useUpdateApiSetting, useSetModUpdateWebhook } from './use-api-settings';
+import { handleApiError } from '@/api/error-handler';
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -530,5 +538,51 @@ describe('useUpdateApiSetting and Scheduled Jobs (Story 17.6)', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['config', 'api'] });
     });
     expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['jobs'] });
+  });
+});
+
+describe('useSetModUpdateWebhook reports errors once (Story 21.4)', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    import.meta.env.VITE_API_KEY = 'test-api-key';
+    import.meta.env.VITE_API_BASE_URL = 'http://localhost:8080';
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('shows only the caller toast for a refused webhook', async () => {
+    const message = 'The webhook URL must be a Discord webhook.';
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ detail: { code: 'INVALID_WEBHOOK_URL', message } }),
+    });
+    // Built like the app's query client: its default mutation onError shows a toast
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false, onError: (error) => handleApiError(error) },
+      },
+    });
+    const { result } = renderHook(() => useSetModUpdateWebhook(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.mutate('https://example.invalid/hook', {
+        onError: (error) => {
+          toast.error('Update failed', { description: error.message });
+        },
+      });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Update failed', { description: message });
   });
 });

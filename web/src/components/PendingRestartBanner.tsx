@@ -5,9 +5,11 @@
  * - Shows when pendingRestart is true from mods endpoint
  * - Displays restart indicator with "Restart Now" button
  * - Loading state during restart
+ * - Story 21.4: a failed restart shows one error toast
  */
 
 import { RefreshCw, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useRestartServer } from '@/hooks/use-server-status';
 import { useModsPendingRestart } from '@/hooks/use-mods';
@@ -34,6 +36,10 @@ export function PendingRestartBanner({ onRestart }: PendingRestartBannerProps) {
     restart(undefined, {
       onSuccess: () => {
         onRestart?.();
+      },
+      // Story 21.4: useRestartServer leaves reporting errors to its callers
+      onError: (error) => {
+        toast.error('Failed to restart server', { description: error.message });
       },
     });
   };
