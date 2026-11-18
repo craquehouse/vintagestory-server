@@ -25,14 +25,19 @@
       "allowedVersions": "<11"
     },
     {
-      "description": "Move uv in the Dockerfile (ghcr.io/astral-sh/uv) and in .mise.toml (uv) in one pull request, so the image, development and CI use one uv (Epic 20 ADR-10). No release-age hold: GHCR gives no release timestamps, so a hold would keep the image half back for ever or let it open alone; the preset's one-day hold on mise tools exists for mise.lock, which this repository does not have. A uv update is tooling, not a release note: chore, with no breaking mark",
+      "description": "Move uv in the Dockerfile (ghcr.io/astral-sh/uv) and in .mise.toml (uv) in one pull request, so the image, development and CI use one uv (Epic 20 ADR-10). The preset holds the .mise.toml half for one day; GHCR gives no release timestamps, so the Dockerfile half is ready at once. The pull request therefore opens with the Dockerfile half only, and scripts/tests/test-docker-context.sh fails it until the .mise.toml half joins about a day later: that is expected, and it must not be merged before it holds both files and CI is green (Epic 21 ADR-2). A uv update is tooling, not a release note: chore, with no breaking mark",
       "matchDepNames": ["uv", "ghcr.io/astral-sh/uv"],
       "groupName": "uv",
       "groupSlug": "uv",
-      "minimumReleaseAge": null,
       "semanticCommitType": "chore",
       "semanticCommitScope": "uv",
       "commitMessagePrefix": "{{semanticCommitType}}({{semanticCommitScope}}):"
+    },
+    {
+      "description": "A new digest of a Dockerfile image under the same tag (a base image rebuild) is chore(container), not the preset's fix(container), so it adds no release note. A new tag is a patch, minor or major update and keeps the preset's fix or feat (Epic 21 ADR-3)",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "semanticCommitType": "chore"
     }
   ]
 }
