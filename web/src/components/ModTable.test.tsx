@@ -2615,6 +2615,10 @@ describe('ModTable', () => {
     };
     const ASCENDING = ['epsilonmod', 'gammamod', 'betamod', 'deltamod', 'alphamod'];
     const DESCENDING = [...ASCENDING].reverse();
+    const DIRECTIONS: { direction: 'asc' | 'desc'; expected: string[] }[] = [
+      { direction: 'asc', expected: ASCENDING },
+      { direction: 'desc', expected: DESCENDING },
+    ];
 
     beforeEach(() => {
       vi.stubGlobal(
@@ -2628,7 +2632,7 @@ describe('ModTable', () => {
     });
 
     function storeVersionSort(direction: 'asc' | 'desc') {
-      (getCookie as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      vi.mocked(getCookie).mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
@@ -2646,37 +2650,37 @@ describe('ModTable', () => {
     function rowSlugs(): string[] {
       return screen
         .getAllByTestId(/^mod-row-/)
-        .map((row) => row.getAttribute('data-testid')!.replace('mod-row-', ''));
+        .map((row) => (row.getAttribute('data-testid') ?? '').replace('mod-row-', ''));
     }
 
     function cardSlugs(): string[] {
       return screen
         .getAllByTestId(/^installed-mod-card-/)
-        .map((card) => card.getAttribute('data-testid')!.replace('installed-mod-card-', ''));
+        .map((card) => (card.getAttribute('data-testid') ?? '').replace('installed-mod-card-', ''));
     }
 
-    it.each([
-      { direction: 'asc' as const, expected: ASCENDING },
-      { direction: 'desc' as const, expected: DESCENDING },
-    ])('orders table rows by version $direction', async ({ direction, expected }) => {
-      storeVersionSort(direction);
-      renderTable();
+    it.each(DIRECTIONS)(
+      'orders table rows by version $direction',
+      async ({ direction, expected }) => {
+        storeVersionSort(direction);
+        renderTable();
 
-      await screen.findByTestId('mod-table');
-      expect(rowSlugs()).toEqual(expected);
-    });
+        await screen.findByTestId('mod-table');
+        expect(rowSlugs()).toEqual(expected);
+      }
+    );
 
-    it.each([
-      { direction: 'asc' as const, expected: ASCENDING },
-      { direction: 'desc' as const, expected: DESCENDING },
-    ])('orders cards by version $direction at phone width', async ({ direction, expected }) => {
-      storeVersionSort(direction);
-      setViewportWidth(390);
-      renderTable();
+    it.each(DIRECTIONS)(
+      'orders cards by version $direction at phone width',
+      async ({ direction, expected }) => {
+        storeVersionSort(direction);
+        setViewportWidth(390);
+        renderTable();
 
-      await screen.findByTestId('installed-mod-cards');
-      expect(cardSlugs()).toEqual(expected);
-    });
+        await screen.findByTestId('installed-mod-cards');
+        expect(cardSlugs()).toEqual(expected);
+      }
+    );
 
     it('sorts by version ascending, then descending, when the Version header is clicked', async () => {
       renderTable();

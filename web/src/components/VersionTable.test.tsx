@@ -76,7 +76,7 @@ const preReleaseVersions: VersionInfo[] = [
 function rowVersions(): string[] {
   return screen
     .getAllByTestId(/^version-table-row-/)
-    .map((row) => row.getAttribute('data-testid')!.replace('version-table-row-', ''));
+    .map((row) => (row.getAttribute('data-testid') ?? '').replace('version-table-row-', ''));
 }
 
 describe('VersionTable', () => {
