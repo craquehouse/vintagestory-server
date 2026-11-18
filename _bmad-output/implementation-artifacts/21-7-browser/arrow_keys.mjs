@@ -32,6 +32,7 @@
 
 import { createInterface } from 'node:readline';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { chromium, firefox } from '../../../web/node_modules/@playwright/test/index.mjs';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8080';
@@ -263,7 +264,7 @@ async function keyboard(name, width, cpu) {
     }),
   });
   writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`);
-  process.stderr.write(`Wrote ${attempts.length} attempts to ${file.pathname}\n`);
+  process.stderr.write(`Wrote ${attempts.length} attempts to ${fileURLToPath(file)}\n`);
 }
 
 const args = process.argv.slice(2);
