@@ -194,6 +194,35 @@ describe('QuickInstallButton', () => {
     });
   });
 
+  // Story 21.5: an update is offered only when the latest stable version is newer
+  describe('update offer by version precedence (Story 21.5)', () => {
+    function renderInstalled(installedVersion: string) {
+      render(
+        <QuickInstallButton
+          versions={mockVersions}
+          installedVersion={installedVersion}
+          isLoadingVersions={false}
+        />,
+        { wrapper: createWrapper(createTestQueryClient()) }
+      );
+    }
+
+    it.each(['1.22.0-pre.1', '1.21.10'])(
+      'does not offer the older stable 1.21.6 over %s',
+      (installedVersion) => {
+        renderInstalled(installedVersion);
+
+        expect(screen.queryByTestId('quick-install-button')).not.toBeInTheDocument();
+      }
+    );
+
+    it('offers 1.21.6 over its pre-release 1.21.6-pre.1', () => {
+      renderInstalled('1.21.6-pre.1');
+
+      expect(screen.getByTestId('quick-install-button')).toHaveTextContent('Update to 1.21.6');
+    });
+  });
+
   describe('loading states', () => {
     it('does not render when versions are loading', () => {
       const queryClient = createTestQueryClient();

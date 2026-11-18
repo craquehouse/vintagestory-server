@@ -27,6 +27,7 @@ import { QuickInstallButton } from '@/components/QuickInstallButton';
 import { useServerStatus, useInstallStatus, useUninstallServer } from '@/hooks/use-server-status';
 import { useVersions } from '@/hooks/use-versions';
 import { isServerInstalled } from '@/lib/server-utils';
+import { compareVersions } from '@/lib/version-compare';
 import type { ServerState, VersionInfo } from '@/api/types';
 
 /**
@@ -211,8 +212,9 @@ function InstalledVersionCard({
   onRemoveClick,
   isRemovePending = false,
 }: InstalledVersionCardProps) {
-  // Check if an update is available
-  const hasUpdate = version && availableStableVersion && version !== availableStableVersion;
+  // An update is available only when the latest stable version is newer (Story 21.5)
+  const hasUpdate =
+    version && availableStableVersion && compareVersions(availableStableVersion, version) > 0;
 
   // Story 13.7: Disable remove button during transitional states
   const isTransitional = ['starting', 'stopping', 'installing'].includes(state);

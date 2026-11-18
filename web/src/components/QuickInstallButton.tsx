@@ -6,7 +6,9 @@
  * Shows:
  * - "Install Latest Stable ({version})" when not installed
  * - "Update to {version}" when installed with update available
- * - Hidden when up to date or no versions available
+ * - Hidden when the installed version is the latest stable or newer (Story 21.5: by
+ *   version precedence, so an installed 1.22.0-rc.2 is not offered 1.21.9), or no
+ *   versions are available
  *
  * When server is running, shows confirmation dialog before proceeding.
  */
@@ -27,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useInstallServer } from '@/hooks/use-server-status';
+import { compareVersions } from '@/lib/version-compare';
 import type { VersionInfo, ServerState } from '@/api/types';
 
 interface QuickInstallButtonProps {
@@ -65,8 +68,13 @@ export function QuickInstallButton({
 
   const latestStable = versions.find((v) => v.channel === 'stable' && v.isLatest);
 
-  // Don't render if loading, no versions, no latest stable, or already up to date
-  if (isLoadingVersions || !latestStable || installedVersion === latestStable.version) {
+  // Don't render if loading, no versions, no latest stable, or the installed version is
+  // the latest stable or newer
+  if (
+    isLoadingVersions ||
+    !latestStable ||
+    (installedVersion !== null && compareVersions(latestStable.version, installedVersion) <= 0)
+  ) {
     return null;
   }
 
