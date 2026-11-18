@@ -29,7 +29,8 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - Version: at 320-430px the table fits without scrolling; Channel and Status are hidden and
  *   the channel, "Latest" and "Installed" show under the version; "Select" is 44px tall below
  *   1024px and 32px from 1024px.
- * - Console: at 320-430px its controls wrap, so the page does not scroll sideways.
+ * - Console: at 320-430px its controls wrap, so the page does not scroll sideways; its font
+ *   size buttons are 44 by 44px below 1024px and 28px from 1024px (review).
  *
  * Reads only. The installed mods, their update status and the compatibility lookups are
  * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), as are the
@@ -950,6 +951,13 @@ test.describe('Console header on phones (Story 21.7, AC 8)', () => {
       expect(await documentOverflow(page)).toBe(0);
       await expectInsideViewport(page, 'source-selector', width);
       await expectInsideViewport(page, 'console-font-increase', width);
+      // Story 21.7 review: the font size buttons are 44 by 44px below lg
+      for (const button of ['console-font-decrease', 'console-font-increase']) {
+        await expectInsideViewport(page, button, width);
+        const box = await boxOf(page.getByTestId(button), button);
+        expect(box.height, `${button} height at ${width}px`).toBeGreaterThanOrEqual(44);
+        expect(box.width, `${button} width at ${width}px`).toBeGreaterThanOrEqual(44);
+      }
       await expectInsideViewport(
         page,
         page.getByTestId('console-page').getByRole('button', { name: /restart/i }),
@@ -957,6 +965,18 @@ test.describe('Console header on phones (Story 21.7, AC 8)', () => {
       );
     });
   }
+});
+
+test('the console font size buttons are 28px from 1024px (Story 21.7 review)', async ({ page }) => {
+  await openPage(page, 1024, false, '/game-server/console');
+  await expect(page.getByTestId('console-panel')).toBeVisible({ timeout: 30_000 });
+
+  for (const button of ['console-font-decrease', 'console-font-increase']) {
+    const box = await boxOf(page.getByTestId(button), button);
+    expect(box.height, `${button} height`).toBe(28);
+    expect(box.width, `${button} width`).toBe(28);
+  }
+  expect(await documentOverflow(page)).toBe(0);
 });
 
 test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () => {
