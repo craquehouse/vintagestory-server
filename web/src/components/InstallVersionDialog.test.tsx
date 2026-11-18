@@ -99,17 +99,23 @@ describe('getActionType', () => {
     expect(getActionType('1.20.0', '1.21.6')).toBe('downgrade');
   });
 
-  it('handles pre-release versions with string comparison', () => {
-    // Note: Simple string comparison is used per ADR-1 (keep it simple)
-    // String sort: "1.21.6" < "1.21.6-pre.1" (empty suffix < "-pre.1")
-    // This means going from 1.21.6-pre.1 to 1.21.6 is treated as downgrade
-    // (even though semantically 1.21.6 is newer than 1.21.6-pre.1)
-    // This edge case is acceptable per Dev Notes
-    expect(getActionType('1.21.6', '1.21.6-pre.1')).toBe('downgrade');
-    expect(getActionType('1.21.6-pre.1', '1.21.6')).toBe('upgrade');
+  it('orders pre-releases before their release', () => {
+    expect(getActionType('1.21.6', '1.21.6-pre.1')).toBe('upgrade');
+    expect(getActionType('1.21.6-pre.1', '1.21.6')).toBe('downgrade');
     // More typical pre-release comparisons work correctly
     expect(getActionType('1.22.0-pre.1', '1.21.6')).toBe('upgrade');
     expect(getActionType('1.21.6', '1.22.0-pre.1')).toBe('downgrade');
+  });
+
+  // Story 21.5: Semantic Versioning precedence, not string comparison
+  it.each([
+    ['1.21.10', '1.21.9', 'upgrade'],
+    ['1.21.9', '1.21.10', 'downgrade'],
+    ['1.21.6', '1.21.6-pre.1', 'upgrade'],
+    ['1.21.6-pre.1', '1.21.6', 'downgrade'],
+    ['1.22.0-rc.12', '1.22.0-rc.2', 'upgrade'],
+  ])('moving to %s from %s is a(n) %s', (target, installed, expected) => {
+    expect(getActionType(target, installed)).toBe(expected);
   });
 });
 
@@ -212,6 +218,23 @@ describe('InstallVersionDialog', () => {
 
       expect(screen.getByTestId('dialog-title')).toHaveTextContent('Reinstall Server Version');
       expect(screen.getByTestId('confirm-button')).toHaveTextContent('Reinstall');
+    });
+
+    it('shows "Upgrade" for 1.21.10 over 1.21.9, with no downgrade warning (Story 21.5)', () => {
+      render(
+        <InstallVersionDialog
+          {...getDefaultProps({
+            version: { ...mockVersion, version: '1.21.10' },
+            installedVersion: '1.21.9',
+            serverState: 'installed',
+          })}
+        />,
+        { wrapper: createWrapper() }
+      );
+
+      expect(screen.getByTestId('dialog-title')).toHaveTextContent('Upgrade Server Version');
+      expect(screen.getByTestId('confirm-button')).toHaveTextContent('Upgrade');
+      expect(screen.queryByTestId('downgrade-warning')).not.toBeInTheDocument();
     });
 
     it('shows "Downgrade" when selecting older version', () => {

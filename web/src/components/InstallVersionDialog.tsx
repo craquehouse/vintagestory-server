@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { useInstallServer, useInstallStatus } from '@/hooks/use-server-status';
 import type { VersionInfo, ServerState, InstallStatus } from '@/api/types';
+import { compareVersions } from '@/lib/version-compare';
 
 /**
  * Props for the InstallVersionDialog component.
@@ -52,7 +53,9 @@ export interface InstallVersionDialogProps {
 export type ActionType = 'install' | 'upgrade' | 'reinstall' | 'downgrade';
 
 /**
- * Determines the action type based on target and installed versions.
+ * Determines the action type based on target and installed versions. Upgrade or
+ * downgrade follows Semantic Versioning precedence (`compareVersions`, Story 21.5), so
+ * 1.21.10 is newer than 1.21.9 and 1.21.6 is newer than 1.21.6-pre.1.
  *
  * @param targetVersion - Version to install
  * @param installedVersion - Currently installed version (null if not installed)
@@ -61,9 +64,7 @@ export type ActionType = 'install' | 'upgrade' | 'reinstall' | 'downgrade';
 export function getActionType(targetVersion: string, installedVersion: string | null): ActionType {
   if (!installedVersion) return 'install';
   if (targetVersion === installedVersion) return 'reinstall';
-  // Simple string comparison works for VintageStory versions
-  // because they follow semantic-like patterns (e.g., "1.21.6", "1.20.0-pre.1")
-  return targetVersion > installedVersion ? 'upgrade' : 'downgrade';
+  return compareVersions(targetVersion, installedVersion) > 0 ? 'upgrade' : 'downgrade';
 }
 
 /**
