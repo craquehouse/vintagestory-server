@@ -2587,4 +2587,107 @@ describe('ModTable', () => {
       expect(toast.error).toHaveBeenCalledWith('Error', { description: BUSY });
     });
   });
+
+  describe('version sort (Story 21.5)', () => {
+    // Name order (alpha, beta, delta, epsilon, gamma) differs from version order
+    const versionModsResponse = {
+      status: 'ok',
+      data: {
+        mods: [
+          ['alphamod', 'Alpha Mod', '1.10.0'],
+          ['betamod', 'Beta Mod', '1.0.0'],
+          ['gammamod', 'Gamma Mod', '1.0.0-rc.12'],
+          ['deltamod', 'Delta Mod', '1.9.0'],
+          ['epsilonmod', 'Epsilon Mod', '1.0.0-rc.2'],
+        ].map(([slug, name, version]) => ({
+          filename: `${slug}-${version}.zip`,
+          slug,
+          version,
+          enabled: true,
+          installedAt: '2024-01-15T10:30:00Z',
+          assetId: 1,
+          name,
+          authors: [],
+          description: null,
+        })),
+        pendingRestart: false,
+      },
+    };
+    const ASCENDING = ['epsilonmod', 'gammamod', 'betamod', 'deltamod', 'alphamod'];
+    const DESCENDING = [...ASCENDING].reverse();
+
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(versionModsResponse) })
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function storeVersionSort(direction: 'asc' | 'desc') {
+      (getCookie as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+        JSON.stringify({
+          theme: 'system',
+          consoleFontSize: 14,
+          sidebarCollapsed: false,
+          gameServerNavExpanded: true,
+          installedModsSort: { column: 'version', direction },
+        })
+      );
+    }
+
+    function renderTable() {
+      return render(<ModTable />, { wrapper: createWrapper(createTestQueryClient()) });
+    }
+
+    function rowSlugs(): string[] {
+      return screen
+        .getAllByTestId(/^mod-row-/)
+        .map((row) => row.getAttribute('data-testid')!.replace('mod-row-', ''));
+    }
+
+    function cardSlugs(): string[] {
+      return screen
+        .getAllByTestId(/^installed-mod-card-/)
+        .map((card) => card.getAttribute('data-testid')!.replace('installed-mod-card-', ''));
+    }
+
+    it.each([
+      { direction: 'asc' as const, expected: ASCENDING },
+      { direction: 'desc' as const, expected: DESCENDING },
+    ])('orders table rows by version $direction', async ({ direction, expected }) => {
+      storeVersionSort(direction);
+      renderTable();
+
+      await screen.findByTestId('mod-table');
+      expect(rowSlugs()).toEqual(expected);
+    });
+
+    it.each([
+      { direction: 'asc' as const, expected: ASCENDING },
+      { direction: 'desc' as const, expected: DESCENDING },
+    ])('orders cards by version $direction at phone width', async ({ direction, expected }) => {
+      storeVersionSort(direction);
+      setViewportWidth(390);
+      renderTable();
+
+      await screen.findByTestId('installed-mod-cards');
+      expect(cardSlugs()).toEqual(expected);
+    });
+
+    it('sorts by version ascending, then descending, when the Version header is clicked', async () => {
+      renderTable();
+      await screen.findByTestId('mod-table');
+      expect(rowSlugs()).toEqual(['alphamod', 'betamod', 'deltamod', 'epsilonmod', 'gammamod']);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(rowSlugs()).toEqual(ASCENDING);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Version' }));
+      expect(rowSlugs()).toEqual(DESCENDING);
+    });
+  });
 });

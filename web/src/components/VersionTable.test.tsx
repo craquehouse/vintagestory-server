@@ -44,6 +44,41 @@ const mockVersions: VersionInfo[] = [
   },
 ];
 
+/** A version row for the Story 21.5 tests. */
+function versionInfo(
+  version: string,
+  channel: VersionInfo['channel'],
+  isLatest = false,
+  filesize = '40.0 MB'
+): VersionInfo {
+  return {
+    version,
+    filename: `vs_server_linux-x64_${version}.tar.gz`,
+    filesize,
+    md5: 'abc123',
+    cdnUrl: `https://cdn.example.com/${version}`,
+    localUrl: `/local/${version}`,
+    isLatest,
+    channel,
+  };
+}
+
+// Story 21.5: pre-releases with one- and two-digit numbers, and a two-digit patch part
+const preReleaseVersions: VersionInfo[] = [
+  versionInfo('1.21.9', 'stable'),
+  versionInfo('1.22.0-rc.1', 'unstable'),
+  versionInfo('1.22.0', 'stable', true),
+  versionInfo('1.22.0-rc.12', 'unstable', true),
+  versionInfo('1.21.10', 'stable'),
+  versionInfo('1.22.0-rc.2', 'unstable'),
+];
+
+function rowVersions(): string[] {
+  return screen
+    .getAllByTestId(/^version-table-row-/)
+    .map((row) => row.getAttribute('data-testid')!.replace('version-table-row-', ''));
+}
+
 describe('VersionTable', () => {
   it('renders table with version data', () => {
     render(<VersionTable versions={mockVersions} />);
@@ -204,6 +239,38 @@ describe('VersionTable', () => {
       const firstRowChannel = within(rows[0]).getByTestId(/version-table-channel/);
       expect(firstRowChannel).toHaveTextContent('Stable');
     });
+
+    it('orders pre-releases before their release, newest first by default (Story 21.5)', () => {
+      render(<VersionTable versions={preReleaseVersions} />);
+
+      expect(rowVersions()).toEqual([
+        '1.22.0',
+        '1.22.0-rc.12',
+        '1.22.0-rc.2',
+        '1.22.0-rc.1',
+        '1.21.10',
+        '1.21.9',
+      ]);
+    });
+
+    it('sorts versions ascending after two clicks on Version (Story 21.5)', async () => {
+      const user = userEvent.setup();
+      render(<VersionTable versions={preReleaseVersions} />);
+
+      const versionHeader = screen.getByTestId('version-table-header-version');
+      // From the default (descending) one click removes the sort, the next sorts ascending
+      await user.click(versionHeader);
+      await user.click(versionHeader);
+
+      expect(rowVersions()).toEqual([
+        '1.21.9',
+        '1.21.10',
+        '1.22.0-rc.1',
+        '1.22.0-rc.2',
+        '1.22.0-rc.12',
+        '1.22.0',
+      ]);
+    });
   });
 
   describe('responsive column hiding', () => {
@@ -242,6 +309,19 @@ describe('VersionTable', () => {
       // 1.19.8 is older, should not be highlighted
       const olderRow = screen.getByTestId('version-table-row-1.19.8');
       expect(olderRow.className).not.toMatch(/bg-primary/);
+    });
+
+    it('marks pre-releases with higher numbers as newer (Story 21.5)', () => {
+      render(<VersionTable versions={preReleaseVersions} installedVersion="1.22.0-rc.2" />);
+
+      for (const newer of ['1.22.0-rc.12', '1.22.0']) {
+        expect(screen.getByTestId(`version-table-row-${newer}`).className).toMatch(/bg-primary/);
+      }
+      for (const notNewer of ['1.22.0-rc.2', '1.22.0-rc.1', '1.21.10']) {
+        expect(screen.getByTestId(`version-table-row-${notNewer}`).className).not.toMatch(
+          /bg-primary/
+        );
+      }
     });
 
     it('does not highlight any versions when not installed', () => {

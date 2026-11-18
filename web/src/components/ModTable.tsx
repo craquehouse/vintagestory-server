@@ -74,6 +74,7 @@ import {
 } from '@/hooks/use-mods';
 import { usePreferences, type InstalledModsSort } from '@/contexts/PreferencesContext';
 import type { ModInfo } from '@/api/types';
+import { compareVersions } from '@/lib/version-compare';
 
 interface ModTableProps {
   /** Callback when a mod is successfully removed */
@@ -301,6 +302,7 @@ export function ModTable({ onRemoved, onToggled }: ModTableProps) {
             />
           ),
           cell: ({ getValue }) => <span className="text-muted-foreground">v{getValue()}</span>,
+          sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version),
         }),
         columnHelper.display({
           id: 'available',

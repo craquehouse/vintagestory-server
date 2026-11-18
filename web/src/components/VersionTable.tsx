@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { compareVersions } from '@/lib/version-compare';
 import type { VersionInfo, VersionChannel } from '@/api/types';
 
 interface VersionTableProps {
@@ -66,39 +67,6 @@ const channelStyles: Record<VersionChannel, { label: string; className: string }
     className: 'text-warning border-warning/30 bg-warning/10',
   },
 };
-
-/**
- * Compare two version strings semantically.
- * Handles versions like "1.20.0", "1.19.8", "1.20.1-rc.1".
- *
- * @returns negative if a < b, positive if a > b, 0 if equal
- */
-function compareVersions(a: string, b: string): number {
-  // Split into main version and prerelease suffix
-  const [aMain, aPrerelease] = a.split('-');
-  const [bMain, bPrerelease] = b.split('-');
-
-  // Compare main version parts numerically
-  const aParts = aMain.split('.').map(Number);
-  const bParts = bMain.split('.').map(Number);
-
-  for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-    const aPart = aParts[i] ?? 0;
-    const bPart = bParts[i] ?? 0;
-    if (aPart !== bPart) {
-      return aPart - bPart;
-    }
-  }
-
-  // If main versions are equal, handle prerelease
-  // No prerelease > prerelease (1.20.0 > 1.20.0-rc.1)
-  if (!aPrerelease && bPrerelease) return 1;
-  if (aPrerelease && !bPrerelease) return -1;
-  if (!aPrerelease && !bPrerelease) return 0;
-
-  // Both have prerelease, compare alphabetically
-  return aPrerelease.localeCompare(bPrerelease);
-}
 
 /**
  * Extended version info with computed isNewer flag for table rows.
@@ -158,7 +126,7 @@ function createColumns(onVersionSelect?: (version: string) => void) {
           </span>
         );
       },
-      sortFn: 'alphanumeric',
+      sortFn: (rowA, rowB) => compareVersions(rowA.original.version, rowB.original.version),
     }),
     columnHelper.accessor('channel', {
       header: 'Channel',
