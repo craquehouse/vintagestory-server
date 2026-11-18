@@ -1,0 +1,1356 @@
+{
+  "widths": [
+    {
+      "width": 320,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "table-container:362/256"
+          ],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "362/256",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/238"
+          ],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "console": {
+          "documentOverflowX": 170,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/238"
+              ],
+              "layout": "table",
+              "tableContainer": "626/238"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 390,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "table-container:362/326"
+          ],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "362/326",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/308"
+          ],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "console": {
+          "documentOverflowX": 100,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/308"
+              ],
+              "layout": "table",
+              "tableContainer": "626/308"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 430,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "366/366",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/348"
+          ],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "console": {
+          "documentOverflowX": 60,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/348"
+              ],
+              "layout": "table",
+              "tableContainer": "626/348"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 768,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "528/528",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/510"
+          ],
+          "content": [
+            160,
+            768,
+            608
+          ]
+        },
+        "console": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            768,
+            608
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            160,
+            768,
+            608
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/510"
+              ],
+              "layout": "table",
+              "tableContainer": "626/510"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1023,
+      "sidebar": "expanded",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "783/783",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/765"
+          ],
+          "content": [
+            160,
+            1023,
+            863
+          ]
+        },
+        "console": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            160,
+            1023,
+            863
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            160,
+            1023,
+            863
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "layout": "table",
+              "tableContainer": "765/765"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 320,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "table-container:362/256"
+          ],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "362/256",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/238"
+          ],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "console": {
+          "documentOverflowX": 170,
+          "scrolling": [],
+          "content": [
+            0,
+            320,
+            320
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            320,
+            320
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/238"
+              ],
+              "layout": "table",
+              "tableContainer": "626/238"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 390,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "table-container:362/326"
+          ],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "362/326",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/308"
+          ],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "console": {
+          "documentOverflowX": 100,
+          "scrolling": [],
+          "content": [
+            0,
+            390,
+            390
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            390,
+            390
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/308"
+              ],
+              "layout": "table",
+              "tableContainer": "626/308"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 430,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "366/366",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/348"
+          ],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "console": {
+          "documentOverflowX": 60,
+          "scrolling": [],
+          "content": [
+            0,
+            430,
+            430
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 66,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            0,
+            430,
+            430
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/348"
+              ],
+              "layout": "table",
+              "tableContainer": "626/348"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 768,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "624/624",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [
+            "PRE:791/606"
+          ],
+          "content": [
+            64,
+            768,
+            704
+          ]
+        },
+        "console": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            768,
+            704
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            64,
+            768,
+            704
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [
+                "table-container:626/606"
+              ],
+              "layout": "table",
+              "tableContainer": "626/606"
+            }
+          }
+        }
+      }
+    },
+    {
+      "width": 1023,
+      "sidebar": "collapsed",
+      "pages": {
+        "dashboard": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ]
+        },
+        "version": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "channel-filter-all": 29,
+              "channel-filter-stable": 29,
+              "channel-filter-unstable": 29
+            }
+          },
+          "layout": "table",
+          "tableContainer": "879/879",
+          "selectButton": 32
+        },
+        "gameSettings": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ]
+        },
+        "modsInstalled": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          },
+          "layout": "cards"
+        },
+        "modsBrowse": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ],
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "installed-tab": 29,
+              "browse-tab": 29
+            }
+          }
+        },
+        "modDetail": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ]
+        },
+        "console": {
+          "documentOverflowX": 0,
+          "scrolling": [],
+          "content": [
+            64,
+            1023,
+            959
+          ]
+        },
+        "settings": {
+          "tabs": {
+            "list": 36,
+            "triggers": {
+              "ui-preferences-tab": 30,
+              "api-settings-tab": 30,
+              "file-manager-tab": 30,
+              "scheduled-jobs-tab": 30
+            }
+          },
+          "content": [
+            64,
+            1023,
+            959
+          ],
+          "panels": {
+            "ui-preferences": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "api-settings": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "file-manager": {
+              "documentOverflowX": 0,
+              "scrolling": []
+            },
+            "scheduled-jobs": {
+              "documentOverflowX": 0,
+              "scrolling": [],
+              "layout": "table",
+              "tableContainer": "861/861"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
