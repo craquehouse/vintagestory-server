@@ -736,10 +736,10 @@ describe('ModTable', () => {
       });
 
       // Click the Name header to sort
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
       expect(nameHeader).toBeInTheDocument();
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       // Verify sorting indicators appear (ChevronUp or ChevronDown)
       await waitFor(() => {
@@ -762,10 +762,10 @@ describe('ModTable', () => {
       });
 
       // Click the Version header to sort
-      const versionHeader = screen.getByText('Version').closest('button');
+      const versionHeader = screen.getByRole('button', { name: 'Version' });
       expect(versionHeader).toBeInTheDocument();
 
-      fireEvent.click(versionHeader!);
+      fireEvent.click(versionHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -787,10 +787,10 @@ describe('ModTable', () => {
       });
 
       // Click the Status header to sort
-      const statusHeader = screen.getByText('Status').closest('button');
+      const statusHeader = screen.getByRole('button', { name: 'Status' });
       expect(statusHeader).toBeInTheDocument();
 
-      fireEvent.click(statusHeader!);
+      fireEvent.click(statusHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -811,13 +811,13 @@ describe('ModTable', () => {
         expect(screen.getByText('Name')).toBeInTheDocument();
       });
 
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
 
       // Click once for asc
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       // Click again for desc
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -840,16 +840,16 @@ describe('ModTable', () => {
 
       const rowIds = () =>
         screen.getAllByTestId(/^mod-row-/).map((row) => row.getAttribute('data-testid'));
-      const nameHeader = screen.getByText('Name').closest('button');
+      const nameHeader = screen.getByRole('button', { name: 'Name' });
 
       expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
       await waitFor(() => {
         expect(rowIds()).toEqual(['mod-row-smithingplus', 'mod-row-carrycapacity']);
       });
 
-      fireEvent.click(nameHeader!);
+      fireEvent.click(nameHeader);
       await waitFor(() => {
         expect(rowIds()).toEqual(['mod-row-carrycapacity', 'mod-row-smithingplus']);
       });
@@ -920,8 +920,8 @@ describe('ModTable', () => {
       });
 
       // Mods should be sortable by enabled status
-      const statusHeader = screen.getByText('Status').closest('button');
-      fireEvent.click(statusHeader!);
+      const statusHeader = screen.getByRole('button', { name: 'Status' });
+      fireEvent.click(statusHeader);
 
       await waitFor(() => {
         const rows = screen.getAllByTestId(/^mod-row-/);
@@ -1598,7 +1598,7 @@ describe('ModTable', () => {
   describe('sorting preferences (VSS-g54)', () => {
     it('initializes sort state from preferences cookie', async () => {
       // Mock a cookie with version sort preference
-      const mockGetCookie = getCookie as ReturnType<typeof vi.fn>;
+      const mockGetCookie = vi.mocked(getCookie);
       mockGetCookie.mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
@@ -1626,7 +1626,7 @@ describe('ModTable', () => {
     });
 
     it('initializes with enabled sort preference', async () => {
-      const mockGetCookie = getCookie as ReturnType<typeof vi.fn>;
+      const mockGetCookie = vi.mocked(getCookie);
       mockGetCookie.mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
@@ -1936,7 +1936,7 @@ describe('ModTable', () => {
     function cardSlugs(): string[] {
       return screen
         .getAllByTestId(/^installed-mod-card-/)
-        .map((card) => card.getAttribute('data-testid')!.replace('installed-mod-card-', ''));
+        .map((card) => (card.getAttribute('data-testid') ?? '').replace('installed-mod-card-', ''));
     }
 
     it('renders one card per mod and no table', async () => {
@@ -2037,7 +2037,9 @@ describe('ModTable', () => {
       const card = await screen.findByTestId('installed-mod-card-carrycapacity');
       const label = card.querySelector('label');
       expect(label).toHaveTextContent('Disabled');
-      fireEvent.click(label!.querySelector('span')!);
+      const labelText = label?.querySelector('span');
+      if (!labelText) throw new Error('No text span in the toggle label');
+      fireEvent.click(labelText);
 
       await waitFor(() => {
         const call = mockFetch.mock.calls.find(([, options]) => options?.method === 'POST');
@@ -2141,7 +2143,7 @@ describe('ModTable', () => {
     });
 
     it('follows a stored sort preference', async () => {
-      (getCookie as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      vi.mocked(getCookie).mockReturnValueOnce(
         JSON.stringify({
           theme: 'system',
           consoleFontSize: 14,
