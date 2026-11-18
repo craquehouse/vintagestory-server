@@ -1,6 +1,6 @@
 # Story 21.8: Sidebar Default and Content Width
 
-Status: ready-for-dev
+Status: review
 
 <!-- Implements FR284-FR285. Beads: VSS-w85 (UI-090), VSS-alx (UI-088), parent VSS-syuj. Governed by Epic 21 ADR-14 (sidebar preference) and ADR-15 (1280px content width), both accepted by the maintainer (Matt, 2026-11-17, answers 6 and 7). Last story of Epic 21, stacked on Story 21.7 (which is stacked on 21.1 to 21.6). Line references are to 966204f (branch epic-21-planning, before any Epic 21 story): Story 21.1 reformats about 231 web files with Prettier (single quotes, width 100), 21.5 changes `ui/sheet.tsx`, 21.6 changes `layout/Sidebar.tsx:208-216`, 21.7 changes `ui/tabs.tsx`, `VersionTable.tsx`, `JobsTable.tsx` and `e2e/layout-widths.spec.ts`. Re-check every cited line before editing. Web only: no API change, no new dependency. -->
 
@@ -122,9 +122,9 @@ so that **content has room at tablet widths and stays readable on large monitors
   - [x] 5.6: Fill "UX notes: what the spec asked and what was built" in the Dev Agent Record from the template in Dev Notes, with the measured numbers. Commit the spec, the README, the "after" file and the story notes: `test(story-21.8/task-5): check page widths at 1440, 1920 and 2560px`
 
 - [ ] Task 6: Quality gate and review hand-off (AC: all)
-  - [ ] 6.1: `just check` passes (lint with the Prettier check of Story 21.1, typecheck with the E2E project, all tests; 0 skipped web tests added). `git status --short` shows nothing under `dev/`. The diff has no `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, no new `as` assertion and no `nosemgrep`
-  - [ ] 6.2: `git log --oneline <base>..HEAD` shows exactly two `feat`/`fix`/`perf` subjects, the two the change proposal lists (section 2): `collapse the sidebar by default on tablet-sized screens` and `limit page width to 1280px on wide screens`. `just changelog` shows both under Features and nothing else from this story
-  - [ ] 6.3: Complete the Dev Agent Record: every completion note checked against the code as committed, the File List, the before/after table
+  - [x] 6.1: `just check` passes (lint with the Prettier check of Story 21.1, typecheck with the E2E project, all tests; 0 skipped web tests added). `git status --short` shows nothing under `dev/`. The diff has no `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, no new `as` assertion and no `nosemgrep`
+  - [x] 6.2: `git log --oneline <base>..HEAD` shows exactly two `feat`/`fix`/`perf` subjects, the two the change proposal lists (section 2): `collapse the sidebar by default on tablet-sized screens` and `limit page width to 1280px on wide screens`. `just changelog` shows both under Features and nothing else from this story
+  - [x] 6.3: Complete the Dev Agent Record: every completion note checked against the code as committed, the File List, the before/after table
   - [ ] 6.4: Story status `review`, `just sprint set 21-8-sidebar-default-and-content-width review`, PR against Story 21.7's branch while its PR is open, otherwise `main`. The PR description says: no API contract change; the `vs_ui_prefs` cookie's new `sidebar` key and the migration of `sidebarCollapsed`; what existing users see (Dev Notes "What existing users see"); the Story 18.4 AC 6 change (a 63-character mod name now wraps at every width); the `GameServerPage` finding; the Follow-ups
   - [ ] 6.5: Close `VSS-w85` and `VSS-alx`, each with an AAR first (`bd comments add`, then `bd close`, then `bd sync`; abbreviated AAR for the size-s `VSS-w85`, full AAR for the size-m `VSS-alx`), once the PR is merged or as the maintainer directs
 
@@ -431,9 +431,33 @@ The dev adds the measured rows (1440, 1920, 2560px, both states) under the table
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5), BMAD dev-story, non-interactive.
+
 ### Debug Log References
 
+- Red runs: Task 1 (`sidebar-preference.test.ts` could not import the module), Task 2 (55 failing tests in the six files, including the Layout sheet test, which confirmed the planning finding that the sheet drew the icon-only sidebar), Task 4 (the four changed test files could not import `@/components/layout/content-width`).
+- E2E S6 first asserted the sheet's `aside` at 256px; measured 255px, because `SheetContent` (256px) has a 1px right border. The test now asserts the dialog at 256px and the `aside` at 255px or more.
+- The new Story 21.8 E2E tests end quickly, while `pretendServerInstalled`'s `route.fetch` of `/server/status` can still be in flight ("route.fetch: Test ended", reported as errors outside any test). Both new describes call `page.unrouteAll({ behavior: 'ignoreErrors' })` in `afterEach`, as Playwright's message advises; no other spec changed.
+- The rewritten Story 18.4 long-name tests first kept the Available cell's one-line check, as Dev Notes said; it failed at 1440px collapsed and 1920px. A probe (not committed) measured the long-named row at 1440px expanded, a 1232px table this story does not change: there too the Update button sits under the offered version (the Available cell is 56px tall and the button starts 24px below its top). So the two-line Available cell is the existing behaviour of any table 1280px wide or narrower with that name, not a regression; the tests assert that the Update button is inside the viewport instead (see Completion Notes, deviations).
+
 ### Completion Notes List
+
+- `web/src/lib/sidebar-preference.ts`: `SidebarPreference`, `SIDEBAR_PREFERENCES`, `isSidebarPreference` (by `some`, no assertion), `readSidebarPreference` (a valid `sidebar` wins; else only the boolean `sidebarCollapsed: true` is `collapsed`; everything else `auto`) and `isSidebarCollapsed` (`auto` collapsed below `lg`). 27 unit tests.
+- `PreferencesContext`: `sidebar: SidebarPreference` (default `auto`) replaces `sidebarCollapsed`; `setSidebarPreference` replaces `setSidebarCollapsed`. `loadPreferences` parses the cookie as `unknown` and returns the defaults when it is not a non-null, non-array object (local `isRecord` guard; none existed in `web/src`), so `null`, numbers, strings and arrays no longer rely on a throw. The old key is not written back: the provider serializes the five `UserPreferences` keys on the first render.
+- `SidebarContext`: `isCollapsed = isSidebarCollapsed(preferences.sidebar, useMediaQuery(LG_UP_QUERY))`; the toggle stores the opposite of what is shown (`expanded` or `collapsed`), never `auto`. The context's shape is unchanged. A resize with `auto` writes no cookie.
+- `Sidebar`: `inSheet` shows the full sidebar (logo, labels, sub-items, version) and no toggle; the toggle has `aria-label` "Collapse sidebar" / "Expand sidebar" and `data-testid="sidebar-toggle"`; its visible "Collapse" text stays. `Layout` renders `<Sidebar inSheet />` in the phone sheet and gives the fixed sidebar's container `data-testid="desktop-sidebar"`.
+- UI Preferences > Layout: "Sidebar" label, a `role="group"` row (`aria-labelledby`, `flex flex-wrap gap-2`) of Automatic, Expanded, Collapsed buttons (`aria-pressed`, `sidebar-auto|expanded|collapsed`) and the help text from Dev Notes. It shows the stored value. The 320/390/430px no-sideways-scroll tests on `/config` pass.
+- Content width: `web/src/components/layout/content-width.ts` holds `PAGE_CONTENT_WIDTH = 'mx-auto max-w-[1280px]'` and `FULL_WIDTH_ROUTES = ['/game-server/console']` (its doc comment says a page that shows the console and gets a route belongs there; it does not mention `GameServerPage`). `Layout` wraps the children in `page-content` inside the `p-4 md:p-6` div, with the class unless `matchPath` matches a full-width route (`/game-server/console` and `/game-server/console/`, not `/game-server/consolex`). `grep -rn "max-w-\[1280px\]" web/src | grep -v "\.test\."` finds that one line. Game Settings (`SettingsPage`, `GameConfigPanel`) import the constant and keep their wrappers; `features/game-server/content-width.ts` and its test are gone (the test moved and was extended).
+- `GameServerPage.tsx`, its test (414 lines) and its export from `features/game-server/index.ts` are deleted (Task 4.6, maintainer decision); nothing else used it (no helper, fixture or CSS of its own). Its commit body says the page had no route "since Story 11.5"; `git log -S` shows the route was removed in Story 11.1 (`6d0f3203`). The commit was not amended (no amend in this session).
+- Measured (Task 5.1): every page-content box matches Dev Notes "Expected numbers" to the pixel at 1024 to 2560px in both states; the console panel is unchanged (1712/1808px at 1920px); the header bar still spans from the sidebar to the window's edge; four 308px browse columns at 1920px; the mod detail page keeps its position. See "UX notes" below.
+- Finding (no change made): Game Settings has its own `p-4 lg:p-6` inside the page content, so where the content is capped its panel (`game-config-layout`) is 1232px wide, 48px narrower than before at 1920 and 2560px (it was itself capped at 1280px there). Its title and badge still line up with the panel (the Story 17.8 tests at 1024 to 1920px pass unchanged). The other pages have no padding of their own at that level. Follow-up 4.
+- Deviations from the story: (1) the rewritten Story 18.4 long-name tests do not keep the Available cell's one-line check (Debug Log); they assert no sideways scroll, the toggle, the remove button and the Update button inside the viewport, and the name taller than Off Mod's. The short-name one-line tests at 1280, 1440 and 1920px pass unchanged. (2) S6 measures the sheet (256px) and its `aside` (at least 255px), because of the sheet's 1px border. (3) the two new E2E describes unroute in `afterEach`. (4) the ModTable fixtures: five carried `sidebarCollapsed: false` after Story 21.7 (the story listed four); all five now say `sidebar: 'auto'`. (5) `PreferencesContext.test.tsx` covers `setSidebarPreference` with one `it.each` over the three values instead of keeping the two-test describe.
+- Tests: web unit 3553 passed in 136 files (3559 after Task 2, before `GameServerPage.test.tsx` was deleted with its 17 tests and the Task 4 tests added), 0 skipped; API 3458 passed. E2E: `layout-widths.spec.ts` 127 passed (11 sidebar tests S1 to S6, 13 wide-screen tests W1 to W4, 3 rewritten long-name tests); with `settings-desktop-layout`, `installed-mods-phone`, `terminal` and `content-security-policy` 150 passed on the rebuilt dev stack; `just test-e2e-ci` 210 untagged + 27 `@moddb` + 3 API E2E passed. The README now says 241 tests, 237 in CI, 210 untagged.
+- `just check` passed: ruff, Prettier, Pyright 0 errors / 0 warnings (API and scripts), `tsc` with the E2E project, all tests, script tests. `git status --short` shows nothing under `dev/`. No `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, `nosemgrep` or new `as` assertion in the diff.
+- Release notes: `just changelog` lists exactly this story's two subjects under Features: "Collapse the sidebar by default on tablet-sized screens" and "Limit page width to 1280px on wide screens".
+- API contract: none changed. Browser storage: the `vs_ui_prefs` cookie gains `sidebar` (`auto`, `expanded`, `collapsed`); `sidebarCollapsed` is read once for migration and no longer written.
+- Left for the maintainer: Task 5.5 (manual browser check, unticked), Task 6.4's PR and Task 6.5's bead closing (not done in this session, by the controller's instruction); the story is in `review` and `sprint-status.yaml` says `review`.
+- Follow-ups: (4) Game Settings panel 1232px inside the capped content (above). Follow-ups 2 and 3 in Dev Notes stand.
 
 ### UX notes: what the spec asked and what was built
 
@@ -471,6 +495,36 @@ Every row matches Dev Notes "Expected numbers" exactly (0px difference). Other m
 
 ### File List
 
+New:
+- `web/src/lib/sidebar-preference.ts`
+- `web/src/lib/sidebar-preference.test.ts`
+- `web/src/components/layout/content-width.ts`
+- `web/src/components/layout/content-width.test.ts` (moved from `features/game-server/`)
+- `_bmad-output/implementation-artifacts/21-8-browser/content_widths.mjs`
+- `_bmad-output/implementation-artifacts/21-8-browser/content_widths.before.json`
+- `_bmad-output/implementation-artifacts/21-8-browser/content_widths.after.json`
+
+Modified:
+- `web/src/contexts/PreferencesContext.tsx`, `web/src/contexts/PreferencesContext.test.tsx`
+- `web/src/contexts/SidebarContext.tsx`, `web/src/contexts/SidebarContext.test.tsx`
+- `web/src/components/layout/Sidebar.tsx`, `web/src/components/layout/Sidebar.test.tsx`
+- `web/src/components/layout/Layout.tsx`, `web/src/components/layout/Layout.test.tsx`
+- `web/src/features/settings/UIPreferencesPanel.tsx`, `web/src/features/settings/UIPreferencesPanel.test.tsx`
+- `web/src/features/game-server/SettingsPage.tsx`, `web/src/features/game-server/SettingsPage.test.tsx`
+- `web/src/features/game-server/GameConfigPanel.tsx`, `web/src/features/game-server/GameConfigPanel.test.tsx`
+- `web/src/features/game-server/index.ts`
+- `web/src/components/ModTable.test.tsx` (cookie fixtures)
+- `web/e2e/layout-widths.spec.ts`
+- `web/e2e/README.md`
+- `_bmad-output/implementation-artifacts/21-8-sidebar-default-and-content-width.md`
+
+Deleted:
+- `web/src/features/game-server/content-width.ts`
+- `web/src/features/game-server/content-width.test.ts` (moved)
+- `web/src/features/game-server/GameServerPage.tsx`
+- `web/src/features/game-server/GameServerPage.test.tsx`
+
 ## Change Log
 
 - 2026-11-17: Story 21.8 created and validated (ready-for-dev). Validation against the create-story checklist, every cited path and line read at 966204f. Tasks 1, 2 and 4 were prototyped and the whole web suite run (14 failures in three files and 3 type errors, all listed; prototype discarded). Findings fixed in the story: with `auto`, the width rule alone would show the icon-only sidebar in every phone's sheet, so the rule, the sheet and the preferences control are one commit; `GameServerPage` has no route, so one console page is exempt, by a path list in the layout (route handles need a data router); the cap makes Story 18.4's 63-character name wrap at every width, so three E2E tests are rewritten and the PR says so; `openPage` must write the new key or the tablet "sidebar expanded" tests run collapsed and still pass; the collapsed toggle had no accessible name; the cookie is read as `unknown` with a guard instead of an assertion; expected widths computed for 1280 to 2560px in both sidebar states.
+- 2026-11-17: Story 21.8 implemented (Tasks 1 to 5, gate 6.1 to 6.3); status review. Manual check 5.5, the PR (6.4) and the bead closing (6.5) are left for the maintainer and the controller.
