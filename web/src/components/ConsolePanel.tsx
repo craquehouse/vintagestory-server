@@ -218,7 +218,8 @@ export function ConsolePanel({
     <Card className={cn('flex flex-col overflow-hidden', className)} data-testid="console-panel">
       {showHeader && (
         <CardHeader className="flex-shrink-0 border-b py-3">
-          <div className="flex items-center justify-between gap-2">
+          {/* Story 21.7: on phones the font size and connection status wrap under the title */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg">{title}</CardTitle>
               <DropdownMenu>

@@ -29,6 +29,7 @@ import { fetchOnNewConnection, pretendServerInstalled, serveConfigKey } from './
  * - Version: at 320-430px the table fits without scrolling; Channel and Status are hidden and
  *   the channel, "Latest" and "Installed" show under the version; "Select" is 44px tall below
  *   1024px and 32px from 1024px.
+ * - Console: at 320-430px its controls wrap, so the page does not scroll sideways.
  *
  * Reads only. The installed mods, their update status and the compatibility lookups are
  * stubbed with `page.route` (the three mods of installed-mods-phone.spec.ts), as are the
@@ -937,6 +938,25 @@ test.describe('Version table on phones (Story 21.7, AC 7)', () => {
     const select = page.getByTestId('version-table-select-1.22.7');
     expect((await boxOf(select, 'Select')).height).toBe(32);
   });
+});
+
+test.describe('Console header on phones (Story 21.7, AC 8)', () => {
+  // Measured before the fix: the document scrolled 170, 100 and 60px sideways
+  for (const width of [320, 390, 430]) {
+    test(`the console's controls wrap inside the page at ${width}px`, async ({ page }) => {
+      await openPage(page, width, false, '/game-server/console');
+      await expect(page.getByTestId('console-panel')).toBeVisible({ timeout: 30_000 });
+
+      expect(await documentOverflow(page)).toBe(0);
+      await expectInsideViewport(page, 'source-selector', width);
+      await expectInsideViewport(page, 'console-font-increase', width);
+      await expectInsideViewport(
+        page,
+        page.getByTestId('console-page').getByRole('button', { name: /restart/i }),
+        width
+      );
+    });
+  }
 });
 
 test.describe('Game Settings title row on wide screens (Story 17.8, AC 5)', () => {
