@@ -7,7 +7,6 @@
  * Story 11.5: Console Page Extraction
  */
 
-export { GameServerPage } from './GameServerPage';
 export { GameConfigPanel } from './GameConfigPanel';
 export { VersionPage } from './VersionPage';
 export { SettingsPage } from './SettingsPage';
